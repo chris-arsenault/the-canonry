@@ -19,6 +19,27 @@ export default function GraphView({ data, selectedNodeId, onNodeSelect }: GraphV
   const cyRef = useRef<Core | null>(null);
   const isInitializedRef = useRef(false);
 
+  const handleRecalculateLayout = () => {
+    if (!cyRef.current) return;
+
+    const layout = cyRef.current.layout({
+      name: 'cose-bilkent',
+      randomize: false,
+      fit: true,
+      idealEdgeLength: 100,
+      nodeRepulsion: 100000,
+      gravity: 0.25,
+      numIter: 2500,
+      tile: true,
+      tilingPaddingVertical: 10,
+      tilingPaddingHorizontal: 10,
+      animate: true,
+      animationDuration: 1000
+    } as any);
+
+    layout.run();
+  };
+
   // Initialize graph once
   useEffect(() => {
     if (!containerRef.current || isInitializedRef.current) return;
@@ -302,6 +323,18 @@ export default function GraphView({ data, selectedNodeId, onNodeSelect }: GraphV
           </div>
         </div>
       </div>
+
+      {/* Recalculate Layout Button */}
+      <button
+        onClick={handleRecalculateLayout}
+        className="absolute top-6 right-6 px-4 py-2 rounded-lg text-white text-xs font-semibold shadow-2xl border border-blue-500/30 transition-all"
+        style={{
+          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.9) 0%, rgba(37, 99, 235, 0.9) 100%)'
+        }}
+        title="Recalculate graph layout"
+      >
+        ♻️ Recalculate Layout
+      </button>
     </div>
   );
 }

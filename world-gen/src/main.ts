@@ -22,20 +22,22 @@ import { loadLoreIndex } from './services/loreIndex';
 import { EnrichmentService } from './services/enrichmentService';
 import { validateWorld } from './utils/validators';
 
+const sanitize = (value?: string | null): string => (value ?? '').trim();
+
 // Load initial state (you'll need to adjust the path)
 import initialStateData from '../data/initialState.json';
 
 // LLM / lore configuration (default disabled to prevent accidents)
-const llmEnv = (process.env.LLM_ENABLED || '').toLowerCase();
+const llmEnv = sanitize(process.env.LLM_ENABLED).toLowerCase();
 const llmPartial = llmEnv === 'partial';
 const llmEnabled = llmEnv === 'true' || llmEnv === 'full' || llmPartial;
 const llmMode: 'off' | 'partial' | 'full' = llmEnabled ? (llmPartial ? 'partial' : 'full') : 'off';
-const llmModel = process.env.LLM_MODEL || 'claude-3-5-haiku-20241022';
+const llmModel = sanitize(process.env.LLM_MODEL) || 'claude-3-5-haiku-20241022';
 const loreIndex = loadLoreIndex('./data/LORE_BIBLE.md');
 const llmConfig = {
   enabled: llmEnabled,
   model: llmModel,
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: sanitize(process.env.ANTHROPIC_API_KEY),
   maxTokens: 512,
   temperature: 0.4
 };

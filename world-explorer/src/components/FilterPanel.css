@@ -229,3 +229,100 @@
   font-weight: 700;
   color: #ffffff;
 }
+
+/* Accordion Styles */
+.filter-accordion-container {
+  background: rgba(30, 58, 95, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.filter-accordion-header {
+  width: 100%;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+  color: white;
+}
+
+.filter-accordion-header:hover {
+  background: rgba(30, 58, 95, 0.4);
+}
+
+.filter-accordion-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-accordion-icon {
+  color: #93c5fd;
+  font-weight: bold;
+  font-size: 14px;
+  width: 16px;
+  text-align: center;
+}
+
+.filter-accordion-title {
+  color: #ffffff;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.filter-accordion-badge {
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: bold;
+  background: rgba(37, 99, 235, 0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.filter-accordion-content {
+  border-top: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.filter-accordion-content .filter-checkbox-label {
+  font-size: 11px;
+  padding: 4px 6px;
+}
+
+.filter-accordion-controls {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.filter-accordion-control-btn {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-accordion-control-btn:hover {
+  background: rgba(59, 130, 246, 0.3);
+  color: #ffffff;
+}

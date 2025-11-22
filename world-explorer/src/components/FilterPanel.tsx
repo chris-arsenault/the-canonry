@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import type { EntityKind, Filters, Prominence, WorldState } from '../types/world.ts';
-import { getAllTags } from '../utils/dataTransform.ts';
+import { getAllTags, getAllRelationshipTypes, getRelationshipTypeCounts } from '../utils/dataTransform.ts';
 import './FilterPanel.css';
 
 interface FilterPanelProps {
@@ -10,7 +11,16 @@ interface FilterPanelProps {
 
 export default function FilterPanel({ filters, onChange, worldData }: FilterPanelProps) {
   const allTags = getAllTags(worldData);
+  const allRelationshipTypes = getAllRelationshipTypes(worldData);
+  const relationshipTypeCounts = getRelationshipTypeCounts(worldData);
   const maxTick = worldData.metadata.tick;
+
+  // Sort relationship types by count (descending)
+  const sortedRelationshipTypes = [...allRelationshipTypes].sort((a, b) => {
+    return (relationshipTypeCounts[b] || 0) - (relationshipTypeCounts[a] || 0);
+  });
+
+  const [isRelTypesExpanded, setIsRelTypesExpanded] = useState(false);
 
   const toggleKind = (kind: EntityKind) => {
     const kinds = filters.kinds.includes(kind)
@@ -24,6 +34,28 @@ export default function FilterPanel({ filters, onChange, worldData }: FilterPane
       ? filters.tags.filter(t => t !== tag)
       : [...filters.tags, tag];
     onChange({ ...filters, tags });
+  };
+
+  const toggleRelationshipType = (type: string) => {
+    let relationshipTypes: string[];
+
+    if (filters.relationshipTypes.length === 0) {
+      // Currently showing all, uncheck one means select all EXCEPT this one
+      relationshipTypes = sortedRelationshipTypes.filter(t => t !== type);
+    } else if (filters.relationshipTypes.includes(type)) {
+      // Currently checked, uncheck it
+      relationshipTypes = filters.relationshipTypes.filter(t => t !== type);
+    } else {
+      // Currently unchecked, check it
+      relationshipTypes = [...filters.relationshipTypes, type];
+
+      // If all are now checked, go back to "show all" (empty array)
+      if (relationshipTypes.length === sortedRelationshipTypes.length) {
+        relationshipTypes = [];
+      }
+    }
+
+    onChange({ ...filters, relationshipTypes });
   };
 
   const entityKinds: EntityKind[] = ['npc', 'faction', 'location', 'rules', 'abilities'];
@@ -64,6 +96,59 @@ export default function FilterPanel({ filters, onChange, worldData }: FilterPane
               <span>{kind}</span>
             </label>
           ))}
+        </div>
+      </div>
+
+      {/* Relationship Types */}
+      <div className="filter-section">
+        <div className="filter-accordion-container">
+          <button
+            onClick={() => setIsRelTypesExpanded(!isRelTypesExpanded)}
+            className="filter-accordion-header"
+          >
+            <div className="filter-accordion-header-left">
+              <span className="filter-accordion-icon">{isRelTypesExpanded ? '−' : '+'}</span>
+              <span className="filter-accordion-title">Relationship Types</span>
+            </div>
+            <span className="filter-accordion-badge">
+              {filters.relationshipTypes.length === 0
+                ? 'All'
+                : filters.relationshipTypes.length === sortedRelationshipTypes.length
+                ? 'None'
+                : filters.relationshipTypes.length}
+            </span>
+          </button>
+          {isRelTypesExpanded && (
+            <div className="filter-accordion-content">
+              <div className="filter-accordion-controls">
+                <button
+                  onClick={() => onChange({ ...filters, relationshipTypes: [] })}
+                  className="filter-accordion-control-btn"
+                >
+                  Select All
+                </button>
+                <button
+                  onClick={() => onChange({ ...filters, relationshipTypes: sortedRelationshipTypes })}
+                  className="filter-accordion-control-btn"
+                >
+                  Clear All
+                </button>
+              </div>
+              {sortedRelationshipTypes.map(type => {
+                const isChecked = filters.relationshipTypes.length === 0 || filters.relationshipTypes.includes(type);
+                return (
+                  <label key={type} className="filter-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleRelationshipType(type)}
+                    />
+                    <span>{type.replace(/_/g, ' ')} ({relationshipTypeCounts[type]})</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -142,7 +227,8 @@ export default function FilterPanel({ filters, onChange, worldData }: FilterPane
           minProminence: 'forgotten',
           timeRange: [0, maxTick],
           tags: [],
-          searchQuery: ''
+          searchQuery: '',
+          relationshipTypes: []
         })}
         className="reset-button"
       >

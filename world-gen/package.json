@@ -10,6 +10,7 @@
     "clean": "rm -rf dist output"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.26.0",
     "typescript": "^5.9.3",
     "ts-node": "^10.9.0"
   },

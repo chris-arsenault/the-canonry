@@ -19,7 +19,8 @@ export default function WorldExplorer({ worldData }: WorldExplorerProps) {
     minProminence: 'forgotten',
     timeRange: [0, worldData.metadata.tick],
     tags: [],
-    searchQuery: ''
+    searchQuery: '',
+    relationshipTypes: []
   });
 
   // Apply temporal filter first, then regular filters

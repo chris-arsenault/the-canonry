@@ -93,10 +93,29 @@ export function applyFilters(worldState: WorldState, filters: Filters): WorldSta
   // Get IDs of filtered entities
   const filteredIds = new Set(filtered.map(e => e.id));
 
+  // Get all unique relationship types for comparison
+  const allRelTypes = new Set(worldState.relationships.map(r => r.kind));
+
   // Filter relationships to only include those between filtered entities
-  const filteredRelationships = worldState.relationships.filter(rel =>
-    filteredIds.has(rel.src) && filteredIds.has(rel.dst)
-  );
+  // Also filter by relationship type if specified
+  const filteredRelationships = worldState.relationships.filter(rel => {
+    // Must be between visible entities
+    if (!filteredIds.has(rel.src) || !filteredIds.has(rel.dst)) return false;
+
+    // If relationship type filter has ALL types selected, show none (special "clear all" case)
+    if (filters.relationshipTypes.length === allRelTypes.size &&
+        filters.relationshipTypes.length > 0) {
+      return false;
+    }
+
+    // If relationship type filter is active and not empty, check if this type is included
+    if (filters.relationshipTypes.length > 0) {
+      return filters.relationshipTypes.includes(rel.kind);
+    }
+
+    // Empty array means show all
+    return true;
+  });
 
   return {
     ...worldState,
@@ -124,6 +143,14 @@ export function getAllRelationshipTypes(worldState: WorldState): string[] {
     typeSet.add(rel.kind);
   });
   return Array.from(typeSet).sort();
+}
+
+export function getRelationshipTypeCounts(worldState: WorldState): Record<string, number> {
+  const counts: Record<string, number> = {};
+  worldState.relationships.forEach(rel => {
+    counts[rel.kind] = (counts[rel.kind] || 0) + 1;
+  });
+  return counts;
 }
 
 export function getEntityById(worldState: WorldState, id: string): HardState | undefined {

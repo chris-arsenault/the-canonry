@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import Anthropic from '@anthropic-ai/sdk';
 import { LLMConfig } from '../types/engine';
 
 export interface LLMRequest {
@@ -18,23 +19,26 @@ export interface LLMResult {
 export class LLMClient {
   private cache = new Map<string, string>();
   private config: LLMConfig;
+  private client?: Anthropic;
 
   constructor(config: LLMConfig) {
-    this.config = config;
+    this.config = {
+      ...config,
+      model: (config.model || '').trim(),
+      apiKey: (config.apiKey || process.env.ANTHROPIC_API_KEY || '').trim()
+    };
+    const apiKey = this.config.apiKey;
+    if (this.config.enabled && apiKey) {
+      this.client = new Anthropic({ apiKey });
+    }
   }
 
   public isEnabled(): boolean {
-    const apiKey = this.config.apiKey || process.env.ANTHROPIC_API_KEY;
-    return Boolean(this.config.enabled && apiKey);
+    return Boolean(this.client);
   }
 
   public async complete(request: LLMRequest): Promise<LLMResult> {
-    if (!this.isEnabled()) {
-      return { text: '', cached: false, skipped: true };
-    }
-
-    const apiKey = this.config.apiKey || process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
+    if (!this.client) {
       return { text: '', cached: false, skipped: true };
     }
 
@@ -44,46 +48,31 @@ export class LLMClient {
       return { text: cached, cached: true };
     }
 
-    const fetchFn: any = (globalThis as any).fetch;
-    if (!fetchFn) {
+    try {
+      const response = await this.client.messages.create({
+        model: this.config.model,
+        max_tokens: request.maxTokens || this.config.maxTokens || 256,
+        temperature: request.temperature ?? this.config.temperature ?? 0.4,
+        system: request.systemPrompt,
+        messages: [{ role: 'user', content: request.prompt }]
+      });
+
+      let text = '';
+      for (const part of response.content) {
+        if (part.type === 'text') {
+          text += part.text;
+        }
+      }
+
+      if (text) {
+        this.cache.set(cacheKey, text);
+      }
+
+      return { text, cached: false };
+    } catch (error: any) {
+      console.warn('LLM request failed:', error?.message || error);
       return { text: '', cached: false, skipped: true };
     }
-
-    const body = {
-      model: this.config.model,
-      max_tokens: request.maxTokens || this.config.maxTokens || 256,
-      temperature: request.temperature ?? this.config.temperature ?? 0.4,
-      messages: [
-        { role: 'system', content: request.systemPrompt },
-        { role: 'user', content: request.prompt }
-      ],
-      ...(request.json ? { response_format: { type: 'json_object' } } : {})
-    };
-
-    const response = await fetchFn('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.warn(`LLM request failed: ${response.status} ${text}`);
-      return { text: '', cached: false, skipped: true };
-    }
-
-    const data: any = await response.json();
-    const text = data?.content?.[0]?.text || '';
-
-    if (text) {
-      this.cache.set(cacheKey, text);
-    }
-
-    return { text, cached: false };
   }
 
   private createCacheKey(request: LLMRequest): string {
