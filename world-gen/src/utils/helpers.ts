@@ -305,3 +305,51 @@ export function weightedRandom<T>(
 export function rollProbability(baseProbability: number, eraModifier: number = 1.0): boolean {
   return Math.random() < Math.min(1, baseProbability * eraModifier);
 }
+
+// Relationship Cooldown Management
+
+/**
+ * Check if an entity can form a new relationship of a given type based on cooldown.
+ *
+ * @param graph - The world graph
+ * @param entityId - The entity attempting to form a relationship
+ * @param relationshipType - The type of relationship (e.g., 'lover_of', 'enemy_of')
+ * @param cooldownTicks - Minimum ticks that must pass between forming relationships of this type
+ * @returns true if the entity is not on cooldown for this relationship type
+ */
+export function canFormRelationship(
+  graph: Graph,
+  entityId: string,
+  relationshipType: string,
+  cooldownTicks: number
+): boolean {
+  const entityCooldowns = graph.relationshipCooldowns.get(entityId);
+  if (!entityCooldowns) return true;
+
+  const lastFormationTick = entityCooldowns.get(relationshipType);
+  if (lastFormationTick === undefined) return true;
+
+  return (graph.tick - lastFormationTick) >= cooldownTicks;
+}
+
+/**
+ * Record that an entity has formed a relationship, updating cooldown tracking.
+ *
+ * @param graph - The world graph
+ * @param entityId - The entity that formed a relationship
+ * @param relationshipType - The type of relationship formed
+ */
+export function recordRelationshipFormation(
+  graph: Graph,
+  entityId: string,
+  relationshipType: string
+): void {
+  let entityCooldowns = graph.relationshipCooldowns.get(entityId);
+
+  if (!entityCooldowns) {
+    entityCooldowns = new Map();
+    graph.relationshipCooldowns.set(entityId, entityCooldowns);
+  }
+
+  entityCooldowns.set(relationshipType, graph.tick);
+}

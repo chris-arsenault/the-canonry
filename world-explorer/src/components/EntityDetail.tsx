@@ -1,4 +1,4 @@
-import type { HardState, WorldState } from '../types/world.ts';
+import type { WorldState } from '../types/world.ts';
 import { getEntityById, getRelatedEntities, getRelationships } from '../utils/dataTransform.ts';
 
 interface EntityDetailProps {

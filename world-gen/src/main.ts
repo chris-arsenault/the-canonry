@@ -7,18 +7,37 @@ import { penguinEras } from './config/eras';
 import { pressures } from './config/pressures';
 
 // Import templates
-import { npcTemplates } from './templates/npc/npcTemplates';
-import { factionTemplates } from './templates/faction/factionTemplates';
-import { additionalTemplates } from './templates/additionalTemplates';
+import { npcTemplates } from './templates/npc';
+import { factionTemplates } from './templates/faction';
+import { rulesTemplates } from './templates/rules';
+import { abilitiesTemplates } from './templates/abilities';
+import { locationTemplates } from './templates/location';
 
 // Import systems
-import { allSystems } from './systems/simulationSystems';
+import { allSystems } from './systems';
 
 // Import helpers
 import { normalizeInitialState } from './utils/helpers';
+import { loadLoreIndex } from './services/loreIndex';
+import { EnrichmentService } from './services/enrichmentService';
 
 // Load initial state (you'll need to adjust the path)
 import initialStateData from '../data/initialState.json';
+
+// LLM / lore configuration (default disabled to prevent accidents)
+const llmEnabled = process.env.LLM_ENABLED === 'true';
+const llmModel = process.env.LLM_MODEL || 'claude-3-5-haiku-20241022';
+const loreIndex = loadLoreIndex('./data/LORE_BIBLE.md');
+const llmConfig = {
+  enabled: llmEnabled,
+  model: llmModel,
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  maxTokens: 512,
+  temperature: 0.4
+};
+const enrichmentService = llmEnabled
+  ? new EnrichmentService(llmConfig, loreIndex, { batchSize: Number(process.env.LLM_BATCH_SIZE) || 3 })
+  : undefined;
 
 // Configuration
 const config: EngineConfig = {
@@ -26,10 +45,15 @@ const config: EngineConfig = {
   templates: [
     ...npcTemplates,
     ...factionTemplates,
-    ...additionalTemplates
+    ...rulesTemplates,
+    ...abilitiesTemplates,
+    ...locationTemplates
   ],
   systems: allSystems,
   pressures: pressures,
+  llmConfig,
+  enrichmentConfig: { batchSize: Number(process.env.LLM_BATCH_SIZE) || 3 },
+  loreIndex,
 
   // Tuning parameters
   epochLength: 20,                    // ticks per epoch
@@ -45,16 +69,18 @@ async function generateWorld() {
   console.log('   PROCEDURAL WORLD HISTORY GENERATOR');
   console.log('      Super Penguin Colony Simulation');
   console.log('===========================================\n');
+  console.log(`LLM enrichment: ${llmEnabled ? 'enabled' : 'disabled'}${llmEnabled ? ` (${llmModel})` : ''}\n`);
 
   // Parse and normalize initial state
   const initialState: HardState[] = normalizeInitialState(initialStateData.hardState);
 
   // Create and run engine
-  const engine = new WorldEngine(config, initialState);
+  const engine = new WorldEngine(config, initialState, enrichmentService);
   
   console.time('Generation Time');
   const finalGraph = engine.run();
   console.timeEnd('Generation Time');
+  await engine.finalizeEnrichments();
   
   // Export results
   const worldState = engine.exportState();
@@ -145,6 +171,14 @@ async function generateWorld() {
   
   fs.writeFileSync('./output/graph_viz.json', JSON.stringify(graphViz, null, 2));
   console.log(`✅ Graph visualization exported to ./output/graph_viz.json`);
+  
+  const loreOutput = {
+    llmEnabled,
+    model: llmEnabled ? llmModel : 'disabled',
+    records: engine.getLoreRecords()
+  };
+  fs.writeFileSync('./output/lore.json', JSON.stringify(loreOutput, null, 2));
+  console.log(`✅ Lore output exported to ./output/lore.json (${llmEnabled ? 'enabled' : 'disabled'})`);
 }
 
 // Run the generator

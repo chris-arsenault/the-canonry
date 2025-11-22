@@ -2,9 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Arctic Color Palette */
+  --arctic-deep: #0a1929;
+  --arctic-dark: #1e3a5f;
+  --arctic-mid: #2d4a6f;
+  --arctic-ice: #3b82f6;
+  --arctic-frost: #60a5fa;
+  --arctic-light: #93c5fd;
+  --gold-accent: #fbbf24;
+  --gold-dark: #f59e0b;
+}
+
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--arctic-deep);
+  color: #ffffff;
 }
 
 #root {
@@ -17,24 +35,137 @@ body {
 .cytoscape-container {
   width: 100%;
   height: 100%;
-  background: #1a1a2e;
+  background: linear-gradient(135deg, #0a1929 0%, #1a2332 50%, #0f1f3a 100%);
+  position: relative;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - Ice themed */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a2e;
+  background: var(--arctic-deep);
+  border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4a5568;
-  border-radius: 4px;
+  background: linear-gradient(180deg, var(--arctic-ice) 0%, var(--arctic-dark) 100%);
+  border-radius: 5px;
+  border: 2px solid var(--arctic-deep);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #718096;
+  background: linear-gradient(180deg, var(--arctic-frost) 0%, var(--arctic-ice) 100%);
+}
+
+/* Custom range slider styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--arctic-dark);
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--arctic-frost);
+  cursor: pointer;
+  border: 2px solid var(--arctic-ice);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: var(--gold-accent);
+  border-color: var(--gold-dark);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--arctic-frost);
+  cursor: pointer;
+  border: 2px solid var(--arctic-ice);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  background: var(--gold-accent);
+  border-color: var(--gold-dark);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+}
+
+/* Custom checkbox styling */
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--arctic-ice);
+  border-radius: 3px;
+  background: var(--arctic-deep);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+
+input[type="checkbox"]:checked {
+  background: var(--arctic-ice);
+  border-color: var(--arctic-frost);
+}
+
+input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+input[type="checkbox"]:hover {
+  border-color: var(--arctic-frost);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Focus styles */
+input:focus,
+select:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: var(--arctic-frost);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Button hover effects */
+button {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* Selection highlight */
+::selection {
+  background: var(--arctic-frost);
+  color: var(--arctic-deep);
 }

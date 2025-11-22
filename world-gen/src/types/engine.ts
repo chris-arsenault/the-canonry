@@ -1,4 +1,17 @@
-import { HardState, Relationship, Prominence } from './worldTypes';
+import { HardState, Relationship } from './worldTypes';
+import { LoreIndex, LoreRecord } from './lore';
+
+export interface LLMConfig {
+  enabled: boolean;
+  model: string;
+  apiKey?: string;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+export interface EnrichmentConfig {
+  batchSize: number;
+}
 
 // Era definition
 export interface Era {
@@ -20,6 +33,9 @@ export interface Graph {
   pressures: Map<string, number>;
   history: HistoryEvent[];
   config: EngineConfig;  // Reference to engine configuration
+  relationshipCooldowns: Map<string, Map<string, number>>;  // entityId → (relationshipType → lastFormationTick)
+  loreIndex?: LoreIndex;
+  loreRecords: LoreRecord[];
 }
 
 // History tracking
@@ -96,4 +112,7 @@ export interface EngineConfig {
   targetEntitiesPerKind: number;
   maxTicks: number;
   maxRelationshipsPerType: number;  // max relationships of same type per entity
+  llmConfig?: LLMConfig;
+  enrichmentConfig?: EnrichmentConfig;
+  loreIndex?: LoreIndex;
 }

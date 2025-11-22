@@ -1,4 +1,5 @@
 import { Graph, EngineConfig, Era, GrowthTemplate, HistoryEvent } from '../types/engine';
+import { LoreRecord } from '../types/lore';
 import { HardState, Relationship } from '../types/worldTypes';
 import { 
   generateId,
@@ -7,17 +8,22 @@ import {
   updateEntity,
   pickRandom,
   weightedRandom,
-  findEntities
+  findEntities,
+  getProminenceValue
 } from '../utils/helpers';
 import { selectEra, getTemplateWeight, getSystemModifier } from '../config/eras';
+import { EnrichmentService } from '../services/enrichmentService';
 
 export class WorldEngine {
   private config: EngineConfig;
   private graph: Graph;
   private currentEpoch: number;
+  private enrichmentService?: EnrichmentService;
+  private pendingEnrichments: Promise<void>[] = [];
   
-  constructor(config: EngineConfig, initialState: HardState[]) {
+  constructor(config: EngineConfig, initialState: HardState[], enrichmentService?: EnrichmentService) {
     this.config = config;
+    this.enrichmentService = enrichmentService;
     this.currentEpoch = 0;
     
     // Initialize graph from initial state
@@ -28,7 +34,10 @@ export class WorldEngine {
       currentEra: config.eras[0],
       pressures: new Map(config.pressures.map(p => [p.id, p.value])),
       history: [],
-      config: config
+      config: config,
+      relationshipCooldowns: new Map(),
+      loreRecords: [],
+      loreIndex: config.loreIndex
     };
     
     // Load initial entities
@@ -98,6 +107,7 @@ export class WorldEngine {
   }
   
   private runEpoch(): void {
+    const previousEra = this.graph.currentEra;
     const era = selectEra(this.currentEpoch, this.config.eras);
     this.graph.currentEra = era;
     
@@ -124,11 +134,14 @@ export class WorldEngine {
     this.pruneAndConsolidate();
     
     this.reportEpochStats();
+    
+    this.queueEraNarrative(previousEra, era);
   }
   
   private runGrowthPhase(era: Era): void {
     const growthTargets = Math.floor(5 + Math.random() * 10); // 5-15 new entities
     let entitiesCreated = 0;
+    const createdEntities: HardState[] = [];
     
     // Shuffle templates for variety
     const shuffledTemplates = [...this.config.templates].sort(() => Math.random() - 0.5);
@@ -158,6 +171,8 @@ export class WorldEngine {
         result.entities.forEach((entity, i) => {
           const id = addEntity(this.graph, entity);
           newIds.push(id);
+          const ref = this.graph.entities.get(id);
+          if (ref) createdEntities.push(ref);
         });
         
         // Add relationships (resolve placeholder IDs)
@@ -193,11 +208,14 @@ export class WorldEngine {
     }
     
     console.log(`  Growth: +${entitiesCreated} entities`);
+    
+    this.queueEntityEnrichment(createdEntities);
   }
   
   private runSimulationTick(era: Era): void {
     let totalRelationships = 0;
     let totalModifications = 0;
+    const relationshipsThisTick: Relationship[] = [];
     
     for (const system of this.config.systems) {
       const modifier = getSystemModifier(era, system.id);
@@ -208,7 +226,12 @@ export class WorldEngine {
         
         // Apply relationships
         result.relationshipsAdded.forEach(rel => {
+          const before = this.graph.relationships.length;
           addRelationship(this.graph, rel.kind, rel.src, rel.dst);
+          const after = this.graph.relationships.length;
+          if (after > before) {
+            relationshipsThisTick.push(rel);
+          }
         });
         
         // Apply modifications
@@ -228,6 +251,10 @@ export class WorldEngine {
       } catch (error) {
         console.error(`System ${system.id} failed:`, error);
       }
+    }
+    
+    if (relationshipsThisTick.length > 0) {
+      this.queueRelationshipEnrichment(relationshipsThisTick);
     }
     
     if (totalRelationships > 0 || totalModifications > 0) {
@@ -300,13 +327,122 @@ export class WorldEngine {
     console.log(`  Pressures:`, Object.fromEntries(this.graph.pressures));
   }
   
+  private queueEntityEnrichment(entities: HardState[]): void {
+    if (!this.enrichmentService?.isEnabled() || entities.length === 0) return;
+    
+    const context = this.buildEnrichmentContext();
+    const enrichmentPromise = (async () => {
+      const records = await this.enrichmentService!.enrichEntities(entities, context);
+      this.graph.loreRecords.push(...records);
+      
+      // Abilities get an extra pass to keep tech/magic in bounds
+      const abilityRecords = await Promise.all(
+        entities
+          .filter(e => e.kind === 'abilities')
+          .map(e => this.enrichmentService!.enrichAbility(e, context))
+      );
+      
+      abilityRecords
+        .filter((r): r is LoreRecord => Boolean(r))
+        .forEach(r => this.graph.loreRecords.push(r));
+    })().catch(error => console.warn('Enrichment failed:', error));
+    
+    this.pendingEnrichments.push(enrichmentPromise.then(() => undefined));
+  }
+  
+  private queueRelationshipEnrichment(newRelationships: Relationship[]): void {
+    if (!this.enrichmentService?.isEnabled()) return;
+    
+    const notable = newRelationships.filter(rel => {
+      const a = this.graph.entities.get(rel.src);
+      const b = this.graph.entities.get(rel.dst);
+      if (!a || !b) return false;
+      
+      return getProminenceValue(a.prominence) >= 2 && getProminenceValue(b.prominence) >= 2;
+    }).slice(0, 3); // keep batches small for quality
+    
+    if (notable.length === 0) return;
+    
+    const actors: Record<string, HardState> = {};
+    notable.forEach(rel => {
+      const a = this.graph.entities.get(rel.src);
+      const b = this.graph.entities.get(rel.dst);
+      if (a) actors[a.id] = a;
+      if (b) actors[b.id] = b;
+    });
+    
+    const context = this.buildEnrichmentContext();
+    const promise = this.enrichmentService.enrichRelationships(notable, actors, context)
+      .then(records => {
+        this.graph.loreRecords.push(...records);
+      })
+      .catch(error => console.warn('Relationship enrichment failed:', error));
+    
+    this.pendingEnrichments.push(promise.then(() => undefined));
+  }
+  
+  private queueEraNarrative(fromEra: Era, toEra: Era): void {
+    if (!this.enrichmentService?.isEnabled()) return;
+    if (fromEra.id === toEra.id) return;
+    
+    const actors = Array.from(this.graph.entities.values())
+      .filter(e => getProminenceValue(e.prominence) >= 3)
+      .slice(0, 5);
+    
+    const pressures = Object.fromEntries(this.graph.pressures);
+    const promise = this.enrichmentService.generateEraNarrative({
+      fromEra: fromEra.name,
+      toEra: toEra.name,
+      pressures,
+      actors,
+      tick: this.graph.tick
+    }).then(record => {
+      if (record) {
+        this.graph.loreRecords.push(record);
+        this.graph.history.push({
+          tick: this.graph.tick,
+          era: toEra.id,
+          type: 'special',
+          description: record.text,
+          entitiesCreated: [],
+          relationshipsCreated: [],
+          entitiesModified: []
+        });
+      }
+    }).catch(error => console.warn('Era narrative enrichment failed:', error));
+    
+    this.pendingEnrichments.push(promise.then(() => undefined));
+  }
+  
+  private buildEnrichmentContext() {
+    return {
+      graphSnapshot: {
+        tick: this.graph.tick,
+        era: this.graph.currentEra.name,
+        pressures: Object.fromEntries(this.graph.pressures)
+      },
+      relatedHistory: this.graph.history.slice(-5).map(h => h.description)
+    };
+  }
+  
   // Export methods
   public getGraph(): Graph {
     return this.graph;
   }
   
+  public getLoreRecords(): LoreRecord[] {
+    return this.graph.loreRecords;
+  }
+  
   public getHistory(): HistoryEvent[] {
     return this.graph.history;
+  }
+  
+  public async finalizeEnrichments(): Promise<void> {
+    if (this.pendingEnrichments.length === 0) return;
+    const pending = [...this.pendingEnrichments];
+    this.pendingEnrichments = [];
+    await Promise.allSettled(pending);
   }
   
   public exportState(): any {
@@ -322,7 +458,8 @@ export class WorldEngine {
       hardState: entities,
       relationships: this.graph.relationships,
       pressures: Object.fromEntries(this.graph.pressures),
-      history: this.graph.history.slice(-50) // Last 50 events
+      history: this.graph.history.slice(-50), // Last 50 events
+      loreRecords: this.graph.loreRecords
     };
   }
 }

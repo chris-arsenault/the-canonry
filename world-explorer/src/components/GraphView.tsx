@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import cytoscape from 'cytoscape';
-import type { Core, EdgeSingular, NodeSingular } from 'cytoscape';
+import type { Core, NodeSingular } from 'cytoscape';
 // @ts-ignore
 import coseBilkent from 'cytoscape-cose-bilkent';
 import type { WorldState } from '../types/world.ts';
-import { transformWorldData, getKindColor } from '../utils/dataTransform.ts';
+import { transformWorldData } from '../utils/dataTransform.ts';
 
 cytoscape.use(coseBilkent);
 
@@ -94,7 +94,6 @@ export default function GraphView({ data, selectedNodeId, onNodeSelect }: GraphV
       ],
       layout: {
         name: 'cose-bilkent',
-        animate: true,
         randomize: true,
         idealEdgeLength: 100,
         nodeRepulsion: 100000,
@@ -103,7 +102,7 @@ export default function GraphView({ data, selectedNodeId, onNodeSelect }: GraphV
         tile: true,
         tilingPaddingVertical: 10,
         tilingPaddingHorizontal: 10
-      },
+      } as any,
       wheelSensitivity: 1.5
     });
 
