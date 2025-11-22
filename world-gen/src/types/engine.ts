@@ -19,6 +19,7 @@ export interface Graph {
   currentEra: Era;
   pressures: Map<string, number>;
   history: HistoryEvent[];
+  config: EngineConfig;  // Reference to engine configuration
 }
 
 // History tracking
@@ -88,10 +89,11 @@ export interface EngineConfig {
   templates: GrowthTemplate[];
   systems: SimulationSystem[];
   pressures: Pressure[];
-  
+
   // Configuration
   epochLength: number;  // ticks per epoch
   simulationTicksPerGrowth: number;
   targetEntitiesPerKind: number;
   maxTicks: number;
+  maxRelationshipsPerType: number;  // max relationships of same type per entity
 }

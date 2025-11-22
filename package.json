@@ -1,0 +1,32 @@
+{
+  "name": "penguin-history",
+  "version": "1.0.0",
+  "description": "Procedural world history generation and visualization",
+  "private": true,
+  "scripts": {
+    "generate": "cd world-gen && npm run dev",
+    "build:gen": "cd world-gen && npm run build",
+    "viz": "cd world-explorer && npm run dev",
+    "build:viz": "cd world-explorer && npm run build",
+    "sync": "cp world-gen/output/generated_world.json world-explorer/src/data/worldData.json && echo '✅ World data synced to visualization'",
+    "generate:sync": "npm run generate && npm run sync",
+    "dev": "npm run generate:sync && npm run viz",
+    "install:all": "cd world-gen && npm install && cd ../world-explorer && npm install",
+    "clean:gen": "cd world-gen && npm run clean",
+    "clean:all": "cd world-gen && npm run clean && cd ../world-explorer && rm -rf dist"
+  },
+  "workspaces": [
+    "world-gen",
+    "world-explorer"
+  ],
+  "keywords": [
+    "procedural-generation",
+    "world-building",
+    "simulation",
+    "visualization",
+    "graph",
+    "cytoscape"
+  ],
+  "author": "",
+  "license": "ISC"
+}

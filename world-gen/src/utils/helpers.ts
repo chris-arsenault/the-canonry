@@ -205,21 +205,43 @@ export function addRelationship(
   dstId: string
 ): void {
   // Check if relationship already exists
-  if (!hasRelationship(graph, srcId, dstId, kind)) {
-    graph.relationships.push({ kind, src: srcId, dst: dstId });
-    
-    // Update entity links
-    const srcEntity = graph.entities.get(srcId);
-    const dstEntity = graph.entities.get(dstId);
-    
-    if (srcEntity) {
-      srcEntity.links.push({ kind, src: srcId, dst: dstId });
-      srcEntity.updatedAt = graph.tick;
+  if (hasRelationship(graph, srcId, dstId, kind)) {
+    return;
+  }
+
+  // Check relationship limit per type
+  const srcEntity = graph.entities.get(srcId);
+  if (srcEntity && graph.config) {
+    const existingOfType = srcEntity.links.filter(link => link.kind === kind).length;
+
+    if (existingOfType >= graph.config.maxRelationshipsPerType) {
+      console.warn(
+        `⚠️  RELATIONSHIP LIMIT EXCEEDED:\n` +
+        `   Entity: ${srcEntity.name} (${srcEntity.id})\n` +
+        `   Type: ${kind}\n` +
+        `   Current count: ${existingOfType}\n` +
+        `   Limit: ${graph.config.maxRelationshipsPerType}\n` +
+        `   Target: ${graph.entities.get(dstId)?.name || dstId}\n` +
+        `   Tick: ${graph.tick}\n` +
+        `   Era: ${graph.currentEra.name}`
+      );
+      return;
     }
-    
-    if (dstEntity) {
-      dstEntity.updatedAt = graph.tick;
-    }
+  }
+
+  // Add relationship
+  graph.relationships.push({ kind, src: srcId, dst: dstId });
+
+  // Update entity links
+  const dstEntity = graph.entities.get(dstId);
+
+  if (srcEntity) {
+    srcEntity.links.push({ kind, src: srcId, dst: dstId });
+    srcEntity.updatedAt = graph.tick;
+  }
+
+  if (dstEntity) {
+    dstEntity.updatedAt = graph.tick;
   }
 }
 
@@ -251,16 +273,35 @@ export function weightedRandom<T>(
   weights: number[]
 ): T | undefined {
   if (items.length === 0 || items.length !== weights.length) return undefined;
-  
+
   const totalWeight = weights.reduce((sum, w) => sum + w, 0);
   let random = Math.random() * totalWeight;
-  
+
   for (let i = 0; i < items.length; i++) {
     random -= weights[i];
     if (random <= 0) {
       return items[i];
     }
   }
-  
+
   return items[items.length - 1];
+}
+
+/**
+ * Check if a probabilistic event should occur, scaled by an era modifier.
+ *
+ * @param baseProbability - Base chance of the event occurring (0.0 to 1.0)
+ *                         e.g., 0.3 = 30% chance
+ * @param eraModifier - Era-based multiplier for the probability
+ *                      > 1 increases likelihood, < 1 decreases it
+ * @returns true if the event should occur
+ *
+ * @example
+ * // 30% base chance, doubled in conflict era (modifier = 2)
+ * if (rollProbability(0.3, eraModifier)) {
+ *   createConflict();
+ * }
+ */
+export function rollProbability(baseProbability: number, eraModifier: number = 1.0): boolean {
+  return Math.random() < Math.min(1, baseProbability * eraModifier);
 }

@@ -30,12 +30,13 @@ const config: EngineConfig = {
   ],
   systems: allSystems,
   pressures: pressures,
-  
+
   // Tuning parameters
   epochLength: 20,                    // ticks per epoch
   simulationTicksPerGrowth: 10,       // simulation ticks between growth phases
   targetEntitiesPerKind: 30,          // target ~150 total entities (5 kinds)
-  maxTicks: 500                       // maximum simulation ticks
+  maxTicks: 500,                      // maximum simulation ticks
+  maxRelationshipsPerType: 3          // max relationships of same type per entity
 };
 
 // Main execution

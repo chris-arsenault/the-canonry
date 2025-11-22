@@ -27,7 +27,8 @@ export class WorldEngine {
       tick: 0,
       currentEra: config.eras[0],
       pressures: new Map(config.pressures.map(p => [p.id, p.value])),
-      history: []
+      history: [],
+      config: config
     };
     
     // Load initial entities

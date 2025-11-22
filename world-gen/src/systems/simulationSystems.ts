@@ -8,7 +8,8 @@ import {
   hasRelationship,
   pickRandom,
   getProminenceValue,
-  adjustProminence
+  adjustProminence,
+  rollProbability
 } from '../utils/helpers';
 
 // Relationship Formation System
@@ -33,17 +34,16 @@ export const relationshipFormation: SimulationSystem = {
       );
       
       neighbors.forEach(neighbor => {
-        const chance = Math.random() * modifier;
-        
         // Shared faction → friendship/rivalry
         const npcFactions = getRelated(graph, npc.id, 'member_of', 'src');
         const neighborFactions = getRelated(graph, neighbor.id, 'member_of', 'src');
-        
-        const sharedFaction = npcFactions.some(f => 
+
+        const sharedFaction = npcFactions.some(f =>
           neighborFactions.some(nf => nf.id === f.id)
         );
-        
-        if (sharedFaction && chance > 0.7) {
+
+        // Shared faction → friendship/rivalry (30% base chance)
+        if (sharedFaction && rollProbability(0.3, modifier)) {
           if (!hasRelationship(graph, npc.id, neighbor.id)) {
             relationships.push({
               kind: Math.random() > 0.3 ? 'follower_of' : 'rival_of',
@@ -52,9 +52,10 @@ export const relationshipFormation: SimulationSystem = {
             });
           }
         }
-        
-        // Different factions → conflict
-        if (!sharedFaction && npcFactions.length > 0 && neighborFactions.length > 0 && chance > 0.6) {
+
+        // Different factions → conflict (40% base chance)
+        if (!sharedFaction && npcFactions.length > 0 && neighborFactions.length > 0
+            && rollProbability(0.4, modifier)) {
           if (!hasRelationship(graph, npc.id, neighbor.id, 'enemy_of')) {
             relationships.push({
               kind: 'enemy_of',
@@ -63,9 +64,9 @@ export const relationshipFormation: SimulationSystem = {
             });
           }
         }
-        
-        // Romance (rare)
-        if (chance > 0.9 && !hasRelationship(graph, npc.id, neighbor.id)) {
+
+        // Romance (rare - 10% base chance)
+        if (rollProbability(0.1, modifier) && !hasRelationship(graph, npc.id, neighbor.id)) {
           relationships.push({
             kind: 'lover_of',
             src: npc.id,
@@ -104,9 +105,9 @@ export const conflictContagion: SimulationSystem = {
       const dstAllies = getRelated(graph, conflict.dst, 'follower_of', 'dst')
         .concat(getRelated(graph, conflict.dst, 'member_of', 'src'));
       
-      // Conflicts spread to allies with probability based on modifier
+      // Conflicts spread to allies (30% base chance)
       srcAllies.forEach(ally => {
-        if (Math.random() * modifier > 0.7) {
+        if (rollProbability(0.3, modifier)) {
           if (!hasRelationship(graph, ally.id, conflict.dst)) {
             relationships.push({
               kind: 'enemy_of',
@@ -116,9 +117,9 @@ export const conflictContagion: SimulationSystem = {
           }
         }
       });
-      
+
       dstAllies.forEach(ally => {
-        if (Math.random() * modifier > 0.7) {
+        if (rollProbability(0.3, modifier)) {
           if (!hasRelationship(graph, ally.id, conflict.src)) {
             relationships.push({
               kind: 'enemy_of',
@@ -227,8 +228,8 @@ export const culturalDrift: SimulationSystem = {
             }
           }
         } else {
-          // Disconnected colonies diverge (increase drift)
-          if (Math.random() * modifier > 0.7) {
+          // Disconnected colonies diverge (30% base chance)
+          if (rollProbability(0.3, modifier)) {
             const divergentTag = pickRandom(['isolated', 'unique', 'divergent']);
             if (!colony.tags.includes(divergentTag) && colony.tags.length < 5) {
               modifications.push({
@@ -344,8 +345,8 @@ export const allianceFormation: SimulationSystem = {
           otherEnemies.some(oe => oe.id === e.id)
         );
         
-        // Common enemies drive alliances
-        if (commonEnemies.length > 0 && Math.random() * modifier > 0.5) {
+        // Common enemies drive alliances (50% base chance)
+        if (commonEnemies.length > 0 && rollProbability(0.5, modifier)) {
           if (!hasRelationship(graph, faction.id, otherFaction.id, 'allied_with')) {
             relationships.push({
               kind: 'allied_with',

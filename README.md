@@ -30,22 +30,34 @@ npm run dev
 
 ## Quick Start
 
+### Initial Setup
 ```bash
-# 1. Generate a world
-cd world-gen
-npm install
-npm run dev
+# Install dependencies for both projects
+npm run install:all
+```
 
-# 2. Copy to explorer (in new terminal)
-cd ../world-explorer
-npm install
-cp ../world-gen/output/generated_world.json src/data/worldData.json
-
-# 3. Launch visualization
+### Generate & Visualize (All-in-One)
+```bash
+# Generate world and launch visualization
 npm run dev
 ```
 
 Then open http://localhost:5173/ to explore the generated world!
+
+### Individual Commands
+```bash
+# Generate a world
+npm run generate
+
+# Sync generated world to visualization
+npm run sync
+
+# Generate and sync in one command
+npm run generate:sync
+
+# Launch visualization only
+npm run viz
+```
 
 ## Key Concepts
 
