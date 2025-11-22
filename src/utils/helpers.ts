@@ -159,10 +159,27 @@ export function adjustProminence(
   return order[newIndex];
 }
 
+// Initial state normalization
+export function normalizeInitialState(entities: any[]): HardState[] {
+  return entities.map(entity => ({
+    id: entity.id || entity.name || generateId(entity.kind || 'unknown'),
+    kind: entity.kind as HardState['kind'] || 'npc',
+    subtype: entity.subtype || 'merchant',
+    name: entity.name || generateName(),
+    description: entity.description || '',
+    status: entity.status || 'alive',
+    prominence: entity.prominence as HardState['prominence'] || 'marginal',
+    tags: entity.tags || [],
+    links: entity.links || [],
+    createdAt: 0,  // Initial entities created at tick 0
+    updatedAt: 0
+  }));
+}
+
 // Graph modification helpers
 export function addEntity(graph: Graph, entity: Partial<HardState>): string {
   const id = generateId(entity.kind || 'unknown');
-  
+
   const fullEntity: HardState = {
     id,
     kind: entity.kind || 'npc',
@@ -176,7 +193,7 @@ export function addEntity(graph: Graph, entity: Partial<HardState>): string {
     createdAt: entity.createdAt || graph.tick,
     updatedAt: entity.updatedAt || graph.tick
   };
-  
+
   graph.entities.set(id, fullEntity);
   return id;
 }

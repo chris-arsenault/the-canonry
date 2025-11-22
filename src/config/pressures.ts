@@ -108,10 +108,10 @@ export const pressures: Pressure[] = [
     decay: 2,
     growth: (graph) => {
       // Increases during invasion era or when entities marked as external appear
-      const externalTags = graph.entities.values()
+      const externalTags = Array.from(graph.entities.values())
         .filter(e => e.tags.includes('external') || e.tags.includes('invader'));
-      
-      return Array.from(externalTags).length * 10;
+
+      return externalTags.length * 10;
     }
   }
 ];

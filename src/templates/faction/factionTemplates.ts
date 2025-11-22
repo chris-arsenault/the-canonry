@@ -96,9 +96,9 @@ export const guildEstablishment: GrowthTemplate = {
   
   findTargets: (graph: Graph) => {
     return findEntities(graph, { kind: 'location', subtype: 'colony' })
-      .filter(c => !graph.entities.values().some(e => 
-        e.kind === 'faction' && 
-        e.subtype === 'company' && 
+      .filter(c => !Array.from(graph.entities.values()).some(e =>
+        e.kind === 'faction' &&
+        e.subtype === 'company' &&
         e.links.some(l => l.kind === 'controls' && l.dst === c.id)
       ));
   },

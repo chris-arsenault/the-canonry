@@ -1,4 +1,5 @@
 import { SimulationSystem, SystemResult, Graph } from '../types/engine';
+import { HardState, Relationship } from '../types/worldTypes';
 import {
   findEntities,
   getRelated,
@@ -17,8 +18,8 @@ export const relationshipFormation: SimulationSystem = {
   
   apply: (graph: Graph, modifier: number = 1.0): SystemResult => {
     const npcs = findEntities(graph, { kind: 'npc', status: 'alive' });
-    const relationships = [];
-    const modifications = [];
+    const relationships: Relationship[] = [];
+    const modifications: Array<{ id: string; changes: Partial<HardState> }> = [];
     
     // Form relationships based on proximity and shared attributes
     npcs.forEach(npc => {
@@ -87,10 +88,10 @@ export const relationshipFormation: SimulationSystem = {
 export const conflictContagion: SimulationSystem = {
   id: 'conflict_contagion',
   name: 'Conflict Spread',
-  
+
   apply: (graph: Graph, modifier: number = 1.0): SystemResult => {
-    const relationships = [];
-    const modifications = [];
+    const relationships: Relationship[] = [];
+    const modifications: Array<{ id: string; changes: Partial<HardState> }> = [];
     
     // Find existing conflicts
     const conflicts = graph.relationships.filter(r => 
@@ -144,9 +145,9 @@ export const conflictContagion: SimulationSystem = {
 export const resourceFlow: SimulationSystem = {
   id: 'resource_flow',
   name: 'Economic Dynamics',
-  
+
   apply: (graph: Graph, modifier: number = 1.0): SystemResult => {
-    const modifications = [];
+    const modifications: Array<{ id: string; changes: Partial<HardState> }> = [];
     const colonies = findEntities(graph, { kind: 'location', subtype: 'colony' });
     
     colonies.forEach(colony => {
@@ -201,9 +202,9 @@ export const resourceFlow: SimulationSystem = {
 export const culturalDrift: SimulationSystem = {
   id: 'cultural_drift',
   name: 'Cultural Evolution',
-  
+
   apply: (graph: Graph, modifier: number = 1.0): SystemResult => {
-    const modifications = [];
+    const modifications: Array<{ id: string; changes: Partial<HardState> }> = [];
     const colonies = findEntities(graph, { kind: 'location', subtype: 'colony' });
     
     // Track cultural differences between colonies
@@ -260,9 +261,9 @@ export const culturalDrift: SimulationSystem = {
 export const prominenceEvolution: SimulationSystem = {
   id: 'prominence_evolution',
   name: 'Fame and Obscurity',
-  
+
   apply: (graph: Graph, modifier: number = 1.0): SystemResult => {
-    const modifications = [];
+    const modifications: Array<{ id: string; changes: Partial<HardState> }> = [];
     
     // NPCs gain prominence through connections
     const npcs = findEntities(graph, { kind: 'npc' });
@@ -328,9 +329,9 @@ export const prominenceEvolution: SimulationSystem = {
 export const allianceFormation: SimulationSystem = {
   id: 'alliance_formation',
   name: 'Strategic Alliances',
-  
+
   apply: (graph: Graph, modifier: number = 1.0): SystemResult => {
-    const relationships = [];
+    const relationships: Relationship[] = [];
     const factions = findEntities(graph, { kind: 'faction' });
     
     factions.forEach((faction, i) => {

@@ -1,5 +1,5 @@
 import { GrowthTemplate, TemplateResult, Graph } from '../../types/engine';
-import { HardState, NPCSubtype } from '../../types/worldTypes';
+import { HardState, NPCSubtype, Relationship } from '../../types/worldTypes';
 import { generateName, pickRandom, findEntities } from '../../utils/helpers';
 
 // NPC Growth Templates
@@ -108,8 +108,8 @@ export const heroEmergence: GrowthTemplate = {
     
     // Heroes often discover or practice abilities
     const abilities = findEntities(graph, { kind: 'abilities' });
-    const relationships = [];
-    
+    const relationships: Relationship[] = [];
+
     if (abilities.length > 0) {
       relationships.push({
         kind: 'practitioner_of',
@@ -117,7 +117,7 @@ export const heroEmergence: GrowthTemplate = {
         dst: pickRandom(abilities).id
       });
     }
-    
+
     relationships.push({
       kind: 'resident_of',
       src: 'will-be-assigned-0',
@@ -175,18 +175,23 @@ export const outlawRecruitment: GrowthTemplate = {
       faction.links.find(l => l.kind === 'controls')?.dst || ''
     );
     
-    const relationships = outlaws.flatMap((_, i) => [
-      {
+    const relationships: Relationship[] = outlaws.flatMap((_, i) => {
+      const rels: Relationship[] = [{
         kind: 'member_of',
         src: `will-be-assigned-${i}`,
         dst: faction.id
-      },
-      stronghold ? {
-        kind: 'resident_of',
-        src: `will-be-assigned-${i}`,
-        dst: stronghold.id
-      } : null
-    ].filter(Boolean));
+      }];
+
+      if (stronghold) {
+        rels.push({
+          kind: 'resident_of',
+          src: `will-be-assigned-${i}`,
+          dst: stronghold.id
+        });
+      }
+
+      return rels;
+    });
     
     return {
       entities: outlaws,
@@ -231,9 +236,9 @@ export const succession: GrowthTemplate = {
       prominence: 'recognized',
       tags: ['successor', colony?.name.toLowerCase() || '']
     };
-    
-    const relationships = [];
-    
+
+    const relationships: Relationship[] = [];
+
     // Transfer leadership
     if (colony) {
       relationships.push({
@@ -242,9 +247,9 @@ export const succession: GrowthTemplate = {
         dst: colony.id
       });
     }
-    
+
     // Inherit faction leadership if applicable
-    const faction = oldLeader.links.find(l => l.kind === 'leader_of' && 
+    const faction = oldLeader.links.find(l => l.kind === 'leader_of' &&
       graph.entities.get(l.dst)?.kind === 'faction');
     if (faction) {
       relationships.push({

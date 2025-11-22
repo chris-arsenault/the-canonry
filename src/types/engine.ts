@@ -50,7 +50,7 @@ export interface GrowthTemplate {
 
 export interface TemplateResult {
   entities: Partial<HardState>[];
-  relationships: Omit<Relationship, 'src' | 'dst'>[];  // src/dst will be resolved to IDs
+  relationships: Relationship[];  // Can use placeholder IDs like 'will-be-assigned-0'
   description: string;
 }
 

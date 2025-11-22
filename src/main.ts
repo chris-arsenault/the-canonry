@@ -14,6 +14,9 @@ import { additionalTemplates } from './templates/additionalTemplates';
 // Import systems
 import { allSystems } from './systems/simulationSystems';
 
+// Import helpers
+import { normalizeInitialState } from './utils/helpers';
+
 // Load initial state (you'll need to adjust the path)
 import initialStateData from '../data/initialState.json';
 
@@ -41,10 +44,10 @@ async function generateWorld() {
   console.log('   PROCEDURAL WORLD HISTORY GENERATOR');
   console.log('      Super Penguin Colony Simulation');
   console.log('===========================================\n');
-  
-  // Parse initial state
-  const initialState: HardState[] = initialStateData.hardState;
-  
+
+  // Parse and normalize initial state
+  const initialState: HardState[] = normalizeInitialState(initialStateData.hardState);
+
   // Create and run engine
   const engine = new WorldEngine(config, initialState);
   
