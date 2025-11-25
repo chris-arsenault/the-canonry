@@ -13,11 +13,19 @@ import { generateLexemeList } from "./builder/lexeme-generator.js";
 import { generateTemplates } from "./builder/template-generator.js";
 import { writeLexemeResult, writeTemplateResult } from "./builder/file-writer.js";
 import { optimizeDomain, optimizeBatch } from "./lib/optimizer.js";
+import { generateFromProfile, type ExecutionContext } from "./lib/profile-executor.js";
+import type { NamingProfile, LexemeList, GrammarRule } from "./types/profile.js";
+import type { NamingDomain } from "./types/domain.js";
+import { createRNG } from "./utils/rng.js";
+import { generateWordWithDebug } from "./lib/phonology.js";
+import { applyMorphologyBest, canApplyMorphology } from "./lib/morphology.js";
+import { applyStyle } from "./lib/style.js";
 import type {
   LexemeSlotSpec,
   TemplateSpec,
   LLMConfig,
 } from "./types/builder-spec.js";
+import { validateLexemeSlotSpec, validateTemplateSpec } from "./builder/spec-loader.js";
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -209,19 +217,22 @@ app.post("/api/manual-lexeme", (req, res) => {
  */
 app.post("/api/test-names", async (req, res) => {
   try {
-    const { metaDomain, profileId, count = 10, profile, domains, grammars, lexemes } = req.body;
+    const { metaDomain, profileId, count = 10, profile, domains, grammars, lexemes, templates } = req.body;
 
     if (!profile) {
       return res.status(400).json({ error: "Profile required" });
     }
 
     console.log(`🧪 TEST: Generating ${count} names with profile "${profileId}"`);
+    console.log(`📥 Received from UI:`);
+    console.log(`   - profile.strategies: ${JSON.stringify(profile.strategies?.map((s: any) => ({ type: s.type || s.kind, weight: s.weight, grammarId: s.grammarId, templateIds: s.templateIds })))}`);
+    console.log(`   - domains count: ${(domains || []).length}, ids: ${(domains || []).map((d: any) => d.id).join(', ') || 'none'}`);
+    console.log(`   - grammars count: ${(grammars || []).length}`);
+    console.log(`   - templates count: ${(templates || []).length}`);
+    console.log(`   - lexemes keys: ${Object.keys(lexemes || {}).join(', ')}`);
 
-    // Import name generation modules
-    const { createNameGenerator } = require("./index.js");
-
-    // Convert lexemes object to array format
-    const lexemeLists = Object.keys(lexemes || {})
+    // Convert lexemes object to array format for ExecutionContext
+    const lexemeLists: LexemeList[] = Object.keys(lexemes || {})
       .filter(id => !lexemes[id].type || lexemes[id].type === 'lexeme')
       .map(id => ({
         id,
@@ -229,30 +240,136 @@ app.post("/api/test-names", async (req, res) => {
         entries: lexemes[id].entries || []
       }));
 
-    // Build configuration
-    const config = {
-      domains: domains || [],
-      grammars: grammars || [],
-      lexemeLists,
-      profiles: [profile]
+    // Filter strategies - only phonotactic is fully supported by executor
+    // Grammar and templated strategies with references need custom handling
+    const supportedStrategies = (profile.strategies || [])
+      .filter((s: any) => {
+        const strategyType = s.kind || s.type;
+        // Only phonotactic works reliably with the executor
+        // Templated with inline template/slots would work, but templateIds references don't
+        if (strategyType === 'phonotactic') return true;
+        if (strategyType === 'templated' && s.template && s.slots) return true; // Has inline template
+        return false;
+      })
+      .map((s: any) => ({
+        ...s,
+        kind: s.kind || s.type,
+      }));
+
+    // Templated strategies with templateIds need custom handling
+    const templatedRefStrategies = (profile.strategies || []).filter((s: any) =>
+      (s.kind || s.type) === 'templated' && s.templateIds && !s.template
+    );
+
+    // Grammar strategies also need custom handling
+    const grammarStrategies = (profile.strategies || []).filter((s: any) =>
+      (s.kind || s.type) === 'grammar'
+    );
+
+    // Build execution context for standard strategies
+    const transformedProfile: NamingProfile = {
+      id: profile.id,
+      cultureId: profile.cultureId || '',
+      type: profile.entityType || profile.type || '',
+      strategies: supportedStrategies.length > 0 ? supportedStrategies : []
     };
 
-    // Create name generator
-    const generator = createNameGenerator(config);
+    const context: ExecutionContext = {
+      domains: domains || [],
+      profiles: [transformedProfile],
+      lexemeLists,
+      grammarRules: [],
+    };
+
+    // Log available resources
+    console.log(`📋 Available lexeme lists: ${lexemeLists.map(l => l.id).join(', ')}`);
+    console.log(`📋 Available templates: ${(templates || []).map((t: any) => t.id).join(', ') || 'none'}`);
+    console.log(`📋 Available grammars: ${(grammars || []).map((g: any) => g.id).join(', ') || 'none'}`);
+    console.log(`📋 All strategies: ${(profile.strategies || []).map((s: any) => `${s.type || s.kind}(${(s.weight * 100).toFixed(0)}%)`).join(', ')}`);
+
+    // Calculate weights for each strategy category
+    const grammarWeight = getTotalWeight(grammarStrategies, profile.strategies);
+    const templatedWeight = getTotalWeight(templatedRefStrategies, profile.strategies);
+    const standardWeight = getTotalWeight(supportedStrategies, profile.strategies);
+
+    console.log(`📊 Strategy weights - Grammar: ${(grammarWeight * 100).toFixed(0)}%, Templated: ${(templatedWeight * 100).toFixed(0)}%, Standard: ${(standardWeight * 100).toFixed(0)}%`);
 
     // Generate names
     const names: string[] = [];
+    const strategyUsage: Record<string, number> = { grammar: 0, phonotactic: 0, templated: 0, fallback: 0 };
+
     for (let i = 0; i < count; i++) {
-      const name = generator.generate(profile.id);
-      names.push(name);
+      try {
+        let name: string;
+        let strategyUsed: string;
+
+        // Weighted selection between all strategy types
+        const roll = Math.random();
+        console.log(`  [${i}] Roll: ${roll.toFixed(3)}`);
+
+        // Determine which strategy to use based on weighted selection
+        if (grammarStrategies.length > 0 && roll < grammarWeight) {
+          // Use grammar strategy
+          const grammarStrategy = grammarStrategies[Math.floor(Math.random() * grammarStrategies.length)];
+          const grammar = grammars?.find((g: any) => g.id === grammarStrategy.grammarId);
+          console.log(`  [${i}] → GRAMMAR (roll < ${grammarWeight.toFixed(3)}), grammarId: ${grammarStrategy.grammarId}, found: ${!!grammar}`);
+
+          if (grammar) {
+            name = expandUIGrammar(grammar, lexemeLists, domains || []);
+            strategyUsed = 'grammar';
+          } else {
+            console.log(`  [${i}]   Grammar not found, using fallback`);
+            name = generateFallbackName(lexemeLists, i);
+            strategyUsed = 'fallback';
+          }
+        } else if (templatedRefStrategies.length > 0 && roll < grammarWeight + templatedWeight) {
+          // Use templated strategy with templateIds reference
+          const templatedStrategy = templatedRefStrategies[Math.floor(Math.random() * templatedRefStrategies.length)];
+          const templateId = templatedStrategy.templateIds?.[Math.floor(Math.random() * templatedStrategy.templateIds.length)];
+          const template = templates?.find((t: any) => t.id === templateId);
+          console.log(`  [${i}] → TEMPLATED (roll < ${(grammarWeight + templatedWeight).toFixed(3)}), templateId: ${templateId}, found: ${!!template}`);
+
+          if (template) {
+            name = expandUITemplate(template, lexemeLists, domains || []);
+            strategyUsed = 'templated';
+          } else {
+            console.log(`  [${i}]   Template not found, using fallback`);
+            name = generateFallbackName(lexemeLists, i);
+            strategyUsed = 'fallback';
+          }
+        } else if (supportedStrategies.length > 0) {
+          // Use standard profile executor (phonotactic)
+          console.log(`  [${i}] → STANDARD (phonotactic)`);
+          name = generateFromProfile(transformedProfile, {
+            ...context,
+            seed: `${Date.now()}-${i}`
+          });
+          strategyUsed = supportedStrategies[0]?.kind || 'phonotactic';
+        } else {
+          // Fallback to simple generation from lexemes
+          console.log(`  [${i}] → FALLBACK (no valid strategies)`);
+          name = generateFallbackName(lexemeLists, i);
+          strategyUsed = 'fallback';
+        }
+
+        strategyUsage[strategyUsed] = (strategyUsage[strategyUsed] || 0) + 1;
+        console.log(`  [${i}] ✓ Generated: "${name}" via ${strategyUsed}`);
+        names.push(name);
+      } catch (genError) {
+        console.warn(`  [${i}] ❌ Failed:`, (genError as Error).message);
+        strategyUsage['fallback'] = (strategyUsage['fallback'] || 0) + 1;
+        names.push(generateFallbackName(lexemeLists, i));
+      }
     }
 
+    console.log(`📊 Strategy usage: ${JSON.stringify(strategyUsage)}`);
     console.log(`✅ Generated ${names.length} test names`);
     console.log(`   Sample: ${names.slice(0, 3).join(', ')}...`);
 
     res.json({
       success: true,
       names,
+      strategyUsage,
       profileId,
       count: names.length
     });
@@ -265,12 +382,247 @@ app.post("/api/test-names", async (req, res) => {
 });
 
 /**
+ * Calculate total weight of given strategies relative to all strategies
+ */
+function getTotalWeight(strategies: any[], allStrategies: any[]): number {
+  const selectedWeight = strategies.reduce((sum, s) => sum + (s.weight || 0), 0);
+  const totalWeight = allStrategies.reduce((sum, s) => sum + (s.weight || 0), 0);
+  return totalWeight > 0 ? selectedWeight / totalWeight : 0;
+}
+
+/**
+ * Expand a grammar from UI format
+ * Grammar format: { id, start, rules: { name: [["slot:list1", "literal", "slot:list2"], [...]] } }
+ * Supports:
+ *   - slot:lexeme_id  → pick from lexeme list
+ *   - domain:domain_id → generate phonotactic name from domain
+ */
+function expandUIGrammar(grammar: any, lexemeLists: LexemeList[], domains: NamingDomain[]): string {
+  const startSymbol = grammar.start || 'name';
+  console.log(`    🔧 Grammar expansion starting from "${startSymbol}"`);
+  console.log(`    🔧 Rules: ${JSON.stringify(grammar.rules)}`);
+  const result = expandSymbol(startSymbol, grammar.rules || {}, lexemeLists, domains, 0);
+  console.log(`    🔧 Final result: "${result}"`);
+  return result;
+}
+
+function expandSymbol(symbol: string, rules: Record<string, string[][]>, lexemeLists: LexemeList[], domains: NamingDomain[], depth: number): string {
+  const indent = '    ' + '  '.repeat(depth);
+  console.log(`${indent}↳ Expanding symbol: "${symbol}" (depth: ${depth})`);
+
+  if (depth > 10) {
+    console.log(`${indent}⚠️ Max depth reached, returning symbol as-is`);
+    return symbol;
+  }
+
+  const productions = rules[symbol];
+  if (!productions || productions.length === 0) {
+    console.log(`${indent}📌 No rule for "${symbol}", treating as literal/slot`);
+    return resolveToken(symbol, lexemeLists, domains, depth);
+  }
+
+  // Pick random production
+  const prodIndex = Math.floor(Math.random() * productions.length);
+  const production = productions[prodIndex];
+  console.log(`${indent}📝 Rule "${symbol}" has ${productions.length} productions, picked #${prodIndex}: ${JSON.stringify(production)}`);
+
+  // Expand each token in the production
+  const parts = production.map((token, idx) => {
+    console.log(`${indent}  Token[${idx}]: "${token}"`);
+    // Check if token contains multiple references separated by hyphens
+    // e.g., "slot:nouns-slot:verbs" or "slot:title-domain:fantasy"
+    if (token.includes('-') && (token.includes('slot:') || token.includes('domain:'))) {
+      console.log(`${indent}  🔗 Compound token with hyphens, splitting...`);
+      const subParts = token.split('-');
+      console.log(`${indent}  🔗 Sub-parts: ${JSON.stringify(subParts)}`);
+      return subParts.map((part, subIdx) => {
+        const resolved = resolveToken(part.trim(), lexemeLists, domains, depth);
+        console.log(`${indent}    Sub[${subIdx}]: "${part.trim()}" → "${resolved}"`);
+        return resolved;
+      }).join('-');
+    }
+    const resolved = resolveToken(token, lexemeLists, domains, depth);
+    console.log(`${indent}  → Resolved to: "${resolved}"`);
+    return resolved;
+  });
+
+  const result = parts.join(' ').trim();
+  console.log(`${indent}✓ Symbol "${symbol}" expanded to: "${result}"`);
+  return result;
+}
+
+/**
+ * Generate a phonotactic name from a domain
+ */
+function generatePhonotacticName(domain: NamingDomain): string {
+  const rng = createRNG(`${Date.now()}-${Math.random()}`);
+
+  // Generate base word
+  const { word } = generateWordWithDebug(rng, domain.phonology);
+
+  // Apply morphology if configured
+  let morphedName = word;
+  if (canApplyMorphology(domain.morphology)) {
+    const morphed = applyMorphologyBest(rng, word, domain.morphology);
+    morphedName = morphed.result;
+  }
+
+  // Apply style
+  const styled = applyStyle(rng, morphedName, domain.style);
+  return styled.result;
+}
+
+function resolveToken(token: string, lexemeLists: LexemeList[], domains: NamingDomain[], depth: number = 0): string {
+  const indent = '    ' + '  '.repeat(depth + 1);
+
+  // Check for ^ terminator suffix (e.g., "domain:tech_domain^'s" → resolve domain, append "'s")
+  let suffix = '';
+  let baseToken = token;
+  const caretIndex = token.indexOf('^');
+  if (caretIndex !== -1) {
+    baseToken = token.substring(0, caretIndex);
+    suffix = token.substring(caretIndex + 1); // Everything after ^
+    console.log(`${indent}📎 Token has suffix: base="${baseToken}", suffix="${suffix}"`);
+  }
+
+  // Handle slot:listId references (lexeme lists)
+  if (baseToken.startsWith('slot:')) {
+    const listId = baseToken.substring(5); // Remove 'slot:' prefix
+    console.log(`${indent}🎰 Slot reference: listId="${listId}"`);
+    const list = lexemeLists.find(l => l.id === listId);
+    if (list && list.entries.length > 0) {
+      const entry = list.entries[Math.floor(Math.random() * list.entries.length)];
+      console.log(`${indent}✓ Found list with ${list.entries.length} entries, picked: "${entry}"`);
+      return entry + suffix;
+    }
+    console.log(`${indent}❌ List "${listId}" not found! Available: ${lexemeLists.map(l => l.id).join(', ')}`);
+    return listId + suffix; // Return the ID if list not found
+  }
+
+  // Handle domain:domainId references (phonotactic generation)
+  if (baseToken.startsWith('domain:')) {
+    const domainId = baseToken.substring(7); // Remove 'domain:' prefix
+    console.log(`${indent}🔮 Domain reference: domainId="${domainId}"`);
+    const domain = domains.find(d => d.id === domainId);
+    if (domain) {
+      const name = generatePhonotacticName(domain);
+      console.log(`${indent}✓ Generated phonotactic name: "${name}"`);
+      return name + suffix;
+    }
+    console.log(`${indent}❌ Domain "${domainId}" not found! Available: ${domains.map(d => d.id).join(', ')}`);
+    return domainId + suffix; // Return the ID if domain not found
+  }
+
+  // Return literal as-is (including any ^ which wasn't part of a reference)
+  console.log(`${indent}📜 Literal: "${token}"`);
+  return token;
+}
+
+/**
+ * Expand a template from UI format
+ * Template format: { id, template: "{{slot1}}-{{slot2}}", slots: { slot1: { kind, listId?, domainId? }, ... } }
+ * Supports:
+ *   - kind: "lexemeList" with listId → pick from lexeme list
+ *   - kind: "phonotactic" with domainId → generate from domain
+ *   - No kind → use slot name as lexeme list ID (legacy behavior)
+ */
+function expandUITemplate(template: any, lexemeLists: LexemeList[], domains: NamingDomain[]): string {
+  console.log(`    🎨 Template expansion: "${template.template}"`);
+  console.log(`    🎨 Slots: ${JSON.stringify(template.slots || {})}`);
+
+  let result = template.template || '';
+  const slots = template.slots || {};
+
+  // Find all {{placeholder}} patterns
+  const placeholderRegex = /\{\{([^}]+)\}\}/g;
+  let match;
+
+  while ((match = placeholderRegex.exec(template.template)) !== null) {
+    const slotName = match[1];
+    const fullMatch = match[0];
+    const slotConfig = slots[slotName] || {};
+    console.log(`    🎯 Found placeholder: ${fullMatch} → slot "${slotName}", config: ${JSON.stringify(slotConfig)}`);
+
+    let slotValue: string | null = null;
+
+    // Check slot kind
+    if (slotConfig.kind === 'phonotactic' && slotConfig.domainId) {
+      // Generate phonotactic name from domain
+      const domain = domains.find(d => d.id === slotConfig.domainId);
+      if (domain) {
+        slotValue = generatePhonotacticName(domain);
+        console.log(`    🔮 Phonotactic slot "${slotName}" → "${slotValue}" (from domain ${slotConfig.domainId})`);
+      } else {
+        console.log(`    ❌ Domain "${slotConfig.domainId}" not found for slot "${slotName}"! Available: ${domains.map(d => d.id).join(', ')}`);
+      }
+    } else if (slotConfig.kind === 'lexemeList' && slotConfig.listId) {
+      // Pick from specified lexeme list
+      const list = lexemeLists.find(l => l.id === slotConfig.listId);
+      if (list && list.entries.length > 0) {
+        slotValue = list.entries[Math.floor(Math.random() * list.entries.length)];
+        console.log(`    🎰 Lexeme slot "${slotName}" → "${slotValue}" (from list ${slotConfig.listId})`);
+      } else {
+        console.log(`    ❌ Lexeme list "${slotConfig.listId}" not found for slot "${slotName}"!`);
+      }
+    } else {
+      // Legacy: use slot name as lexeme list ID
+      const list = lexemeLists.find(l => l.id === slotName);
+      if (list && list.entries.length > 0) {
+        slotValue = list.entries[Math.floor(Math.random() * list.entries.length)];
+        console.log(`    ✓ Legacy resolved "${slotName}" → "${slotValue}" (from ${list.entries.length} entries)`);
+      } else {
+        console.log(`    ❌ Lexeme list "${slotName}" not found! Available: ${lexemeLists.map(l => l.id).join(', ')}`);
+      }
+    }
+
+    // Replace placeholder with value or fallback to slot name
+    result = result.replace(fullMatch, slotValue || slotName);
+  }
+
+  // Capitalize first letter
+  if (result.length > 0) {
+    result = result.charAt(0).toUpperCase() + result.slice(1);
+  }
+
+  console.log(`    🎨 Final result: "${result}"`);
+  return result;
+}
+
+/**
+ * Generate a fallback name from available lexeme lists
+ */
+function generateFallbackName(lexemeLists: LexemeList[], index: number): string {
+  if (lexemeLists.length === 0) {
+    return `Name-${index + 1}`;
+  }
+
+  // Pick from random lists
+  const parts: string[] = [];
+  const numParts = Math.floor(Math.random() * 2) + 1; // 1-2 parts
+
+  for (let i = 0; i < numParts; i++) {
+    const list = lexemeLists[Math.floor(Math.random() * lexemeLists.length)];
+    if (list.entries.length > 0) {
+      const entry = list.entries[Math.floor(Math.random() * list.entries.length)];
+      parts.push(entry);
+    }
+  }
+
+  if (parts.length === 0) {
+    return `Name-${index + 1}`;
+  }
+
+  // Capitalize first letter
+  const name = parts.join('-');
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+/**
  * POST /api/validate/lexeme-spec
  * Validate a lexeme slot spec
  */
 app.post("/api/validate/lexeme-spec", (req, res) => {
   try {
-    const { validateLexemeSlotSpec } = require("./builder/spec-loader.js");
     const spec = validateLexemeSlotSpec(req.body);
     res.json({ valid: true, spec });
   } catch (error) {
@@ -287,7 +639,6 @@ app.post("/api/validate/lexeme-spec", (req, res) => {
  */
 app.post("/api/validate/template-spec", (req, res) => {
   try {
-    const { validateTemplateSpec } = require("./builder/spec-loader.js");
     const spec = validateTemplateSpec(req.body);
     res.json({ valid: true, spec });
   } catch (error) {

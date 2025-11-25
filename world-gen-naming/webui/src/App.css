@@ -492,6 +492,11 @@ button:active {
   100% { transform: rotate(360deg); }
 }
 
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 /* Error State */
 .error {
   background: rgba(239, 68, 68, 0.15);

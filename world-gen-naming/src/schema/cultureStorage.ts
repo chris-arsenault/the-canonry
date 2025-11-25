@@ -82,8 +82,11 @@ export function loadMetaDomain(metaDomain: string): MetaDomainV2 | null {
   const cultures: { [cultureId: string]: CultureConfig } = {};
   const entries = existsSync(metaPath) ? readdirSync(metaPath, { withFileTypes: true }) : [];
 
+  // Skip legacy v1 directories that aren't cultures
+  const legacyDirs = ['lexemes', 'domains', 'grammars', 'profiles', 'templates', 'specs'];
+
   for (const entry of entries) {
-    if (entry.isDirectory() && entry.name !== 'schema.json') {
+    if (entry.isDirectory() && !legacyDirs.includes(entry.name)) {
       const culture = loadCulture(metaDomain, entry.name, worldSchema);
       if (culture) {
         cultures[culture.id] = culture;
@@ -187,6 +190,7 @@ export function loadEntityConfig(
     const lexemeData = JSON.parse(readFileSync(lexemesPath, 'utf-8'));
     config.lexemeLists = lexemeData.lexemeLists || {};
     config.completionStatus.lexemes = Object.keys(config.lexemeLists).length;
+    console.log(`  📂 Loaded lexemes from ${lexemesPath}: ${Object.keys(config.lexemeLists).join(', ')}`);
   }
 
   // Load templates
@@ -195,6 +199,7 @@ export function loadEntityConfig(
     const templateData = JSON.parse(readFileSync(templatesPath, 'utf-8'));
     config.templates = templateData.templates || [];
     config.completionStatus.templates = config.templates.length > 0;
+    console.log(`  📂 Loaded templates from ${templatesPath}: ${config.templates.length} templates`);
   }
 
   // Load grammars
@@ -202,6 +207,7 @@ export function loadEntityConfig(
   if (existsSync(grammarsPath)) {
     const grammarData = JSON.parse(readFileSync(grammarsPath, 'utf-8'));
     config.grammars = grammarData.grammars || [];
+    console.log(`  📂 Loaded grammars from ${grammarsPath}: ${config.grammars.length} grammars`);
   }
 
   // Load profile
@@ -209,6 +215,7 @@ export function loadEntityConfig(
   if (existsSync(profilePath)) {
     config.profile = JSON.parse(readFileSync(profilePath, 'utf-8'));
     config.completionStatus.profile = true;
+    console.log(`  📂 Loaded profile from ${profilePath}: ${config.profile?.strategies?.length || 0} strategies`);
   }
 
   return config;
@@ -342,9 +349,12 @@ export function listCultures(metaDomain: string): string[] {
     return [];
   }
 
+  // Skip legacy v1 directories that aren't cultures
+  const legacyDirs = ['lexemes', 'domains', 'grammars', 'profiles', 'templates', 'specs'];
+
   const entries = readdirSync(metaPath, { withFileTypes: true });
   return entries
-    .filter(entry => entry.isDirectory())
+    .filter(entry => entry.isDirectory() && !legacyDirs.includes(entry.name))
     .map(entry => entry.name);
 }
 

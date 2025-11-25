@@ -235,8 +235,11 @@ function validateTemplatesAgainstSpec(
 
   // Build map of available slot names (case-insensitive)
   const availableSlotNames = new Set(
-    spec.slotHints.map((h) => h.name.toUpperCase())
+    (spec.slotHints || []).map((h) => h.name.toUpperCase())
   );
+
+  // If no slot hints provided, don't validate slot names (let LLM be creative)
+  const validateSlotNames = availableSlotNames.size > 0;
 
   for (const template of templates) {
     // Extract slot names from template string
@@ -248,15 +251,17 @@ function validateTemplatesAgainstSpec(
       slotsInTemplate.add(match[1].toUpperCase());
     }
 
-    // Check if all slots in template are available
+    // Check if all slots in template are available (only if slot hints were provided)
     let isValid = true;
     let reason = "";
 
-    for (const slotName of slotsInTemplate) {
-      if (!availableSlotNames.has(slotName)) {
-        isValid = false;
-        reason = `Uses unavailable slot: ${slotName}`;
-        break;
+    if (validateSlotNames) {
+      for (const slotName of slotsInTemplate) {
+        if (!availableSlotNames.has(slotName)) {
+          isValid = false;
+          reason = `Uses unavailable slot: ${slotName}`;
+          break;
+        }
       }
     }
 
