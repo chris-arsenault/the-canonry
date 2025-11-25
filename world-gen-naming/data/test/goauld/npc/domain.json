@@ -1,0 +1,32 @@
+{
+  "id": "goauld_domain",
+  "cultureId": "goauld",
+  "appliesTo": {
+    "kind": ["npc", "location", "faction", "rules", "abilities"],
+    "subKind": [],
+    "tags": []
+  },
+  "phonology": {
+    "consonants": ["k", "r", "s", "t", "n", "m", "p", "sh", "kh", "j"],
+    "vowels": ["a", "e", "i", "o", "u", "aa", "ai", "au"],
+    "syllableTemplates": ["CV", "CVC", "CVV", "CVVC"],
+    "lengthRange": [2, 4],
+    "favoredClusters": ["kh", "sh", "ra", "aa"],
+    "forbiddenClusters": ["th", "ae"],
+    "favoredClusterBoost": 1.3
+  },
+  "morphology": {
+    "prefixes": ["Ra", "Kha", "Anub", "Seth", "Baal"],
+    "suffixes": ["os", "is", "us", "ak", "ar", "ek"],
+    "structure": ["prefix-root", "root-suffix", "prefix-root-suffix"],
+    "structureWeights": [0.4, 0.3, 0.3]
+  },
+  "style": {
+    "capitalization": "title",
+    "apostropheRate": 0.2,
+    "hyphenRate": 0,
+    "preferredEndings": ["os", "is", "us", "ak", "ar"],
+    "preferredEndingBoost": 1.3,
+    "rhythmBias": "staccato"
+  }
+}

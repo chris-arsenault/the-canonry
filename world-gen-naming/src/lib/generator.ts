@@ -21,16 +21,17 @@ export function generateName(
   const rng = createRNG(request.seed);
 
   // Select domain
+  const tags = request.tags ?? [];
   const domain = selectDomain(
     domains,
     request.kind,
     request.subKind,
-    request.tags
+    tags
   );
 
   if (!domain) {
     console.warn(
-      `No domain found for kind=${request.kind}, subKind=${request.subKind}, tags=${request.tags.join(",")}`
+      `No domain found for kind=${request.kind}, subKind=${request.subKind}, tags=${tags.join(",")}`
     );
     return null;
   }

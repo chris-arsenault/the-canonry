@@ -19,10 +19,15 @@ export function applyStyle(
   let result = name;
   const transforms: string[] = [];
 
+  // Apply defaults for optional fields
+  const apostropheRate = style.apostropheRate ?? 0;
+  const hyphenRate = style.hyphenRate ?? 0;
+  const capitalization = style.capitalization ?? "title";
+
   // 1. Apply apostrophes
   if (
-    style.apostropheRate > 0 &&
-    chance(rng, style.apostropheRate) &&
+    apostropheRate > 0 &&
+    chance(rng, apostropheRate) &&
     syllables &&
     syllables.length > 1
   ) {
@@ -35,8 +40,8 @@ export function applyStyle(
 
   // 2. Apply hyphens
   if (
-    style.hyphenRate > 0 &&
-    chance(rng, style.hyphenRate) &&
+    hyphenRate > 0 &&
+    chance(rng, hyphenRate) &&
     syllables &&
     syllables.length > 1
   ) {
@@ -48,8 +53,8 @@ export function applyStyle(
   }
 
   // 3. Apply capitalization
-  result = applyCapitalization(result, style.capitalization);
-  transforms.push(`cap:${style.capitalization}`);
+  result = applyCapitalization(result, capitalization);
+  transforms.push(`cap:${capitalization}`);
 
   return { result, transforms };
 }

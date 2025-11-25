@@ -15,6 +15,13 @@ import {
   explainGeneration,
   testDomain,
 } from "./lib/generator.js";
+import { optimizeDomain, optimizeBatch } from "./lib/optimizer.js";
+import {
+  OptimizationSettingsSchema,
+  FitnessWeightsSchema,
+  ValidationSettingsSchema,
+} from "./types/optimization.js";
+import { writeFileSync } from "fs";
 
 const program = new Command();
 
@@ -241,6 +248,203 @@ program
       }
     } catch (error) {
       console.error("✗ Validation failed:", error);
+      process.exit(1);
+    }
+  });
+
+/**
+ * Optimize command - optimize domain parameters using ML
+ */
+program
+  .command("optimize")
+  .description("Optimize domain parameters using ML-based fitness function")
+  .requiredOption("-d, --domain <path>", "Path to domain config JSON file")
+  .option("-o, --output <path>", "Output path for optimized config")
+  .option(
+    "-a, --algorithm <algorithm>",
+    "Optimization algorithm (hillclimb, sim_anneal)",
+    "hillclimb"
+  )
+  .option("-i, --iterations <iterations>", "Number of iterations", "100")
+  .option(
+    "--sample-size <size>",
+    "Validation sample size",
+    "1000"
+  )
+  .option(
+    "--capacity-weight <weight>",
+    "Fitness weight for capacity metric",
+    "1.0"
+  )
+  .option(
+    "--diffuseness-weight <weight>",
+    "Fitness weight for diffuseness metric",
+    "1.0"
+  )
+  .option(
+    "--separation-weight <weight>",
+    "Fitness weight for separation metric",
+    "0.0"
+  )
+  .option(
+    "--pronounceability-weight <weight>",
+    "Fitness weight for pronounceability metric",
+    "0.0"
+  )
+  .option(
+    "--length-weight <weight>",
+    "Fitness weight for length deviation metric",
+    "0.0"
+  )
+  .option("--verbose", "Show detailed progress", false)
+  .action(async (options) => {
+    try {
+      // Load domain
+      const domains = loadDomains(options.domain);
+      if (domains.length === 0) {
+        console.error("No domains found in file");
+        process.exit(1);
+      }
+      const domain = domains[0];
+
+      // Parse optimization settings
+      const optimizationSettings = OptimizationSettingsSchema.parse({
+        algorithm: options.algorithm,
+        iterations: parseInt(options.iterations, 10),
+        verbose: options.verbose,
+      });
+
+      // Parse fitness weights
+      const fitnessWeights = FitnessWeightsSchema.parse({
+        capacity: parseFloat(options.capacityWeight),
+        diffuseness: parseFloat(options.diffusenessWeight),
+        separation: parseFloat(options.separationWeight),
+        pronounceability: parseFloat(options.pronounceabilityWeight),
+        length: parseFloat(options.lengthWeight),
+      });
+
+      // Parse validation settings
+      const validationSettings = ValidationSettingsSchema.parse({
+        requiredNames: parseInt(options.sampleSize, 10),
+        sampleFactor: 1,
+        maxSampleSize: parseInt(options.sampleSize, 10),
+      });
+
+      // Run optimization
+      const result = await optimizeDomain(
+        domain,
+        validationSettings,
+        fitnessWeights,
+        optimizationSettings
+      );
+
+      // Save optimized config
+      if (options.output) {
+        const outputPath = resolve(options.output);
+        writeFileSync(
+          outputPath,
+          JSON.stringify(result.optimizedConfig, null, 2)
+        );
+        console.log(`\nOptimized config saved to: ${outputPath}`);
+      }
+
+      // Display summary
+      console.log("\n" + "=".repeat(60));
+      console.log("OPTIMIZATION SUMMARY");
+      console.log("=".repeat(60));
+      console.log(`Domain: ${domain.id}`);
+      console.log(`Algorithm: ${optimizationSettings.algorithm}`);
+      console.log(`Iterations: ${result.iterations}`);
+      console.log(`Initial fitness: ${result.initialFitness.toFixed(4)}`);
+      console.log(`Final fitness: ${result.finalFitness.toFixed(4)}`);
+      console.log(`Improvement: +${(result.improvement * 100).toFixed(1)}%`);
+      console.log("=".repeat(60));
+    } catch (error) {
+      console.error("Error:", error);
+      process.exit(1);
+    }
+  });
+
+/**
+ * Optimize-batch command - optimize multiple domains
+ */
+program
+  .command("optimize-batch")
+  .description("Optimize multiple domains in batch")
+  .requiredOption("-d, --domains <path>", "Path to domains collection JSON file")
+  .requiredOption("-o, --output-dir <dir>", "Output directory for optimized configs")
+  .option(
+    "-a, --algorithm <algorithm>",
+    "Optimization algorithm (hillclimb, sim_anneal)",
+    "hillclimb"
+  )
+  .option("-i, --iterations <iterations>", "Number of iterations per domain", "100")
+  .option("--sample-size <size>", "Validation sample size", "1000")
+  .option("--verbose", "Show detailed progress", false)
+  .action(async (options) => {
+    try {
+      // Load domains
+      const domains = loadDomains(options.domains);
+      if (domains.length === 0) {
+        console.error("No domains found in file");
+        process.exit(1);
+      }
+
+      console.log(`Loaded ${domains.length} domains for batch optimization\n`);
+
+      // Parse settings
+      const optimizationSettings = OptimizationSettingsSchema.parse({
+        algorithm: options.algorithm,
+        iterations: parseInt(options.iterations, 10),
+        verbose: options.verbose,
+      });
+
+      const fitnessWeights = FitnessWeightsSchema.parse({
+        capacity: 1.0,
+        diffuseness: 1.0,
+        separation: 0.0,
+      });
+
+      const validationSettings = ValidationSettingsSchema.parse({
+        requiredNames: parseInt(options.sampleSize, 10),
+        sampleFactor: 1,
+        maxSampleSize: parseInt(options.sampleSize, 10),
+      });
+
+      // Run batch optimization
+      const results = await optimizeBatch(
+        domains,
+        validationSettings,
+        fitnessWeights,
+        optimizationSettings
+      );
+
+      // Save results
+      const outputDir = resolve(options.outputDir);
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const outputPath = `${outputDir}/${result.optimizedConfig.id}.json`;
+        writeFileSync(
+          outputPath,
+          JSON.stringify(result.optimizedConfig, null, 2)
+        );
+        console.log(`Saved optimized config: ${outputPath}`);
+      }
+
+      // Summary
+      console.log("\n" + "=".repeat(60));
+      console.log("BATCH OPTIMIZATION COMPLETE");
+      console.log("=".repeat(60));
+      for (const result of results) {
+        console.log(
+          `${result.optimizedConfig.id}: ` +
+            `${result.initialFitness.toFixed(4)} → ${result.finalFitness.toFixed(4)} ` +
+            `(+${(result.improvement * 100).toFixed(1)}%)`
+        );
+      }
+      console.log("=".repeat(60));
+    } catch (error) {
+      console.error("Error:", error);
       process.exit(1);
     }
   });

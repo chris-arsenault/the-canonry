@@ -9,10 +9,18 @@
     "namegen": "dist/cli.js"
   },
   "scripts": {
-    "dev": "tsx src/cli.ts",
+    "cli": "tsx src/cli.ts",
+    "generate": "tsx src/cli-generate.ts",
+    "api": "tsx src/api-server.ts",
+    "ui": "concurrently \"npm run api\" \"cd webui && npm run dev\" --names \"api,ui\" --prefix-colors \"blue,magenta\"",
+    "reset:test": "rm -rf data/test && cp -r data/seed data/test && echo '✅ Reset test meta-domain from seed'",
     "build": "tsc",
     "clean": "rm -rf dist",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "procedural-generation",
@@ -22,14 +30,23 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.1",
     "commander": "^12.1.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "seedrandom": "^3.0.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
     "@types/node": "^22.10.1",
     "@types/seedrandom": "^3.0.8",
+    "@vitest/coverage-v8": "^4.0.13",
+    "@vitest/ui": "^4.0.13",
+    "concurrently": "^9.2.1",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.13"
   }
 }

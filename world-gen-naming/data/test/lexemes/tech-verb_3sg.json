@@ -1,0 +1,39 @@
+{
+  "lexemeLists": [
+    {
+      "id": "tech_verbs",
+      "entries": [
+        "glitches",
+        "phases",
+        "dissolves",
+        "hums",
+        "flickers",
+        "fades",
+        "warps",
+        "pulses",
+        "vanishes",
+        "distorts",
+        "shifts",
+        "echoes",
+        "resonates",
+        "fragments",
+        "blinks",
+        "jitters",
+        "transmutes",
+        "harmonizes",
+        "cascades",
+        "drifts",
+        "oscillates",
+        "decays",
+        "manifests",
+        "synchronizes",
+        "fractures",
+        "vibrates",
+        "dematerializes",
+        "stutters",
+        "refracts",
+        "emanates"
+      ]
+    }
+  ]
+}

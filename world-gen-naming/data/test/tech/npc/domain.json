@@ -1,0 +1,100 @@
+{
+  "id": "tech_domain",
+  "cultureId": "tech",
+  "appliesTo": {
+    "kind": [
+      "npc",
+      "location",
+      "faction",
+      "rules",
+      "abilities"
+    ],
+    "subKind": [],
+    "tags": []
+  },
+  "phonology": {
+    "consonants": [
+      "x",
+      "z",
+      "v",
+      "k",
+      "n",
+      "r",
+      "t",
+      "s",
+      "tr",
+      "pr"
+    ],
+    "vowels": [
+      "a",
+      "e",
+      "i",
+      "o",
+      "y",
+      "ex",
+      "ix"
+    ],
+    "syllableTemplates": [
+      "CVC",
+      "CCVC",
+      "CV",
+      "CVCC"
+    ],
+    "lengthRange": [
+      1,
+      3
+    ],
+    "favoredClusters": [
+      "ex",
+      "ix",
+      "tr",
+      "pr",
+      "zr"
+    ],
+    "forbiddenClusters": [
+      "ae",
+      "th"
+    ],
+    "favoredClusterBoost": 1.4
+  },
+  "morphology": {
+    "prefixes": [
+      "Nex",
+      "Vex",
+      "Zyr",
+      "Kron",
+      "Plex"
+    ],
+    "suffixes": [
+      "ix",
+      "ex",
+      "on",
+      "ax",
+      "or",
+      "us"
+    ],
+    "structure": [
+      "prefix-root",
+      "root-suffix",
+      "root"
+    ],
+    "structureWeights": [
+      0.3,
+      0.4,
+      0.3
+    ]
+  },
+  "style": {
+    "capitalization": "title",
+    "apostropheRate": 0,
+    "hyphenRate": 0.25,
+    "preferredEndings": [
+      "ix",
+      "ex",
+      "on",
+      "ax"
+    ],
+    "preferredEndingBoost": 1.5,
+    "rhythmBias": "staccato"
+  }
+}

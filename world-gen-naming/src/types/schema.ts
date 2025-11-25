@@ -44,8 +44,25 @@ export const PhonologyProfileSchema = z.object({
     .number()
     .min(1)
     .optional()
-    .default(2.0)
-    .describe("Multiplier for favored cluster probability"),
+    .describe("Multiplier for favored cluster probability (default: 2.0)"),
+
+  // Pronounceability constraints
+  maxConsonantCluster: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe("Maximum consonants in a row (default: 3)"),
+  minVowelSpacing: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe("Maximum consonants between vowels (default: 3)"),
+  sonorityRanks: z
+    .record(z.number())
+    .optional()
+    .describe("Sonority rank per phoneme (0=stop, 5=vowel)"),
 });
 
 /**
@@ -98,19 +115,17 @@ export const StyleRulesSchema = z.object({
     .min(0)
     .max(1)
     .optional()
-    .default(0)
-    .describe("Probability of inserting apostrophes (0-1)"),
+    .describe("Probability of inserting apostrophes (0-1, default: 0)"),
   hyphenRate: z
     .number()
     .min(0)
     .max(1)
     .optional()
-    .default(0)
-    .describe("Probability of inserting hyphens (0-1)"),
+    .describe("Probability of inserting hyphens (0-1, default: 0)"),
   capitalization: z
     .enum(["title", "allcaps", "mixed", "lowercase"])
-    .default("title")
-    .describe("Capitalization style"),
+    .optional()
+    .describe("Capitalization style (default: title)"),
   preferredEndings: z
     .array(z.string())
     .optional()
@@ -119,13 +134,24 @@ export const StyleRulesSchema = z.object({
     .number()
     .min(1)
     .optional()
-    .default(2.0)
-    .describe("Multiplier for preferred ending probability"),
+    .describe("Multiplier for preferred ending probability (default: 2.0)"),
   rhythmBias: z
     .enum(["soft", "harsh", "staccato", "flowing", "neutral"])
     .optional()
-    .default("neutral")
-    .describe("Overall phonetic rhythm preference"),
+    .describe("Overall phonetic rhythm preference (default: neutral)"),
+
+  // Length preference (for optimization stability)
+  targetLength: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("Preferred average name length in characters (default: from samples)"),
+  lengthTolerance: z
+    .number()
+    .positive()
+    .optional()
+    .describe("Acceptable deviation from target length (default: 3)"),
 });
 
 /**
@@ -167,14 +193,13 @@ export const DomainCollectionSchema = z.object({
 export const GenerationRequestSchema = z.object({
   kind: z.string().describe("Entity kind"),
   subKind: z.string().optional().describe("Entity subtype"),
-  tags: z.array(z.string()).optional().default([]).describe("Entity tags"),
+  tags: z.array(z.string()).optional().describe("Entity tags (default: [])"),
   count: z
     .number()
     .int()
     .min(1)
     .optional()
-    .default(1)
-    .describe("Number of names to generate"),
+    .describe("Number of names to generate (default: 1)"),
   seed: z.string().optional().describe("Seed for deterministic RNG"),
 });
 

@@ -1,0 +1,149 @@
+{
+  "cultures": [
+    {
+      "id": "world",
+      "name": "World",
+      "description": "Transcendent entities that belong to no single culture (eras, cataclysms, world-spanning events)"
+    },
+    {
+      "id": "dwarf",
+      "name": "Mountain Dwarves",
+      "description": "The stalwart forge-masters of the deep mountains, keepers of ancient craft and grudges",
+      "homeland": "Ironhold"
+    },
+    {
+      "id": "elf",
+      "name": "High Elves",
+      "description": "The ancient and ethereal woodland dwellers, masters of magic and lore",
+      "homeland": "Silverwood"
+    },
+    {
+      "id": "goauld",
+      "name": "Goa'uld",
+      "description": "The parasitic alien overlords who pose as gods and rule through fear and technology",
+      "homeland": "Celestial Throne"
+    },
+    {
+      "id": "tech",
+      "name": "Tech Collective",
+      "description": "The cybernetic factions of the industrial wastes, merging flesh with machine",
+      "homeland": "Nexus Prime"
+    }
+  ],
+  "hardState": [
+    {
+      "kind": "npc",
+      "subtype": [
+        "warrior",
+        "mage",
+        "merchant",
+        "noble",
+        "outlaw"
+      ],
+      "status": [
+        "alive",
+        "dead",
+        "missing",
+        "ascended"
+      ]
+    },
+    {
+      "kind": "location",
+      "subtype": [
+        "city",
+        "fortress",
+        "ruins",
+        "wilderness",
+        "anomaly"
+      ],
+      "status": [
+        "thriving",
+        "derelict",
+        "contested",
+        "hidden"
+      ]
+    },
+    {
+      "kind": "faction",
+      "subtype": [
+        "guild",
+        "cult",
+        "military",
+        "criminal"
+      ],
+      "status": [
+        "dominant",
+        "rising",
+        "declining",
+        "underground"
+      ]
+    },
+    {
+      "kind": "rules",
+      "subtype": [
+        "law",
+        "tradition",
+        "prophecy",
+        "natural"
+      ],
+      "status": [
+        "enforced",
+        "forgotten",
+        "disputed",
+        "sacred"
+      ]
+    },
+    {
+      "kind": "abilities",
+      "subtype": [
+        "magic",
+        "divine",
+        "technology",
+        "martial"
+      ],
+      "status": [
+        "common",
+        "rare",
+        "forbidden",
+        "lost"
+      ]
+    }
+  ],
+  "relationships": {
+    "npc": {
+      "npc": ["ally_of", "enemy_of", "mentor_of", "rival_of", "kin_of"],
+      "location": ["ruler_of", "resident_of", "exile_from", "guardian_of"],
+      "faction": ["leader_of", "member_of", "spy_for", "hunted_by"],
+      "rules": ["author_of", "enforcer_of", "violator_of"],
+      "abilities": ["master_of", "student_of", "granted_by"]
+    },
+    "location": {
+      "npc": ["birthplace_of", "tomb_of", "sanctuary_for"],
+      "location": ["adjacent_to", "contains", "portal_to"],
+      "faction": ["headquarters_of", "contested_by", "sacred_to"],
+      "rules": ["governed_by", "exempt_from"],
+      "abilities": ["source_of", "amplifies", "suppresses"]
+    },
+    "faction": {
+      "npc": ["commands", "protects", "hunts"],
+      "location": ["controls", "raids", "defends"],
+      "faction": ["allied_with", "at_war_with", "splinter_of"],
+      "rules": ["enforces", "defies", "created"],
+      "abilities": ["wields", "seeks", "forbids"]
+    },
+    "rules": {
+      "npc": ["binds", "empowers", "condemns"],
+      "location": ["applies_in", "originated_at"],
+      "faction": ["governs", "opposed_by"],
+      "rules": ["supersedes", "derives_from"],
+      "abilities": ["regulates", "enables"]
+    },
+    "abilities": {
+      "npc": ["bestowed_upon", "awakened_in"],
+      "location": ["manifests_at", "dormant_in"],
+      "faction": ["monopolized_by", "feared_by"],
+      "rules": ["constrained_by", "transcends"],
+      "abilities": ["evolved_from", "counters"]
+    }
+  }
+}

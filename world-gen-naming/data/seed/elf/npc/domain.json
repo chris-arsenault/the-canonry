@@ -1,0 +1,32 @@
+{
+  "id": "elf_domain",
+  "cultureId": "elf",
+  "appliesTo": {
+    "kind": ["npc", "location", "faction", "rules", "abilities"],
+    "subKind": [],
+    "tags": []
+  },
+  "phonology": {
+    "consonants": ["l", "r", "n", "m", "th", "s", "f", "v", "w", "y"],
+    "vowels": ["a", "e", "i", "o", "ae", "ai", "ia", "ie", "ea"],
+    "syllableTemplates": ["CV", "CVV", "CVC", "VCV"],
+    "lengthRange": [2, 4],
+    "favoredClusters": ["th", "ae", "ia", "el", "ar"],
+    "forbiddenClusters": ["gg", "kk", "ck"],
+    "favoredClusterBoost": 1.4
+  },
+  "morphology": {
+    "prefixes": ["Ael", "Cel", "Gal", "Lir", "Tha"],
+    "suffixes": ["iel", "wen", "riel", "ion", "ath", "oth", "iel"],
+    "structure": ["root", "root-suffix", "prefix-root-suffix"],
+    "structureWeights": [0.2, 0.5, 0.3]
+  },
+  "style": {
+    "capitalization": "title",
+    "apostropheRate": 0.15,
+    "hyphenRate": 0,
+    "preferredEndings": ["iel", "wen", "ion", "ath", "a", "e"],
+    "preferredEndingBoost": 1.4,
+    "rhythmBias": "flowing"
+  }
+}

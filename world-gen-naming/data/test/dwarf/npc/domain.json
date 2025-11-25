@@ -1,0 +1,32 @@
+{
+  "id": "dwarf_domain",
+  "cultureId": "dwarf",
+  "appliesTo": {
+    "kind": ["npc", "location", "faction", "rules", "abilities"],
+    "subKind": [],
+    "tags": []
+  },
+  "phonology": {
+    "consonants": ["b", "d", "g", "k", "m", "n", "r", "t", "th", "gr", "dr", "kr", "br"],
+    "vowels": ["a", "i", "o", "u", "ai", "or", "ur"],
+    "syllableTemplates": ["CVC", "CVCC", "CCV", "CV"],
+    "lengthRange": [1, 3],
+    "favoredClusters": ["gr", "dr", "th", "kr"],
+    "forbiddenClusters": ["ae", "ii"],
+    "favoredClusterBoost": 1.5
+  },
+  "morphology": {
+    "prefixes": ["Dur", "Thor", "Brom", "Grim", "Kaz"],
+    "suffixes": ["in", "din", "rim", "grim", "ak", "ok", "dur"],
+    "structure": ["root", "root-suffix", "prefix-root", "prefix-root-suffix"],
+    "structureWeights": [0.2, 0.4, 0.2, 0.2]
+  },
+  "style": {
+    "capitalization": "title",
+    "apostropheRate": 0,
+    "hyphenRate": 0.1,
+    "preferredEndings": ["in", "im", "ak", "ok", "ur"],
+    "preferredEndingBoost": 1.3,
+    "rhythmBias": "harsh"
+  }
+}

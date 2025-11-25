@@ -1,0 +1,32 @@
+{
+  "id": "world_domain",
+  "cultureId": "world",
+  "appliesTo": {
+    "kind": ["npc", "location", "faction", "rules", "abilities"],
+    "subKind": [],
+    "tags": []
+  },
+  "phonology": {
+    "consonants": ["m", "n", "r", "l", "s", "t", "v", "th", "d"],
+    "vowels": ["a", "e", "i", "o", "u", "ae", "ea"],
+    "syllableTemplates": ["CV", "CVC", "VCV", "CVV"],
+    "lengthRange": [2, 4],
+    "favoredClusters": ["th", "ae", "ea"],
+    "forbiddenClusters": [],
+    "favoredClusterBoost": 1.2
+  },
+  "morphology": {
+    "prefixes": ["Vor", "Eth", "Mal", "Sol", "Ter"],
+    "suffixes": ["us", "ia", "um", "or", "an", "is"],
+    "structure": ["root", "root-suffix", "prefix-root"],
+    "structureWeights": [0.3, 0.4, 0.3]
+  },
+  "style": {
+    "capitalization": "title",
+    "apostropheRate": 0.05,
+    "hyphenRate": 0,
+    "preferredEndings": ["us", "ia", "um", "or"],
+    "preferredEndingBoost": 1.2,
+    "rhythmBias": "neutral"
+  }
+}
