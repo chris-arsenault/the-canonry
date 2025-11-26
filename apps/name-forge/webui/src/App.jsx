@@ -114,58 +114,43 @@ function App() {
           <div style={{ textAlign: 'right' }}>
             <button
               onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-              style={{
-                background: apiKey ? 'rgba(34, 197, 94, 0.2)' : 'rgba(59, 130, 246, 0.2)',
-                border: `1px solid ${apiKey ? 'rgba(34, 197, 94, 0.4)' : 'rgba(59, 130, 246, 0.4)'}`,
-                borderRadius: '4px',
-                padding: '0.35rem 0.75rem',
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                color: apiKey ? 'rgb(134, 239, 172)' : 'var(--arctic-frost)'
-              }}
+              className={apiKey ? 'primary' : 'secondary'}
+              style={{ fontSize: 'var(--text-xs)' }}
             >
-              {apiKey ? 'API Key Set' : 'Set API Key'}
+              {apiKey ? '✓ API Key Set' : 'Set API Key'}
             </button>
             {showApiKeyInput && (
               <div style={{
                 position: 'absolute',
-                right: '1rem',
-                top: '4rem',
-                background: 'var(--card-bg)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '6px',
-                padding: '1rem',
+                right: 'var(--space-lg)',
+                top: '3.5rem',
+                background: 'var(--arctic-dark)',
+                border: '1px solid var(--card-border)',
+                borderRadius: '4px',
+                padding: 'var(--space-md)',
                 zIndex: 100,
-                width: '300px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                width: '260px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
               }}>
-                <div style={{ marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                <div style={{ marginBottom: 'var(--space-xs)', fontSize: 'var(--text-sm)', fontWeight: '600' }}>
                   Anthropic API Key
                 </div>
-                <p style={{ fontSize: '0.75rem', color: 'var(--arctic-frost)', marginBottom: '0.75rem' }}>
-                  Required for LLM lexeme generation. Not stored - session only.
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--arctic-frost)', marginBottom: 'var(--space-sm)' }}>
+                  Required for LLM lexeme generation. Not stored.
                 </p>
                 <input
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder="sk-ant-..."
-                  style={{ width: '100%', marginBottom: '0.5rem' }}
+                  style={{ width: '100%', marginBottom: 'var(--space-sm)' }}
                 />
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    className="primary"
-                    style={{ flex: 1, fontSize: '0.8rem' }}
-                    onClick={() => setShowApiKeyInput(false)}
-                  >
+                <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                  <button className="primary" style={{ flex: 1 }} onClick={() => setShowApiKeyInput(false)}>
                     Done
                   </button>
                   {apiKey && (
-                    <button
-                      className="secondary"
-                      style={{ fontSize: '0.8rem' }}
-                      onClick={() => { setApiKey(''); }}
-                    >
+                    <button className="secondary" onClick={() => { setApiKey(''); }}>
                       Clear
                     </button>
                   )}
@@ -220,19 +205,19 @@ function App() {
           </nav>
 
           <div className="domain-stats">
-            <h3>Current Configuration</h3>
+            <h3>Configuration</h3>
             <div className="stat-item">
-              <span className="stat-label">Cultures:</span>
+              <span className="stat-label">Cultures</span>
               <span className="stat-value">{Object.keys(cultures).length}</span>
             </div>
             <div className="stat-item">
-              <span className="stat-label">Entity Types:</span>
+              <span className="stat-label">Entity Types</span>
               <span className="stat-value">{worldSchema?.hardState?.length || 0}</span>
             </div>
             {selectedCulture && (
-              <div className="stat-item" style={{ marginTop: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
-                <span className="stat-label">Selected:</span>
-                <span className="stat-value" style={{ color: 'var(--gold-accent)' }}>{selectedCulture}</span>
+              <div className="stat-item" style={{ marginTop: 'var(--space-sm)', borderTop: '1px solid var(--border-color)', paddingTop: 'var(--space-sm)' }}>
+                <span className="stat-label">Selected</span>
+                <span className="stat-value">{selectedCulture}</span>
               </div>
             )}
           </div>
@@ -245,12 +230,13 @@ function App() {
               <span>Loading...</span>
             </div>
           ) : !currentProject ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+            <div style={{ padding: 'var(--space-xl)', textAlign: 'center' }}>
               <h2>Welcome to Name Forge</h2>
-              <p>Create a new project or import an existing one to begin.</p>
-              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--arctic-frost)' }}>
-                Your projects are stored locally in your browser.
-                Use Export to save backups or share with others.
+              <p className="text-muted" style={{ marginTop: 'var(--space-sm)' }}>
+                Create a new project or import an existing one to begin.
+              </p>
+              <p style={{ marginTop: 'var(--space-md)', fontSize: 'var(--text-xs)', color: 'var(--arctic-frost)' }}>
+                Projects are stored locally. Use Export to save backups.
               </p>
             </div>
           ) : (
@@ -267,9 +253,10 @@ function App() {
               {activeTab === 'workshop' && (
                 <div className="workshop-container">
                   <div style={{
-                    width: '300px',
+                    width: '220px',
+                    minWidth: '220px',
                     borderRight: '1px solid var(--border-color)',
-                    background: 'rgba(30, 58, 95, 0.1)',
+                    background: 'rgba(30, 58, 95, 0.2)',
                     overflowY: 'auto'
                   }}>
                     <CultureSidebar

@@ -18,8 +18,8 @@ function EntityWorkspace({
 
   if (!cultureId) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
-        <p>Select a culture from the sidebar to begin</p>
+      <div style={{ padding: 'var(--space-xl)', textAlign: 'center' }}>
+        <p className="text-muted">Select a culture from the sidebar to begin</p>
       </div>
     );
   }
@@ -88,40 +88,29 @@ function EntityWorkspace({
       {/* Header */}
       <div style={{
         borderBottom: '1px solid var(--border-color)',
-        padding: '1rem 1.5rem',
+        padding: 'var(--space-md) var(--space-lg)',
         background: 'rgba(30, 58, 95, 0.2)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ margin: 0, marginBottom: '0.25rem' }}>
-              <span style={{ textTransform: 'capitalize', color: 'var(--gold-accent)' }}>
+            <h3 style={{ margin: 0 }}>
+              <span style={{ color: 'var(--gold-accent)' }}>
                 {cultureConfig?.name || cultureId}
               </span>
-              <span style={{ fontWeight: 'normal', fontSize: '0.9rem', color: 'var(--arctic-frost)', marginLeft: '0.5rem' }}>
+              <span style={{ fontWeight: 'normal', fontSize: 'var(--text-sm)', color: 'var(--arctic-frost)', marginLeft: 'var(--space-sm)' }}>
                 Culture
               </span>
-            </h2>
-            <div style={{ fontSize: '0.875rem', color: 'var(--arctic-frost)' }}>
-              Configure naming resources shared across all entity types
-            </div>
+            </h3>
           </div>
-
-          <div style={{
-            fontSize: '0.75rem',
-            color: 'var(--arctic-frost)',
-            opacity: 0.6
-          }}>
-            Auto-saved locally
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--arctic-frost)', opacity: 0.6 }}>
+            Auto-saved
           </div>
         </div>
 
         {error && (
-          <div className="error" style={{ marginTop: '1rem' }}>
+          <div className="error" style={{ marginTop: 'var(--space-sm)' }}>
             {error}
-            <button
-              onClick={() => setError(null)}
-              style={{ marginLeft: '1rem', padding: '0.25rem 0.5rem' }}
-            >
+            <button className="secondary" onClick={() => setError(null)} style={{ marginLeft: 'var(--space-sm)' }}>
               Dismiss
             </button>
           </div>
@@ -131,25 +120,26 @@ function EntityWorkspace({
       {/* Tabs */}
       <div style={{
         borderBottom: '1px solid var(--border-color)',
-        padding: '0 1.5rem',
+        padding: '0 var(--space-lg)',
         background: 'rgba(30, 58, 95, 0.1)',
         display: 'flex',
-        gap: '0.5rem'
+        gap: 'var(--space-xs)'
       }}>
         {['domain', 'lexemes', 'grammars', 'profiles'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             style={{
-              padding: '0.75rem 1rem',
+              padding: 'var(--space-sm) var(--space-md)',
               border: 'none',
               background: activeTab === tab ? 'var(--card-bg)' : 'transparent',
               color: activeTab === tab ? 'var(--gold-accent)' : 'var(--text-color)',
               borderBottom: activeTab === tab ? '2px solid var(--gold-accent)' : '2px solid transparent',
               cursor: 'pointer',
-              fontWeight: activeTab === tab ? 'bold' : 'normal',
+              fontWeight: activeTab === tab ? '600' : 'normal',
+              fontSize: 'var(--text-sm)',
               textTransform: 'capitalize',
-              transition: 'all 0.2s'
+              transition: 'all 0.15s'
             }}
           >
             {tab} {getCompletionBadge(tab)}
@@ -158,7 +148,7 @@ function EntityWorkspace({
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-lg)' }}>
         {activeTab === 'domain' && (
           <DomainTab
             key={cultureId}

@@ -76,25 +76,24 @@ function CultureSidebar({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ borderBottom: '1px solid var(--border-color)', padding: '1rem' }}>
-        <h3 style={{ margin: 0, marginBottom: '1rem' }}>Cultures</h3>
+      <div style={{ borderBottom: '1px solid var(--border-color)', padding: 'var(--space-md)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
+          <h4 style={{ margin: 0 }}>Cultures</h4>
+          {!creatingCulture && (
+            <button className="primary" onClick={() => setCreatingCulture(true)} style={{ fontSize: 'var(--text-xs)' }}>
+              + New
+            </button>
+          )}
+        </div>
 
-        {!creatingCulture ? (
-          <button
-            className="primary"
-            onClick={() => setCreatingCulture(true)}
-            style={{ width: '100%' }}
-          >
-            + New Culture
-          </button>
-        ) : (
+        {creatingCulture && (
           <div style={{
-            background: 'rgba(30, 58, 95, 0.3)',
-            padding: '1rem',
-            borderRadius: '6px',
-            border: '1px solid rgba(59, 130, 246, 0.3)'
+            background: 'var(--card-bg)',
+            padding: 'var(--space-md)',
+            borderRadius: '4px',
+            border: '1px solid var(--card-border)'
           }}>
-            <div className="form-group">
+            <div className="form-group" style={{ marginBottom: 'var(--space-sm)' }}>
               <label>Culture ID</label>
               <input
                 type="text"
@@ -103,7 +102,7 @@ function CultureSidebar({
                 placeholder="elven"
               />
             </div>
-            <div className="form-group">
+            <div className="form-group" style={{ marginBottom: 'var(--space-sm)' }}>
               <label>Display Name</label>
               <input
                 type="text"
@@ -114,20 +113,17 @@ function CultureSidebar({
             </div>
 
             {error && (
-              <div className="error" style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
+              <div className="error" style={{ marginTop: 'var(--space-sm)', padding: 'var(--space-sm)' }}>
                 {error}
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-              <button
-                className="primary"
-                onClick={handleCreateCulture}
-                style={{ flex: 1 }}
-              >
+            <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+              <button className="primary" onClick={handleCreateCulture} style={{ flex: 1 }}>
                 Create
               </button>
               <button
+                className="secondary"
                 onClick={() => {
                   setCreatingCulture(false);
                   setError(null);
@@ -143,9 +139,9 @@ function CultureSidebar({
         )}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-sm)' }}>
         {Object.keys(cultures).length === 0 ? (
-          <div style={{ padding: '1rem', textAlign: 'center', color: '#666', fontSize: '0.875rem' }}>
+          <div style={{ padding: 'var(--space-md)', textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--arctic-frost)' }}>
             No cultures yet. Create one to get started.
           </div>
         ) : (
@@ -159,31 +155,16 @@ function CultureSidebar({
                 key={culture.id}
                 onClick={() => onSelectCulture(culture.id)}
                 style={{
-                  marginBottom: '0.5rem',
-                  border: isSelected
-                    ? '2px solid var(--gold-accent)'
-                    : '1px solid rgba(59, 130, 246, 0.3)',
-                  borderRadius: '6px',
-                  background: isSelected
-                    ? 'rgba(255, 215, 0, 0.1)'
-                    : 'rgba(30, 58, 95, 0.3)',
-                  overflow: 'hidden',
+                  marginBottom: 'var(--space-sm)',
+                  border: isSelected ? '1px solid var(--gold-accent)' : '1px solid var(--card-border)',
+                  borderRadius: '4px',
+                  background: isSelected ? 'rgba(251, 191, 36, 0.1)' : 'var(--card-bg)',
                   cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSelected) {
-                    e.currentTarget.style.background = 'rgba(30, 58, 95, 0.5)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSelected) {
-                    e.currentTarget.style.background = 'rgba(30, 58, 95, 0.3)';
-                  }
+                  transition: 'all 0.15s'
                 }}
               >
-                <div style={{ padding: '0.75rem' }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                <div style={{ padding: 'var(--space-sm)' }}>
+                  <div style={{ fontWeight: '600', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-xs)', color: isSelected ? 'var(--gold-accent)' : 'var(--text-color)' }}>
                     {culture.name || culture.id}
                   </div>
 
@@ -191,45 +172,45 @@ function CultureSidebar({
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: '0.25rem',
-                    fontSize: '0.7rem',
+                    gap: '2px',
+                    fontSize: 'var(--text-xs)',
                     color: 'var(--arctic-frost)',
-                    marginBottom: '0.5rem'
+                    marginBottom: 'var(--space-xs)'
                   }}>
                     <span style={{
-                      padding: '0.15rem 0.35rem',
+                      padding: '2px 4px',
                       background: counts.domains > 0 ? 'rgba(147, 51, 234, 0.2)' : 'rgba(0,0,0,0.2)',
-                      borderRadius: '3px'
+                      borderRadius: '2px'
                     }}>
-                      {counts.domains} domains
+                      {counts.domains} dom
                     </span>
                     <span style={{
-                      padding: '0.15rem 0.35rem',
+                      padding: '2px 4px',
                       background: counts.lexemes > 0 ? 'rgba(59, 130, 246, 0.2)' : 'rgba(0,0,0,0.2)',
-                      borderRadius: '3px'
+                      borderRadius: '2px'
                     }}>
-                      {counts.lexemes} lexemes
+                      {counts.lexemes} lex
                     </span>
                     <span style={{
-                      padding: '0.15rem 0.35rem',
+                      padding: '2px 4px',
                       background: counts.grammars > 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(0,0,0,0.2)',
-                      borderRadius: '3px'
+                      borderRadius: '2px'
                     }}>
-                      {counts.grammars} grammars
+                      {counts.grammars} gram
                     </span>
                     <span style={{
-                      padding: '0.15rem 0.35rem',
+                      padding: '2px 4px',
                       background: counts.profiles > 0 ? 'rgba(251, 191, 36, 0.2)' : 'rgba(0,0,0,0.2)',
-                      borderRadius: '3px'
+                      borderRadius: '2px'
                     }}>
-                      {counts.profiles} profiles
+                      {counts.profiles} prof
                     </span>
                   </div>
 
                   {/* Progress bar */}
                   <div style={{
                     width: '100%',
-                    height: '4px',
+                    height: '3px',
                     background: 'rgba(0, 0, 0, 0.3)',
                     borderRadius: '2px',
                     overflow: 'hidden'
@@ -237,10 +218,8 @@ function CultureSidebar({
                     <div style={{
                       width: `${completion}%`,
                       height: '100%',
-                      background: completion === 100
-                        ? 'var(--gold-accent)'
-                        : 'linear-gradient(90deg, #3b82f6, #06b6d4)',
-                      transition: 'width 0.3s'
+                      background: completion === 100 ? 'var(--gold-accent)' : 'var(--arctic-ice)',
+                      transition: 'width 0.2s'
                     }} />
                   </div>
                 </div>
