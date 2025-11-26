@@ -4,7 +4,9 @@
 
 A dramatically over-engineered procedural name generator for fantasy worlds, games, and fiction. Instead of a simple random name picker, we've built a system with phonological domains, context-free grammars, Markov chains, genetic algorithm optimization, and multi-culture support. You know, the essentials.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+**[Try it live at penguin-tales.com/name-forge](https://penguin-tales.com/name-forge/)**
+
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20Noncommercial-purple.svg)](https://polyformproject.org/licenses/noncommercial/1.0.0/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green)](https://nodejs.org/)
 
@@ -455,7 +457,7 @@ A: Need? No. But your NPCs deserve names that have been evolutionarily optimized
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+[PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/) - free for non-commercial use.
 
 ---
 
@@ -464,5 +466,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  <sub>Copyright © 2024 <img src="./tsonu-combined.png" alt="tsonu" aria-label="tsonu" height="16" style="vertical-align: middle;" /></sub>
+  <sub>Copyright © 2025 <img src="./webui/public/tsonu-combined.png" alt="tsonu" aria-label="tsonu" height="16" style="vertical-align: middle;" /></sub>
 </p>
