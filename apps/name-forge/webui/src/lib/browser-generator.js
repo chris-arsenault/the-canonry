@@ -20,7 +20,7 @@ async function loadMarkovModel(modelId) {
   }
 
   try {
-    const response = await fetch(`/markov-models/${modelId}.json`);
+    const response = await fetch(`${import.meta.env.BASE_URL}markov-models/${modelId}.json`);
     if (!response.ok) {
       console.warn(`Markov model '${modelId}' not found`);
       return null;

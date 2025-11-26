@@ -22,7 +22,7 @@ import { createEmptyProject } from './types.js';
  */
 async function fetchDefaultProject() {
   try {
-    const response = await fetch('/default-project.json');
+    const response = await fetch(`${import.meta.env.BASE_URL}default-project.json`);
     if (!response.ok) {
       console.warn('Default project not found');
       return null;

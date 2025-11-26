@@ -105,20 +105,15 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h1
-              onClick={() => setActiveTab('home')}
-              style={{ cursor: 'pointer' }}
-              title="Go to home"
-            >
-              Name Forge
-            </h1>
-            <p className="subtitle">
-              Craft distinctive names for your worlds
-            </p>
+        <div className="header-content">
+          <div
+            className="header-logo"
+            onClick={() => setActiveTab('home')}
+            title="Go to home"
+          >
+            <img src={`${import.meta.env.BASE_URL}name-forge.png`} alt="Name Forge" className="logo-image" />
           </div>
-          <div style={{ textAlign: 'right' }}>
+          <div className="header-actions">
             <button
               onClick={() => setShowApiKeyInput(!showApiKeyInput)}
               className={apiKey ? 'primary' : 'secondary'}
@@ -381,6 +376,11 @@ function App() {
           </div>
         </aside>
       </div>
+
+      <footer className="app-footer">
+        <span>Copyright © 2025</span>
+        <img src={`${import.meta.env.BASE_URL}tsonu-combined.png`} alt="tsonu" aria-label="tsonu" height="14" />
+      </footer>
     </div>
   );
 }
