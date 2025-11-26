@@ -141,7 +141,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', fontSize: '0.8rem' }}>
+              <div className="domain-summary-grid">
                 <div>
                   <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>Phonology</div>
                   <div style={{ color: 'var(--arctic-frost)' }}>
@@ -302,7 +302,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                   placeholder="CV CVC CVV"
                 />
               </div>
-              <div style={{ display: 'flex', gap: '1rem' }}>
+              <div className="flex-row-responsive">
                 <div className="form-group" style={{ flex: 1 }}>
                   <label>Min Length</label>
                   <input

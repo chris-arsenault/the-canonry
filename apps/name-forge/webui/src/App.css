@@ -80,6 +80,20 @@ body {
   margin: var(--space-xs) 0 0 0;
 }
 
+/* API Key Dropdown */
+.api-key-dropdown {
+  position: absolute;
+  right: var(--space-lg);
+  top: 3.5rem;
+  background: var(--arctic-dark);
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  padding: var(--space-md);
+  z-index: 100;
+  width: 260px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
 /* Main Layout */
 .app-container {
   display: flex;
@@ -120,6 +134,21 @@ body {
   height: 100%;
   width: 100%;
   overflow: hidden;
+}
+
+.workshop-sidebar {
+  width: 220px;
+  min-width: 220px;
+  max-width: 220px;
+  border-right: 1px solid var(--border-color);
+  background: rgba(30, 58, 95, 0.2);
+  overflow-y: auto;
+}
+
+.workshop-content {
+  flex: 1;
+  overflow-y: auto;
+  min-width: 0;
 }
 
 /* Right Sidebar (Guide) */
@@ -529,6 +558,57 @@ code {
   gap: var(--space-md);
 }
 
+/* Domain card summary grid */
+.domain-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+  font-size: var(--text-sm);
+}
+
+/* Flex row that wraps on mobile */
+.flex-row-responsive {
+  display: flex;
+  gap: var(--space-md);
+}
+
+/* Header row with title and actions */
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+/* Button group */
+.button-group {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+/* Generate tab two-column layout */
+.generate-layout {
+  display: flex;
+  gap: var(--space-xl);
+  flex: 1;
+  min-height: 0;
+}
+
+.generate-controls {
+  width: 350px;
+  flex-shrink: 0;
+}
+
+.generate-results {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 /* Collapsible sections */
 .collapsible-section {
   background: var(--card-bg);
@@ -598,4 +678,353 @@ select.compact {
 button.sm {
   padding: var(--space-xs) var(--space-sm);
   font-size: var(--text-xs);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* Mobile toggle button for sidebars */
+.mobile-toggle {
+  display: none;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--arctic-light);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.mobile-toggle:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+/* Mobile menu overlay */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+}
+
+.mobile-overlay.visible {
+  display: block;
+}
+
+/* Desktop-only elements */
+.desktop-only {
+  display: block;
+}
+
+.mobile-only {
+  display: none;
+}
+
+/* Responsive utility classes */
+.hide-mobile {
+  display: block;
+}
+
+.show-mobile {
+  display: none;
+}
+
+/* ============================================
+   TABLET BREAKPOINT (1024px and below)
+   ============================================ */
+@media (max-width: 1024px) {
+  /* Hide guide sidebar on tablet */
+  .guide-sidebar {
+    display: none;
+  }
+
+  /* Narrower left sidebar */
+  .sidebar {
+    width: 200px;
+    min-width: 200px;
+    max-width: 200px;
+  }
+
+  /* Adjust tab nav for smaller space */
+  .tab-nav button {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-sm);
+  }
+
+  /* Smaller form grids */
+  .form-grid-4 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .form-grid-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ============================================
+   SMALL TABLET / LARGE PHONE (768px and below)
+   ============================================ */
+@media (max-width: 768px) {
+  /* Stack the main layout */
+  .app-container {
+    flex-direction: column;
+  }
+
+  /* Left sidebar becomes top bar with horizontal scroll */
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-height: none;
+  }
+
+  /* Tab navigation horizontal on mobile */
+  .tab-nav {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    padding: var(--space-sm);
+    overflow-x: auto;
+    border-bottom: none;
+    gap: var(--space-xs);
+  }
+
+  .tab-nav button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Hide domain stats on mobile */
+  .domain-stats {
+    display: none;
+  }
+
+  /* Main content takes remaining space */
+  .main-content {
+    flex: 1;
+    padding: var(--space-md);
+    min-height: 0;
+  }
+
+  /* Workshop container stacks vertically */
+  .workshop-container {
+    flex-direction: column;
+  }
+
+  /* Culture sidebar in workshop becomes collapsible top section */
+  .workshop-sidebar {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    max-height: 200px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    overflow-y: auto;
+  }
+
+  .workshop-content {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* All form grids stack on mobile */
+  .form-grid-2,
+  .form-grid-3,
+  .form-grid-4,
+  .domain-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Flex rows stack on mobile */
+  .flex-row-responsive {
+    flex-direction: column;
+  }
+
+  /* Generate tab stacks on mobile */
+  .generate-layout {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .generate-controls {
+    width: 100%;
+  }
+
+  .generate-results {
+    min-height: 300px;
+  }
+
+  /* Smaller header */
+  .app-header {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .app-header h1 {
+    font-size: var(--text-lg);
+  }
+
+  .app-header .subtitle {
+    display: none;
+  }
+
+  /* API key dropdown responsive */
+  .api-key-dropdown {
+    right: var(--space-sm);
+    left: var(--space-sm);
+    width: auto;
+    max-width: calc(100vw - 2rem);
+  }
+
+  /* Mobile toggles visible */
+  .mobile-toggle {
+    display: inline-flex;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: block;
+  }
+
+  .hide-mobile {
+    display: none;
+  }
+
+  .show-mobile {
+    display: block;
+  }
+
+  /* Smaller buttons on mobile */
+  button {
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  /* Full width inputs on mobile */
+  input[type="number"] {
+    width: 100%;
+  }
+}
+
+/* ============================================
+   PHONE BREAKPOINT (480px and below)
+   ============================================ */
+@media (max-width: 480px) {
+  /* Even smaller header */
+  .app-header {
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .app-header h1 {
+    font-size: var(--text-base);
+  }
+
+  /* Tighter main content padding */
+  .main-content {
+    padding: var(--space-sm);
+  }
+
+  /* Smaller tabs */
+  .tab-nav {
+    padding: var(--space-xs);
+  }
+
+  .tab-nav button {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xs);
+  }
+
+  /* Compact form groups */
+  .form-group {
+    margin-bottom: var(--space-md);
+  }
+
+  .form-group label {
+    font-size: var(--text-xs);
+  }
+
+  /* Smaller spacing in cards */
+  .card {
+    padding: var(--space-md);
+  }
+
+  /* Collapsible sections more compact */
+  .collapsible-header {
+    padding: var(--space-sm);
+  }
+
+  .collapsible-content {
+    padding: 0 var(--space-sm) var(--space-sm);
+  }
+
+  /* Workshop culture section even smaller */
+  .workshop-sidebar {
+    max-height: 150px;
+  }
+}
+
+/* ============================================
+   RESPONSIVE HELPERS
+   ============================================ */
+
+/* Flex wrap for button groups on small screens */
+@media (max-width: 768px) {
+  .button-group,
+  [style*="display: flex"][style*="gap"] {
+    flex-wrap: wrap;
+  }
+}
+
+/* Ensure modals/dropdowns don't overflow on mobile */
+@media (max-width: 768px) {
+  [style*="position: absolute"] {
+    max-width: calc(100vw - 2rem);
+  }
+}
+
+/* Touch-friendly tap targets */
+@media (max-width: 768px) {
+  button,
+  .tab-nav button,
+  input,
+  select,
+  textarea {
+    min-height: 36px;
+  }
+
+  /* Larger touch targets for small buttons */
+  button.sm,
+  button.danger,
+  button.secondary {
+    min-height: 32px;
+    padding: var(--space-sm) var(--space-md);
+  }
+}
+
+/* Print styles - hide sidebars */
+@media print {
+  .sidebar,
+  .guide-sidebar,
+  .tab-nav {
+    display: none;
+  }
+
+  .main-content {
+    padding: 0;
+  }
+
+  .app-container {
+    display: block;
+  }
 }

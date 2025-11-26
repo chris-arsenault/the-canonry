@@ -6,6 +6,7 @@ import CultureSidebar from './components/CultureSidebar';
 import EntityWorkspace from './components/EntityWorkspace';
 import OptimizerWorkshop from './components/OptimizerWorkshop';
 import GenerateTab from './components/GenerateTab';
+import HomePage from './components/HomePage';
 import { useProjectStorage } from './storage';
 
 // Read initial state from URL
@@ -13,7 +14,7 @@ function getInitialStateFromURL() {
   const params = new URLSearchParams(window.location.search);
   return {
     culture: params.get('culture') || null,
-    tab: params.get('tab') || 'schema',
+    tab: params.get('tab') || 'home',
     workspaceTab: params.get('wtab') || 'domain'
   };
 }
@@ -65,7 +66,7 @@ function App() {
   const updateURL = useCallback(() => {
     const params = new URLSearchParams();
     if (selectedCulture) params.set('culture', selectedCulture);
-    if (activeTab && activeTab !== 'schema') params.set('tab', activeTab);
+    if (activeTab && activeTab !== 'home') params.set('tab', activeTab);
     if (workspaceTab && workspaceTab !== 'domain') params.set('wtab', workspaceTab);
 
     const newURL = params.toString() ? `?${params.toString()}` : window.location.pathname;
@@ -106,7 +107,13 @@ function App() {
       <header className="app-header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <h1>Name Forge</h1>
+            <h1
+              onClick={() => setActiveTab('home')}
+              style={{ cursor: 'pointer' }}
+              title="Go to home"
+            >
+              Name Forge
+            </h1>
             <p className="subtitle">
               Craft distinctive names for your worlds
             </p>
@@ -120,18 +127,7 @@ function App() {
               {apiKey ? '✓ API Key Set' : 'Set API Key'}
             </button>
             {showApiKeyInput && (
-              <div style={{
-                position: 'absolute',
-                right: 'var(--space-lg)',
-                top: '3.5rem',
-                background: 'var(--arctic-dark)',
-                border: '1px solid var(--card-border)',
-                borderRadius: '4px',
-                padding: 'var(--space-md)',
-                zIndex: 100,
-                width: '260px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
-              }}>
+              <div className="api-key-dropdown">
                 <div style={{ marginBottom: 'var(--space-xs)', fontSize: 'var(--text-sm)', fontWeight: '600' }}>
                   Anthropic API Key
                 </div>
@@ -178,6 +174,12 @@ function App() {
           />
 
           <nav className="tab-nav">
+            <button
+              className={activeTab === 'home' ? 'active' : ''}
+              onClick={() => setActiveTab('home')}
+            >
+              Home
+            </button>
             <button
               className={activeTab === 'schema' ? 'active' : ''}
               onClick={() => setActiveTab('schema')}
@@ -241,6 +243,10 @@ function App() {
             </div>
           ) : (
             <>
+              {activeTab === 'home' && (
+                <HomePage onNavigate={setActiveTab} />
+              )}
+
               {activeTab === 'schema' && (
                 <SchemaLoader
                   worldSchema={worldSchema}
@@ -252,13 +258,7 @@ function App() {
 
               {activeTab === 'workshop' && (
                 <div className="workshop-container">
-                  <div style={{
-                    width: '220px',
-                    minWidth: '220px',
-                    borderRight: '1px solid var(--border-color)',
-                    background: 'rgba(30, 58, 95, 0.2)',
-                    overflowY: 'auto'
-                  }}>
+                  <div className="workshop-sidebar">
                     <CultureSidebar
                       cultures={cultures}
                       selectedCulture={selectedCulture}
@@ -266,7 +266,7 @@ function App() {
                       onCulturesChange={handleCulturesChange}
                     />
                   </div>
-                  <div style={{ flex: 1, overflowY: 'auto' }}>
+                  <div className="workshop-content">
                     <EntityWorkspace
                       worldSchema={worldSchema}
                       cultureId={selectedCulture}

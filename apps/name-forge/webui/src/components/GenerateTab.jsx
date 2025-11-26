@@ -191,9 +191,9 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
         based on entity type, subtype, tags, and prominence.
       </p>
 
-      <div style={{ display: 'flex', gap: '1.5rem', flex: 1, minHeight: 0 }}>
+      <div className="generate-layout">
         {/* Left: Controls */}
-        <div style={{ width: '350px', flexShrink: 0 }}>
+        <div className="generate-controls">
           <div className="card" style={{ marginBottom: '1rem' }}>
             <h3 style={{ margin: '0 0 1rem 0' }}>Generation Settings</h3>
 
@@ -451,7 +451,7 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
         </div>
 
         {/* Right: Results */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div className="generate-results">
           <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 style={{ margin: 0 }}>
