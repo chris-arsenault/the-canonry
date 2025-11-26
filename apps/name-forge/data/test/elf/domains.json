@@ -16,41 +16,46 @@
       },
       "phonology": {
         "consonants": [
-          "r",
-          "ɹ",
+          "j",
+          "ʒ",
           "m",
-          "kh",
-          "θ"
+          "θ",
+          "ŋ",
+          "n",
+          "ts",
+          "ð",
+          "k"
         ],
         "vowels": [
-          "a",
-          "e",
+          "æ",
+          "ö",
           "i",
           "o",
-          "ae",
           "ai",
-          "ia",
           "ie",
           "ü",
-          "ii"
+          "ä",
+          "ou",
+          "uu"
         ],
         "syllableTemplates": [
+          "VCVV",
           "CV",
-          "CVV",
-          "CVC",
           "VCV",
-          "V"
+          "V",
+          "CVV"
         ],
         "lengthRange": [
-          2,
-          4
+          3,
+          6
         ],
         "favoredClusters": [
-          "th",
-          "ae",
-          "ia",
-          "el",
-          "ar"
+          "ar",
+          "bl",
+          "ts",
+          "tr",
+          "rm",
+          "jθm"
         ],
         "forbiddenClusters": [
           "gg",
@@ -62,6 +67,10 @@
           1
         ],
         "consonantWeights": [
+          1,
+          1,
+          1,
+          1,
           1,
           1,
           1,
@@ -111,8 +120,8 @@
       },
       "style": {
         "capitalization": "title",
-        "apostropheRate": 0.5438623384595179,
-        "hyphenRate": 0,
+        "apostropheRate": 0.821279339905541,
+        "hyphenRate": 0.07893375552970323,
         "preferredEndings": [
           "iel",
           "wen",

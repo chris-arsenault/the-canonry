@@ -6,8 +6,14 @@
       "rules": {
         "name": [
           [
+            "markov:norse",
+            "markov:germanic",
+            "markov:finnish",
+            "markov:arabic",
+            "markov:celtic",
+            "markov:slavic",
+            "markov:latin",
             "markov:japanese",
-            "von",
             "markov:african"
           ]
         ]

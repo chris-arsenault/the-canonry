@@ -186,10 +186,14 @@ export async function loadMarkovModel(
     const path = await import("path");
     const { fileURLToPath } = await import("url");
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+    // Resolve project root - handle both source (lib/) and compiled (dist/lib/) paths
+    const projectRoot = __dirname.includes("/dist/")
+      ? path.join(__dirname, "..", "..")
+      : path.join(__dirname, "..");
+
     const modelPath = path.join(
-      __dirname,
-      "..",
-      "..",
+      projectRoot,
       "data",
       "markov",
       "models",

@@ -21,11 +21,11 @@ import type { FitnessTask } from "./fitness-worker.js";
 // Get project root and resolve worker path to dist (workers must be compiled JS)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-// Resolve to dist regardless of whether we're running from src (tsx) or dist (node)
-const projectRoot = __dirname.includes("/src/")
-  ? __dirname.replace("/src/lib/optimizers", "")
-  : __dirname.replace("/dist/lib/optimizers", "");
-const workerDir = join(projectRoot, "dist/lib/optimizers");
+// Resolve to dist regardless of whether we're running from validation (tsx) or dist (node)
+const projectRoot = __dirname.includes("/validation/")
+  ? __dirname.replace("/validation/optimizers", "")
+  : __dirname.replace("/dist/validation/optimizers", "");
+const workerDir = join(projectRoot, "dist/validation/optimizers");
 
 // Singleton pool instance
 let pool: Piscina | null = null;
