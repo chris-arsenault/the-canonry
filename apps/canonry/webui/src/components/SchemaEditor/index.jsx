@@ -9,6 +9,8 @@ import React from 'react';
 import EntityKindEditor from './EntityKindEditor';
 import RelationshipKindEditor from './RelationshipKindEditor';
 import CultureEditor from './CultureEditor';
+import TagRegistryEditor from './TagRegistryEditor';
+import RelationshipKindMatrix from '../coverage/RelationshipKindMatrix';
 import { colors, typography, spacing, radius, getAccentGradient, getHoverBg } from '../../theme';
 
 const styles = {
@@ -66,7 +68,9 @@ const styles = {
 const SECTIONS = [
   { id: 'entityKinds', label: 'Entity Kinds', countKey: 'entityKinds' },
   { id: 'relationshipKinds', label: 'Relationships', countKey: 'relationshipKinds' },
+  { id: 'relationshipMatrix', label: 'Rel. Matrix', countKey: null },
   { id: 'cultures', label: 'Cultures', countKey: 'cultures' },
+  { id: 'tags', label: 'Tags', countKey: 'tagRegistry' },
 ];
 
 export default function SchemaEditor({
@@ -76,6 +80,10 @@ export default function SchemaEditor({
   onUpdateEntityKinds,
   onUpdateRelationshipKinds,
   onUpdateCultures,
+  onUpdateTagRegistry,
+  tagUsage = {},
+  schemaUsage = {},
+  namingData = {},
 }) {
   // Use passed-in activeSection, fallback to entityKinds
   const currentSection = activeSection || 'entityKinds';
@@ -84,6 +92,7 @@ export default function SchemaEditor({
     entityKinds: project.entityKinds.length,
     relationshipKinds: project.relationshipKinds.length,
     cultures: project.cultures.length,
+    tagRegistry: (project.tagRegistry || []).length,
   };
 
   const renderEditor = () => {
@@ -93,6 +102,8 @@ export default function SchemaEditor({
           <EntityKindEditor
             entityKinds={project.entityKinds}
             onChange={onUpdateEntityKinds}
+            schemaUsage={schemaUsage}
+            namingData={namingData}
           />
         );
 
@@ -102,6 +113,18 @@ export default function SchemaEditor({
             relationshipKinds={project.relationshipKinds}
             entityKinds={project.entityKinds}
             onChange={onUpdateRelationshipKinds}
+            schemaUsage={schemaUsage}
+          />
+        );
+
+      case 'relationshipMatrix':
+        return (
+          <RelationshipKindMatrix
+            relationshipKinds={project.relationshipKinds}
+            entityKinds={project.entityKinds}
+            onNavigateToRelationship={(relKind) => {
+              onSectionChange('relationshipKinds');
+            }}
           />
         );
 
@@ -110,6 +133,16 @@ export default function SchemaEditor({
           <CultureEditor
             cultures={project.cultures}
             onChange={onUpdateCultures}
+          />
+        );
+
+      case 'tags':
+        return (
+          <TagRegistryEditor
+            tagRegistry={project.tagRegistry || []}
+            entityKinds={project.entityKinds}
+            onChange={onUpdateTagRegistry}
+            tagUsage={tagUsage}
           />
         );
 
@@ -134,7 +167,9 @@ export default function SchemaEditor({
             onClick={() => onSectionChange(section.id)}
           >
             {section.label}
-            <span style={styles.sidebarCount}>{counts[section.countKey]}</span>
+            {section.countKey && (
+              <span style={styles.sidebarCount}>{counts[section.countKey]}</span>
+            )}
           </div>
         ))}
       </div>

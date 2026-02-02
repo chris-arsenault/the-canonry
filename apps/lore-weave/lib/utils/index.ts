@@ -1,8 +1,7 @@
 /**
  * Utils Index
  *
- * Re-exports all utility functions for backward compatibility.
- * Individual utilities have been split into concern-specific files.
+ * Re-exports utility functions.
  */
 
 // Tag utilities
@@ -12,7 +11,6 @@ export {
   getTagValue,
   getTrueTagKeys,
   getStringTags,
-  tagsToArray,
   arrayToTags
 } from './tagUtils';
 
@@ -36,24 +34,14 @@ export {
   findEntities,
   getRelated,
   hasRelationship,
-  getResidents,
-  getLocation,
-  getFactionMembers,
-  getFactionLeader,
-  getCoreFactionMembers,
-  getStrongAllies,
-  getWeakRelationships,
-  getProminenceValue,
-  adjustProminence,
-  getConnectionWeight,
-  getFactionRelationship
+  getConnectionWeight
 } from '../graph/entityQueries';
 export type { RelationshipQueryOptions } from '../graph/entityQueries';
 
 // Entity mutation (from graph/)
 export {
   slugifyName,
-  upsertNameTag,
+  generateEntityIdFromName,
   normalizeInitialState,
   addEntity,
   updateEntity
@@ -61,18 +49,11 @@ export {
 
 // Relationship mutation (from graph/)
 export {
-  isLineageRelationship,
-  getExpectedDistanceRange,
-  getRelationshipStrength,
-  getRelationshipCategory,
   addRelationship,
-  addRelationshipWithDistance,
   archiveRelationship,
   modifyRelationshipStrength,
-  validateRelationship,
   canFormRelationship,
-  recordRelationshipFormation,
-  areRelationshipsCompatible
+  recordRelationshipFormation
 } from '../graph/relationshipMutation';
 
 // Array/JSON utilities

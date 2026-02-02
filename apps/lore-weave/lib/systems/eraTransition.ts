@@ -1,377 +1,421 @@
-import { SimulationSystem, SystemResult, ComponentPurpose } from '../engine/types';
+import {
+  SimulationSystem,
+  SystemResult,
+  Era,
+  TransitionCondition
+} from '../engine/types';
 import { HardState } from '../core/worldTypes';
 import {
   FRAMEWORK_ENTITY_KINDS,
   FRAMEWORK_STATUS,
-  FRAMEWORK_RELATIONSHIP_KINDS
-} from '../core/frameworkPrimitives';
-import { TemplateGraphView } from '../graph/templateGraphView';
+  FRAMEWORK_RELATIONSHIP_KINDS,
+  FRAMEWORK_TAGS
+} from '@canonry/world-schema';
+import { WorldRuntime } from '../runtime/worldRuntime';
+import type { EraTransitionConfig } from '../engine/systemInterpreter';
+import { createEraEntity } from './eraSpawner';
+import { createSystemContext, evaluateCondition, prepareMutation } from '../rules';
+import type { ConditionResult } from '../rules';
+import { prominenceThreshold, ProminenceLabel } from '../rules/types';
+import { hasTag } from '../utils';
 
 /**
  * Era Transition System
  *
- * Framework-level system that transitions between era entities based on
- * world state and domain-defined transition conditions.
+ * Framework-level system that handles era transitions based on exit/entry conditions.
  *
- * Eras are HardState entities (not just config objects) that exist in the graph.
- * They have status: 'historical' | 'current' | 'future' and can be referenced in relationships.
+ * TRANSITION MODEL:
+ * - exitConditions: Criteria for current era to END (all must be met)
+ * - entryConditions: Criteria for next era to START (all must be met)
+ * - nextEra: Optional explicit next era ID (supports divergent paths)
+ * - exitEffects: Applied when transitioning OUT of current era
+ * - entryEffects: Applied when transitioning INTO next era
+ *
+ * LAZY SPAWNING:
+ * - Era entities are created on-demand when transitioned into
+ * - Only the first era is spawned at init (by eraSpawner)
  *
  * Transition Logic:
- * 1. Get current era entity (status: 'current')
- * 2. Check domain-defined transition conditions
- * 3. If met, update current era status to 'historical', next era to 'current'
- * 4. Create historical event for era transition
- * 5. Apply era-specific effects (optional)
+ * 1. Check exitConditions for current era
+ * 2. If met, find next era:
+ *    a. If nextEra is set, use that specific era
+ *    b. Otherwise, find first era whose entryConditions are met
+ * 3. Spawn the next era entity (lazy spawning)
+ * 4. Apply exitEffects, then entryEffects
+ * 5. Update current era status to 'historical', new era to 'current'
  */
-export const eraTransition: SimulationSystem = {
-  id: 'era_transition',
-  name: 'Era Progression',
 
-  contract: {
-    purpose: ComponentPurpose.PHASE_TRANSITION,
-    affects: {
-      entities: [
-        {
-          kind: FRAMEWORK_ENTITY_KINDS.ERA,
-          operation: 'modify',
-          count: { min: 2, max: 2 }
-        }
-      ],
-      relationships: [
-        {
-          kind: FRAMEWORK_RELATIONSHIP_KINDS.ACTIVE_DURING,
-          operation: 'create',
-          count: { min: 0, max: 10 }
-        }
-      ]
-    }
-  },
+/**
+ * Create an Era Transition system with the given configuration.
+ */
+export function createEraTransitionSystem(config: EraTransitionConfig): SimulationSystem {
+  return {
+    id: config.id || 'era_transition',
+    name: config.name || 'Era Progression',
 
-  metadata: {
-    produces: {
-      relationships: [],
-      modifications: [
-        { type: 'status', frequency: 'rare', comment: 'Era status changes (current → past → future → current)' }
-      ]
-    },
-    effects: {
-      graphDensity: 0.0,
-      clusterFormation: 0.0,
-      diversityImpact: 0.8,
-      comment: 'Era transitions reshape world dynamics via template weights and system modifiers'
-    },
-    parameters: {
-      minEraLength: {
-        value: 50,
-        min: 20,
-        max: 200,
-        description: 'Minimum ticks before era can transition'
-      },
-      transitionCooldown: {
-        value: 10,
-        min: 5,
-        max: 50,
-        description: 'Ticks between transitions to prevent rapid cycling'
+    apply: (graphView: WorldRuntime, modifier: number = 1.0): SystemResult => {
+      // Find current era entity
+      const currentEraEntity = graphView.findEntities({
+        kind: FRAMEWORK_ENTITY_KINDS.ERA,
+        status: FRAMEWORK_STATUS.CURRENT
+      })[0];
+
+      if (!currentEraEntity) {
+        // No current era - this shouldn't happen as eraSpawner creates the first era
+        graphView.debug('eras', 'No current era found');
+        return {
+          relationshipsAdded: [],
+          entitiesModified: [],
+          pressureChanges: {},
+          description: 'No current era'
+        };
       }
-    },
-    triggers: {
-      graphConditions: [
-        'Era minimum length met',
-        'Domain transition conditions satisfied'
-      ],
-      comment: 'Runs every tick, checks transition conditions'
-    }
-  },
 
-  apply: (graphView: TemplateGraphView, modifier: number = 1.0): SystemResult => {
-    const params = eraTransition.metadata?.parameters || {};
-    const minEraLength = params.minEraLength?.value ?? 50;
-    const transitionCooldown = params.transitionCooldown?.value ?? 10;
-
-    // Find current era entity
-    const currentEra = graphView.findEntities({
-      kind: FRAMEWORK_ENTITY_KINDS.ERA,
-      status: FRAMEWORK_STATUS.CURRENT
-    })[0];
-
-    if (!currentEra) {
-      // No current era - try to activate first future era
-      return activateFirstEra(graphView);
-    }
-
-    // Check minimum era length
-    const eraAge = graphView.tick - currentEra.createdAt;
-    if (eraAge < minEraLength) {
-      return {
-        relationshipsAdded: [],
-        entitiesModified: [],
-        pressureChanges: {},
-        description: `${currentEra.name} continues (${eraAge}/${minEraLength} ticks)`
-      };
-    }
-
-    // Check transition cooldown (prevent rapid cycling)
-    if (!currentEra.temporal?.startTick) {
       // Initialize temporal tracking if missing
-      currentEra.temporal = {
-        startTick: graphView.tick - eraAge,
-        endTick: null
-      };
-    }
+      if (currentEraEntity.temporal?.startTick == null) {
+        const startTick = currentEraEntity.createdAt ?? graphView.tick;
+        currentEraEntity.temporal = {
+          startTick,
+          endTick: currentEraEntity.temporal?.endTick ?? null
+        };
+      }
 
-    const timeSinceStart = graphView.tick - currentEra.temporal.startTick;
-    if (timeSinceStart < transitionCooldown) {
-      return {
-        relationshipsAdded: [],
-        entitiesModified: [],
-        pressureChanges: {},
-        description: `${currentEra.name} stabilizing`
-      };
-    }
+      const timeSinceStart = graphView.tick - currentEraEntity.temporal.startTick;
 
-    // Check domain-defined transition conditions
-    const shouldTransition = checkTransitionConditions(currentEra, graphView);
+      // Get era config for current era
+      const currentEraConfig = graphView.config.eras.find(e => e.id === currentEraEntity.subtype) as Era | undefined;
 
-    if (!shouldTransition) {
-      return {
-        relationshipsAdded: [],
-        entitiesModified: [],
-        pressureChanges: {},
-        description: `${currentEra.name} persists`
-      };
-    }
+      if (!currentEraConfig) {
+        graphView.log('warn',
+          `[EraTransition] No era config found for "${currentEraEntity.name}" (subtype="${currentEraEntity.subtype}")`,
+          { availableEras: graphView.config.eras.map(e => e.id) }
+        );
+        return {
+          relationshipsAdded: [],
+          entitiesModified: [],
+          pressureChanges: {},
+          description: `${currentEraEntity.name} persists (config not found)`
+        };
+      }
 
-    // Find next era (first entity with status: 'future')
-    const nextEra = graphView.findEntities({
-      kind: FRAMEWORK_ENTITY_KINDS.ERA,
-      status: FRAMEWORK_STATUS.FUTURE
-    })[0];
+      const exitConditions = currentEraConfig.exitConditions || [];
 
-    if (!nextEra) {
-      // No more eras - current era continues indefinitely
-      return {
-        relationshipsAdded: [],
-        entitiesModified: [],
-        pressureChanges: {},
-        description: `${currentEra.name} endures (final era)`
-      };
-    }
+      // Check exit conditions
+      const { shouldTransition, conditionResults } = checkTransitionConditions(
+        currentEraEntity,
+        graphView,
+        exitConditions
+      );
 
-    // Perform transition
-    currentEra.status = FRAMEWORK_STATUS.HISTORICAL;
-    currentEra.temporal!.endTick = graphView.tick;
-    currentEra.updatedAt = graphView.tick;
+      if (!shouldTransition) {
+        // Build detailed condition status string
+        const conditionSummary = conditionResults.map(r => {
+          const status = r.passed ? '✓' : '✗';
+          return `${status} ${r.type}: ${r.diagnostic}`;
+        }).join(' | ');
 
-    nextEra.status = FRAMEWORK_STATUS.CURRENT;
-    nextEra.temporal = {
-      startTick: graphView.tick,
-      endTick: null
-    };
-    nextEra.updatedAt = graphView.tick;
+        graphView.debug('eras',
+          `${currentEraEntity.name}: exit conditions not met (age=${timeSinceStart}) [${conditionSummary}]`,
+          { eraAge: timeSinceStart, conditionResults }
+        );
+        return {
+          relationshipsAdded: [],
+          entitiesModified: [],
+          pressureChanges: {},
+          description: `${currentEraEntity.name} persists`
+        };
+      }
 
-    // Update graph's currentEra reference
-    // Find matching era in config
-    const configEra = graphView.config.eras.find(e => e.id === nextEra.subtype);
-    if (configEra) {
-      graphView.setCurrentEra(configEra);
-    }
+      // Exit conditions met - find next era
+      const nextEraConfig = findNextEra(currentEraConfig, currentEraEntity, graphView);
 
-    // Create active_during relationships for prominent entities in the ending era
-    const relationshipsAdded: any[] = [];
-    const prominentEntities = graphView.getEntities().filter(e =>
-      (e.prominence === 'recognized' || e.prominence === 'renowned' || e.prominence === 'mythic') &&
-      e.kind !== FRAMEWORK_ENTITY_KINDS.ERA &&
-      e.createdAt >= currentEra.temporal!.startTick &&
-      e.createdAt < graphView.tick
-    );
+      if (!nextEraConfig) {
+        // No valid next era found - current era continues
+        graphView.debug('eras', `${currentEraEntity.name}: final era or no valid next era`);
+        return {
+          relationshipsAdded: [],
+          entitiesModified: [],
+          pressureChanges: {},
+          description: `${currentEraEntity.name} endures (final era)`
+        };
+      }
 
-    // Link up to 10 most prominent entities to the ending era
-    prominentEntities.slice(0, 10).forEach(entity => {
-      relationshipsAdded.push({
-        kind: FRAMEWORK_RELATIONSHIP_KINDS.ACTIVE_DURING,
-        src: entity.id,
-        dst: currentEra.id,
+      // Log transition conditions met
+      const conditionSummary = conditionResults.map(r => {
+        const status = r.passed ? '✓' : '✗';
+        return `${status} ${r.type}: ${r.diagnostic}`;
+      }).join(' | ');
+
+      graphView.debug('eras',
+        `${currentEraEntity.name}: exit conditions MET (age=${timeSinceStart}) [${conditionSummary}]`,
+        { eraAge: timeSinceStart, conditionResults }
+      );
+
+      // LAZY SPAWNING: Create new era entity
+      const { entity: nextEraEntity } = createEraEntity(
+        nextEraConfig,
+        graphView.tick,
+        FRAMEWORK_STATUS.CURRENT,
+        currentEraEntity,
+        nextEraConfig.id  // Use config ID directly to match history event era field
+      );
+
+      // Add new era entity to graph
+      graphView.loadEntity(nextEraEntity);
+
+      // Update current era to historical
+      currentEraEntity.status = FRAMEWORK_STATUS.HISTORICAL;
+      currentEraEntity.temporal!.endTick = graphView.tick;
+      currentEraEntity.updatedAt = graphView.tick;
+
+      // Update graph's currentEra reference
+      graphView.setCurrentEra(nextEraConfig);
+
+      // Log transition
+      graphView.debug('eras', `TRANSITIONING: ${currentEraEntity.name} → ${nextEraEntity.name}`, {
+        tick: graphView.tick,
+        fromEra: currentEraEntity.subtype,
+        toEra: nextEraEntity.subtype
+      });
+
+      // Collect pressure changes: exitEffects then entryEffects
+      const pressureChanges: Record<string, number> = {};
+
+      const exitPressureChanges = collectEffectPressureChanges(
+        graphView,
+        currentEraConfig.exitEffects,
+        currentEraEntity
+      );
+      for (const [pressureId, delta] of Object.entries(exitPressureChanges)) {
+        pressureChanges[pressureId] = (pressureChanges[pressureId] || 0) + delta;
+      }
+
+      const entryPressureChanges = collectEffectPressureChanges(
+        graphView,
+        nextEraConfig.entryEffects,
+        nextEraEntity
+      );
+      for (const [pressureId, delta] of Object.entries(entryPressureChanges)) {
+        pressureChanges[pressureId] = (pressureChanges[pressureId] || 0) + delta;
+      }
+
+      // Create supersedes relationship
+      const relationshipsAdded: any[] = [{
+        kind: FRAMEWORK_RELATIONSHIP_KINDS.SUPERSEDES,
+        src: nextEraEntity.id,
+        dst: currentEraEntity.id,
         strength: 1.0,
         createdAt: graphView.tick
+      }];
+
+      // Create active_during relationships for prominent entities in the ending era
+      // Prominence >= 2.0 = recognized or higher
+      const prominentEntities = graphView.getEntities().filter(e =>
+        e.prominence >= 2.0 &&
+        e.kind !== FRAMEWORK_ENTITY_KINDS.ERA &&
+        e.createdAt >= currentEraEntity.temporal!.startTick &&
+        e.createdAt < graphView.tick
+      );
+
+      // Link up to 10 most prominent entities to the ending era
+      prominentEntities.slice(0, 10).forEach(entity => {
+        relationshipsAdded.push({
+          kind: FRAMEWORK_RELATIONSHIP_KINDS.ACTIVE_DURING,
+          src: entity.id,
+          dst: currentEraEntity.id,
+          strength: 1.0,
+          createdAt: graphView.tick
+        });
       });
-      // Note: entity.links will be updated by addRelationship() in worldEngine
-    });
 
-    // Create history event
-    graphView.addHistoryEvent({
-      tick: graphView.tick,
-      era: nextEra.subtype,
-      type: 'special',
-      description: `The ${currentEra.name} ends. The ${nextEra.name} begins.`,
-      entitiesCreated: [],
-      relationshipsCreated: relationshipsAdded,
-      entitiesModified: [currentEra.id, nextEra.id]
-    });
+      const snapshotConfig = config.prominenceSnapshot;
+      const snapshotModifications: Array<{ id: string; changes: Partial<HardState> }> = [];
+      let snapshotLockedCount = 0;
 
-    // Apply era transition effects (domain-specific)
-    const transitionEffects = graphView.config.domain.getEraTransitionEffects?.(currentEra, nextEra, graphView) || {};
+      if (snapshotConfig?.enabled) {
+        const minProminence = snapshotConfig.minProminence ?? 'renowned';
+        const minThreshold = prominenceThreshold(minProminence as ProminenceLabel);
+        if (minThreshold >= 0) {
+          const entitiesToLock = graphView.getEntities().filter(e =>
+            e.kind !== FRAMEWORK_ENTITY_KINDS.ERA &&
+            e.prominence >= minThreshold &&
+            !hasTag(e.tags, FRAMEWORK_TAGS.PROMINENCE_LOCKED)
+          );
 
-    return {
-      relationshipsAdded,
-      entitiesModified: [
-        { id: currentEra.id, changes: { status: FRAMEWORK_STATUS.HISTORICAL, temporal: currentEra.temporal } },
-        { id: nextEra.id, changes: { status: FRAMEWORK_STATUS.CURRENT, temporal: nextEra.temporal } }
-      ],
-      pressureChanges: transitionEffects.pressureChanges || {},
-      description: `Era transition: ${currentEra.name} → ${nextEra.name} (${prominentEntities.length} entities linked)`
-    };
-  }
-};
+          entitiesToLock.forEach(entity => {
+            const newTags = { ...(entity.tags ?? {}), [FRAMEWORK_TAGS.PROMINENCE_LOCKED]: currentEraConfig.id };
+            graphView.updateEntity(entity.id, { tags: newTags });
+            snapshotModifications.push({ id: entity.id, changes: { tags: newTags } });
+          });
+          snapshotLockedCount = entitiesToLock.length;
+        }
+      }
+
+      return {
+        relationshipsAdded,
+        entitiesModified: [
+          { id: currentEraEntity.id, changes: { status: FRAMEWORK_STATUS.HISTORICAL, temporal: currentEraEntity.temporal } },
+          ...snapshotModifications
+        ],
+        pressureChanges,
+        description: `Era transition: ${currentEraEntity.name} → ${nextEraEntity.name} (${prominentEntities.length} entities linked, ${snapshotLockedCount} prominence locked)`,
+        details: {
+          eraTransition: {
+            fromEra: currentEraEntity.name,
+            fromEraId: currentEraConfig.id,
+            toEra: nextEraEntity.name,
+            toEraId: nextEraConfig.id,
+            tickInEra: timeSinceStart,
+            exitConditionsMet: conditionResults.filter(r => r.passed).map(r => ({
+              type: r.type,
+              ...r.details
+            })),
+            prominentEntitiesLinked: prominentEntities.length,
+            prominenceLocked: snapshotLockedCount,
+            pressureEffects: pressureChanges
+          }
+        }
+      };
+    }
+  };
+}
 
 /**
- * Activate the first era if no current era exists
+ * Find the next era to transition to.
+ *
+ * Logic:
+ * 1. If currentEra.nextEra is set, use that specific era (if entry conditions met)
+ * 2. Otherwise, search all eras for one whose entryConditions are met
+ * 3. Skip eras that already have entities in the graph
  */
-function activateFirstEra(graphView: TemplateGraphView): SystemResult {
-  const firstEra = graphView.findEntities({ kind: FRAMEWORK_ENTITY_KINDS.ERA })[0];
+function findNextEra(
+  currentEraConfig: Era,
+  currentEraEntity: HardState,
+  graphView: WorldRuntime
+): Era | null {
+  const allEras = graphView.config.eras;
 
-  if (!firstEra) {
+  // Get set of era IDs that already have entities (including current)
+  const existingEraIds = new Set(
+    graphView.findEntities({ kind: FRAMEWORK_ENTITY_KINDS.ERA, includeHistorical: true })
+      .map(e => e.subtype)
+  );
+
+  // If explicit nextEra is set, try that first
+  if (currentEraConfig.nextEra) {
+    const explicitNext = allEras.find(e => e.id === currentEraConfig.nextEra);
+    if (explicitNext && !existingEraIds.has(explicitNext.id)) {
+      // Check entry conditions
+      const { shouldTransition } = checkTransitionConditions(
+        currentEraEntity,
+        graphView,
+        explicitNext.entryConditions || []
+      );
+      if (shouldTransition) {
+        return explicitNext;
+      }
+      // Entry conditions not met for explicit next era - log but don't fall through
+      graphView.debug('eras',
+        `Explicit nextEra "${explicitNext.id}" entry conditions not met`,
+        { currentEra: currentEraConfig.id }
+      );
+    }
+  }
+
+  // Search for first candidate era whose entry conditions are met
+  for (const candidateEra of allEras) {
+    // Skip current era and any era that already has an entity
+    if (existingEraIds.has(candidateEra.id)) {
+      continue;
+    }
+
+    // Check entry conditions (empty = always allow)
+    const { shouldTransition } = checkTransitionConditions(
+      currentEraEntity,
+      graphView,
+      candidateEra.entryConditions || []
+    );
+
+    if (shouldTransition) {
+      return candidateEra;
+    }
+  }
+
+  // No valid next era found
+  return null;
+}
+
+export interface TransitionConditionResult {
+  type: string;
+  passed: boolean;
+  diagnostic: string;
+  details: Record<string, unknown>;
+}
+
+export interface TransitionCheckResult {
+  shouldTransition: boolean;
+  conditionResults: TransitionConditionResult[];
+}
+
+function collectEffectPressureChanges(
+  graphView: WorldRuntime,
+  effects: Era['entryEffects'] | Era['exitEffects'],
+  self: HardState
+): Record<string, number> {
+  const mutations = effects?.mutations || [];
+  if (mutations.length === 0) return {};
+
+  const baseCtx = createSystemContext(graphView);
+  const ctx = { ...baseCtx, self, entities: { ...(baseCtx.entities ?? {}), self } };
+  const pressureChanges: Record<string, number> = {};
+
+  for (const mutation of mutations) {
+    const result = prepareMutation(mutation, ctx);
+    for (const [pressureId, delta] of Object.entries(result.pressureChanges)) {
+      pressureChanges[pressureId] = (pressureChanges[pressureId] || 0) + delta;
+    }
+  }
+
+  return pressureChanges;
+}
+
+/**
+ * Check if conditions are met for era transition.
+ * ALL conditions must pass for the check to succeed.
+ */
+export function checkTransitionConditions(
+  currentEra: HardState,
+  graphView: WorldRuntime,
+  conditions: TransitionCondition[]
+): TransitionCheckResult {
+  // Empty conditions array = allow immediate transition
+  if (conditions.length === 0) {
     return {
-      relationshipsAdded: [],
-      entitiesModified: [],
-      pressureChanges: {},
-      description: 'No era entities exist'
+      shouldTransition: true,
+      conditionResults: [{
+        type: 'none',
+        passed: true,
+        diagnostic: 'empty conditions array - immediate transition',
+        details: { reason: 'empty conditions array - immediate transition' }
+      }]
     };
   }
 
-  firstEra.status = FRAMEWORK_STATUS.CURRENT;
-  firstEra.temporal = {
-    startTick: graphView.tick,
-    endTick: null
-  };
-  firstEra.updatedAt = graphView.tick;
+  const baseCtx = createSystemContext(graphView);
+  const ctx = { ...baseCtx, self: currentEra };
 
-  // Update graph's currentEra reference
-  const configEra = graphView.config.eras.find(e => e.id === firstEra.subtype);
-  if (configEra) {
-    graphView.setCurrentEra(configEra);
-  }
+  const conditionResults: TransitionConditionResult[] = conditions.map((condition) => {
+    const result: ConditionResult = evaluateCondition(condition, ctx, currentEra);
+    return {
+      type: condition.type,
+      passed: result.passed,
+      diagnostic: result.diagnostic,
+      details: result.details,
+    };
+  });
 
   return {
-    relationshipsAdded: [],
-    entitiesModified: [
-      { id: firstEra.id, changes: { status: FRAMEWORK_STATUS.CURRENT, temporal: firstEra.temporal } }
-    ],
-    pressureChanges: {},
-    description: `${firstEra.name} begins`
+    shouldTransition: conditionResults.every(r => r.passed),
+    conditionResults
   };
-}
-
-/**
- * Check if conditions are met for era transition
- * Uses domain-defined transition logic
- */
-function checkTransitionConditions(currentEra: HardState, graphView: TemplateGraphView): boolean {
-  // Get domain-specific transition conditions
-  const transitionConditions = graphView.config.domain.getEraTransitionConditions?.(currentEra.subtype);
-
-  if (!transitionConditions) {
-    // No domain-specific conditions - use default heuristics
-    return checkDefaultTransitionConditions(currentEra, graphView);
-  }
-
-  // Check each condition
-  return transitionConditions.every((condition: any) => {
-    switch (condition.type) {
-      case 'pressure':
-        return checkPressureCondition(condition, graphView);
-      case 'entity_count':
-        return checkEntityCountCondition(condition, graphView);
-      case 'occurrence':
-        return checkOccurrenceCondition(condition, graphView);
-      case 'time':
-        return checkTimeCondition(condition, currentEra, graphView);
-      default:
-        return true;
-    }
-  });
-}
-
-/**
- * Default transition conditions (if domain doesn't define custom logic)
- */
-function checkDefaultTransitionConditions(currentEra: HardState, graphView: TemplateGraphView): boolean {
-  const eraAge = currentEra.temporal
-    ? graphView.tick - currentEra.temporal.startTick
-    : graphView.tick - currentEra.createdAt;
-
-  // Simple heuristic: transition after era has lasted 2x minimum length
-  const minLength = eraTransition.metadata?.parameters?.minEraLength?.value ?? 50;
-  return eraAge > minLength * 2;
-}
-
-/**
- * Check pressure-based condition
- */
-function checkPressureCondition(condition: any, graphView: TemplateGraphView): boolean {
-  const pressure = graphView.getPressure(condition.pressureId);
-
-  switch (condition.operator) {
-    case 'above':
-      return pressure > condition.threshold;
-    case 'below':
-      return pressure < condition.threshold;
-    default:
-      return false;
-  }
-}
-
-/**
- * Check entity count condition
- */
-function checkEntityCountCondition(condition: any, graphView: TemplateGraphView): boolean {
-  const entities = graphView.findEntities({
-    kind: condition.entityKind,
-    subtype: condition.subtype,
-    status: condition.status
-  });
-
-  switch (condition.operator) {
-    case 'above':
-      return entities.length > condition.threshold;
-    case 'below':
-      return entities.length < condition.threshold;
-    default:
-      return false;
-  }
-}
-
-/**
- * Check occurrence-based condition
- */
-function checkOccurrenceCondition(condition: any, graphView: TemplateGraphView): boolean {
-  const occurrences = graphView.findEntities({
-    kind: FRAMEWORK_ENTITY_KINDS.OCCURRENCE,
-    subtype: condition.subtype,
-    status: FRAMEWORK_STATUS.ACTIVE
-  });
-
-  switch (condition.operator) {
-    case 'exists':
-      return occurrences.length > 0;
-    case 'ended':
-      const endedOccurrences = graphView.findEntities({
-        kind: FRAMEWORK_ENTITY_KINDS.OCCURRENCE,
-        subtype: condition.subtype,
-        status: FRAMEWORK_STATUS.HISTORICAL
-      });
-      return endedOccurrences.length > 0;
-    default:
-      return false;
-  }
-}
-
-/**
- * Check time-based condition
- */
-function checkTimeCondition(condition: any, currentEra: HardState, graphView: TemplateGraphView): boolean {
-  const eraAge = currentEra.temporal
-    ? graphView.tick - currentEra.temporal.startTick
-    : graphView.tick - currentEra.createdAt;
-
-  return eraAge > condition.minTicks;
 }

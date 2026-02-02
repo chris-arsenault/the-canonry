@@ -1,0 +1,92 @@
+/**
+ * WikiSearch CSS Module
+ * Search input with dropdown results
+ */
+
+.container {
+  position: relative;
+}
+
+.input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast);
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: var(--spacing-xs);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  max-height: 300px;
+  overflow: auto;
+  z-index: var(--z-dropdown);
+  box-shadow: var(--shadow-lg);
+}
+
+.dropdownUp {
+  composes: dropdown;
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: var(--spacing-xs);
+}
+
+.result {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background-color: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.result:last-child {
+  border-bottom: none;
+}
+
+.result:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.resultSelected {
+  composes: result;
+  background-color: var(--color-bg-tertiary);
+}
+
+.resultType {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-left: var(--spacing-sm);
+}
+
+.noResults {
+  padding: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}

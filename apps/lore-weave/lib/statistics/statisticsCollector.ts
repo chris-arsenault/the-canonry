@@ -1,5 +1,5 @@
 import { mean, standardDeviation } from 'simple-statistics';
-import { Graph, EngineConfig } from '../engine/types';
+import { Graph, EngineConfig, EpochEraSummary } from '../engine/types';
 import { HardState } from '../core/worldTypes';
 import {
   SimulationStatistics,
@@ -11,7 +11,6 @@ import {
   TemporalStats,
   FitnessMetrics
 } from '../statistics/types';
-import { getProminenceValue } from '../utils';
 import {
   calculateEntityKindCounts,
   calculateRatios,
@@ -34,7 +33,6 @@ export class StatisticsCollector {
   private budgetHitCount: number = 0;
   private relationshipGrowthHistory: number[] = [];
   private erasVisited: Set<string> = new Set();
-  private ticksPerEra: Map<string, number> = new Map();
   private startTime: number = Date.now();
 
   constructor() {}
@@ -47,7 +45,8 @@ export class StatisticsCollector {
     epoch: number,
     entitiesCreated: number,
     relationshipsCreated: number,
-    growthTarget: number
+    growthTarget: number,
+    eraSummary: EpochEraSummary
   ): void {
     // Count entities by kind and subtype
     const entitiesByKind: Record<string, number> = {};
@@ -60,7 +59,7 @@ export class StatisticsCollector {
     }
 
     // Store subtype counts for feedback loop tracking
-    // This ensures metrics like "npc:orca.count" are available
+    // This ensures metrics like "npc:merchant.count" are available
     if (!graph.subtypeMetrics) {
       graph.subtypeMetrics = new Map();
     }
@@ -79,16 +78,17 @@ export class StatisticsCollector {
     this.relationshipGrowthHistory.push(relationshipGrowthRate);
 
     // Track era
-    this.erasVisited.add(graph.currentEra.id);
-    this.ticksPerEra.set(
-      graph.currentEra.id,
-      (this.ticksPerEra.get(graph.currentEra.id) || 0) + 1
-    );
+    this.erasVisited.add(eraSummary.start.id);
+    this.erasVisited.add(eraSummary.end.id);
+    for (const transition of eraSummary.transitions) {
+      this.erasVisited.add(transition.from.id);
+      this.erasVisited.add(transition.to.id);
+    }
 
     const epochStat: EpochStats = {
       epoch,
       tick: graph.tick,
-      era: graph.currentEra.name,
+      era: eraSummary,
       totalEntities: graph.getEntityCount(),
       entitiesByKind,
       entitiesBySubtype,
@@ -146,7 +146,7 @@ export class StatisticsCollector {
    */
   private calculateDistributionStats(
     graph: Graph,
-    config: EngineConfig
+    _config: EngineConfig
   ): DistributionStats {
     const entities = graph.getEntities();
     const totalEntities = entities.length;
@@ -205,36 +205,12 @@ export class StatisticsCollector {
     const totalRelationships = graph.getRelationshipCount();
     const avgDegree = totalEntities > 0 ? (totalRelationships * 2) / totalEntities : 0;
 
-    // Calculate deviations (if distribution targets exist)
+    // Deviations are not calculated without explicit targets
     let entityKindDeviation = 0;
     let prominenceDeviation = 0;
     let relationshipDeviation = 0;
     let connectivityDeviation = 0;
     let overallDeviation = 0;
-
-    if (config.distributionTargets) {
-      // Entity kind deviation
-      const entityTargets = config.distributionTargets.global.entityKindDistribution.targets;
-      entityKindDeviation = this.calculateDeviation(entityKindRatios, entityTargets);
-
-      // Prominence deviation
-      const prominenceTargets = config.distributionTargets.global.prominenceDistribution.targets;
-      prominenceDeviation = this.calculateDeviation(prominenceRatios, prominenceTargets);
-
-      // Relationship diversity deviation (target: maximize entropy)
-      const maxEntropy = Math.log2(Object.keys(relationshipTypeRatios).length || 1);
-      relationshipDeviation = maxEntropy > 0 ? 1 - (relationshipDiversity / maxEntropy) : 0;
-
-      // Connectivity deviation
-      const targetClusters = config.distributionTargets.global.graphConnectivity.targetClusters.preferred;
-      const targetIsolated = config.distributionTargets.global.graphConnectivity.isolatedNodeRatio.max;
-      const clusterDev = Math.abs(clusters - targetClusters) / targetClusters;
-      const isolatedDev = Math.max(0, (isolatedNodes / totalEntities) - targetIsolated);
-      connectivityDeviation = (clusterDev + isolatedDev) / 2;
-
-      // Overall deviation
-      overallDeviation = (entityKindDeviation + prominenceDeviation + relationshipDeviation + connectivityDeviation) / 4;
-    }
 
     return {
       entityKindRatios,
@@ -257,32 +233,11 @@ export class StatisticsCollector {
   }
 
   /**
-   * Calculate deviation between actual and target ratios
-   */
-  private calculateDeviation(
-    actual: Record<string, number>,
-    target: Record<string, number>
-  ): number {
-    let totalDeviation = 0;
-    let count = 0;
-
-    Object.keys(target).forEach(key => {
-      const actualValue = actual[key] || 0;
-      const targetValue = target[key] || 0;
-      const deviation = Math.abs(actualValue - targetValue);
-      totalDeviation += deviation;
-      count++;
-    });
-
-    return count > 0 ? totalDeviation / count : 0;
-  }
-
-  /**
    * Calculate fitness metrics
    */
   private calculateFitnessMetrics(
     distributionStats: DistributionStats,
-    config: EngineConfig
+    _config: EngineConfig
   ): FitnessMetrics {
     // Distribution fitness (inverted deviation, so 1 = perfect, 0 = worst)
     const entityDistributionFitness = 1 - Math.min(1, distributionStats.entityKindDeviation);
@@ -299,19 +254,7 @@ export class StatisticsCollector {
     );
 
     // Constraint violations
-    let constraintViolations = 0;
-    if (config.distributionTargets) {
-      // Check if isolated nodes exceed max
-      const maxIsolated = config.distributionTargets.global.graphConnectivity.isolatedNodeRatio.max;
-      if (distributionStats.graphMetrics.isolatedNodeRatio > maxIsolated) {
-        constraintViolations++;
-      }
-
-      // Check if any entity kind ratio is way off (> 50% deviation)
-      if (distributionStats.entityKindDeviation > 0.5) {
-        constraintViolations++;
-      }
-    }
+    const constraintViolations = 0;
 
     // Convergence rate (how quickly did deviation decrease)
     const convergenceRate = this.epochStats.length > 0
@@ -397,9 +340,8 @@ export class StatisticsCollector {
     const temporalStats: TemporalStats = {
       totalTicks: graph.tick,
       totalEpochs: this.epochStats.length,
-      ticksPerEpoch: config.epochLength,
+      ticksPerEpoch: config.ticksPerEpoch,
       erasVisited: Array.from(this.erasVisited),
-      ticksPerEra: Object.fromEntries(this.ticksPerEra),
       entitiesPerTick: graph.getEntityCount() / graph.tick,
       relationshipsPerTick: graph.getRelationshipCount() / graph.tick,
       entitiesPerEpoch: graph.getEntityCount() / this.epochStats.length,
@@ -413,7 +355,6 @@ export class StatisticsCollector {
       generationTimeMs,
       finalEntityCount: graph.getEntityCount(),
       finalRelationshipCount: graph.getRelationshipCount(),
-      finalHistoryEventCount: graph.history.length,
       epochStats: this.epochStats,
       distributionStats,
       enrichmentStats: enrichmentAnalytics,
@@ -422,12 +363,9 @@ export class StatisticsCollector {
       temporalStats,
       fitnessMetrics,
       configSnapshot: {
-        epochLength: config.epochLength,
-        simulationTicksPerGrowth: config.simulationTicksPerGrowth,
-        targetEntitiesPerKind: config.targetEntitiesPerKind,
+        ticksPerEpoch: config.ticksPerEpoch,
         maxTicks: config.maxTicks,
-        relationshipBudget: config.relationshipBudget,
-        distributionTargetsEnabled: Boolean(config.distributionTargets)
+        relationshipBudget: config.relationshipBudget
       }
     };
   }

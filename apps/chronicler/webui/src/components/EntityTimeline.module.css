@@ -1,0 +1,207 @@
+/**
+ * EntityTimeline CSS Module
+ * Expandable timeline of narrative events for an entity
+ */
+
+.container {
+  width: 100%;
+}
+
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.checkbox {
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.checkboxLabel {
+  cursor: pointer;
+  user-select: none;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.headerRow {
+  background-color: var(--color-bg-secondary);
+}
+
+.th {
+  padding: var(--spacing-sm) var(--spacing-sm);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.thTick {
+  composes: th;
+  width: 60px;
+}
+
+.thEra {
+  composes: th;
+  width: 120px;
+}
+
+.thExpand {
+  composes: th;
+  width: 40px;
+  text-align: center;
+}
+
+.row {
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.row:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.rowExpanded {
+  composes: row;
+  background-color: rgba(16, 185, 129, 0.08);
+}
+
+.rowExpanded:hover {
+  background-color: rgba(16, 185, 129, 0.12);
+}
+
+.td {
+  padding: var(--spacing-sm) var(--spacing-sm);
+  color: var(--color-text-secondary);
+  vertical-align: top;
+}
+
+.tdTick {
+  font-family: monospace;
+  color: var(--color-text-muted);
+}
+
+.tdEra {
+  color: var(--color-text-muted);
+}
+
+.tdEvent {
+  line-height: var(--line-height-relaxed);
+}
+
+.tdExpand {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.expandIcon {
+  display: inline-block;
+  transition: transform 0.2s;
+  user-select: none;
+}
+
+.expandIconOpen {
+  transform: rotate(90deg);
+}
+
+.effectsRow {
+  background-color: rgba(16, 185, 129, 0.05);
+}
+
+.effectsCell {
+  padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) 48px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.effectsList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.effectItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+.effectIcon {
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+.effectDescription {
+  color: var(--color-text-secondary);
+}
+
+.entityLink {
+  color: var(--color-accent);
+  cursor: pointer;
+  border-bottom: 1px dotted var(--color-accent);
+  text-decoration: none;
+}
+
+.emptyState {
+  padding: var(--spacing-xl);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.noEffects {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-size: var(--font-size-xs);
+}
+
+/* Weight tier colors */
+.weightHigh {
+  color: #f0f4ff;
+}
+
+.weightMidHigh {
+  color: #c8d6f0;
+}
+
+.weightMidLow {
+  color: #a0b0c8;
+}
+
+.weightLow {
+  color: #788898;
+}
+
+/* Effect type colors */
+.effectCreated {
+  color: #34d399;
+}
+
+.effectEnded {
+  color: #f87171;
+}
+
+.effectRelationship {
+  color: #60a5fa;
+}
+
+.effectTag {
+  color: #a78bfa;
+}
+
+.effectField {
+  color: #fbbf24;
+}

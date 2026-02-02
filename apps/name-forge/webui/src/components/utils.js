@@ -2,8 +2,9 @@
  * Get effective domain from culture config
  */
 export function getEffectiveDomain(cultureConfig) {
-  if (cultureConfig?.domains && cultureConfig.domains.length > 0) {
-    return cultureConfig.domains[0];
+  const domains = cultureConfig?.naming?.domains;
+  if (domains && domains.length > 0) {
+    return domains[0];
   }
   return null;
 }
@@ -15,8 +16,8 @@ export function getAllDomains(allCultures) {
   const allDomains = [];
   if (allCultures) {
     Object.entries(allCultures).forEach(([cultId, cultConfig]) => {
-      if (cultConfig?.domains) {
-        cultConfig.domains.forEach((domain) => {
+      if (cultConfig?.naming?.domains) {
+        cultConfig.naming.domains.forEach((domain) => {
           allDomains.push({
             ...domain,
             sourceCulture: cultId
@@ -79,25 +80,18 @@ export function getSharedLexemeLists(allCultures, cultureId, entityKind) {
 
   if (allCultures) {
     Object.entries(allCultures).forEach(([cultId, cultConfig]) => {
-      if (cultConfig?.entityConfigs) {
-        Object.entries(cultConfig.entityConfigs).forEach(([entKind, entConfig]) => {
-          // Skip current culture/entity - those are local, not shared
-          if (cultId === cultureId && entKind === entityKind) return;
-
-          const lists = entConfig?.lexemeLists || {};
-          Object.entries(lists).forEach(([listId, list]) => {
-            if (listAppliesHere(list, cultureId, entityKind) && !shared[listId]) {
-              shared[listId] = {
-                ...list,
-                id: listId,
-                sourceCulture: cultId,
-                sourceEntity: entKind,
-                isShared: true
-              };
-            }
-          });
-        });
-      }
+      if (cultId === cultureId) return;
+      const lists = cultConfig?.naming?.lexemeLists || {};
+      Object.entries(lists).forEach(([listId, list]) => {
+        if (listAppliesHere(list, cultureId, entityKind) && !shared[listId]) {
+          shared[listId] = {
+            ...list,
+            id: listId,
+            sourceCulture: cultId,
+            isShared: true
+          };
+        }
+      });
     });
   }
 
@@ -116,20 +110,16 @@ export function getAvailableLexemeLists(entityConfig, cultureConfig, cultureId, 
     });
   }
   // Shared lists from same culture
-  if (cultureConfig?.entityConfigs) {
-    Object.entries(cultureConfig.entityConfigs).forEach(([kind, config]) => {
-      if (kind !== entityKind && config?.lexemeLists) {
-        Object.entries(config.lexemeLists).forEach(([id, list]) => {
-          const appliesTo = list.appliesTo || {};
-          const cultureMatch = !appliesTo.cultures?.length || appliesTo.cultures.includes('*') || appliesTo.cultures.includes(cultureId);
-          const entityMatch = !appliesTo.entityKinds?.length || appliesTo.entityKinds.includes('*') || appliesTo.entityKinds.includes(entityKind);
-          if (cultureMatch && entityMatch) {
-            lists.push({ id, source: `${kind}` });
-          }
-        });
-      }
-    });
-  }
+  const cultureLists = cultureConfig?.naming?.lexemeLists || {};
+  Object.entries(cultureLists).forEach(([id, list]) => {
+    if (entityConfig?.lexemeLists && entityConfig.lexemeLists[id]) return;
+    const appliesTo = list.appliesTo || {};
+    const cultureMatch = !appliesTo.cultures?.length || appliesTo.cultures.includes('*') || appliesTo.cultures.includes(cultureId);
+    const entityMatch = !appliesTo.entityKinds?.length || appliesTo.entityKinds.includes('*') || appliesTo.entityKinds.includes(entityKind);
+    if (cultureMatch && entityMatch) {
+      lists.push({ id, source: cultureId });
+    }
+  });
   return lists;
 }
 

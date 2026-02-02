@@ -2,181 +2,44 @@
  * NameForgeRemote - Module Federation entry point for Name Forge
  *
  * This component is loaded by The Canonry shell and receives:
- * - schema: Read-only world schema (entityKinds, cultures identity)
- * - namingData: Writable naming data keyed by culture ID
+ * - schema: Read-only world schema (entityKinds, cultures with naming)
  * - onNamingDataChange: Callback when naming data changes
  *
  * It focuses on the Workshop/Optimizer/Generate functionality
  * without the project management or schema editing overhead.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import './App.css';
-import CultureSidebar from './components/CultureSidebar';
-import EntityWorkspace from './components/EntityWorkspace';
-import OptimizerWorkshop from './components/OptimizerWorkshop';
-import GenerateTab from './components/GenerateTab';
-
-/**
- * Convert Canonry schema format to Name Forge internal format
- */
-function convertSchemaToInternal(schema) {
-  if (!schema) return null;
-
-  // Convert entityKinds array to hardState format
-  const hardState = (schema.entityKinds || []).map((ek) => ({
-    kind: ek.id,
-    subtype: (ek.subtypes || []).map((s) => s.id),
-    status: (ek.statuses || []).map((s) => s.id),
-  }));
-
-  return { hardState };
-}
-
-/**
- * Convert Canonry cultures + namingData to Name Forge cultures format
- */
-function convertCulturesToInternal(schemaCultures, namingData) {
-  const cultures = {};
-
-  (schemaCultures || []).forEach((culture) => {
-    const naming = namingData?.[culture.id];
-    cultures[culture.id] = {
-      id: culture.id,
-      name: culture.name,
-      description: culture.description || '',
-      domains: naming?.domains || [],
-      lexemeLists: naming?.lexemeLists || {},
-      grammars: naming?.grammars || [],
-      profiles: naming?.profiles || [],
-    };
-  });
-
-  return cultures;
-}
-
-/**
- * Extract naming data from internal culture format
- */
-function extractNamingData(culture) {
-  return {
-    domains: culture.domains || [],
-    lexemeLists: culture.lexemeLists || {},
-    grammars: culture.grammars || [],
-    profiles: culture.profiles || [],
-  };
-}
-
-// Name Forge accent gradient
-const ACCENT_GRADIENT = 'linear-gradient(135deg, #ffb366 0%, #ffc080 100%)';
-const HOVER_BG = 'rgba(255, 179, 102, 0.15)';
-const ACCENT_COLOR = '#ffb366';
-
-const styles = {
-  container: {
-    display: 'flex',
-    height: '100%',
-    backgroundColor: '#1e1e2e',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-  },
-  sidebar: {
-    width: '200px',
-    backgroundColor: '#1a1a28',
-    borderRight: '1px solid #3d3d4d',
-    display: 'flex',
-    flexDirection: 'column',
-    flexShrink: 0,
-  },
-  nav: {
-    padding: '12px',
-    borderBottom: '1px solid #3d3d4d',
-  },
-  navButton: {
-    display: 'block',
-    width: '100%',
-    padding: '10px 12px',
-    marginBottom: '4px',
-    fontSize: '13px',
-    fontWeight: 500,
-    textAlign: 'left',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    transition: 'all 0.15s',
-    fontFamily: 'inherit',
-  },
-  navButtonInactive: {
-    backgroundColor: 'transparent',
-    color: '#b0b0c0',
-  },
-  navButtonActive: {
-    background: ACCENT_GRADIENT,
-    color: '#1a1a28',
-    fontWeight: 600,
-  },
-  apiSection: {
-    padding: '12px',
-    borderBottom: '1px solid #3d3d4d',
-  },
-  apiButton: {
-    width: '100%',
-    padding: '8px 12px',
-    fontSize: '11px',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-  },
-  apiDropdown: {
-    marginTop: '8px',
-    padding: '12px',
-    backgroundColor: '#252535',
-    borderRadius: '6px',
-    border: '1px solid #3d3d4d',
-  },
-  cultureSection: {
-    flex: 1,
-    overflow: 'auto',
-  },
-  main: {
-    flex: 1,
-    display: 'flex',
-    overflow: 'hidden',
-  },
-  content: {
-    flex: 1,
-    overflow: 'auto',
-  },
-  noCultures: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '40px',
-    textAlign: 'center',
-    color: '#707080',
-  },
-};
+import { CultureSidebar } from './components/sidebar';
+import { EntityWorkspace } from './components/workspace';
+import { OptimizerWorkshop } from './components/optimizer';
+import { GenerateTab } from './components/generator';
+import ProfileCoverageMatrix from './components/coverage/ProfileCoverageMatrix';
 
 const TABS = [
   { id: 'workshop', label: 'Workshop' },
   { id: 'optimizer', label: 'Optimizer' },
   { id: 'generate', label: 'Generate' },
+  { id: 'coverage', label: 'Coverage' },
 ];
 
 export default function NameForgeRemote({
+  projectId,
   schema,
-  namingData,
   onNamingDataChange,
+  onAddTag,
   activeSection,
   onSectionChange,
+  generators = [],
 }) {
   // Use passed-in section or default to 'workshop'
   const activeTab = activeSection || 'workshop';
   const setActiveTab = onSectionChange || (() => {});
+  const storageKey = projectId ? `nameforge:ui:${projectId}` : null;
   const [selectedCulture, setSelectedCulture] = useState(null);
   const [workspaceTab, setWorkspaceTab] = useState('domain');
+  const [hydratedKey, setHydratedKey] = useState(null);
 
   // Session-only API key (not persisted)
   const [apiKey, setApiKey] = useState('');
@@ -188,31 +51,37 @@ export default function NameForgeRemote({
     selectedProfile: '',
     selectedKind: '',
     selectedSubKind: '',
-    tags: '',
+    tags: [],
     prominence: '',
     count: 20,
     contextPairs: [{ key: '', value: '' }],
   });
 
-  // Convert schema to internal format
   const worldSchema = useMemo(
-    () => convertSchemaToInternal(schema),
+    () => schema || { entityKinds: [], relationshipKinds: [], cultures: [], tagRegistry: [] },
     [schema]
   );
 
-  // Convert cultures to internal format
-  const cultures = useMemo(
-    () => convertCulturesToInternal(schema?.cultures, namingData),
-    [schema?.cultures, namingData]
-  );
+  const cultures = useMemo(() => {
+    const map = {};
+    (schema?.cultures || []).forEach((culture) => {
+      map[culture.id] = culture;
+    });
+    return map;
+  }, [schema?.cultures]);
 
   // Handle culture updates from the workspace
   const handleCultureChange = useCallback(
     (updatedCulture) => {
       if (!selectedCulture || !onNamingDataChange) return;
 
-      // Extract naming data and send to host
-      const newNamingData = extractNamingData(updatedCulture);
+      const newNamingData = updatedCulture?.naming || {
+        domains: [],
+        lexemeLists: {},
+        lexemeSpecs: [],
+        grammars: [],
+        profiles: [],
+      };
       onNamingDataChange(selectedCulture, newNamingData);
     },
     [selectedCulture, onNamingDataChange]
@@ -223,10 +92,15 @@ export default function NameForgeRemote({
     (newCultures) => {
       if (!onNamingDataChange) return;
 
-      // Update naming data for all cultures
       Object.entries(newCultures).forEach(([cultureId, culture]) => {
-        const newNamingData = extractNamingData(culture);
-        onNamingDataChange(cultureId, newNamingData);
+        const naming = culture?.naming || {
+          domains: [],
+          lexemeLists: {},
+          lexemeSpecs: [],
+          grammars: [],
+          profiles: [],
+        };
+        onNamingDataChange(cultureId, naming);
       });
     },
     [onNamingDataChange]
@@ -234,22 +108,58 @@ export default function NameForgeRemote({
 
   // Auto-select first culture if none selected
   const cultureIds = Object.keys(cultures);
-  if (!selectedCulture && cultureIds.length > 0) {
+
+  useEffect(() => {
+    if (!storageKey || typeof localStorage === 'undefined') {
+      setHydratedKey(storageKey);
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setSelectedCulture(parsed?.selectedCulture || null);
+        setWorkspaceTab(parsed?.workspaceTab || 'domain');
+      } else {
+        setSelectedCulture(null);
+        setWorkspaceTab('domain');
+      }
+    } catch {
+      setSelectedCulture(null);
+      setWorkspaceTab('domain');
+    } finally {
+      setHydratedKey(storageKey);
+    }
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!storageKey || typeof localStorage === 'undefined') return;
+    if (hydratedKey !== storageKey) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({
+        selectedCulture,
+        workspaceTab,
+      }));
+    } catch {
+      // Best-effort only.
+    }
+  }, [storageKey, hydratedKey, selectedCulture, workspaceTab]);
+
+  useEffect(() => {
+    if (hydratedKey !== storageKey) return;
+    if (!cultureIds.length) return;
+    if (selectedCulture && cultures[selectedCulture]) return;
     setSelectedCulture(cultureIds[0]);
-  }
+  }, [hydratedKey, storageKey, cultureIds, cultures, selectedCulture]);
 
   const hasCultures = cultureIds.length > 0;
 
   if (!hasCultures) {
     return (
-      <div style={styles.noCultures}>
-        <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }}>
-
-        </div>
-        <div style={{ fontSize: '18px', fontWeight: 500, marginBottom: '8px' }}>
-          No Cultures Defined
-        </div>
-        <div style={{ fontSize: '14px', maxWidth: '400px' }}>
+      <div className="nf-empty-state">
+        <div className="nf-empty-state-icon"></div>
+        <div className="nf-empty-state-title">No Cultures Defined</div>
+        <div className="nf-empty-state-desc">
           Add cultures in the <strong>Enumerist</strong> tab first, then return here
           to configure naming domains, grammars, and profiles.
         </div>
@@ -258,20 +168,15 @@ export default function NameForgeRemote({
   }
 
   return (
-    <div style={styles.container}>
+    <div className="nf-container">
       {/* Left sidebar with nav and cultures */}
-      <div style={styles.sidebar}>
-        <nav style={styles.nav}>
+      <div className="nf-sidebar">
+        <nav className="nf-nav">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              style={{
-                ...styles.navButton,
-                ...(activeTab === tab.id
-                  ? styles.navButtonActive
-                  : styles.navButtonInactive),
-              }}
+              className={`nf-nav-button ${activeTab === tab.id ? 'active' : ''}`}
             >
               {tab.label}
             </button>
@@ -279,23 +184,17 @@ export default function NameForgeRemote({
         </nav>
 
         {/* API Key section */}
-        <div style={styles.apiSection}>
+        <div className="nf-api-section">
           <button
             onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-            style={{
-              ...styles.apiButton,
-              backgroundColor: apiKey ? '#ffb366' : '#2d2d3d',
-              color: apiKey ? '#1a1a28' : '#a0a0b0',
-            }}
+            className={`nf-api-button ${apiKey ? 'active' : ''}`}
           >
             {apiKey ? '✓ API Key Set' : 'Set API Key'}
           </button>
           {showApiKeyInput && (
-            <div style={styles.apiDropdown}>
-              <div style={{ marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: '#f0f0f0' }}>
-                Anthropic API Key
-              </div>
-              <p style={{ fontSize: '11px', color: '#a0a0b0', marginBottom: '8px' }}>
+            <div className="nf-api-dropdown">
+              <div className="nf-api-dropdown-title">Anthropic API Key</div>
+              <p className="nf-api-dropdown-hint">
                 Required for LLM lexeme generation.
               </p>
               <input
@@ -303,25 +202,11 @@ export default function NameForgeRemote({
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="sk-ant-..."
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  marginBottom: '8px',
-                  fontSize: '12px',
-                  backgroundColor: '#2d2d3d',
-                  border: '1px solid #3d3d4d',
-                  borderRadius: '4px',
-                  color: '#f0f0f0',
-                  boxSizing: 'border-box',
-                }}
+                className="nf-api-input"
               />
               <button
                 onClick={() => setShowApiKeyInput(false)}
-                style={{
-                  ...styles.apiButton,
-                  backgroundColor: '#ffb366',
-                  color: '#1a1a28',
-                }}
+                className="nf-api-button active"
               >
                 Done
               </button>
@@ -330,7 +215,7 @@ export default function NameForgeRemote({
         </div>
 
         {/* Culture sidebar - always visible */}
-        <div style={styles.cultureSection}>
+        <div className="nf-culture-section">
           <CultureSidebar
             cultures={cultures}
             selectedCulture={selectedCulture}
@@ -342,9 +227,9 @@ export default function NameForgeRemote({
       </div>
 
       {/* Main content area */}
-      <div style={styles.main}>
+      <div className="nf-main">
         {activeTab === 'workshop' && (
-          <div style={styles.content}>
+          <div className="nf-content">
             <EntityWorkspace
               worldSchema={worldSchema}
               cultureId={selectedCulture}
@@ -353,13 +238,15 @@ export default function NameForgeRemote({
               activeTab={workspaceTab}
               onTabChange={setWorkspaceTab}
               onCultureChange={handleCultureChange}
+              onAddTag={onAddTag}
               apiKey={apiKey}
+              generators={generators}
             />
           </div>
         )}
 
         {activeTab === 'optimizer' && (
-          <div style={styles.content}>
+          <div className="nf-content">
             <OptimizerWorkshop
               cultures={cultures}
               onCulturesChange={handleCulturesChange}
@@ -368,12 +255,26 @@ export default function NameForgeRemote({
         )}
 
         {activeTab === 'generate' && (
-          <div style={styles.content}>
+          <div className="nf-content">
             <GenerateTab
               worldSchema={worldSchema}
               cultures={cultures}
               formState={generateFormState}
               onFormStateChange={setGenerateFormState}
+            />
+          </div>
+        )}
+
+        {activeTab === 'coverage' && (
+          <div className="nf-content">
+            <ProfileCoverageMatrix
+              cultures={cultures}
+              worldSchema={worldSchema}
+              onNavigateToProfile={(cultureId, profileId) => {
+                setSelectedCulture(cultureId);
+                setWorkspaceTab('profiles');
+                setActiveTab('workshop');
+              }}
             />
           </div>
         )}

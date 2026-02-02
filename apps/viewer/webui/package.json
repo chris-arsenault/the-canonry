@@ -1,0 +1,38 @@
+{
+  "name": "@penguin-tales/viewer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5008",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && vite build",
+    "postbuild": "npm run optimize-images && npm run chunk-bundle",
+    "optimize-images": "node ./scripts/optimize-images.mjs --input dist/bundles/default/images --output dist/bundles/default/images --bundle-dir dist/bundles/default --delete-originals",
+    "chunk-bundle": "node ./scripts/chunk-viewer-bundle.mjs --input dist/bundles/default/bundle.json --output dist/bundles/default --target-bytes 500000",
+    "preview": "vite preview",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
+  },
+  "dependencies": {
+    "fuse.js": "^7.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zustand": "^5.0.2",
+    "@penguin-tales/image-store": "file:../../../packages/image-store",
+    "@penguin-tales/narrative-store": "file:../../../packages/narrative-store"
+  },
+  "devDependencies": {
+    "@module-federation/vite": "^1.1.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@aws-sdk/client-s3": "^3.760.0",
+    "@vitejs/plugin-react": "^4.5.0",
+    "eslint": "^9.28.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.1.0",
+    "sharp": "^0.34.5",
+    "vite": "^6.4.1"
+  }
+}

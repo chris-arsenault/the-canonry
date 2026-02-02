@@ -1,0 +1,835 @@
+[
+  {
+    "kind": "ability",
+    "description": "Abilities & Techniques",
+    "category": "power",
+    "subtypes": [
+      {
+        "id": "technology",
+        "name": "Technology"
+      },
+      {
+        "id": "combat",
+        "name": "Combat Technique"
+      },
+      {
+        "id": "magic",
+        "name": "Magic"
+      }
+    ],
+    "statuses": [
+      {
+        "id": "active",
+        "name": "Active",
+        "isTerminal": false,
+        "polarity": "neutral"
+      },
+      {
+        "id": "lost",
+        "name": "Lost",
+        "isTerminal": true,
+        "polarity": "negative",
+        "transitionVerb": "was lost to time"
+      },
+      {
+        "id": "historical",
+        "name": "Historical",
+        "isTerminal": true,
+        "polarity": "neutral",
+        "transitionVerb": "faded into legend"
+      },
+      {
+        "id": "secret",
+        "name": "Secret",
+        "isTerminal": false,
+        "polarity": "neutral",
+        "transitionVerb": "was hidden away"
+      },
+      {
+        "id": "discovered",
+        "name": "Discovered",
+        "isTerminal": false,
+        "polarity": "neutral",
+        "transitionVerb": "was discovered"
+      },
+      {
+        "id": "emergent",
+        "name": "Emergent",
+        "isTerminal": false,
+        "polarity": "neutral"
+      }
+    ],
+    "semanticPlane": {
+      "axes": {
+        "x": {
+          "axisId": "element"
+        },
+        "y": {
+          "axisId": "pragmatism"
+        },
+        "z": {
+          "axisId": "power"
+        }
+      },
+      "regions": [
+        {
+          "id": "ability_nightshelf_moonweave",
+          "label": "Moonweave Mysteries",
+          "color": "#9370DB",
+          "culture": "nightshelf",
+          "tags": [],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 84,
+              "y": 84
+            },
+            "radius": 15
+          }
+        },
+        {
+          "id": "ability_aurora_prismcraft",
+          "label": "Prismcraft Arts",
+          "color": "#FFD700",
+          "culture": "aurora-stack",
+          "tags": [],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 79,
+              "y": 49
+            },
+            "radius": 20
+          }
+        },
+        {
+          "id": "ability_orca_battleways",
+          "label": "Orca Battleways",
+          "color": "#2F4F4F",
+          "culture": "orca",
+          "tags": [],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 16,
+              "y": 17
+            },
+            "radius": 15
+          }
+        }
+      ]
+    },
+    "defaultStatus": "emergent",
+    "style": {
+      "color": "#C76BFC"
+    }
+  },
+  {
+    "kind": "occurrence",
+    "description": "Events & Occurrences",
+    "category": "event",
+    "subtypes": [
+      {
+        "id": "war",
+        "name": "War"
+      },
+      {
+        "id": "succession_crisis",
+        "name": "Succession Crisis"
+      },
+      {
+        "id": "disaster",
+        "name": "Disaster"
+      },
+      {
+        "id": "celebration",
+        "name": "Celebration"
+      }
+    ],
+    "statuses": [
+      {
+        "id": "active",
+        "name": "Active",
+        "isTerminal": false,
+        "polarity": "neutral",
+        "transitionVerb": "erupted"
+      },
+      {
+        "id": "historical",
+        "name": "Historical",
+        "isTerminal": true,
+        "polarity": "neutral",
+        "transitionVerb": "came to an end"
+      },
+      {
+        "id": "brewing",
+        "name": "Brewing",
+        "isTerminal": false,
+        "polarity": "neutral",
+        "transitionVerb": "began brewing"
+      },
+      {
+        "id": "legendary",
+        "name": "Legendary",
+        "isTerminal": false,
+        "polarity": "neutral",
+        "transitionVerb": "became legendary"
+      }
+    ],
+    "semanticPlane": {
+      "axes": {
+        "x": {
+          "axisId": "element"
+        },
+        "y": {
+          "axisId": "pragmatism"
+        },
+        "z": {
+          "axisId": "visibility"
+        }
+      },
+      "regions": []
+    },
+    "defaultStatus": "brewing",
+    "style": {
+      "color": "#FCD76B"
+    }
+  },
+  {
+    "kind": "rule",
+    "description": "Laws & Traditions",
+    "category": "concept",
+    "subtypes": [
+      {
+        "id": "law",
+        "name": "Law"
+      },
+      {
+        "id": "social",
+        "name": "Social Custom"
+      },
+      {
+        "id": "memorial",
+        "name": "Memorial"
+      },
+      {
+        "id": "ideology",
+        "name": "Ideology"
+      }
+    ],
+    "statuses": [
+      {
+        "id": "active",
+        "name": "Active",
+        "isTerminal": false,
+        "polarity": "neutral"
+      },
+      {
+        "id": "repealed",
+        "name": "Repealed",
+        "isTerminal": true,
+        "polarity": "negative",
+        "transitionVerb": "was repealed"
+      },
+      {
+        "id": "contested",
+        "name": "Contested",
+        "isTerminal": false,
+        "polarity": "neutral",
+        "transitionVerb": "became contested"
+      },
+      {
+        "id": "enacted",
+        "name": "Enacted",
+        "isTerminal": false,
+        "polarity": "neutral",
+        "transitionVerb": "was enacted"
+      },
+      {
+        "id": "proposed",
+        "name": "Proposed",
+        "isTerminal": false,
+        "polarity": "neutral",
+        "transitionVerb": "was proposed"
+      }
+    ],
+    "semanticPlane": {
+      "axes": {
+        "x": {
+          "axisId": "autonomy"
+        },
+        "y": {
+          "axisId": "pragmatism"
+        },
+        "z": {
+          "axisId": "structure"
+        }
+      },
+      "regions": [
+        {
+          "id": "rule_aurora_trade_edicts",
+          "label": "Trade Edicts",
+          "color": "#FFD700",
+          "culture": "aurora-stack",
+          "tags": [],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 90,
+              "y": 50
+            },
+            "radius": 9
+          }
+        },
+        {
+          "id": "rule_orca_war_doctrines",
+          "label": "War Doctrines",
+          "color": "#2F4F4F",
+          "culture": "orca",
+          "tags": [],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 16,
+              "y": 84
+            },
+            "radius": 15
+          }
+        },
+        {
+          "id": "rule_nightshelf_shadow_codes",
+          "label": "Shadow Codes",
+          "color": "#9370DB",
+          "culture": "nightshelf",
+          "tags": [],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 58,
+              "y": 17
+            },
+            "radius": 9
+          }
+        }
+      ]
+    },
+    "defaultStatus": "proposed",
+    "style": {
+      "color": "#FCA86B"
+    }
+  },
+  {
+    "kind": "npc",
+    "description": "NPCs",
+    "category": "character",
+    "subtypes": [
+      {
+        "id": "merchant",
+        "name": "Merchant"
+      },
+      {
+        "id": "mayor",
+        "name": "Mayor",
+        "isAuthority": true
+      },
+      {
+        "id": "hero",
+        "name": "Hero"
+      },
+      {
+        "id": "outlaw",
+        "name": "Outlaw"
+      },
+      {
+        "id": "orca",
+        "name": "Orca"
+      }
+    ],
+    "statuses": [
+      {
+        "id": "alive",
+        "name": "Alive",
+        "isTerminal": false,
+        "polarity": "neutral"
+      },
+      {
+        "id": "historical",
+        "name": "Historical",
+        "isTerminal": true,
+        "polarity": "negative",
+        "transitionVerb": "passed away"
+      },
+      {
+        "id": "missing",
+        "name": "Missing",
+        "isTerminal": false,
+        "polarity": "negative",
+        "transitionVerb": "went missing"
+      }
+    ],
+    "semanticPlane": {
+      "axes": {
+        "x": {
+          "axisId": "authority"
+        },
+        "y": {
+          "axisId": "pragmatism"
+        },
+        "z": {
+          "axisId": "power"
+        }
+      },
+      "regions": [
+        {
+          "id": "npc_aurora_citizens",
+          "label": "Golden Citizens",
+          "color": "#FFD700",
+          "culture": "aurora-stack",
+          "tags": [
+            "friendly",
+            "trade",
+            "organized"
+          ],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 84,
+              "y": 50
+            },
+            "radius": 15
+          }
+        },
+        {
+          "id": "npc_nightshelf_denizens",
+          "label": "Twilight Denizens",
+          "color": "#9370DB",
+          "culture": "nightshelf",
+          "tags": [
+            "mystical",
+            "secretive"
+          ],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 50,
+              "y": 70
+            },
+            "radius": 15
+          }
+        },
+        {
+          "id": "npc_orca_raiders",
+          "label": "Orca Marauders",
+          "color": "#2F4F4F",
+          "culture": "orca",
+          "tags": [
+            "hostile",
+            "raider",
+            "external"
+          ],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 14,
+              "y": 14
+            },
+            "radius": 12
+          }
+        }
+      ]
+    },
+    "defaultStatus": "alive",
+    "style": {
+      "color": "#6FB1FC"
+    }
+  },
+  {
+    "kind": "location",
+    "description": "Locations",
+    "category": "place",
+    "subtypes": [
+      {
+        "id": "colony",
+        "name": "Colony"
+      },
+      {
+        "id": "anomaly",
+        "name": "Anomaly"
+      },
+      {
+        "id": "resource_node",
+        "name": "Resource Node"
+      },
+      {
+        "id": "point_of_interest",
+        "name": "Point of Interest"
+      }
+    ],
+    "statuses": [
+      {
+        "id": "thriving",
+        "name": "Thriving",
+        "isTerminal": false,
+        "polarity": "positive",
+        "transitionVerb": "began thriving"
+      },
+      {
+        "id": "waning",
+        "name": "Waning",
+        "isTerminal": false,
+        "polarity": "negative",
+        "transitionVerb": "began to wane"
+      },
+      {
+        "id": "abandoned",
+        "name": "Abandoned",
+        "isTerminal": true,
+        "polarity": "negative",
+        "transitionVerb": "was abandoned"
+      },
+      {
+        "id": "unspoiled",
+        "name": "Unspoiled",
+        "isTerminal": false,
+        "polarity": "neutral"
+      }
+    ],
+    "semanticPlane": {
+      "axes": {
+        "x": {
+          "axisId": "longitude"
+        },
+        "y": {
+          "axisId": "latitude"
+        },
+        "z": {
+          "axisId": "visibility"
+        }
+      },
+      "regions": [
+        {
+          "id": "location_aurora_markets",
+          "label": "Aurora Markets",
+          "color": "#FFD700",
+          "culture": "aurora-stack",
+          "tags": [
+            "central",
+            "trade",
+            "thriving"
+          ],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 65,
+              "y": 25
+            },
+            "radius": 12
+          }
+        },
+        {
+          "id": "location_nightshelf_sanctums",
+          "label": "Hidden Sanctums",
+          "color": "#9370DB",
+          "culture": "nightshelf",
+          "tags": [
+            "hidden",
+            "mystical",
+            "secretive"
+          ],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 35,
+              "y": 35
+            },
+            "radius": 12
+          }
+        },
+        {
+          "id": "location_glow_fissure",
+          "label": "The Glow-Fissure",
+          "color": "#FF6347",
+          "culture": "nightshelf",
+          "tags": [
+            "anomaly",
+            "dangerous",
+            "mystical"
+          ],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 30,
+              "y": 65
+            },
+            "radius": 8
+          }
+        }
+      ]
+    },
+    "defaultStatus": "thriving",
+    "style": {
+      "color": "#6BFC9C"
+    }
+  },
+  {
+    "kind": "faction",
+    "description": "Factions",
+    "category": "collective",
+    "subtypes": [
+      {
+        "id": "political",
+        "name": "Political"
+      },
+      {
+        "id": "criminal",
+        "name": "Criminal"
+      },
+      {
+        "id": "cult",
+        "name": "Cult"
+      },
+      {
+        "id": "company",
+        "name": "Company"
+      }
+    ],
+    "statuses": [
+      {
+        "id": "active",
+        "name": "Active",
+        "isTerminal": false,
+        "polarity": "neutral"
+      },
+      {
+        "id": "disbanded",
+        "name": "Disbanded",
+        "isTerminal": true,
+        "polarity": "negative",
+        "transitionVerb": "disbanded"
+      },
+      {
+        "id": "waning",
+        "name": "Waning",
+        "isTerminal": false,
+        "polarity": "negative",
+        "transitionVerb": "began to wane"
+      },
+      {
+        "id": "state_sanctioned",
+        "name": "State Sanctioned",
+        "isTerminal": false,
+        "polarity": "positive",
+        "transitionVerb": "received state sanction"
+      },
+      {
+        "id": "illegal",
+        "name": "Illegal",
+        "isTerminal": false,
+        "polarity": "negative",
+        "transitionVerb": "was outlawed"
+      }
+    ],
+    "semanticPlane": {
+      "axes": {
+        "x": {
+          "axisId": "structure"
+        },
+        "y": {
+          "axisId": "alignment"
+        },
+        "z": {
+          "axisId": "visibility"
+        }
+      },
+      "regions": [
+        {
+          "id": "faction_aurora_guilds",
+          "label": "Merchant Guilds",
+          "color": "#FFD700",
+          "culture": "aurora-stack",
+          "tags": [
+            "organized",
+            "friendly",
+            "trade",
+            "influential"
+          ],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 75,
+              "y": 70
+            },
+            "radius": 15
+          }
+        },
+        {
+          "id": "faction_nightshelf_covens",
+          "label": "Shadow Covens",
+          "color": "#9370DB",
+          "culture": "nightshelf",
+          "tags": [
+            "secretive",
+            "mystical"
+          ],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 35,
+              "y": 49
+            },
+            "radius": 15
+          }
+        },
+        {
+          "id": "faction_orca_warclans",
+          "label": "War Clans",
+          "color": "#410f1e",
+          "culture": "orca",
+          "tags": [
+            "authoritarian",
+            "fire",
+            "hostile"
+          ],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 11,
+              "y": 10
+            },
+            "radius": 9
+          }
+        }
+      ]
+    },
+    "defaultStatus": "active",
+    "style": {
+      "color": "#FC6B6B"
+    }
+  },
+  {
+    "kind": "artifact",
+    "description": "Artifacts & Relics",
+    "category": "object",
+    "subtypes": [
+      {
+        "id": "weapon",
+        "name": "Weapon"
+      },
+      {
+        "id": "relic",
+        "name": "Relic"
+      },
+      {
+        "id": "tome",
+        "name": "Tome"
+      },
+      {
+        "id": "instrument",
+        "name": "Instrument"
+      }
+    ],
+    "statuses": [
+      {
+        "id": "intact",
+        "name": "Intact",
+        "isTerminal": false,
+        "polarity": "positive"
+      },
+      {
+        "id": "damaged",
+        "name": "Damaged",
+        "isTerminal": false,
+        "polarity": "negative",
+        "transitionVerb": "was damaged"
+      },
+      {
+        "id": "lost",
+        "name": "Lost",
+        "isTerminal": false,
+        "polarity": "negative",
+        "transitionVerb": "was lost"
+      },
+      {
+        "id": "destroyed",
+        "name": "Destroyed",
+        "isTerminal": true,
+        "polarity": "negative",
+        "transitionVerb": "was destroyed"
+      }
+    ],
+    "semanticPlane": {
+      "axes": {
+        "x": {
+          "axisId": "element"
+        },
+        "y": {
+          "axisId": "purpose"
+        },
+        "z": {
+          "axisId": "pragmatism"
+        }
+      },
+      "regions": [
+        {
+          "id": "aurora_artifacts",
+          "label": "Aurora Relics",
+          "color": "#FFD700",
+          "culture": "aurora-stack",
+          "tags": [
+            "trade",
+            "organized",
+            "ice"
+          ],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 75,
+              "y": 60
+            },
+            "radius": 15
+          }
+        },
+        {
+          "id": "nightshelf_artifacts",
+          "label": "Shadow Relics",
+          "color": "#9370DB",
+          "culture": "nightshelf",
+          "tags": [
+            "mystical",
+            "secretive"
+          ],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 40,
+              "y": 75
+            },
+            "radius": 15
+          }
+        },
+        {
+          "id": "orca_artifacts",
+          "label": "Orca Trophies",
+          "color": "#2F4F4F",
+          "culture": "orca",
+          "tags": [
+            "hostile",
+            "combat"
+          ],
+          "bounds": {
+            "shape": "circle",
+            "center": {
+              "x": 20,
+              "y": 25
+            },
+            "radius": 12
+          }
+        }
+      ]
+    },
+    "defaultStatus": "intact",
+    "style": {
+      "color": "#B8860B"
+    }
+  }
+]

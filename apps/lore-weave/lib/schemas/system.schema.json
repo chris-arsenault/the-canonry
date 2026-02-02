@@ -1,0 +1,1744 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "system.schema.json",
+  "title": "DeclarativeSystem",
+  "description": "A declarative system definition for world simulation",
+  "oneOf": [
+    { "$ref": "#/$defs/ConnectionEvolutionSystem" },
+    { "$ref": "#/$defs/GraphContagionSystem" },
+    { "$ref": "#/$defs/ThresholdTriggerSystem" },
+    { "$ref": "#/$defs/ClusterFormationSystem" },
+    { "$ref": "#/$defs/TagDiffusionSystem" },
+    { "$ref": "#/$defs/PlaneDiffusionSystem" },
+    { "$ref": "#/$defs/EraSpawnerSystem" },
+    { "$ref": "#/$defs/EraTransitionSystem" },
+    { "$ref": "#/$defs/UniversalCatalystSystem" },
+    { "$ref": "#/$defs/RelationshipMaintenanceSystem" },
+    { "$ref": "#/$defs/GrowthSystem" }
+  ],
+  "$defs": {
+    "BaseConfig": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for this system" },
+        "name": { "type": "string", "description": "Human-readable name" },
+        "description": { "type": "string", "description": "Description of what this system does" }
+      }
+    },
+
+    "ConnectionEvolutionSystem": {
+      "type": "object",
+      "required": ["systemType", "config"],
+      "properties": {
+        "systemType": { "const": "connectionEvolution" },
+        "enabled": { "type": "boolean", "description": "Whether this system is active (default: true)" },
+        "config": {
+          "allOf": [
+            { "$ref": "#/$defs/BaseConfig" },
+            {
+              "type": "object",
+              "required": ["selection", "metric", "rules"],
+              "properties": {
+                "selection": { "$ref": "#/$defs/SelectionRule" },
+                "metric": { "$ref": "#/$defs/Metric" },
+                "rules": {
+                  "type": "array",
+                  "items": { "$ref": "#/$defs/EvolutionRule" }
+                },
+                "subtypeBonuses": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["subtype", "bonus"],
+                    "properties": {
+                      "subtype": { "type": "string" },
+                      "bonus": { "type": "number" }
+                    }
+                  },
+                  "description": "Bonuses added to metric value based on entity subtype"
+                },
+                "throttleChance": { "type": "number", "minimum": 0, "maximum": 1 },
+                "pressureChanges": { "$ref": "#/$defs/PressureChanges" },
+                "pairExcludeRelationships": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "For betweenMatching rules: exclude pairs with these relationship kinds"
+                },
+                "pairComponentSizeLimit": {
+                  "type": "object",
+                  "required": ["relationshipKinds", "max"],
+                  "additionalProperties": false,
+                  "description": "For betweenMatching rules: limit combined component size when pairing",
+                  "properties": {
+                    "relationshipKinds": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "minItems": 1,
+                      "description": "Relationship kind(s) to calculate component size"
+                    },
+                    "max": {
+                      "type": "integer",
+                      "minimum": 2,
+                      "description": "Maximum allowed component size after connecting the pair"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    "GraphContagionSystem": {
+      "type": "object",
+      "required": ["systemType", "config"],
+      "properties": {
+        "systemType": { "const": "graphContagion" },
+        "enabled": { "type": "boolean", "description": "Whether this system is active (default: true)" },
+        "config": {
+          "allOf": [
+            { "$ref": "#/$defs/BaseConfig" },
+            {
+              "type": "object",
+              "required": ["selection", "contagion", "vectors", "transmission", "infectionAction"],
+              "properties": {
+                "selection": { "$ref": "#/$defs/SelectionRule" },
+                "contagion": {
+                  "type": "object",
+                  "required": ["type"],
+                  "properties": {
+                    "type": { "enum": ["tag", "relationship"] },
+                    "tag": { "type": "string" },
+                    "relationshipKind": { "type": "string" }
+                  }
+                },
+                "vectors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["relationshipKind"],
+                    "properties": {
+                      "relationshipKind": { "type": "string" },
+                      "direction": { "enum": ["src", "dst", "both"] },
+                      "minStrength": { "type": "number", "minimum": 0, "maximum": 1 }
+                    }
+                  }
+                },
+                "transmission": {
+                  "type": "object",
+                  "properties": {
+                    "baseRate": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "contactMultiplier": { "type": "number" },
+                    "maxProbability": { "type": "number", "minimum": 0, "maximum": 1 }
+                  }
+                },
+                "infectionAction": {
+                  "$ref": "#/$defs/ContagionAction"
+                },
+                "narrationTemplate": { "type": "string", "description": "Template for in-world narration. Variables: {$self.field}, {$source.field}, {$contagion_source.field}" },
+                "recovery": {
+                  "type": "object",
+                  "required": ["baseRate"],
+                  "properties": {
+                    "baseRate": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "immunityTag": { "type": "string" },
+                    "recoveryBonusTraits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["tag", "bonus"],
+                        "properties": {
+                          "tag": { "type": "string" },
+                          "bonus": { "type": "number" }
+                        }
+                      }
+                    }
+                  }
+                },
+                "phaseTransitions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["selection", "toStatus", "adoptionThreshold"],
+                    "properties": {
+                      "selection": { "$ref": "#/$defs/SelectionRule" },
+                      "toStatus": { "type": "string" },
+                      "adoptionThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+                      "descriptionSuffix": { "type": "string" }
+                    }
+                  }
+                },
+                "susceptibilityModifiers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["tag", "modifier"],
+                    "properties": {
+                      "tag": { "type": "string" },
+                      "modifier": { "type": "number" }
+                    }
+                  }
+                },
+                "multiSource": {
+                  "type": "object",
+                  "required": ["sourceSelection"],
+                  "properties": {
+                    "sourceSelection": { "$ref": "#/$defs/SelectionRule" },
+                    "immunityTagPrefix": { "type": "string" },
+                    "lowAdoptionThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "lowAdoptionStatus": { "type": "string" }
+                  }
+                },
+                "cooldown": { "type": "number" },
+                "throttleChance": { "type": "number", "minimum": 0, "maximum": 1 },
+                "pressureChanges": { "$ref": "#/$defs/PressureChanges" },
+                "excludeRelationships": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Exclude infections where entity and source have these relationship kinds"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    "ThresholdTriggerSystem": {
+      "type": "object",
+      "required": ["systemType", "config"],
+      "properties": {
+        "systemType": { "const": "thresholdTrigger" },
+        "enabled": { "type": "boolean", "description": "Whether this system is active (default: true)" },
+        "config": {
+          "allOf": [
+            { "$ref": "#/$defs/BaseConfig" },
+            {
+              "type": "object",
+              "required": ["selection", "conditions", "actions"],
+              "properties": {
+                "selection": { "$ref": "#/$defs/SelectionRule" },
+                "conditions": {
+                  "type": "array",
+                  "items": { "$ref": "#/$defs/Condition" }
+                },
+                "actions": {
+                  "type": "array",
+                  "items": { "$ref": "#/$defs/TriggerAction" }
+                },
+                "variables": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "description": "Variable definitions for use in actions"
+                },
+                "clusterMode": { "enum": ["individual", "all_matching", "by_relationship"] },
+                "clusterRelationshipKind": { "type": "string" },
+                "minClusterSize": { "type": "number", "minimum": 1 },
+                "throttleChance": { "type": "number", "minimum": 0, "maximum": 1 },
+                "cooldownTag": { "type": "string" },
+                "cooldownTicks": { "type": "number", "minimum": 0 },
+                "pressureChanges": { "$ref": "#/$defs/PressureChanges" },
+                "narrationTemplate": { "type": "string", "description": "Template for in-world narration. Variables: {$self.field}, {$varName.field}" }
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    "ClusterFormationSystem": {
+      "type": "object",
+      "required": ["systemType", "config"],
+      "properties": {
+        "systemType": { "const": "clusterFormation" },
+        "enabled": { "type": "boolean", "description": "Whether this system is active (default: true)" },
+        "config": {
+          "allOf": [
+            { "$ref": "#/$defs/BaseConfig" },
+            {
+              "type": "object",
+              "required": ["selection", "clustering", "metaEntity"],
+              "properties": {
+                "selection": { "$ref": "#/$defs/SelectionRule" },
+                "runAtEpochEnd": { "type": "boolean", "description": "Whether to only run at epoch end" },
+                "clustering": {
+                  "type": "object",
+                  "required": ["minSize", "criteria", "minimumScore"],
+                  "properties": {
+                    "minSize": { "type": "number", "minimum": 2 },
+                    "maxSize": { "type": "number" },
+                    "criteria": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["type", "weight"],
+                        "properties": {
+                          "type": { "enum": ["shared_relationship", "same_culture", "shared_tags", "temporal_proximity"] },
+                          "weight": { "type": "number" },
+                          "threshold": { "type": "number" },
+                          "relationshipKind": { "type": "string", "description": "For shared_relationship type" },
+                          "direction": { "enum": ["src", "dst"], "description": "For shared_relationship type" }
+                        }
+                      }
+                    },
+                    "minimumScore": { "type": "number" }
+                  }
+                },
+                "metaEntity": {
+                  "type": "object",
+                  "required": ["kind", "status"],
+                  "properties": {
+                    "kind": { "type": "string", "description": "Kind for the meta-entity" },
+                    "subtypeFromMajority": { "type": "boolean", "description": "Use majority subtype from cluster" },
+                    "fixedSubtype": { "type": "string", "description": "Fixed subtype if subtypeFromMajority is false" },
+                    "status": { "type": "string", "description": "Status for the meta-entity" },
+                    "prominenceFromSize": {
+                      "type": "object",
+                      "properties": {
+                        "marginal": { "type": "number" },
+                        "recognized": { "type": "number" },
+                        "renowned": { "type": "number" }
+                      }
+                    },
+                    "additionalTags": { "type": "array", "items": { "type": "string" } },
+                    "descriptionTemplate": { "type": "string", "description": "Use {count} for cluster size, {names} for entity names" },
+                    "narrationTemplate": { "type": "string", "description": "Template for in-world narration. Variables: {count}, {list:members}" }
+                  }
+                },
+                "postProcess": {
+                  "type": "object",
+                  "properties": {
+                    "createGovernanceFaction": { "type": "boolean" },
+                    "governanceFactionSubtype": { "type": "string" },
+                    "governanceRelationship": { "type": "string" },
+                    "pressureChanges": { "$ref": "#/$defs/PressureChanges" },
+                    "createEmergentRegion": { "type": "boolean" },
+                    "emergentRegionLabel": { "type": "string" },
+                    "emergentRegionDescription": { "type": "string" }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    "TagDiffusionSystem": {
+      "type": "object",
+      "required": ["systemType", "config"],
+      "properties": {
+        "systemType": { "const": "tagDiffusion" },
+        "enabled": { "type": "boolean", "description": "Whether this system is active (default: true)" },
+        "config": {
+          "allOf": [
+            { "$ref": "#/$defs/BaseConfig" },
+            {
+              "type": "object",
+              "required": ["selection", "connectionKind"],
+              "properties": {
+                "selection": { "$ref": "#/$defs/SelectionRule" },
+                "connectionKind": { "type": "string", "description": "Relationship kind that indicates connection between entities" },
+                "connectionDirection": { "enum": ["src", "dst", "both"], "description": "Direction to check for connections" },
+                "convergence": {
+                  "type": "object",
+                  "required": ["tags", "minConnections", "probability"],
+                  "properties": {
+                    "tags": { "type": "array", "items": { "type": "string" }, "description": "Tags that can be added to connected entities" },
+                    "minConnections": { "type": "number", "minimum": 0, "description": "Minimum connections required to trigger convergence" },
+                    "probability": { "type": "number", "minimum": 0, "maximum": 1, "description": "Probability of adding a convergence tag per tick" },
+                    "maxSharedTags": { "type": "number", "description": "Maximum shared tags before stopping convergence" }
+                  }
+                },
+                "divergence": {
+                  "type": "object",
+                  "required": ["tags", "maxConnections", "probability"],
+                  "properties": {
+                    "tags": { "type": "array", "items": { "type": "string" }, "description": "Tags that can be added to isolated entities" },
+                    "maxConnections": { "type": "number", "minimum": 0, "description": "Maximum connections to count as isolated" },
+                    "probability": { "type": "number", "minimum": 0, "maximum": 1, "description": "Probability of adding a divergence tag per tick" }
+                  }
+                },
+                "maxTags": { "type": "number", "description": "Maximum tags per entity to prevent tag bloat" },
+                "throttleChance": { "type": "number", "minimum": 0, "maximum": 1 },
+                "pressureChanges": { "$ref": "#/$defs/PressureChanges" },
+                "divergencePressure": {
+                  "type": "object",
+                  "required": ["pressureName", "minDivergent", "delta"],
+                  "properties": {
+                    "pressureName": { "type": "string", "description": "Pressure name to modify" },
+                    "minDivergent": { "type": "number", "description": "Minimum divergent entities to trigger pressure" },
+                    "delta": { "type": "number", "description": "Pressure delta when triggered" }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    "PlaneDiffusionSystem": {
+      "type": "object",
+      "required": ["systemType", "config"],
+      "description": "True time-evolving 2D diffusion field simulation. Uses a 100x100 grid matching the semantic coordinate space. Sources SET values at their positions (Dirichlet boundary), then values diffuse via heat equation. Simulation runs uncapped internally; values are clamped to -100 to 100 only at output (tags).",
+      "properties": {
+        "systemType": { "const": "planeDiffusion" },
+        "enabled": { "type": "boolean", "description": "Whether this system is active (default: true)" },
+        "config": {
+          "allOf": [
+            { "$ref": "#/$defs/BaseConfig" },
+            {
+              "type": "object",
+              "required": ["selection", "sources", "diffusion", "outputTags"],
+              "properties": {
+                "selection": { "$ref": "#/$defs/SelectionRule" },
+                "sources": {
+                  "type": "object",
+                  "required": ["tagFilter", "defaultStrength"],
+                  "description": "Entities that emit values into the diffusion field. Sources SET their value each tick (Dirichlet boundary condition).",
+                  "properties": {
+                    "tagFilter": { "type": "string", "description": "Tag that marks an entity as a source" },
+                    "strengthTag": { "type": "string", "description": "Optional tag containing numeric strength value (e.g., 'strength:50')" },
+                    "defaultStrength": {
+                      "type": "number",
+                      "description": "Source strength value. Can be any number - simulation is uncapped. Values are clamped to -100 to 100 only when applied to entity tags."
+                    }
+                  }
+                },
+                "sinks": {
+                  "type": "object",
+                  "required": ["tagFilter", "defaultStrength"],
+                  "description": "Entities that absorb values from the diffusion field. Sinks SET negative values at their positions.",
+                  "properties": {
+                    "tagFilter": { "type": "string", "description": "Tag that marks an entity as a sink" },
+                    "strengthTag": { "type": "string", "description": "Optional tag containing numeric strength value" },
+                    "defaultStrength": {
+                      "type": "number",
+                      "description": "Sink strength (will be negated). Can be any number - simulation is uncapped."
+                    }
+                  }
+                },
+                "diffusion": {
+                  "type": "object",
+                  "required": ["rate"],
+                  "description": "Parameters controlling the heat equation discretization",
+                  "properties": {
+                    "rate": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Diffusion coefficient (0-1). Controls how fast values spread to neighbors each tick. Recommended: 0.1-0.25. Values above 0.25 may cause numerical instability."
+                    },
+                    "sourceRadius": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 50,
+                      "default": 1,
+                      "description": "Radius in grid cells around source/sink where values are directly SET. Default: 1. Larger values create broader fixed-value zones."
+                    },
+                    "decayRate": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "default": 0,
+                      "description": "How fast values decay toward zero each tick (0-1). Default: 0 (no decay). Use sparingly - decay fights against diffusion spreading."
+                    },
+                    "falloffType": {
+                      "type": "string",
+                      "enum": ["absolute", "none", "linear", "inverse_square", "sqrt", "exponential"],
+                      "default": "absolute",
+                      "description": "How source strength decreases within sourceRadius. absolute: strength-distance (100→99→98), none: full strength everywhere, linear/sqrt/etc: percentage-based falloff"
+                    },
+                    "iterationsPerTick": {
+                      "type": "number",
+                      "minimum": 1,
+                      "maximum": 200,
+                      "default": 20,
+                      "description": "Number of diffusion iterations per tick. Higher values = faster spreading. Default: 20 (achieves ~50 cell spread in 15 ticks)."
+                    }
+                  }
+                },
+                "outputTags": {
+                  "type": "array",
+                  "description": "Tags applied to entities based on their sampled field value (clamped to -100 to 100)",
+                  "items": {
+                    "type": "object",
+                    "required": ["tag"],
+                    "properties": {
+                      "tag": { "type": "string", "description": "Tag to set on entity when field value is in range" },
+                      "minValue": { "type": "number", "minimum": -100, "maximum": 100, "description": "Minimum field value to set this tag (inclusive). Range: -100 to 100." },
+                      "maxValue": { "type": "number", "minimum": -100, "maximum": 100, "description": "Maximum field value to set this tag (exclusive). Range: -100 to 100." }
+                    }
+                  }
+                },
+                "valueTag": { "type": "string", "description": "Optional: store clamped field value as tag value (e.g., 'field_value' → { field_value: '25.5' })" },
+                "throttleChance": { "type": "number", "minimum": 0, "maximum": 1, "description": "Probability of running this system each tick (0-1). Default: 1.0 (every tick)." },
+                "pressureChanges": { "$ref": "#/$defs/PressureChanges" }
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    "EraSpawnerSystem": {
+      "type": "object",
+      "required": ["systemType", "config"],
+      "properties": {
+        "systemType": { "const": "eraSpawner" },
+        "enabled": { "type": "boolean", "description": "Whether this system is active (default: true)" },
+        "config": {
+          "allOf": [
+            { "$ref": "#/$defs/BaseConfig" },
+            {
+              "type": "object",
+              "properties": {}
+            }
+          ]
+        }
+      }
+    },
+
+    "EraTransitionSystem": {
+      "type": "object",
+      "required": ["systemType", "config"],
+      "properties": {
+        "systemType": { "const": "eraTransition" },
+        "enabled": { "type": "boolean", "description": "Whether this system is active (default: true)" },
+        "config": {
+          "allOf": [
+            { "$ref": "#/$defs/BaseConfig" },
+            {
+              "type": "object",
+              "properties": {
+                "minTicksBeforeTransition": { "type": "number" },
+                "prominenceSnapshot": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": { "type": "boolean" },
+                    "minProminence": {
+                      "enum": [
+                        "forgotten",
+                        "marginal",
+                        "recognized",
+                        "renowned",
+                        "mythic"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    "UniversalCatalystSystem": {
+      "type": "object",
+      "required": ["systemType", "config"],
+      "properties": {
+        "systemType": { "const": "universalCatalyst" },
+        "enabled": { "type": "boolean", "description": "Whether this system is active (default: true)" },
+        "config": {
+          "allOf": [
+            { "$ref": "#/$defs/BaseConfig" },
+            {
+              "type": "object",
+              "properties": {
+                "actionAttemptRate": { "type": "number", "minimum": 0, "maximum": 1 },
+                "pressureMultiplier": { "type": "number" },
+                "prominenceUpChanceOnSuccess": { "type": "number", "minimum": 0, "maximum": 1 },
+                "prominenceDownChanceOnFailure": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    "RelationshipMaintenanceSystem": {
+      "type": "object",
+      "required": ["systemType", "config"],
+      "properties": {
+        "systemType": { "const": "relationshipMaintenance" },
+        "enabled": { "type": "boolean", "description": "Whether this system is active (default: true)" },
+        "config": {
+          "allOf": [
+            { "$ref": "#/$defs/BaseConfig" },
+            {
+              "type": "object",
+              "properties": {
+                "maintenanceFrequency": { "type": "number", "minimum": 1 },
+                "cullThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+                "gracePeriod": { "type": "number", "minimum": 0 },
+                "reinforcementBonus": { "type": "number" },
+                "maxStrength": { "type": "number", "minimum": 0, "maximum": 1 },
+                "proximityRelationshipKinds": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Relationship kinds that indicate entities are in proximity for reinforcement"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    "GrowthSystem": {
+      "type": "object",
+      "required": ["systemType", "config"],
+      "properties": {
+        "systemType": { "const": "growth" },
+        "enabled": { "type": "boolean", "description": "Whether this system is active (default: true)" },
+        "config": {
+          "allOf": [
+            { "$ref": "#/$defs/BaseConfig" },
+            {
+              "type": "object",
+              "properties": {
+                "maxTemplatesPerTick": { "type": "number", "minimum": 0, "description": "Hard cap on template executions per tick" },
+                "minTemplatesPerTick": { "type": "number", "minimum": 0, "description": "Minimum template executions per tick while growth is needed" },
+                "yieldAveragingWindow": { "type": "number", "minimum": 1, "description": "Rolling window size for average entities per template" },
+                "maxAttemptsPerTick": { "type": "number", "minimum": 1, "description": "Safety limit on template selection attempts per tick" }
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    "ConnectionMetric": { "$ref": "#/$defs/Metric" },
+
+    "EvolutionRule": {
+      "type": "object",
+      "required": ["condition", "probability", "action"],
+      "properties": {
+        "condition": {
+          "type": "object",
+          "required": ["operator", "threshold"],
+          "properties": {
+            "operator": { "enum": [">=", ">", "<=", "<", "=="] },
+            "threshold": {
+              "oneOf": [
+                { "type": "number" },
+                { "const": "prominence_scaled" }
+              ]
+            },
+            "multiplier": { "type": "number", "description": "Multiplier for prominence_scaled threshold (default: 6)" }
+          }
+        },
+        "probability": { "type": "number", "minimum": 0, "maximum": 1 },
+        "action": { "$ref": "#/$defs/Mutation" },
+        "betweenMatching": { "type": "boolean", "description": "For create_relationship: pair entities that both pass condition" },
+        "narrationTemplate": { "type": "string", "description": "Template for in-world narration. Variables: {$self.field}, {$member.field}, {$member2.field}" }
+      }
+    },
+
+    "TriggerCondition": { "$ref": "#/$defs/Condition" },
+
+    "TriggerAction": {
+      "allOf": [
+        { "$ref": "#/$defs/Mutation" },
+        {
+          "type": "object",
+          "properties": {
+            "betweenMatching": { "type": "boolean", "description": "For create_relationship: create between all matching entities" }
+          }
+        }
+      ]
+    },
+
+    "NonEmptyString": { "type": "string", "minLength": 1 },
+    "AnyOrString": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Either the literal 'any' (meaning match all) or a specific non-empty value"
+    },
+
+    "Prominence": { "enum": ["forgotten", "marginal", "recognized", "renowned", "mythic"] },
+
+    "SelectionFilter": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "entities"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "exclude" },
+            "entities": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "minItems": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "kind"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "has_relationship" },
+            "kind": { "$ref": "#/$defs/NonEmptyString" },
+            "with": { "$ref": "#/$defs/NonEmptyString" },
+            "direction": { "enum": ["src", "dst", "both"] }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "kind"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "lacks_relationship" },
+            "kind": { "$ref": "#/$defs/NonEmptyString" },
+            "with": { "$ref": "#/$defs/NonEmptyString" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "tag"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "has_tag" },
+            "tag": { "$ref": "#/$defs/NonEmptyString" },
+            "value": { "oneOf": [{ "type": "string" }, { "type": "boolean" }] }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "tags"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "has_tags" },
+            "tags": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "minItems": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "tags"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "has_any_tag" },
+            "tags": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "minItems": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "tag"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "lacks_tag" },
+            "tag": { "$ref": "#/$defs/NonEmptyString" },
+            "value": { "oneOf": [{ "type": "string" }, { "type": "boolean" }] }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "tags"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "lacks_any_tag" },
+            "tags": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "minItems": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "culture"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "has_culture" },
+            "culture": { "$ref": "#/$defs/NonEmptyString" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "with"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "matches_culture" },
+            "with": { "$ref": "#/$defs/NonEmptyString" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "status"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "has_status" },
+            "status": { "$ref": "#/$defs/NonEmptyString" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "minProminence"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "has_prominence" },
+            "minProminence": { "$ref": "#/$defs/Prominence" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "relationshipKind", "with"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "shares_related" },
+            "relationshipKind": { "$ref": "#/$defs/NonEmptyString" },
+            "with": { "$ref": "#/$defs/NonEmptyString" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "assert"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "graph_path" },
+            "assert": { "$ref": "#/$defs/GraphPathAssertion" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "relationshipKinds"],
+          "additionalProperties": false,
+          "description": "Filter entities based on connected component size",
+          "properties": {
+            "type": { "const": "component_size" },
+            "relationshipKinds": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/NonEmptyString" },
+              "minItems": 1,
+              "description": "Relationship kind(s) defining the subgraph edges"
+            },
+            "min": { "type": "integer", "minimum": 1, "description": "Minimum component size (inclusive)" },
+            "max": { "type": "integer", "minimum": 1, "description": "Maximum component size (inclusive)" },
+            "minStrength": { "type": "number", "minimum": 0, "maximum": 1, "description": "Minimum relationship strength to follow" }
+          }
+        }
+      ]
+    },
+
+    "SelectionPickStrategy": {
+      "enum": ["random", "first", "all", "weighted"]
+    },
+
+    "SaturationLimit": {
+      "type": "object",
+      "required": ["relationshipKind", "maxCount"],
+      "additionalProperties": false,
+      "properties": {
+        "relationshipKind": { "$ref": "#/$defs/NonEmptyString" },
+        "direction": { "enum": ["src", "dst", "both", "in", "out"] },
+        "fromKind": { "$ref": "#/$defs/NonEmptyString" },
+        "maxCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "SelectionRule": {
+      "type": "object",
+      "required": ["strategy"],
+      "additionalProperties": false,
+      "properties": {
+        "strategy": { "enum": ["by_kind", "by_preference_order", "by_relationship", "by_proximity", "by_prominence"] },
+        "kind": { "$ref": "#/$defs/NonEmptyString" },
+        "kinds": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "minItems": 1 },
+        "subtypes": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "minItems": 1 },
+        "excludeSubtypes": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "minItems": 1 },
+        "status": { "$ref": "#/$defs/NonEmptyString" },
+        "statuses": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "minItems": 1 },
+        "notStatus": { "$ref": "#/$defs/NonEmptyString" },
+        "relationshipKind": { "$ref": "#/$defs/NonEmptyString" },
+        "mustHave": { "type": "boolean" },
+        "direction": { "enum": ["src", "dst", "both"] },
+        "subtypePreferences": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "minItems": 1 },
+        "referenceEntity": { "$ref": "#/$defs/NonEmptyString" },
+        "maxDistance": { "type": "number", "minimum": 0 },
+        "minProminence": { "$ref": "#/$defs/Prominence" },
+        "filters": { "type": "array", "items": { "$ref": "#/$defs/SelectionFilter" } },
+        "saturationLimits": { "type": "array", "items": { "$ref": "#/$defs/SaturationLimit" } },
+        "pickStrategy": { "$ref": "#/$defs/SelectionPickStrategy" },
+        "maxResults": { "type": "integer", "minimum": 1 }
+      },
+      "anyOf": [
+        { "required": ["kind"] },
+        { "required": ["kinds"] }
+      ]
+    },
+
+    "GraphPathAssertion": {
+      "type": "object",
+      "required": ["check", "path"],
+      "additionalProperties": false,
+      "properties": {
+        "check": { "enum": ["exists", "not_exists", "count_min", "count_max"] },
+        "path": { "type": "array", "items": { "$ref": "#/$defs/PathStep" }, "minItems": 1 },
+        "count": { "type": "integer", "minimum": 0 },
+        "where": { "type": "array", "items": { "$ref": "#/$defs/PathConstraint" } }
+      }
+    },
+
+    "PathStep": {
+      "type": "object",
+      "required": ["via", "direction", "targetKind", "targetSubtype"],
+      "additionalProperties": false,
+      "properties": {
+        "via": {
+          "oneOf": [
+            { "$ref": "#/$defs/NonEmptyString" },
+            { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "minItems": 1 }
+          ],
+          "description": "Relationship kind(s) to traverse - single string or array"
+        },
+        "direction": { "enum": ["out", "in", "any"] },
+        "targetKind": { "$ref": "#/$defs/AnyOrString" },
+        "targetSubtype": { "$ref": "#/$defs/AnyOrString" },
+        "targetStatus": { "$ref": "#/$defs/AnyOrString" },
+        "filters": { "type": "array", "items": { "$ref": "#/$defs/SelectionFilter" } },
+        "as": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+
+    "PathConstraint": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "set"],
+          "additionalProperties": false,
+          "properties": { "type": { "const": "not_in" }, "set": { "$ref": "#/$defs/NonEmptyString" } }
+        },
+        {
+          "type": "object",
+          "required": ["type", "set"],
+          "additionalProperties": false,
+          "properties": { "type": { "const": "in" }, "set": { "$ref": "#/$defs/NonEmptyString" } }
+        },
+        {
+          "type": "object",
+          "required": ["type", "kind", "with"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "lacks_relationship" },
+            "kind": { "$ref": "#/$defs/NonEmptyString" },
+            "with": { "$ref": "#/$defs/NonEmptyString" },
+            "direction": { "enum": ["out", "in", "any"] }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "kind", "with"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "has_relationship" },
+            "kind": { "$ref": "#/$defs/NonEmptyString" },
+            "with": { "$ref": "#/$defs/NonEmptyString" },
+            "direction": { "enum": ["out", "in", "any"] }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type"],
+          "additionalProperties": false,
+          "properties": { "type": { "const": "not_self" } }
+        },
+        {
+          "type": "object",
+          "required": ["type", "kind"],
+          "additionalProperties": false,
+          "properties": { "type": { "const": "kind_equals" }, "kind": { "$ref": "#/$defs/NonEmptyString" } }
+        },
+        {
+          "type": "object",
+          "required": ["type", "subtype"],
+          "additionalProperties": false,
+          "properties": { "type": { "const": "subtype_equals" }, "subtype": { "$ref": "#/$defs/NonEmptyString" } }
+        }
+      ]
+    },
+
+    "Condition": {
+      "oneOf": [
+        { "$ref": "#/$defs/PressureCondition" },
+        { "$ref": "#/$defs/PressureAnyAboveCondition" },
+        { "$ref": "#/$defs/PressureCompareCondition" },
+        { "$ref": "#/$defs/EntityCountCondition" },
+        { "$ref": "#/$defs/RelationshipCountCondition" },
+        { "$ref": "#/$defs/RelationshipExistsCondition" },
+        { "$ref": "#/$defs/TagExistsCondition" },
+        { "$ref": "#/$defs/LacksTagCondition" },
+        { "$ref": "#/$defs/StatusCondition" },
+        { "$ref": "#/$defs/ProminenceCondition" },
+        { "$ref": "#/$defs/TimeElapsedCondition" },
+        { "$ref": "#/$defs/EraMatchCondition" },
+        { "$ref": "#/$defs/RandomChanceCondition" },
+        { "$ref": "#/$defs/CooldownElapsedCondition" },
+        { "$ref": "#/$defs/CreationsPerEpochCondition" },
+        { "$ref": "#/$defs/GrowthPhasesCompleteCondition" },
+        { "$ref": "#/$defs/GraphPathCondition" },
+        { "$ref": "#/$defs/ComponentSizeCondition" },
+        { "$ref": "#/$defs/EntityExistsCondition" },
+        { "$ref": "#/$defs/EntityHasRelationshipCondition" },
+        { "$ref": "#/$defs/CompositeCondition" },
+        { "$ref": "#/$defs/AlwaysCondition" }
+      ]
+    },
+
+    "PressureCondition": {
+      "type": "object",
+      "required": ["type", "pressureId"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "pressure" },
+        "pressureId": { "$ref": "#/$defs/NonEmptyString" },
+        "min": { "type": "number", "minimum": -100, "maximum": 100 },
+        "max": { "type": "number", "minimum": -100, "maximum": 100 }
+      }
+    },
+
+    "PressureAnyAboveCondition": {
+      "type": "object",
+      "required": ["type", "pressureIds", "threshold"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "pressure_any_above" },
+        "pressureIds": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "minItems": 1 },
+        "threshold": { "type": "number", "minimum": -100, "maximum": 100 }
+      }
+    },
+
+    "PressureCompareCondition": {
+      "type": "object",
+      "required": ["type", "pressureA", "pressureB"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "pressure_compare" },
+        "pressureA": { "$ref": "#/$defs/NonEmptyString" },
+        "pressureB": { "$ref": "#/$defs/NonEmptyString" },
+        "operator": { "enum": [">", "<", ">=", "<=", "==", "!="] }
+      }
+    },
+
+    "EntityCountCondition": {
+      "type": "object",
+      "required": ["type", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "entity_count" },
+        "kind": { "$ref": "#/$defs/NonEmptyString" },
+        "subtype": { "$ref": "#/$defs/NonEmptyString" },
+        "status": { "$ref": "#/$defs/NonEmptyString" },
+        "min": { "type": "integer", "minimum": 0 },
+        "max": { "type": "integer", "minimum": 0 },
+        "overshootFactor": { "type": "number", "minimum": 1 }
+      }
+    },
+
+    "RelationshipCountCondition": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "relationship_count" },
+        "relationshipKind": { "$ref": "#/$defs/NonEmptyString" },
+        "direction": { "enum": ["src", "dst", "both"] },
+        "min": { "type": "integer", "minimum": 0 },
+        "max": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "RelationshipExistsCondition": {
+      "type": "object",
+      "required": ["type", "relationshipKind"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "relationship_exists" },
+        "relationshipKind": { "$ref": "#/$defs/NonEmptyString" },
+        "with": { "$ref": "#/$defs/NonEmptyString" },
+        "direction": { "enum": ["src", "dst", "both"] },
+        "targetKind": { "$ref": "#/$defs/NonEmptyString" },
+        "targetSubtype": { "$ref": "#/$defs/NonEmptyString" },
+        "targetStatus": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+
+    "TagExistsCondition": {
+      "type": "object",
+      "required": ["type", "tag"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "tag_exists" },
+        "entity": { "$ref": "#/$defs/NonEmptyString" },
+        "tag": { "$ref": "#/$defs/NonEmptyString" },
+        "value": { "oneOf": [{ "type": "string" }, { "type": "boolean" }] }
+      }
+    },
+
+    "LacksTagCondition": {
+      "type": "object",
+      "required": ["type", "tag"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "lacks_tag" },
+        "entity": { "$ref": "#/$defs/NonEmptyString" },
+        "tag": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+
+    "StatusCondition": {
+      "type": "object",
+      "required": ["type", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "status" },
+        "status": { "$ref": "#/$defs/NonEmptyString" },
+        "not": { "type": "boolean" }
+      }
+    },
+
+    "ProminenceCondition": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "prominence" },
+        "min": { "$ref": "#/$defs/Prominence" },
+        "max": { "$ref": "#/$defs/Prominence" }
+      }
+    },
+
+    "TimeElapsedCondition": {
+      "type": "object",
+      "required": ["type", "minTicks"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "time_elapsed" },
+        "minTicks": { "type": "integer", "minimum": 0 },
+        "since": { "enum": ["created", "updated"] }
+      }
+    },
+
+    "EraMatchCondition": {
+      "type": "object",
+      "required": ["type", "eras"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "era_match" },
+        "eras": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "minItems": 1 }
+      }
+    },
+
+    "RandomChanceCondition": {
+      "type": "object",
+      "required": ["type", "chance"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "random_chance" },
+        "chance": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+
+    "CooldownElapsedCondition": {
+      "type": "object",
+      "required": ["type", "cooldownTicks"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "cooldown_elapsed" },
+        "cooldownTicks": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "CreationsPerEpochCondition": {
+      "type": "object",
+      "required": ["type", "maxPerEpoch"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "creations_per_epoch" },
+        "maxPerEpoch": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "GrowthPhasesCompleteCondition": {
+      "type": "object",
+      "required": ["type", "minPhases"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "growth_phases_complete" },
+        "minPhases": { "type": "integer", "minimum": 0 },
+        "eraId": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+
+    "GraphPathCondition": {
+      "type": "object",
+      "required": ["type", "assert"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "graph_path" },
+        "assert": { "$ref": "#/$defs/GraphPathAssertion" }
+      }
+    },
+
+    "ComponentSizeCondition": {
+      "type": "object",
+      "required": ["type", "relationshipKinds"],
+      "additionalProperties": false,
+      "description": "Check connected component size via specified relationship kinds",
+      "properties": {
+        "type": { "const": "component_size" },
+        "relationshipKinds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/NonEmptyString" },
+          "minItems": 1,
+          "description": "Relationship kind(s) defining the subgraph edges"
+        },
+        "min": { "type": "integer", "minimum": 1, "description": "Minimum component size (inclusive)" },
+        "max": { "type": "integer", "minimum": 1, "description": "Maximum component size (inclusive)" },
+        "minStrength": { "type": "number", "minimum": 0, "maximum": 1, "description": "Minimum relationship strength to follow" }
+      }
+    },
+
+    "EntityExistsCondition": {
+      "type": "object",
+      "required": ["type", "entity"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "entity_exists" },
+        "entity": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+
+    "EntityHasRelationshipCondition": {
+      "type": "object",
+      "required": ["type", "entity", "relationshipKind"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "entity_has_relationship" },
+        "entity": { "$ref": "#/$defs/NonEmptyString" },
+        "relationshipKind": { "$ref": "#/$defs/NonEmptyString" },
+        "direction": { "enum": ["src", "dst", "both"] }
+      }
+    },
+
+    "CompositeCondition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "conditions"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "and" },
+            "conditions": { "type": "array", "items": { "$ref": "#/$defs/Condition" }, "minItems": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "conditions"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "or" },
+            "conditions": { "type": "array", "items": { "$ref": "#/$defs/Condition" }, "minItems": 1 }
+          }
+        }
+      ]
+    },
+
+    "AlwaysCondition": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": { "type": { "const": "always" } }
+    },
+
+    "Mutation": {
+      "oneOf": [
+        { "$ref": "#/$defs/SetTagMutation" },
+        { "$ref": "#/$defs/RemoveTagMutation" },
+        { "$ref": "#/$defs/CreateRelationshipMutation" },
+        { "$ref": "#/$defs/ArchiveRelationshipMutation" },
+        { "$ref": "#/$defs/ArchiveAllRelationshipsMutation" },
+        { "$ref": "#/$defs/AdjustRelationshipStrengthMutation" },
+        { "$ref": "#/$defs/TransferRelationshipMutation" },
+        { "$ref": "#/$defs/ChangeStatusMutation" },
+        { "$ref": "#/$defs/AdjustProminenceMutation" },
+        { "$ref": "#/$defs/ModifyPressureMutation" },
+        { "$ref": "#/$defs/UpdateRateLimitMutation" },
+        { "$ref": "#/$defs/ForEachRelatedAction" },
+        { "$ref": "#/$defs/ConditionalAction" }
+      ]
+    },
+
+    "SetTagMutation": {
+      "type": "object",
+      "required": ["type", "entity", "tag"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "set_tag" },
+        "entity": { "$ref": "#/$defs/NonEmptyString" },
+        "tag": { "$ref": "#/$defs/NonEmptyString" },
+        "value": { "oneOf": [{ "type": "string" }, { "type": "boolean" }] },
+        "valueFrom": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+
+    "RemoveTagMutation": {
+      "type": "object",
+      "required": ["type", "entity", "tag"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "remove_tag" },
+        "entity": { "$ref": "#/$defs/NonEmptyString" },
+        "tag": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+
+    "CreateRelationshipMutation": {
+      "type": "object",
+      "required": ["type", "src", "dst", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "create_relationship" },
+        "src": { "$ref": "#/$defs/NonEmptyString" },
+        "dst": { "$ref": "#/$defs/NonEmptyString" },
+        "kind": { "$ref": "#/$defs/NonEmptyString" },
+        "strength": { "type": "number", "minimum": 0, "maximum": 1 },
+        "bidirectional": { "type": "boolean" },
+        "category": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+
+    "ArchiveRelationshipMutation": {
+      "type": "object",
+      "required": ["type", "entity", "relationshipKind", "with"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "archive_relationship" },
+        "entity": { "$ref": "#/$defs/NonEmptyString" },
+        "relationshipKind": { "$ref": "#/$defs/NonEmptyString" },
+        "with": { "$ref": "#/$defs/NonEmptyString" },
+        "direction": { "enum": ["src", "dst", "both"] }
+      }
+    },
+
+    "ArchiveAllRelationshipsMutation": {
+      "type": "object",
+      "required": ["type", "entity", "relationshipKind"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "archive_all_relationships" },
+        "entity": { "$ref": "#/$defs/NonEmptyString" },
+        "relationshipKind": { "$ref": "#/$defs/NonEmptyString" },
+        "direction": { "enum": ["src", "dst", "both"] }
+      }
+    },
+
+    "AdjustRelationshipStrengthMutation": {
+      "type": "object",
+      "required": ["type", "src", "dst", "kind", "delta"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "adjust_relationship_strength" },
+        "src": { "$ref": "#/$defs/NonEmptyString" },
+        "dst": { "$ref": "#/$defs/NonEmptyString" },
+        "kind": { "$ref": "#/$defs/NonEmptyString" },
+        "delta": { "type": "number" },
+        "bidirectional": { "type": "boolean" }
+      }
+    },
+
+    "ChangeStatusMutation": {
+      "type": "object",
+      "required": ["type", "entity", "newStatus"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "change_status" },
+        "entity": { "$ref": "#/$defs/NonEmptyString" },
+        "newStatus": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+
+    "AdjustProminenceMutation": {
+      "type": "object",
+      "required": ["type", "entity", "delta"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "adjust_prominence" },
+        "entity": { "$ref": "#/$defs/NonEmptyString" },
+        "delta": { "type": "number", "description": "Amount to adjust prominence by (positive or negative)" }
+      }
+    },
+
+    "ModifyPressureMutation": {
+      "type": "object",
+      "required": ["type", "pressureId", "delta"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "modify_pressure" },
+        "pressureId": { "$ref": "#/$defs/NonEmptyString" },
+        "delta": { "type": "number" }
+      }
+    },
+
+    "UpdateRateLimitMutation": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": { "type": { "const": "update_rate_limit" } }
+    },
+
+    "TransferRelationshipMutation": {
+      "type": "object",
+      "required": ["type", "entity", "relationshipKind", "from", "to"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "transfer_relationship" },
+        "entity": { "$ref": "#/$defs/NonEmptyString", "description": "Entity whose relationship is being transferred" },
+        "relationshipKind": { "$ref": "#/$defs/NonEmptyString", "description": "Kind of relationship to transfer" },
+        "from": { "$ref": "#/$defs/NonEmptyString", "description": "Entity to transfer from" },
+        "to": { "$ref": "#/$defs/NonEmptyString", "description": "Entity to transfer to" },
+        "condition": { "$ref": "#/$defs/Condition", "description": "Optional condition for the transfer" }
+      }
+    },
+
+    "ForEachRelatedAction": {
+      "type": "object",
+      "required": ["type", "relationship", "direction", "actions"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "for_each_related" },
+        "relationship": { "$ref": "#/$defs/NonEmptyString", "description": "Relationship kind to traverse" },
+        "direction": { "enum": ["src", "dst", "both", "in", "out", "any"], "description": "Direction to traverse" },
+        "targetKind": { "$ref": "#/$defs/NonEmptyString", "description": "Filter to target kind" },
+        "targetSubtype": { "$ref": "#/$defs/NonEmptyString", "description": "Filter to target subtype" },
+        "actions": { "type": "array", "items": { "$ref": "#/$defs/Mutation" }, "description": "Actions to execute for each related entity" }
+      }
+    },
+
+    "ConditionalAction": {
+      "type": "object",
+      "required": ["type", "condition", "thenActions"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "conditional" },
+        "condition": { "$ref": "#/$defs/Condition", "description": "Condition to evaluate" },
+        "thenActions": { "type": "array", "items": { "$ref": "#/$defs/Mutation" }, "description": "Actions if condition is true" },
+        "elseActions": { "type": "array", "items": { "$ref": "#/$defs/Mutation" }, "description": "Actions if condition is false" }
+      }
+    },
+
+    "ContagionAction": {
+      "oneOf": [
+        { "$ref": "#/$defs/SetTagMutation" },
+        { "$ref": "#/$defs/CreateRelationshipMutation" }
+      ]
+    },
+
+    "Metric": {
+      "oneOf": [
+        { "$ref": "#/$defs/EntityCountMetric" },
+        { "$ref": "#/$defs/RelationshipCountMetric" },
+        { "$ref": "#/$defs/TagCountMetric" },
+        { "$ref": "#/$defs/TotalEntitiesMetric" },
+        { "$ref": "#/$defs/ConstantMetric" },
+        { "$ref": "#/$defs/ConnectionCountMetric" },
+        { "$ref": "#/$defs/RatioMetric" },
+        { "$ref": "#/$defs/StatusRatioMetric" },
+        { "$ref": "#/$defs/CrossCultureRatioMetric" },
+        { "$ref": "#/$defs/SharedRelationshipMetric" },
+        { "$ref": "#/$defs/ProminenceMultiplierMetric" },
+        { "$ref": "#/$defs/NeighborProminenceMetric" },
+        { "$ref": "#/$defs/NeighborKindCountMetric" },
+        { "$ref": "#/$defs/ComponentSizeMetric" },
+        { "$ref": "#/$defs/DecayRateMetric" },
+        { "$ref": "#/$defs/FalloffMetric" }
+      ]
+    },
+
+    "EntityCountMetric": {
+      "type": "object",
+      "required": ["type", "kind"],
+      "properties": {
+        "type": { "const": "entity_count" },
+        "kind": { "$ref": "#/$defs/NonEmptyString" },
+        "subtype": { "$ref": "#/$defs/NonEmptyString" },
+        "status": { "$ref": "#/$defs/NonEmptyString" },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+
+    "RelationshipCountMetric": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "relationship_count" },
+        "relationshipKinds": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" } },
+        "direction": { "enum": ["src", "dst", "both"] },
+        "minStrength": { "type": "number", "minimum": 0, "maximum": 1 },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+
+    "TagCountMetric": {
+      "type": "object",
+      "required": ["type", "tags"],
+      "properties": {
+        "type": { "const": "tag_count" },
+        "tags": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" } },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+
+    "TotalEntitiesMetric": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "total_entities" },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+
+    "ConstantMetric": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": { "const": "constant" },
+        "value": { "type": "number" },
+        "coefficient": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+
+    "ConnectionCountMetric": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "connection_count" },
+        "relationshipKinds": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" } },
+        "direction": { "enum": ["src", "dst", "both"] },
+        "minStrength": { "type": "number", "minimum": 0, "maximum": 1 },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+
+    "SimpleCountMetric": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "kind"],
+          "properties": {
+            "type": { "const": "entity_count" },
+            "kind": { "$ref": "#/$defs/NonEmptyString" },
+            "subtype": { "$ref": "#/$defs/NonEmptyString" },
+            "status": { "$ref": "#/$defs/NonEmptyString" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "relationshipKinds"],
+          "properties": {
+            "type": { "const": "relationship_count" },
+            "relationshipKinds": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "tags"],
+          "properties": {
+            "type": { "const": "tag_count" },
+            "tags": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": { "type": { "const": "total_entities" } }
+        },
+        {
+          "type": "object",
+          "required": ["type", "value"],
+          "properties": {
+            "type": { "const": "constant" },
+            "value": { "type": "number" }
+          }
+        }
+      ]
+    },
+
+    "RatioMetric": {
+      "type": "object",
+      "required": ["type", "numerator", "denominator"],
+      "properties": {
+        "type": { "const": "ratio" },
+        "numerator": { "$ref": "#/$defs/SimpleCountMetric" },
+        "denominator": { "$ref": "#/$defs/SimpleCountMetric" },
+        "fallbackValue": { "type": "number" },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+
+    "StatusRatioMetric": {
+      "type": "object",
+      "required": ["type", "kind", "aliveStatus"],
+      "properties": {
+        "type": { "const": "status_ratio" },
+        "kind": { "$ref": "#/$defs/NonEmptyString" },
+        "subtype": { "$ref": "#/$defs/NonEmptyString" },
+        "aliveStatus": { "$ref": "#/$defs/NonEmptyString" },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+
+    "CrossCultureRatioMetric": {
+      "type": "object",
+      "required": ["type", "relationshipKinds"],
+      "properties": {
+        "type": { "const": "cross_culture_ratio" },
+        "relationshipKinds": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" } },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+
+    "SharedRelationshipMetric": {
+      "type": "object",
+      "required": ["type", "sharedRelationshipKind"],
+      "description": "Count entities sharing a relationship target. Optional 'via' enables multi-hop: Entity → via → Intermediate → sharedRelKind → Target",
+      "properties": {
+        "type": { "const": "shared_relationship" },
+        "sharedRelationshipKind": {
+          "oneOf": [
+            { "$ref": "#/$defs/NonEmptyString" },
+            { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "minItems": 1 }
+          ],
+          "description": "Relationship kind(s) to check for shared targets"
+        },
+        "sharedDirection": { "enum": ["src", "dst"] },
+        "via": {
+          "type": "object",
+          "description": "Optional intermediate relationship for multi-hop traversal. Example: Faction → controls → Location → trades_with → Location",
+          "required": ["relationshipKind"],
+          "properties": {
+            "relationshipKind": { "$ref": "#/$defs/NonEmptyString", "description": "Relationship kind to traverse to reach intermediate entities" },
+            "direction": { "enum": ["src", "dst"], "description": "Direction of the via relationship from source (default: src)" },
+            "intermediateKind": { "$ref": "#/$defs/NonEmptyString", "description": "Optional kind filter for intermediate entities" }
+          },
+          "additionalProperties": false
+        },
+        "minStrength": { "type": "number", "minimum": 0, "maximum": 1 },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+
+    "ProminenceMultiplierMetric": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "prominence_multiplier" },
+        "mode": { "enum": ["success_chance", "action_rate"] }
+      },
+      "additionalProperties": false
+    },
+
+    "NeighborProminenceMetric": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "neighbor_prominence" },
+        "relationshipKinds": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" } },
+        "direction": { "enum": ["src", "dst", "both"] },
+        "minStrength": { "type": "number", "minimum": 0, "maximum": 1 },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+
+    "NeighborKindCountMetric": {
+      "type": "object",
+      "required": ["type", "via", "kind"],
+      "properties": {
+        "type": { "const": "neighbor_kind_count" },
+        "via": {
+          "oneOf": [
+            { "$ref": "#/$defs/NonEmptyString" },
+            { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "minItems": 1 }
+          ],
+          "description": "First relationship(s) to traverse - single string or array"
+        },
+        "viaDirection": { "enum": ["src", "dst", "both"], "description": "Direction for first relationship" },
+        "then": { "$ref": "#/$defs/NonEmptyString", "description": "Optional second relationship to traverse" },
+        "thenDirection": { "enum": ["src", "dst", "both"], "description": "Direction for second relationship" },
+        "kind": { "$ref": "#/$defs/NonEmptyString", "description": "Entity kind to count" },
+        "subtype": { "$ref": "#/$defs/NonEmptyString", "description": "Optional subtype filter" },
+        "status": { "$ref": "#/$defs/NonEmptyString", "description": "Optional status filter" },
+        "hasTag": { "$ref": "#/$defs/NonEmptyString", "description": "Optional tag filter" },
+        "minStrength": { "type": "number", "minimum": 0, "maximum": 1 },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+
+    "ComponentSizeMetric": {
+      "type": "object",
+      "required": ["type", "relationshipKinds"],
+      "description": "Size of the connected component containing an entity via specified relationship kinds",
+      "properties": {
+        "type": { "const": "component_size" },
+        "relationshipKinds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/NonEmptyString" },
+          "minItems": 1,
+          "description": "Relationship kind(s) defining the subgraph edges"
+        },
+        "minStrength": { "type": "number", "minimum": 0, "maximum": 1, "description": "Minimum relationship strength to follow" },
+        "coefficient": { "type": "number", "description": "Coefficient to multiply the result" },
+        "cap": { "type": "number", "description": "Maximum value cap" }
+      },
+      "additionalProperties": false
+    },
+
+    "DecayRateMetric": {
+      "type": "object",
+      "required": ["type", "rate"],
+      "properties": {
+        "type": { "const": "decay_rate" },
+        "rate": { "enum": ["none", "slow", "medium", "fast"] }
+      },
+      "additionalProperties": false
+    },
+
+    "FalloffMetric": {
+      "type": "object",
+      "required": ["type", "falloffType", "distance"],
+      "properties": {
+        "type": { "const": "falloff" },
+        "falloffType": { "enum": ["absolute", "none", "linear", "inverse_square", "sqrt", "exponential"] },
+        "distance": { "type": "number", "minimum": 0 },
+        "maxDistance": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+
+    "PressureChanges": {
+      "type": "object",
+      "additionalProperties": { "type": "number" },
+      "description": "Map of pressure ID to delta value"
+    }
+  }
+}

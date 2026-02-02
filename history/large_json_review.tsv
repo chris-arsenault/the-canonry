@@ -1,0 +1,33 @@
+# generated: 2026-02-01T04:22:00.052258Z
+# repo: /home/tsonu/src/penguin-tales
+# min_bytes: 1000000
+# json_mode: hint
+# keep_paths_file: history/keep_paths.txt
+# columns: size_bytes size_mb ext reason path last_commit last_date blob_sha
+# edit this file to remove any paths you want to keep
+# note: json_mode=hint so these are not in purge candidates; move any you want to purge
+3715878	3.72	json	json	penguin-tales/lore/output/generated_world.json	75f43cb8755cb2e606648ddc401d0b58d5906304	2025-11-30	7ca32d4dd18bef8ed431d8ceec416f5dd1eea869
+3626700	3.63	json	json	apps/lore-weave/webui/public/generated_world.json	a6d9a8eebbc316955d3c4d6f4a663eba3efc9ad4	2025-11-30	b41c5d62295b3968010a68b43aa87894737b8a0e
+3213568	3.21	json	json	penguin-tales/lore/output/generated_world.json	75f43cb8755cb2e606648ddc401d0b58d5906304	2025-11-30	9c3ea8c49c249e4e7ff8fc747d6a1911ede11b68
+2630341	2.63	json	json	apps/lore-weave/webui/public/generated_world.json	a6d9a8eebbc316955d3c4d6f4a663eba3efc9ad4	2025-11-30	813d797de8a229ff5695bae149364b5582164f43
+2330683	2.33	json	json	apps/archivist/webui/public/generated_world.json	e3c0571e6cd4029a41f07e8f651572d9c3f81767	2025-12-22	ffbbbc99736f701b4899e1322ffb21944b897bc8
+2283209	2.28	json	json	apps/lore-weave/webui/public/generated_world.json	a6d9a8eebbc316955d3c4d6f4a663eba3efc9ad4	2025-11-30	02e351497999799c84df4c36430a99d719d53602
+2056370	2.06	json	json	penguin-tales/lore/output/generated_world.json	75f43cb8755cb2e606648ddc401d0b58d5906304	2025-11-30	e9c5692ef1aec22f163af2fe0dfe65b2bd70c3cc
+2033991	2.03	json	json	apps/lore-weave/webui/public/generated_world.json	a6d9a8eebbc316955d3c4d6f4a663eba3efc9ad4	2025-11-30	a35989572cfd73ca72e1cb5cb8131cde1675a1cd
+2019396	2.02	json	json	world-gen/output/generated_world.json	3456c18b6d2a7adf65307bfb953f2f2980dcd8fd	2025-11-26	4039f7f5a6dc538df0cc09e8496060bc32f5009b
+2003480	2.00	json	json	world-gen/output/generated_world.json	3456c18b6d2a7adf65307bfb953f2f2980dcd8fd	2025-11-26	dd6b40832746ec8ea68c80acb5b30bc74fff4919
+1987882	1.99	json	json	apps/lore-weave/webui/public/generated_world.json	a6d9a8eebbc316955d3c4d6f4a663eba3efc9ad4	2025-11-30	09adae510bde20af476b38489bf265b22967ec04
+1979841	1.98	json	json	world-gen/output/generated_world.json	3456c18b6d2a7adf65307bfb953f2f2980dcd8fd	2025-11-26	0695d8a4702646b2029bad8f9892d60f37278a53
+1972768	1.97	json	json	penguin-tales/lore/output/generated_world.json	75f43cb8755cb2e606648ddc401d0b58d5906304	2025-11-30	ffb6de83e4a4b81092ca9dbb7327c086b8097737
+1958021	1.96	json	json	world-gen/output/generated_world.json	3456c18b6d2a7adf65307bfb953f2f2980dcd8fd	2025-11-26	69a7d9dd64be98d13a46596d05b8c9c4c09393ab
+1934932	1.93	json	json	apps/lore-weave/webui/public/generated_world.json	a6d9a8eebbc316955d3c4d6f4a663eba3efc9ad4	2025-11-30	3e3edeafaa5cb33b1b3d39c703d8adddb710af59
+1898525	1.90	json	json	world-gen/output/generated_world.json	3456c18b6d2a7adf65307bfb953f2f2980dcd8fd	2025-11-26	f326400546e4cac9f79c67ab45a6f11bf14dac2a
+1896928	1.90	json	json	world-gen/output/generated_world.json	3456c18b6d2a7adf65307bfb953f2f2980dcd8fd	2025-11-26	d83d94794f9283d46917c19a6ff36cb251766f6d
+1891582	1.89	json	json	world-gen/output/generated_world.json	3456c18b6d2a7adf65307bfb953f2f2980dcd8fd	2025-11-26	f34d9c70b2f5ff00006cad2b4d6f48711040ab95
+1876734	1.88	json	json	world-gen/output/generated_world.json	3456c18b6d2a7adf65307bfb953f2f2980dcd8fd	2025-11-26	825defa352b8a2a416117bde18530add72e3f2da
+1875864	1.88	json	json	world-gen/output/generated_world.json	3456c18b6d2a7adf65307bfb953f2f2980dcd8fd	2025-11-26	614f28e157667e8a572956d81331a3bcbb41c002
+1856739	1.86	json	json	world-gen/output/generated_world.json	3456c18b6d2a7adf65307bfb953f2f2980dcd8fd	2025-11-26	1999e6831611f448fbc46b9af9652cd69654b7d4
+1854218	1.85	json	json	world-gen/output/generated_world.json	3456c18b6d2a7adf65307bfb953f2f2980dcd8fd	2025-11-26	bb753e8b34f0ac13060e766d5c9c4524dcd67bdb
+1845740	1.85	json	json	world-gen/output/generated_world.json	3456c18b6d2a7adf65307bfb953f2f2980dcd8fd	2025-11-26	50e823d885eef0c96150a26c4cd1004f0a2bf320
+1837479	1.84	json	json	apps/lore-weave/webui/public/generated_world.json	a6d9a8eebbc316955d3c4d6f4a663eba3efc9ad4	2025-11-30	95df27ddd7f7fa47ba04eb0e3ee5217448e32040
+1747830	1.75	json	json	world-gen/output/generated_world.json	3456c18b6d2a7adf65307bfb953f2f2980dcd8fd	2025-11-26	f6ef5c8725833cec80a26b698a396cbbfefea08e

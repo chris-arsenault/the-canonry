@@ -61,10 +61,7 @@ export class EntityClusterBuilder {
       ? `will-be-assigned-${toIndex}`
       : toIndex;
 
-    const rel: Relationship = { kind, src, dst };
-    if (strength !== undefined) {
-      rel.strength = strength;
-    }
+    const rel: Relationship = { kind, src, dst, strength: strength ?? 0.5 };
 
     this.relationships.push(rel);
     return this;

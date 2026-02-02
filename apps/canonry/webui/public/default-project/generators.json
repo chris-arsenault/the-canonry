@@ -1,0 +1,6461 @@
+[
+  {
+    "id": "hero_emergence",
+    "name": "Hero Emergence",
+    "narrationTemplate": "{$hero.name} emerged in {$target.name} under the guidance of {$mentor.name|a seasoned mentor}, mastering {$ability.name|newfound power} and gaining {$companion.name|a loyal ally} as companion. {$colonyFaction.name|The local faction} backed the hero, who carried {$heroWeapon.name|a trusted weapon} into service.",
+    "applicability": [
+      {
+        "type": "or",
+        "conditions": [
+          {
+            "type": "pressure",
+            "pressureId": "iceberg_security",
+            "max": 0
+          },
+          {
+            "type": "pressure",
+            "pressureId": "cultural_harmony",
+            "max": -20
+          },
+          {
+            "type": "pressure",
+            "pressureId": "resource_availibility",
+            "max": -10
+          },
+          {
+            "type": "pressure",
+            "pressureId": "magical_stability",
+            "max": 5
+          }
+        ]
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "colony"
+      ],
+      "pickStrategy": "random",
+      "saturationLimits": [
+        {
+          "relationshipKind": "resident_of",
+          "direction": "in",
+          "maxCount": 5
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$hero",
+        "kind": "npc",
+        "subtype": "hero",
+        "status": "alive",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A brave penguin who emerged during troubled times in {colonyName}",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "emergent": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$companion",
+        "kind": "npc",
+        "subtype": "hero",
+        "status": "alive",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A lesser hero who emerged alongside a champion in {colonyName}",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "companion": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$heroWeapon",
+        "kind": "artifact",
+        "subtype": "weapon",
+        "status": "intact",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A weapon forged for a hero of {colonyName}, symbol of their emergence as a champion",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "hero_weapon": true,
+          "forged": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse"
+          },
+          "steps": [
+            "sparse",
+            "random"
+          ]
+        },
+        "createChance": 0.25
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "resident_of",
+        "src": "$hero",
+        "dst": "$target",
+        "strength": 0.8
+      },
+      {
+        "kind": "allied_with",
+        "src": "$companion",
+        "dst": "$hero",
+        "strength": 0.5
+      },
+      {
+        "kind": "owned_by",
+        "src": "$heroWeapon",
+        "dst": "$hero",
+        "strength": 0.9
+      },
+      {
+        "kind": "member_of",
+        "src": "$hero",
+        "dst": "$colonyFaction",
+        "strength": 0.7,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$colonyFaction"
+        }
+      },
+      {
+        "kind": "practitioner_of",
+        "src": "$hero",
+        "dst": "$ability",
+        "strength": 0.6,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$ability"
+        }
+      },
+      {
+        "kind": "taught_by",
+        "src": "$hero",
+        "dst": "$mentor",
+        "strength": 0.8,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$mentor"
+        }
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "iceberg_security",
+        "delta": 20
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "magical_stability",
+        "delta": -5
+      }
+    ],
+    "variables": {
+      "$ability": {
+        "select": {
+          "from": "graph",
+          "kind": "ability",
+          "pickStrategy": "random",
+          "subtypes": [
+            "magic"
+          ]
+        }
+      },
+      "$mentor": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "resident_of",
+            "direction": "dst"
+          },
+          "kind": "npc",
+          "status": "alive",
+          "pickStrategy": "random"
+        }
+      },
+      "$colonyFaction": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "controls",
+            "direction": "dst"
+          },
+          "kind": "faction",
+          "pickStrategy": "random"
+        }
+      }
+    },
+    "enabled": true,
+    "variants": {
+      "selection": "first_match",
+      "options": [
+        {
+          "name": "Armed Hero",
+          "when": {
+            "type": "random_chance",
+            "chance": 0.25
+          },
+          "apply": {
+            "tags": {
+              "$hero": {
+                "armed_hero": true,
+                "needs_weapon": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "leadership_succession",
+    "name": "Leadership Succession",
+    "narrationTemplate": "{$successor.name} succeeded {$target.name} as leader of {$colony.name}, with {$aide.name} serving as aide while {$faction.name|the ruling faction} consolidated power under the new administration.",
+    "applicability": [
+      {
+        "type": "entity_count",
+        "kind": "npc",
+        "subtype": "mayor",
+        "max": 16
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "subtypes": [
+        "mayor"
+      ],
+      "filters": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "exists",
+            "path": [
+              {
+                "via": "leader_of",
+                "direction": "out",
+                "targetKind": "location",
+                "targetSubtype": "colony"
+              }
+            ]
+          }
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$successor",
+        "kind": "npc",
+        "subtype": "mayor",
+        "status": "alive",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "Successor to {predecessorName} in {colonyName}",
+          "replacements": {
+            "predecessorName": "$target.name",
+            "colonyName": "$colony.name|the colony"
+          }
+        },
+        "tags": {
+          "political": true,
+          "leader": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse",
+            "preferPeriphery": false
+          }
+        }
+      },
+      {
+        "entityRef": "$aide",
+        "kind": "npc",
+        "subtype": "mayor",
+        "status": "alive",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A minor official serving the leadership in {colonyName}",
+          "replacements": {
+            "colonyName": "$colony.name|the colony"
+          }
+        },
+        "tags": {
+          "bureaucrat": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse",
+            "preferPeriphery": false
+          }
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "taught_by",
+        "src": "$successor",
+        "dst": "$target",
+        "strength": 1
+      },
+      {
+        "kind": "allied_with",
+        "src": "$aide",
+        "dst": "$successor",
+        "strength": 0.4
+      },
+      {
+        "kind": "leader_of",
+        "src": "$successor",
+        "dst": "$colony",
+        "strength": 0.9
+      },
+      {
+        "kind": "resident_of",
+        "src": "$successor",
+        "dst": "$colony",
+        "strength": 0.85
+      },
+      {
+        "kind": "leader_of",
+        "src": "$successor",
+        "dst": "$faction",
+        "strength": 0.8,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$faction"
+        }
+      },
+      {
+        "kind": "member_of",
+        "src": "$successor",
+        "dst": "$faction",
+        "strength": 0.75,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$faction"
+        }
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "archive_relationship",
+        "entity": "$target",
+        "relationshipKind": "leader_of",
+        "with": "$colony"
+      },
+      {
+        "type": "archive_relationship",
+        "entity": "$target",
+        "relationshipKind": "leader_of",
+        "with": "$faction"
+      }
+    ],
+    "variables": {
+      "$colony": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "leader_of",
+            "direction": "src"
+          },
+          "kind": "location",
+          "subtypes": [
+            "colony"
+          ],
+          "pickStrategy": "random"
+        },
+        "required": true
+      },
+      "$faction": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "leader_of",
+            "direction": "both"
+          },
+          "kind": "faction",
+          "pickStrategy": "first"
+        }
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "orca_raider_arrival",
+    "name": "Orca Raider Arrival",
+    "narrationTemplate": "Orca raiders {$orca1.name} and {$orca2.name} arrived near {$target.name} as descendants of {$parentOrca.name|the old pod}, wielding {$warLeaderWeapon.name|brutal strength} against {$defender.name|the defenders}. {$colonyFaction.name|The colony} countered with {$combatAbility.name|desperate tactics}.",
+    "applicability": [
+      {
+        "type": "entity_count",
+        "kind": "npc",
+        "subtype": "orca",
+        "max": 8
+      },
+      {
+        "type": "or",
+        "conditions": [
+          {
+            "type": "pressure",
+            "pressureId": "iceberg_security",
+            "max": 40
+          },
+          {
+            "type": "era_match",
+            "eras": [
+              "the-orca-incursion"
+            ]
+          }
+        ]
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "colony"
+      ],
+      "pickStrategy": "random",
+      "filters": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_max",
+            "path": [
+              {
+                "via": "occupies",
+                "direction": "any",
+                "targetKind": "npc",
+                "targetSubtype": "orca"
+              }
+            ],
+            "count": 2
+          }
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$orca1",
+        "kind": "npc",
+        "subtype": "orca",
+        "status": "alive",
+        "prominence": "marginal",
+        "culture": {
+          "fixed": "orca"
+        },
+        "description": {
+          "template": "A fearsome orca raider threatening {colonyName} from the depths",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "orca": true,
+          "raider": true,
+          "external": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$orca2",
+        "kind": "npc",
+        "subtype": "orca",
+        "status": "alive",
+        "prominence": "marginal",
+        "culture": {
+          "fixed": "orca"
+        },
+        "description": {
+          "template": "A raider hunting alongside their packmate near {colonyName}",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "orca": true,
+          "raider": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$warLeaderWeapon",
+        "kind": "artifact",
+        "subtype": "weapon",
+        "status": "intact",
+        "prominence": "marginal",
+        "culture": {
+          "fixed": "orca"
+        },
+        "description": {
+          "template": "A brutal weapon wielded by a fearsome orca war-leader threatening {colonyName}",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "orca_weapon": true,
+          "war_trophy": true,
+          "brutal": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse"
+          },
+          "steps": [
+            "sparse",
+            "random"
+          ]
+        },
+        "createChance": 0.2
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "taught_by",
+        "src": "$orca1",
+        "dst": "$parentOrca",
+        "strength": 1,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$parentOrca"
+        }
+      },
+      {
+        "kind": "allied_with",
+        "src": "$orca2",
+        "dst": "$orca1",
+        "strength": 0.5
+      },
+      {
+        "kind": "owned_by",
+        "src": "$warLeaderWeapon",
+        "dst": "$orca1",
+        "strength": 0.9
+      },
+      {
+        "kind": "occupies",
+        "src": "$orca1",
+        "dst": "$target",
+        "strength": 0.7
+      },
+      {
+        "kind": "enemy_of",
+        "src": "$orca1",
+        "dst": "$defender",
+        "strength": 0.8,
+        "bidirectional": true
+      },
+      {
+        "kind": "enemy_of",
+        "src": "$orca1",
+        "dst": "$colonyFaction",
+        "strength": 0.6,
+        "condition": {
+          "type": "random_chance",
+          "chance": 0.5
+        },
+        "bidirectional": true
+      },
+      {
+        "kind": "practitioner_of",
+        "src": "$orca1",
+        "dst": "$combatAbility",
+        "strength": 0.7,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$combatAbility"
+        }
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "iceberg_security",
+        "delta": -15
+      }
+    ],
+    "variables": {
+      "$defender": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "resident_of",
+            "direction": "dst"
+          },
+          "kind": "npc",
+          "subtypes": [
+            "hero",
+            "mayor"
+          ],
+          "pickStrategy": "random"
+        }
+      },
+      "$colonyFaction": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "controls",
+            "direction": "dst"
+          },
+          "kind": "faction",
+          "pickStrategy": "random"
+        }
+      },
+      "$combatAbility": {
+        "select": {
+          "from": "graph",
+          "kind": "ability",
+          "pickStrategy": "random",
+          "subtypes": [
+            "combat"
+          ]
+        }
+      },
+      "$parentOrca": {
+        "select": {
+          "from": "graph",
+          "kind": "npc",
+          "pickStrategy": "random",
+          "subtypes": [
+            "orca"
+          ],
+          "status": "alive"
+        }
+      }
+    },
+    "enabled": true,
+    "variants": {
+      "selection": "first_match",
+      "options": [
+        {
+          "name": "Legendary War-Leader",
+          "when": {
+            "type": "random_chance",
+            "chance": 0.2
+          },
+          "apply": {
+            "tags": {
+              "$orca1": {
+                "war_leader": true,
+                "legendary": true,
+                "armed_raider": true
+              }
+            },
+            "stateUpdates": [
+              {
+                "type": "modify_pressure",
+                "pressureId": "iceberg_security",
+                "delta": -10
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "orca_war_ritual",
+    "name": "Orca War Ritual",
+    "narrationTemplate": "{$target.name} performed {$ritual.name}, awakening {$battlePower.name} for the coming battle.",
+    "applicability": [
+      {
+        "type": "era_match",
+        "eras": [
+          "the-orca-incursion"
+        ]
+      },
+      {
+        "type": "entity_count",
+        "kind": "npc",
+        "subtype": "orca",
+        "min": 2
+      },
+      {
+        "type": "entity_count",
+        "kind": "occurrence",
+        "subtype": "celebration",
+        "max": 1
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "subtypes": [
+        "orca"
+      ],
+      "status": "alive",
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$ritual",
+        "kind": "occurrence",
+        "subtype": "celebration",
+        "status": "active",
+        "prominence": "recognized",
+        "culture": {
+          "fixed": "orca"
+        },
+        "description": "A dark ritual conducted by the orca war-bands, calling upon ancient powers to strengthen their assault",
+        "tags": {
+          "orca_ritual": true,
+          "dark_magic": true,
+          "war_ceremony": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse"
+          },
+          "steps": [
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$battlePower",
+        "kind": "ability",
+        "subtype": "combat",
+        "status": "active",
+        "prominence": "marginal",
+        "culture": {
+          "fixed": "orca"
+        },
+        "description": "Savage combat technique empowered by the war ritual",
+        "tags": {
+          "orca_power": true,
+          "ritual_granted": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse"
+          },
+          "steps": [
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "practitioner_of",
+        "src": "$target",
+        "dst": "$battlePower",
+        "strength": 0.9
+      },
+      {
+        "kind": "catalyst_of",
+        "src": "$ritual",
+        "dst": "$battlePower",
+        "strength": 0.8
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "iceberg_security",
+        "delta": -25
+      }
+    ],
+    "variables": {},
+    "enabled": true
+  },
+  {
+    "id": "orca_organized_offensive",
+    "name": "Orca Organized Offensive",
+    "narrationTemplate": "{$warLeader.name|An orca war-leader} organized {$offensive.name} against {$target.name}.",
+    "applicability": [
+      {
+        "type": "era_match",
+        "eras": [
+          "the-orca-incursion"
+        ]
+      },
+      {
+        "type": "entity_count",
+        "kind": "npc",
+        "subtype": "orca",
+        "min": 3
+      },
+      {
+        "type": "entity_count",
+        "kind": "occurrence",
+        "subtype": "war",
+        "max": 2
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "colony"
+      ],
+      "pickStrategy": "random",
+      "filters": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "exists",
+            "path": [
+              {
+                "via": "occupies",
+                "direction": "any",
+                "targetKind": "npc",
+                "targetSubtype": "orca"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$offensive",
+        "kind": "occurrence",
+        "subtype": "war",
+        "status": "active",
+        "prominence": "renowned",
+        "culture": {
+          "fixed": "orca"
+        },
+        "description": {
+          "template": "A coordinated orca assault on {colonyName}, bringing together multiple war-bands in devastating formation",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "orca_offensive": true,
+          "coordinated_attack": true,
+          "siege": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target"
+          },
+          "steps": [
+            "anchor_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "occurred_at",
+        "src": "$offensive",
+        "dst": "$target",
+        "strength": 1
+      },
+      {
+        "kind": "instigated_by",
+        "src": "$offensive",
+        "dst": "$warLeader",
+        "strength": 0.9,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$warLeader"
+        }
+      },
+      {
+        "kind": "participant_in",
+        "src": "$warLeader",
+        "dst": "$offensive",
+        "strength": 0.8
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "iceberg_security",
+        "delta": -30
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "cultural_harmony",
+        "delta": 10
+      }
+    ],
+    "variables": {
+      "$warLeader": {
+        "select": {
+          "from": "graph",
+          "kind": "npc",
+          "subtypes": [
+            "orca"
+          ],
+          "status": "alive",
+          "pickStrategy": "random"
+        },
+        "required": false
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "faction_splinter",
+    "name": "Faction Splinter",
+    "narrationTemplate": "{$splinter.name} splintered from {$target.name} at {$location.name}, led by {$defector.name|a defector} who drew {$recruit1.name} and {$recruit2.name} away from {$members.name|the parent faction}. {$contestedRelic.name|Disputed claims} became the rallying point for the breakaway.",
+    "applicability": [
+      {
+        "type": "entity_count",
+        "kind": "faction",
+        "min": 1
+      },
+      {
+        "type": "entity_count",
+        "kind": "faction",
+        "max": 30
+      },
+      {
+        "type": "or",
+        "conditions": [
+          {
+            "type": "pressure",
+            "pressureId": "cultural_harmony",
+            "max": -10
+          },
+          {
+            "type": "pressure",
+            "pressureId": "iceberg_security",
+            "max": -5
+          },
+          {
+            "type": "pressure",
+            "pressureId": "resource_availibility",
+            "max": -5
+          }
+        ]
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "saturationLimits": [
+        {
+          "relationshipKind": "splinter_of",
+          "direction": "in",
+          "maxCount": 1
+        },
+        {
+          "relationshipKind": "allied_with",
+          "direction": "out",
+          "maxCount": 4
+        }
+      ],
+      "filters": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_min",
+            "count": 1,
+            "path": [
+              {
+                "via": "member_of",
+                "direction": "in",
+                "targetKind": "npc",
+                "targetSubtype": "any"
+              }
+            ]
+          }
+        },
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_min",
+            "count": 1,
+            "path": [
+              {
+                "via": "controls",
+                "direction": "any",
+                "targetKind": "location",
+                "targetSubtype": "any"
+              }
+            ]
+          }
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$splinter",
+        "kind": "faction",
+        "subtype": {
+          "conditional": {
+            "when": [
+              {
+                "condition": {
+                  "type": "target_subtype",
+                  "equals": "criminal"
+                },
+                "then": "criminal"
+              }
+            ],
+            "otherwise": "political"
+          }
+        },
+        "status": "waning",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A splinter group that broke away from {parentName}",
+          "replacements": {
+            "parentName": "$target.name"
+          }
+        },
+        "tags": {
+          "splinter": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target"
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$recruit1",
+        "kind": "npc",
+        "subtype": "outlaw",
+        "status": "alive",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": "A dissident who joined the splinter faction",
+        "tags": {
+          "criminal": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target"
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$recruit2",
+        "kind": "npc",
+        "subtype": "outlaw",
+        "status": "alive",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": "A recruit drawn to the splinter faction",
+        "tags": {
+          "criminal": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target"
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$contestedRelic",
+        "kind": "artifact",
+        "subtype": "relic",
+        "status": "intact",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A contested relic that sparked the schism from {parentName}",
+          "replacements": {
+            "parentName": "$target.name"
+          }
+        },
+        "tags": {
+          "contested": true,
+          "schism_cause": true,
+          "legitimacy_symbol": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse"
+          },
+          "steps": [
+            "sparse",
+            "random"
+          ]
+        },
+        "createChance": 0.2
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "splinter_of",
+        "src": "$splinter",
+        "dst": "$target",
+        "strength": 1
+      },
+      {
+        "kind": "owned_by",
+        "src": "$contestedRelic",
+        "dst": "$splinter",
+        "strength": 0.8
+      },
+      {
+        "kind": "catalyst_of",
+        "src": "$contestedRelic",
+        "dst": "$splinter",
+        "strength": 0.9
+      },
+      {
+        "kind": "member_of",
+        "src": "$recruit1",
+        "dst": "$splinter",
+        "strength": 0.5
+      },
+      {
+        "kind": "member_of",
+        "src": "$recruit2",
+        "dst": "$splinter",
+        "strength": 0.4
+      },
+      {
+        "kind": "enemy_of",
+        "src": "$splinter",
+        "dst": "$target",
+        "strength": 0.7,
+        "bidirectional": true
+      },
+      {
+        "kind": "occupies",
+        "src": "$splinter",
+        "dst": "$location",
+        "strength": 0.6
+      },
+      {
+        "kind": "leader_of",
+        "src": "$defector",
+        "dst": "$splinter",
+        "strength": 0.9,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$defector"
+        }
+      },
+      {
+        "kind": "member_of",
+        "src": "$defector",
+        "dst": "$splinter",
+        "strength": 0.85,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$defector"
+        }
+      },
+      {
+        "kind": "resident_of",
+        "src": "$defector",
+        "dst": "$location",
+        "strength": 0.7,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$defector"
+        }
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "cultural_harmony",
+        "delta": -5
+      }
+    ],
+    "variables": {
+      "$members": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "member_of",
+            "direction": "dst"
+          },
+          "pickStrategy": "all"
+        }
+      },
+      "$defector": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "member_of",
+            "direction": "dst"
+          },
+          "filters": [
+            {
+              "type": "lacks_relationship",
+              "kind": "leader_of"
+            }
+          ],
+          "pickStrategy": "random"
+        }
+      },
+      "$location": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "controls",
+            "direction": "src"
+          },
+          "pickStrategy": "random"
+        },
+        "required": true
+      }
+    },
+    "enabled": true,
+    "variants": {
+      "selection": "first_match",
+      "options": [
+        {
+          "name": "Artifact Schism",
+          "when": {
+            "type": "random_chance",
+            "chance": 0.2
+          },
+          "apply": {
+            "tags": {
+              "$splinter": {
+                "artifact_claim": true,
+                "legitimacy_dispute": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "guild_establishment",
+    "name": "Guild Establishment",
+    "narrationTemplate": "{$guild.name} formed in {$target.name} with founding members {$trader1.name} and {$trader2.name}, establishing {$tradeHub.name} as their commercial base for {$tradeGoods.name|valuable goods}. Their operations are governed by {$charter.name}, authenticated by {$guildSeal.name|the guild's authority}.",
+    "applicability": [
+      {
+        "type": "pressure",
+        "pressureId": "resource_availibility",
+        "min": -20
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "colony"
+      ],
+      "pickStrategy": "random",
+      "saturationLimits": [
+        {
+          "relationshipKind": "originated_in",
+          "direction": "in",
+          "maxCount": 2
+        },
+        {
+          "relationshipKind": "trades_with",
+          "fromKind": "location",
+          "fromSubtype": "resource_node",
+          "maxCount": 1
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$guild",
+        "kind": "faction",
+        "subtype": "company",
+        "status": "state_sanctioned",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A merchant guild controlling trade in {colonyName}",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "trade": true,
+          "organized": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true,
+            "preferSparse": true
+          },
+          "steps": [
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$tradeHub",
+        "kind": "location",
+        "subtype": "point_of_interest",
+        "status": "thriving",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A bustling trade hub in {colonyName}, serving as the commercial heart of the region",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "trade": true,
+          "organized": true,
+          "resource": true,
+          "emergent": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true,
+            "preferSparse": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$charter",
+        "kind": "rule",
+        "subtype": "law",
+        "status": "enacted",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A charter granting exclusive trading rights in {colonyName}",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "trade": true,
+          "political": true,
+          "organized": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true,
+            "preferSparse": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$trader1",
+        "kind": "npc",
+        "subtype": "merchant",
+        "status": "alive",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A trader working for the guild in {colonyName}",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "trade": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true,
+            "preferSparse": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$trader2",
+        "kind": "npc",
+        "subtype": "merchant",
+        "status": "alive",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A merchant employed by the guild in {colonyName}",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "trade": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true,
+            "preferSparse": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$guildSeal",
+        "kind": "artifact",
+        "subtype": "relic",
+        "status": "intact",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A ceremonial seal symbolizing the authority of the guild in {colonyName}",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "ceremonial": true,
+          "trade_symbol": true,
+          "authority": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse"
+          },
+          "steps": [
+            "sparse",
+            "random"
+          ]
+        },
+        "createChance": 0.3
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "originated_in",
+        "src": "$guild",
+        "dst": "$target",
+        "strength": 1
+      },
+      {
+        "kind": "controls",
+        "src": "$guild",
+        "dst": "$tradeHub",
+        "strength": 0.8
+      },
+      {
+        "kind": "owned_by",
+        "src": "$guildSeal",
+        "dst": "$guild",
+        "strength": 0.9
+      },
+      {
+        "kind": "related_to",
+        "src": "$guild",
+        "dst": "$charter",
+        "strength": 0.7
+      },
+      {
+        "kind": "originated_in",
+        "src": "$charter",
+        "dst": "$target",
+        "strength": 0.7
+      },
+      {
+        "kind": "adjacent_to",
+        "src": "$tradeHub",
+        "dst": "$target",
+        "strength": 0.7,
+        "bidirectional": true
+      },
+      {
+        "kind": "member_of",
+        "src": "$trader1",
+        "dst": "$guild",
+        "strength": 0.4
+      },
+      {
+        "kind": "member_of",
+        "src": "$trader2",
+        "dst": "$guild",
+        "strength": 0.4
+      },
+      {
+        "kind": "resident_of",
+        "src": "$trader1",
+        "dst": "$target",
+        "strength": 0.3
+      },
+      {
+        "kind": "resident_of",
+        "src": "$trader2",
+        "dst": "$target",
+        "strength": 0.3
+      },
+      {
+        "kind": "stored_at",
+        "src": "$tradeGoods",
+        "dst": "$tradeHub",
+        "strength": 0.75,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$tradeGoods"
+        }
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "resource_availibility",
+        "delta": -15
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "magical_stability",
+        "delta": 2
+      }
+    ],
+    "variables": {
+      "$tradeGoods": {
+        "select": {
+          "from": "graph",
+          "kind": "artifact",
+          "status": "intact",
+          "pickStrategy": "random",
+          "filters": [
+            {
+              "type": "graph_path",
+              "assert": {
+                "check": "count_max",
+                "path": [
+                  {
+                    "via": "stored_at",
+                    "direction": "out",
+                    "targetKind": "location",
+                    "targetSubtype": "any"
+                  }
+                ],
+                "count": 1
+              }
+            }
+          ],
+          "preferFilters": [
+            {
+              "type": "has_any_tag",
+              "tags": [
+                "trade",
+                "valuable",
+                "ceremonial"
+              ]
+            }
+          ]
+        },
+        "required": false
+      }
+    },
+    "enabled": true,
+    "variants": {
+      "selection": "first_match",
+      "options": [
+        {
+          "name": "Ceremonial Guild Seal",
+          "when": {
+            "type": "random_chance",
+            "chance": 0.3
+          },
+          "apply": {
+            "tags": {
+              "$guild": {
+                "has_seal": true,
+                "ceremonial": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "cult_formation",
+    "name": "Cult Formation",
+    "narrationTemplate": "{$cult.name} formed near {$target.name} under {$cultist.name|a prophet}, drawing adherents {$acolyte1.name} and {$acolyte2.name} to the teachings of {$doctrine.name|a new doctrine} rooted in {$existingIdeology.name} and the practice of {$magic.name}. {$sacredRelic.name|A sacred object} replaced {$existingRelic.name|older totems} as their holy focus.",
+    "applicability": [
+      {
+        "type": "pressure",
+        "pressureId": "magical_stability",
+        "max": 50
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "anomaly",
+        "point_of_interest",
+        "colony"
+      ],
+      "pickStrategy": "random",
+      "saturationLimits": [
+        {
+          "relationshipKind": "originated_in",
+          "direction": "in",
+          "maxCount": 4
+        },
+        {
+          "relationshipKind": "resident_of",
+          "direction": "in",
+          "maxCount": 5
+        }
+      ],
+      "filters": [
+        {
+          "type": "has_any_tag",
+          "tags": [
+            "mystical",
+            "secretive",
+            "dangerous"
+          ]
+        },
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_max",
+            "path": [
+              {
+                "via": "originated_in",
+                "direction": "any",
+                "targetKind": "faction",
+                "targetSubtype": "any"
+              }
+            ],
+            "count": 2
+          }
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$cult",
+        "kind": "faction",
+        "subtype": {
+          "conditional": {
+            "when": [
+              {
+                "condition": {
+                  "type": "pressure_check",
+                  "pressureId": "magical_stability",
+                  "min": 0
+                },
+                "then": "criminal"
+              }
+            ],
+            "otherwise": "cult"
+          }
+        },
+        "status": "illegal",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A mystical cult drawn to the power near {locationName}",
+          "replacements": {
+            "locationName": "$target.name"
+          }
+        },
+        "tags": {
+          "mystical": true,
+          "secretive": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$doctrine",
+        "kind": "rule",
+        "subtype": "ideology",
+        "status": "proposed",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A secretive doctrine centered on the power near {locationName}",
+          "replacements": {
+            "locationName": "$target.name"
+          }
+        },
+        "tags": {
+          "mystical": true,
+          "cultural": true,
+          "secretive": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        },
+        "createChance": 0.4
+      },
+      {
+        "entityRef": "$acolyte1",
+        "kind": "npc",
+        "subtype": "outlaw",
+        "status": "alive",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "An outcast drawn to the mysteries near {locationName}",
+          "replacements": {
+            "locationName": "$target.name"
+          }
+        },
+        "tags": {
+          "mystical": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$acolyte2",
+        "kind": "npc",
+        "subtype": "outlaw",
+        "status": "alive",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A devotee serving the cult near {locationName}",
+          "replacements": {
+            "locationName": "$target.name"
+          }
+        },
+        "tags": {
+          "mystical": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$sacredRelic",
+        "kind": "artifact",
+        "subtype": "relic",
+        "status": "intact",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A sacred object venerated by the cult near {locationName}",
+          "replacements": {
+            "locationName": "$target.name"
+          }
+        },
+        "tags": {
+          "sacred": true,
+          "mystical": true,
+          "cult_relic": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse"
+          },
+          "steps": [
+            "sparse",
+            "random"
+          ]
+        },
+        "createChance": 0.35
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "originated_in",
+        "src": "$cult",
+        "dst": "$target",
+        "strength": 1
+      },
+      {
+        "kind": "believer_of",
+        "src": "$cult",
+        "dst": "$existingIdeology",
+        "strength": 0.8
+      },
+      {
+        "kind": "owned_by",
+        "src": "$sacredRelic",
+        "dst": "$cult",
+        "strength": 0.9
+      },
+      {
+        "kind": "member_of",
+        "src": "$acolyte1",
+        "dst": "$cult",
+        "strength": 0.5
+      },
+      {
+        "kind": "member_of",
+        "src": "$acolyte2",
+        "dst": "$cult",
+        "strength": 0.4
+      },
+      {
+        "kind": "member_of",
+        "src": "$cultist",
+        "dst": "$cult",
+        "strength": 0.75,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$cultist"
+        }
+      },
+      {
+        "kind": "resident_of",
+        "src": "$cultist",
+        "dst": "$target",
+        "strength": 0.7,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$cultist"
+        }
+      },
+      {
+        "kind": "related_to",
+        "src": "$cult",
+        "dst": "$magic",
+        "strength": 0.8,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$magic"
+        }
+      },
+      {
+        "kind": "practitioner_of",
+        "src": "$cultist",
+        "dst": "$magic",
+        "strength": 0.4,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$cultist"
+        }
+      },
+      {
+        "kind": "believer_of",
+        "src": "$cult",
+        "dst": "$doctrine",
+        "strength": 0.8
+      },
+      {
+        "kind": "believer_of",
+        "src": "$cultist",
+        "dst": "$doctrine",
+        "strength": 0.6,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$cultist"
+        }
+      },
+      {
+        "kind": "related_to",
+        "src": "$doctrine",
+        "dst": "$magic",
+        "strength": 0.6,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$magic"
+        }
+      },
+      {
+        "kind": "originated_in",
+        "src": "$doctrine",
+        "dst": "$target",
+        "strength": 0.7
+      },
+      {
+        "kind": "central_to",
+        "src": "$existingRelic",
+        "dst": "$doctrine",
+        "strength": 0.85,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$existingRelic"
+        }
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "magical_stability",
+        "delta": -5
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "iceberg_security",
+        "delta": -5
+      }
+    ],
+    "variables": {
+      "$existingIdeology": {
+        "select": {
+          "from": "graph",
+          "kind": "rule",
+          "subtypes": [
+            "ideology"
+          ],
+          "status": "proposed",
+          "pickStrategy": "random"
+        },
+        "required": true
+      },
+      "$magic": {
+        "select": {
+          "from": "graph",
+          "kind": "ability",
+          "subtypes": [
+            "magic"
+          ],
+          "pickStrategy": "first"
+        },
+        "required": true
+      },
+      "$cultist": {
+        "select": {
+          "from": "graph",
+          "kind": "npc",
+          "subtypes": [
+            "merchant",
+            "outlaw",
+            "hero"
+          ],
+          "pickStrategy": "random"
+        },
+        "required": false
+      },
+      "$existingRelic": {
+        "select": {
+          "from": "graph",
+          "kind": "artifact",
+          "status": "intact",
+          "pickStrategy": "random",
+          "filters": [
+            {
+              "type": "graph_path",
+              "assert": {
+                "check": "count_max",
+                "path": [
+                  {
+                    "via": "central_to",
+                    "direction": "out",
+                    "targetKind": "rule",
+                    "targetSubtype": "any"
+                  }
+                ],
+                "count": 2
+              }
+            }
+          ],
+          "preferFilters": [
+            {
+              "type": "has_any_tag",
+              "tags": [
+                "mystical",
+                "sacred"
+              ]
+            }
+          ]
+        },
+        "required": false
+      }
+    },
+    "enabled": true,
+    "variants": {
+      "selection": "first_match",
+      "options": [
+        {
+          "name": "Sacred Relic Cult",
+          "when": {
+            "type": "random_chance",
+            "chance": 0.35
+          },
+          "apply": {
+            "tags": {
+              "$cult": {
+                "relic_focused": true,
+                "sacred_object": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "dark_ritual",
+    "name": "Dark Ritual",
+    "narrationTemplate": "{$target.name} performed {$ritual.name} at {$location.name|a sacred site}. Dark energy rippled through {$adjacentLocations.name|the surrounding waters}.",
+    "applicability": [
+      {
+        "type": "pressure",
+        "pressureId": "magical_stability",
+        "min": -30
+      },
+      {
+        "type": "entity_count",
+        "kind": "faction",
+        "subtype": "cult",
+        "min": 1
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "subtypes": [
+        "cult"
+      ],
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$ritual",
+        "kind": "occurrence",
+        "subtype": "disaster",
+        "status": "historical",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A dark ritual performed by {cultName} at {locationName}, breaking the sanctity of cleansed ground",
+          "replacements": {
+            "cultName": "$target.name",
+            "locationName": "$location.name|a sacred site"
+          }
+        },
+        "tags": {
+          "ritual": true,
+          "dark_magic": true,
+          "desecration": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$location",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "desecrated",
+        "src": "$target",
+        "dst": "$location",
+        "strength": 0.9
+      },
+      {
+        "kind": "occurred_at",
+        "src": "$ritual",
+        "dst": "$location",
+        "strength": 1
+      },
+      {
+        "kind": "participant_in",
+        "src": "$target",
+        "dst": "$ritual",
+        "strength": 0.8
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "remove_tag",
+        "entity": "$location",
+        "tag": "cleansed"
+      },
+      {
+        "type": "set_tag",
+        "entity": "$location",
+        "tag": "corrupted",
+        "value": true
+      },
+      {
+        "type": "set_tag",
+        "entity": "$location",
+        "tag": "desecrated",
+        "value": true
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "magical_stability",
+        "delta": -15
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "iceberg_security",
+        "delta": -5
+      }
+    ],
+    "variables": {
+      "$location": {
+        "select": {
+          "from": "graph",
+          "kind": "location",
+          "pickStrategy": "random",
+          "filters": [
+            {
+              "type": "has_tag",
+              "tag": "cleansed"
+            }
+          ],
+          "preferFilters": [
+            {
+              "type": "graph_path",
+              "assert": {
+                "check": "count_min",
+                "count": 1,
+                "path": [
+                  {
+                    "via": "resident_of",
+                    "direction": "in",
+                    "targetKind": "npc",
+                    "targetSubtype": "hero",
+                    "targetStatus": "alive"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "required": true
+      },
+      "$adjacentLocations": {
+        "select": {
+          "from": {
+            "relatedTo": "$location",
+            "relationshipKind": "adjacent_to",
+            "direction": "both"
+          },
+          "kind": "location",
+          "pickStrategy": "all",
+          "filters": [
+            {
+              "type": "has_tag",
+              "tag": "cleansed"
+            }
+          ]
+        },
+        "required": false
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "colony_founding",
+    "name": "Colony Founding",
+    "narrationTemplate": "{$founder.name} founded {$colony.name} from settlers of {$target.name}, establishing {$outpost.name} as the first structure under the governance of {$council.name}. {$settler.name} joined as an early pioneer.",
+    "applicability": [
+      {
+        "type": "pressure",
+        "pressureId": "resource_availibility",
+        "min": -20
+      },
+      {
+        "type": "entity_count",
+        "kind": "location",
+        "subtype": "colony",
+        "max": 6
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "colony"
+      ],
+      "status": "thriving",
+      "pickStrategy": "random",
+      "saturationLimits": [
+        {
+          "relationshipKind": "splinter_of",
+          "maxCount": 1,
+          "fromKind": "location"
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$colony",
+        "kind": "location",
+        "subtype": "colony",
+        "status": "thriving",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "New colony established on {icebergName} in the reaches",
+          "replacements": {
+            "icebergName": "$target.name"
+          }
+        },
+        "tags": {
+          "emergent": true,
+          "colony": true,
+          "thriving": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse",
+            "preferPeriphery": true
+          },
+          "spacing": {
+            "minDistance": 12,
+            "avoidRefs": [
+              "$target"
+            ]
+          },
+          "regionPolicy": {
+            "allowEmergent": true,
+            "createRegion": true
+          },
+          "steps": [
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$outpost",
+        "kind": "location",
+        "subtype": "point_of_interest",
+        "status": "unspoiled",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A satellite outpost founded by settlers from {parentColony}",
+          "replacements": {
+            "parentColony": "$target.name"
+          }
+        },
+        "tags": {
+          "emergent": true,
+          "trade": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$colony",
+            "stickToRegion": true
+          },
+          "spacing": {
+            "minDistance": 2
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$council",
+        "kind": "faction",
+        "prominence": "recognized",
+        "status": "active",
+        "subtype": "political",
+        "culture": {
+          "inherit": "$target"
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$colony",
+            "stickToRegion": true
+          },
+          "spacing": {
+            "minDistance": 1
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        },
+        "tags": {
+          "political": true,
+          "organized": true,
+          "influential": true
+        },
+        "description": {
+          "template": "A governing council formed by pioneers from {parentColony}",
+          "replacements": {
+            "parentColony": "$target.name"
+          }
+        }
+      },
+      {
+        "entityRef": "$founder",
+        "kind": "npc",
+        "subtype": "mayor",
+        "status": "alive",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": "The founder who led settlers to establish the new colony",
+        "tags": {
+          "founder": true,
+          "leader": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$colony",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$settler",
+        "kind": "npc",
+        "subtype": "merchant",
+        "status": "alive",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": "A pioneer trader who helped establish the new colony",
+        "tags": {
+          "settler": true,
+          "trade": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$colony",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "trades_with",
+        "src": "$colony",
+        "dst": "$target",
+        "strength": 1,
+        "bidirectional": true
+      },
+      {
+        "kind": "adjacent_to",
+        "src": "$colony",
+        "dst": "$target",
+        "strength": 0.7,
+        "bidirectional": true
+      },
+      {
+        "kind": "adjacent_to",
+        "src": "$outpost",
+        "dst": "$colony",
+        "strength": 0.7,
+        "bidirectional": true
+      },
+      {
+        "kind": "controls",
+        "src": "$council",
+        "dst": "$colony",
+        "strength": 0.85
+      },
+      {
+        "kind": "originated_in",
+        "src": "$council",
+        "dst": "$colony",
+        "strength": 0.8
+      },
+      {
+        "kind": "leader_of",
+        "src": "$founder",
+        "dst": "$council",
+        "strength": 0.6
+      },
+      {
+        "kind": "resident_of",
+        "src": "$settler",
+        "dst": "$colony",
+        "strength": 0.4
+      },
+      {
+        "kind": "resident_of",
+        "src": "$founder",
+        "dst": "$colony",
+        "strength": 0.8
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "resource_availibility",
+        "delta": -25
+      }
+    ],
+    "variables": {},
+    "enabled": true
+  },
+  {
+    "id": "location_discovery",
+    "name": " Location Discovery",
+    "narrationTemplate": "{$target.name} discovered {$location.name|a hidden place} near {$nearbyLocation.name|familiar waters}. {$ancientRelic.name} was found within.",
+    "applicability": [],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "subtypePreferences": [
+        "hero",
+        "outlaw",
+        "merchant",
+        "mayor"
+      ],
+      "status": "alive",
+      "pickStrategy": "random",
+      "saturationLimits": [
+        {
+          "relationshipKind": "discovered_by",
+          "direction": "in",
+          "maxCount": 2
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$location",
+        "kind": "location",
+        "subtype": "resource_node",
+        "status": "unspoiled",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A resource-rich site discovered by {discovererName} during an expedition",
+          "replacements": {
+            "discovererName": "$target.name"
+          }
+        },
+        "tags": {
+          "discovered": true,
+          "emergent": true,
+          "resource": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$nearbyLocation",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true,
+            "preferSparse": true
+          },
+          "steps": [
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$ancientRelic",
+        "kind": "artifact",
+        "subtype": "relic",
+        "status": "intact",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "An ancient relic unearthed by {discovererName} at the newly discovered site",
+          "replacements": {
+            "discovererName": "$target.name"
+          }
+        },
+        "tags": {
+          "ancient": true,
+          "discovered": true,
+          "unearthed": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse"
+          },
+          "steps": [
+            "sparse",
+            "random"
+          ]
+        },
+        "createChance": 0.25
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "discovered_by",
+        "src": "$location",
+        "dst": "$target",
+        "strength": 1
+      },
+      {
+        "kind": "discovered_by",
+        "src": "$ancientRelic",
+        "dst": "$target",
+        "strength": 0.9
+      },
+      {
+        "kind": "stored_at",
+        "src": "$ancientRelic",
+        "dst": "$location",
+        "strength": 0.8
+      },
+      {
+        "kind": "explorer_of",
+        "src": "$target",
+        "dst": "$location",
+        "strength": 0.8
+      },
+      {
+        "kind": "adjacent_to",
+        "src": "$location",
+        "dst": "$nearbyLocation",
+        "bidirectional": true,
+        "strength": 0.6,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$nearbyLocation"
+        }
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "resource_availibility",
+        "delta": 5
+      }
+    ],
+    "variables": {
+      "$nearbyLocation": {
+        "select": {
+          "kind": "location",
+          "pickStrategy": "random",
+          "from": "graph",
+          "preferFilters": [
+            {
+              "type": "has_tag",
+              "tag": "colony"
+            }
+          ],
+          "filters": [
+            {
+              "type": "matches_culture",
+              "with": "$target"
+            }
+          ]
+        },
+        "required": true
+      }
+    },
+    "enabled": true,
+    "variants": {
+      "selection": "first_match",
+      "options": [
+        {
+          "name": "Ancient Relic Site",
+          "when": {
+            "type": "random_chance",
+            "chance": 0.25
+          },
+          "apply": {
+            "subtype": {
+              "$location": "point_of_interest"
+            },
+            "tags": {
+              "$location": {
+                "ancient": true,
+                "mystical": true,
+                "relic_site": true
+              }
+            },
+            "stateUpdates": [
+              {
+                "type": "remove_tag",
+                "entity": "$location",
+                "tag": "resource"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Anomaly Discovery",
+          "when": {
+            "type": "pressure_compare",
+            "pressureA": "magical_stability",
+            "pressureB": "resource_availibility",
+            "operator": "<"
+          },
+          "apply": {
+            "stateUpdates": [
+              {
+                "type": "modify_pressure",
+                "pressureId": "magical_stability",
+                "delta": -30
+              },
+              {
+                "type": "remove_tag",
+                "entity": "$location",
+                "tag": "resource"
+              }
+            ],
+            "subtype": {
+              "$location": "anomaly"
+            },
+            "tags": {
+              "$location": {
+                "anomaly": true,
+                "mystical": true
+              }
+            }
+          }
+        },
+        {
+          "name": "Strategic Location",
+          "when": {
+            "type": "pressure_compare",
+            "pressureA": "resource_availibility",
+            "pressureB": "iceberg_security"
+          },
+          "apply": {
+            "subtype": {
+              "$location": "point_of_interest"
+            },
+            "tags": {
+              "$location": {
+                "conflict": true
+              }
+            },
+            "stateUpdates": [
+              {
+                "type": "remove_tag",
+                "entity": "$location",
+                "tag": "resource"
+              },
+              {
+                "type": "modify_pressure",
+                "pressureId": "iceberg_security",
+                "delta": 5
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "krill_bloom_discovery",
+    "name": "Krill Bloom Discovery",
+    "narrationTemplate": "{$bloom.name} discovered near {$target.name}. {$company.name|Harvesters} formed to exploit it using {$harvestTechnique.name}, backed by {$sponsor.name|local interests}.",
+    "applicability": [],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "colony"
+      ],
+      "pickStrategy": "random",
+      "saturationLimits": [
+        {
+          "relationshipKind": "originated_in",
+          "direction": "in",
+          "maxCount": 4
+        },
+        {
+          "relationshipKind": "adjacent_to",
+          "fromKind": "location",
+          "fromSubtype": "resource_node",
+          "maxCount": 2
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$bloom",
+        "kind": "location",
+        "subtype": "resource_node",
+        "status": "thriving",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": "Massive bioluminescent krill swarms dance in these waters, drawing merchants and hunters from across the berg.",
+        "tags": {
+          "resource": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$harvestTechnique",
+        "kind": "ability",
+        "subtype": "technology",
+        "status": "discovered",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": "A harvesting technique refined to track and gather the krill blooms.",
+        "tags": {
+          "trade": true,
+          "resource": true,
+          "organized": true,
+          "emergent": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$bloom",
+            "stickToRegion": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$company",
+        "createChance": 0.5,
+        "kind": "faction",
+        "prominence": "marginal",
+        "status": "active",
+        "subtype": "company",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A harvesting company formed near {colonyName} to exploit the krill blooms",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$bloom",
+            "stickToRegion": true
+          },
+          "spacing": {
+            "minDistance": 5
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "originated_in",
+        "src": "$company",
+        "dst": "$target",
+        "strength": 0.8
+      },
+      {
+        "kind": "controls",
+        "src": "$company",
+        "dst": "$bloom",
+        "strength": 0.8
+      },
+      {
+        "kind": "practitioner_of",
+        "src": "$company",
+        "dst": "$harvestTechnique",
+        "strength": 0.7
+      },
+      {
+        "kind": "originated_in",
+        "src": "$harvestTechnique",
+        "dst": "$bloom",
+        "strength": 0.8
+      },
+      {
+        "kind": "adjacent_to",
+        "src": "$bloom",
+        "dst": "$target",
+        "strength": 0.8,
+        "bidirectional": true
+      },
+      {
+        "kind": "practitioner_of",
+        "src": "$sponsor",
+        "dst": "$harvestTechnique",
+        "strength": 0.7
+      },
+      {
+        "kind": "discovered_by",
+        "src": "$harvestTechnique",
+        "dst": "$sponsor",
+        "strength": 0.7
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "resource_availibility",
+        "delta": 5
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "cultural_harmony",
+        "delta": -10
+      }
+    ],
+    "variables": {
+      "$sponsor": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "originated_in",
+            "direction": "dst"
+          },
+          "kind": "faction",
+          "pickStrategy": "first",
+          "subtypes": [
+            "company"
+          ]
+        },
+        "required": true
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "thermal_vent_discovery",
+    "name": "Thermal Vent Discovery",
+    "narrationTemplate": "{$vent.name} discovered near {$target.name}, creating {$anomaly.name}. {$hermit.name} established residence nearby.",
+    "applicability": [
+      {
+        "type": "pressure",
+        "pressureId": "resource_availibility",
+        "max": 10
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "colony"
+      ],
+      "pickStrategy": "random",
+      "saturationLimits": [
+        {
+          "relationshipKind": "adjacent_to",
+          "fromKind": "location",
+          "fromSubtype": "anomaly",
+          "maxCount": 1
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$anomaly",
+        "kind": "location",
+        "subtype": "anomaly",
+        "status": "active",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": "A geothermal vent releasing heat and strange energies from deep below the ice.",
+        "tags": {
+          "mystical": true,
+          "dangerous": true,
+          "geothermal": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "steps": [
+            "anchor_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$vent",
+        "kind": "location",
+        "subtype": "resource_node",
+        "status": "thriving",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": "Mineral-rich waters warmed by geothermal activity, attracting life and resources.",
+        "tags": {
+          "resource": true,
+          "mystical": true,
+          "guarded": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$anomaly",
+            "stickToRegion": true
+          },
+          "steps": [
+            "anchor_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$hermit",
+        "kind": "npc",
+        "subtype": "hero",
+        "status": "active",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A solitary hermit who has made their home near the thermal vents of {colonyName}, guarding its secrets.",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "hermit": true,
+          "mystical": true,
+          "secretive": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$vent",
+            "stickToRegion": true
+          },
+          "steps": [
+            "anchor_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "adjacent_to",
+        "src": "$vent",
+        "dst": "$anomaly",
+        "strength": 0.9,
+        "bidirectional": true
+      },
+      {
+        "kind": "adjacent_to",
+        "src": "$vent",
+        "dst": "$target",
+        "strength": 0.7,
+        "bidirectional": true
+      },
+      {
+        "kind": "resident_of",
+        "src": "$hermit",
+        "dst": "$vent",
+        "strength": 0.9
+      },
+      {
+        "kind": "guardian_of",
+        "src": "$hermit",
+        "dst": "$anomaly",
+        "strength": 0.8
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "resource_availibility",
+        "delta": 8
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "magical_stability",
+        "delta": -5
+      }
+    ],
+    "variables": {},
+    "enabled": true
+  },
+  {
+    "id": "war_outbreak",
+    "name": "War Outbreak",
+    "narrationTemplate": "After discovering {$warWeapon.name|an ancient relic},  {$target.name} ignited {$war.name} between  themselves, and {$enemy.name} at {$warzone.name|contested waters}. Their expertise in {$battle_style.name|brutal warfare} led them to dominate opposition, until the conflagration drew in {$enemy2.name|allied factions} and {$enemy3.name|others}. ",
+    "applicability": [],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "saturationLimits": [
+        {
+          "relationshipKind": "participant_in",
+          "direction": "out",
+          "maxCount": 1
+        }
+      ],
+      "filters": [
+        {
+          "type": "component_size",
+          "relationshipKinds": [
+            "enemy_of"
+          ],
+          "min": 3
+        },
+        {
+          "type": "lacks_tag",
+          "tag": "post_war_cooldown"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$war",
+        "kind": "occurrence",
+        "subtype": "war",
+        "status": "active",
+        "prominence": "renowned",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A devastating war has erupted involving {factionName} and their rivals",
+          "replacements": {
+            "factionName": "$target.name"
+          }
+        },
+        "tags": {
+          "conflict": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$warWeapon",
+        "kind": "artifact",
+        "subtype": "weapon",
+        "status": "intact",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A weapon central to the conflict between {factionName} and their enemies",
+          "replacements": {
+            "factionName": "$target.name"
+          }
+        },
+        "tags": {
+          "war_prize": true,
+          "contested": true,
+          "legendary_conflict": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse"
+          },
+          "steps": [
+            "sparse",
+            "random"
+          ]
+        },
+        "createChance": 0.25
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "participant_in",
+        "src": "$target",
+        "dst": "$war",
+        "strength": 1
+      },
+      {
+        "kind": "participant_in",
+        "src": "$enemy",
+        "dst": "$war",
+        "strength": 0.9,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$enemy"
+        }
+      },
+      {
+        "kind": "participant_in",
+        "src": "$enemy2",
+        "dst": "$war",
+        "strength": 0.85,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$enemy2"
+        }
+      },
+      {
+        "kind": "participant_in",
+        "src": "$enemy3",
+        "dst": "$war",
+        "strength": 0.8,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$enemy3"
+        }
+      },
+      {
+        "kind": "catalyst_of",
+        "src": "$warWeapon",
+        "dst": "$war",
+        "strength": 0.9
+      },
+      {
+        "kind": "owned_by",
+        "src": "$warWeapon",
+        "dst": "$target",
+        "strength": 0.7
+      },
+      {
+        "kind": "epicenter_of",
+        "src": "$war",
+        "dst": "$warzone",
+        "strength": 0.7,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$warzone"
+        }
+      },
+      {
+        "kind": "derived_from",
+        "src": "$battle_style",
+        "dst": "$war",
+        "strength": 0.6,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$battle_style"
+        }
+      },
+      {
+        "kind": "triggered_by",
+        "src": "$war",
+        "dst": "$target",
+        "strength": 0.7
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "set_tag",
+        "entity": "$target",
+        "tag": "conflict",
+        "value": true
+      },
+      {
+        "type": "set_tag",
+        "entity": "$enemy",
+        "tag": "conflict",
+        "value": true
+      },
+      {
+        "type": "set_tag",
+        "entity": "$enemy2",
+        "tag": "conflict",
+        "value": true
+      },
+      {
+        "type": "set_tag",
+        "entity": "$enemy3",
+        "tag": "conflict",
+        "value": true
+      },
+      {
+        "type": "set_tag",
+        "entity": "$warzone",
+        "tag": "contested",
+        "value": true
+      },
+      {
+        "type": "archive_relationship",
+        "entity": "$target",
+        "relationshipKind": "enemy_of",
+        "with": "$enemy"
+      },
+      {
+        "type": "archive_relationship",
+        "entity": "$target",
+        "relationshipKind": "enemy_of",
+        "with": "$enemy2"
+      },
+      {
+        "type": "archive_relationship",
+        "entity": "$enemy",
+        "relationshipKind": "enemy_of",
+        "with": "$enemy2"
+      },
+      {
+        "type": "archive_relationship",
+        "entity": "$enemy",
+        "relationshipKind": "enemy_of",
+        "with": "$enemy3"
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "cultural_harmony",
+        "delta": -10
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "iceberg_security",
+        "delta": -6
+      }
+    ],
+    "variables": {
+      "$enemy": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "enemy_of",
+            "direction": "both"
+          },
+          "kind": "faction",
+          "pickStrategy": "random"
+        },
+        "required": true
+      },
+      "$enemy2": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "enemy_of",
+            "direction": "both"
+          },
+          "kind": "faction",
+          "filters": [
+            {
+              "type": "exclude",
+              "entities": [
+                "$enemy"
+              ]
+            }
+          ],
+          "pickStrategy": "random"
+        }
+      },
+      "$enemy3": {
+        "select": {
+          "from": {
+            "relatedTo": "$enemy",
+            "relationshipKind": "enemy_of",
+            "direction": "both"
+          },
+          "kind": "faction",
+          "filters": [
+            {
+              "type": "exclude",
+              "entities": [
+                "$target",
+                "$enemy",
+                "$enemy2"
+              ]
+            }
+          ],
+          "pickStrategy": "random"
+        }
+      },
+      "$warzone": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "controls",
+            "direction": "src"
+          },
+          "kind": "location",
+          "pickStrategy": "random"
+        }
+      },
+      "$battle_style": {
+        "select": {
+          "from": "graph",
+          "kind": "ability",
+          "subtypes": [
+            "combat",
+            "magic"
+          ],
+          "pickStrategy": "random"
+        }
+      }
+    },
+    "enabled": true,
+    "variants": {
+      "selection": "first_match",
+      "options": [
+        {
+          "name": "Artifact Dispute",
+          "when": {
+            "type": "random_chance",
+            "chance": 0.25
+          },
+          "apply": {
+            "tags": {
+              "$war": {
+                "artifact_war": true,
+                "contested_relic": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "apocalyptic_war_resolution",
+    "name": "Apocalyptic War Resolution",
+    "narrationTemplate": "{$faction1.name} and {$faction2.name|others} joined together to cast {$cataclysm.name}, ending {$target.name}.  They sacrificed their lives and caused chaos at {$warzone.name|the surroundings}, but finally destroyed {$orca.name|the orca forces}.",
+    "applicability": [],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "occurrence",
+      "subtypes": [
+        "war"
+      ],
+      "status": "active",
+      "filters": [
+        {
+          "type": "has_tag",
+          "tag": "war_weary"
+        },
+        {
+          "type": "has_culture",
+          "culture": "orca"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$cataclysm",
+        "kind": "ability",
+        "subtype": "magic",
+        "status": "active",
+        "prominence": "mythic",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A cataclysmic spell born from the war known as {warName}",
+          "replacements": {
+            "warName": "$target.name"
+          }
+        },
+        "tags": {
+          "mystical": true,
+          "conflict": true,
+          "cultural": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "regionPolicy": {
+            "allowEmergent": true,
+            "preferSparse": true
+          },
+          "steps": [
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "derived_from",
+        "src": "$cataclysm",
+        "dst": "$target",
+        "strength": 1
+      },
+      {
+        "kind": "manifests_at",
+        "src": "$cataclysm",
+        "dst": "$warzone",
+        "strength": 0.8,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$warzone"
+        }
+      },
+      {
+        "kind": "practitioner_of",
+        "src": "$faction1",
+        "dst": "$cataclysm",
+        "strength": 0.8
+      },
+      {
+        "kind": "practitioner_of",
+        "src": "$faction2",
+        "dst": "$cataclysm",
+        "strength": 0.7,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$faction2"
+        }
+      },
+      {
+        "kind": "participant_in",
+        "src": "$faction1",
+        "dst": "$target",
+        "strength": 0.8
+      },
+      {
+        "kind": "participant_in",
+        "src": "$faction2",
+        "dst": "$target",
+        "strength": 0.8
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "cultural_harmony",
+        "delta": 20
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "iceberg_security",
+        "delta": 10
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "magical_stability",
+        "delta": -8
+      },
+      {
+        "type": "change_status",
+        "entity": "$orca",
+        "newStatus": "historical"
+      },
+      {
+        "type": "change_status",
+        "entity": "$target",
+        "newStatus": "historical"
+      },
+      {
+        "type": "change_status",
+        "entity": "$faction1",
+        "newStatus": "historical"
+      },
+      {
+        "type": "set_tag",
+        "entity": "$warzone",
+        "tag": "chaotic",
+        "value": true
+      }
+    ],
+    "variables": {
+      "$faction1": {
+        "select": {
+          "from": "graph",
+          "kind": "faction",
+          "pickStrategy": "random"
+        },
+        "required": true
+      },
+      "$faction2": {
+        "select": {
+          "from": "graph",
+          "kind": "faction",
+          "pickStrategy": "random",
+          "filters": [
+            {
+              "type": "exclude",
+              "entities": [
+                "$faction1"
+              ]
+            }
+          ]
+        },
+        "required": false
+      },
+      "$warzone": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "occurred_at",
+            "direction": "both"
+          },
+          "kind": "location",
+          "pickStrategy": "random"
+        },
+        "required": true
+      },
+      "$orca": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "instigated_by",
+            "direction": "both"
+          },
+          "kind": "npc",
+          "pickStrategy": "random",
+          "subtypes": [
+            "orca"
+          ]
+        }
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "succession_crisis",
+    "name": "Succession Crisis",
+    "narrationTemplate": "{$crisis.name} erupted in {$target.name} near {$crisisSite.name|the seat of power}.",
+    "applicability": [],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "filters": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_max",
+            "count": 0,
+            "path": [
+              {
+                "via": "leader_of",
+                "direction": "in",
+                "targetKind": "npc",
+                "targetSubtype": "any"
+              }
+            ]
+          }
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$crisis",
+        "kind": "occurrence",
+        "subtype": "succession_crisis",
+        "status": "active",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A bitter succession crisis has erupted in {factionName} following the death of their leader",
+          "replacements": {
+            "factionName": "$target.name"
+          }
+        },
+        "tags": {
+          "political": true,
+          "conflict": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "participant_in",
+        "src": "$target",
+        "dst": "$crisis",
+        "strength": 1
+      },
+      {
+        "kind": "epicenter_of",
+        "src": "$crisis",
+        "dst": "$crisisSite",
+        "strength": 0.7,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$crisisSite"
+        }
+      },
+      {
+        "kind": "triggered_by",
+        "src": "$crisis",
+        "dst": "$target",
+        "strength": 0.7
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "remove_tag",
+        "entity": "$target",
+        "tag": "power_vacuum"
+      },
+      {
+        "type": "change_status",
+        "entity": "$target",
+        "newStatus": "waning"
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "iceberg_security",
+        "delta": -12
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "cultural_harmony",
+        "delta": -6
+      }
+    ],
+    "variables": {
+      "$crisisSite": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "controls",
+            "direction": "src"
+          },
+          "kind": "location",
+          "pickStrategy": "random"
+        }
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "legend_crystallization",
+    "name": "Legend Crystallization",
+    "narrationTemplate": "{$memorial.name|A memorial} for {$target.name} is erected at {$location.name|their final stand}.  {$legendaryWeapon.name|Their weapon} became a relic of their glory.",
+    "applicability": [
+      {
+        "type": "entity_count",
+        "kind": "npc",
+        "max": 25,
+        "subtype": "hero"
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "subtypes": [
+        "hero"
+      ],
+      "status": "historical",
+      "filters": [
+        {
+          "type": "lacks_tag",
+          "tag": "legendary"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$memorial",
+        "kind": "rule",
+        "subtype": "memorial",
+        "status": "enacted",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A sacred tradition honoring the memory of {heroName}, whose deeds have passed into legend",
+          "replacements": {
+            "heroName": "$target.name"
+          }
+        },
+        "tags": {
+          "cultural": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$legendaryWeapon",
+        "kind": "artifact",
+        "subtype": "weapon",
+        "status": "intact",
+        "prominence": "renowned",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "The legendary weapon of {heroName}, now a sacred relic",
+          "replacements": {
+            "heroName": "$target.name"
+          }
+        },
+        "tags": {
+          "legendary": true,
+          "hero_weapon": true,
+          "sacred": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse"
+          },
+          "steps": [
+            "sparse",
+            "random"
+          ]
+        },
+        "createChance": 0.4
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "commemorates",
+        "src": "$memorial",
+        "dst": "$target",
+        "strength": 1
+      },
+      {
+        "kind": "created_by",
+        "src": "$legendaryWeapon",
+        "dst": "$target",
+        "strength": 1
+      },
+      {
+        "kind": "central_to",
+        "src": "$legendaryWeapon",
+        "dst": "$memorial",
+        "strength": 0.9
+      },
+      {
+        "kind": "originated_in",
+        "src": "$memorial",
+        "dst": "$location",
+        "strength": 0.8,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$location"
+        }
+      },
+      {
+        "kind": "commemorates",
+        "src": "$location",
+        "dst": "$target",
+        "strength": 0.7,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$location"
+        }
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "set_tag",
+        "entity": "$target",
+        "tag": "legendary",
+        "value": true
+      }
+    ],
+    "variables": {
+      "$location": {
+        "select": {
+          "pickStrategy": "first",
+          "kind": "location",
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "resident_of",
+            "direction": "both"
+          }
+        }
+      }
+    },
+    "enabled": true,
+    "variants": {
+      "selection": "first_match",
+      "options": [
+        {
+          "name": "Legendary Weapon",
+          "when": {
+            "type": "random_chance",
+            "chance": 0.4
+          },
+          "apply": {
+            "tags": {
+              "$memorial": {
+                "weapon_legend": true,
+                "sacred_arms": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "crisis_legislation",
+    "name": "Crisis Legislation",
+    "narrationTemplate": "{$rule.name} enacted in {$target.name} in response to {$mainThreat.name}, replacing {$existingRule.name|old customs}.",
+    "applicability": [
+      {
+        "type": "or",
+        "conditions": [
+          {
+            "type": "pressure",
+            "pressureId": "iceberg_security",
+            "max": 0
+          },
+          {
+            "type": "pressure",
+            "pressureId": "cultural_harmony",
+            "max": -15
+          }
+        ]
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "colony"
+      ],
+      "pickStrategy": "random",
+      "saturationLimits": [
+        {
+          "relationshipKind": "originated_in",
+          "direction": "in",
+          "maxCount": 6
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$rule",
+        "kind": "rule",
+        "subtype": "law",
+        "status": "enacted",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "Emergency measure enacted in {colonyName}",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "crisis": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "originated_in",
+        "src": "$rule",
+        "dst": "$target",
+        "strength": 1
+      },
+      {
+        "kind": "derived_from",
+        "src": "$rule",
+        "dst": "$existingRule",
+        "strength": 0.7,
+        "condition": {
+          "type": "random_chance",
+          "chance": 0.4
+        }
+      },
+      {
+        "kind": "related_to",
+        "src": "$mainThreat",
+        "dst": "$rule",
+        "strength": 0.8
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "iceberg_security",
+        "delta": 40
+      }
+    ],
+    "variables": {
+      "$existingRule": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "originated_in",
+            "direction": "dst"
+          },
+          "notStatus": "repealed",
+          "pickStrategy": "random"
+        }
+      },
+      "$mainThreat": {
+        "select": {
+          "from": "graph",
+          "kind": "npc",
+          "pickStrategy": "random",
+          "subtypes": [
+            "orca",
+            "outlaw"
+          ],
+          "filters": [
+            {
+              "type": "graph_path",
+              "assert": {
+                "check": "not_exists",
+                "path": [
+                  {
+                    "via": "related_to",
+                    "direction": "any",
+                    "targetKind": "rule",
+                    "targetSubtype": "law"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "required": true
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "great_festival",
+    "name": "Great Festival",
+    "narrationTemplate": "{$festival.name} brought {$faction1.name} and {$faction2.name} together in {$target.name}, announced by {$herald.name} and centered on the display of {$featuredArtifact.name|ceremonial treasures}.",
+    "applicability": [],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "colony"
+      ],
+      "pickStrategy": "random",
+      "saturationLimits": [
+        {
+          "relationshipKind": "originated_in",
+          "direction": "in",
+          "maxCount": 6
+        }
+      ],
+      "filters": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_max",
+            "path": [
+              {
+                "via": "celebrated_by",
+                "direction": "any",
+                "targetKind": "rule",
+                "targetSubtype": "any"
+              }
+            ],
+            "count": 2
+          }
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$festival",
+        "kind": "rule",
+        "subtype": "social",
+        "status": "enacted",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A great festival celebrating prosperity and unity, held in {colonyName}",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "cultural": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$herald",
+        "kind": "npc",
+        "subtype": "merchant",
+        "status": "alive",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A festival herald who organizes the gathering at {colonyName}",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "cultural": true,
+          "trade": true,
+          "emergent": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "originated_in",
+        "src": "$festival",
+        "dst": "$target",
+        "strength": 1
+      },
+      {
+        "kind": "celebrated_by",
+        "src": "$festival",
+        "dst": "$faction1",
+        "strength": 0.7,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$faction1"
+        }
+      },
+      {
+        "kind": "celebrated_by",
+        "src": "$festival",
+        "dst": "$faction2",
+        "strength": 0.7,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$faction2"
+        }
+      },
+      {
+        "kind": "celebrated_by",
+        "src": "$festival",
+        "dst": "$herald",
+        "strength": 0.7
+      },
+      {
+        "kind": "resident_of",
+        "src": "$herald",
+        "dst": "$target",
+        "strength": 0.8
+      },
+      {
+        "kind": "member_of",
+        "src": "$herald",
+        "dst": "$faction2",
+        "strength": 0.6,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$faction2"
+        }
+      },
+      {
+        "kind": "central_to",
+        "src": "$featuredArtifact",
+        "dst": "$festival",
+        "strength": 0.8,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$featuredArtifact"
+        }
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "cultural_harmony",
+        "delta": 5
+      }
+    ],
+    "variables": {
+      "$faction1": {
+        "select": {
+          "from": "graph",
+          "kind": "faction",
+          "pickStrategy": "random",
+          "preferFilters": [
+            {
+              "type": "has_any_tag",
+              "tags": [
+                "cultural",
+                "trade",
+                "organized",
+                "mystical"
+              ]
+            }
+          ]
+        },
+        "required": true
+      },
+      "$faction2": {
+        "select": {
+          "from": "graph",
+          "kind": "faction",
+          "filters": [
+            {
+              "type": "exclude",
+              "entities": [
+                "$faction1"
+              ]
+            }
+          ],
+          "pickStrategy": "random",
+          "preferFilters": [
+            {
+              "type": "has_any_tag",
+              "tags": [
+                "cultural",
+                "trade",
+                "organized"
+              ]
+            }
+          ]
+        },
+        "required": true
+      },
+      "$featuredArtifact": {
+        "select": {
+          "from": "graph",
+          "kind": "artifact",
+          "status": "intact",
+          "pickStrategy": "random",
+          "filters": [
+            {
+              "type": "graph_path",
+              "assert": {
+                "check": "count_max",
+                "path": [
+                  {
+                    "via": "central_to",
+                    "direction": "out",
+                    "targetKind": "rule",
+                    "targetSubtype": "any"
+                  }
+                ],
+                "count": 2
+              }
+            }
+          ],
+          "preferFilters": [
+            {
+              "type": "has_any_tag",
+              "tags": [
+                "cultural",
+                "sacred",
+                "ceremonial"
+              ]
+            }
+          ]
+        },
+        "required": false
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "tech_breakthrough",
+    "name": "Tech Breakthrough",
+    "narrationTemplate": "{$target.name} researched {$tech.name} at a lab in {$location.name|the frozen depths} under the direction of {$leader.name|a researcher}, building on {$parentTech.name|prior knowledge}.",
+    "applicability": [],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "pickStrategy": "random",
+      "saturationLimits": [
+        {
+          "relationshipKind": "practitioner_of",
+          "direction": "out",
+          "maxCount": 4
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$tech",
+        "kind": "ability",
+        "subtype": "technology",
+        "status": "active",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A technological breakthrough developed by {factionName} at {locationName}",
+          "replacements": {
+            "factionName": "$target.name",
+            "locationName": "$location.name|their research facility"
+          }
+        },
+        "tags": {
+          "technology": true,
+          "innovation": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$location",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true,
+            "preferSparse": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "derived_from",
+        "src": "$tech",
+        "dst": "$parentTech",
+        "strength": 1,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$parentTech"
+        }
+      },
+      {
+        "kind": "practitioner_of",
+        "src": "$target",
+        "dst": "$tech",
+        "strength": 0.9,
+        "catalyzedBy": "$leader"
+      },
+      {
+        "kind": "originated_in",
+        "src": "$tech",
+        "dst": "$location",
+        "strength": 0.7
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "resource_availibility",
+        "delta": 5
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "magical_stability",
+        "delta": -3
+      }
+    ],
+    "variables": {
+      "$location": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "originated_in",
+            "direction": "src"
+          },
+          "pickStrategy": "random"
+        }
+      },
+      "$leader": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "leader_of",
+            "direction": "dst"
+          },
+          "kind": "npc",
+          "status": "alive",
+          "pickStrategy": "random"
+        },
+        "required": false
+      },
+      "$parentTech": {
+        "select": {
+          "from": "graph",
+          "kind": "ability",
+          "pickStrategy": "random",
+          "subtypes": [
+            "technology"
+          ]
+        }
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "orca_combat_technique",
+    "name": "Orca Combat Technique",
+    "narrationTemplate": "{$technique.name} developed by {$target.name} in combat alongside {$otherOrca.name|fellow warriors}, refining {$parentTechnique.name|existing methods}.",
+    "applicability": [
+      {
+        "type": "entity_count",
+        "kind": "ability",
+        "subtype": "combat",
+        "max": 15
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "subtypes": [
+        "orca"
+      ],
+      "saturationLimits": [
+        {
+          "relationshipKind": "practitioner_of",
+          "direction": "out",
+          "maxCount": 2
+        }
+      ],
+      "filters": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_max",
+            "count": 1,
+            "path": [
+              {
+                "via": "practitioner_of",
+                "direction": "out",
+                "targetKind": "ability",
+                "targetSubtype": "any"
+              }
+            ]
+          }
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$technique",
+        "kind": "ability",
+        "subtype": "combat",
+        "status": "active",
+        "prominence": "marginal",
+        "culture": {
+          "fixed": "orca"
+        },
+        "description": {
+          "template": "A devastating combat technique used by orca raiders, witnessed when {orcaName} attacked",
+          "replacements": {
+            "orcaName": "$target.name"
+          }
+        },
+        "tags": {
+          "conflict": true,
+          "orca": true,
+          "hostile": true,
+          "external": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "derived_from",
+        "src": "$technique",
+        "dst": "$parentTechnique",
+        "strength": 1,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$parentTechnique"
+        }
+      },
+      {
+        "kind": "practitioner_of",
+        "src": "$target",
+        "dst": "$technique",
+        "strength": 0.9
+      },
+      {
+        "kind": "practitioner_of",
+        "src": "$otherOrca",
+        "dst": "$technique",
+        "strength": 0.8,
+        "condition": {
+          "type": "random_chance",
+          "chance": 0.6
+        }
+      }
+    ],
+    "stateUpdates": [],
+    "variables": {
+      "$otherOrca": {
+        "select": {
+          "from": "graph",
+          "kind": "npc",
+          "subtypes": [
+            "orca"
+          ],
+          "filters": [
+            {
+              "type": "exclude",
+              "entities": [
+                "$target"
+              ]
+            }
+          ],
+          "pickStrategy": "random"
+        }
+      },
+      "$parentTechnique": {
+        "select": {
+          "from": "graph",
+          "kind": "ability",
+          "pickStrategy": "random",
+          "subtypes": [
+            "combat"
+          ]
+        }
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "magic_discovery",
+    "name": "Magic Discovery",
+    "narrationTemplate": "{$empoweredArtifact.name|A conduit}  was discovered by {$target.name} near {$anomaly.name|a place of power}. It radiated {$magic.name}, a new form of {$parentMagic.name|ancient lore}.",
+    "applicability": [
+      {
+        "type": "entity_count",
+        "kind": "ability",
+        "subtype": "magic",
+        "max": 20
+      },
+      {
+        "type": "pressure",
+        "pressureId": "magical_stability",
+        "min": -50,
+        "max": 50
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "subtypePreferences": [
+        "hero",
+        "merchant",
+        "mayor",
+        "outlaw"
+      ],
+      "status": "alive",
+      "saturationLimits": [
+        {
+          "relationshipKind": "practitioner_of",
+          "direction": "out",
+          "maxCount": 2
+        }
+      ],
+      "filters": [
+        {
+          "type": "not_has_culture",
+          "culture": "orca"
+        },
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_max",
+            "count": 2,
+            "path": [
+              {
+                "via": "discovered_by",
+                "direction": "out",
+                "targetKind": "ability",
+                "targetSubtype": "magic"
+              }
+            ]
+          }
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$magic",
+        "kind": "ability",
+        "subtype": "magic",
+        "status": "emergent",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "Mystical ability discovered by {heroName}",
+          "replacements": {
+            "heroName": "$target.name"
+          }
+        },
+        "tags": {
+          "mystical": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "regionPolicy": {
+            "preferSparse": true,
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "derived_from",
+        "src": "$magic",
+        "dst": "$parentMagic",
+        "strength": 1,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$parentMagic"
+        }
+      },
+      {
+        "kind": "discovered_by",
+        "src": "$magic",
+        "dst": "$target",
+        "strength": 1
+      },
+      {
+        "kind": "manifests_at",
+        "src": "$magic",
+        "dst": "$anomaly",
+        "strength": 0.8,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$anomaly"
+        }
+      },
+      {
+        "kind": "empowered_by",
+        "src": "$empoweredArtifact",
+        "dst": "$magic",
+        "strength": 0.85,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$empoweredArtifact"
+        }
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "magical_stability",
+        "delta": 10
+      }
+    ],
+    "variables": {
+      "$anomaly": {
+        "select": {
+          "from": "graph",
+          "kind": "location",
+          "subtypes": [
+            "anomaly"
+          ],
+          "pickStrategy": "random"
+        }
+      },
+      "$parentMagic": {
+        "select": {
+          "from": "graph",
+          "kind": "ability",
+          "pickStrategy": "random",
+          "subtypes": [
+            "magic"
+          ],
+          "status": "discovered"
+        }
+      },
+      "$empoweredArtifact": {
+        "select": {
+          "from": "graph",
+          "kind": "artifact",
+          "status": "intact",
+          "pickStrategy": "random",
+          "filters": [
+            {
+              "type": "graph_path",
+              "assert": {
+                "check": "count_max",
+                "path": [
+                  {
+                    "via": "empowered_by",
+                    "direction": "out",
+                    "targetKind": "ability",
+                    "targetSubtype": "any"
+                  }
+                ],
+                "count": 2
+              }
+            }
+          ],
+          "preferFilters": [
+            {
+              "type": "has_any_tag",
+              "tags": [
+                "mystical",
+                "magical",
+                "ancient"
+              ]
+            }
+          ]
+        },
+        "required": false
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "ideology_emergence",
+    "name": "Ideology Emergence",
+    "narrationTemplate": "{$ideology.name} emerged from {$target.name} at {$championLocation.name|a gathering place}, championed by {$championFaction.name|followers} and spread by {$factionMember1.name|disciples} who built on {$existingIdeology.name|old beliefs}. {$existingArtifact.name|A relic} became the symbol of this movement.",
+    "applicability": [],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "subtypePreferences": [
+        "hero"
+      ],
+      "status": "alive",
+      "pickStrategy": "random",
+      "minProminence": "renowned",
+      "saturationLimits": [
+        {
+          "relationshipKind": "believer_of",
+          "direction": "out",
+          "maxCount": 2
+        }
+      ],
+      "filters": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "exists",
+            "path": [
+              {
+                "via": "member_of",
+                "direction": "out",
+                "targetKind": "faction",
+                "targetSubtype": "any"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$ideology",
+        "kind": "rule",
+        "subtype": "ideology",
+        "status": "proposed",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "An ideology championed by {championName}. This belief is spreading through whispered conversations and passionate debates.",
+          "replacements": {
+            "championName": "$target.name"
+          }
+        },
+        "tags": {
+          "political": true,
+          "cultural": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "regionPolicy": {
+            "allowEmergent": true,
+            "preferSparse": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "believer_of",
+        "src": "$target",
+        "dst": "$ideology",
+        "strength": 1
+      },
+      {
+        "kind": "originated_in",
+        "src": "$ideology",
+        "dst": "$championLocation",
+        "strength": 0.8,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$championLocation"
+        }
+      },
+      {
+        "kind": "believer_of",
+        "src": "$factionMember1",
+        "dst": "$ideology",
+        "strength": 0.6,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$factionMember1"
+        }
+      },
+      {
+        "kind": "related_to",
+        "src": "$ideology",
+        "dst": "$existingIdeology",
+        "strength": 0.5,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$existingIdeology"
+        }
+      },
+      {
+        "kind": "believer_of",
+        "src": "$championFaction",
+        "dst": "$ideology",
+        "strength": 0.8,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$championFaction"
+        }
+      },
+      {
+        "kind": "central_to",
+        "src": "$existingArtifact",
+        "dst": "$ideology",
+        "strength": 0.75,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$existingArtifact"
+        }
+      }
+    ],
+    "stateUpdates": [],
+    "variables": {
+      "$championLocation": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "resident_of",
+            "direction": "src"
+          },
+          "pickStrategy": "first",
+          "kind": "location"
+        },
+        "required": false
+      },
+      "$championFaction": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "member_of",
+            "direction": "src"
+          },
+          "pickStrategy": "first",
+          "kind": "faction"
+        },
+        "required": true
+      },
+      "$factionMember1": {
+        "select": {
+          "from": {
+            "relatedTo": "$championFaction",
+            "relationshipKind": "member_of",
+            "direction": "dst"
+          },
+          "filters": [
+            {
+              "type": "exclude",
+              "entities": [
+                "$target"
+              ]
+            }
+          ],
+          "pickStrategy": "random"
+        },
+        "required": false
+      },
+      "$existingIdeology": {
+        "select": {
+          "from": "graph",
+          "kind": "rule",
+          "pickStrategy": "random",
+          "subtypes": [
+            "ideology"
+          ]
+        }
+      },
+      "$existingArtifact": {
+        "select": {
+          "from": "graph",
+          "kind": "artifact",
+          "status": "intact",
+          "pickStrategy": "random",
+          "filters": [
+            {
+              "type": "graph_path",
+              "assert": {
+                "check": "count_max",
+                "path": [
+                  {
+                    "via": "central_to",
+                    "direction": "out",
+                    "targetKind": "rule",
+                    "targetSubtype": "any"
+                  }
+                ],
+                "count": 2
+              }
+            }
+          ],
+          "preferFilters": [
+            {
+              "type": "has_any_tag",
+              "tags": [
+                "political",
+                "cultural",
+                "sacred"
+              ]
+            }
+          ]
+        },
+        "required": false
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "thermal_colony_decline",
+    "name": "Thermal Colony Decline",
+    "narrationTemplate": "{$target.name} entered decline due to {$thermal_disaster.name}.",
+    "applicability": [],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "colony",
+        "point_of_interest",
+        "resource_node",
+        "anomaly"
+      ],
+      "status": "thriving",
+      "saturationLimits": [
+        {
+          "relationshipKind": "epicenter_of",
+          "direction": "in",
+          "maxCount": 2
+        }
+      ],
+      "filters": [
+        {
+          "type": "has_any_tag",
+          "tags": [
+            "dangerous",
+            "stressed",
+            "crisis"
+          ]
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$thermal_disaster",
+        "kind": "occurrence",
+        "subtype": "disaster",
+        "status": "active",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A thermal calamity grips {locationName}, forcing evacuations and rationing",
+          "replacements": {
+            "locationName": "$target.name"
+          }
+        },
+        "tags": {
+          "crisis": true,
+          "dangerous": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "epicenter_of",
+        "src": "$thermal_disaster",
+        "dst": "$target",
+        "strength": 0.8
+      },
+      {
+        "kind": "triggered_by",
+        "src": "$thermal_disaster",
+        "dst": "$target",
+        "strength": 0.5
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "change_status",
+        "entity": "$target",
+        "newStatus": "waning"
+      },
+      {
+        "type": "set_tag",
+        "entity": "$target",
+        "tag": "stressed",
+        "value": true
+      },
+      {
+        "type": "remove_tag",
+        "entity": "$target",
+        "tag": "thriving"
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "id": "thermal_colony_recovery",
+    "name": "Thermal Colony Recovery",
+    "narrationTemplate": "{$target.name} began recovery as {$recovery.name} marked the turning point.",
+    "applicability": [],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "colony",
+        "point_of_interest",
+        "resource_node",
+        "anomaly"
+      ],
+      "status": "waning",
+      "saturationLimits": [
+        {
+          "relationshipKind": "epicenter_of",
+          "direction": "in",
+          "maxCount": 2
+        }
+      ],
+      "filters": [
+        {
+          "type": "has_tag",
+          "tag": "safe"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$recovery",
+        "kind": "occurrence",
+        "subtype": "celebration",
+        "status": "active",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A thaw celebration marks {locationName}'s recovery from harsh conditions",
+          "replacements": {
+            "locationName": "$target.name"
+          }
+        },
+        "tags": {
+          "cultural": true,
+          "thriving": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "epicenter_of",
+        "src": "$recovery",
+        "dst": "$target",
+        "strength": 0.7
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "change_status",
+        "entity": "$target",
+        "newStatus": "thriving"
+      },
+      {
+        "type": "set_tag",
+        "entity": "$target",
+        "tag": "thriving",
+        "value": true
+      },
+      {
+        "type": "remove_tag",
+        "entity": "$target",
+        "tag": "stressed"
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "id": "thermal_migration",
+    "name": "Thermal Migration",
+    "narrationTemplate": "{$migrant.name} fled {$target.name} for {$refuge.name}, establishing {$camp.name} along the way.",
+    "applicability": [],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "saturationLimits": [
+        {
+          "relationshipKind": "related_to",
+          "direction": "in",
+          "maxCount": 3
+        }
+      ],
+      "filters": [
+        {
+          "type": "has_any_tag",
+          "tags": [
+            "fire",
+            "ice",
+            "dangerous",
+            "stressed",
+            "crisis"
+          ]
+        },
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_min",
+            "count": 1,
+            "path": [
+              {
+                "via": "resident_of",
+                "direction": "in",
+                "targetKind": "npc",
+                "targetSubtype": "any"
+              }
+            ]
+          }
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "variables": {
+      "$migrant": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "resident_of",
+            "direction": "dst"
+          },
+          "kind": "npc",
+          "status": "alive",
+          "pickStrategy": "random"
+        },
+        "required": true
+      },
+      "$refuge": {
+        "select": {
+          "kind": "location",
+          "subtypes": [
+            "colony"
+          ],
+          "status": "thriving",
+          "filters": [
+            {
+              "type": "lacks_tag",
+              "tag": "dangerous"
+            },
+            {
+              "type": "exclude",
+              "entities": [
+                "$target"
+              ]
+            }
+          ],
+          "pickStrategy": "random"
+        },
+        "required": true
+      }
+    },
+    "creation": [
+      {
+        "entityRef": "$camp",
+        "kind": "location",
+        "subtype": "point_of_interest",
+        "status": "thriving",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$refuge"
+        },
+        "description": {
+          "template": "A temporary refuge camp shelters migrants fleeing {sourceName}",
+          "replacements": {
+            "sourceName": "$target.name"
+          }
+        },
+        "tags": {
+          "emergent": true,
+          "stressed": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$refuge",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "resident_of",
+        "src": "$migrant",
+        "dst": "$refuge",
+        "strength": 0.7,
+        "condition": {
+          "type": "random_chance",
+          "chance": 0.5
+        }
+      },
+      {
+        "kind": "contained_by",
+        "src": "$camp",
+        "dst": "$refuge",
+        "strength": 0.8,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$camp"
+        }
+      },
+      {
+        "kind": "related_to",
+        "src": "$camp",
+        "dst": "$target",
+        "strength": 0.5,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$camp"
+        }
+      },
+      {
+        "kind": "resident_of",
+        "src": "$migrant",
+        "dst": "$camp",
+        "strength": 0.6,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$camp"
+        }
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "set_tag",
+        "entity": "$migrant",
+        "tag": "emergent",
+        "value": true
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "id": "ice_memory_thaw",
+    "name": "Ice Memory Thaw",
+    "narrationTemplate": "{$memory.name} emerged from {$target.name}, reviving {$frozen_ability.name|ancient powers}. {$ancientTome.name} now holds this recovered knowledge.",
+    "applicability": [],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "filters": [
+        {
+          "type": "has_tag",
+          "tag": "hidden"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "variables": {
+      "$frozen_ability": {
+        "select": {
+          "kind": "ability",
+          "status": "active",
+          "filters": [
+            {
+              "type": "lacks_relationship",
+              "kind": "manifests_at",
+              "with": "$target"
+            }
+          ],
+          "pickStrategy": "random"
+        }
+      }
+    },
+    "creation": [
+      {
+        "entityRef": "$memory",
+        "kind": "location",
+        "subtype": "point_of_interest",
+        "status": "unspoiled",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A thawed memory cache surfaced near {locationName}",
+          "replacements": {
+            "locationName": "$target.name"
+          }
+        },
+        "tags": {
+          "mystical": true,
+          "discovered": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$ancientTome",
+        "kind": "artifact",
+        "subtype": "tome",
+        "status": "intact",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "An ancient tome preserved in ice near {locationName}, containing lost knowledge",
+          "replacements": {
+            "locationName": "$target.name"
+          }
+        },
+        "tags": {
+          "ancient": true,
+          "preserved": true,
+          "frozen_knowledge": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse"
+          },
+          "steps": [
+            "sparse",
+            "random"
+          ]
+        },
+        "createChance": 0.3
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "contained_by",
+        "src": "$memory",
+        "dst": "$target",
+        "strength": 0.8,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$memory"
+        }
+      },
+      {
+        "kind": "stored_at",
+        "src": "$ancientTome",
+        "dst": "$memory",
+        "strength": 0.9
+      },
+      {
+        "kind": "manifests_at",
+        "src": "$frozen_ability",
+        "dst": "$memory",
+        "strength": 0.6,
+        "condition": {
+          "type": "random_chance",
+          "chance": 0.3
+        }
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "set_tag",
+        "entity": "$target",
+        "tag": "discovered",
+        "value": true
+      },
+      {
+        "type": "remove_tag",
+        "entity": "$target",
+        "tag": "hidden"
+      }
+    ],
+    "enabled": true,
+    "variants": {
+      "selection": "first_match",
+      "options": [
+        {
+          "name": "Ancient Tome Discovery",
+          "when": {
+            "type": "random_chance",
+            "chance": 0.3
+          },
+          "apply": {
+            "tags": {
+              "$memory": {
+                "tome_site": true,
+                "ancient_knowledge": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "economic_colony_decline",
+    "name": "Economic Colony Decline",
+    "narrationTemplate": "{$target.name} fell into economic decline. {$economic_crisis.name} disrupted trade and resources throughout the colony.",
+    "applicability": [
+      {
+        "type": "pressure",
+        "pressureId": "resource_availibility",
+        "min": -20
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "colony"
+      ],
+      "status": "thriving",
+      "filters": [
+        {
+          "type": "has_tag",
+          "tag": "stressed"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$economic_crisis",
+        "kind": "occurrence",
+        "subtype": "disaster",
+        "status": "active",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "An economic collapse strikes {colonyName}, grinding trade to a halt",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "crisis": true,
+          "stressed": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "epicenter_of",
+        "src": "$economic_crisis",
+        "dst": "$target",
+        "strength": 0.8
+      },
+      {
+        "kind": "triggered_by",
+        "src": "$economic_crisis",
+        "dst": "$target",
+        "strength": 0.5
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "change_status",
+        "entity": "$target",
+        "newStatus": "waning"
+      },
+      {
+        "type": "set_tag",
+        "entity": "$target",
+        "tag": "stressed",
+        "value": true
+      },
+      {
+        "type": "remove_tag",
+        "entity": "$target",
+        "tag": "thriving"
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "resource_availibility",
+        "delta": -8
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "id": "economic_colony_recovery",
+    "name": "Economic Colony Recovery",
+    "narrationTemplate": "{$target.name} began economic recovery. {$revival.name} restored trade and brought renewed prosperity to the colony.",
+    "applicability": [],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "colony"
+      ],
+      "status": "waning",
+      "filters": [
+        {
+          "type": "has_any_tag",
+          "tags": [
+            "trade",
+            "resource"
+          ]
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$revival",
+        "kind": "occurrence",
+        "subtype": "celebration",
+        "status": "active",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A trade revival festival marks {colonyName}'s economic recovery",
+          "replacements": {
+            "colonyName": "$target.name"
+          }
+        },
+        "tags": {
+          "cultural": true,
+          "trade": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "epicenter_of",
+        "src": "$revival",
+        "dst": "$target",
+        "strength": 0.7
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "change_status",
+        "entity": "$target",
+        "newStatus": "thriving"
+      },
+      {
+        "type": "set_tag",
+        "entity": "$target",
+        "tag": "thriving",
+        "value": true
+      },
+      {
+        "type": "remove_tag",
+        "entity": "$target",
+        "tag": "stressed"
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "resource_availibility",
+        "delta": 5
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "id": "wild_magical_discovery",
+    "name": "Wild Magical Discovery",
+    "narrationTemplate": "{$discoverer.name|A wanderer} discovered {$magic.name} manifesting at {$target.name} and claimed it for their own.",
+    "applicability": [
+      {
+        "type": "pressure",
+        "pressureId": "magical_stability",
+        "min": -100,
+        "max": 10
+      },
+      {
+        "type": "entity_count",
+        "kind": "ability",
+        "subtype": "magic",
+        "max": 15
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "anomaly"
+      ],
+      "pickStrategy": "random",
+      "saturationLimits": [
+        {
+          "relationshipKind": "manifests_at",
+          "direction": "in",
+          "maxCount": 2
+        }
+      ],
+      "filters": [
+        {
+          "type": "not_has_culture",
+          "culture": "orca"
+        },
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_max",
+            "path": [
+              {
+                "via": "manifests_at",
+                "direction": "any",
+                "targetKind": "ability",
+                "targetSubtype": "any"
+              }
+            ],
+            "count": 2
+          }
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$magic",
+        "kind": "ability",
+        "subtype": "magic",
+        "status": "secret",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "Wild magic manifesting at {locationName}, discovered by {discovererName}",
+          "replacements": {
+            "locationName": "$target.name",
+            "discovererName": "$discoverer.name|unknown hands"
+          }
+        },
+        "tags": {
+          "mystical": true,
+          "wild": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "sparse",
+            "preferPeriphery": true
+          },
+          "spacing": {},
+          "regionPolicy": {
+            "allowEmergent": true,
+            "createRegion": true
+          },
+          "steps": [
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "manifests_at",
+        "src": "$magic",
+        "dst": "$target",
+        "strength": 0.8
+      },
+      {
+        "kind": "practitioner_of",
+        "src": "$discoverer",
+        "dst": "$magic",
+        "strength": 0.8,
+        "bidirectional": false
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "magical_stability",
+        "delta": 15
+      }
+    ],
+    "variables": {
+      "$discoverer": {
+        "select": {
+          "from": "graph",
+          "kind": "npc",
+          "pickStrategy": "random",
+          "subtypes": [
+            "hero",
+            "merchant"
+          ]
+        },
+        "required": true
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "artifact_crafting",
+    "name": "Artifact Crafting",
+    "narrationTemplate": "{$target.name} crafted {$artifact.name} at {$location.name|their workshop}, channeling {$ability.name|their skills} into its creation.",
+    "applicability": [
+      {
+        "type": "entity_count",
+        "kind": "artifact",
+        "max": 18
+      },
+      {
+        "type": "or",
+        "conditions": [
+          {
+            "type": "pressure",
+            "pressureId": "magical_stability",
+            "min": 20
+          },
+          {
+            "type": "pressure",
+            "pressureId": "iceberg_security",
+            "max": -10
+          }
+        ]
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "subtypes": [
+        "hero",
+        "mayor"
+      ],
+      "status": "alive",
+      "pickStrategy": "random",
+      "saturationLimits": [
+        {
+          "relationshipKind": "created_by",
+          "direction": "in",
+          "maxCount": 2
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$artifact",
+        "kind": "artifact",
+        "subtype": {
+          "random": [
+            "weapon",
+            "relic",
+            "instrument"
+          ]
+        },
+        "status": "intact",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A powerful artifact crafted by {creatorName}",
+          "replacements": {
+            "creatorName": "$target.name"
+          }
+        },
+        "tags": {
+          "crafted": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "culture",
+            "id": "$target.culture"
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "created_by",
+        "src": "$artifact",
+        "dst": "$target",
+        "strength": 1
+      },
+      {
+        "kind": "owned_by",
+        "src": "$artifact",
+        "dst": "$target",
+        "strength": 0.9
+      },
+      {
+        "kind": "empowered_by",
+        "src": "$artifact",
+        "dst": "$ability",
+        "strength": 0.7,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$ability"
+        }
+      },
+      {
+        "kind": "stored_at",
+        "src": "$artifact",
+        "dst": "$location",
+        "strength": 0.6,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$location"
+        }
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "magical_stability",
+        "delta": -5
+      }
+    ],
+    "variables": {
+      "$ability": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "practitioner_of",
+            "direction": "src"
+          },
+          "kind": "ability",
+          "pickStrategy": "random"
+        }
+      },
+      "$location": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "resident_of",
+            "direction": "src"
+          },
+          "kind": "location",
+          "pickStrategy": "random"
+        }
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "artifact_discovery",
+    "name": "Artifact Discovery",
+    "narrationTemplate": "{$discoverer.name|A traveler} discovered {$artifact.name} hidden at {$target.name} and claimed it for their own.",
+    "applicability": [
+      {
+        "type": "entity_count",
+        "kind": "artifact",
+        "max": 20
+      }
+    ],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "subtypes": [
+        "anomaly",
+        "point_of_interest",
+        "resource_node"
+      ],
+      "pickStrategy": "random",
+      "saturationLimits": [
+        {
+          "relationshipKind": "stored_at",
+          "direction": "in",
+          "maxCount": 2
+        }
+      ]
+    },
+    "creation": [
+      {
+        "entityRef": "$artifact",
+        "kind": "artifact",
+        "subtype": {
+          "random": [
+            "relic",
+            "tome",
+            "instrument"
+          ]
+        },
+        "status": "intact",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "An ancient artifact uncovered at {locationName}",
+          "replacements": {
+            "locationName": "$target.name"
+          }
+        },
+        "tags": {
+          "discovered": true,
+          "ancient": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "regionPolicy": {
+            "allowEmergent": true
+          },
+          "steps": [
+            "anchor_region",
+            "seed_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "stored_at",
+        "src": "$artifact",
+        "dst": "$target",
+        "strength": 0.8
+      },
+      {
+        "kind": "discovered_by",
+        "src": "$artifact",
+        "dst": "$discoverer",
+        "strength": 0.7,
+        "condition": {
+          "type": "entity_exists",
+          "entity": "$discoverer"
+        }
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "modify_pressure",
+        "pressureId": "magical_stability",
+        "delta": -3
+      }
+    ],
+    "variables": {
+      "$discoverer": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "explorer_of",
+            "direction": "dst"
+          },
+          "kind": "npc",
+          "status": "alive",
+          "pickStrategy": "random"
+        }
+      }
+    },
+    "enabled": true
+  },
+  {
+    "id": "crystallized_power",
+    "name": "Crystallized Power",
+    "narrationTemplate": "{$event.name} caused raw power to accumulate at {$target.name}, finally crystallizing into {$artifact.name}. ",
+    "applicability": [],
+    "selection": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "filters": [
+        {
+          "type": "has_tag",
+          "tag": "active"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "creation": [
+      {
+        "entityRef": "$event",
+        "kind": "occurrence",
+        "subtype": "disaster",
+        "status": "active",
+        "prominence": "recognized",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A surge of ancient power at {locationName} - the ice cracked, light poured from the fissures, and something crystallized from the raw energy",
+          "replacements": {
+            "locationName": "$target.name"
+          }
+        },
+        "tags": {
+          "power_surge": true,
+          "crystallization": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "steps": [
+            "anchor_region",
+            "sparse",
+            "random"
+          ]
+        }
+      },
+      {
+        "entityRef": "$artifact",
+        "kind": "artifact",
+        "subtype": "relic",
+        "status": "intact",
+        "prominence": "marginal",
+        "culture": {
+          "inherit": "$target"
+        },
+        "description": {
+          "template": "A crystallized fragment of raw power that emerged from {locationName} during the surge",
+          "replacements": {
+            "locationName": "$target.name"
+          }
+        },
+        "tags": {
+          "crystallized": true,
+          "power_fragment": true,
+          "anomaly_born": true
+        },
+        "placement": {
+          "anchor": {
+            "type": "entity",
+            "ref": "$target",
+            "stickToRegion": true
+          },
+          "steps": [
+            "anchor_region",
+            "sparse",
+            "random"
+          ]
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "occurred_at",
+        "src": "$event",
+        "dst": "$target",
+        "strength": 1
+      },
+      {
+        "kind": "stored_at",
+        "src": "$artifact",
+        "dst": "$target",
+        "strength": 0.9
+      },
+      {
+        "kind": "catalyst_of",
+        "src": "$event",
+        "dst": "$artifact",
+        "strength": 0.8
+      }
+    ],
+    "stateUpdates": [
+      {
+        "type": "remove_tag",
+        "entity": "$target",
+        "tag": "active"
+      },
+      {
+        "type": "set_tag",
+        "entity": "$target",
+        "tag": "depleted",
+        "value": true
+      },
+      {
+        "type": "modify_pressure",
+        "pressureId": "magical_stability",
+        "delta": -8
+      }
+    ],
+    "enabled": true
+  }
+]

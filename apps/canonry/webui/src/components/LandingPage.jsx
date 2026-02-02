@@ -266,6 +266,93 @@ const APP_CARDS = [
       },
     ],
   },
+  {
+    id: 'coherence',
+    icon: '⚖️',
+    title: 'Coherence Engine',
+    tagline: 'Templates, pressures, and other levers for narrative gravity',
+    color: colors.accentCoherence,
+    bgColor: 'rgba(245, 158, 11, 0.1)',
+    description: `Coherence Engine is where your world stops being a pile of JSON and starts behaving like a simulated ecosystem. It’s the control room for eras, pressures, growth templates, and systems. Think of it as the tuning console that keeps your procedural history from devolving into a krill fight in two ticks.`,
+    features: [
+      {
+        title: 'Eras & Phase Control',
+        desc: 'Define historical phases with template and system weights. Swing between “great thaw” and “faction wars” without rewriting everything.',
+        color: colors.highlightOrange,
+        bg: 'rgba(245, 158, 11, 0.1)',
+      },
+      {
+        title: 'Pressures & Feedback',
+        desc: 'Model conflict, scarcity, zeal, or whatever forces drive your world. Tune sources, sinks, and decay so your signals don’t saturate at 100 forever.',
+        color: colors.highlightRed,
+        bg: 'rgba(248, 113, 113, 0.1)',
+      },
+      {
+        title: 'Templates & Systems',
+        desc: 'Configure declarative growth templates and simulation systems—no TypeScript required. Wire in lineage, relationships, and tag dynamics from the UI.',
+        color: colors.highlightPurple,
+        bg: 'rgba(167, 139, 250, 0.1)',
+      },
+    ],
+  },
+  {
+    id: 'simulation',
+    icon: '▶',
+    title: 'Lore Weave',
+    tagline: 'Run the procedural history and watch penguins make questionable choices',
+    color: colors.accentSimulation,
+    bgColor: 'rgba(59, 130, 246, 0.1)',
+    description: `Lore Weave executes your configuration: growth templates, pressures, systems, and seed entities collide to produce a living history. It’s the “Run” button with a dashboard, not a prayer.`,
+    features: [
+      {
+        title: 'One-Click Simulation',
+        desc: 'Run all epochs or step through them. See logs, progress, and distribution stats without dropping to a terminal.',
+        color: colors.highlightBlue,
+        bg: 'rgba(59, 130, 246, 0.1)',
+      },
+      {
+        title: 'Coordinate & Pressure Aware',
+        desc: 'Respects semantic planes, pressures, and template applicability. No more templates running in vacuum.',
+        color: colors.highlightTeal,
+        bg: 'rgba(102, 221, 179, 0.1)',
+      },
+      {
+        title: 'Export & Handoff',
+        desc: 'Push results directly to Archivist or sync JSON for downstream tools. World state, history, validation—all in one export.',
+        color: colors.highlightGreen,
+        bg: 'rgba(74, 222, 128, 0.1)',
+      },
+    ],
+  },
+  {
+    id: 'archivist',
+    icon: '🗄️',
+    title: 'Archivist',
+    tagline: 'Curation and smug visualization of everything you just simulated',
+    color: colors.accentArchivist,
+    bgColor: 'rgba(255, 255, 255, 0.05)',
+    description: `Archivist is where your generated world gets a victory lap. Explore graphs in 2D or 3D, map entities on semantic planes, and skim timelines and stats like you’re doing a postmortem on penguin politics.`,
+    features: [
+      {
+        title: 'Explorer Views',
+        desc: 'Flip between 2D graph, 3D force layout, and coordinate maps. Hover, select, and trace relationships without getting snow blindness.',
+        color: colors.highlightPurple,
+        bg: 'rgba(167, 139, 250, 0.1)',
+      },
+      {
+        title: 'Entity & Lore Panels',
+        desc: 'Drill into entity details, lore snippets, and related media. See why that faction declared war on a fishing village.',
+        color: colors.highlightBlue,
+        bg: 'rgba(108, 155, 255, 0.1)',
+      },
+      {
+        title: 'Timelines & Stats',
+        desc: 'Scrub through ticks, filter by tags or prominence, and check validation/health stats. Because “it runs” isn’t the same as “it’s coherent.”',
+        color: colors.highlightGreen,
+        bg: 'rgba(74, 222, 128, 0.1)',
+      },
+    ],
+  },
 ];
 
 function AppCard({ app, onNavigate, hasProject }) {

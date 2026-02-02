@@ -1,0 +1,259 @@
+/**
+ * WikiNav CSS Module
+ * Sidebar navigation for the Chronicler wiki
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.nav {
+  flex: 1;
+  overflow: auto;
+  padding: var(--spacing-sm);
+}
+
+.section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.sectionTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.sectionTitleLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+
+.sectionToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sectionToggle input {
+  accent-color: var(--color-accent);
+}
+
+.sectionTitleCollapsible {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  width: 100%;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--transition-fast);
+}
+
+.sectionTitleCollapsible:hover {
+  color: var(--color-text-secondary);
+}
+
+.collapseIcon {
+  font-size: 8px;
+  width: 12px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.navItem {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.navItem:hover {
+  background-color: var(--color-accent-hover);
+  color: var(--color-accent);
+}
+
+.navItemActive {
+  composes: navItem;
+  background-color: var(--color-accent);
+  color: var(--color-bg-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.navItemActive:hover {
+  background-color: var(--color-accent);
+  color: var(--color-bg-primary);
+}
+
+.badge {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-left: var(--spacing-sm);
+}
+
+.badgeActive {
+  composes: badge;
+  color: var(--color-bg-primary);
+  opacity: 0.7;
+}
+
+/* ===================
+   Bottom Section
+   =================== */
+
+.bottomSection {
+  border-top: 1px solid var(--color-border);
+  padding: var(--spacing-md);
+  background-color: var(--color-bg-sidebar);
+}
+
+.bottomLinks {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.bottomLink {
+  flex: 1;
+  padding: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.bottomLink:hover {
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* ===================
+   Drawer Header (Mobile)
+   =================== */
+
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg-secondary);
+}
+
+.drawerTitle {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+
+.drawerClose {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  line-height: 1;
+  transition: color var(--transition-fast);
+}
+
+.drawerClose:hover {
+  color: var(--color-text-primary);
+}
+
+/* ===================
+   Refresh Button
+   =================== */
+
+.refreshButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.refreshButton:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  border-style: solid;
+}
+
+.refreshButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.refreshSpinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===================
+   Subtext/Meta
+   =================== */
+
+.itemMeta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-left: var(--spacing-xs);
+}
+
+.itemMetaHighlight {
+  composes: itemMeta;
+  color: var(--color-accent-light);
+}

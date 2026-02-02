@@ -4,6 +4,10 @@
 
 import React, { useState } from 'react';
 import { generateEntityName } from '../../lib/name-generator.js';
+import { TagSelector, ToolUsageBadges as UsageBadges, getEntityKindUsageSummary } from '@penguin-tales/shared-components';
+
+// Arctic Blue base theme with frost blue accent (Cosmographer)
+const ACCENT_COLOR = '#60a5fa';
 
 const styles = {
   container: {
@@ -24,10 +28,10 @@ const styles = {
     fontSize: '24px',
     fontWeight: 600,
     marginBottom: '8px',
-    color: '#f0f0f0'
+    color: '#ffffff'
   },
   subtitle: {
-    color: '#a0a0b0',
+    color: '#93c5fd',
     fontSize: '14px'
   },
   toolbar: {
@@ -38,8 +42,8 @@ const styles = {
   addButton: {
     padding: '8px 16px',
     fontSize: '13px',
-    backgroundColor: '#66ddb3',
-    color: '#1a1a28',
+    backgroundColor: ACCENT_COLOR,
+    color: '#0a1929',
     border: 'none',
     borderRadius: '4px',
     cursor: 'pointer',
@@ -49,10 +53,10 @@ const styles = {
   filterSelect: {
     padding: '8px 12px',
     fontSize: '13px',
-    backgroundColor: '#2d2d3d',
-    border: '1px solid #3d3d4d',
+    backgroundColor: '#2d4a6f',
+    border: '1px solid rgba(59, 130, 246, 0.3)',
     borderRadius: '4px',
-    color: '#f0f0f0',
+    color: '#ffffff',
     flex: 1,
     fontFamily: 'inherit'
   },
@@ -65,16 +69,18 @@ const styles = {
   },
   entityItem: {
     padding: '12px',
-    backgroundColor: '#252535',
+    backgroundColor: '#1e3a5f',
     borderRadius: '6px',
     cursor: 'pointer',
-    border: '2px solid transparent',
+    borderWidth: '2px',
+    borderStyle: 'solid',
+    borderColor: 'transparent',
     display: 'flex',
     alignItems: 'center',
     gap: '10px'
   },
   entityItemSelected: {
-    borderColor: '#66ddb3'
+    borderColor: ACCENT_COLOR
   },
   entityColor: {
     width: '10px',
@@ -87,32 +93,32 @@ const styles = {
   entityName: {
     fontSize: '14px',
     fontWeight: 500,
-    color: '#f0f0f0'
+    color: '#ffffff'
   },
   entityMeta: {
     fontSize: '11px',
-    color: '#707080'
+    color: '#60a5fa'
   },
   formPanel: {
     flex: 1,
-    backgroundColor: '#252535',
+    backgroundColor: '#1e3a5f',
     borderRadius: '8px',
     padding: '20px',
     overflowY: 'auto',
-    border: '1px solid #3d3d4d'
+    border: '1px solid rgba(59, 130, 246, 0.3)'
   },
   formTitle: {
     fontSize: '18px',
     fontWeight: 600,
     marginBottom: '20px',
-    color: '#f0f0f0'
+    color: '#ffffff'
   },
   formGroup: {
     marginBottom: '16px'
   },
   label: {
     fontSize: '12px',
-    color: '#a0a0b0',
+    color: '#93c5fd',
     marginBottom: '6px',
     display: 'block',
     fontWeight: 500
@@ -121,10 +127,10 @@ const styles = {
     width: '100%',
     padding: '10px',
     fontSize: '14px',
-    backgroundColor: '#2d2d3d',
-    border: '1px solid #3d3d4d',
+    backgroundColor: '#2d4a6f',
+    border: '1px solid rgba(59, 130, 246, 0.3)',
     borderRadius: '4px',
-    color: '#f0f0f0',
+    color: '#ffffff',
     fontFamily: 'inherit',
     boxSizing: 'border-box'
   },
@@ -132,20 +138,20 @@ const styles = {
     width: '100%',
     padding: '10px',
     fontSize: '14px',
-    backgroundColor: '#2d2d3d',
-    border: '1px solid #3d3d4d',
+    backgroundColor: '#2d4a6f',
+    border: '1px solid rgba(59, 130, 246, 0.3)',
     borderRadius: '4px',
-    color: '#f0f0f0',
+    color: '#ffffff',
     fontFamily: 'inherit'
   },
   textarea: {
     width: '100%',
     padding: '10px',
     fontSize: '14px',
-    backgroundColor: '#2d2d3d',
-    border: '1px solid #3d3d4d',
+    backgroundColor: '#2d4a6f',
+    border: '1px solid rgba(59, 130, 246, 0.3)',
     borderRadius: '4px',
-    color: '#f0f0f0',
+    color: '#ffffff',
     minHeight: '80px',
     resize: 'vertical',
     fontFamily: 'inherit',
@@ -162,15 +168,15 @@ const styles = {
     padding: '10px 20px',
     fontSize: '13px',
     backgroundColor: 'transparent',
-    color: '#ff6b7a',
-    border: '1px solid #ff6b7a',
+    color: '#ef4444',
+    border: '1px solid #ef4444',
     borderRadius: '4px',
     cursor: 'pointer',
     marginTop: '24px',
     fontFamily: 'inherit'
   },
   emptyState: {
-    color: '#707080',
+    color: '#60a5fa',
     fontSize: '14px',
     textAlign: 'center',
     padding: '40px'
@@ -180,7 +186,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
-    color: '#707080'
+    color: '#60a5fa'
   },
   nameRow: {
     display: 'flex',
@@ -193,8 +199,8 @@ const styles = {
   generateButton: {
     padding: '10px 14px',
     fontSize: '13px',
-    backgroundColor: '#66ddb3',
-    color: '#1a1a28',
+    backgroundColor: ACCENT_COLOR,
+    color: '#0a1929',
     border: 'none',
     borderRadius: '4px',
     cursor: 'pointer',
@@ -203,51 +209,18 @@ const styles = {
     fontFamily: 'inherit'
   },
   generateButtonDisabled: {
-    backgroundColor: '#3d3d4d',
-    color: '#707080',
+    backgroundColor: '#1e3a5f',
+    color: '#60a5fa',
     cursor: 'not-allowed'
-  },
-  tagsContainer: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '6px',
-    marginBottom: '8px'
-  },
-  tag: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '4px',
-    padding: '4px 8px',
-    backgroundColor: '#3d3d4d',
-    borderRadius: '4px',
-    fontSize: '12px',
-    color: '#f0f0f0'
-  },
-  tagRemove: {
-    cursor: 'pointer',
-    color: '#a0a0b0',
-    fontSize: '14px',
-    lineHeight: 1
-  },
-  tagInput: {
-    flex: 1,
-    minWidth: '100px',
-    padding: '6px 8px',
-    fontSize: '12px',
-    backgroundColor: '#2d2d3d',
-    border: '1px solid #3d3d4d',
-    borderRadius: '4px',
-    color: '#f0f0f0',
-    fontFamily: 'inherit'
   },
   coordsDisplay: {
     display: 'flex',
     gap: '16px',
     padding: '10px 12px',
-    backgroundColor: '#2d2d3d',
+    backgroundColor: '#2d4a6f',
     borderRadius: '4px',
     fontSize: '12px',
-    border: '1px solid #3d3d4d'
+    border: '1px solid rgba(59, 130, 246, 0.3)'
   },
   coordItem: {
     display: 'flex',
@@ -256,36 +229,36 @@ const styles = {
   },
   coordLabel: {
     fontWeight: 600,
-    color: '#66ddb3'
+    color: ACCENT_COLOR
   },
   coordValue: {
-    color: '#f0f0f0'
+    color: '#ffffff'
   },
   coordHint: {
     fontSize: '11px',
-    color: '#707080',
+    color: '#60a5fa',
     marginTop: '6px'
   }
 };
 
-export default function EntityEditor({ project, onSave }) {
+export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = {} }) {
   const [selectedEntityId, setSelectedEntityId] = useState(null);
   const [filterKind, setFilterKind] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState(null);
-  const [newTag, setNewTag] = useState('');
 
   const entities = project?.seedEntities || [];
   // Schema v2: entityKinds at project root
   const entityKinds = project?.entityKinds || [];
   const cultures = project?.cultures || [];
+  const tagRegistry = project?.tagRegistry || [];
 
   const filteredEntities = filterKind
     ? entities.filter(e => e.kind === filterKind)
     : entities;
 
   const selectedEntity = entities.find(e => e.id === selectedEntityId);
-  const selectedKindDef = entityKinds.find(k => k.id === selectedEntity?.kind);
+  const selectedKindDef = entityKinds.find(k => k.kind === selectedEntity?.kind);
 
   const updateEntities = (newEntities) => {
     onSave({ seedEntities: newEntities });
@@ -300,15 +273,20 @@ export default function EntityEditor({ project, onSave }) {
 
     const newEntity = {
       id: `entity_${Date.now()}`,
-      kind: defaultKind.id,
+      kind: defaultKind.kind,
       subtype: defaultKind.subtypes[0]?.id || '',
       name: 'New Entity',
+      summary: '',
+      narrativeHint: '',
       description: '',
       status: defaultKind.statuses[0]?.id || 'active',
       prominence: 'recognized',
       culture: cultures[0]?.id || '',
-      tags: [],
-      coordinates: { x: 50, y: 50, z: 50 }
+      tags: {},  // Key-value pairs for semantic tagging
+      links: [], // Relationships are stored separately, populated at load time
+      coordinates: { x: 50, y: 50, z: 50 },
+      createdAt: 0,
+      updatedAt: 0
     };
 
     updateEntities([...entities, newEntity]);
@@ -320,7 +298,7 @@ export default function EntityEditor({ project, onSave }) {
 
     // If kind changed, reset subtype and status
     if (updates.kind && updates.kind !== selectedEntity.kind) {
-      const newKind = entityKinds.find(k => k.id === updates.kind);
+      const newKind = entityKinds.find(k => k.kind === updates.kind);
       updates.subtype = newKind?.subtypes[0]?.id || '';
       updates.status = newKind?.statuses[0]?.id || 'active';
     }
@@ -352,8 +330,8 @@ export default function EntityEditor({ project, onSave }) {
     }
 
     // Check if culture has naming profiles
-    if (!culture.profiles || culture.profiles.length === 0) {
-      setGenerateError(`Culture "${culture.name}" has no naming profiles. Configure naming in Name Forge first.`);
+    if (!culture.naming?.profiles || culture.naming.profiles.length === 0) {
+      setGenerateError(`Culture "${culture.name || culture.id}" has no naming profiles. Configure naming in Name Forge first.`);
       return;
     }
 
@@ -365,7 +343,7 @@ export default function EntityEditor({ project, onSave }) {
         kind: selectedEntity.kind,
         subtype: selectedEntity.subtype,
         prominence: selectedEntity.prominence,
-        tags: selectedEntity.tags || [],
+        tags: Object.keys(selectedEntity.tags || {}),
       });
       updateEntity({ name });
     } catch (err) {
@@ -380,33 +358,23 @@ export default function EntityEditor({ project, onSave }) {
   const canGenerateName = () => {
     if (!selectedEntity) return false;
     const culture = cultures.find(c => c.id === selectedEntity.culture);
-    return culture && culture.profiles && culture.profiles.length > 0;
+    return culture && culture.naming?.profiles && culture.naming.profiles.length > 0;
   };
 
-  const addTag = () => {
-    if (!selectedEntity || !newTag.trim()) return;
-    const tag = newTag.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');
-    if (!tag) return;
-    const currentTags = selectedEntity.tags || [];
-    if (currentTags.includes(tag)) {
-      setNewTag('');
-      return;
-    }
-    updateEntity({ tags: [...currentTags, tag] });
-    setNewTag('');
+  // Convert tags from object format { tag: true } to array format ['tag']
+  const getTagsAsArray = () => {
+    const tags = selectedEntity?.tags || {};
+    return Object.keys(tags);
   };
 
-  const removeTag = (tagToRemove) => {
+  // Update tags from array format back to object format
+  const handleTagsChange = (tagArray) => {
     if (!selectedEntity) return;
-    const currentTags = selectedEntity.tags || [];
-    updateEntity({ tags: currentTags.filter(t => t !== tagToRemove) });
-  };
-
-  const handleTagKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addTag();
-    }
+    const tagsObj = {};
+    tagArray.forEach(tag => {
+      tagsObj[tag] = true;
+    });
+    updateEntity({ tags: tagsObj });
   };
 
   return (
@@ -427,8 +395,8 @@ export default function EntityEditor({ project, onSave }) {
           >
             <option value="">All kinds ({entities.length})</option>
             {entityKinds.map(k => (
-              <option key={k.id} value={k.id}>
-                {k.name} ({entities.filter(e => e.kind === k.id).length})
+              <option key={k.kind} value={k.kind}>
+                {k.description || k.kind} ({entities.filter(e => e.kind === k.kind).length})
               </option>
             ))}
           </select>
@@ -457,8 +425,11 @@ export default function EntityEditor({ project, onSave }) {
                 <div style={{ ...styles.entityColor, backgroundColor: getCultureColor(entity.culture) }} />
                 <div style={styles.entityInfo}>
                   <div style={styles.entityName}>{entity.name}</div>
-                  <div style={styles.entityMeta}>
-                    {entity.kind} / {entity.subtype || 'no subtype'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={styles.entityMeta}>
+                      {entity.kind} / {entity.subtype || 'no subtype'}
+                    </span>
+                    <UsageBadges usage={getEntityKindUsageSummary(schemaUsage, entity.kind)} compact />
                   </div>
                 </div>
               </div>
@@ -497,7 +468,7 @@ export default function EntityEditor({ project, onSave }) {
                 </button>
               </div>
               {generateError && (
-                <div style={{ color: '#ff6b7a', fontSize: '12px', marginTop: '6px' }}>
+                <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '6px' }}>
                   {generateError}
                 </div>
               )}
@@ -512,7 +483,7 @@ export default function EntityEditor({ project, onSave }) {
                   onChange={(e) => updateEntity({ kind: e.target.value })}
                 >
                   {entityKinds.map(k => (
-                    <option key={k.id} value={k.id}>{k.name}</option>
+                    <option key={k.kind} value={k.kind}>{k.description || k.kind}</option>
                   ))}
                 </select>
               </div>
@@ -565,50 +536,35 @@ export default function EntityEditor({ project, onSave }) {
               <label style={styles.label}>Prominence</label>
               <select
                 style={styles.select}
-                value={selectedEntity.prominence || 'recognized'}
-                onChange={(e) => updateEntity({ prominence: e.target.value })}
+                value={selectedEntity.prominence ?? 2.0}
+                onChange={(e) => updateEntity({ prominence: parseFloat(e.target.value) })}
               >
-                <option value="forgotten">Forgotten</option>
-                <option value="marginal">Marginal</option>
-                <option value="recognized">Recognized</option>
-                <option value="renowned">Renowned</option>
-                <option value="mythic">Mythic</option>
+                <option value="0.5">Forgotten</option>
+                <option value="1.5">Marginal</option>
+                <option value="2.5">Recognized</option>
+                <option value="3.5">Renowned</option>
+                <option value="4.5">Mythic</option>
               </select>
             </div>
 
             <div style={styles.formGroup}>
               <label style={styles.label}>Tags</label>
-              <div style={styles.tagsContainer}>
-                {(selectedEntity.tags || []).map(tag => (
-                  <span key={tag} style={styles.tag}>
-                    {tag}
-                    <span
-                      style={styles.tagRemove}
-                      onClick={() => removeTag(tag)}
-                      title="Remove tag"
-                    >
-                      ×
-                    </span>
-                  </span>
-                ))}
-                <input
-                  style={styles.tagInput}
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyDown={handleTagKeyDown}
-                  onBlur={addTag}
-                  placeholder="Add tag..."
-                />
-              </div>
+              <TagSelector
+                value={getTagsAsArray()}
+                onChange={handleTagsChange}
+                tagRegistry={tagRegistry}
+                placeholder="Select tags..."
+                onAddToRegistry={onAddTag}
+              />
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Description</label>
+              <label style={styles.label}>Summary</label>
               <textarea
                 style={styles.textarea}
-                value={selectedEntity.description || ''}
-                onChange={(e) => updateEntity({ description: e.target.value })}
-                placeholder="Optional description..."
+                value={selectedEntity.summary ?? selectedEntity.narrativeHint ?? selectedEntity.description ?? ''}
+                onChange={(e) => updateEntity({ summary: e.target.value, narrativeHint: e.target.value })}
+                placeholder="Optional summary..."
               />
             </div>
 

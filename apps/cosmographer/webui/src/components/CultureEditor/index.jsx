@@ -5,47 +5,32 @@
  * contains x, y, z values corresponding to that kind's semantic plane axes.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 
 const styles = {
   container: {
-    maxWidth: '900px'
+    maxWidth: '1200px'
   },
   header: {
-    marginBottom: '24px'
+    marginBottom: '16px'
   },
   title: {
-    fontSize: '24px',
+    fontSize: '20px',
     fontWeight: 600,
-    marginBottom: '8px'
+    marginBottom: '4px'
   },
   subtitle: {
     color: '#888',
-    fontSize: '14px'
-  },
-  toolbar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '16px'
-  },
-  addButton: {
-    padding: '8px 16px',
-    fontSize: '13px',
-    backgroundColor: '#e94560',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer'
+    fontSize: '13px'
   },
   cultureList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px'
+    gap: '6px'
   },
   cultureCard: {
     backgroundColor: '#16213e',
-    borderRadius: '8px',
+    borderRadius: '6px',
     border: '1px solid #0f3460',
     overflow: 'hidden'
   },
@@ -53,28 +38,29 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '12px 16px',
+    padding: '10px 14px',
     cursor: 'pointer'
   },
   cultureHeaderLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px'
+    gap: '10px'
   },
   expandIcon: {
-    fontSize: '12px',
+    fontSize: '10px',
     color: '#888',
     transition: 'transform 0.2s',
-    width: '16px'
+    width: '14px'
   },
   colorDot: {
-    width: '16px',
-    height: '16px',
+    width: '14px',
+    height: '14px',
     borderRadius: '50%',
     border: '2px solid #0f3460'
   },
   cultureName: {
-    fontWeight: 500
+    fontWeight: 500,
+    fontSize: '14px'
   },
   cultureId: {
     color: '#666',
@@ -85,119 +71,62 @@ const styles = {
     color: '#666'
   },
   cultureBody: {
-    padding: '16px',
+    padding: '12px',
     borderTop: '1px solid #0f3460'
   },
-  formRow: {
-    display: 'flex',
-    gap: '12px',
-    marginBottom: '16px',
-    alignItems: 'flex-start'
+  kindsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+    gap: '8px'
   },
-  formGroup: {
-    flex: 1
-  },
-  label: {
-    fontSize: '12px',
-    color: '#888',
-    marginBottom: '6px',
-    display: 'block'
-  },
-  input: {
-    width: '100%',
-    padding: '8px 10px',
-    fontSize: '14px',
+  kindCard: {
     backgroundColor: '#1a1a2e',
-    border: '1px solid #0f3460',
     borderRadius: '4px',
-    color: '#eee',
-    boxSizing: 'border-box'
+    padding: '10px 12px'
   },
-  colorSection: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    marginBottom: '16px'
-  },
-  colorPickerDot: {
-    width: '32px',
-    height: '32px',
-    borderRadius: '50%',
-    cursor: 'pointer',
-    border: '3px solid #0f3460'
-  },
-  colorPicker: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '6px'
-  },
-  colorOption: {
-    width: '24px',
-    height: '24px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    border: '2px solid transparent'
-  },
-  accordion: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: '6px',
-    overflow: 'hidden',
-    marginBottom: '8px'
-  },
-  accordionHeader: {
+  kindHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '10px 12px',
-    cursor: 'pointer',
-    fontSize: '13px',
+    marginBottom: '8px'
+  },
+  kindName: {
+    fontSize: '12px',
     fontWeight: 500,
     color: '#ccc'
   },
-  accordionHeaderLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  },
-  accordionIcon: {
+  kindSummary: {
     fontSize: '10px',
-    color: '#666',
-    transition: 'transform 0.2s'
-  },
-  accordionBody: {
-    padding: '12px',
-    borderTop: '1px solid #0f3460'
+    color: '#666'
   },
   axisRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    marginBottom: '8px'
+    gap: '6px',
+    marginBottom: '4px'
   },
   axisLabel: {
-    width: '20px',
-    fontSize: '11px',
+    width: '14px',
+    fontSize: '10px',
     fontWeight: 600,
     color: '#e94560'
   },
-  axisName: {
-    width: '90px',
-    fontSize: '11px',
-    color: '#888',
+  tagLabel: {
+    fontSize: '9px',
+    color: '#666',
+    width: '50px',
+    textAlign: 'right',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap'
   },
-  lowLabel: {
-    fontSize: '10px',
+  tagLabelRight: {
+    fontSize: '9px',
     color: '#666',
-    width: '55px',
-    textAlign: 'right'
-  },
-  highLabel: {
-    fontSize: '10px',
-    color: '#666',
-    width: '55px'
+    width: '50px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap'
   },
   slider: {
     flex: 1,
@@ -205,22 +134,15 @@ const styles = {
     WebkitAppearance: 'none',
     background: 'linear-gradient(to right, #0f3460, #e94560)',
     borderRadius: '2px',
-    outline: 'none'
+    outline: 'none',
+    cursor: 'pointer'
   },
   axisValue: {
-    width: '28px',
+    width: '24px',
     textAlign: 'right',
-    fontSize: '11px',
-    color: '#888'
-  },
-  deleteButton: {
-    padding: '6px 12px',
-    fontSize: '12px',
-    backgroundColor: 'transparent',
-    color: '#e94560',
-    border: '1px solid #e94560',
-    borderRadius: '4px',
-    cursor: 'pointer'
+    fontSize: '10px',
+    color: '#888',
+    fontFamily: 'monospace'
   },
   emptyState: {
     color: '#666',
@@ -234,32 +156,24 @@ const styles = {
     padding: '12px',
     backgroundColor: 'rgba(240, 165, 0, 0.1)',
     borderRadius: '4px'
-  },
-  actionsRow: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    marginTop: '16px'
   }
 };
 
 export default function CultureEditor({ project, onSave }) {
   const [expandedCultures, setExpandedCultures] = useState({});
-  const [expandedKinds, setExpandedKinds] = useState({});
+  // Track local slider value during drag to avoid expensive state updates
+  const [localSliderValue, setLocalSliderValue] = useState(null);
+  const draggingRef = useRef(null); // { cultureId, kindId, axis }
 
   const cultures = project?.cultures || [];
   const entityKinds = project?.entityKinds || [];
+  const axisDefinitions = project?.axisDefinitions || [];
+  const axisById = useMemo(() => {
+    return new Map(axisDefinitions.map(axis => [axis.id, axis]));
+  }, [axisDefinitions]);
 
   const toggleCulture = (cultureId) => {
     setExpandedCultures(prev => ({ ...prev, [cultureId]: !prev[cultureId] }));
-  };
-
-  const toggleKind = (cultureId, kindId) => {
-    const key = `${cultureId}-${kindId}`;
-    setExpandedKinds(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const isKindExpanded = (cultureId, kindId) => {
-    return expandedKinds[`${cultureId}-${kindId}`];
   };
 
   const updateCultures = (newCultures) => {
@@ -267,12 +181,14 @@ export default function CultureEditor({ project, onSave }) {
   };
 
   const updateCulture = (cultureId, updates) => {
+    const existing = cultures.find(c => c.id === cultureId);
+    if (existing?.isFramework) return;
     updateCultures(cultures.map(c =>
       c.id === cultureId ? { ...c, ...updates } : c
     ));
   };
 
-  const setAxisBias = (cultureId, kindId, axis, value) => {
+  const commitAxisBias = (cultureId, kindId, axis, value) => {
     const culture = cultures.find(c => c.id === cultureId);
     if (!culture) return;
 
@@ -289,6 +205,39 @@ export default function CultureEditor({ project, onSave }) {
     });
   };
 
+  const handleSliderStart = (cultureId, kindId, axis, value) => {
+    draggingRef.current = { cultureId, kindId, axis };
+    setLocalSliderValue(parseInt(value, 10));
+  };
+
+  const handleSliderChange = (value) => {
+    if (draggingRef.current) {
+      setLocalSliderValue(parseInt(value, 10));
+    }
+  };
+
+  const handleSliderEnd = () => {
+    if (draggingRef.current && localSliderValue !== null) {
+      const { cultureId, kindId, axis } = draggingRef.current;
+      commitAxisBias(cultureId, kindId, axis, localSliderValue);
+    }
+    draggingRef.current = null;
+    setLocalSliderValue(null);
+  };
+
+  const getDisplayValue = (cultureId, kindId, axis, storedValue) => {
+    if (
+      draggingRef.current &&
+      draggingRef.current.cultureId === cultureId &&
+      draggingRef.current.kindId === kindId &&
+      draggingRef.current.axis === axis &&
+      localSliderValue !== null
+    ) {
+      return localSliderValue;
+    }
+    return storedValue;
+  };
+
   const getBiasSummary = (culture) => {
     const biasCount = Object.keys(culture.axisBiases || {}).length;
     return `${biasCount} kind${biasCount !== 1 ? 's' : ''} configured`;
@@ -303,12 +252,6 @@ export default function CultureEditor({ project, onSave }) {
         </div>
       </div>
 
-      <div style={styles.toolbar}>
-        <span style={{ color: '#888', fontSize: '13px' }}>
-          {cultures.length} culture{cultures.length !== 1 ? 's' : ''}
-        </span>
-      </div>
-
       {cultures.length === 0 ? (
         <div style={styles.emptyState}>
           No cultures defined yet. Add cultures in the Enumerist tab first.
@@ -317,6 +260,7 @@ export default function CultureEditor({ project, onSave }) {
         <div style={styles.cultureList}>
           {cultures.map((culture) => {
             const isExpanded = expandedCultures[culture.id];
+            const isFramework = Boolean(culture.isFramework);
 
             return (
               <div key={culture.id} style={styles.cultureCard}>
@@ -334,6 +278,9 @@ export default function CultureEditor({ project, onSave }) {
                     <div style={{ ...styles.colorDot, backgroundColor: culture.color }} />
                     <span style={styles.cultureName}>{culture.name}</span>
                     <span style={styles.cultureId}>({culture.id})</span>
+                    {isFramework && (
+                      <span style={{ fontSize: '10px', color: '#94a3b8' }}>framework</span>
+                    )}
                   </div>
                   <div style={styles.cultureSummary}>
                     {getBiasSummary(culture)}
@@ -342,63 +289,70 @@ export default function CultureEditor({ project, onSave }) {
 
                 {isExpanded && (
                   <div style={styles.cultureBody}>
-                    {/* Axis Biases by Entity Kind */}
                     {entityKinds.length === 0 ? (
                       <div style={styles.noKindsWarning}>
                         Define entity kinds in the Enumerist tab first to configure axis biases.
                       </div>
                     ) : (
-                      entityKinds.map((kind) => {
-                        const axes = kind.semanticPlane?.axes || {};
-                        const biases = culture.axisBiases?.[kind.id] || { x: 50, y: 50, z: 50 };
-                        const kindExpanded = isKindExpanded(culture.id, kind.id);
+                      <div style={styles.kindsGrid}>
+                        {entityKinds.map((kind) => {
+                          const axes = kind.semanticPlane?.axes || {};
+                          const biases = culture.axisBiases?.[kind.kind] || { x: 50, y: 50, z: 50 };
 
-                        return (
-                          <div key={kind.id} style={styles.accordion}>
-                            <div
-                              style={styles.accordionHeader}
-                              onClick={() => toggleKind(culture.id, kind.id)}
-                            >
-                              <div style={styles.accordionHeaderLeft}>
-                                <span style={{
-                                  ...styles.accordionIcon,
-                                  transform: kindExpanded ? 'rotate(90deg)' : 'rotate(0deg)'
-                                }}>▶</span>
-                                <span>{kind.name}</span>
+                          return (
+                            <div key={kind.kind} style={styles.kindCard}>
+                              <div style={styles.kindHeader}>
+                                <span style={styles.kindName}>{kind.description || kind.kind}</span>
+                                <span style={styles.kindSummary}>
+                                  {biases.x}/{biases.y}/{biases.z}
+                                </span>
                               </div>
-                              <span style={{ fontSize: '11px', color: '#666' }}>
-                                X:{biases.x} Y:{biases.y} Z:{biases.z}
-                              </span>
+                              {['x', 'y', 'z'].map((axis) => {
+                                const axisRef = axes[axis];
+                                const axisConfig = axisRef?.axisId ? axisById.get(axisRef.axisId) : undefined;
+                                const axisPlaceholder = axisRef?.axisId && !axisConfig
+                                  ? `Missing axis (${axisRef.axisId})`
+                                  : 'Unassigned';
+                                const storedValue = biases[axis] ?? 50;
+                                const displayValue = getDisplayValue(culture.id, kind.kind, axis, storedValue);
+
+                                return (
+                                  <div key={axis} style={styles.axisRow}>
+                                    <span style={styles.axisLabel}>{axis.toUpperCase()}</span>
+                                    <span style={styles.tagLabel} title={axisConfig?.lowTag || axisPlaceholder}>
+                                      {axisConfig?.lowTag || '—'}
+                                    </span>
+                                    <input
+                                      type="range"
+                                      min="0"
+                                      max="100"
+                                      value={displayValue}
+                                      disabled={isFramework}
+                                      onMouseDown={(e) => handleSliderStart(culture.id, kind.kind, axis, e.target.value)}
+                                      onTouchStart={(e) => handleSliderStart(culture.id, kind.kind, axis, e.target.value)}
+                                      onChange={(e) => handleSliderChange(e.target.value)}
+                                      onMouseUp={handleSliderEnd}
+                                      onTouchEnd={handleSliderEnd}
+                                      onMouseLeave={() => {
+                                        if (draggingRef.current) handleSliderEnd();
+                                      }}
+                                      style={{
+                                        ...styles.slider,
+                                        opacity: isFramework ? 0.5 : 1,
+                                        pointerEvents: isFramework ? 'none' : 'auto'
+                                      }}
+                                    />
+                                    <span style={styles.tagLabelRight} title={axisConfig?.highTag || axisPlaceholder}>
+                                      {axisConfig?.highTag || '—'}
+                                    </span>
+                                    <span style={styles.axisValue}>{displayValue}</span>
+                                  </div>
+                                );
+                              })}
                             </div>
-                            {kindExpanded && (
-                              <div style={styles.accordionBody}>
-                                {['x', 'y', 'z'].map((axis) => {
-                                  const axisConfig = axes[axis] || { name: `${axis.toUpperCase()} Axis`, lowLabel: 'Low', highLabel: 'High' };
-                                  return (
-                                    <div key={axis} style={styles.axisRow}>
-                                      <span style={styles.axisLabel}>{axis.toUpperCase()}</span>
-                                      <span style={styles.axisName} title={axisConfig.name}>
-                                        {axisConfig.name}
-                                      </span>
-                                      <span style={styles.lowLabel}>{axisConfig.lowLabel}</span>
-                                      <input
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        value={biases[axis] ?? 50}
-                                        onChange={(e) => setAxisBias(culture.id, kind.id, axis, e.target.value)}
-                                        style={styles.slider}
-                                      />
-                                      <span style={styles.highLabel}>{axisConfig.highLabel}</span>
-                                      <div style={styles.axisValue}>{biases[axis] ?? 50}</div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 )}

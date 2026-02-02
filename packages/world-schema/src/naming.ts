@@ -84,6 +84,14 @@ export interface LexemeList {
 }
 
 /**
+ * Lexeme generation spec used for LLM-based lexeme creation.
+ */
+export interface LexemeSpec {
+  id: string;
+  [key: string]: unknown;
+}
+
+/**
  * Grammar rules for name generation
  */
 export interface Grammar {
@@ -141,6 +149,7 @@ export interface NamingProfile {
 export interface CultureNamingData {
   domains: NamingDomain[];
   lexemeLists: Record<string, LexemeList>;
+  lexemeSpecs?: LexemeSpec[];
   grammars: Grammar[];
   profiles: NamingProfile[];
 }

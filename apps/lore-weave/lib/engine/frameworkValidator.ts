@@ -7,12 +7,25 @@
  * Runs at startup to catch configuration errors before generation begins.
  */
 
-import { EngineConfig, ComponentPurpose, Pressure, EntityOperatorRegistry } from '../engine/types';
+import { EngineConfig, Pressure, EntityOperatorRegistry, SimulationSystem } from '../engine/types';
+import { DeclarativeSystem } from './systemInterpreter';
 
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
+}
+
+/**
+ * Get the ID from a system, handling both SimulationSystem and DeclarativeSystem
+ */
+function getSystemId(system: SimulationSystem | DeclarativeSystem): string {
+  if ('systemType' in system) {
+    // DeclarativeSystem has config.id
+    return system.config.id;
+  }
+  // SimulationSystem has direct id
+  return system.id;
 }
 
 export class FrameworkValidator {
@@ -69,7 +82,7 @@ export class FrameworkValidator {
 
       // Validate modifiers exist in systems
       for (const modifier of registry.modifiers) {
-        const system = this.config.systems.find(s => s.id === modifier.systemId);
+        const system = this.config.systems.find(s => getSystemId(s) === modifier.systemId);
         if (!system) {
           errors.push(`Entity kind '${registry.kind}' references non-existent system: ${modifier.systemId}`);
         }
@@ -127,38 +140,17 @@ export class FrameworkValidator {
         continue; // Skip pressures without contracts
       }
 
-      // Calculate maximum inflow from fixed sources
-      const maxInflow = pressure.contract.sources
-        .filter(s => s.delta !== undefined)
-        .reduce((sum, s) => sum + (s.delta || 0), 0);
-
-      // Calculate fixed outflow from sinks
-      const fixedOutflow = pressure.contract.sinks
-        .filter(s => s.delta !== undefined)
-        .reduce((sum, s) => sum + Math.abs(s.delta || 0), 0);
-
-      // Predicted equilibrium where: maxInflow = decay * value + fixedOutflow
-      // Solving for value: value = (maxInflow - fixedOutflow) / decay
-      if (pressure.decay > 0) {
-        const predictedEquilibrium = (maxInflow - fixedOutflow) / pressure.decay;
-
-        const [expectedMin, expectedMax] = pressure.contract.equilibrium.expectedRange;
-
-        // Check if predicted equilibrium is within expected range
-        if (predictedEquilibrium < expectedMin * 0.8 || predictedEquilibrium > expectedMax * 1.2) {
-          warnings.push(
-            `Pressure '${pressure.name}' equilibrium mismatch: ` +
-            `predicted=${predictedEquilibrium.toFixed(1)}, ` +
-            `expected=[${expectedMin}, ${expectedMax}]. ` +
-            `Consider adjusting sources, sinks, or decay rate.`
-          );
-        }
+      // Enforce equilibrium centered at 0
+      if (pressure.contract.equilibrium.restingPoint !== 0) {
+        errors.push(
+          `Pressure '${pressure.name}' restingPoint must be 0 for the new homeostatic model (found ${pressure.contract.equilibrium.restingPoint}).`
+        );
       }
 
       // Check if equilibrium range is valid
       const [min, max] = pressure.contract.equilibrium.expectedRange;
-      if (min < 0 || max > 100) {
-        errors.push(`Pressure '${pressure.name}' has invalid equilibrium range: [${min}, ${max}]. Must be within [0, 100].`);
+      if (min < -100 || max > 100) {
+        errors.push(`Pressure '${pressure.name}' has invalid equilibrium range: [${min}, ${max}]. Must be within [-100, 100].`);
       }
 
       if (min >= max) {
@@ -211,80 +203,11 @@ export class FrameworkValidator {
   /**
    * Validate Contracts
    *
-   * Validates that component contracts are consistent:
-   * - Purpose matches component type
-   * - Affects declarations are valid
-   * - EnabledBy references exist
+   * Note: Contract validation removed. Contracts are now empty.
+   * Lineage attribution is handled by the mutation tracker; no contract validation needed.
    */
   private validateContracts(errors: string[], warnings: string[]): void {
-    // Validate template contracts
-    for (const template of this.config.templates) {
-      if (!template.contract) {
-        warnings.push(`Template '${template.id}' has no contract`);
-        continue;
-      }
-
-      // Template contracts should have ENTITY_CREATION or RELATIONSHIP_CREATION purpose
-      if (template.contract.purpose !== ComponentPurpose.ENTITY_CREATION &&
-          template.contract.purpose !== ComponentPurpose.RELATIONSHIP_CREATION) {
-        warnings.push(
-          `Template '${template.id}' has purpose ${template.contract.purpose}, ` +
-          `expected ENTITY_CREATION or RELATIONSHIP_CREATION`
-        );
-      }
-
-      // Validate enabledBy pressures exist
-      if (template.contract.enabledBy?.pressures) {
-        for (const p of template.contract.enabledBy.pressures) {
-          if (!this.config.pressures.find(pressure => pressure.id === p.name || pressure.name === p.name)) {
-            errors.push(`Template '${template.id}' references non-existent pressure: ${p.name}`);
-          }
-        }
-      }
-
-      // Validate enabledBy entity kinds exist
-      if (template.contract.enabledBy?.entityCounts) {
-        for (const e of template.contract.enabledBy.entityCounts) {
-          if (!this.entityKindExists(e.kind)) {
-            errors.push(`Template '${template.id}' references non-existent entity kind: ${e.kind}`);
-          }
-        }
-      }
-
-      // Validate affects entities
-      if (template.contract.affects.entities) {
-        for (const e of template.contract.affects.entities) {
-          if (!this.entityKindExists(e.kind)) {
-            errors.push(`Template '${template.id}' affects non-existent entity kind: ${e.kind}`);
-          }
-        }
-      }
-    }
-
-    // Validate system contracts
-    for (const system of this.config.systems) {
-      if (!system.contract) {
-        warnings.push(`System '${system.id}' has no contract`);
-        continue;
-      }
-
-      // System contracts should not be ENTITY_CREATION
-      if (system.contract.purpose === ComponentPurpose.ENTITY_CREATION) {
-        errors.push(
-          `System '${system.id}' has purpose ENTITY_CREATION - ` +
-          `systems should not create entities, use templates instead`
-        );
-      }
-
-      // Validate similar fields as templates
-      if (system.contract.enabledBy?.pressures) {
-        for (const p of system.contract.enabledBy.pressures) {
-          if (!this.config.pressures.find(pressure => pressure.id === p.name || pressure.name === p.name)) {
-            errors.push(`System '${system.id}' references non-existent pressure: ${p.name}`);
-          }
-        }
-      }
-    }
+    // Contracts are now empty - no validation needed
   }
 
   /**
@@ -298,7 +221,7 @@ export class FrameworkValidator {
       case 'template':
         return this.config.templates.some(t => t.id === id);
       case 'system':
-        return this.config.systems.some(s => s.id === id);
+        return this.config.systems.some(s => getSystemId(s) === id);
       case 'pressure':
         return this.config.pressures.some(p => p.name === id || p.id === id);
       case 'time':
@@ -315,7 +238,7 @@ export class FrameworkValidator {
   }
 
   /**
-   * Check if an entity kind exists in the domain schema
+   * Check if an entity kind exists in the canonical schema
    */
   private entityKindExists(kind: string): boolean {
     // Check entity registries first
@@ -325,12 +248,13 @@ export class FrameworkValidator {
       }
     }
 
-    // Check domain schema (entityKinds is an array of EntityKindDefinition objects)
-    if (this.config.domain && this.config.domain.entityKinds) {
-      return this.config.domain.entityKinds.some(ekd => ekd.kind === kind);
-    }
+    return this.config.schema.entityKinds.some(ekd => ekd.kind === kind);
+  }
 
-    // Fallback: assume standard kinds
-    return ['npc', 'faction', 'location', 'abilities', 'rules'].includes(kind);
+  /**
+   * Check if a relationship kind exists in the canonical schema
+   */
+  private relationshipKindExists(kind: string): boolean {
+    return this.config.schema.relationshipKinds.some(rkd => rkd.kind === kind);
   }
 }

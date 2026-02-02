@@ -1,33 +1,47 @@
-# main.tf - S3 bucket and CloudFront distribution for penguin-tales static sites
+# main.tf - S3 bucket and CloudFront distribution for canonry full suite
 
 data "aws_caller_identity" "current" {}
 
 locals {
-  name_forge_path = "name-forge"
-  bucket_name     = "${var.prefix}-static-${data.aws_caller_identity.current.account_id}"
-  s3_origin_id    = "S3-${local.bucket_name}"
-  dist_dir        = "${path.module}/../../apps/name-forge/webui/dist"
+  bucket_name  = "${var.prefix}-static-${data.aws_caller_identity.current.account_id}"
+  s3_origin_id = "S3-${local.bucket_name}"
 
-  # Map file extensions to content types
-  content_types = {
-    ".html" = "text/html"
-    ".css"  = "text/css"
-    ".js"   = "application/javascript"
-    ".json" = "application/json"
-    ".svg"  = "image/svg+xml"
-    ".png"  = "image/png"
-    ".jpg"  = "image/jpeg"
-    ".jpeg" = "image/jpeg"
-    ".gif"  = "image/gif"
-    ".ico"  = "image/x-icon"
-    ".woff" = "font/woff"
-    ".woff2"= "font/woff2"
-    ".ttf"  = "font/ttf"
-    ".eot"  = "application/vnd.ms-fontobject"
-    ".txt"  = "text/plain"
-    ".xml"  = "application/xml"
-    ".webp" = "image/webp"
+  # App build outputs and URL prefixes
+  apps = {
+    canonry = {
+      path = "" # root
+      dist = "${path.module}/../../apps/canonry/webui/dist"
+    }
+    name_forge = {
+      path = "name-forge"
+      dist = "${path.module}/../../apps/name-forge/webui/dist"
+    }
+    cosmographer = {
+      path = "cosmographer"
+      dist = "${path.module}/../../apps/cosmographer/webui/dist"
+    }
+    coherence_engine = {
+      path = "coherence-engine"
+      dist = "${path.module}/../../apps/coherence-engine/webui/dist"
+    }
+    lore_weave = {
+      path = "lore-weave"
+      dist = "${path.module}/../../apps/lore-weave/webui/dist"
+    }
+    illuminator = {
+      path = "illuminator"
+      dist = "${path.module}/../../apps/illuminator/webui/dist"
+    }
+    archivist = {
+      path = "archivist"
+      dist = "${path.module}/../../apps/archivist/webui/dist"
+    }
+    chronicler = {
+      path = "chronicler"
+      dist = "${path.module}/../../apps/chronicler/webui/dist"
+    }
   }
+
 }
 
 # -----------------------------------------------------------------------------
@@ -109,24 +123,80 @@ resource "aws_s3_bucket_public_access_block" "static_site" {
 }
 
 # -----------------------------------------------------------------------------
-# S3 Objects - Name Forge Static Assets
+# S3 Objects - Canonry Shell + All MFEs
 # -----------------------------------------------------------------------------
 
-resource "aws_s3_object" "name_forge_assets" {
-  for_each = fileset(local.dist_dir, "**/*")
+resource "aws_s3_object" "app_assets" {
+  for_each = {
+    for obj in flatten([
+      for app_key, app in local.apps : [
+        for file in fileset(app.dist, "**/*") : {
+          app_key = app_key
+          key     = app.path != "" ? "${app.path}/${file}" : file
+          source  = "${app.dist}/${file}"
+          ext     = regex("\\.[^.]+$", file)
+        }
+      ]
+    ]) : "${obj.app_key}:${obj.key}" => obj
+  }
 
-  bucket       = aws_s3_bucket.static_site.id
-  key          = "${local.name_forge_path}/${each.value}"
-  source       = "${local.dist_dir}/${each.value}"
-  source_hash  = filemd5("${local.dist_dir}/${each.value}")
-  content_type = lookup(local.content_types, regex("\\.[^.]+$", each.value), "application/octet-stream")
+  bucket      = aws_s3_bucket.static_site.id
+  key         = each.value.key
+  source      = each.value.source
+  source_hash = filemd5(each.value.source)
+  content_type = lookup({
+    ".html"  = "text/html"
+    ".css"   = "text/css"
+    ".js"    = "application/javascript"
+    ".json"  = "application/json"
+    ".svg"   = "image/svg+xml"
+    ".png"   = "image/png"
+    ".jpg"   = "image/jpeg"
+    ".jpeg"  = "image/jpeg"
+    ".gif"   = "image/gif"
+    ".ico"   = "image/x-icon"
+    ".woff"  = "font/woff"
+    ".woff2" = "font/woff2"
+    ".ttf"   = "font/ttf"
+    ".eot"   = "application/vnd.ms-fontobject"
+    ".txt"   = "text/plain"
+    ".xml"   = "application/xml"
+    ".webp"  = "image/webp"
+    ".map"   = "application/json"
+  }, each.value.ext, "application/octet-stream")
 
-  cache_control = can(regex("\\.html$", each.value)) ? "public, max-age=0, must-revalidate" : "public, max-age=31536000, immutable"
+  # Critical: Proper cache headers to prevent stale content
+  # - HTML files: no-cache (always fetch fresh)
+  # - remoteEntry.js: no-cache (Module Federation entry points must be fresh)
+  # - Other assets: immutable with long cache (hashed filenames)
+  cache_control = (
+    can(regex("\\.html$", each.value.key)) ? "no-cache, no-store, must-revalidate" :
+    can(regex("remoteEntry\\.js$", each.value.key)) ? "no-cache, no-store, must-revalidate" :
+    can(regex("mf-manifest\\.json$", each.value.key)) ? "public, max-age=60" :
+    "public, max-age=31536000, immutable"
+  )
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# -----------------------------------------------------------------------------
+# Deployment Marker - Triggers cache invalidation once per deployment
+# -----------------------------------------------------------------------------
+
+# This terraform_data resource tracks when any S3 object changes
+# and triggers the CloudFront invalidation action exactly once per deployment
+resource "terraform_data" "deployment_marker" {
+  # This input combines hashes of all S3 objects, so it changes whenever any file changes
+  input = sha256(jsonencode([
+    for k, v in aws_s3_object.app_assets : v.source_hash
+  ]))
 
   lifecycle {
     action_trigger {
       events  = [after_update]
-      actions = [action.aws_cloudfront_create_invalidation.invalidate_name_forge]
+      actions = [action.aws_cloudfront_create_invalidation.invalidate_all]
     }
   }
 }
@@ -188,7 +258,8 @@ resource "aws_cloudfront_distribution" "static_site" {
     origin_access_control_id = aws_cloudfront_origin_access_control.static_site.id
   }
 
-  # Default behavior - will serve world-gen from root when ready
+  # Default behavior - serves canonry shell from root
+  # Respects Cache-Control headers from S3 (min_ttl=0 allows S3 to control caching)
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
@@ -202,15 +273,15 @@ resource "aws_cloudfront_distribution" "static_site" {
     }
 
     viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
+    min_ttl                = 0     # Allow S3 Cache-Control to set minimum
+    default_ttl            = 86400 # Used only if S3 doesn't send Cache-Control
+    max_ttl                = 31536000
     compress               = true
   }
 
-  # Behavior for /name-forge/* paths
+  # Behaviors for MFE remotes - respect S3 Cache-Control headers
   ordered_cache_behavior {
-    path_pattern     = "/${local.name_forge_path}/*"
+    path_pattern     = "/name-forge/*"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = local.s3_origin_id
@@ -224,8 +295,128 @@ resource "aws_cloudfront_distribution" "static_site" {
 
     viewer_protocol_policy = "redirect-to-https"
     min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
+    default_ttl            = 86400
+    max_ttl                = 31536000
+    compress               = true
+  }
+
+  ordered_cache_behavior {
+    path_pattern     = "/cosmographer/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 86400
+    max_ttl                = 31536000
+    compress               = true
+  }
+
+  ordered_cache_behavior {
+    path_pattern     = "/coherence-engine/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 86400
+    max_ttl                = 31536000
+    compress               = true
+  }
+
+  ordered_cache_behavior {
+    path_pattern     = "/lore-weave/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 86400
+    max_ttl                = 31536000
+    compress               = true
+  }
+
+  ordered_cache_behavior {
+    path_pattern     = "/archivist/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 86400
+    max_ttl                = 31536000
+    compress               = true
+  }
+
+  ordered_cache_behavior {
+    path_pattern     = "/illuminator/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 86400
+    max_ttl                = 31536000
+    compress               = true
+  }
+
+  ordered_cache_behavior {
+    path_pattern     = "/chronicler/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 86400
+    max_ttl                = 31536000
     compress               = true
   }
 
@@ -233,14 +424,14 @@ resource "aws_cloudfront_distribution" "static_site" {
   custom_error_response {
     error_code            = 403
     response_code         = 200
-    response_page_path    = "/${local.name_forge_path}/index.html"
+    response_page_path    = "/index.html"
     error_caching_min_ttl = 10
   }
 
   custom_error_response {
     error_code            = 404
     response_code         = 200
-    response_page_path    = "/${local.name_forge_path}/index.html"
+    response_page_path    = "/index.html"
     error_caching_min_ttl = 10
   }
 
@@ -288,15 +479,8 @@ resource "aws_route53_record" "www" {
 }
 
 # -----------------------------------------------------------------------------
-# CloudFront Cache Invalidation Action (Terraform 1.14+)
+# CloudFront Cache Invalidation (Terraform 1.14+)
 # -----------------------------------------------------------------------------
-
-action "aws_cloudfront_create_invalidation" "invalidate_name_forge" {
-  config {
-    distribution_id = aws_cloudfront_distribution.static_site.id
-    paths           = ["/${local.name_forge_path}/*"]
-  }
-}
 
 action "aws_cloudfront_create_invalidation" "invalidate_all" {
   config {

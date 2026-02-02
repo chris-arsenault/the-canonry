@@ -1,0 +1,180 @@
+/**
+ * ChronicleSeedViewer CSS Module
+ * Chronicle generation context display
+ */
+
+.container {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.section {
+  margin-bottom: var(--spacing-md);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.field {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.fieldLabel {
+  color: var(--color-text-muted);
+  min-width: 80px;
+}
+
+.fieldValue {
+  color: var(--color-text-primary);
+}
+
+.roleList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.roleItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+}
+
+.roleBadge {
+  padding: 2px var(--spacing-xs);
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+}
+
+.primaryBadge {
+  composes: roleBadge;
+  background: var(--color-accent);
+  color: white;
+}
+
+.supportingBadge {
+  composes: roleBadge;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.entityName {
+  font-weight: var(--font-weight-medium);
+}
+
+.entityKind {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.idList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.idTag {
+  padding: 2px var(--spacing-sm);
+  background: var(--color-bg-tertiary);
+  border-radius: 3px;
+  font-size: var(--font-size-xs);
+  font-family: monospace;
+}
+
+.emptyState {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* Modal styles */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+}
+
+.modalContent {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-xl);
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-border);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.modalClose:hover {
+  color: var(--color-text-primary);
+}
+
+.modalBody {
+  padding: var(--spacing-lg);
+  overflow-y: auto;
+}
+
+.modalFooter {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.closeButton {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  transition: all var(--transition-fast);
+}
+
+.closeButton:hover {
+  border-color: var(--color-accent);
+}

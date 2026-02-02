@@ -36,6 +36,8 @@ export interface CultureDefinition {
   name: string;
   /** Human-readable description */
   description?: string;
+  /** True if this culture is defined by the framework and is read-only in editors */
+  isFramework?: boolean;
 
   // === Lore-Weave: World Context ===
   /** Associated location (homeland) if any */
@@ -52,4 +54,21 @@ export interface CultureDefinition {
   // === Name-Forge: Naming Resources ===
   /** Naming configuration (domains, lexemes, grammars, profiles) */
   naming?: CultureNamingData;
+
+  // === Illuminator: Visual Style Defaults ===
+  /** Default artistic style ID for entities of this culture */
+  defaultArtisticStyleId?: string;
+  /** Default composition style by entity kind (key = entityKind.id, value = style ID) */
+  defaultCompositionStyles?: Record<string, string>;
+  /** Additional style keywords specific to this culture (appended to image prompts) */
+  styleKeywords?: string[];
+
+  // === Illuminator: In-Universe Visual Identity ===
+  /**
+   * Arbitrary key-value pairs describing in-universe visual characteristics.
+   * Keys are category names (e.g., "ATTIRE", "SPECIES", "ARCHITECTURE").
+   * Values are descriptive text for image generation.
+   * Which keys are used depends on the entity kind's visualIdentityKeys setting.
+   */
+  visualIdentity?: Record<string, string>;
 }

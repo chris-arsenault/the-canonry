@@ -1,5 +1,9 @@
 # CLAUDE.md
 
+## CRITICAL: Forbidden Git Commands
+
+**NEVER run `git reset` in any form.** Not `git reset HEAD`, not `git reset --soft`, not `git reset --hard`, not `git reset` with any arguments. This command destroys work. If you need to unstage a file, use `git restore --staged <file>` instead. Violations of this rule are unacceptable.
+
 **Note**: This project uses [bd (beads)](https://github.com/steveyegge/beads) for issue tracking. Use `bd` commands instead of markdown TODOs or plan files. When working on multi-step tasks, create a bead with `bd create` to track progress rather than writing implementation plans to markdown files. See AGENTS.md for workflow details.
 
 **Bead Guidelines:**
@@ -15,9 +19,9 @@ This is a **monorepo** containing framework tools for procedural world generatio
 
 - **Lore Weave** (`apps/lore-weave/`) - Procedural world history generator that creates interconnected knowledge graphs through template-based entity generation and simulation-based relationship formation
 - **Name Forge** (`apps/name-forge/`) - Domain-aware procedural name generation system
-- **Penguin Tales** (`penguin-tales/`) - Domain-specific content (penguin colony world configuration)
+- **Canonry** (`apps/canonry/`) - Visual editor for domain configuration (JSON-based schemas, templates, systems, etc.)
 
-The architecture separates **framework code** (domain-agnostic engines) from **domain code** (world-specific templates, systems, and schemas).
+The architecture provides a **domain-agnostic TypeScript framework** with **JSON-only domain configuration**. Domain-specific content is defined entirely in JSON files loaded by Canonry.
 
 ## Repository Structure
 
@@ -26,27 +30,32 @@ penguin-tales/                    # Repository root
 ├── apps/
 │   ├── lore-weave/              # World generation framework
 │   │   ├── lib/                 # Core library
-│   │   │   ├── engine/          # WorldEngine, validators
-│   │   │   ├── types/           # HardState, Graph, Era, etc.
-│   │   │   ├── services/        # Enrichment, statistics, selectors
-│   │   │   ├── systems/         # Framework systems (culling, catalysts)
-│   │   │   ├── utils/           # Helpers, validators
-│   │   │   └── config/          # Entity registries, feedback loops
-│   │   ├── validation/          # Optimizer/genetic algorithm
+│   │   │   ├── engine/          # WorldEngine, validators, interpreters
+│   │   │   ├── core/            # HardState, worldTypes
+│   │   │   ├── systems/         # Framework systems (catalyst, evolution, etc.)
+│   │   │   ├── coordinates/     # Coordinate and region systems
+│   │   │   ├── selection/       # Template and target selection
+│   │   │   ├── statistics/      # Population tracking, distribution
+│   │   │   ├── graph/           # Graph utilities, clustering
+│   │   │   ├── naming/          # Name generation service
+│   │   │   ├── observer/        # Event emitter for simulation
+│   │   │   └── utils/           # Helpers, validators
 │   │   └── webui/               # World explorer UI
 │   │
-│   └── name-forge/              # Name generation framework
-│       ├── lib/                 # Core generation library
-│       ├── validation/          # Validation and optimization
-│       └── webui/               # Name generation UI
+│   ├── name-forge/              # Name generation framework
+│   │   ├── lib/                 # Core generation library
+│   │   └── webui/               # Name generation UI
+│   │
+│   ├── canonry/                 # Visual domain configuration editor
+│   │   └── webui/               # Editor UI (default-project contains JSON configs)
+│   │
+│   ├── cosmographer/            # Coordinate/region visualization
+│   ├── coherence-engine/        # Validation and coherence checking
+│   └── archivist/               # History and lore browser
 │
-├── penguin-tales/               # Penguin domain content
-│   └── lore/                    # Lore Weave domain config
-│       ├── config/              # Eras, pressures, action domains
-│       ├── templates/           # Entity templates (npc, faction, etc.)
-│       ├── systems/             # Simulation systems
-│       ├── data/                # Initial state, lore bible
-│       └── main.ts              # Domain runner
+├── packages/
+│   ├── world-schema/            # Shared schema definitions
+│   └── shared-components/       # Shared UI components
 │
 ├── docs/                        # Project documentation
 └── infrastructure/              # CI/CD configuration
@@ -54,19 +63,23 @@ penguin-tales/                    # Repository root
 
 ## Development Commands
 
-### Penguin Tales (Lore Weave Domain)
+### Lore Weave Framework
 
 ```bash
-cd penguin-tales/lore
-
-# Run world generation
-npm run dev
+cd apps/lore-weave
 
 # Build
 npm run build
 
 # Test
 npm test
+```
+
+### Canonry (Full UI Suite)
+
+```bash
+# From repo root - starts all MFEs
+npm run canonry
 ```
 
 ### Name Forge
@@ -93,26 +106,28 @@ The system alternates between two phases:
 1. **Growth Phase**: Templates rapidly populate the graph by creating **batches of pre-connected entities**
 2. **Simulation Phase**: Systems create **relationships between existing entities** and modify their states
 
-### Framework vs Domain Separation
+### Framework + JSON Configuration
 
 **Framework** (`apps/lore-weave/lib/`):
 - `WorldEngine` - Core generation loop
 - Type definitions (`HardState`, `Graph`, `Era`, `Pressure`, etc.)
-- Services (enrichment, statistics, selectors)
-- Generic systems (relationship culling, catalysts)
+- Declarative interpreters (templates, systems, pressures, actions)
+- Services (statistics, selectors, naming)
+- Generic systems (catalyst, evolution, contagion, etc.)
 - Utilities (helpers, validators)
 
-**Domain** (`penguin-tales/lore/`):
-- Era definitions with template weights
-- Pressure configurations
-- Entity templates (NPC, faction, location, etc.)
-- Simulation systems (relationship formation, cultural drift, etc.)
-- Domain schema (entity kinds, relationship types)
-- Initial state data
+**Domain Configuration** (JSON in `apps/canonry/webui/public/default-project/`):
+- `schema.json` - Entity kinds, relationship kinds, cultures
+- `eras.json` - Era definitions with template weights
+- `pressures.json` - Pressure configurations
+- `generators.json` - Declarative templates
+- `systems.json` - Declarative simulation systems
+- `actions.json` - Agent action definitions
+- `naming/*.json` - Culture-specific naming rules
 
 ### Framework Primitives
 
-The framework defines a minimal set of entity kinds, relationship kinds, and status values in `apps/lore-weave/lib/types/frameworkPrimitives.ts` that **must be implemented** for the framework to function:
+The framework defines a minimal set of entity kinds, relationship kinds, and status values in `apps/lore-weave/lib/core/frameworkPrimitives.ts` that **must be implemented** for the framework to function:
 
 **Entity Kinds:**
 - `era` - Time periods that structure the simulation
@@ -129,35 +144,36 @@ The framework defines a minimal set of entity kinds, relationship kinds, and sta
 - `current` - Era is currently running
 - `future` - Era is queued for the future
 
-**Important:** Domains are free to define additional entity kinds, relationship kinds, and status values beyond these framework primitives. For example, the penguin domain defines occurrence statuses like `'brewing'`, `'waning'`, `'legendary'` in addition to the framework's `'active'` and `'historical'`.
+**Important:** Domains are free to define additional entity kinds, relationship kinds, and status values beyond these framework primitives via their JSON configuration.
 
 ### Key Files
 
-| Component | Framework Location | Domain Location |
-|-----------|-------------------|-----------------|
-| Engine | `apps/lore-weave/lib/engine/worldEngine.ts` | - |
-| Types | `apps/lore-weave/lib/types/` | - |
-| Templates | - | `penguin-tales/lore/templates/` |
-| Systems | `apps/lore-weave/lib/systems/` | `penguin-tales/lore/systems/` |
-| Eras | - | `penguin-tales/lore/config/eras.ts` |
-| Schema | - | `penguin-tales/lore/schema.ts` |
-| Runner | - | `penguin-tales/lore/main.ts` |
+| Component | Location |
+|-----------|----------|
+| Engine | `apps/lore-weave/lib/engine/worldEngine.ts` |
+| Types | `apps/lore-weave/lib/core/worldTypes.ts` |
+| Template Interpreter | `apps/lore-weave/lib/engine/templateInterpreter.ts` |
+| System Interpreter | `apps/lore-weave/lib/engine/systemInterpreter.ts` |
+| Action Interpreter | `apps/lore-weave/lib/engine/actionInterpreter.ts` |
+| Pressure Interpreter | `apps/lore-weave/lib/engine/pressureInterpreter.ts` |
 
 ## Type System
 
-### Core Entity Structure (`apps/lore-weave/lib/types/worldTypes.ts`)
+### Core Entity Structure (`apps/lore-weave/lib/core/worldTypes.ts`)
 
 ```typescript
 HardState {
   id: string                    // Stable ID in graph
-  kind: 'npc' | 'location' | 'faction' | 'rules' | 'abilities'
+  kind: string                  // Domain-defined entity kind
   subtype: string               // e.g., 'merchant', 'colony', 'criminal'
   name: string
   description: string
   status: string                // Entity-kind specific
   prominence: Prominence        // 'forgotten' | 'marginal' | 'recognized' | 'renowned' | 'mythic'
-  tags: string[]                // Maximum 5 elements
+  culture: string               // Cultural affiliation
+  tags: EntityTags              // Key-value semantic tags
   links: Relationship[]         // Cached relationships
+  coordinates: Point            // Position in semantic space
   createdAt: number             // Tick of creation
   updatedAt: number             // Last modification tick
 }
@@ -167,43 +183,19 @@ HardState {
 
 ```typescript
 const config: EngineConfig = {
-  domain: penguinDomain,        // Domain schema
-  eras: penguinEras,            // Era configurations
-  templates: allTemplates,      // Growth templates
-  systems: allSystems,          // Simulation systems
-  pressures: pressures,         // Pressure definitions
-  metaEntityConfigs: [...],     // Meta-entity formation configs
+  domain: domainSchema,         // From schema.json
+  eras: eras,                   // From eras.json
+  templates: templates,         // From generators.json (declarative)
+  systems: systems,             // From systems.json (declarative)
+  pressures: pressures,         // From pressures.json
+  cultures: cultures,           // With naming config
 
   epochLength: 20,              // Ticks per epoch
   simulationTicksPerGrowth: 15, // Balance between growth and simulation
-  targetEntitiesPerKind: 30,    // Final size (~150 total for 5 kinds)
+  distributionTargets: targets, // Per-subtype growth targets
   maxTicks: 500                 // Maximum simulation ticks
 };
 ```
-
-## Extending the System
-
-### Adding New Templates (Domain)
-
-1. Create template in `penguin-tales/lore/templates/{category}/`
-2. Implement `GrowthTemplate` interface (import from `@lore-weave/core`)
-3. Export from category's `index.ts`
-4. Add template ID to era `templateWeights` in `config/eras.ts`
-
-### Adding New Systems (Domain)
-
-1. Create system in `penguin-tales/lore/systems/`
-2. Implement `SimulationSystem` interface
-3. Export from `systems/index.ts`
-4. Add system ID to era `systemModifiers` in `config/eras.ts`
-
-### Adding Framework Features
-
-Framework changes go in `apps/lore-weave/lib/`:
-- New types → `types/`
-- New services → `services/`
-- New utilities → `utils/`
-- Export from `index.ts`
 
 ## Refactoring Rules
 
@@ -216,24 +208,6 @@ Framework changes go in `apps/lore-weave/lib/`:
 3. **Backwards compatibility is not an excuse**: In this codebase, prefer breaking changes over accumulating cruft.
 
 4. **Complete the refactor in one session**: If you start consolidating code, finish it.
-
-## Framework/Domain Design Principles
-
-**Domain should only import from framework.** The domain should never directly depend on external libraries that the framework wraps. This prevents dependency proliferation and keeps domain code simple.
-
-**When facades are appropriate:**
-- **YES**: Facade around external library (e.g., name-forge) - Framework wraps external dependencies so domain only interacts with framework APIs
-- **NO**: Facade around deprecated internal code - Don't create compatibility layers; delete old code and update all callers
-
-**Framework should handle complexity:**
-- Extract reusable services into framework to prevent implementation errors in domain
-- Provide high-level APIs (e.g., `createEntity(settings)` handles naming automatically)
-- Domain passes configuration/data, framework handles mechanics
-
-**No fallbacks that hide misconfiguration:**
-- Errors should bubble up with clear, actionable messages
-- Fail fast, fail loud - don't silently use defaults when config is wrong
-- Domain misconfiguration should be obvious immediately, not hidden by framework workarounds
 
 ## API Discipline - CRITICAL
 
@@ -305,8 +279,8 @@ interface PlacementConfig {
 }
 ```
 
-**4. ALWAYS break domain code when framework changes:**
-Domain code should fail to compile or fail at startup when framework APIs change. This is correct behavior - it forces immediate fixes rather than silent divergence.
+**4. ALWAYS break code when framework changes:**
+Code should fail to compile or fail at startup when framework APIs change. This is correct behavior - it forces immediate fixes rather than silent divergence.
 
 ### Validation
 
@@ -314,11 +288,23 @@ Run `./scripts/check-escape-hatches.sh` before committing. It checks for:
 - Methods returning internal objects
 - Fallback patterns for config
 - @deprecated markers (code should be deleted)
-- Legacy API usage in domain code
+- Legacy API usage
+
+## UI Style: Dense Information Display
+
+The north star for communicating dense metadata in list/card UIs is the **inline symbol + compact subtitle** pattern used in ChroniclePanel's card list. Prefer this over badge/pill components.
+
+**Principles:**
+- **Inline symbols** next to titles for boolean/categorical state (e.g. `◆` single focus, `◇◇` ensemble, `✦` perspective used, `⇄` backported). Colored, small, with hover `title` for discoverability.
+- **Subtitle row** for the most useful textual label (e.g. narrative style name) on the left, **numeric counts** on the right using a symbol + number pattern (`☰ 5  ▣ 3`).
+- **No badge boxes** unless the information is truly categorical with distinct groups. Symbols and compact text communicate the same info with far less visual weight.
+- **Hover titles on everything** - symbols are terse by design, tooltips provide the full explanation.
+
+**Reference implementation:** `ChronicleItemCard` in `apps/illuminator/webui/src/components/ChroniclePanel.jsx`.
 
 ## Debugging Tips
 
-1. Set small targets first: `targetEntitiesPerKind: 5` in domain's main.ts
+1. Set small distribution targets first (lower subtype targets in `distributionTargets`)
 2. Enable verbose logging: Add `console.log` in templates/systems
 3. Check sample history events and notable entities in output
-4. Use `SCALE_FACTOR` environment variable to control world size
+4. Use `scaleFactor` parameter to control world size

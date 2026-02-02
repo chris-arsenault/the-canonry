@@ -11,10 +11,62 @@
 import { z } from "zod";
 import type { NamingDomain } from "./domain.js";
 import type { Capitalization } from "../utils/helpers.js";
+import type { EntityKindDefinition } from "@canonry/world-schema";
 
 // ============================================================================
 // Lexeme Types
 // ============================================================================
+
+/**
+ * Word style specification for structural lexeme generation
+ *
+ * Enables generation of lexemes with specific etymological and phonetic
+ * characteristics, such as "hard words" (short, concrete, Anglo-Saxon roots).
+ */
+export interface WordStyleSpec {
+  /** Etymology/register: Germanic roots vs Latinate derivatives */
+  etymology?: "germanic" | "latinate" | "mixed";
+
+  /** Syllable constraints */
+  syllables?: {
+    min?: number; // default 1
+    max?: number; // default 4
+  };
+
+  /** Phonetic character */
+  phonetics?: {
+    /** Consonant heaviness: 'hard' (plosives k,t,p,d,g,b) | 'soft' (fricatives) | 'mixed' */
+    consonants?: "hard" | "soft" | "mixed";
+    /** Vowel openness: 'open' (a, o) | 'close' (i, u) | 'mixed' */
+    vowels?: "open" | "close" | "mixed";
+  };
+
+  /** Prefer words that work as both noun and verb (e.g., "hunt", "storm") */
+  dualUse?: boolean;
+
+  /** Semantic register */
+  register?: "visceral" | "abstract" | "technical" | "poetic" | "neutral";
+}
+
+export const WordStyleSpecSchema = z.object({
+  etymology: z.enum(["germanic", "latinate", "mixed"]).optional(),
+  syllables: z
+    .object({
+      min: z.number().optional(),
+      max: z.number().optional(),
+    })
+    .optional(),
+  phonetics: z
+    .object({
+      consonants: z.enum(["hard", "soft", "mixed"]).optional(),
+      vowels: z.enum(["open", "close", "mixed"]).optional(),
+    })
+    .optional(),
+  dualUse: z.boolean().optional(),
+  register: z
+    .enum(["visceral", "abstract", "technical", "poetic", "neutral"])
+    .optional(),
+});
 
 /**
  * Lexeme list - a collection of words for use in grammars
@@ -162,16 +214,27 @@ export const StrategyGroupSchema = z.object({
 
 /**
  * Naming profile - defines how to generate names for a culture
+ *
+ * Profile selection order:
+ * 1. First profile with matching entityKind (concrete match)
+ * 2. Fall back to profile marked isDefault: true
+ * 3. Error if no match and no default
  */
 export interface Profile {
   id: string;
   name?: string;
+  /** Entity kinds this profile applies to (empty = use isDefault logic) */
+  entityKinds?: string[];
+  /** Mark as default fallback profile */
+  isDefault?: boolean;
   strategyGroups: StrategyGroup[];
 }
 
 export const ProfileSchema = z.object({
   id: z.string(),
   name: z.string().optional(),
+  entityKinds: z.array(z.string()).optional(),
+  isDefault: z.boolean().optional(),
   strategyGroups: z.array(StrategyGroupSchema),
 });
 
@@ -203,19 +266,10 @@ export interface Culture {
 // ============================================================================
 
 /**
- * Entity kind definition - defines valid kinds, subtypes, statuses
- */
-export interface EntityKindDefinition {
-  kind: string;
-  subtype: string[];
-  status: string[];
-}
-
-/**
  * World schema - defines the entity types in the world
  */
 export interface WorldSchema {
-  hardState: EntityKindDefinition[];
+  entityKinds: EntityKindDefinition[];
 }
 
 // ============================================================================
@@ -264,9 +318,39 @@ export interface GenerateRequest {
 }
 
 /**
+ * Debug info for why a strategy group matched or didn't match
+ */
+export interface GroupMatchDebug {
+  groupName: string;
+  matched: boolean;
+  reason?: string;
+  priority?: number;
+}
+
+/**
+ * Debug info for a single generated name
+ */
+export interface NameDebugInfo {
+  /** Which strategy group was used */
+  groupUsed: string;
+  /** Which strategy within the group was selected */
+  strategyUsed: string;
+  /** What type of strategy (grammar, phonotactic, fallback) */
+  strategyType: string;
+  /** For grammar strategies, which grammar ID */
+  grammarId?: string;
+  /** For phonotactic strategies, which domain ID */
+  domainId?: string;
+  /** Debug info for all groups showing match status */
+  groupMatching: GroupMatchDebug[];
+}
+
+/**
  * Generation result - output from name generation
  */
 export interface GenerateResult {
   names: string[];
   strategyUsage: Record<string, number>;
+  /** Debug info for each name (same length as names array) */
+  debugInfo?: NameDebugInfo[];
 }

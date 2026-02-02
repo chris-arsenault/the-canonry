@@ -1,0 +1,13 @@
+# terraform.tfvars.example - Copy to terraform.tfvars and customize
+
+# AWS region (us-east-1 required for CloudFront ACM certificates)
+aws_region = "us-east-1"
+
+# Project prefix for namespacing resources (bucket: {prefix}-static, etc.)
+prefix = "pt-viewer"
+
+# Domain name (Route53 hosted zone must already exist)
+domain_name = "penguin-tales.com"
+
+# Optional base prefix for image paths (must match Canonry S3 base prefix)
+# image_prefix = "canonry"

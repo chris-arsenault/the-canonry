@@ -6,8 +6,8 @@
       "npc",
       "location",
       "faction",
-      "rules",
-      "abilities"
+      "rule",
+      "ability"
     ],
     "subKind": [],
     "tags": []

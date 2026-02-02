@@ -3,6 +3,7 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
+import reactPerf from 'eslint-plugin-react-perf';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 import sonarjs from 'eslint-plugin-sonarjs'
 import importPlugin from 'eslint-plugin-import';
@@ -44,8 +45,8 @@ export default [
             /* Complexity and structure */
             complexity: ['error', { max: 15 }],
             'max-depth': ['warn', 6],
-            'max-lines': ['warn', 1000],
-            'max-lines-per-function': ['warn', 100],
+            'max-lines': ['error', 1000],
+            'max-lines-per-function': ['error', 100],
             'max-params': ['warn', 4],
             // Cognitive complexity per function (Sonar methodology)
             'sonarjs/cognitive-complexity': ['error', 15],
@@ -54,13 +55,21 @@ export default [
         },
     },
 
-    // React-only block: applies only in the React app folder
+    // React-only block: applies to the webui apps and shared components
     {
-        files: ['apps/client/**/*.{js,jsx,ts,tsx}'],
+        files: [
+            'apps/**/webui/**/*.{js,jsx,ts,tsx}',
+            'packages/shared-components/**/*.{js,jsx,ts,tsx}',
+        ],
         plugins: {
             react,
             'react-hooks': reactHooks,
+            'react-perf': reactPerf,
             'jsx-a11y': jsxA11y,
+            '@typescript-eslint': tseslint.plugin,
+            sonarjs,
+            securityPlugin,
+            unicornPlugin,
         },
         settings: { react: { version: 'detect' } },
         // use the plugins' flat presets and then tweak
@@ -69,10 +78,14 @@ export default [
             ...react.configs.flat['jsx-runtime'].rules,
             ...reactHooks.configs.recommended.rules,
             ...jsxA11y.configs.recommended.rules,
+            'react-perf/jsx-no-new-object-as-prop': ['warn', { nativeAllowList: 'all' }],
+            'react-perf/jsx-no-new-array-as-prop': 'off',
+            'react-perf/jsx-no-new-function-as-prop': 'off',
+            'react-perf/jsx-no-jsx-as-prop': ['warn', { nativeAllowList: 'all' }],
+            'react/jsx-no-constructed-context-values': 'warn',
             'react/react-in-jsx-scope': 'off',
             'react/jsx-uses-react': 'off',
-            // The client surface intentionally keeps large composite components and Zustand stores
-            // together for ease of editing, so relax the structural rules for that workspace.
+            // The webui apps intentionally keep large composite components and stores together.
             complexity: 'off',
             'sonarjs/cognitive-complexity': 'off',
             'max-lines': 'off',

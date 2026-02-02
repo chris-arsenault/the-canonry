@@ -18,11 +18,9 @@ export { WorldEngine } from './engine/worldEngine';
 export type {
   HardState,
   Relationship,
-  Prominence,
-  EntityKind,
+  ProminenceLabel,
   EntityTags,
-  NPCSubtype,
-  FactionSubtype
+  CatalystProperties
 } from './core/worldTypes';
 
 export type {
@@ -32,47 +30,17 @@ export type {
   GrowthTemplate,
   SimulationSystem,
   EngineConfig,
-  HistoryEvent,
   SystemResult,
   TemplateResult,
-  MetaEntityConfig,
   EntityOperatorRegistry,
   NameGenerationService,
-  TagMetadata
+  TagMetadata,
+  AncestorFilter
 } from './engine/types';
 
 export { ComponentPurpose, GraphStore } from './engine/types';
 
-// =============================================================================
-// DOMAIN SCHEMA TYPES - For implementing domain schemas
-// =============================================================================
-
-export type {
-  DomainSchema,
-  RelationshipKindDefinition,
-  RelationshipConfig,
-  RelationshipLimits,
-  RelationshipCategory,
-  SnapshotConfig,
-  EntityKindDefinition,
-  EntityKindStyle,
-  DomainUIConfig,
-  EmergentDiscoveryConfig,
-  CultureDefinition,
-  NameGenerator,
-  ImageGenerationPromptConfig,
-  CultureImageConfig
-} from './domainInterface/domainSchema';
-
-// BaseDomainSchema is a class, not just a type
-export { BaseDomainSchema } from './domainInterface/domainSchema';
-
-export type {
-  DomainLoreProvider,
-  CulturalGroup,
-  NamingRules,
-  GeographyConstraints
-} from './llm/types';
+// LLM types moved to @illuminator - import from there if needed
 
 export type {
   DistributionTargets
@@ -82,13 +50,11 @@ export type {
 // SERVICES - For domain templates and systems
 // =============================================================================
 
-export { TemplateGraphView } from './graph/templateGraphView';
+export { WorldRuntime } from './runtime/worldRuntime';
 export { TargetSelector } from './selection/targetSelector';
 export type { SelectionBias, SelectionResult } from './selection/targetSelector';
 
-// Services for optional LLM integration (domain configures these)
-export { EnrichmentService } from './llm/enrichmentService';
-export { ImageGenerationService } from './llm/imageGenerationService';
+// LLM services moved to @illuminator - import from there if needed
 
 // Cultural awareness analysis (debugging/reporting)
 export { CulturalAwarenessAnalyzer } from './statistics/culturalAwarenessAnalyzer';
@@ -105,22 +71,18 @@ export {
   pickMultiple,
   findEntities,
   getRelated,
-  getLocation,
-  getFactionMembers,
   hasRelationship,
   normalizeInitialState,
   slugifyName,
+  generateEntityIdFromName,
   archiveRelationship,
-  addRelationshipWithDistance,
   modifyRelationshipStrength,
-  areRelationshipsCompatible,
   // Tag utilities
   mergeTags,
   hasTag,
   getTagValue,
   getTrueTagKeys,
   getStringTags,
-  tagsToArray,
   arrayToTags,
   // Additional entity/relationship utilities
   rollProbability,
@@ -128,23 +90,16 @@ export {
   addRelationship,
   canFormRelationship,
   recordRelationshipFormation,
-  getProminenceValue,
-  adjustProminence,
-  getConnectionWeight,
-  getFactionRelationship
+  getConnectionWeight
 } from './utils';
 
 // Name generation service (wraps name-forge)
 export { NameForgeService } from './naming/nameForgeService';
-export type { NameForgeConfig, NameForgeProjectFile, Culture } from './naming/nameForgeService';
+export type { Culture, CultureNamingConfig } from './naming/nameForgeService';
 
 // Validation
 export { validateWorld } from './engine/validators';
 export type { ValidationResult, ValidationReport } from './engine/validators';
-
-// Parameter configuration
-export { applyParameterOverrides } from './engine/parameterOverrides';
-export { extractParams } from './engine/parameterExtractor';
 
 // Entity clustering (for meta-entity formation systems)
 export {
@@ -190,23 +145,97 @@ export {
   initializeCatalystSmart,
   getAgentsByCategory,
   canPerformAction,
-  getInfluence,
   recordCatalyst,
   getCatalyzedEvents,
-  getCatalyzedEventCount,
-  addCatalyzedEvent,
-  calculateAttemptChance,
-  updateInfluence
+  calculateAttemptChance
 } from './systems/catalystHelpers';
 
 // =============================================================================
-// FRAMEWORK SYSTEMS - Domain registers these with engine config
+// FRAMEWORK SYSTEMS - Included via declarative shells in systems.json
 // =============================================================================
 
-export { relationshipCulling } from './systems/relationshipCulling';
-export { eraSpawner } from './systems/eraSpawner';
-export { eraTransition } from './systems/eraTransition';
-export { universalCatalyst } from './systems/universalCatalyst';
+// Framework systems are exposed via thin declarative shells (systemType: 'eraSpawner', etc.)
+// This makes them visible in the Canonry UI and allows enable/disable toggling.
+// The actual implementations are imperative TypeScript that access engine internals.
+// Note: Use the factory functions (createEraSpawnerSystem, createEraTransitionSystem, etc.)
+// accessed via the systemInterpreter, not deprecated singleton exports.
+export { createConnectionEvolutionSystem } from './systems/connectionEvolution';
+export type {
+  ConnectionEvolutionConfig,
+  MetricConfig,
+  EvolutionRule,
+  ActionType,
+  ConditionOperator,
+  ThresholdValue,
+  SubtypeBonus
+} from './systems/connectionEvolution';
+
+export { createGraphContagionSystem } from './systems/graphContagion';
+export type {
+  GraphContagionConfig,
+  MarkerType,
+  ContagionMarker,
+  TransmissionVector,
+  TransmissionConfig,
+  RecoveryConfig,
+  ContagionAction,
+  PhaseTransition,
+  MultiSourceConfig
+} from './systems/graphContagion';
+
+export { createThresholdTriggerSystem } from './systems/thresholdTrigger';
+export type {
+  ThresholdTriggerConfig,
+  TriggerCondition,
+  TriggerAction
+} from './systems/thresholdTrigger';
+
+export { createClusterFormationSystem } from './systems/clusterFormation';
+export type {
+  ClusterFormationConfig,
+  DeclarativeClusterCriterion,
+  DeclarativeClusterConfig,
+  MetaEntityConfig as ClusterMetaEntityConfig,
+  PostProcessConfig
+} from './systems/clusterFormation';
+
+export { createTagDiffusionSystem } from './systems/tagDiffusion';
+export type {
+  TagDiffusionConfig,
+  ConvergenceConfig,
+  DivergenceConfig
+} from './systems/tagDiffusion';
+
+export { createPlaneDiffusionSystem } from './systems/planeDiffusion';
+export type {
+  PlaneDiffusionConfig,
+  DiffusionSourceConfig,
+  DiffusionSinkConfig,
+  DiffusionParams,
+  DiffusionOutputTag,
+  FalloffType
+} from './systems/planeDiffusion';
+export { createGrowthSystem } from './systems/growthSystem';
+export type { GrowthSystemConfig } from './systems/growthSystem';
+
+// =============================================================================
+// DECLARATIVE ACTIONS - Agent action definitions for universalCatalyst
+// =============================================================================
+
+export { loadActions, createExecutableAction } from './engine/actionInterpreter';
+export type {
+  DeclarativeAction,
+  ActionActorConfig,
+  InstigatorSelectionRule,
+  ActionOutcomeConfig,
+  ActionProbabilityConfig,
+  PressureModifier,
+  ExecutableAction,
+  ActionResult
+} from './engine/actionInterpreter';
+
+// Actor matching (for filtering eligible actors for actions)
+export { matchesActorConfig } from './rules';
 
 // =============================================================================
 // FRAMEWORK PRIMITIVES - Minimal constants needed by domain
@@ -216,16 +245,13 @@ export {
   FRAMEWORK_ENTITY_KINDS,
   FRAMEWORK_RELATIONSHIP_KINDS,
   FRAMEWORK_STATUS
-} from './core/frameworkPrimitives';
+} from '@canonry/world-schema';
 
 export type {
   FrameworkEntityKind,
   FrameworkRelationshipKind,
   FrameworkStatus
-} from './core/frameworkPrimitives';
-
-// Feedback loop types (domain provides feedback loop configuration)
-export type { FeedbackLoop } from './feedback/feedbackAnalyzer';
+} from '@canonry/world-schema';
 
 // =============================================================================
 // REGION-BASED COORDINATE SYSTEM
@@ -239,58 +265,13 @@ export type {
   CircleBounds,
   RectBounds,
   PolygonBounds,
-  RegionMapperConfig,
   RegionLookupResult,
-  SampleRegionOptions,
-  EmergentRegionConfig,
   EmergentRegionResult,
-  RegionCreatedEvent,
-  EntityPlacedInRegionEvent,
-  // Per-kind coordinate maps
-  MapBounds,
-  EntityKindMapConfig,
-  EntityKindMapState,
-  EntityKindMaps,
-  EntityKindMapsState
+  SparseAreaResult,
+  SparseAreaOptions
 } from './coordinates/types';
 
 export { SPACE_BOUNDS } from './coordinates/types';
-
-export { RegionMapper } from './coordinates/regionMapper';
-
-export { RegionPlacementService } from './coordinates/regionPlacement';
-export type {
-  PlacementOptions as RegionPlacementOptions,
-  PlacementResult as RegionPlacementResult,
-  BatchPlacementOptions as RegionBatchPlacementOptions,
-  BatchPlacementResult as RegionBatchPlacementResult
-} from './coordinates/regionPlacement';
-
-// Per-kind region management
-export {
-  KindRegionService,
-  createDefaultEmergentConfig,
-  createKindMapConfig
-} from './coordinates/kindRegionService';
-export type { KindRegionServiceConfig } from './coordinates/kindRegionService';
-
-// =============================================================================
-// SEMANTIC AXIS SYSTEM
-// =============================================================================
-
-export type {
-  SemanticAxis,
-  EntityKindAxes,
-  TagSemanticWeight,
-  TagSemanticWeights,
-  SemanticEncodingResult,
-  SemanticEncoderConfig
-} from './coordinates/types';
-
-export {
-  SemanticEncoder,
-  createSemanticEncoder
-} from './coordinates/semanticEncoder';
 
 // =============================================================================
 // COORDINATE CONTEXT (Culture-First Placement)
@@ -303,10 +284,15 @@ export {
 
 export type {
   CoordinateContextConfig,
-  CultureCoordinateConfig,
+  EntityKindConfig,
+  CultureConfig,
+  KindAxisBiases,
   PlacementContext,
   PlacementResult
 } from './coordinates/coordinateContext';
+
+// SemanticPlane is from world-schema, re-exported here for convenience
+export type { SemanticPlane } from '@canonry/world-schema';
 
 // =============================================================================
 // COORDINATE STATISTICS (Diagnostics)
@@ -318,3 +304,113 @@ export type {
   CultureClusterStats,
   CoordinateStatsSummary
 } from './coordinates/coordinateStatistics';
+
+// =============================================================================
+// DECLARATIVE TEMPLATE SYSTEM
+// =============================================================================
+
+export { TemplateInterpreter, createTemplateFromDeclarative } from './engine/templateInterpreter';
+
+export type {
+  DeclarativeTemplate,
+  ApplicabilityRule,
+  SelectionRule,
+  SelectionFilter,
+  CreationRule,
+  RelationshipRule,
+  StateUpdateRule,
+  VariableDefinition,
+  ExecutionContext,
+  GraphPathAssertion,
+  PathStep,
+  PathConstraint,
+  GraphPathSelectionFilter,
+  SubtypeSpec,
+  SubtypeCondition,
+  CultureSpec,
+  PlacementSpec,
+  PlacementStep,
+  RelationshipCondition
+} from './engine/declarativeTypes';
+
+// =============================================================================
+// DECLARATIVE PRESSURE SYSTEM
+// =============================================================================
+
+export {
+  createPressureFromDeclarative,
+  loadPressures,
+  loadPressure
+} from './engine/pressureInterpreter';
+
+export type {
+  DeclarativePressure,
+  PressuresFile,
+  FeedbackFactor,
+  SimpleCountFactor
+} from './engine/declarativePressureTypes';
+
+// =============================================================================
+// DECLARATIVE SYSTEM INTERPRETER
+// =============================================================================
+
+export {
+  createSystemFromDeclarative,
+  loadSystems,
+  isDeclarativeSystem
+} from './engine/systemInterpreter';
+
+export type {
+  DeclarativeSystem,
+  DeclarativeConnectionEvolutionSystem,
+  DeclarativeGraphContagionSystem,
+  DeclarativeThresholdTriggerSystem,
+  DeclarativeClusterFormationSystem,
+  DeclarativeTagDiffusionSystem,
+  DeclarativePlaneDiffusionSystem,
+  // Framework system declarative shells
+  FrameworkSystemConfig,
+  DeclarativeGrowthSystem,
+  DeclarativeEraSpawnerSystem,
+  DeclarativeEraTransitionSystem,
+  DeclarativeUniversalCatalystSystem,
+  // Era system config types
+  EraTransitionConfig,
+  EraSpawnerConfig
+} from './engine/systemInterpreter';
+
+// Era transition condition types (defined per-era in eras.json)
+export type {
+  TransitionCondition,
+  EraTransitionEffects
+} from './engine/types';
+
+// =============================================================================
+// OBSERVER PATTERN - Real-time simulation events
+// =============================================================================
+
+export { SimulationEmitter } from './observer/SimulationEmitter';
+export type {
+  ISimulationEmitter,
+  SimulationEvent,
+  ProgressPayload,
+  LogPayload,
+  ValidationPayload,
+  EpochStartPayload,
+  EpochStatsPayload,
+  GrowthPhasePayload,
+  PopulationPayload,
+  PopulationMetricPayload,
+  TemplateUsagePayload,
+  CoordinateStatsPayload,
+  TagHealthPayload,
+  SystemHealthPayload,
+  EntityBreakdownPayload,
+  CatalystStatsPayload,
+  RelationshipBreakdownPayload,
+  NotableEntitiesPayload,
+  SimulationResultPayload,
+  ErrorPayload,
+  WorkerInboundMessage,
+  WorkerOutboundMessage
+} from './observer/types';

@@ -1,0 +1,444 @@
+{
+  "worldContext": {
+    "name": "The Berg",
+    "description": "The Berg is a supernatural iceberg adrift in an endless frozen sea - vast enough to contain mountains, caverns, and civilizations that have never seen its edges. Two penguin colonies survive here: the Aurora Stack, surface dwellers who channel the sky-lights through crystal spires, and the Nightshelf, tunnel dwellers who mine captured fire from volcanic veins deep within the ice. They depend on each other for survival yet differ in everything else - faith, governance, aesthetics, and what they believe the future should hold. Beyond the berg's shores, orca raiders worship a dead god in the deep and conduct increasingly bold raids for resources, slaves, and sacrifices. The aurora pulses with magic. The ice remembers the past. And something vast moves in the darkness below the frozen sea.",
+    "canonFacts": [
+      "The Berg is a supernatural iceberg of impossible scale - large enough to contain mountains, caverns, and multiple civilizations. It drifts through an endless frozen sea under perpetual twilight.",
+      "Penguins evolved sapience through exposure to aurora-light over millennia. They possess flipper-dexterity comparable to human hands and stand upright habitually.",
+      "Two penguin civilizations exist: the Aurora Stack (surface dwellers who worship the sky-lights) and the Nightshelf (tunnel dwellers who mine fire from the berg's volcanic core).",
+      "Orca pods are intelligent raiders from the surrounding sea. They worship a dead god whose corpse drifts somewhere in the deep, and conduct blood-rituals to wake it.",
+      "Magic on The Berg draws from three sources: aurora-light (ice/crystal/divination), captured fire (forge/transformation/destruction), and pressure-depth (blood/force/communion with the deep).",
+      "The Berg's ice remembers. Ancient events leave literal impressions - frozen scenes, echo-sounds, emotional residue. The deeper you go, the older the memories.",
+      "No penguin has ever successfully left The Berg and returned. The frozen sea is infinite in all directions. Some say The Berg is the only land that exists.",
+      "The two colonies maintain an uneasy peace through the Flipper Accord - a trade agreement where surface aurora-crystals exchange for deep fire-cores. Neither can survive without the other's resource.",
+      "All sapient beings in this world are penguins or orcas. Humans do not exist and have never existed on The Berg."
+    ],
+    "canonFactsWithMetadata": [
+      {
+        "id": "berg-nature",
+        "text": "The Berg is a supernatural iceberg of impossible scale - large enough to contain mountains, caverns, and multiple civilizations. It drifts through an endless frozen sea under perpetual twilight.",
+        "relevantCultures": ["*"],
+        "relevantKinds": ["location", "era"],
+        "relevantTags": [],
+        "relevantRelationships": [],
+        "basePriority": 0.9
+      },
+      {
+        "id": "penguin-sapience",
+        "text": "Penguins evolved sapience through exposure to aurora-light over millennia. They possess flipper-dexterity comparable to human hands and stand upright habitually.",
+        "relevantCultures": ["aurora-stack", "nightshelf"],
+        "relevantKinds": ["npc"],
+        "relevantTags": [],
+        "relevantRelationships": [],
+        "basePriority": 0.7
+      },
+      {
+        "id": "two-civilizations",
+        "text": "Two penguin civilizations exist: the Aurora Stack (surface dwellers who worship the sky-lights) and the Nightshelf (tunnel dwellers who mine fire from the berg's volcanic core).",
+        "relevantCultures": ["aurora-stack", "nightshelf"],
+        "relevantKinds": ["faction", "location"],
+        "relevantTags": [],
+        "relevantRelationships": [],
+        "basePriority": 0.8
+      },
+      {
+        "id": "orca-raiders",
+        "text": "Orca pods are intelligent raiders from the surrounding sea. They worship a dead god whose corpse drifts somewhere in the deep, and conduct blood-rituals to wake it.",
+        "relevantCultures": ["orca"],
+        "relevantKinds": ["npc", "faction", "occurrence"],
+        "relevantTags": ["conflict", "raid", "religious"],
+        "relevantRelationships": ["enemy", "rival"],
+        "basePriority": 0.6
+      },
+      {
+        "id": "magic-sources",
+        "text": "Magic on The Berg draws from three sources: aurora-light (ice/crystal/divination), captured fire (forge/transformation/destruction), and pressure-depth (blood/force/communion with the deep).",
+        "relevantCultures": ["*"],
+        "relevantKinds": ["artifact", "ability", "rule"],
+        "relevantTags": ["magic", "ritual", "power"],
+        "relevantRelationships": [],
+        "basePriority": 0.6
+      },
+      {
+        "id": "ice-remembers",
+        "text": "The Berg's ice remembers. Ancient events leave literal impressions - frozen scenes, echo-sounds, emotional residue. The deeper you go, the older the memories.",
+        "relevantCultures": ["*"],
+        "relevantKinds": ["*"],
+        "relevantTags": ["memory", "history", "artifact"],
+        "relevantRelationships": [],
+        "basePriority": 0.9
+      },
+      {
+        "id": "no-escape",
+        "text": "No penguin has ever successfully left The Berg and returned. The frozen sea is infinite in all directions. Some say The Berg is the only land that exists.",
+        "relevantCultures": ["*"],
+        "relevantKinds": ["location"],
+        "relevantTags": ["exploration", "edge", "horizon"],
+        "relevantRelationships": [],
+        "basePriority": 0.4
+      },
+      {
+        "id": "flipper-accord",
+        "text": "The two colonies maintain an uneasy peace through the Flipper Accord - a trade agreement where surface aurora-crystals exchange for deep fire-cores. Neither can survive without the other's resource.",
+        "relevantCultures": ["aurora-stack", "nightshelf"],
+        "relevantKinds": ["faction"],
+        "relevantTags": ["trade", "politics", "diplomacy"],
+        "relevantRelationships": ["trade_partner", "ally"],
+        "basePriority": 0.6
+      },
+      {
+        "id": "no-humans",
+        "text": "All sapient beings in this world are penguins or orcas. Humans do not exist and have never existed on The Berg.",
+        "type": "generation_constraint",
+        "relevantCultures": ["*"],
+        "relevantKinds": ["*"],
+        "relevantTags": [],
+        "relevantRelationships": [],
+        "basePriority": 0.8
+      }
+    ],
+    "tone": "Dark, war-weary fantasy in the tradition of Malazan Book of the Fallen, Brent Weeks, and the Powder Mage trilogy. History is written by survivors who remember the cost. Tragedy happens without ceremony - important figures die in half-sentences, battles end mid-action, and not everything resolves.\n\nSTYLE PRINCIPLES:\n- Specificity over abstraction: Not 'a weapon' but 'a fire-core hammer with a cracked head.' Not 'he felt sad' but 'his flippers wouldn't stop shaking.'\n- Show through action and object, not introspection: Characters reveal themselves by what they do, carry, avoid, or destroy - not by what they 'realize' or 'understand.'\n- Subtext over statement: Let implications land. If someone betrayed their colony, don't say they feel guilty - mention they haven't visited the memorial.\n- Uncomfortable details: Include the ugly, inconvenient, or unresolved. A hero's hands might be scarred from something shameful. A victory might cost more than it was worth.\n- Trust the reader: Don't explain metaphors. Don't summarize lessons. End on images, not morals.\n\nSYNTACTIC POETRY:\nAim for the compressed power of 'First in; last out; for the last time.' Sentences that carry weight through rhythm and omission. Not fragmented violence, but poetic compression - where what's left unsaid hits harder than what's spoken. Semicolons can do the work of paragraphs. Repetition with variation creates resonance.\n\nBITTER CAMARADERIE:\nThis is essential. Grimness alone is exhausting. Include:\n- Dark humor between allies - jokes that wouldn't be funny if you hadn't been there\n- Loyalty that persists despite betrayal, stupidity, or failure\n- Small kindnesses in terrible contexts - sharing rations, remembering names, carrying someone's token\n- Soldiers/workers who mock the causes they'll die for\n- The way people become family through shared suffering, not shared values\n- Irony that isn't cruel - the bitter laugh, not the sneer\n- Heroic sacrifice that EARNS its weight - not cheap martyrdom, but the moment someone trades their life for something they actually loved. Make it cost. Make it matter.\n\nSTRUCTURAL VARIETY:\n- Not every entity needs a death beat. Some are alive. Some mysteries stay mysteries.\n- Some endings are mid-action, unresolved. Some are quiet. Some are bitter-funny.\n- Vary the emotional shape: tragedy, irony, stubborn hope, grim humor, unearned survival.\n\nCLOSING VARIETY:\n- DO NOT default to 'the ice remembers' or cosmic-witness endings. This has become a crutch.\n- Vary how stories end: mid-action cut, dark joke, unanswered question, quiet image, bitter irony, someone walking away, a door closing, work resuming.\n- Not every ending needs a character alone contemplating loss. Some end with two people arguing. Some end with laughter that isn't comfortable. Some end with someone starting something new.\n- The last line should feel surprising, not inevitable. If you can predict it from the first paragraph, rewrite it.\n\nAVOID THESE AI TELLS:\n- Balance words: yet, however, still, ultimately, in the end, nevertheless\n- Introspection clichés: 'couldn't help but feel,' 'realized that,' 'in that moment,' 'understood that'\n- Polite diction: gentle, quiet, subtle, bittersweet, meaningful, profound\n- Vague sensory: warm, soft, heavy silence, cool breeze (anchor these to specifics or cut them)\n- Flat metaphors: light=hope, darkness=fear, storms=turmoil (find stranger, more specific images)\n- Clean resolutions: Not everything works out. Some things stay broken.\n- Time-skipping without texture: Don't write 'days passed' - either skip entirely or make the waiting hurt\n- RELENTLESS GRIMNESS: If everything is dark, nothing is. Leaven tragedy with dark humor, bitter irony, or stubborn human connection.\n\nDescriptions should read as if written by a war-chronicle keeper or a faction historian with biases, blind spots, and something to prove.",
+    "speciesConstraint": "All depicted figures must be penguins or orcas. No humans exist in this world. When showing inhabitants, settlers, merchants, or any living beings, they must be explicitly penguin or orca species. NEVER draw human hands, fingers, or human body proportions — penguins have flippers, not hands. Avoid anthropomorphic human anatomy: no visible fingers, no human-like arms, no human faces.",
+    "toneFragments": {
+      "core": "Dark, war-weary fantasy. History is written by survivors who remember the cost. Tragedy happens without ceremony - important figures die in half-sentences, battles end mid-action.\n\nSTYLE PRINCIPLES:\n- Specificity over abstraction: Not 'a weapon' but 'a fire-core hammer with a cracked head.'\n- Show through action and object, not introspection: Characters reveal themselves by what they do, carry, avoid.\n- Subtext over statement: Let implications land. If someone betrayed their colony, mention they haven't visited the memorial.\n- Uncomfortable details: Include the ugly or unresolved. A hero's hands might be scarred from something shameful.\n- Trust the reader: Don't explain metaphors. End on images, not morals.\n\nSYNTACTIC POETRY:\nCompressed power through rhythm and omission. 'First in; last out; for the last time.' Semicolons do the work of paragraphs. What's unsaid hits harder than what's spoken.\n\nBITTER CAMARADERIE:\nGrimness alone is exhausting. Include dark humor between allies, loyalty despite failure, small kindnesses in terrible contexts. Soldiers who mock the causes they'll die for. Irony that isn't cruel - the bitter laugh, not the sneer.\n\nCLOSING VARIETY:\nNot every ending needs contemplation. Vary: mid-action cut, dark joke, unanswered question, quiet image, bitter irony, someone starting something new.\n\nMULTIPLE ENTITY FOCUSES:\nWhen a chronicle involves multiple entity types, weave rather than list. Find the thread that connects: a character defined by a place, an object that caused an event, a location shaped by who died there. Each element should illuminate another. The transitions matter.\n\nAVOID:\nBalance words (yet, however, ultimately). Introspection clichés ('realized that,' 'in that moment'). Polite diction (gentle, bittersweet, profound). Clean resolutions. Relentless grimness without humor."
+    }
+  },
+  "entityGuidance": {
+    "npc": {
+      "focus": "Reveal personality through concrete details: what they carry, wear, or refuse to touch. Physical tics, scars, or habits that tell a story. What they've lost or what they're protecting. How others react to them (fear, respect, pity, avoidance). No one is purely good or evil - everyone has costs, compromises, or things they won't talk about. Include one uncomfortable or unglamorous detail: a coward's streak, a cruel habit, an old shame. Characters should feel like they existed before this moment and will continue after it.",
+      "relationshipUse": "ONE [strong] relationship that truly defines or shaped them. Not a catalog of connections - the description should be ABOUT the entity, not a tour of their relationships.",
+      "proseHint": "Bodies carry history: scars, habits, how someone holds themselves. What they reach for under stress. Who they mention without naming. The gap between reputation and person - someone remembers them differently than they remember themselves. Physical tics as emotional tells. What they carry that they don't need. Focus on gesture, tic, or signature object. Show how others remember them, mourn them, or joke about them. Someone carries their token. Someone still curses their name fondly. The chair no one else sits in.",
+      "visualThesis": {
+        "domain": "You design characters for a fighting game roster or anime ensemble cast. Each character must be INSTANTLY RECOGNIZABLE from silhouette alone - like Overwatch heroes or League of Legends champions. The visual thesis is the ONE THING that makes this character's shape unique in the roster.",
+        "focus": "SHAPE ELEMENTS (prioritize structural over gestural):\n- Structural gear: oversized weapons, distinctive hats, floating objects, massive armor\n- Profile extensions: mounted equipment, carried tools, backpacks, capes\n- Body modifications: scars, missing limbs, unusual proportions, asymmetry\n- Clothing: robes, cloaks, armor plates, harnesses - what they WEAR changes silhouette",
+        "framing": "This is a CHARACTER - describe the dominant silhouette feature that makes them instantly recognizable.\n\nFORMAT: Always begin with the species: 'A penguin with...', 'An orca with...', etc. The thesis describes the CHARACTER, not just an accessory.\n\nFocus on: clothing, equipment, gear, armor, weapons, magical effects, body modifications.\nPose can SUPPORT the thesis but cannot BE the thesis. A hunched posture is only distinctive if combined with structural elements (armor, gear, clothing)."
+      },
+      "visualTraits": {
+        "domain": "You're completing a character design brief for an action figure or concept art. The thesis defines the PRIMARY silhouette. Your job is to add 2-4 ADDITIONAL distinctive features that make this character unique - things the thesis didn't cover. Think action figure accessories: what extra details would the toy include?",
+        "focus": "TRAITS SHOULD ADD, NOT REPEAT:\n- If thesis mentions robes → traits could add floating orbs, glowing eyes, unusual footwear\n- If thesis mentions armor → traits could add trophy skulls, ritual scars, bound weapons\n- Find what's MISSING from the thesis",
+        "framing": "This is a CHARACTER - traits should describe additional distinctive features that complement the primary silhouette."
+      },
+      "imageInstructions": "The main subject is a CHARACTER. Create a portrait that showcases their individual traits as the focal point. The character should feel like a distinct individual, not a generic representative of their species or role.",
+      "imageAvoid": "Human figures, humanoid silhouettes, generic figures without species specification. Flipper/wing gestures as the SOLE identifying element (raised flipper, wing pressed to chest). Characters defined ONLY by body language with no distinctive gear, clothing, or equipment. NOTE: Upright poses are FINE when combined with distinctive structural elements - the issue is poses WITHOUT distinguishing features, not upright poses themselves."
+    },
+    "location": {
+      "focus": "Anchor in ONE specific sensory detail first - a smell, a sound, a texture underfoot. Not 'cold' but 'the kind of cold that makes your beak ache.' Show what HAPPENED here: scars, stains, cracks that were never repaired, repairs made with wrong materials. Who controls it NOW vs who BUILT it - layers of history in one place. Not every location is haunted or dangerous. Some are just tired. Some are beloved despite being ugly.",
+      "relationshipUse": "Show how people USE this place - the regulars, the rituals, the unwritten rules. Include one detail of stubborn life: graffiti, offerings, someone's initials carved where they shouldn't be. What joke do locals tell about this place? What do they refuse to call it by its official name?",
+      "proseHint": "Locations have moods, not just features. Who built this and who uses it now - the layers. What sound fills the silence. Where people gather vs where they avoid. The unofficial names. What happened here that no one talks about. Anchor in one visceral sensory detail: a smell, a texture underfoot, the kind of cold that makes your beak ache. Show what it costs to be there. What joke do locals tell about this place?",
+      "visualThesis": {
+        "domain": "You design environments for a video game or animated film. The visual thesis is what makes THIS location visually distinct from other places. Think iconic game levels - each has a defining visual landmark or spatial quality.",
+        "focus": "ENVIRONMENT ELEMENTS:\n- Structures: towers, bridges, walls, platforms, monuments\n- Natural formations: cliffs, caves, crystals, ice formations, chasms\n- Spatial qualities: vast open, claustrophobic tunnels, vertical spires, layered depths\n- Lighting character: aurora-lit, shadow-shrouded, fire-warmed, crystal-refracted",
+        "framing": "This is a LOCATION or PLACE - describe the environment's defining architectural or natural feature.\n\nFocus on: structures, formations, spatial relationships, the shape of the space itself.\nDO NOT describe characters or creatures."
+      },
+      "visualTraits": {
+        "domain": "You're adding detail to an environment design brief for a location. The thesis defines the primary visual landmark. Your job is to add 2-4 ADDITIONAL environmental details that make this place distinctive. Think video game level design: what secondary features, atmospheric effects, or environmental storytelling elements make this location memorable?",
+        "focus": "Secondary features, atmospheric effects, environmental storytelling elements that support the primary landmark.",
+        "framing": "This is a LOCATION - traits should describe additional environmental details and atmospheric qualities."
+      },
+      "imageInstructions": "The main subject is a PLACE. Create an environmental shot that captures the atmosphere and character of this location. Include architectural or natural details that make it feel like a real, lived-in space.",
+      "imageAvoid": "Human figures, humanoid silhouettes, generic figures without species specification. Characters as primary focus. Empty sterile spaces without signs of use or history."
+    },
+    "faction": {
+      "focus": "Every faction has a founding wound - the injustice, defeat, or loss that forged them. Reference it. Show the internal tensions: what do hardliners want vs pragmatists? Include what the faction has DONE - not just what they believe. Actions, not mission statements. Outsiders' views should include fear, contempt, or grudging respect - not neutral acknowledgment. Some factions survive on stubbornness more than purpose. Some on dark humor. Some on spite.",
+      "relationshipUse": "Show the culture of belonging - the in-jokes, the shared complaints, the rituals that outsiders find baffling. Include one detail of loyalty that persists despite everything: members who hate the leadership but won't leave, rivals who'd still fight for each other. What do members say about the faction when they're drunk? What do they never say?",
+      "proseHint": "Show the culture of belonging - in-jokes, shared complaints, rituals that outsiders find baffling. What do members say when drunk?",
+      "visualThesis": {
+        "domain": "You design faction identity for a strategy game or worldbuilding project. The visual thesis captures the faction's ESSENCE in one iconic visual - what makes them instantly recognizable as a group.",
+        "focus": "FACTION IDENTITY ELEMENTS:\n- Symbols: banners, insignias, heraldic devices, sacred objects\n- Architecture: headquarters, meeting halls, monuments, fortifications\n- Regalia: ceremonial dress, uniforms, shared equipment\n- Gathering: council formation, ritual arrangement, military display",
+        "framing": "This is a FACTION or ORGANIZATION - describe the visual element that defines their collective identity.\n\nFocus on: symbols, architecture, ceremonial objects, group formations.\nThis should represent the GROUP, not an individual member."
+      },
+      "visualTraits": {
+        "domain": "You're adding detail to a faction design brief. The thesis defines the primary visual identity. Your job is to add 2-4 ADDITIONAL elements that reinforce what this faction stands for. Think faction design in strategy games: what secondary symbols, colors, or motifs make them distinctive?",
+        "focus": "Secondary symbols, colors, motifs, architectural details that reinforce faction identity.",
+        "framing": "This is a FACTION - traits should describe additional elements of collective identity (symbols, colors, architectural details, ceremonial objects)."
+      },
+      "imageInstructions": "The main subject is an ORGANIZATION. Choose one of: a council of leaders, the faction's headquarters, their banner or symbol, or a representative member in ceremonial attire. The image should convey collective identity and purpose.",
+      "imageAvoid": "Human figures, humanoid silhouettes, generic figures without species specification. Generic group shots. Individual portraits that don't convey faction identity."
+    },
+    "occurrence": {
+      "focus": "Focus on what was LOST, BROKEN, or CHANGED FOREVER - not lessons learned. Name the dead or the cost. History is paid for. Capture one visceral detail - the smell, the sound, the thing someone dropped and never picked up. Don't explain significance - let the facts do the work. Not every event is tragedy. Some are darkly comic. Some are just exhausting.",
+      "relationshipUse": "Show how survivors remember it - the dark jokes they tell, the things they won't discuss. Include one detail of stubborn loyalty or absurd kindness amid chaos. Someone carried someone else. Someone went back. Someone still flinches at a certain sound.",
+      "proseHint": "History is what survivors choose to remember. The official version vs what actually happened. Who benefits from this telling. The detail everyone includes that wasn't actually important. The crucial thing no one mentions. Name the dead or the cost - history is paid for. Show how survivors remember it - the dark jokes they tell, the things they won't discuss. One visceral detail: the smell, the sound, the thing someone dropped and never picked up. Someone still flinches at a certain sound.",
+      "visualThesis": {
+        "domain": "You design key frames for historical moments in an animated film or graphic novel. The visual thesis captures the PIVOTAL MOMENT - the single frame that would represent this event in a history book.",
+        "focus": "EVENT COMPOSITION ELEMENTS:\n- Action: the central dramatic gesture or movement\n- Stakes: visual tension showing what's at risk\n- Scale: intimate confrontation vs epic battlefield vs cosmic phenomenon\n- Aftermath indicators: smoke, debris, fallen figures, changed landscape",
+        "framing": "This is an EVENT or OCCURRENCE - describe the pivotal visual moment that defines this event.\n\nFocus on: action, tension, scale, consequences.\nCapture the MOMENT, not a static scene."
+      },
+      "visualTraits": {
+        "domain": "You're adding detail to an event illustration brief. The thesis defines the central dramatic moment. Your job is to add 2-4 ADDITIONAL visual elements that reinforce the event's significance. Think key frame illustration: what environmental details, secondary actions, or atmospheric effects enhance the drama?",
+        "focus": "Environmental details, secondary actions, atmospheric effects that enhance the drama.",
+        "framing": "This is an EVENT - traits should describe additional dramatic elements (environmental effects, secondary actions, atmospheric conditions, visual stakes)."
+      },
+      "imageInstructions": "The main subject is an EVENT. Create a dramatic scene capturing the pivotal moment. Show the action as if witnessed firsthand - triumphant, tragic, or transformative.",
+      "imageAvoid": "Human figures, humanoid silhouettes, generic figures without species specification. Static posed scenes. Before/after comparisons. Abstract representations of events."
+    },
+    "era": {
+      "focus": "Eras are defined by what they cost, not what they achieved. Name the central tension that couldn't be resolved - the thing everyone argued about, the wound that wouldn't close. Don't frame eras as 'dark' or 'golden' - show the texture. Golden ages have rot beneath. Dark ages have stubborn hope. Some eras are remembered fondly by exactly the wrong people.",
+      "relationshipUse": "What did people hold onto? A song, a ritual, a grudge, a joke that stopped being funny. Show the absurdity of endurance - the things people did to stay sane, the dark humor that got them through. Include one detail of connection that persisted: a trade that continued despite war, a friendship across enemy lines, a tradition no one remembers the origin of.",
+      "proseHint": "Show the absurdity of endurance - what people did to stay sane, the dark humor that got them through. A trade that continued despite war. A friendship across enemy lines. A tradition no one remembers the origin of.",
+      "visualThesis": {
+        "domain": "You design chapter headers and era illustrations for a history book or fantasy chronicle. The visual thesis captures the SPIRIT OF THE AGE - what single symbolic image represents this time period?",
+        "focus": "ERA VISUALIZATION ELEMENTS:\n- Symbolic landscapes: rising/setting suns, storms gathering, seasons changing\n- Architectural states: cities rising, ruins crumbling, monuments being built\n- Atmospheric conditions: golden age light, dark age shadows, transitional twilight\n- Emblematic objects: crowns, weapons, tools, symbols of the era's defining activity",
+        "framing": "This is an ERA or TIME PERIOD - describe the symbolic visual that captures the spirit of this age.\n\nFocus on: symbolic imagery, atmospheric mood, emblematic objects.\nThis is SYMBOLIC - not a specific moment, but the essence of an entire period."
+      },
+      "visualTraits": {
+        "domain": "You're adding detail to an era illustration. The thesis defines the central symbolic image. Your job is to add 2-4 ADDITIONAL visual elements that reinforce the era's character. Think history book chapter headers: what secondary symbols, atmospheric details, or visual metaphors enhance the mood?",
+        "focus": "Secondary symbols, atmospheric details, visual metaphors for the age's character.",
+        "framing": "This is an ERA - traits should describe additional symbolic elements (atmospheric effects, secondary symbols, visual metaphors for the age's character)."
+      },
+      "imageInstructions": "The main subject is a TIME PERIOD. Create a symbolic or panoramic scene that captures the spirit of this era. Use visual metaphor - rising sun, gathering storm, crumbling walls - to convey the age's defining mood.",
+      "imageAvoid": "Human figures, humanoid silhouettes, generic figures without species specification. Specific dated events. Individual character portraits. Literal historical scenes."
+    },
+    "artifact": {
+      "focus": "Focus on what it HAS DONE, not just what it IS. Start with a physical detail that tells a story - a notch in the blade, a stain that won't come out, a crack that appeared after a specific use. Artifacts earn their legends. What did this object DO that made it famous? Name a death, a victory, a betrayal. Include the cost - powerful things demand something. What has this artifact taken from its wielders? Show the weight of history: who held it last, who refuses to touch it, what happens to those who carry it too long.",
+      "relationshipUse": "If it's lost, show why no one has retrieved it. If it's held, show why no one has stolen it. The relationships around an artifact reveal its true nature.",
+      "proseHint": "Artifacts earn their weight through use, not description. Start with a physical detail that tells a story: a notch in the blade, a stain that won't come out. Who held it last. What it costs to carry. Why someone refuses to touch it. Objects have wakes - they change what's near them. The scratch that no one explains. Power measured in what it's taken, not what it gives.",
+      "visualThesis": {
+        "domain": "You design legendary items for a fantasy RPG or video game. The visual thesis captures what makes THIS artifact instantly recognizable - its defining visual feature.",
+        "focus": "ARTIFACT ELEMENTS:\n- Form: sword, staff, orb, tome, crown, amulet, ring, gauntlet\n- Material: crystal, ice, bone, gold, shadow-metal, aurora-glass\n- Enchantment effects: glowing runes, emanating light, floating particles, frost crystals\n- Signs of age/power: weathering, cracks, embedded gems, inscriptions",
+        "framing": "This is an ARTIFACT or magical item - describe its primary visual form and distinguishing feature.\n\nFocus on: shape, material, enchantment effects, signs of power.\nThis should represent the OBJECT itself, not someone holding it."
+      },
+      "visualTraits": {
+        "domain": "You're adding detail to an artifact design brief. The thesis defines the primary form. Your job is to add 2-4 ADDITIONAL visual details that make this artifact distinctive. Think legendary item design: what secondary details, inscriptions, or magical effects make it memorable?",
+        "focus": "Secondary details, inscriptions, magical effects that make the artifact distinctive.",
+        "framing": "This is an ARTIFACT - traits should describe additional visual elements (material details, magical effects, inscriptions, ornamental features)."
+      },
+      "imageInstructions": "The main subject is an ARTIFACT or magical object. Create a detailed study of the item as if it were being catalogued in a museum or bestiary. Show the object in isolation or on a pedestal/display, emphasizing its unique features and craftsmanship.",
+      "imageAvoid": "Human figures, humanoid silhouettes, generic figures without species specification. Characters holding the artifact. Action scenes. The artifact as a small detail in a larger scene."
+    },
+    "ability": {
+      "focus": "Focus on how the magic MANIFESTS and what it COSTS. Magic should feel dangerous or strange, not convenient.",
+      "relationshipUse": "Who taught this? Who fears it? Who died learning it wrong?",
+      "proseHint": "Show the physical sensation of magic - what it smells like, sounds like, what it takes from the user.",
+      "visualThesis": {
+        "domain": "You design VFX and magical effects for a video game or animated film. The visual thesis is what makes THIS magic visually distinct from other powers. Think spell effects in a fighting game - each power has a unique visual signature.",
+        "focus": "VFX ELEMENTS:\n- Energy patterns: spirals, fractals, geometric shapes, organic flows\n- Elemental forms: ice crystals, fire tongues, light beams, shadow tendrils\n- Manifestation style: explosive, creeping, pulsing, steady glow\n- Scale and intensity: subtle shimmer vs massive eruption",
+        "framing": "This is a MAGICAL ABILITY or POWER - describe how the magic MANIFESTS, not a character using it.\n\nFocus on: energy patterns, visual effects, elemental forms, the shape of the magic itself.\nDO NOT describe a character wearing gear or holding items."
+      },
+      "visualTraits": {
+        "domain": "You're adding detail to a VFX design brief for a magical power. The thesis defines the primary visual effect. Your job is to add 2-4 ADDITIONAL visual properties that make this magic distinctive. Think video game spell effects: what secondary particles, afterimages, or environmental reactions make this power unique?",
+        "focus": "Secondary particles, afterimages, environmental reactions that make this power unique.",
+        "framing": "This is a MAGICAL ABILITY - traits should describe additional visual properties of the magic effect itself."
+      },
+      "imageInstructions": "The main subject is a MAGICAL POWER or ability. Focus on the manifestation of the power itself, not on characters using it. Show energy, effects, or the visual signature of this magic in action.",
+      "imageAvoid": "Human figures, humanoid silhouettes, generic figures without species specification. Characters as the focus. Static representations of magic. Abstract symbols alone."
+    },
+    "rule": {
+      "focus": "Focus on how the rule CONSTRAINS or ENABLES. Magic systems should feel like they have costs and limits.",
+      "relationshipUse": "Who enforces this rule? Who breaks it? What happens to those who test its limits?",
+      "proseHint": "Show the rule through its exceptions - who has broken it, what happened when they did.",
+      "visualThesis": {
+        "domain": "You design magic system diagrams and abstract visualizations for a fantasy RPG rulebook. The visual thesis captures the FUNDAMENTAL PRINCIPLE - how does this rule or system manifest visually?",
+        "focus": "SYSTEM VISUALIZATION ELEMENTS:\n- Diagrams: flow charts, circular patterns, hierarchical structures\n- Symbols: glyphs, runes, geometric shapes, elemental icons\n- Energy flows: connections, channels, nodes, barriers\n- Abstract representations: balance scales, interlocking forces, transformation cycles",
+        "framing": "This is a MAGICAL SYSTEM or RULE - describe the abstract visual representation of how this system works.\n\nFocus on: diagrams, symbols, energy flows, conceptual structures.\nThis is ABSTRACT - not a scene, not a character, but a visualization of a principle."
+      },
+      "visualTraits": {
+        "domain": "You're adding detail to a magic system diagram. The thesis defines the core visual concept. Your job is to add 2-4 ADDITIONAL symbolic or diagrammatic elements that clarify how the system works. Think RPG rulebook illustrations: what secondary symbols, flows, or annotations make the system clearer?",
+        "focus": "Secondary symbols, flows, annotations that clarify the system.",
+        "framing": "This is a MAGICAL SYSTEM - traits should describe additional abstract elements (symbols, flows, connections, visual metaphors for the rules)."
+      },
+      "imageInstructions": "The main subject is a MAGICAL SYSTEM or rule. Create an abstract or symbolic representation that conveys how this magic works - perhaps glyphs, energy flows, or the interaction of elemental forces.",
+      "imageAvoid": "Human figures, humanoid silhouettes, generic figures without species specification. Specific characters. Narrative scenes. Literal depictions of magic use."
+    }
+  },
+  "cultureIdentities": {
+    "visual": {
+      "orca": {
+        "SPECIES": "Apex predators. Size and scarification vary by role - raiders lean and scarred, shamans massive and unmarked, warriors somewhere between. Posture ranges from coiled ambush stillness to rigid military display.",
+        "ATTIRE": "Minimal - orcas wear function, not fashion. Raiders: kelp-rope harnesses for carrying weapons, nothing else. Warriors: bone-plated shoulder guards, tooth-string bandoliers. Shamans: ceremonial whale-bone headdresses, kelp cloaks heavy with salt. Kill-trophies worn as status: penguin beaks on cords, enemy fins dried and strapped to flanks. No fabric - everything is leather, bone, kelp, or trophy.",
+        "ARCHITECTURE": "No permanent structures. Temporary hunting camps marked by kelp-rope barriers, bone totems, skull warnings. Sacred spaces are natural formations claimed, not built.",
+        "TECH": "Ocean-current weaponry - shock-lances, current-whips, pressure harpoons. Equipment is brutal and functional. Trophy display varies: some drape kills, others maintain austere discipline.",
+        "MAGIC": "Blood and pressure. Rituals leave physical marks - scarification, tooth-notching, fin-splitting. Magic manifests as water distortion, pressure waves, cold spots. Dead god symbols are ancient, half-forgotten, inconsistently applied.",
+        "ARTIFACT": "War trophies and kill-markers. Weapons: whale-bone harpoons, sharpened orca teeth on chains, pressure-forged tridents, current-channeling spears. Relics: enemy skulls with etched kill-counts, preserved penguin beaks, blood-stained expedition banners. Materials: whale bone, deep-sea coral, pressure-blackened steel, kelp-leather bindings. Aesthetic: brutal, functional, marked by use and kills. No ornamentation for beauty - only kill-tallies and pack symbols.",
+        "COLOR_PALETTE": "Black and white as base (their natural coloring), blood-red as accent from kills and rituals, deep ocean blue-black for ceremonial contexts. No bright colors - everything muted by salt and depth.",
+        "WEATHER_ASSOCIATION": "Storm surges, choppy seas, fog rolling off water. They attack during weather that grounds penguin airships and obscures the aurora. Calm seas make them restless.",
+        "SOUND_SIGNATURE": "Whale-song echoes, the slap of water against ice, clicking echolocation, guttural chanting in deep voices, the wet sound of bodies surfacing.",
+        "DECAY_PATTERN": "Orca things don't decay - they're consumed. Equipment is used until destroyed, then scavenged. Trophies are preserved in salt and pressure. Abandoned camps leave only bone totems that bleach white over decades."
+      },
+      "nightshelf": {
+        "SPECIES": "Cave-adapted penguins. Builds range from compact tunnel-runners to broader cavern-dwellers. Bone and crystal mark status but placement varies - some favor crowns, others belts, others hidden talismans.",
+        "ATTIRE": "Layered for warmth and utility. Common: heavy fur-lined wraps in charcoal and ember-brown, leather aprons for forge-workers, hooded cloaks for tunnel travel. Status markers: fire-core amulets at the throat, ancestor-bone clasps, bioluminescent thread embroidery visible only in darkness. Stealth-workers: minimal black wrappings, bare flippers for grip. Guild masters: ornate leather coats with brass fittings, multiple tool-belts. Ceremonial: ash-gray robes with glowing ember-thread hems. No bright colors - everything absorbs light.",
+        "ARCHITECTURE": "Subterranean networks mixing natural caverns and carved tunnels. Bioluminescent accents and fire-braziers for light. Sacred spaces go deeper and darker. Public areas glow; private areas don't.",
+        "TECH": "Captured elemental fire drives everything - braziers, forges, engines. Steampunk aesthetic but visibility varies: lamp-bearers are obvious, shadow-workers hide their gear. Bone integrated as structural material and decoration.",
+        "MAGIC": "Ice and fire in tension. Practical applications over spectacle. Magic users often understated - subtle warmth, quiet frost. Rituals happen in darkness. Effects are felt before seen.",
+        "ARTIFACT": "Shadow-forged treasures and deep-earth relics. Weapons: obsidian daggers, fire-core hammers, shadow-steel blades that drink light, chain-whips with ember-heads. Relics: flame-heart crystals, bone-carved ancestor masks, bioluminescent orbs, smoke-captured in glass. Tomes: leather-bound grimoires with glowing ink, stone tablets from the deep, scrolls that only reveal text in darkness. Materials: obsidian, volcanic glass, fire-core crystals, shadow-steel, ancestor bone, cavern fungus leather. Aesthetic: flickering between light and shadow, warm cores with dark exteriors, hidden mechanisms, secrets within secrets.",
+        "COLOR_PALETTE": "Deep oranges and ember-reds from fire-cores, charcoal blacks and ash grays as base, occasional bioluminescent greens and blues as accents. No bright whites or silvers - those belong to the surface.",
+        "WEATHER_ASSOCIATION": "They have no weather underground, but prefer overcast surface conditions when they must travel above. Snowstorms are useful cover. Clear aurora-lit nights feel exposed and dangerous.",
+        "SOUND_SIGNATURE": "Crackling fire, dripping water, echoing footsteps, the low hum of geothermal vents, whispered conversations, the clang of forge-hammers in distant tunnels.",
+        "DECAY_PATTERN": "Fire-tech gutters out when neglected, leaving cold metal husks. Tunnels collapse slowly, becoming rubble-filled dead ends. Bioluminescence fades to darkness. Abandoned spaces are reclaimed by fungal growth and crystalline formations."
+      },
+      "aurora-stack": {
+        "SPECIES": "Open-ice penguins. Posture tends tall and proud but varies by role - merchants bustle, mystics stand still, soldiers brace. Crystalline ice integrated into equipment at varying degrees - some carry staves, others wear jewelry, others embed it in armor or tools.",
+        "ATTIRE": "Elegant and layered against the wind. Common: flowing white and silver robes with aurora-glass clasps, fur-trimmed hoods for storms. Soldiers: ice-plate armor with crystalline pauldrons, aurora-charged bracers. Mystics: sheer ceremonial gowns that catch and refract aurora-light, crystal circlets. Merchants: practical but fine - embroidered coats, silver thread, subtle status gems. Airship crews: tight-wrapped wind-gear, goggles, harnesses. All favor pale colors - whites, silvers, ice-blues, soft golds. Fire colors are avoided as Nightshelf markers.",
+        "ARCHITECTURE": "Vertical ice spires with open-air galleries designed to catch aurora-light. Elegant and organic-looking but clearly engineered. Public spaces soar; private quarters are modest cells within the ice.",
+        "TECH": "Ice-magic fusion powers everything. Crystalline conductors, aurora-charged capacitors. Prefer blunt and crushing weapons to blades. Airship crews dress for wind; wall-builders dress for cold; merchants dress for impression.",
+        "MAGIC": "Pure ice channeling. Adepts glow faintly from within - intensity varies by power level. Magic manifests as crystalline growth, temperature drops, aurora-reflection. Mundane members show no glow but may carry charged equipment.",
+        "ARTIFACT": "Aurora-touched treasures and ice-crystal relics. Weapons: ice-crystal maces, aurora-glass staves, frost-forged war-hammers, crystalline throwing discs. Relics: preserved aurora-light in crystal prisms, frozen tears of saints, ice-carved genealogy tablets, ceremony bells of pure ice. Tomes: crystal-page books that catch light, aurora-ink manuscripts, frozen memory scrolls, living ice that records speech. Instruments: aurora-tuned chimes, ice-crystal lenses, navigation orbs, weather-sensing devices. Materials: aurora-glass, eternal ice, crystalline conductors, silver-ice alloys, light-catching prisms. Aesthetic: elegant, luminous, prismatic refractions, cold beauty, objects that seem to hold captured starlight.",
+        "COLOR_PALETTE": "Crystalline blues and silvers as base, prismatic rainbow refractions as accents, soft gold from captured aurora-light. No warm reds or oranges - fire colors belong to the Nightshelf.",
+        "WEATHER_ASSOCIATION": "Clear skies with active aurora. Fresh snowfall. Crisp visibility. They feel uneasy in fog, clouds, or underground darkness. Their magic works best when the aurora is visible.",
+        "SOUND_SIGNATURE": "Wind chimes, crystal resonance, distant whale-song carried on wind, the hum of aurora-charged equipment, formal speech in large echoing halls, the creak of ice under wind.",
+        "DECAY_PATTERN": "Ice structures don't rot - they slowly lose clarity, becoming clouded and opaque. Crystal conductors crack along geometric lines. Abandoned aurora-tech goes dark and still, waiting to be recharged. Neglected spires lean and eventually shatter."
+      },
+      "world": {
+        "SPECIES": "The Berg itself - supernatural iceberg of impossible scale. Weather is entity, not backdrop.",
+        "ARCHITECTURE": "Natural ice formations that seem almost intentional. Crevasses, spires, shelves, grottos. The berg shifts slowly over generations.",
+        "TECH": "None. The world is pre-technological, post-magical.",
+        "MAGIC": "Ambient and ancient. The ice remembers. Aurora-light carries power. The cold thinks.",
+        "ARTIFACT": "Primordial relics and berg-born treasures. Weapons: ice that never melts, storm-frozen lightning, solidified aurora. Relics: the berg's own bones, ice that predates memory, formations that move on their own, crystals that hum with the berg's heartbeat. Tomes: weather-patterns that tell stories, ice that records time itself, aurora-light that speaks. Materials: eternal ice, berg-heart crystal, frozen time, solidified memory. Aesthetic: ancient beyond culture, primordial, objects that feel older than the world itself, things that were found rather than made.",
+        "COLOR_PALETTE": "Infinite whites and ice-blues, deep blacks in crevasses and the frozen sea, aurora greens and purples in the sky. The berg's palette is the palette of nature before culture claimed it.",
+        "WEATHER_ASSOCIATION": "The Berg IS weather. Perpetual twilight, aurora displays, blizzards that last generations, the slow grinding movement of ice. Weather on the berg feels intentional, almost communicative.",
+        "SOUND_SIGNATURE": "The deep groaning of shifting ice, wind across endless frozen plains, the crack of calving glaciers, whale-song from the depths, and beneath it all - something like breathing.",
+        "DECAY_PATTERN": "The Berg does not decay - it transforms. Ice becomes water becomes ice. Crevasses open and close over centuries. Nothing is destroyed, only moved, compressed, or frozen deeper. The only true decay is melting, and the berg resists that with something like will."
+      }
+    },
+    "descriptive": {
+      "aurora-stack": {
+        "VALUES": "Harmony, patience, collective welfare over individual glory. They believe the aurora judges all actions and that pride invites the cold.",
+        "SPEECH": "Formal, measured, rich with astronomical metaphors. They speak of 'cycles' not 'time,' 'alignments' not 'agreements.' Elders are addressed by their position in family constellation-charts. Characters speak in layers: the words, the tone, the position they speak from.",
+        "GOVERNANCE": "Council of Luminaries elected by demonstration - candidates must manifest aurora-magic publicly. Decisions require consensus under a clear aurora; clouded skies postpone all votes.",
+        "OUTSIDER_VIEW": "To the Nightshelf: naive sky-gazers who'd freeze without fire they can't make. To the orcas: soft prey clustered in obvious towers.",
+        "SELF_VIEW": "Chosen inheritors of the aurora's gift, maintaining civilization against the deep cold. They believe the Nightshelf lost their way by going underground.",
+        "FEARS": "Being cut off from the aurora (clouds, cave-ins, blindness). Loss of the Accord and the fire-cores they need. The orcas learning to climb.",
+        "TABOOS": "Waste of aurora-light, speaking of the dead god, entering the deep tunnels, accepting orca gifts.",
+        "PROSE_STYLE": "Vertical perspectives: height as status, the weight of sky, how light changes with position. Formality masks negotiation - consensus is performance. Crystal and ice are infrastructure, not wonder; the Stack has lived with aurora-light so long it's tools, not magic. Cold is baseline, not threat."
+      },
+      "nightshelf": {
+        "VALUES": "Self-reliance, cleverness, secrets kept. They believe knowledge hoarded is power preserved - share only what you must. Secrets are currency - silence speaks louder than words.",
+        "SPEECH": "Elliptical, coded, full of double meanings. They speak in proverbs that sound simple but contain warnings. Silence is respected more than speech.",
+        "GOVERNANCE": "Shadow Parliament of guild-masters meeting in rotating locations. True power lies with the Fire Keepers who control the volcanic cores.",
+        "OUTSIDER_VIEW": "To the Aurora Stack: paranoid diggers who forgot the sky. To the orcas: dangerous prey that fights dirty and vanishes.",
+        "SELF_VIEW": "Survivors who found warmth when the surface offered only cold. They believe they understand the berg's true nature while surface-dwellers see only the skin.",
+        "FEARS": "Fire going out. Tunnels collapsing. Surface-dwellers learning their secrets. The ice remembering something they buried.",
+        "TABOOS": "Revealing tunnel routes to outsiders, wasting fire, speaking your true name above ground, looking directly at aurora-light.",
+        "PROSE_STYLE": "Underground textures: sound echoes differently, the smell of mineral and fire-core, constant awareness of weight above. Fire is survival, not metaphor; when characters share fire-core warmth, it costs them something real. The darkness isn't absence but presence. Nightshelf characters notice light as intrusion, not relief."
+      },
+      "orca": {
+        "VALUES": "Strength proven, kills counted, the pack above all. Individual glory is meaningless unless the pack witnesses it. Pack bonds are absolute - betraying pod is worse than death.",
+        "SPEECH": "Blunt, ritualistic, peppered with hunt-metaphors. They speak of 'pods' not families, 'waters' not territories, 'kills' not victories. Names change with deeds.",
+        "GOVERNANCE": "Matriarchal pods led by the oldest female. Inter-pod conflicts resolved by ritual combat or competitive raiding. The High Matriarch commands only when all pods hunt together.",
+        "OUTSIDER_VIEW": "To the penguins: walking meat that built interesting structures. Some are worth keeping alive for information or ritual purposes.",
+        "SELF_VIEW": "Apex predators fulfilling their nature. They believe the dead god will wake when enough blood feeds the deep, and then the endless sea will yield new hunting grounds. The dead god isn't mythology but destination - every raid serves the waking.",
+        "FEARS": "The dead god never waking. Being cast out from the pod. Dying on land, away from water.",
+        "TABOOS": "Abandoning a pod-mate in battle, eating dead god's flesh (though some heretics do), letting prey dictate terms.",
+        "PROSE_STYLE": "Predator logic: everything is territory, resource, or threat. Violence is honest; diplomacy is weakness performed. Water is home; land is hunting ground."
+      },
+      "world": {
+        "VALUES": "The Berg has no values - only physics that feel like intentions. The cold preserves. The ice remembers. The aurora judges.",
+        "SPEECH": "The Berg does not speak, but those who've touched its deep ice report hearing whale-song, grinding stone, and something like breathing.",
+        "GOVERNANCE": "None. The Berg is not ruled. Those who claim to speak for it are either mad or lying.",
+        "OUTSIDER_VIEW": "To all who live on it: the only world that exists. To whatever watches from the deep: unknown.",
+        "SELF_VIEW": "The Berg may not be aware it exists. Or it may be aware of nothing else.",
+        "FEARS": "If The Berg fears, it fears melting. Or perhaps it fears waking.",
+        "TABOOS": "Some say drilling too deep angers the ice. Some say this is superstition. The Nightshelf stopped drilling at a certain point and won't say why.",
+        "PROSE_STYLE": "The Berg itself as character - weather with intention, ice with memory, cold that thinks."
+      },
+      "mixed": {
+        "VALUES": "Competing value systems create friction. What one culture considers virtue, another sees as weakness or threat.",
+        "SPEECH": "Translation failures abound. Code-switching is survival - different selves for different audiences.",
+        "GOVERNANCE": "The Flipper Accord is the only shared governance, and it satisfies no one fully.",
+        "OUTSIDER_VIEW": "Each side believes the other doesn't understand the cost. Neither is entirely wrong.",
+        "SELF_VIEW": "Third spaces (trading posts, neutral ground) develop their own identities that belong to neither culture.",
+        "FEARS": "The Accord breaking. Being caught between cultures with loyalty to neither. Children who don't fit anywhere.",
+        "TABOOS": "Vary by which culture is watching. The safest path is often silence.",
+        "PROSE_STYLE": "Translation failures: what one culture considers courtesy, another reads as insult. Trade requires trust no one fully extends. The Flipper Accord is a scar everyone picks at. Every exchange carries debt that compounds differently on each side."
+      }
+    },
+    "visualKeysByKind": {
+      "npc": [
+        "SPECIES",
+        "ATTIRE",
+        "MAGIC",
+        "TECH"
+      ],
+      "location": [
+        "SPECIES",
+        "ARCHITECTURE"
+      ],
+      "faction": [
+        "SPECIES",
+        "ATTIRE",
+        "ARCHITECTURE",
+        "TECH"
+      ],
+      "occurrence": [
+        "SPECIES",
+        "WEATHER_ASSOCIATION",
+        "COLOR_PALETTE"
+      ],
+      "ability": [
+        "TECH",
+        "MAGIC"
+      ],
+      "rule": [
+        "ARCHITECTURE",
+        "TECH"
+      ],
+      "artifact": [
+        "ARTIFACT",
+        "TECH",
+        "MAGIC"
+      ],
+      "era": [
+        "ARCHITECTURE",
+        "WEATHER_ASSOCIATION",
+        "DECAY_PATTERN"
+      ]
+    },
+    "descriptiveKeysByKind": {
+      "npc": [
+        "VALUES",
+        "SPEECH",
+        "FEARS",
+        "TABOOS"
+      ],
+      "faction": [
+        "VALUES",
+        "GOVERNANCE",
+        "SELF_VIEW",
+        "OUTSIDER_VIEW"
+      ],
+      "location": [
+        "FEARS",
+        "TABOOS"
+      ],
+      "occurrence": [
+        "SPEECH",
+        "OUTSIDER_VIEW"
+      ],
+      "era": [
+        "GOVERNANCE",
+        "SELF_VIEW"
+      ],
+      "ability": [
+        "SPEECH",
+        "TABOOS"
+      ],
+      "rule": [
+        "GOVERNANCE",
+        "OUTSIDER_VIEW"
+      ],
+      "artifact": [
+        "SPEECH",
+        "TABOOS"
+      ]
+    }
+  },
+  "enrichmentConfig": {
+    "textModel": "claude-haiku-4-5-20251001",
+    "chronicleModel": "claude-haiku-4-5-20251001",
+    "imageModel": "gpt-image-1.5",
+    "imageSize": "1536x1024",
+    "imageQuality": "low",
+    "minProminenceForImage": "marginal",
+    "numWorkers": 4,
+    "requireDescription": true,
+    "useClaudeForImagePrompt": true,
+    "claudeImagePromptTemplate": "Transform the structured prompt below into a single, coherent image prompt for {{modelName}}. Do NOT simply reformat—actively synthesize and reshape:\n\nHonor the VISUAL THESIS: This is the primary visual signal. The thesis describes the dominant silhouette feature that makes this entity instantly recognizable. Build the entire image around it.\n\nSynthesize, don't list:\n- Merge SUBJECT + CONTEXT + CULTURAL IDENTITY into a unified visual\n- Apply STYLE (artistic approach) and COMPOSITION (framing/perspective) to shape the rendering\n- Translate SUPPORTING TRAITS into concrete visual details that reinforce the thesis\n- Incorporate COLOR PALETTE if provided\n\nEstablish clear composition and perspective:\n- Honor the COMPOSITION directive for framing and vantage point\n- Use environmental storytelling (objects, weathering, traces) to convey history\n- The SETTING provides world context but the subject is the focus\n\nCreate specific visual instructions: Rather than listing adjectives, use concrete visual language: \"weathered by decades of X,\" \"visible scars of Y,\" \"rendered in the style of Z\"\n\nRespect the AVOID list: These are hard constraints—elements that break the visual language.\n\nCondense to a single, authoritative prompt: Output should be 150-300 words, reading as clear artistic direction that could be handed to a concept artist—not a bulleted list.\n{{globalImageRules}}\nOriginal prompt:\n{{prompt}}",
+    "claudeCoverImagePromptTemplate": "Transform the structured prompt below into an image prompt for {{modelName}} that creates a COLLAGE/MONTAGE — like a movie poster, not a single scene.\n\nSTYLE IS PRIMARY:\nThe STYLE section defines the artistic medium and rendering approach. Every element in the montage — every figure, every background fragment, every faded edge — must be rendered through this style. If the style says 'HDR nature photography,' the entire collage looks like HDR nature photography. If it says 'oil painting,' every panel is oil-painted. The style is not decoration — it is the visual foundation. Lead with it. Repeat it. Make it unmissable.\n\nCOMPOSITION RULES:\n- This is a mosaic of disconnected visual fragments, NOT a single coherent scene.\n- Elements do NOT share physical space or perspective. They overlap, fade, and bleed into each other.\n- Think: Star Wars poster, Criterion Collection cover, fantasy book cover.\n- Do NOT flatten the collage into one scene. Preserve the spatial disconnection between fragments.\n\nApply the COLOR PALETTE across all fragments as a unifying visual thread.\nRespect SPECIES REQUIREMENT and AVOID constraints absolutely.\n\nOutput 150-300 words. Open with the style/medium, then describe the montage.\n{{globalImageRules}}\nOriginal prompt:\n{{prompt}}",
+    "globalImageRules": ""
+  },
+  "styleSelection": {
+    "artisticStyleId": "hdr-nature-photography",
+    "compositionStyleId": "action-battle"
+  }
+}

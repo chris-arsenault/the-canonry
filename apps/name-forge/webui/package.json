@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --port 5001",
     "dev:standalone": "STANDALONE=true vite --port 3000",
-    "build": "vite build",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "static": "npm run build && npx serve dist -p 3000",
@@ -14,6 +15,7 @@
   },
   "dependencies": {
     "@canonry/world-schema": "file:../../../packages/world-schema",
+    "@penguin-tales/shared-components": "file:../../../packages/shared-components",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "seedrandom": "^3.0.5",

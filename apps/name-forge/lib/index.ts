@@ -13,7 +13,9 @@ export {
   generateOne,
   generateFromDomain,
   testDomain,
+  previewGrammar,
   type TestDomainResult,
+  type PreviewGrammarOptions,
 } from "./generate.js";
 
 // ============================================================================
@@ -32,12 +34,14 @@ export type {
   // Project structure
   Project,
   WorldSchema,
-  EntityKindDefinition,
   // Generation
   GenerateRequest,
   GenerateResult,
   // Markov (re-export from generate for backwards compat)
 } from "./types/project.js";
+
+// Re-export EntityKindDefinition from world-schema
+export type { EntityKindDefinition } from "@canonry/world-schema";
 
 export {
   // Zod schemas for validation
@@ -94,6 +98,20 @@ export {
   capitalizeWords,
   mixedCase,
 } from "./utils/helpers.js";
+
+// Morphological derivations (for grammar ~er, ~est, ~ing, ~ed, ~poss modifiers)
+export {
+  agentive,
+  superlative,
+  comparative,
+  gerund,
+  past,
+  possessive,
+  applyDerivation,
+  isDerivationType,
+  DERIVATION_TYPES,
+  type DerivationType,
+} from "./derivation.js";
 
 // Validation schemas
 export {

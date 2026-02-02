@@ -1,0 +1,2358 @@
+[
+  {
+    "systemType": "eraSpawner",
+    "config": {
+      "id": "era_spawner",
+      "name": "Era Spawner",
+      "description": "Creates era entities at simulation start. Establishes the timeline structure with supersedes relationships between consecutive eras."
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "eraTransition",
+    "config": {
+      "id": "era_transition",
+      "name": "Era Transition",
+      "description": "Handles transitions between eras based on world state and per-era exitConditions. Updates era status from future → current → historical.",
+      "prominenceSnapshot": {
+        "enabled": false,
+        "minProminence": "renowned"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "universalCatalyst",
+    "config": {
+      "id": "universal_catalyst",
+      "name": "Universal Catalyst",
+      "description": "Enables agents (NPCs, factions) to perform domain-defined actions. Manages action selection and success/failure.",
+      "actionAttemptRate": 0.18,
+      "pressureMultiplier": 1.1,
+      "prominenceUpChanceOnSuccess": 1,
+      "prominenceDownChanceOnFailure": 1
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "relationshipMaintenance",
+    "config": {
+      "id": "relationship_maintenance",
+      "name": "Relationship Maintenance",
+      "description": "Handles decay, reinforcement, and culling of relationships. Maintains relationship health over time.",
+      "maintenanceFrequency": 5,
+      "cullThreshold": 0.15,
+      "gracePeriod": 20,
+      "reinforcementBonus": 0.02,
+      "maxStrength": 1
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "connectionEvolution",
+    "config": {
+      "id": "alliance_formation",
+      "name": "Alliance Formation",
+      "description": "Factions practicing the same abilities may form alliances",
+      "metric": {
+        "type": "shared_relationship",
+        "sharedRelationshipKind": "practitioner_of",
+        "sharedDirection": "src"
+      },
+      "rules": [
+        {
+          "condition": {
+            "operator": ">=",
+            "threshold": 1
+          },
+          "probability": 0.3,
+          "action": {
+            "type": "create_relationship",
+            "kind": "allied_with",
+            "src": "$member",
+            "dst": "$member2",
+            "strength": 0.5,
+            "bidirectional": true
+          },
+          "betweenMatching": true,
+          "narrationTemplate": "{$member.name} and {$member2.name} formed an alliance.",
+          "multiPartyNarrationTemplate": "{names} formed a {count}-way alliance."
+        }
+      ],
+      "pairExcludeRelationships": [
+        "enemy_of",
+        "betrayed_by"
+      ],
+      "pairComponentSizeLimit": {
+        "relationshipKinds": [
+          "allied_with"
+        ],
+        "max": 6
+      },
+      "throttleChance": 0.15,
+      "pressureChanges": {
+        "cultural_harmony": 10
+      },
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "faction"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "connectionEvolution",
+    "config": {
+      "id": "prominence_evolution",
+      "name": "Prominence Evolution",
+      "description": "All entities fade over time; connections slow the decay (inactivity leads to being forgotten)",
+      "metric": {
+        "type": "connection_count",
+        "direction": "both",
+        "minStrength": 0.2
+      },
+      "rules": [
+        {
+          "condition": {
+            "operator": "<=",
+            "threshold": 2
+          },
+          "probability": 0.9,
+          "action": {
+            "type": "adjust_prominence",
+            "delta": -0.25,
+            "entity": "$self"
+          }
+        },
+        {
+          "condition": {
+            "operator": ">=",
+            "threshold": 3
+          },
+          "probability": 0.75,
+          "action": {
+            "type": "adjust_prominence",
+            "delta": -0.15,
+            "entity": "$self"
+          }
+        }
+      ],
+      "throttleChance": 0.08,
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "any"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "connectionEvolution",
+    "config": {
+      "id": "reflected_glory",
+      "name": "Reflected Glory",
+      "description": "Weak homeostatic pressure. Connected to legends? Slight rise. Connected to the forgotten? Slight fade.",
+      "metric": {
+        "type": "neighbor_prominence",
+        "direction": "both",
+        "minStrength": 0.2
+      },
+      "rules": [
+        {
+          "condition": {
+            "operator": ">=",
+            "threshold": 3
+          },
+          "probability": 0.3,
+          "action": {
+            "type": "adjust_prominence",
+            "delta": 0.06,
+            "entity": "$self"
+          }
+        },
+        {
+          "condition": {
+            "operator": "<=",
+            "threshold": 2
+          },
+          "probability": 0.4,
+          "action": {
+            "type": "adjust_prominence",
+            "delta": -0.06,
+            "entity": "$self"
+          }
+        }
+      ],
+      "throttleChance": 0.25,
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "any"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "war_casualties",
+      "name": "War Casualties",
+      "description": "NPCs serving factions at war can fall in battle, their artifacts looted or lost",
+      "conditions": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "exists",
+            "path": [
+              {
+                "via": "member_of",
+                "direction": "out",
+                "targetKind": "faction",
+                "targetSubtype": "any"
+              },
+              {
+                "via": "participant_in",
+                "direction": "out",
+                "targetKind": "occurrence",
+                "targetSubtype": "war",
+                "targetStatus": "active"
+              }
+            ]
+          }
+        },
+        {
+          "type": "random_chance",
+          "chance": 0.08
+        }
+      ],
+      "actions": [
+        {
+          "type": "change_status",
+          "entity": "$self",
+          "newStatus": "historical"
+        },
+        {
+          "type": "for_each_related",
+          "relationship": "owned_by",
+          "direction": "in",
+          "targetKind": "artifact",
+          "actions": [
+            {
+              "type": "conditional",
+              "condition": {
+                "type": "random_chance",
+                "chance": 0.5
+              },
+              "thenActions": [
+                {
+                  "type": "transfer_relationship",
+                  "entity": "$related",
+                  "relationshipKind": "owned_by",
+                  "from": "$self",
+                  "to": "$enemy_faction",
+                  "condition": {
+                    "type": "entity_exists",
+                    "entity": "$enemy_faction"
+                  }
+                },
+                {
+                  "type": "set_tag",
+                  "entity": "$related",
+                  "tag": "war_trophy",
+                  "value": true
+                }
+              ],
+              "elseActions": [
+                {
+                  "type": "change_status",
+                  "entity": "$related",
+                  "newStatus": "lost"
+                },
+                {
+                  "type": "archive_relationship",
+                  "entity": "$related",
+                  "relationshipKind": "owned_by",
+                  "with": "$self"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "variables": {
+        "$enemy_faction": {
+          "select": {
+            "from": {
+              "path": [
+                {
+                  "from": "$self",
+                  "via": "member_of",
+                  "direction": "src"
+                },
+                {
+                  "via": "at_war_with",
+                  "direction": "both"
+                }
+              ]
+            },
+            "kind": "faction",
+            "pickStrategy": "random"
+          }
+        }
+      },
+      "clusterMode": "individual",
+      "throttleChance": 0.5,
+      "narrationTemplate": "{$self.name} died in {$war.name}.",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "status": "alive",
+        "excludeSubtypes": [
+          "hero",
+          "mayor"
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "heroic_sacrifice",
+      "name": "Heroic Sacrifice",
+      "description": "A hero witnessing war's devastation sacrifices themselves to bring peace, their death shocking both sides into realizing the futility of conflict",
+      "conditions": [
+        {
+          "type": "random_chance",
+          "chance": 0.06
+        }
+      ],
+      "variables": {
+        "$war": {
+          "select": {
+            "from": "graph",
+            "kind": "occurrence",
+            "subtype": "war",
+            "status": "active",
+            "pickStrategy": "random"
+          },
+          "required": true
+        }
+      },
+      "actions": [
+        {
+          "type": "change_status",
+          "entity": "$self",
+          "newStatus": "historical"
+        },
+        {
+          "type": "change_status",
+          "entity": "$war",
+          "newStatus": "historical"
+        },
+        {
+          "type": "set_tag",
+          "entity": "$war",
+          "tag": "ended_by_sacrifice",
+          "value": true
+        },
+        {
+          "type": "for_each_related",
+          "relationship": "owned_by",
+          "direction": "in",
+          "targetKind": "artifact",
+          "actions": [
+            {
+              "type": "set_tag",
+              "entity": "$related",
+              "tag": "legendary",
+              "value": true
+            },
+            {
+              "type": "set_tag",
+              "entity": "$related",
+              "tag": "peace_relic",
+              "value": true
+            },
+            {
+              "type": "adjust_prominence",
+              "delta": 0.5,
+              "entity": "$related"
+            }
+          ]
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "cultural_harmony",
+          "delta": 15
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.2,
+      "narrationTemplate": "{$self.name} made a heroic sacrifice in {$war.name}.",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "status": "alive",
+        "subtypes": [
+          "hero"
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "old_age_mortality",
+      "name": "Old Age Mortality",
+      "description": "Aging NPCs occasionally pass away, their artifacts inherited or lost",
+      "conditions": [
+        {
+          "type": "time_elapsed",
+          "minTicks": 80,
+          "since": "created"
+        },
+        {
+          "type": "random_chance",
+          "chance": 0.02
+        }
+      ],
+      "actions": [
+        {
+          "type": "change_status",
+          "entity": "$self",
+          "newStatus": "historical"
+        },
+        {
+          "type": "for_each_related",
+          "relationship": "owned_by",
+          "direction": "in",
+          "targetKind": "artifact",
+          "actions": [
+            {
+              "type": "conditional",
+              "condition": {
+                "type": "random_chance",
+                "chance": 0.6
+              },
+              "thenActions": [
+                {
+                  "type": "change_status",
+                  "entity": "$related",
+                  "newStatus": "lost"
+                },
+                {
+                  "type": "archive_relationship",
+                  "entity": "$related",
+                  "relationshipKind": "owned_by",
+                  "with": "$self"
+                }
+              ],
+              "elseActions": [
+                {
+                  "type": "transfer_relationship",
+                  "entity": "$related",
+                  "relationshipKind": "owned_by",
+                  "from": "$self",
+                  "to": "$faction",
+                  "condition": {
+                    "type": "entity_exists",
+                    "entity": "$faction"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "variables": {
+        "$faction": {
+          "select": {
+            "from": {
+              "relatedTo": "$self",
+              "relationshipKind": "member_of",
+              "direction": "src"
+            },
+            "kind": "faction",
+            "pickStrategy": "random"
+          }
+        }
+      },
+      "clusterMode": "individual",
+      "throttleChance": 0.25,
+      "narrationTemplate": "{$self.name} died of old age.",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "status": "alive"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "war_fatigue_detector",
+      "name": "War Fatigue Detector",
+      "description": "Long-running wars become weary and ready to resolve",
+      "conditions": [
+        {
+          "type": "time_elapsed",
+          "minTicks": 5,
+          "since": "created"
+        }
+      ],
+      "actions": [
+        {
+          "type": "set_tag",
+          "tag": "war_weary",
+          "value": true,
+          "entity": "$self"
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.5,
+      "narrationTemplate": "{$self.name} grew war-weary.",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "occurrence",
+        "subtypes": [
+          "war"
+        ],
+        "status": "active",
+        "filters": [
+          {
+            "type": "lacks_tag",
+            "tag": "war_weary"
+          }
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "occurrence_resolution",
+      "name": "Occurrence Resolution",
+      "description": "Active events settle into history over time",
+      "conditions": [
+        {
+          "type": "time_elapsed",
+          "minTicks": 6,
+          "since": "created"
+        }
+      ],
+      "actions": [
+        {
+          "type": "change_status",
+          "entity": "$self",
+          "newStatus": "historical"
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.6,
+      "narrationTemplate": "{$self.name} passed into history.",
+      "pressureChanges": {
+        "cultural_harmony": 2
+      },
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "occurrence",
+        "status": "active",
+        "excludeSubtypes": [
+          "war"
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "post_war_recovery",
+      "name": "Post-War Recovery",
+      "description": "Factions without active wars shed conflict and cooldown tags",
+      "conditions": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "not_exists",
+            "path": [
+              {
+                "via": "participant_in",
+                "direction": "out",
+                "targetKind": "occurrence",
+                "targetSubtype": "war",
+                "targetStatus": "active"
+              }
+            ]
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "remove_tag",
+          "tag": "conflict",
+          "entity": "$self"
+        },
+        {
+          "type": "remove_tag",
+          "tag": "hostile",
+          "entity": "$self"
+        },
+        {
+          "type": "conditional",
+          "condition": {
+            "type": "time_elapsed",
+            "minTicks": 5,
+            "since": "updated"
+          },
+          "thenActions": [
+            {
+              "type": "remove_tag",
+              "entity": "$self",
+              "tag": "post_war_cooldown"
+            }
+          ]
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.5,
+      "narrationTemplate": "{$self.name} recovered from war.",
+      "pressureChanges": {
+        "cultural_harmony": 3,
+        "iceberg_security": 2
+      },
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "faction",
+        "filters": [
+          {
+            "type": "has_any_tag",
+            "tags": [
+              "conflict",
+              "hostile",
+              "post_war_cooldown"
+            ]
+          }
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "power_vacuum_detector",
+      "name": "Power Vacuum Detector",
+      "description": "Detects factions with historical (deceased) leaders and marks them in crisis",
+      "conditions": [
+        {
+          "type": "or",
+          "conditions": [
+            {
+              "type": "relationship_exists",
+              "relationshipKind": "leader_of",
+              "direction": "dst",
+              "targetKind": "npc",
+              "targetStatus": "historical"
+            },
+            {
+              "type": "relationship_count",
+              "relationshipKind": "leader_of",
+              "direction": "dst",
+              "max": 0
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "type": "set_tag",
+          "tag": "power_vacuum",
+          "value": true,
+          "entity": "$self"
+        },
+        {
+          "type": "set_tag",
+          "tag": "crisis",
+          "value": true,
+          "entity": "$self"
+        },
+        {
+          "type": "set_tag",
+          "tag": "political",
+          "value": true,
+          "entity": "$self"
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.35,
+      "pressureChanges": {
+        "iceberg_security": -8,
+        "cultural_harmony": -1
+      },
+      "narrationTemplate": "{$self.name} entered a power vacuum after losing leadership.",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "faction",
+        "filters": [
+          {
+            "type": "lacks_tag",
+            "tag": "power_vacuum"
+          }
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "clusterFormation",
+    "config": {
+      "id": "magic_school_formation",
+      "name": "Magic School Formation",
+      "description": "Clusters magic abilities into unified schools. Only top practitioners by prominence become 'masters' with direct links to the meta-ability.",
+      "runAtEpochEnd": true,
+      "clustering": {
+        "minSize": 5,
+        "maxSize": 8,
+        "criteria": [
+          {
+            "type": "shared_relationship",
+            "weight": 5,
+            "relationshipKind": "practitioner_of",
+            "direction": "dst"
+          },
+          {
+            "type": "same_culture",
+            "weight": 4
+          },
+          {
+            "type": "shared_tags",
+            "weight": 2,
+            "threshold": 0.3
+          },
+          {
+            "type": "temporal_proximity",
+            "weight": 1.5,
+            "threshold": 50
+          }
+        ],
+        "minimumScore": 5
+      },
+      "metaEntity": {
+        "kind": "ability",
+        "subtypeFromMajority": true,
+        "status": "active",
+        "prominenceFromSize": {
+          "marginal": 3,
+          "recognized": 4,
+          "renowned": 6,
+          "mythic": 9
+        },
+        "additionalTags": [],
+        "descriptionTemplate": "A unified tradition encompassing {names}. Formed from {count} related abilities practiced by multiple penguins."
+      },
+      "masterSelection": {
+        "filters": [
+          {
+            "type": "matches_culture",
+            "with": "$meta"
+          }
+        ],
+        "pickStrategy": "weighted",
+        "maxResults": 2
+      },
+      "memberUpdates": [
+        {
+          "type": "change_status",
+          "entity": "$member",
+          "newStatus": "subsumed"
+        }
+      ],
+      "postProcess": {
+        "pressureChanges": {
+          "iceberg_security": 2
+        }
+      },
+      "narrationTemplate": "{$self.name} emerged as a unified tradition, absorbing {count} related magical practices under one school.",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "ability",
+        "subtypes": [
+          "magic"
+        ],
+        "filters": [
+          {
+            "type": "lacks_tag",
+            "tag": "meta-entity"
+          }
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "clusterFormation",
+    "config": {
+      "id": "combat_technique_formation",
+      "name": "Combat Technique Formation",
+      "description": "Clusters combat abilities into unified fighting styles. Only top practitioners by prominence become 'masters' with direct links to the meta-ability.",
+      "runAtEpochEnd": true,
+      "clustering": {
+        "minSize": 3,
+        "maxSize": 8,
+        "criteria": [
+          {
+            "type": "shared_relationship",
+            "weight": 5,
+            "relationshipKind": "practitioner_of",
+            "direction": "dst"
+          },
+          {
+            "type": "same_culture",
+            "weight": 4
+          },
+          {
+            "type": "shared_tags",
+            "weight": 2,
+            "threshold": 0.3
+          },
+          {
+            "type": "temporal_proximity",
+            "weight": 1.5,
+            "threshold": 50
+          }
+        ],
+        "minimumScore": 5
+      },
+      "metaEntity": {
+        "kind": "ability",
+        "subtypeFromMajority": true,
+        "status": "active",
+        "prominenceFromSize": {
+          "marginal": 3,
+          "recognized": 4,
+          "renowned": 6,
+          "mythic": 9
+        },
+        "additionalTags": [
+          "combat-style"
+        ],
+        "descriptionTemplate": "A unified combat tradition encompassing {names}. Mastered by warriors who practice {count} techniques in harmony."
+      },
+      "masterSelection": {
+        "filters": [
+          {
+            "type": "matches_culture",
+            "with": "$meta"
+          }
+        ],
+        "pickStrategy": "weighted",
+        "maxResults": 2
+      },
+      "memberUpdates": [
+        {
+          "type": "change_status",
+          "entity": "$member",
+          "newStatus": "subsumed"
+        }
+      ],
+      "postProcess": {
+        "pressureChanges": {
+          "iceberg_security": 2
+        }
+      },
+      "narrationTemplate": "{$self.name} codified {count} combat techniques into a unified fighting style.",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "ability",
+        "subtypes": [
+          "combat"
+        ],
+        "filters": [
+          {
+            "type": "lacks_tag",
+            "tag": "meta-entity"
+          }
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "clusterFormation",
+    "config": {
+      "id": "legal_code_formation",
+      "name": "Legal Code Formation",
+      "description": "Clusters related laws into unified legal codes. Only the most prominent rules remain directly linked; others are subsumed into the codified system.",
+      "runAtEpochEnd": true,
+      "clustering": {
+        "minSize": 4,
+        "maxSize": 8,
+        "criteria": [
+          {
+            "type": "same_culture",
+            "weight": 5
+          },
+          {
+            "type": "shared_tags",
+            "weight": 2,
+            "threshold": 0.3
+          }
+        ],
+        "minimumScore": 4
+      },
+      "metaEntity": {
+        "kind": "rule",
+        "subtypeFromMajority": true,
+        "status": "enacted",
+        "prominenceFromSize": {
+          "marginal": 4,
+          "recognized": 5,
+          "renowned": 7,
+          "mythic": 10
+        },
+        "additionalTags": [
+          "meta-entity"
+        ],
+        "descriptionTemplate": "A unified legal system encompassing {names}. Codified from {count} related rules."
+      },
+      "masterSelection": {
+        "filters": [
+          {
+            "type": "matches_culture",
+            "with": "$meta"
+          }
+        ],
+        "pickStrategy": "weighted",
+        "maxResults": 2
+      },
+      "memberUpdates": [
+        {
+          "type": "change_status",
+          "entity": "$member",
+          "newStatus": "subsumed"
+        }
+      ],
+      "postProcess": {
+        "createGovernanceFaction": true,
+        "governanceFactionSubtype": "political",
+        "governanceRelationship": "related_to",
+        "pressureChanges": {
+          "iceberg_security": 5
+        }
+      },
+      "narrationTemplate": "{$self.name} enacted, consolidating {count} laws into a formal legal code.",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "rule",
+        "subtypes": [
+          "law"
+        ],
+        "filters": [
+          {
+            "type": "lacks_tag",
+            "tag": "meta-entity"
+          }
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "graphContagion",
+    "config": {
+      "id": "belief_contagion",
+      "name": "Belief Contagion",
+      "description": "Models ideological spread through social networks using SIR epidemic model",
+      "contagion": {
+        "type": "relationship",
+        "relationshipKind": "believer_of"
+      },
+      "vectors": [
+        {
+          "relationshipKind": "believer_of",
+          "direction": "both",
+          "minStrength": 0.3
+        },
+        {
+          "relationshipKind": "allied_with",
+          "direction": "both",
+          "minStrength": 0.3
+        },
+        {
+          "relationshipKind": "trades_with",
+          "direction": "both",
+          "minStrength": 0.3
+        },
+        {
+          "relationshipKind": "at_war_with",
+          "direction": "both",
+          "minStrength": 0.3
+        },
+        {
+          "relationshipKind": "splinter_of",
+          "direction": "both",
+          "minStrength": 0.3
+        }
+      ],
+      "transmission": {
+        "baseRate": 0.25,
+        "contactMultiplier": 0.1,
+        "maxProbability": 0.95
+      },
+      "infectionAction": {
+        "type": "create_relationship",
+        "kind": "believer_of",
+        "src": "$self",
+        "dst": "$contagion_source",
+        "strength": 0.5
+      },
+      "narrationTemplate": "{$self.name} adopted the beliefs of {$contagion_source.name}.",
+      "recovery": {
+        "baseRate": 0.02,
+        "recoveryBonusTraits": [
+          {
+            "tag": "organized",
+            "bonus": 0.12
+          },
+          {
+            "tag": "leader",
+            "bonus": 0.12
+          }
+        ]
+      },
+      "susceptibilityModifiers": [
+        {
+          "tag": "follower",
+          "modifier": 0.3
+        },
+        {
+          "tag": "mystical",
+          "modifier": 0.2
+        },
+        {
+          "tag": "organized",
+          "modifier": -0.2
+        },
+        {
+          "tag": "leader",
+          "modifier": -0.2
+        }
+      ],
+      "phaseTransitions": [
+        {
+          "toStatus": "enacted",
+          "adoptionThreshold": 0.2,
+          "descriptionSuffix": "This belief has spread widely and is now established tradition.",
+          "selection": {
+            "strategy": "by_kind",
+            "kind": "rule",
+            "status": "proposed"
+          }
+        }
+      ],
+      "multiSource": {
+        "immunityTagPrefix": "immune",
+        "immunityNarrationTemplate": "{$self.name} rejected the teachings of {$source.name}.",
+        "lowAdoptionThreshold": 0.05,
+        "lowAdoptionStatus": "contested",
+        "sourceSelection": {
+          "strategy": "by_kind",
+          "kind": "rule",
+          "status": "proposed"
+        }
+      },
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "faction"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "tagDiffusion",
+    "config": {
+      "id": "cultural_drift",
+      "name": "Cultural Drift",
+      "description": "Connected colonies become more similar (trade, friendly), isolated colonies diverge (secretive, hidden)",
+      "connectionKind": "adjacent_to",
+      "connectionDirection": "both",
+      "convergence": {
+        "tags": [
+          "trade",
+          "friendly",
+          "central",
+          "organized",
+          "resource",
+          "thriving"
+        ],
+        "minConnections": 1,
+        "probability": 0.3,
+        "maxSharedTags": 2,
+        "narrationTemplate": "{$self.name} adopted new cultural practices through its connections."
+      },
+      "divergence": {
+        "tags": [
+          "hidden",
+          "secretive",
+          "mystical"
+        ],
+        "maxConnections": 0,
+        "probability": 0.3,
+        "narrationTemplate": "{$self.name} developed unique traditions in isolation."
+      },
+      "maxTags": 10,
+      "divergencePressure": {
+        "pressureName": "cultural_harmony",
+        "minDivergent": 2,
+        "delta": -10
+      },
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "location",
+        "subtypes": [
+          "colony"
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "planeDiffusion",
+    "config": {
+      "id": "thermal_diffusion",
+      "name": "Thermal Diffusion",
+      "description": "Heat spreads from anomaly sources, making locations dangerous or safe",
+      "sources": {
+        "tagFilter": "anomaly",
+        "defaultStrength": 60
+      },
+      "sinks": {
+        "tagFilter": "central",
+        "defaultStrength": 12
+      },
+      "diffusion": {
+        "rate": 0.2,
+        "falloffType": "none",
+        "iterationsPerTick": 30,
+        "sourceRadius": 3,
+        "decayRate": 0
+      },
+      "outputTags": [
+        {
+          "tag": "safe",
+          "maxValue": 0.15,
+          "narrationTemplate": "{$self.name} cooled to safe temperatures.",
+          "lostNarrationTemplate": "{$self.name} lost its safe conditions as temperatures shifted."
+        },
+        {
+          "tag": "dangerous",
+          "minValue": 0.25,
+          "narrationTemplate": "{$self.name} became dangerously hot from nearby thermal activity.",
+          "lostNarrationTemplate": "{$self.name} cooled down and became safe again."
+        }
+      ],
+      "valueTag": "temperature",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "location"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "planeDiffusion",
+    "config": {
+      "id": "resource_diffusion",
+      "name": "Resource Diffusion",
+      "description": "Prosperity spreads from resource-rich and trade locations",
+      "sources": {
+        "tagFilter": "resource",
+        "defaultStrength": 80
+      },
+      "diffusion": {
+        "rate": 0.3,
+        "decayRate": 0,
+        "sourceRadius": 3,
+        "falloffType": "none",
+        "iterationsPerTick": 30
+      },
+      "outputTags": [
+        {
+          "tag": "thriving",
+          "minValue": 15,
+          "maxValue": 100,
+          "narrationTemplate": "{$self.name} began thriving from nearby resource wealth.",
+          "lostNarrationTemplate": "{$self.name} lost its prosperity as resources dwindled."
+        },
+        {
+          "tag": "stressed",
+          "maxValue": 40,
+          "minValue": -100,
+          "narrationTemplate": "{$self.name} became economically stressed.",
+          "lostNarrationTemplate": "{$self.name} recovered from economic hardship."
+        }
+      ],
+      "valueTag": "sys_resource_value",
+      "sinks": {
+        "tagFilter": "conflict",
+        "defaultStrength": 25
+      },
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "location"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "connectionEvolution",
+    "config": {
+      "id": "merchant_prosperity",
+      "name": "Merchant Prosperity",
+      "description": "Trade-connected factions controlling thriving colonies gain influence",
+      "metric": {
+        "type": "connection_count",
+        "relationshipKinds": [
+          "controls"
+        ],
+        "direction": "src"
+      },
+      "rules": [
+        {
+          "condition": {
+            "operator": ">=",
+            "threshold": 1
+          },
+          "probability": 0.7,
+          "action": {
+            "type": "adjust_prominence",
+            "delta": 0.2,
+            "entity": "$self"
+          }
+        },
+        {
+          "condition": {
+            "operator": "<=",
+            "threshold": 0
+          },
+          "probability": 0.8,
+          "action": {
+            "type": "adjust_prominence",
+            "delta": -0.15,
+            "entity": "$self"
+          }
+        }
+      ],
+      "throttleChance": 0.15,
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "faction",
+        "subtypes": [
+          "company"
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "artifact_degradation",
+      "name": "Artifact Degradation",
+      "description": "Over time, artifacts may become damaged",
+      "conditions": [
+        {
+          "type": "time_elapsed",
+          "since": "created",
+          "minTicks": 50
+        },
+        {
+          "type": "random_chance",
+          "chance": 0.08
+        }
+      ],
+      "actions": [
+        {
+          "type": "change_status",
+          "newStatus": "damaged",
+          "entity": "$self"
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.5,
+      "narrationTemplate": "{$self.name} became damaged.",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "artifact",
+        "status": "intact"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "artifact_destruction",
+      "name": "Artifact Destruction",
+      "description": "Damaged artifacts may be destroyed over time",
+      "conditions": [
+        {
+          "type": "time_elapsed",
+          "minTicks": 15
+        },
+        {
+          "type": "random_chance",
+          "chance": 0.25
+        }
+      ],
+      "actions": [
+        {
+          "type": "change_status",
+          "newStatus": "destroyed",
+          "entity": "$self"
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.3,
+      "narrationTemplate": "{$self.name} was destroyed.",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "artifact",
+        "status": "damaged"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "armed_hero_detector",
+      "name": "Armed Hero Detector",
+      "description": "Heroes who own weapons are tagged as armed, enabling them to hunt orcas",
+      "conditions": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "exists",
+            "path": [
+              {
+                "via": "owned_by",
+                "direction": "in",
+                "targetKind": "artifact",
+                "targetSubtype": "weapon"
+              }
+            ]
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "set_tag",
+          "tag": "armed",
+          "value": true,
+          "entity": "$self"
+        },
+        {
+          "type": "adjust_prominence",
+          "delta": 0.3,
+          "entity": "$self"
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.1,
+      "narrationTemplate": "{$self.name} acquired a weapon.",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "subtypes": [
+          "hero"
+        ],
+        "status": "alive",
+        "filters": [
+          {
+            "type": "lacks_tag",
+            "tag": "armed"
+          }
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "devout_believer_detector",
+      "name": "Devout Believer Detector",
+      "description": "Factions with strong belief relationships are marked as devout",
+      "conditions": [
+        {
+          "type": "relationship_count",
+          "relationshipKind": "believer_of",
+          "direction": "src",
+          "min": 1
+        },
+        {
+          "type": "lacks_tag",
+          "tag": "devout"
+        }
+      ],
+      "actions": [
+        {
+          "type": "set_tag",
+          "tag": "devout",
+          "value": true,
+          "entity": "$self"
+        },
+        {
+          "type": "adjust_prominence",
+          "delta": 0.25,
+          "entity": "$self"
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.2,
+      "narrationTemplate": "{$self.name} became devout.",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "faction",
+        "status": "active"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "control_collapse",
+      "name": "Control Collapse",
+      "description": "When a faction's control over a location weakens below threshold, they lose control entirely",
+      "conditions": [
+        {
+          "type": "relationship_count",
+          "relationshipKind": "controls",
+          "direction": "src",
+          "min": 1
+        },
+        {
+          "type": "random_chance",
+          "chance": 0.03
+        }
+      ],
+      "variables": {
+        "$weak_territory": {
+          "select": {
+            "from": {
+              "relatedTo": "$self",
+              "relationshipKind": "controls",
+              "direction": "src"
+            },
+            "kind": "location",
+            "pickStrategy": "random"
+          },
+          "required": true
+        }
+      },
+      "actions": [
+        {
+          "type": "archive_relationship",
+          "entity": "$self",
+          "relationshipKind": "controls",
+          "with": "$weak_territory"
+        },
+        {
+          "type": "set_tag",
+          "tag": "contested",
+          "value": true,
+          "entity": "$weak_territory"
+        },
+        {
+          "type": "set_tag",
+          "tag": "crisis",
+          "value": true,
+          "entity": "$weak_territory"
+        },
+        {
+          "type": "adjust_prominence",
+          "delta": -0.25,
+          "entity": "$self"
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.5,
+      "narrationTemplate": "{$self.name} lost control of {$weak_territory.name}.",
+      "pressureChanges": {
+        "iceberg_security": -3
+      },
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "faction",
+        "status": "active"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "alliance_defense_call",
+      "name": "Alliance Defense Call",
+      "description": "When an allied faction is at war, allies consider joining the fight to honor their pact",
+      "conditions": [
+        {
+          "type": "relationship_exists",
+          "relationshipKind": "allied_with",
+          "direction": "both"
+        },
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "not_exists",
+            "path": [
+              {
+                "via": "participant_in",
+                "direction": "out",
+                "targetKind": "occurrence",
+                "targetSubtype": "war",
+                "targetStatus": "active"
+              }
+            ]
+          }
+        },
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "exists",
+            "path": [
+              {
+                "via": "allied_with",
+                "direction": "any",
+                "targetKind": "faction",
+                "targetSubtype": "any"
+              },
+              {
+                "via": "participant_in",
+                "direction": "out",
+                "targetKind": "occurrence",
+                "targetSubtype": "war",
+                "targetStatus": "active"
+              }
+            ]
+          }
+        },
+        {
+          "type": "random_chance",
+          "chance": 0.25
+        }
+      ],
+      "variables": {
+        "$ally": {
+          "select": {
+            "from": {
+              "relatedTo": "$self",
+              "relationshipKind": "allied_with",
+              "direction": "both"
+            },
+            "kind": "faction",
+            "filters": [
+              {
+                "type": "graph_path",
+                "assert": {
+                  "check": "exists",
+                  "path": [
+                    {
+                      "via": "participant_in",
+                      "direction": "out",
+                      "targetKind": "occurrence",
+                      "targetSubtype": "war",
+                      "targetStatus": "active"
+                    }
+                  ]
+                }
+              }
+            ],
+            "pickStrategy": "random"
+          },
+          "required": true
+        },
+        "$war": {
+          "select": {
+            "from": {
+              "relatedTo": "$ally",
+              "relationshipKind": "participant_in",
+              "direction": "out"
+            },
+            "kind": "occurrence",
+            "subtypes": [
+              "war"
+            ],
+            "status": "active",
+            "pickStrategy": "random"
+          },
+          "required": true
+        }
+      },
+      "actions": [
+        {
+          "type": "create_relationship",
+          "kind": "participant_in",
+          "src": "$self",
+          "dst": "$war",
+          "strength": 0.7
+        },
+        {
+          "type": "set_tag",
+          "tag": "honor_bound",
+          "value": true,
+          "entity": "$self"
+        },
+        {
+          "type": "set_tag",
+          "tag": "conflict",
+          "value": true,
+          "entity": "$self"
+        },
+        {
+          "type": "adjust_prominence",
+          "delta": 0.25,
+          "entity": "$self"
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.4,
+      "narrationTemplate": "{$self.name} joined {$war.name} to defend {$ally.name}.",
+      "pressureChanges": {
+        "cultural_harmony": -3
+      },
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "faction",
+        "status": "active"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "corruption_touch",
+      "name": "Corruption Touch",
+      "description": "NPCs residing in corrupted locations become corrupted",
+      "conditions": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "exists",
+            "path": [
+              {
+                "via": "resident_of",
+                "direction": "out",
+                "targetKind": "location",
+                "targetSubtype": "any"
+              }
+            ]
+          }
+        },
+        {
+          "type": "lacks_tag",
+          "tag": "corrupted"
+        },
+        {
+          "type": "random_chance",
+          "chance": 0.08
+        }
+      ],
+      "variables": {
+        "$home": {
+          "select": {
+            "from": {
+              "relatedTo": "$self",
+              "relationshipKind": "resident_of",
+              "direction": "src"
+            },
+            "kind": "location",
+            "filters": [
+              {
+                "type": "has_tag",
+                "tag": "corrupted"
+              }
+            ]
+          },
+          "required": true
+        }
+      },
+      "actions": [
+        {
+          "type": "set_tag",
+          "tag": "corrupted",
+          "value": true,
+          "entity": "$self"
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.5,
+      "narrationTemplate": "{$self.name} was touched by the corruption festering at {$home.name}.",
+      "pressureChanges": {
+        "magical_stability": -1
+      },
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "status": "alive"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "corruption_curse",
+      "name": "Corruption Curse",
+      "description": "Corrupted NPCs become cursed as corruption deepens",
+      "conditions": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "exists",
+            "path": [
+              {
+                "via": "resident_of",
+                "direction": "out",
+                "targetKind": "location",
+                "targetSubtype": "any"
+              }
+            ]
+          }
+        },
+        {
+          "type": "tag_exists",
+          "tag": "corrupted"
+        },
+        {
+          "type": "lacks_tag",
+          "tag": "cursed"
+        },
+        {
+          "type": "random_chance",
+          "chance": 0.08
+        }
+      ],
+      "variables": {
+        "$home": {
+          "select": {
+            "from": {
+              "relatedTo": "$self",
+              "relationshipKind": "resident_of",
+              "direction": "src"
+            },
+            "kind": "location",
+            "filters": [
+              {
+                "type": "has_tag",
+                "tag": "corrupted"
+              }
+            ]
+          },
+          "required": true
+        }
+      },
+      "actions": [
+        {
+          "type": "set_tag",
+          "tag": "cursed",
+          "value": true,
+          "entity": "$self"
+        },
+        {
+          "type": "archive_all_relationships",
+          "entity": "$self",
+          "relationshipKind": "owned_by",
+          "direction": "dst"
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.5,
+      "narrationTemplate": "The corruption at {$home.name} tightened its grip on {$self.name}.",
+      "pressureChanges": {
+        "magical_stability": -2
+      },
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "status": "alive"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "corruption_death",
+      "name": "Corruption Death",
+      "description": "Cursed NPCs succumb to corruption",
+      "conditions": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "exists",
+            "path": [
+              {
+                "via": "resident_of",
+                "direction": "out",
+                "targetKind": "location",
+                "targetSubtype": "any"
+              }
+            ]
+          }
+        },
+        {
+          "type": "tag_exists",
+          "tag": "cursed"
+        },
+        {
+          "type": "random_chance",
+          "chance": 0.08
+        }
+      ],
+      "variables": {
+        "$home": {
+          "select": {
+            "from": {
+              "relatedTo": "$self",
+              "relationshipKind": "resident_of",
+              "direction": "src"
+            },
+            "kind": "location",
+            "filters": [
+              {
+                "type": "has_tag",
+                "tag": "corrupted"
+              }
+            ]
+          },
+          "required": true
+        }
+      },
+      "actions": [
+        {
+          "type": "change_status",
+          "entity": "$self",
+          "newStatus": "historical"
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.5,
+      "narrationTemplate": "{$self.name} succumbed to the corruption at {$home.name}.",
+      "pressureChanges": {
+        "magical_stability": -3
+      },
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "status": "alive"
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "unarmed_hero_detector",
+      "name": "Unarmed Hero Detector",
+      "description": "Heroes who lose their weapons are no longer armed",
+      "conditions": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "not_exists",
+            "path": [
+              {
+                "via": "owned_by",
+                "direction": "in",
+                "targetKind": "artifact",
+                "targetSubtype": "weapon"
+              }
+            ]
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "remove_tag",
+          "tag": "armed",
+          "entity": "$self"
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.1,
+      "narrationTemplate": "{$self.name} lost their weapon.",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "subtypes": [
+          "hero"
+        ],
+        "status": "alive",
+        "filters": [
+          {
+            "type": "has_tag",
+            "tag": "armed"
+          }
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "corruption_crisis",
+      "name": "Corruption Crisis",
+      "description": "Severely corrupted locations trigger a crisis that kills inhabitants and spreads fear",
+      "conditions": [
+        {
+          "type": "tag_exists",
+          "tag": "corrupted"
+        },
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_min",
+            "path": [
+              {
+                "via": "occupies",
+                "direction": "in",
+                "targetKind": "npc",
+                "targetSubtype": "any",
+                "targetStatus": "alive"
+              }
+            ],
+            "count": 2
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "set_tag",
+          "entity": "$self",
+          "tag": "crisis",
+          "value": true
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "iceberg_security",
+          "delta": -10
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "magical_stability",
+          "delta": -5
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.15,
+      "narrationTemplate": "Corruption crisis at {$self.name}.",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "location",
+        "filters": [
+          {
+            "type": "has_tag",
+            "tag": "corrupted"
+          },
+          {
+            "type": "lacks_tag",
+            "tag": "crisis"
+          }
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "cleansed_isolation_decay",
+      "name": "Cleansed Isolation Decay",
+      "description": "Cleansed locations without nearby sanctified neighbors lose their protection as the wards weaken",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "location",
+        "filters": [
+          {
+            "type": "has_tag",
+            "tag": "cleansed"
+          }
+        ]
+      },
+      "conditions": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_max",
+            "path": [
+              {
+                "via": "adjacent_to",
+                "direction": "any",
+                "targetKind": "location",
+                "targetSubtype": "any",
+                "filters": [
+                  {
+                    "type": "has_tag",
+                    "tag": "cleansed"
+                  }
+                ]
+              }
+            ],
+            "count": 0
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "remove_tag",
+          "entity": "$self",
+          "tag": "cleansed"
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "magical_stability",
+          "delta": -2
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.3,
+      "narrationTemplate": "Wards faded at {$self.name}."
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "ice_memory_witness",
+      "name": "Ice Memory Witness",
+      "description": "The ice witnesses deeds at significant locations, annotating those present with echoes",
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "subtypes": [
+          "hero",
+          "merchant",
+          "outlaw",
+          "mayor",
+          "orca"
+        ],
+        "status": "alive"
+      },
+      "conditions": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "exists",
+            "path": [
+              {
+                "via": "resident_of",
+                "direction": "out",
+                "targetKind": "location",
+                "targetSubtype": "any"
+              }
+            ]
+          }
+        },
+        {
+          "type": "prominence",
+          "max": "marginal"
+        }
+      ],
+      "actions": [
+        {
+          "type": "set_tag",
+          "entity": "$self",
+          "tag": "ice_witnessed",
+          "value": true
+        },
+        {
+          "type": "adjust_prominence",
+          "entity": "$self",
+          "delta": 0.2
+        }
+      ],
+      "throttleChance": 0.3,
+      "clusterMode": "individual",
+      "narrationTemplate": "{$self.name} was witnessed by the ice."
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "connectionEvolution",
+    "config": {
+      "id": "anomaly_mystical_gain",
+      "name": "Anomaly Mystical Gain",
+      "description": "Anomalous locations gain mystical qualities over time. NPCs residing nearby dampen this effect through their stabilizing presence.",
+      "metric": {
+        "type": "neighbor_kind_count",
+        "via": [
+          "adjacent_to",
+          "contained_by",
+          "contains"
+        ],
+        "viaDirection": "both",
+        "then": "resident_of",
+        "thenDirection": "dst",
+        "kind": "npc"
+      },
+      "rules": [
+        {
+          "condition": {
+            "operator": "<=",
+            "threshold": 0
+          },
+          "probability": 0.5,
+          "action": {
+            "type": "set_tag",
+            "tag": "mystical",
+            "value": true,
+            "entity": "$self"
+          },
+          "narrationTemplate": "{$self.name} gained mystical qualities."
+        },
+        {
+          "condition": {
+            "operator": ">=",
+            "threshold": 1
+          },
+          "probability": 0.25,
+          "action": {
+            "type": "set_tag",
+            "tag": "mystical",
+            "value": true,
+            "entity": "$self"
+          },
+          "narrationTemplate": "{$self.name} gained mystical qualities."
+        }
+      ],
+      "throttleChance": 0.3,
+      "pressureChanges": {
+        "magical_stability": -2
+      },
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "location",
+        "filters": [
+          {
+            "type": "has_tag",
+            "tag": "anomaly"
+          },
+          {
+            "type": "lacks_tag",
+            "tag": "mystical"
+          }
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "connectionEvolution",
+    "config": {
+      "id": "mystical_decay",
+      "name": "Mystical Decay",
+      "description": "Mystical qualities fade from locations over time. NPCs residing nearby dampen this effect, stabilizing the mystical energy.",
+      "metric": {
+        "type": "neighbor_kind_count",
+        "via": [
+          "adjacent_to",
+          "contained_by",
+          "contains"
+        ],
+        "viaDirection": "both",
+        "then": "resident_of",
+        "thenDirection": "dst",
+        "kind": "npc"
+      },
+      "rules": [
+        {
+          "condition": {
+            "operator": "<=",
+            "threshold": 0
+          },
+          "probability": 0.2,
+          "action": {
+            "type": "remove_tag",
+            "tag": "mystical",
+            "entity": "$self"
+          },
+          "narrationTemplate": "{$self.name} lost its mystical qualities."
+        },
+        {
+          "condition": {
+            "operator": ">=",
+            "threshold": 1
+          },
+          "probability": 0.04,
+          "action": {
+            "type": "remove_tag",
+            "tag": "mystical",
+            "entity": "$self"
+          },
+          "narrationTemplate": "{$self.name} lost its mystical qualities."
+        }
+      ],
+      "throttleChance": 0.3,
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "location",
+        "filters": [
+          {
+            "type": "has_tag",
+            "tag": "mystical"
+          }
+        ]
+      }
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "anomaly_activation",
+      "name": "Anomaly Activation",
+      "description": "When multiple adjacent anomalies resonate without NPC interference, one surges to an active state capable of crystallizing power.",
+      "conditions": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_min",
+            "count": 1,
+            "path": [
+              {
+                "via": [
+                  "adjacent_to",
+                  "contained_by",
+                  "contains"
+                ],
+                "direction": "any",
+                "targetKind": "location",
+                "targetSubtype": "any",
+                "filters": [
+                  {
+                    "type": "has_tag",
+                    "tag": "anomaly"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_max",
+            "count": 0,
+            "path": [
+              {
+                "via": [
+                  "adjacent_to",
+                  "contained_by",
+                  "contains"
+                ],
+                "direction": "any",
+                "targetKind": "location",
+                "targetSubtype": "any"
+              },
+              {
+                "via": "resident_of",
+                "direction": "in",
+                "targetKind": "npc",
+                "targetSubtype": "any"
+              }
+            ]
+          }
+        },
+        {
+          "type": "random_chance",
+          "chance": 0.2
+        }
+      ],
+      "actions": [
+        {
+          "type": "set_tag",
+          "entity": "$self",
+          "tag": "active",
+          "value": true
+        },
+        {
+          "type": "adjust_prominence",
+          "entity": "$self",
+          "delta": 0.3
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.4,
+      "pressureChanges": {
+        "magical_stability": -5
+      },
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "location",
+        "filters": [
+          {
+            "type": "has_tag",
+            "tag": "anomaly"
+          },
+          {
+            "type": "has_tag",
+            "tag": "mystical"
+          },
+          {
+            "type": "lacks_tag",
+            "tag": "active"
+          },
+          {
+            "type": "lacks_tag",
+            "tag": "depleted"
+          }
+        ]
+      },
+      "narrationTemplate": "{$self.name} became active."
+    },
+    "enabled": true
+  },
+  {
+    "systemType": "thresholdTrigger",
+    "config": {
+      "id": "depleted_recovery",
+      "name": "Depleted Recovery",
+      "description": "Depleted anomalies slowly recover their potential over time.",
+      "conditions": [
+        {
+          "type": "random_chance",
+          "chance": 0.15
+        }
+      ],
+      "actions": [
+        {
+          "type": "remove_tag",
+          "entity": "$self",
+          "tag": "depleted"
+        }
+      ],
+      "clusterMode": "individual",
+      "throttleChance": 0.5,
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "location",
+        "filters": [
+          {
+            "type": "has_tag",
+            "tag": "depleted"
+          }
+        ]
+      },
+      "narrationTemplate": "{$self.name} recovered from depletion."
+    },
+    "enabled": true
+  }
+]

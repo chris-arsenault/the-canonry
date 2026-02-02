@@ -36,36 +36,46 @@ const styles = {
   },
 };
 
+const loadingFallback = React.createElement(
+  'div',
+  { style: styles.loading },
+  'Loading Cosmographer...'
+);
+
 export default function CosmographerHost({
   schema,
-  semanticData,
-  cultureVisuals,
-  namingData,
+  axisDefinitions,
   seedEntities,
   seedRelationships,
-  onSemanticDataChange,
-  onCultureVisualsChange,
+  onEntityKindsChange,
+  onCulturesChange,
+  onAxisDefinitionsChange,
+  onTagRegistryChange,
   onSeedEntitiesChange,
   onSeedRelationshipsChange,
+  onAddTag,
   activeSection,
   onSectionChange,
+  schemaUsage,
 }) {
   return (
     <div style={styles.container}>
-      <Suspense fallback={<div style={styles.loading}>Loading Cosmographer...</div>}>
+      <Suspense fallback={loadingFallback}>
         <CosmographerRemote
           schema={schema}
-          semanticData={semanticData}
-          cultureVisuals={cultureVisuals}
-          namingData={namingData}
+          axisDefinitions={axisDefinitions}
           seedEntities={seedEntities}
           seedRelationships={seedRelationships}
-          onSemanticDataChange={onSemanticDataChange}
-          onCultureVisualsChange={onCultureVisualsChange}
+          onEntityKindsChange={onEntityKindsChange}
+          onCulturesChange={onCulturesChange}
+          onAxisDefinitionsChange={onAxisDefinitionsChange}
+          onTagRegistryChange={onTagRegistryChange}
           onSeedEntitiesChange={onSeedEntitiesChange}
           onSeedRelationshipsChange={onSeedRelationshipsChange}
+          onAddTag={onAddTag}
           activeSection={activeSection}
           onSectionChange={onSectionChange}
+          schemaUsage={schemaUsage}
         />
       </Suspense>
     </div>

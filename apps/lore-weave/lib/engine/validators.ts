@@ -1,4 +1,4 @@
-import { Graph } from '../engine/types';
+import { EngineConfig, Graph } from '../engine/types';
 import { HardState } from '../core/worldTypes';
 
 /**
@@ -27,11 +27,8 @@ export interface ValidationReport {
  */
 export function validateConnectedEntities(graph: Graph): ValidationResult {
   const unconnected = graph.getEntities().filter(entity => {
-    // Check for outgoing relationships (in entity.links)
-    const hasOutgoing = entity.links.length > 0;
-
-    // Check for incoming relationships (where entity is dst)
-    const hasIncoming = graph.getRelationships().some(r => r.dst === entity.id);
+    const hasOutgoing = graph.getEntityRelationships(entity.id, 'src').length > 0;
+    const hasIncoming = graph.getEntityRelationships(entity.id, 'dst').length > 0;
 
     return !hasOutgoing && !hasIncoming;
   });
@@ -71,23 +68,35 @@ export function validateConnectedEntities(graph: Graph): ValidationResult {
 }
 
 /**
- * Validate that entities have required structural relationships
- * Uses domain schema to determine requirements (no hardcoded entity kinds!)
+ * Validate that entities have required structural relationships.
+ * Uses canonical schema requirements (no hardcoded entity kinds).
  */
-export function validateNPCStructure(graph: Graph): ValidationResult {
+export function validateNPCStructure(graph: Graph, config: EngineConfig): ValidationResult {
   const invalidEntities: HardState[] = [];
   const missingByKindSubtype = new Map<string, Map<string, number>>();
+  const kindsWithRequirements = config.schema.entityKinds.filter(
+    kindDef => kindDef.requiredRelationships && kindDef.requiredRelationships.length > 0
+  );
 
-  // Check all entities against domain schema requirements
+  if (kindsWithRequirements.length === 0) {
+    return {
+      name: 'Entity Structure',
+      passed: true,
+      failureCount: 0,
+      details: 'No requiredRelationships defined in schema'
+    };
+  }
+
+  // Check all entities against schema requirements
   for (const entity of graph.getEntities()) {
-    if (!graph.config.domain.validateEntityStructure) {
-      // Domain doesn't provide validation - skip
-      continue;
-    }
+    const kindDef = config.schema.entityKinds.find(kind => kind.kind === entity.kind);
+    const required = kindDef?.requiredRelationships;
+    if (!required || required.length === 0) continue;
 
-    const validation = graph.config.domain.validateEntityStructure(entity);
+    const relationships = graph.getEntityRelationships(entity.id, 'both', { includeHistorical: true });
+    const missing = required.filter(rule => !relationships.some(rel => rel.kind === rule.kind));
 
-    if (!validation.valid) {
+    if (missing.length > 0) {
       invalidEntities.push(entity);
 
       // Track missing relationships by kind:subtype
@@ -97,8 +106,8 @@ export function validateNPCStructure(graph: Graph): ValidationResult {
       }
       const subtypeMap = missingByKindSubtype.get(key)!;
 
-      validation.missing.forEach(relKind => {
-        subtypeMap.set(relKind, (subtypeMap.get(relKind) || 0) + 1);
+      missing.forEach(rule => {
+        subtypeMap.set(rule.kind, (subtypeMap.get(rule.kind) || 0) + 1);
       });
     }
   }
@@ -119,7 +128,7 @@ export function validateNPCStructure(graph: Graph): ValidationResult {
   }
 
   return {
-    name: 'Entity Structure',  // Renamed from 'NPC Structure'
+    name: 'Entity Structure',
     passed,
     failureCount: invalidEntities.length,
     details,
@@ -170,120 +179,17 @@ export function validateRelationshipIntegrity(graph: Graph): ValidationResult {
   };
 }
 
-/**
- * Validate that entity links match actual relationships
- */
-export function validateLinkSync(graph: Graph): ValidationResult {
-  const mismatchedEntities: string[] = [];
-
-  graph.forEachEntity(entity => {
-    // Count relationships where this entity is src
-    const actualRels = graph.getRelationships().filter(r => r.src === entity.id);
-    const linkCount = entity.links.length;
-    const actualCount = actualRels.length;
-
-    if (linkCount !== actualCount) {
-      mismatchedEntities.push(
-        `${entity.name}: ${linkCount} in links array, ${actualCount} in relationships`
-      );
-    }
-  });
-
-  const passed = mismatchedEntities.length === 0;
-
-  let details = passed
-    ? 'All entity links match relationships'
-    : `${mismatchedEntities.length} entities with mismatched links:\n`;
-
-  if (!passed) {
-    mismatchedEntities.slice(0, 10).forEach(msg => {
-      details += `  - ${msg}\n`;
-    });
-    if (mismatchedEntities.length > 10) {
-      details += `  ... and ${mismatchedEntities.length - 10} more\n`;
-    }
-  }
-
-  return {
-    name: 'Link Synchronization',
-    passed,
-    failureCount: mismatchedEntities.length,
-    details
-  };
-}
-
-/**
- * Validate that entities have lore enrichment (if LLM is enabled)
- */
-export function validateLorePresence(graph: Graph): ValidationResult {
-  // Skip if no lore records (LLM disabled)
-  if (!graph.loreRecords || graph.loreRecords.length === 0) {
-    return {
-      name: 'Lore Presence',
-      passed: true,
-      failureCount: 0,
-      details: 'LLM enrichment disabled - skipping lore check'
-    };
-  }
-
-  // Entities that should have lore (created after tick 0, not abilities)
-  const enrichableEntities = graph.getEntities().filter(
-    e => e.createdAt > 0 && e.kind !== 'abilities'
-  );
-
-  const entitiesWithLore = new Set<string>();
-  graph.loreRecords.forEach(record => {
-    if (record.targetId) {
-      entitiesWithLore.add(record.targetId);
-    }
-  });
-
-  const missingLore = enrichableEntities.filter(e => !entitiesWithLore.has(e.id));
-
-  const passed = missingLore.length === 0;
-
-  let details = passed
-    ? `All ${enrichableEntities.length} enrichable entities have lore`
-    : `${missingLore.length}/${enrichableEntities.length} entities missing lore enrichment:\n`;
-
-  if (!passed) {
-    // Group by kind:subtype
-    const byType = new Map<string, number>();
-    missingLore.forEach(e => {
-      const key = `${e.kind}:${e.subtype}`;
-      byType.set(key, (byType.get(key) || 0) + 1);
-    });
-
-    byType.forEach((count, type) => {
-      details += `  - ${type}: ${count}\n`;
-    });
-
-    // Add sample entities
-    details += '\nSample entities without lore:\n';
-    missingLore.slice(0, 5).forEach(e => {
-      details += `  - ${e.name} (${e.kind}:${e.subtype}, tick ${e.createdAt})\n`;
-    });
-  }
-
-  return {
-    name: 'Lore Presence',
-    passed,
-    failureCount: missingLore.length,
-    details,
-    failedEntities: missingLore
-  };
-}
+// validateLorePresence moved to @illuminator
 
 /**
  * Run all validators and generate a complete report
  */
-export function validateWorld(graph: Graph): ValidationReport {
+export function validateWorld(graph: Graph, config: EngineConfig): ValidationReport {
   const results: ValidationResult[] = [
     validateConnectedEntities(graph),
-    validateNPCStructure(graph),
-    validateRelationshipIntegrity(graph),
-    validateLinkSync(graph),
-    validateLorePresence(graph)
+    validateNPCStructure(graph, config),
+    validateRelationshipIntegrity(graph)
+    // validateLorePresence moved to @illuminator
   ];
 
   const passed = results.filter(r => r.passed).length;

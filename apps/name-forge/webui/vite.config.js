@@ -12,6 +12,7 @@ export default defineConfig({
     federation({
       name: 'nameForge',
       filename: 'remoteEntry.js',
+      manifest: true,
       exposes: {
         './NameForgeRemote': './src/NameForgeRemote.jsx',
       },
@@ -21,8 +22,8 @@ export default defineConfig({
       },
     }),
   ],
-  // Base path - only use /name-forge/ when DEPLOY_TARGET=aws is set
-  base: process.env.DEPLOY_TARGET === 'aws' ? '/name-forge/' : '/',
+  // Base path - use /name-forge/ in dev (via proxy) and production
+  base: '/name-forge/',
   resolve: {
     alias: {
       '@lib': resolve(__dirname, '../lib'),
@@ -39,5 +40,17 @@ export default defineConfig({
   build: {
     target: 'esnext',
     minify: false,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        const isModuleFederationEval =
+          warning.code === 'EVAL' &&
+          (warning.id?.includes('@module-federation/sdk') ||
+            warning.message.includes('@module-federation/sdk'))
+        if (isModuleFederationEval) {
+          return
+        }
+        warn(warning)
+      },
+    },
   },
 })

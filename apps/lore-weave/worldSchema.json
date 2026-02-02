@@ -135,7 +135,7 @@
       ]
     },
     {
-      "kind": "rules",
+      "kind": "rule",
       "subtype": [
         "edict",
         "taboo",
@@ -150,7 +150,7 @@
       ]
     },
     {
-      "kind": "abilities",
+      "kind": "ability",
       "subtype": [
         "magic",
         "faith",
@@ -187,13 +187,13 @@
         "antagonist_of",
         "informant_for"
       ],
-      "rules": [
+      "rule": [
         "creator_of",
         "adherent_of",
         "opposer_of",
         "punished_by"
       ],
-      "abilities": [
+      "ability": [
         "researching",
         "discoverer_of",
         "practitioner_of",
@@ -218,12 +218,12 @@
         "contested_by",
         "origin_of"
       ],
-      "rules": [
+      "rule": [
         "governed_by",
         "sacred_under",
         "ignores_rule"
       ],
-      "abilities": [
+      "ability": [
         "source_of",
         "suppresses",
         "amplifies"
@@ -248,19 +248,19 @@
         "splinter_of",
         "dominates"
       ],
-      "rules": [
+      "rule": [
         "enforces",
         "violates",
         "lobbies_for",
         "codifies"
       ],
-      "abilities": [
+      "ability": [
         "seeks",
         "wields",
         "bans"
       ]
     },
-    "rules": {
+    "rule": {
       "npc": [
         "restricts",
         "protects"
@@ -273,15 +273,15 @@
         "sponsored_by",
         "opposed_by"
       ],
-      "rules": [
+      "rule": [
         "precedes",
         "overrides"
       ],
-      "abilities": [
+      "ability": [
         "regulates_use_of"
       ]
     },
-    "abilities": {
+    "ability": {
       "npc": [
         "granted_to",
         "awakened_in"
@@ -294,11 +294,11 @@
         "kept_secret_by",
         "weaponized_by"
       ],
-      "rules": [
+      "rule": [
         "constrained_by",
         "inspired_rule"
       ],
-      "abilities": [
+      "ability": [
         "evolved_from",
         "countered_by"
       ]

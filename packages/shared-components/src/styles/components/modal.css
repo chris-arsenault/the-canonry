@@ -1,0 +1,110 @@
+/**
+ * Modal component styles
+ */
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgb(0 0 0 / 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+}
+
+/* Modal container */
+.modal {
+  background-color: var(--color-bg-card);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  width: 90vw;
+  max-width: 900px;
+  height: 80vh;
+  max-height: 700px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-sm {
+  max-width: 500px;
+  max-height: 400px;
+}
+
+.modal-lg {
+  max-width: 1100px;
+  max-height: 800px;
+}
+
+/* Modal header */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg-dark);
+}
+
+.modal-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.modal-title-icon {
+  font-size: 24px;
+}
+
+/* Modal body */
+.modal-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.modal-body-single {
+  flex-direction: column;
+  padding: var(--spacing-2xl);
+  overflow-y: auto;
+}
+
+/* Tab sidebar */
+.modal-sidebar {
+  width: 200px;
+  background-color: var(--color-bg-dark);
+  border-right: 1px solid var(--color-border);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  overflow-y: auto;
+}
+
+/* Tab content area */
+.modal-content {
+  flex: 1;
+  padding: var(--spacing-2xl);
+  overflow-y: auto;
+  background-color: var(--color-bg);
+}
+
+/* Modal footer */
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-xl) var(--spacing-2xl);
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-bg-dark);
+}
+
+.modal-footer-end {
+  justify-content: flex-end;
+  gap: var(--spacing-lg);
+}

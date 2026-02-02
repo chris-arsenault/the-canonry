@@ -10,6 +10,7 @@ import { createRNG, pickRandom } from "./utils/rng.js";
 import { applyCapitalization } from "./utils/helpers.js";
 import { generatePhonotacticName } from "./phonotactic-pipeline.js";
 import { preloadModels } from "./markov-loader.js";
+import { applyDerivation, isDerivationType, type DerivationType } from "./derivation.js";
 import type { NamingDomain } from "./types/domain.js";
 import type {
   Culture,
@@ -20,6 +21,8 @@ import type {
   Strategy,
   GenerateRequest,
   GenerateResult,
+  NameDebugInfo,
+  GroupMatchDebug,
 } from "./types/project.js";
 import type { MarkovModel } from "./markov.js";
 
@@ -39,6 +42,57 @@ interface GenerationContext {
 interface GrammarExpansionContext {
   usedMarkov: boolean;
   userContext: Record<string, string>;
+}
+
+// ============================================================================
+// Profile Selection
+// ============================================================================
+
+/**
+ * Select the appropriate profile for the given entity kind.
+ *
+ * Selection order:
+ * 1. If profileId specified, use that exact profile
+ * 2. Find first profile with matching entityKind (concrete match)
+ * 3. Fall back to profile marked isDefault: true
+ * 4. Return null if no match (caller should throw error)
+ */
+function selectProfile(
+  profiles: Profile[],
+  profileId?: string,
+  kind?: string
+): Profile | null {
+  if (!profiles || profiles.length === 0) {
+    return null;
+  }
+
+  // 1. If profileId specified, use that
+  if (profileId) {
+    return profiles.find((p) => p.id === profileId) || null;
+  }
+
+  // 2. Find first profile with matching entityKind
+  if (kind) {
+    const kindMatch = profiles.find(
+      (p) => p.entityKinds && p.entityKinds.includes(kind)
+    );
+    if (kindMatch) {
+      return kindMatch;
+    }
+  }
+
+  // 3. Fall back to profile marked isDefault
+  const defaultProfile = profiles.find((p) => p.isDefault);
+  if (defaultProfile) {
+    return defaultProfile;
+  }
+
+  // 4. Legacy behavior: if only one profile exists and has no entityKinds, use it
+  if (profiles.length === 1 && !profiles[0].entityKinds?.length) {
+    return profiles[0];
+  }
+
+  return null;
 }
 
 // ============================================================================
@@ -69,14 +123,21 @@ export async function generate(
     seed,
   } = request;
 
-  // Find the profile
-  const profile = profileId
-    ? culture.profiles.find((p) => p.id === profileId)
-    : culture.profiles[0];
+  // Find the profile using selection logic:
+  // 1. If profileId specified, use that
+  // 2. Otherwise, find first profile matching entityKind
+  // 3. Fall back to profile marked isDefault
+  // 4. Error if no match
+  const profile = selectProfile(culture.profiles, profileId, kind);
 
   if (!profile) {
+    const availableProfiles = culture.profiles.map(p =>
+      `${p.id}${p.entityKinds?.length ? ` (${p.entityKinds.join(', ')})` : ''}${p.isDefault ? ' [default]' : ''}`
+    ).join(', ');
     throw new Error(
-      `Profile not found: ${profileId || "(default)"} in culture ${culture.id}`
+      `No matching profile for entityKind "${kind || '(none)'}" in culture ${culture.id}. ` +
+      `Available profiles: ${availableProfiles || 'none'}. ` +
+      `Add entityKinds to a profile or mark one as isDefault.`
     );
   }
 
@@ -94,8 +155,8 @@ export async function generate(
     userContext: context,
   };
 
-  // Find matching strategy group
-  const matchingGroup = findMatchingGroup(
+  // Find matching strategy group with debug info
+  const { matchingGroup, debugInfo: groupDebugInfo, usedFallback } = findMatchingGroup(
     profile.strategyGroups,
     kind,
     subtype,
@@ -104,6 +165,7 @@ export async function generate(
   );
 
   const names: string[] = [];
+  const debugInfo: NameDebugInfo[] = [];
   const strategyUsage: Record<string, number> = {
     grammar: 0,
     phonotactic: 0,
@@ -113,16 +175,26 @@ export async function generate(
 
   // Generate names
   for (let i = 0; i < count; i++) {
-    const { name, strategyType } = generateSingleName(
+    const result = generateSingleName(
       matchingGroup,
       genContext,
       i
     );
-    names.push(name);
-    strategyUsage[strategyType] = (strategyUsage[strategyType] || 0) + 1;
+    names.push(result.name);
+    strategyUsage[result.strategyType] = (strategyUsage[result.strategyType] || 0) + 1;
+
+    // Build debug info for this name
+    debugInfo.push({
+      groupUsed: matchingGroup?.name || "(fallback)",
+      strategyUsed: result.strategyDesc,
+      strategyType: result.strategyType,
+      grammarId: result.grammarId,
+      domainId: result.domainId,
+      groupMatching: groupDebugInfo,
+    });
   }
 
-  return { names, strategyUsage };
+  return { names, strategyUsage, debugInfo };
 }
 
 /**
@@ -145,8 +217,77 @@ export async function generateOne(
 // Strategy Group Selection
 // ============================================================================
 
+interface GroupMatchResult {
+  matchingGroup: StrategyGroup | null;
+  debugInfo: GroupMatchDebug[];
+  usedFallback: boolean;
+}
+
+/**
+ * Check why a group matches or doesn't match
+ */
+function checkGroupMatch(
+  group: StrategyGroup,
+  kind?: string,
+  subtype?: string,
+  prominence?: string,
+  tags?: string[]
+): { matched: boolean; reason?: string } {
+  const conditions = group.conditions;
+  if (!conditions) {
+    return { matched: true, reason: "No conditions (matches all)" };
+  }
+
+  // Check entityKinds
+  if (conditions.entityKinds && conditions.entityKinds.length > 0) {
+    if (!kind) {
+      return { matched: false, reason: `Requires entityKind in [${conditions.entityKinds.join(", ")}] but none provided` };
+    }
+    if (!conditions.entityKinds.includes(kind)) {
+      return { matched: false, reason: `entityKind "${kind}" not in [${conditions.entityKinds.join(", ")}]` };
+    }
+  }
+
+  // Check subtypes
+  if (conditions.subtypes && conditions.subtypes.length > 0) {
+    if (!subtype) {
+      return { matched: false, reason: `Requires subtype in [${conditions.subtypes.join(", ")}] but none provided` };
+    }
+    if (!conditions.subtypes.includes(subtype)) {
+      return { matched: false, reason: `subtype "${subtype}" not in [${conditions.subtypes.join(", ")}]` };
+    }
+  }
+
+  // Check prominence
+  if (conditions.prominence && conditions.prominence.length > 0) {
+    if (!prominence) {
+      return { matched: false, reason: `Requires prominence in [${conditions.prominence.join(", ")}] but none provided` };
+    }
+    if (!conditions.prominence.includes(prominence)) {
+      return { matched: false, reason: `prominence "${prominence}" not in [${conditions.prominence.join(", ")}]` };
+    }
+  }
+
+  // Check tags
+  if (conditions.tags && conditions.tags.length > 0) {
+    if (conditions.tagMatchAll) {
+      const missingTags = conditions.tags.filter((t) => !tags?.includes(t));
+      if (missingTags.length > 0) {
+        return { matched: false, reason: `Missing required tags: [${missingTags.join(", ")}]` };
+      }
+    } else {
+      if (!conditions.tags.some((t) => tags?.includes(t))) {
+        return { matched: false, reason: `No matching tags from [${conditions.tags.join(", ")}]` };
+      }
+    }
+  }
+
+  return { matched: true };
+}
+
 /**
  * Find the best matching strategy group based on entity attributes.
+ * Returns debug info for all groups.
  */
 function findMatchingGroup(
   groups: StrategyGroup[],
@@ -154,65 +295,86 @@ function findMatchingGroup(
   subtype?: string,
   prominence?: string,
   tags?: string[]
-): StrategyGroup | null {
+): GroupMatchResult {
+  const debugInfo: GroupMatchDebug[] = [];
+
   if (!groups || groups.length === 0) {
-    return null;
+    return { matchingGroup: null, debugInfo, usedFallback: true };
   }
 
-  // Filter groups that match conditions
-  const matchingGroups = groups.filter((group) => {
-    const conditions = group.conditions;
-    if (!conditions) return true; // No conditions = matches everything
-
-    // Check entityKinds
-    if (conditions.entityKinds && conditions.entityKinds.length > 0) {
-      if (!kind || !conditions.entityKinds.includes(kind)) return false;
+  // Check each group and build debug info
+  const matchingGroups: StrategyGroup[] = [];
+  for (const group of groups) {
+    const { matched, reason } = checkGroupMatch(group, kind, subtype, prominence, tags);
+    debugInfo.push({
+      groupName: group.name || "(unnamed)",
+      matched,
+      reason,
+      priority: group.priority,
+    });
+    if (matched) {
+      matchingGroups.push(group);
     }
-
-    // Check subtypes
-    if (conditions.subtypes && conditions.subtypes.length > 0) {
-      if (conditions.subtypeMatchAll) {
-        // All subtypes must match (doesn't make sense for single entity, but supported)
-        if (!subtype || !conditions.subtypes.includes(subtype)) return false;
-      } else {
-        // Any subtype matches
-        if (!subtype || !conditions.subtypes.includes(subtype)) return false;
-      }
-    }
-
-    // Check prominence
-    if (conditions.prominence && conditions.prominence.length > 0) {
-      if (!prominence || !conditions.prominence.includes(prominence))
-        return false;
-    }
-
-    // Check tags
-    if (conditions.tags && conditions.tags.length > 0) {
-      if (conditions.tagMatchAll) {
-        // All tags must be present
-        if (!conditions.tags.every((t) => tags?.includes(t))) return false;
-      } else {
-        // Any tag matches
-        if (!conditions.tags.some((t) => tags?.includes(t))) return false;
-      }
-    }
-
-    return true;
-  });
+  }
 
   if (matchingGroups.length === 0) {
     // Fall back to first group (usually the default)
-    return groups[0];
+    debugInfo[0] = {
+      ...debugInfo[0],
+      reason: (debugInfo[0].reason || "") + " [FALLBACK - used because no groups matched]",
+    };
+    return { matchingGroup: groups[0], debugInfo, usedFallback: true };
   }
 
-  // Sort by priority (lower = higher priority) and return first
-  matchingGroups.sort((a, b) => (a.priority || 0) - (b.priority || 0));
-  return matchingGroups[0];
+  // Sort by priority (higher number = higher priority, selected first)
+  // When priorities are equal, prefer groups WITH conditions over groups WITHOUT
+  matchingGroups.sort((a, b) => {
+    const priorityDiff = (b.priority || 0) - (a.priority || 0);
+    if (priorityDiff !== 0) return priorityDiff;
+
+    // Equal priority: prefer groups with conditions (more specific)
+    const aHasConditions = a.conditions && Object.keys(a.conditions).some(
+      k => a.conditions![k as keyof typeof a.conditions] &&
+           (Array.isArray(a.conditions![k as keyof typeof a.conditions])
+             ? (a.conditions![k as keyof typeof a.conditions] as unknown[]).length > 0
+             : true)
+    );
+    const bHasConditions = b.conditions && Object.keys(b.conditions).some(
+      k => b.conditions![k as keyof typeof b.conditions] &&
+           (Array.isArray(b.conditions![k as keyof typeof b.conditions])
+             ? (b.conditions![k as keyof typeof b.conditions] as unknown[]).length > 0
+             : true)
+    );
+
+    if (aHasConditions && !bHasConditions) return -1; // a is more specific
+    if (bHasConditions && !aHasConditions) return 1;  // b is more specific
+    return 0;
+  });
+  const selected = matchingGroups[0];
+
+  // Mark the selected group in debug info
+  const selectedIdx = debugInfo.findIndex((d) => d.groupName === (selected.name || "(unnamed)"));
+  if (selectedIdx >= 0) {
+    debugInfo[selectedIdx] = {
+      ...debugInfo[selectedIdx],
+      reason: (debugInfo[selectedIdx].reason || "Matched") + " [SELECTED]",
+    };
+  }
+
+  return { matchingGroup: selected, debugInfo, usedFallback: false };
 }
 
 // ============================================================================
 // Single Name Generation
 // ============================================================================
+
+interface SingleNameResult {
+  name: string;
+  strategyType: string;
+  strategyDesc: string;
+  grammarId?: string;
+  domainId?: string;
+}
 
 /**
  * Generate a single name using the strategy group.
@@ -221,11 +383,12 @@ function generateSingleName(
   group: StrategyGroup | null,
   ctx: GenerationContext,
   index: number
-): { name: string; strategyType: string } {
+): SingleNameResult {
   if (!group || !group.strategies || group.strategies.length === 0) {
     return {
       name: generateFallbackName(ctx.lexemeLists, ctx.rng, index),
       strategyType: "fallback",
+      strategyDesc: "No strategies in group",
     };
   }
 
@@ -239,8 +402,17 @@ function generateSingleName(
       return {
         name: result.name,
         strategyType: result.usedMarkov ? "markov" : "grammar",
+        strategyDesc: `grammar:${strategy.grammarId}`,
+        grammarId: strategy.grammarId,
       };
     }
+    // Grammar not found
+    return {
+      name: generateFallbackName(ctx.lexemeLists, ctx.rng, index),
+      strategyType: "fallback",
+      strategyDesc: `grammar:${strategy.grammarId} NOT FOUND`,
+      grammarId: strategy.grammarId,
+    };
   }
 
   if (strategy.type === "phonotactic" && strategy.domainId) {
@@ -249,20 +421,32 @@ function generateSingleName(
       return {
         name: generatePhonotacticName(ctx.rng, domain),
         strategyType: "phonotactic",
+        strategyDesc: `phonotactic:${strategy.domainId}`,
+        domainId: strategy.domainId,
       };
     }
-    // Fall back to any available domain
+    // Domain not found, fall back to any available domain
     if (ctx.domains.length > 0) {
       return {
         name: generatePhonotacticName(ctx.rng, ctx.domains[0]),
         strategyType: "phonotactic",
+        strategyDesc: `phonotactic:${strategy.domainId} NOT FOUND, used ${ctx.domains[0].id}`,
+        domainId: ctx.domains[0].id,
       };
     }
+    // No domains at all
+    return {
+      name: generateFallbackName(ctx.lexemeLists, ctx.rng, index),
+      strategyType: "fallback",
+      strategyDesc: `phonotactic:${strategy.domainId} NOT FOUND, no domains available`,
+      domainId: strategy.domainId,
+    };
   }
 
   return {
     name: generateFallbackName(ctx.lexemeLists, ctx.rng, index),
     strategyType: "fallback",
+    strategyDesc: `Unknown strategy type: ${strategy.type}`,
   };
 }
 
@@ -321,7 +505,34 @@ function expandGrammar(
     name = applyCapitalization(name, grammar.capitalization);
   }
 
+  // Apply token-level capitalization AFTER grammar-level (so ~ overrides grammar)
+  name = applyTokenCapitalizationMarkers(name);
+
   return { name, usedMarkov: expansionCtx.usedMarkov };
+}
+
+/**
+ * Check if a production uses context: references that aren't available.
+ */
+function productionNeedsMissingContext(
+  production: string[],
+  userContext: Record<string, string>
+): boolean {
+  for (const token of production) {
+    // Check direct context: reference
+    if (token.includes("context:")) {
+      // Extract context key (handle modifiers like ~poss)
+      const match = token.match(/context:([a-zA-Z_]+)/);
+      if (match) {
+        const key = match[1];
+        const value = userContext[key];
+        if (value === undefined || value === null || value === "") {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 /**
@@ -344,8 +555,17 @@ function expandSymbol(
     return resolveToken(symbol, rules, ctx, expansionCtx, depth);
   }
 
-  // Pick random production
-  const production = pickRandom(ctx.rng, productions);
+  // Filter out productions that need context values we don't have
+  const viableProductions = productions.filter(
+    (p) => !productionNeedsMissingContext(p, expansionCtx.userContext)
+  );
+
+  // Use viable productions if any, otherwise fall back to all (will produce empty tokens)
+  const candidateProductions =
+    viableProductions.length > 0 ? viableProductions : productions;
+
+  // Pick random production from candidates
+  const production = pickRandom(ctx.rng, candidateProductions);
 
   // Expand each token in the production
   const parts = production.map((token) => {
@@ -382,6 +602,17 @@ function expandSymbol(
 
 /**
  * Resolve a terminal token to its value.
+ *
+ * Supports ^ for joining patterns without spaces:
+ * - "domain:tech^'s" → <domain>'s (suffix)
+ * - "^'slot:foo" → '<slot> (prefix)
+ * - "domain:x^'^slot:y" → <domain>'<slot> (chained)
+ *
+ * Supports ~ for per-token capitalization:
+ * - "domain:x~cap" → Capitalized
+ * - "domain:x~lower" → lowercase
+ * - "domain:x~upper" → UPPERCASE
+ * - "domain:x~title" → Title Case
  */
 function resolveToken(
   token: string,
@@ -390,61 +621,331 @@ function resolveToken(
   expansionCtx: GrammarExpansionContext,
   depth: number
 ): string {
-  // Check for ^ suffix (e.g., "domain:tech^'s")
-  let suffix = "";
-  let baseToken = token;
-  const caretIndex = token.indexOf("^");
-  if (caretIndex !== -1) {
-    baseToken = token.substring(0, caretIndex);
-    suffix = token.substring(caretIndex + 1);
+  // If no ^, resolve as simple token (may still have ~ modifier)
+  if (!token.includes("^")) {
+    return resolveSimpleToken(token, ctx, expansionCtx);
   }
+
+  // Split by ^ and resolve each segment
+  const segments = token.split("^");
+  const results: string[] = [];
+
+  for (const segment of segments) {
+    if (!segment) continue; // Skip empty segments (e.g., from leading ^)
+
+    // Check if segment contains a pattern prefix
+    const resolved = resolveSegmentWithPrefix(segment, ctx, expansionCtx);
+    results.push(resolved);
+  }
+
+  return results.join("");
+}
+
+/**
+ * Pattern prefixes that indicate a resolvable token.
+ */
+const PATTERN_PREFIXES = ["slot:", "domain:", "markov:", "context:"];
+
+/**
+ * Capitalization modifiers: ~cap, ~lower, ~upper, ~title
+ */
+type TokenCapitalization = "cap" | "lower" | "upper" | "title";
+
+const CAPITALIZATION_MODIFIERS: Record<string, TokenCapitalization> = {
+  "cap": "cap",
+  "lower": "lower",
+  "upper": "upper",
+  "title": "title",
+  // Short aliases
+  "c": "cap",
+  "l": "lower",
+  "u": "upper",
+  "t": "title",
+};
+
+/**
+ * Derivation modifiers: ~er, ~est, ~ing, ~ed, ~poss, ~comp
+ *
+ * These apply morphological transformations:
+ * - ~er: agentive (hunt → hunter, rend → render)
+ * - ~est: superlative (deep → deepest, dark → darkest)
+ * - ~comp: comparative (dark → darker, swift → swifter)
+ * - ~ing: gerund/present participle (burn → burning, forge → forging)
+ * - ~ed: past/passive (curse → cursed, hunt → hunted)
+ * - ~poss: possessive (storm → storm's, blood → blood's)
+ */
+const DERIVATION_MODIFIERS = new Set(["er", "est", "ing", "ed", "poss", "comp"]);
+
+/**
+ * Truncation modifiers: ~chopL, ~chopR, ~chop
+ *
+ * These remove 1-3 characters from words to create truncated/whispered names:
+ * - ~chopL: remove 1-3 chars from left/start (silent → ent, lent, ilent)
+ * - ~chopR: remove 1-3 chars from right/end (shadow → shado, shad, sha)
+ * - ~chop: randomly choose left or right truncation
+ */
+type TruncationType = "chopL" | "chopR" | "chop";
+const TRUNCATION_MODIFIERS = new Set<string>(["chopL", "chopR", "chop"]);
+
+function isTruncationType(s: string): s is TruncationType {
+  return TRUNCATION_MODIFIERS.has(s);
+}
+
+/**
+ * Apply truncation to a string, removing 1-3 characters from start or end.
+ * Ensures at least 2 characters remain.
+ */
+function applyTruncation(str: string, type: TruncationType, rng: () => number): string {
+  if (str.length <= 3) return str; // Don't truncate very short strings
+
+  const maxChop = Math.min(3, str.length - 2); // Keep at least 2 chars
+  const chopAmount = 1 + Math.floor(rng() * maxChop);
+
+  switch (type) {
+    case "chopL":
+      return str.slice(chopAmount);
+    case "chopR":
+      return str.slice(0, -chopAmount);
+    case "chop":
+      return rng() > 0.5
+        ? str.slice(chopAmount)
+        : str.slice(0, -chopAmount);
+    default:
+      return str;
+  }
+}
+
+/**
+ * Marker format for deferred token capitalization.
+ * Using Unicode private use area characters to avoid conflicts.
+ */
+const CAP_MARKER_START = "\uE000"; // Start marker
+const CAP_MARKER_SEP = "\uE001";   // Separator between modifier and text
+const CAP_MARKER_END = "\uE002";   // End marker
+
+/**
+ * Wrap text in a capitalization marker for deferred processing.
+ * E.g., wrapCapitalizationMarker("aurelia", "cap") → "\uE000cap\uE001aurelia\uE002"
+ */
+function wrapCapitalizationMarker(text: string, modifier: TokenCapitalization): string {
+  return `${CAP_MARKER_START}${modifier}${CAP_MARKER_SEP}${text}${CAP_MARKER_END}`;
+}
+
+/**
+ * Process all capitalization markers in a string.
+ * Applied AFTER grammar-level capitalization so ~ modifiers override.
+ */
+function applyTokenCapitalizationMarkers(str: string): string {
+  const markerRegex = new RegExp(
+    `${CAP_MARKER_START}(cap|lower|upper|title)${CAP_MARKER_SEP}([^${CAP_MARKER_END}]*)${CAP_MARKER_END}`,
+    'g'
+  );
+
+  return str.replace(markerRegex, (_, modifier: TokenCapitalization, text: string) => {
+    return applyTokenCapitalization(text, modifier);
+  });
+}
+
+/**
+ * Apply token-level capitalization
+ */
+function applyTokenCapitalization(str: string, modifier: TokenCapitalization): string {
+  switch (modifier) {
+    case "cap":
+      return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    case "lower":
+      return str.toLowerCase();
+    case "upper":
+      return str.toUpperCase();
+    case "title":
+      return str.split(/(\s+)/).map(part =>
+        /^\s+$/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+      ).join("");
+    default:
+      return str;
+  }
+}
+
+/**
+ * Parsed modifiers from a token pattern.
+ * Supports chaining: "slot:foo~er~chopL~cap" → derivation: "er", truncation: "chopL", capitalization: "cap"
+ */
+interface ParsedModifiers {
+  pattern: string;
+  derivation: DerivationType | null;
+  truncation: TruncationType | null;
+  capitalization: TokenCapitalization | null;
+}
+
+/**
+ * Parse and remove all modifiers from a pattern.
+ * Modifiers are processed right-to-left, supporting chains like "slot:foo~er~chopL~cap".
+ *
+ * E.g., "slot:foo~cap" → { pattern: "slot:foo", derivation: null, truncation: null, capitalization: "cap" }
+ * E.g., "slot:foo~er~cap" → { pattern: "slot:foo", derivation: "er", truncation: null, capitalization: "cap" }
+ * E.g., "slot:foo~chopL~cap" → { pattern: "slot:foo", derivation: null, truncation: "chopL", capitalization: "cap" }
+ */
+function parseModifiers(pattern: string): ParsedModifiers {
+  let derivation: DerivationType | null = null;
+  let truncation: TruncationType | null = null;
+  let capitalization: TokenCapitalization | null = null;
+  let remaining = pattern;
+
+  // Parse modifiers from right to left
+  while (true) {
+    const tildeIndex = remaining.lastIndexOf("~");
+    if (tildeIndex === -1) break;
+
+    const modifierStr = remaining.substring(tildeIndex + 1);
+    const capMod = CAPITALIZATION_MODIFIERS[modifierStr];
+    const isDerivMod = DERIVATION_MODIFIERS.has(modifierStr);
+    const isTruncMod = TRUNCATION_MODIFIERS.has(modifierStr);
+
+    if (capMod && !capitalization) {
+      capitalization = capMod;
+      remaining = remaining.substring(0, tildeIndex);
+    } else if (isTruncMod && isTruncationType(modifierStr) && !truncation) {
+      truncation = modifierStr;
+      remaining = remaining.substring(0, tildeIndex);
+    } else if (isDerivMod && isDerivationType(modifierStr) && !derivation) {
+      derivation = modifierStr;
+      remaining = remaining.substring(0, tildeIndex);
+    } else {
+      // Unknown modifier or already have one of this type - stop parsing
+      break;
+    }
+  }
+
+  return { pattern: remaining, derivation, truncation, capitalization };
+}
+
+/**
+ * Parse and remove capitalization modifier from a pattern (legacy wrapper).
+ * E.g., "slot:foo~cap" → { pattern: "slot:foo", modifier: "cap" }
+ * @deprecated Use parseModifiers instead
+ */
+function parseCapitalizationModifier(pattern: string): { pattern: string; modifier: TokenCapitalization | null } {
+  const { pattern: p, capitalization } = parseModifiers(pattern);
+  return { pattern: p, modifier: capitalization };
+}
+
+/**
+ * Resolve a segment that may have a literal prefix before a pattern.
+ * E.g., "'slot:foo~cap" → "'" + resolve(slot:foo) with capitalization
+ */
+function resolveSegmentWithPrefix(
+  segment: string,
+  ctx: GenerationContext,
+  expansionCtx: GrammarExpansionContext
+): string {
+  // Find the earliest pattern prefix in the segment
+  let earliestIndex = -1;
+
+  for (const prefix of PATTERN_PREFIXES) {
+    const idx = segment.indexOf(prefix);
+    if (idx !== -1 && (earliestIndex === -1 || idx < earliestIndex)) {
+      earliestIndex = idx;
+    }
+  }
+
+  // No pattern found - it's a pure literal
+  if (earliestIndex === -1) {
+    return segment;
+  }
+
+  // Extract literal prefix and pattern (with possible ~ modifier)
+  const literalPrefix = segment.substring(0, earliestIndex);
+  const patternWithModifier = segment.substring(earliestIndex);
+
+  return literalPrefix + resolveSimpleToken(patternWithModifier, ctx, expansionCtx);
+}
+
+/**
+ * Resolve a simple token (no ^ handling, but handles ~ modifiers).
+ *
+ * Supports derivation, truncation, and capitalization modifiers:
+ * - "slot:core~er" → apply agentive (hunt → hunter)
+ * - "slot:core~er~cap" → apply agentive then capitalize (hunt → Hunter)
+ * - "slot:core~chopL" → truncate left (silent → ent)
+ * - "slot:core~chopL~cap" → truncate then capitalize (silent → Ent)
+ */
+function resolveSimpleToken(
+  token: string,
+  ctx: GenerationContext,
+  expansionCtx: GrammarExpansionContext
+): string {
+  // Parse all modifiers (derivation + truncation + capitalization)
+  const { pattern, derivation, truncation, capitalization } = parseModifiers(token);
+
+  let result: string;
 
   // Handle slot:listId references (lexeme lists)
-  if (baseToken.startsWith("slot:")) {
-    const listId = baseToken.substring(5);
+  if (pattern.startsWith("slot:")) {
+    const listId = pattern.substring(5);
     const list = ctx.lexemeLists.find((l) => l.id === listId);
     if (list && list.entries.length > 0) {
-      return pickRandom(ctx.rng, list.entries) + suffix;
+      result = pickRandom(ctx.rng, list.entries);
+    } else {
+      result = listId; // Return the ID if list not found
     }
-    return listId + suffix; // Return the ID if list not found
   }
-
   // Handle domain:domainId references (phonotactic generation)
-  if (baseToken.startsWith("domain:")) {
-    const domainId = baseToken.substring(7);
+  else if (pattern.startsWith("domain:")) {
+    const domainId = pattern.substring(7);
     const domain = ctx.domains.find((d) => d.id === domainId);
     if (domain) {
-      return generatePhonotacticName(ctx.rng, domain) + suffix;
+      result = generatePhonotacticName(ctx.rng, domain);
+    } else {
+      result = domainId; // Return the ID if domain not found
     }
-    return domainId + suffix; // Return the ID if domain not found
   }
-
   // Handle markov:modelId references
-  if (baseToken.startsWith("markov:")) {
-    const modelId = baseToken.substring(7);
+  else if (pattern.startsWith("markov:")) {
+    const modelId = pattern.substring(7);
     const model = ctx.markovModels.get(modelId);
 
     if (model) {
       expansionCtx.usedMarkov = true;
-      return generateFromMarkovModel(model, ctx.rng) + suffix;
+      result = generateFromMarkovModel(model, ctx.rng);
+    } else if (ctx.domains.length > 0) {
+      // Fallback to phonotactic if model not available
+      result = generatePhonotacticName(ctx.rng, ctx.domains[0]);
+    } else {
+      result = modelId;
     }
-
-    // Fallback to phonotactic if model not available
-    if (ctx.domains.length > 0) {
-      return generatePhonotacticName(ctx.rng, ctx.domains[0]) + suffix;
-    }
-    return modelId + suffix;
   }
-
   // Handle context:key references (user-provided context values)
-  if (baseToken.startsWith("context:")) {
-    const key = baseToken.substring(8);
+  else if (pattern.startsWith("context:")) {
+    const key = pattern.substring(8);
     const value = expansionCtx.userContext[key];
-    return (value !== undefined && value !== null ? String(value) : "") + suffix;
+    if (value !== undefined && value !== null && value !== "") {
+      result = String(value);
+    } else {
+      // Context key missing - return empty and skip derivation/capitalization
+      return "";
+    }
+  }
+  // Return literal as-is
+  else {
+    result = token; // Use original token for literals (preserves ~ if not a modifier)
   }
 
-  // Return literal as-is
-  return token;
+  // Apply derivation first (e.g., hunt → hunter)
+  if (derivation) {
+    result = applyDerivation(result, derivation);
+  }
+
+  // Apply truncation second (e.g., silent → ent)
+  if (truncation) {
+    result = applyTruncation(result, truncation, ctx.rng);
+  }
+
+  // Wrap in capitalization marker if specified (applied later, after grammar-level)
+  if (capitalization) {
+    result = wrapCapitalizationMarker(result, capitalization);
+  }
+
+  return result;
 }
 
 // ============================================================================
@@ -594,4 +1095,57 @@ export function testDomain(
     minLength: Math.min(...lengths),
     maxLength: Math.max(...lengths),
   };
+}
+
+// ============================================================================
+// Preview Grammar (for live UI preview)
+// ============================================================================
+
+export interface PreviewGrammarOptions {
+  grammar: Grammar;
+  domains: NamingDomain[];
+  lexemeLists: LexemeList[];
+  count?: number;
+  seed?: string;
+}
+
+/**
+ * Preview a grammar by generating sample names.
+ * Used by the UI to show live preview of grammar output.
+ *
+ * @returns Array of generated names (may contain duplicates if grammar is simple)
+ */
+export async function previewGrammar(
+  options: PreviewGrammarOptions
+): Promise<string[]> {
+  const { grammar, domains, lexemeLists, count = 8, seed } = options;
+
+  if (!grammar || !grammar.rules || Object.keys(grammar.rules).length === 0) {
+    return [];
+  }
+
+  // Preload Markov models if the grammar uses them
+  const markovModels = await preloadModels([grammar]);
+
+  const rng = createRNG(seed || `preview-${Date.now()}`);
+  const ctx: GenerationContext = {
+    rng,
+    domains: domains || [],
+    grammars: [grammar],
+    lexemeLists: lexemeLists || [],
+    markovModels,
+    userContext: {},
+  };
+
+  const names: string[] = [];
+  for (let i = 0; i < count; i++) {
+    try {
+      const result = expandGrammar(grammar, ctx);
+      names.push(result.name);
+    } catch {
+      // Grammar might have unresolved references - skip
+    }
+  }
+
+  return names;
 }

@@ -9,6 +9,8 @@ import type { EntityKindDefinition } from './entityKind.js';
 import type { RelationshipKindDefinition } from './relationship.js';
 import type { CultureDefinition } from './culture.js';
 import type { SeedEntity, SeedRelationship } from './seed.js';
+import type { AxisDefinition, TagDefinition } from './mfeContracts.js';
+import type { DomainUIConfig } from './ui.js';
 
 /**
  * The complete world seed project
@@ -31,6 +33,12 @@ export interface WorldSeedProject {
   entityKinds: EntityKindDefinition[];
   /** All relationship kinds in this world */
   relationshipKinds: RelationshipKindDefinition[];
+  /** Axis definitions referenced by semantic planes */
+  axisDefinitions?: AxisDefinition[];
+  /** Tag registry for schema governance */
+  tagRegistry?: TagDefinition[];
+  /** Optional UI configuration */
+  uiConfig?: DomainUIConfig;
 
   // === CULTURES ===
 

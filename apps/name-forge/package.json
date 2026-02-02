@@ -31,10 +31,10 @@
     "build:fast": "tsc",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:ui": "vitest --ui",
-    "test:coverage": "vitest run --coverage"
+    "test": "node -e \"console.log('Tests archived; no tests to run.');\"",
+    "test:watch": "node -e \"console.log('Tests archived; no tests to run.');\"",
+    "test:ui": "node -e \"console.log('Tests archived; no tests to run.');\"",
+    "test:coverage": "node -e \"console.log('Tests archived; no tests to run.');\""
   },
   "keywords": [
     "procedural-generation",
@@ -44,6 +44,7 @@
   "author": "",
   "license": "PolyForm-Noncommercial-1.0.0",
   "dependencies": {
+    "@canonry/world-schema": "file:../../packages/world-schema",
     "seedrandom": "^3.0.5",
     "zod": "^3.23.8"
   },

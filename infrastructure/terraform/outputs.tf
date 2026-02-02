@@ -1,7 +1,12 @@
 # outputs.tf - Output values for the infrastructure
 
+output "bucket_name" {
+  description = "Name of the S3 bucket (used by deploy.sh for AWS CLI sync)"
+  value       = aws_s3_bucket.static_site.id
+}
+
 output "s3_bucket_name" {
-  description = "Name of the S3 bucket"
+  description = "Name of the S3 bucket (deprecated, use bucket_name)"
   value       = aws_s3_bucket.static_site.id
 }
 
@@ -11,7 +16,7 @@ output "s3_bucket_arn" {
 }
 
 output "cloudfront_distribution_id" {
-  description = "ID of the CloudFront distribution"
+  description = "ID of the CloudFront distribution (used by deploy.sh for cache invalidation)"
   value       = aws_cloudfront_distribution.static_site.id
 }
 
@@ -26,8 +31,8 @@ output "acm_certificate_arn" {
 }
 
 output "website_url" {
-  description = "URL to access the name-forge application"
-  value       = "https://${var.domain_name}/name-forge/"
+  description = "URL to access the application"
+  value       = "https://${var.domain_name}/"
 }
 
 output "route53_zone_id" {

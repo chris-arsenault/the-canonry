@@ -15,6 +15,7 @@ export default function PlaneCanvas({
   regions = [],
   entities = [],
   cultures = [],
+  axisDefinitions = [],
   selectedEntityId,
   selectedRegionId,
   onSelectEntity,
@@ -28,6 +29,10 @@ export default function PlaneCanvas({
   const [size, setSize] = useState({ width: 600, height: 400 });
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const [interaction, setInteraction] = useState({ type: null, startX: 0, startY: 0, startCamera: null });
+
+  // Track dragged positions locally to avoid expensive React state updates during drag
+  const dragPositionRef = useRef(null);
+  const [renderTrigger, setRenderTrigger] = useState(0); // Force canvas redraw without parent re-render
 
   // Resize observer to fill container
   useEffect(() => {
@@ -154,8 +159,23 @@ export default function PlaneCanvas({
       ctx.lineWidth = isSelected ? 3 : 2;
 
       if (regionBounds.shape === 'circle' && regionBounds.center) {
-        const { x: cx, y: cy } = worldToCanvas(regionBounds.center.x, regionBounds.center.y);
-        const radius = (regionBounds.radius || 10) * scale;
+        // Check for drag override position
+        const drag = dragPositionRef.current;
+        let centerX = regionBounds.center.x;
+        let centerY = regionBounds.center.y;
+        let radiusVal = regionBounds.radius || 10;
+
+        if (drag && drag.id === region.id) {
+          if (drag.type === 'region') {
+            centerX = drag.position.x;
+            centerY = drag.position.y;
+          } else if (drag.type === 'resize') {
+            radiusVal = drag.radius;
+          }
+        }
+
+        const { x: cx, y: cy } = worldToCanvas(centerX, centerY);
+        const radius = radiusVal * scale;
 
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
@@ -203,7 +223,17 @@ export default function PlaneCanvas({
     entities.forEach((entity) => {
       if (!entity.coordinates) return;
 
-      const { x: cx, y: cy } = worldToCanvas(entity.coordinates.x, entity.coordinates.y);
+      // Check for drag override position
+      const drag = dragPositionRef.current;
+      let coordX = entity.coordinates.x;
+      let coordY = entity.coordinates.y;
+
+      if (drag && drag.type === 'entity' && drag.id === entity.id) {
+        coordX = drag.position.x;
+        coordY = drag.position.y;
+      }
+
+      const { x: cx, y: cy } = worldToCanvas(coordX, coordY);
       const culture = cultures.find(c => c.id === entity.culture);
       const color = culture?.color || '#888';
       const isSelected = entity.id === selectedEntityId;
@@ -229,36 +259,48 @@ export default function PlaneCanvas({
 
     // Draw axis labels on the edges
     const axes = plane?.axes || {};
+    const axisById = new Map((axisDefinitions || []).map(axis => [axis.id, axis]));
+    const resolveAxis = (axisRef) => axisRef?.axisId ? axisById.get(axisRef.axisId) : undefined;
 
     ctx.fillStyle = '#666';
     ctx.font = '11px sans-serif';
 
     // X axis labels
     if (axes.x) {
+      const axisRef = axes.x;
+      const axisDef = resolveAxis(axisRef);
+      const axisName = axisDef?.name || axisRef.axisId || 'X Axis';
+      const lowLabel = axisDef?.lowTag || '0';
+      const highLabel = axisDef?.highTag || '100';
       ctx.textAlign = 'left';
-      ctx.fillText(axes.x.lowLabel || '0', topLeft.x, bottomRight.y + 16);
+      ctx.fillText(lowLabel, topLeft.x, bottomRight.y + 16);
       ctx.textAlign = 'right';
-      ctx.fillText(axes.x.highLabel || '100', bottomRight.x, bottomRight.y + 16);
+      ctx.fillText(highLabel, bottomRight.x, bottomRight.y + 16);
       ctx.textAlign = 'center';
-      ctx.fillText(axes.x.name || 'X Axis', (topLeft.x + bottomRight.x) / 2, bottomRight.y + 28);
+      ctx.fillText(axisName, (topLeft.x + bottomRight.x) / 2, bottomRight.y + 28);
     }
 
     // Y axis labels
     if (axes.y) {
+      const axisRef = axes.y;
+      const axisDef = resolveAxis(axisRef);
+      const axisName = axisDef?.name || axisRef.axisId || 'Y Axis';
+      const lowLabel = axisDef?.lowTag || '0';
+      const highLabel = axisDef?.highTag || '100';
       ctx.textAlign = 'right';
-      ctx.fillText(axes.y.lowLabel || '0', topLeft.x - 6, bottomRight.y);
-      ctx.fillText(axes.y.highLabel || '100', topLeft.x - 6, topLeft.y + 4);
+      ctx.fillText(lowLabel, topLeft.x - 6, bottomRight.y);
+      ctx.fillText(highLabel, topLeft.x - 6, topLeft.y + 4);
 
       // Rotated Y axis name
       ctx.save();
       ctx.translate(topLeft.x - 28, (topLeft.y + bottomRight.y) / 2);
       ctx.rotate(-Math.PI / 2);
       ctx.textAlign = 'center';
-      ctx.fillText(axes.y.name || 'Y Axis', 0, 0);
+      ctx.fillText(axisName, 0, 0);
       ctx.restore();
     }
 
-  }, [plane, regions, entities, cultures, selectedEntityId, selectedRegionId, size, camera, baseScale, worldToCanvas]);
+  }, [plane, regions, entities, cultures, axisDefinitions, selectedEntityId, selectedRegionId, size, camera, baseScale, worldToCanvas, renderTrigger]);
 
   // Find entity at canvas position
   const findEntityAt = (cx, cy) => {
@@ -390,7 +432,13 @@ export default function PlaneCanvas({
       // Clamp to world bounds
       const clampedX = Math.max(WORLD_MIN, Math.min(WORLD_MAX, world.x));
       const clampedY = Math.max(WORLD_MIN, Math.min(WORLD_MAX, world.y));
-      onMoveEntity?.(interaction.entityId, { x: clampedX, y: clampedY });
+      // Store locally instead of calling parent - will commit on mouse up
+      dragPositionRef.current = {
+        type: 'entity',
+        id: interaction.entityId,
+        position: { x: clampedX, y: clampedY }
+      };
+      setRenderTrigger(n => n + 1); // Trigger canvas redraw
     } else if (interaction.type === 'drag-region') {
       const world = canvasToWorld(cx, cy);
       // Apply offset to maintain grab point relative to center
@@ -399,7 +447,13 @@ export default function PlaneCanvas({
       // Clamp to world bounds
       const clampedX = Math.max(WORLD_MIN, Math.min(WORLD_MAX, newX));
       const clampedY = Math.max(WORLD_MIN, Math.min(WORLD_MAX, newY));
-      onMoveRegion?.(interaction.regionId, { x: clampedX, y: clampedY });
+      // Store locally instead of calling parent - will commit on mouse up
+      dragPositionRef.current = {
+        type: 'region',
+        id: interaction.regionId,
+        position: { x: clampedX, y: clampedY }
+      };
+      setRenderTrigger(n => n + 1); // Trigger canvas redraw
     } else if (interaction.type === 'resize-region') {
       // Calculate distance from cursor to region center in canvas pixels
       const distToCenter = Math.sqrt(
@@ -410,7 +464,13 @@ export default function PlaneCanvas({
       const newRadius = distToCenter / scale;
       // Clamp radius to reasonable bounds (1-50 in world units)
       const clampedRadius = Math.max(1, Math.min(50, newRadius));
-      onResizeRegion?.(interaction.regionId, clampedRadius);
+      // Store locally instead of calling parent - will commit on mouse up
+      dragPositionRef.current = {
+        type: 'resize',
+        id: interaction.regionId,
+        radius: clampedRadius
+      };
+      setRenderTrigger(n => n + 1); // Trigger canvas redraw
     } else if (interaction.type === 'pan') {
       // Pan moves in same direction as mouse (natural scrolling)
       const dx = cx - interaction.startX;
@@ -424,6 +484,18 @@ export default function PlaneCanvas({
   };
 
   const handleMouseUp = () => {
+    // Commit dragged position to parent state
+    if (dragPositionRef.current) {
+      const drag = dragPositionRef.current;
+      if (drag.type === 'entity') {
+        onMoveEntity?.(drag.id, drag.position);
+      } else if (drag.type === 'region') {
+        onMoveRegion?.(drag.id, drag.position);
+      } else if (drag.type === 'resize') {
+        onResizeRegion?.(drag.id, drag.radius);
+      }
+      dragPositionRef.current = null;
+    }
     setInteraction({ type: null });
   };
 

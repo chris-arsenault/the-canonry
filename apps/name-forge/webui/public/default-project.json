@@ -22,12 +22,12 @@
         "status": ["dominant", "rising", "declining", "underground"]
       },
       {
-        "kind": "rules",
+        "kind": "rule",
         "subtype": ["law", "tradition", "prophecy", "natural"],
         "status": ["enforced", "forgotten", "disputed", "sacred"]
       },
       {
-        "kind": "abilities",
+        "kind": "ability",
         "subtype": ["magic", "divine", "technology", "martial"],
         "status": ["common", "rare", "forbidden", "lost"]
       }
@@ -37,36 +37,36 @@
         "npc": ["ally_of", "enemy_of", "mentor_of", "rival_of", "kin_of"],
         "location": ["ruler_of", "resident_of", "exile_from", "guardian_of"],
         "faction": ["leader_of", "member_of", "spy_for", "hunted_by"],
-        "rules": ["author_of", "enforcer_of", "violator_of"],
-        "abilities": ["master_of", "student_of", "granted_by"]
+        "rule": ["author_of", "enforcer_of", "violator_of"],
+        "ability": ["master_of", "student_of", "granted_by"]
       },
       "location": {
         "npc": ["birthplace_of", "tomb_of", "sanctuary_for"],
         "location": ["adjacent_to", "contains", "portal_to"],
         "faction": ["headquarters_of", "contested_by", "sacred_to"],
-        "rules": ["governed_by", "exempt_from"],
-        "abilities": ["source_of", "amplifies", "suppresses"]
+        "rule": ["governed_by", "exempt_from"],
+        "ability": ["source_of", "amplifies", "suppresses"]
       },
       "faction": {
         "npc": ["commands", "protects", "hunts"],
         "location": ["controls", "raids", "defends"],
         "faction": ["allied_with", "at_war_with", "splinter_of"],
-        "rules": ["enforces", "defies", "created"],
-        "abilities": ["wields", "seeks", "forbids"]
+        "rule": ["enforces", "defies", "created"],
+        "ability": ["wields", "seeks", "forbids"]
       },
-      "rules": {
+      "rule": {
         "npc": ["binds", "empowers", "condemns"],
         "location": ["applies_in", "originated_at"],
         "faction": ["governs", "opposed_by"],
-        "rules": ["supersedes", "derives_from"],
-        "abilities": ["regulates", "enables"]
+        "rule": ["supersedes", "derives_from"],
+        "ability": ["regulates", "enables"]
       },
-      "abilities": {
+      "ability": {
         "npc": ["bestowed_upon", "awakened_in"],
         "location": ["manifests_at", "dormant_in"],
         "faction": ["monopolized_by", "feared_by"],
-        "rules": ["constrained_by", "transcends"],
-        "abilities": ["evolved_from", "counters"]
+        "rule": ["constrained_by", "transcends"],
+        "ability": ["evolved_from", "counters"]
       }
     }
   },

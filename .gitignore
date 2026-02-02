@@ -6,7 +6,10 @@ dist/
 /test-results/
 /telemetry-artifacts/
 deliveries/
+testArchive/
 .env
+.claude/
+**/webui/.__mf__temp/
 .terraform/
 .terraform.lock.hcl
 *.tfstate
@@ -23,8 +26,9 @@ tsconfig.tsbuildinfo
 # Exclude .js and .d.ts in source folders but not in dist/
 **/lib/**/*.js
 **/lib/**/*.d.ts
-**/src/**/*.js
+#**/src/**/*.js
 **/src/**/*.d.ts
 # Allow config files
 !*.config.js
 !eslint.config.js
+validity-search-4-runs/

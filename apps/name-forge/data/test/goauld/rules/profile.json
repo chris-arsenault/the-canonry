@@ -1,7 +1,7 @@
 {
   "id": "goauld:rules",
   "cultureId": "goauld",
-  "entityType": "rules",
+  "entityType": "rule",
   "strategies": [
     {
       "type": "phonotactic",

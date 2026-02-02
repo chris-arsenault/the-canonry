@@ -3,6 +3,10 @@
  */
 
 import React, { useState } from 'react';
+import { NumberInput } from '@penguin-tales/shared-components';
+
+// Arctic Blue base theme with frost blue accent (Cosmographer)
+const ACCENT_COLOR = '#60a5fa';
 
 const styles = {
   container: {
@@ -14,10 +18,11 @@ const styles = {
   title: {
     fontSize: '24px',
     fontWeight: 600,
-    marginBottom: '8px'
+    marginBottom: '8px',
+    color: '#ffffff'
   },
   subtitle: {
-    color: '#888',
+    color: '#93c5fd',
     fontSize: '14px'
   },
   toolbar: {
@@ -28,25 +33,26 @@ const styles = {
   addButton: {
     padding: '8px 16px',
     fontSize: '13px',
-    backgroundColor: '#e94560',
-    color: 'white',
+    backgroundColor: ACCENT_COLOR,
+    color: '#0a1929',
     border: 'none',
     borderRadius: '4px',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    fontWeight: 500
   },
   filterSelect: {
     padding: '8px 12px',
     fontSize: '13px',
-    backgroundColor: '#16213e',
-    border: '1px solid #0f3460',
+    backgroundColor: '#1e3a5f',
+    border: '1px solid rgba(59, 130, 246, 0.3)',
     borderRadius: '4px',
-    color: '#eee',
+    color: '#ffffff',
     minWidth: '150px'
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
-    backgroundColor: '#16213e',
+    backgroundColor: '#1e3a5f',
     borderRadius: '8px',
     overflow: 'hidden'
   },
@@ -54,41 +60,43 @@ const styles = {
     padding: '12px 16px',
     textAlign: 'left',
     fontSize: '12px',
-    color: '#888',
-    borderBottom: '1px solid #0f3460',
+    color: '#93c5fd',
+    borderBottom: '1px solid rgba(59, 130, 246, 0.3)',
     fontWeight: 500
   },
   td: {
     padding: '12px 16px',
-    borderBottom: '1px solid #0f3460',
-    fontSize: '13px'
+    borderBottom: '1px solid rgba(59, 130, 246, 0.3)',
+    fontSize: '13px',
+    color: '#ffffff'
   },
   kindBadge: {
     display: 'inline-block',
     padding: '3px 8px',
-    backgroundColor: '#0f3460',
+    backgroundColor: '#0c1f2e',
     borderRadius: '4px',
-    fontSize: '11px'
+    fontSize: '11px',
+    color: '#60a5fa'
   },
   entityLink: {
-    color: '#e94560',
+    color: ACCENT_COLOR,
     cursor: 'pointer'
   },
   deleteButton: {
     padding: '4px 8px',
     fontSize: '11px',
     backgroundColor: 'transparent',
-    color: '#e94560',
-    border: '1px solid #e94560',
+    color: '#ef4444',
+    border: '1px solid #ef4444',
     borderRadius: '3px',
     cursor: 'pointer'
   },
   emptyState: {
-    color: '#666',
+    color: '#60a5fa',
     fontSize: '14px',
     textAlign: 'center',
     padding: '40px',
-    backgroundColor: '#16213e',
+    backgroundColor: '#1e3a5f',
     borderRadius: '8px'
   },
   modal: {
@@ -104,22 +112,24 @@ const styles = {
     zIndex: 1000
   },
   modalContent: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#0c1f2e',
     padding: '24px',
     borderRadius: '8px',
-    width: '500px'
+    width: '500px',
+    border: '1px solid rgba(59, 130, 246, 0.3)'
   },
   modalTitle: {
     fontSize: '18px',
     fontWeight: 600,
-    marginBottom: '20px'
+    marginBottom: '20px',
+    color: '#ffffff'
   },
   formGroup: {
     marginBottom: '16px'
   },
   label: {
     fontSize: '12px',
-    color: '#888',
+    color: '#93c5fd',
     marginBottom: '6px',
     display: 'block'
   },
@@ -127,19 +137,19 @@ const styles = {
     width: '100%',
     padding: '10px',
     fontSize: '14px',
-    backgroundColor: '#16213e',
-    border: '1px solid #0f3460',
+    backgroundColor: '#1e3a5f',
+    border: '1px solid rgba(59, 130, 246, 0.3)',
     borderRadius: '4px',
-    color: '#eee'
+    color: '#ffffff'
   },
   input: {
     width: '100%',
     padding: '10px',
     fontSize: '14px',
-    backgroundColor: '#16213e',
-    border: '1px solid #0f3460',
+    backgroundColor: '#1e3a5f',
+    border: '1px solid rgba(59, 130, 246, 0.3)',
     borderRadius: '4px',
-    color: '#eee'
+    color: '#ffffff'
   },
   modalActions: {
     display: 'flex',
@@ -150,14 +160,14 @@ const styles = {
   button: {
     padding: '8px 16px',
     fontSize: '13px',
-    backgroundColor: '#0f3460',
-    color: '#aaa',
+    backgroundColor: '#1e3a5f',
+    color: '#93c5fd',
     border: 'none',
     borderRadius: '4px',
     cursor: 'pointer'
   },
   arrow: {
-    color: '#666',
+    color: '#60a5fa',
     fontSize: '16px'
   }
 };
@@ -165,7 +175,7 @@ const styles = {
 export default function RelationshipEditor({ project, onSave }) {
   const [showModal, setShowModal] = useState(false);
   const [filterKind, setFilterKind] = useState('');
-  const [newRel, setNewRel] = useState({ kind: '', srcId: '', dstId: '', strength: 1 });
+  const [newRel, setNewRel] = useState({ kind: '', src: '', dst: '', strength: 1 });
 
   const relationships = project?.seedRelationships || [];
   const entities = project?.seedEntities || [];
@@ -181,32 +191,33 @@ export default function RelationshipEditor({ project, onSave }) {
   };
 
   const addRelationship = () => {
-    if (!newRel.kind || !newRel.srcId || !newRel.dstId) {
+    if (!newRel.kind || !newRel.src || !newRel.dst) {
       alert('Please fill all required fields');
       return;
     }
 
-    if (newRel.srcId === newRel.dstId) {
+    if (newRel.src === newRel.dst) {
       alert('Source and destination must be different');
       return;
     }
 
     const rel = {
-      id: `rel_${Date.now()}`,
       kind: newRel.kind,
-      srcId: newRel.srcId,
-      dstId: newRel.dstId,
+      src: newRel.src,
+      dst: newRel.dst,
       strength: parseFloat(newRel.strength) || 1
     };
 
     updateRelationships([...relationships, rel]);
     setShowModal(false);
-    setNewRel({ kind: '', srcId: '', dstId: '', strength: 1 });
+    setNewRel({ kind: '', src: '', dst: '', strength: 1 });
   };
 
-  const deleteRelationship = (relId) => {
+  const deleteRelationship = (rel) => {
     if (!confirm('Delete this relationship?')) return;
-    updateRelationships(relationships.filter(r => r.id !== relId));
+    updateRelationships(relationships.filter(r =>
+      !(r.kind === rel.kind && r.src === rel.src && r.dst === rel.dst)
+    ));
   };
 
   const getEntityName = (entityId) => {
@@ -215,12 +226,12 @@ export default function RelationshipEditor({ project, onSave }) {
   };
 
   const getRelKindName = (kindId) => {
-    const kind = relationshipKinds.find(k => k.id === kindId);
-    return kind?.name || kindId;
+    const kind = relationshipKinds.find(k => k.kind === kindId);
+    return kind?.description || kind?.kind || kindId;
   };
 
   // Filter entities by allowed source/dest kinds for the selected relationship
-  const selectedRelKind = relationshipKinds.find(k => k.id === newRel.kind);
+  const selectedRelKind = relationshipKinds.find(k => k.kind === newRel.kind);
   const allowedSrcEntities = selectedRelKind?.srcKinds?.length
     ? entities.filter(e => selectedRelKind.srcKinds.includes(e.kind))
     : entities;
@@ -245,8 +256,8 @@ export default function RelationshipEditor({ project, onSave }) {
         >
           <option value="">All kinds ({relationships.length})</option>
           {relationshipKinds.map(k => (
-            <option key={k.id} value={k.id}>
-              {k.name} ({relationships.filter(r => r.kind === k.id).length})
+            <option key={k.kind} value={k.kind}>
+              {k.description || k.kind} ({relationships.filter(r => r.kind === k.kind).length})
             </option>
           ))}
         </select>
@@ -258,12 +269,12 @@ export default function RelationshipEditor({ project, onSave }) {
           + Add Relationship
         </button>
         {entities.length < 2 && (
-          <span style={{ color: '#888', fontSize: '12px' }}>
+          <span style={{ color: '#93c5fd', fontSize: '12px' }}>
             Need at least 2 entities
           </span>
         )}
         {relationshipKinds.length === 0 && (
-          <span style={{ color: '#888', fontSize: '12px' }}>
+          <span style={{ color: '#93c5fd', fontSize: '12px' }}>
             Define relationship kinds in Schema first
           </span>
         )}
@@ -288,25 +299,25 @@ export default function RelationshipEditor({ project, onSave }) {
             </tr>
           </thead>
           <tbody>
-            {filteredRels.map(rel => (
-              <tr key={rel.id}>
+            {filteredRels.map((rel, idx) => (
+              <tr key={`${rel.kind}-${rel.src}-${rel.dst}-${idx}`}>
                 <td style={styles.td}>
                   <span style={styles.kindBadge}>{getRelKindName(rel.kind)}</span>
                 </td>
                 <td style={styles.td}>
-                  <span style={styles.entityLink}>{getEntityName(rel.srcId)}</span>
+                  <span style={styles.entityLink}>{getEntityName(rel.src)}</span>
                 </td>
                 <td style={{ ...styles.td, width: '30px', textAlign: 'center' }}>
                   <span style={styles.arrow}>→</span>
                 </td>
                 <td style={styles.td}>
-                  <span style={styles.entityLink}>{getEntityName(rel.dstId)}</span>
+                  <span style={styles.entityLink}>{getEntityName(rel.dst)}</span>
                 </td>
                 <td style={styles.td}>{rel.strength}</td>
                 <td style={{ ...styles.td, width: '80px' }}>
                   <button
                     style={styles.deleteButton}
-                    onClick={() => deleteRelationship(rel.id)}
+                    onClick={() => deleteRelationship(rel)}
                   >
                     Delete
                   </button>
@@ -328,11 +339,11 @@ export default function RelationshipEditor({ project, onSave }) {
               <select
                 style={styles.select}
                 value={newRel.kind}
-                onChange={(e) => setNewRel({ ...newRel, kind: e.target.value, srcId: '', dstId: '' })}
+                onChange={(e) => setNewRel({ ...newRel, kind: e.target.value, src: '', dst: '' })}
               >
                 <option value="">Select kind...</option>
                 {relationshipKinds.map(k => (
-                  <option key={k.id} value={k.id}>{k.name}</option>
+                  <option key={k.kind} value={k.kind}>{k.description || k.kind}</option>
                 ))}
               </select>
             </div>
@@ -341,8 +352,8 @@ export default function RelationshipEditor({ project, onSave }) {
               <label style={styles.label}>Source Entity</label>
               <select
                 style={styles.select}
-                value={newRel.srcId}
-                onChange={(e) => setNewRel({ ...newRel, srcId: e.target.value })}
+                value={newRel.src}
+                onChange={(e) => setNewRel({ ...newRel, src: e.target.value })}
                 disabled={!newRel.kind}
               >
                 <option value="">Select source...</option>
@@ -356,13 +367,13 @@ export default function RelationshipEditor({ project, onSave }) {
               <label style={styles.label}>Destination Entity</label>
               <select
                 style={styles.select}
-                value={newRel.dstId}
-                onChange={(e) => setNewRel({ ...newRel, dstId: e.target.value })}
+                value={newRel.dst}
+                onChange={(e) => setNewRel({ ...newRel, dst: e.target.value })}
                 disabled={!newRel.kind}
               >
                 <option value="">Select destination...</option>
                 {allowedDstEntities
-                  .filter(e => e.id !== newRel.srcId)
+                  .filter(e => e.id !== newRel.src)
                   .map(e => (
                     <option key={e.id} value={e.id}>{e.name} ({e.kind})</option>
                   ))}
@@ -371,14 +382,13 @@ export default function RelationshipEditor({ project, onSave }) {
 
             <div style={styles.formGroup}>
               <label style={styles.label}>Strength (0-1)</label>
-              <input
+              <NumberInput
                 style={styles.input}
-                type="number"
-                min="0"
-                max="1"
-                step="0.1"
+                min={0}
+                max={1}
+                step={0.1}
                 value={newRel.strength}
-                onChange={(e) => setNewRel({ ...newRel, strength: e.target.value })}
+                onChange={(v) => setNewRel({ ...newRel, strength: v ?? 0.5 })}
               />
             </div>
 

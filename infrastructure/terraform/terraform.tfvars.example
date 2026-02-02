@@ -4,7 +4,7 @@
 aws_region = "us-east-1"
 
 # Project prefix for namespacing resources (bucket: {prefix}-static, etc.)
-prefix = "pt"
+prefix = "canonry"
 
 # Domain name (Route53 hosted zone must already exist)
-domain_name = "penguin-tales.com"
+domain_name = "the-canonry.com"

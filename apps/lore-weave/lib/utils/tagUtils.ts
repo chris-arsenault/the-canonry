@@ -64,18 +64,6 @@ export function getStringTags(tags: EntityTags | undefined): Array<[string, stri
     .map(([key, value]) => [key, value as string]);
 }
 
-/**
- * Convert EntityTags (KVP) to array format for backward compatibility.
- * Boolean tags become just the key, string tags become "key:value".
- */
-export function tagsToArray(tags: EntityTags | undefined): string[] {
-  if (!tags) return [];
-  return Object.entries(tags).map(([key, value]) => {
-    if (value === true) return key;
-    if (value === false) return `!${key}`; // Negated tag
-    return `${key}:${value}`;
-  });
-}
 
 /**
  * Convert array tags to EntityTags (KVP) format.

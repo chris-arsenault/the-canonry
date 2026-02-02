@@ -1,0 +1,33 @@
+/**
+ * Empty state component styles
+ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-4xl);
+  color: var(--color-text-dim);
+  text-align: center;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: var(--spacing-xl);
+  opacity: 0.5;
+}
+
+.empty-state-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--spacing-md);
+  color: var(--color-text);
+}
+
+.empty-state-desc {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-muted);
+  max-width: 400px;
+  margin-bottom: var(--spacing-2xl);
+}

@@ -7,8 +7,8 @@
  */
 
 import { HardState, EntityTags } from '../core/worldTypes';
-import { TemplateGraphView } from '../graph/templateGraphView';
-import { FRAMEWORK_STATUS } from '../core/frameworkPrimitives';
+import { WorldRuntime } from '../runtime/worldRuntime';
+import { FRAMEWORK_STATUS, FRAMEWORK_TAGS } from '@canonry/world-schema';
 import { hasTag } from '../utils';
 
 /**
@@ -54,7 +54,7 @@ export interface ClusterCriterion {
   direction?: 'src' | 'dst';
 
   /** For 'custom': custom predicate function */
-  predicate?: (e1: HardState, e2: HardState, graphView: TemplateGraphView) => boolean;
+  predicate?: (e1: HardState, e2: HardState, graphView: WorldRuntime) => boolean;
 }
 
 /**
@@ -84,7 +84,7 @@ export function calculateSimilarity(
   e1: HardState,
   e2: HardState,
   criteria: ClusterCriterion[],
-  graphView: TemplateGraphView
+  graphView: WorldRuntime
 ): { score: number; matchedCriteria: string[] } {
   let score = 0;
   const matchedCriteria: string[] = [];
@@ -97,8 +97,8 @@ export function calculateSimilarity(
         if (!criterion.relationshipKind) break;
         const direction = criterion.direction || 'src';
 
-        const e1Related = graphView.getRelatedEntities(e1.id, criterion.relationshipKind, direction);
-        const e2Related = graphView.getRelatedEntities(e2.id, criterion.relationshipKind, direction);
+        const e1Related = graphView.getConnectedEntities(e1.id, criterion.relationshipKind, direction);
+        const e2Related = graphView.getConnectedEntities(e2.id, criterion.relationshipKind, direction);
         const e1RelatedIds = new Set(e1Related.map(r => r.id));
         matches = e2Related.some(r => e1RelatedIds.has(r.id));
         break;
@@ -164,7 +164,7 @@ export function calculateSimilarity(
 export function detectClusters(
   entities: HardState[],
   config: ClusterConfig,
-  graphView: TemplateGraphView
+  graphView: WorldRuntime
 ): Cluster[] {
   if (entities.length < config.minSize) {
     return [];
@@ -247,7 +247,8 @@ export function detectClusters(
 export function filterClusterableEntities(entities: HardState[]): HardState[] {
   return entities.filter(e =>
     e.status !== FRAMEWORK_STATUS.HISTORICAL &&
-    !hasTag(e.tags, 'meta-entity')
+    e.status !== FRAMEWORK_STATUS.SUBSUMED &&
+    !hasTag(e.tags, FRAMEWORK_TAGS.META_ENTITY)
   );
 }
 
@@ -266,7 +267,7 @@ export function findBestClusterMatch(
   entity: HardState,
   clusters: Cluster[],
   criteria: ClusterCriterion[],
-  graphView: TemplateGraphView,
+  graphView: WorldRuntime,
   minimumScore: number
 ): Cluster | undefined {
   let bestCluster: Cluster | undefined;

@@ -1,0 +1,427 @@
+[
+  {
+    "id": "loc_aurora_berg",
+    "kind": "location",
+    "subtype": "point_of_interest",
+    "name": "Aurora Berg",
+    "summary": "A supernatural iceberg of impossible scale, large enough to contain mountains, caverns, and civilizations that have never seen its edges. The Berg drifts through an endless frozen sea under perpetual twilight, its ice remembering events from before penguin memory. Two colonies cling to its mass: the Aurora Stack on the sunlit face, the Nightfall Shelf in the shadowed tunnels below. Something vast moves in the darkness beneath the frozen sea, and the aurora that crowns the Berg pulses with power that even the oldest mystics do not fully understand.",
+    "description": "",
+    "status": "thriving",
+    "prominence": 3.5,
+    "culture": "aurora-stack",
+    "tags": {
+      "ice": true
+    },
+    "coordinates": {
+      "x": 50,
+      "y": 50,
+      "z": 50
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "loc_aurora_stack",
+    "kind": "location",
+    "subtype": "colony",
+    "name": "Aurora Stack",
+    "summary": "A vertical colony of crystalline spires carved into the sunlit face of Aurora Berg, where ice-plate towers catch and channel the aurora's light through networks of prismatic lenses. The Stack's penguins wear flowing white robes and speak in measured astronomical metaphors, believing the aurora judges all actions. Their mystics glow faintly from within, their magic manifesting as crystalline growth and temperature drops. The Icebound Exchange controls the colony's trade, and High-Beak Auditor Selka maintains order through consensus councils held only under clear skies. They need fire-cores from the Nightshelf to survive the deep cold, a dependency that chafes against their pride.",
+    "description": "",
+    "status": "thriving",
+    "prominence": 2.5,
+    "culture": "aurora-stack",
+    "tags": {
+      "colony": true,
+      "trade": true,
+      "organized": true
+    },
+    "coordinates": {
+      "x": 70,
+      "y": 25,
+      "z": 70
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "loc_nightfall_shelf",
+    "kind": "location",
+    "subtype": "colony",
+    "name": "Nightfall Shelf",
+    "summary": "A labyrinthine colony carved into the Berg's shadowed interior, where bioluminescent ice glyphs mark tunnel intersections and fire-core braziers cast flickering orange light against cavern walls. The Shelf's penguins speak in coded proverbs, trust silence over speech, and dress in charcoal wraps with ember-thread embroidery visible only in darkness. The Fire Keepers control the volcanic cores that warm the tunnels, while Shadow-Broker Nyla's Midnight Claws handle everything the official guilds won't touch. They trade fire-cores to the surface for aurora-crystals they cannot harvest themselves, a bargain that keeps both colonies alive and neither satisfied.",
+    "description": "",
+    "status": "thriving",
+    "prominence": 2.5,
+    "culture": "nightshelf",
+    "tags": {
+      "colony": true,
+      "criminal": true,
+      "secretive": true
+    },
+    "coordinates": {
+      "x": 30,
+      "y": 40,
+      "z": 45
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "loc_glow_fissure",
+    "kind": "location",
+    "subtype": "anomaly",
+    "name": "The Glow-Fissure",
+    "summary": "A deep crack in the ice beneath Nightfall Shelf that pulses with light no fire-core produces—cold and blue-green, rhythmic as breathing. The fissure appeared three generations ago when miners broke through into a void that shouldn't exist at that depth. Those who descend too far report hearing whale-song and feeling pressure changes that make their skulls ache. The Midnight Claws post guards at its upper reaches, officially to prevent accidents. Unofficially, Shadow-Broker Nyla has forbidden anyone from mapping what lies below, and the last penguin who tried came back speaking a language no one recognized.",
+    "description": "",
+    "status": "thriving",
+    "prominence": 2.5,
+    "culture": "nightshelf",
+    "tags": {
+      "anomaly": true,
+      "mystical": true
+    },
+    "coordinates": {
+      "x": 30,
+      "y": 70,
+      "z": 15
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "faction_icebound_exchange",
+    "kind": "faction",
+    "subtype": "company",
+    "name": "The Icebound Exchange",
+    "summary": "The merchant guild that controls Aurora Stack's trade routes, its ledgers tracking every aurora-crystal harvested and every fire-core imported from the Nightshelf below. Founded after the Faction Wars when three competing trading families merged rather than destroy each other, the Exchange operates from a crystalline hall where deals are sealed under aurora-light and broken contracts are recorded in ice that never melts. Their symbol—interlocked flippers holding a prism—marks warehouses, ships, and the foreheads of debtors who couldn't pay. High-Beak Auditor Selka chairs their council, though some whisper she serves the Exchange more than it serves the colony.",
+    "description": "",
+    "status": "active",
+    "prominence": 2.5,
+    "culture": "aurora-stack",
+    "tags": {
+      "trade": true,
+      "organized": true
+    },
+    "coordinates": {
+      "x": 80,
+      "y": 75,
+      "z": 60
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "faction_midnight_claws",
+    "kind": "faction",
+    "subtype": "criminal",
+    "name": "The Midnight Claws",
+    "summary": "The syndicate that rules Nightfall Shelf's shadow economy, handling the smuggling, enforcement, and quiet disappearances that the Fire Keepers pretend don't happen. The Claws emerged from the tunnel gangs that formed during the Faction Wars, when official authority collapsed and someone had to keep the fire-cores flowing. Shadow-Broker Nyla inherited leadership from her predecessor through methods no one discusses, and she maintains control through a network of informants, blackmail ledgers, and the simple fact that crossing the Claws means your body feeds the deep vents. They mark their territory with claw-scratches that glow faintly in darkness—bioluminescent ink mixed with something organic.",
+    "description": "",
+    "status": "active",
+    "prominence": 2.5,
+    "culture": "nightshelf",
+    "tags": {
+      "secretive": true,
+      "organized": true
+    },
+    "coordinates": {
+      "x": 25,
+      "y": 40,
+      "z": 50
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "npc_selka",
+    "kind": "npc",
+    "subtype": "mayor",
+    "name": "High-Beak Auditor Selka",
+    "summary": "The meticulous mayor of Aurora Stack, elected by demonstration of aurora-magic so precise she could etch trade figures into ice from across a room. Selka speaks in numbers and celestial metaphors, her silver-threaded robes always immaculate, her crystal circlet calibrated to detect lies through subtle temperature shifts. She rose through the Icebound Exchange before taking office, and critics note she's never ruled against the guild's interests. Her office contains seventeen aurora-lenses trained on different parts of the colony, and she's said to watch them all simultaneously. The Nightshelf calls her 'the Counting Beak' and trusts her exactly as far as the Flipper Accord requires.",
+    "description": "",
+    "status": "alive",
+    "prominence": 2.5,
+    "culture": "aurora-stack",
+    "tags": {
+      "leader": true,
+      "organized": true,
+      "trade": true,
+      "mundane": true
+    },
+    "coordinates": {
+      "x": 87,
+      "y": 55,
+      "z": 35
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "npc_nyla",
+    "kind": "npc",
+    "subtype": "mayor",
+    "name": "Shadow-Broker Nyla",
+    "summary": "The unofficial mayor of Nightfall Shelf, who holds no elected office but whose word carries more weight than any council vote. Nyla inherited the Midnight Claws at nineteen after her predecessor fell into a fire-vent—an accident she was suspiciously positioned to survive. She wears ash-gray wraps that blend into tunnel shadows, speaks in riddles that reveal themselves three conversations later, and maintains a network of informants that reaches even into Aurora Stack's crystal towers. Her left flipper bears burn scars from a forge accident she won't discuss, and she's never been seen in aurora-light. The Fire Keepers tolerate her because the alternative is chaos; she tolerates them because someone has to keep the cores burning.",
+    "description": "",
+    "status": "alive",
+    "prominence": 2.5,
+    "culture": "nightshelf",
+    "tags": {
+      "leader": true,
+      "secretive": true,
+      "mystical": true
+    },
+    "coordinates": {
+      "x": 49,
+      "y": 78,
+      "z": 65
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "loc_drowned_ledge",
+    "kind": "location",
+    "subtype": "colony",
+    "name": "The Drowned Ledge",
+    "summary": "A Nightshelf mining outpost that went silent three generations ago after its deepest tunnel breached something that shouldn't have held water. The flooding came fast—seawater cold enough to kill in minutes, pouring through ice-locks that had held for decades. Survivors sealed the upper tunnels and fled, leaving behind equipment, bodies, and whatever the miners found before the breach. The fire-core braziers still glow faintly through the frozen water, their light visible through ice windows that no one approaches after dark. Official records list it as a geological accident. The Midnight Claws keep those records, and they've never been known for honesty.",
+    "description": "",
+    "status": "abandoned",
+    "prominence": 1.5,
+    "culture": "nightshelf",
+    "tags": {
+      "colony": true,
+      "secretive": true,
+      "anomaly": true,
+      "dangerous": true
+    },
+    "coordinates": {
+      "x": 12,
+      "y": 82,
+      "z": 18
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "npc_keeper_hollows",
+    "kind": "npc",
+    "subtype": "outlaw",
+    "name": "Keeper Hollows",
+    "summary": "The last miner to escape the Drowned Ledge, now a hermit who camps at the sealed entrance and refuses to leave. Hollows was young when the flooding came—young enough that his memories should have faded, old enough now that they haven't. He claims to hear knocking from below the ice-locks, rhythmic patterns that match no mining code. The Midnight Claws have tried to relocate him three times; he keeps returning. His feathers have gone gray-white from decades without proper light, and he trades information about the old tunnels for food, fire-cores, and promises that no one will unseal the doors. He owns a water-damaged mining chart that shows tunnels extending far below known depths, annotated in handwriting he swears isn't his.",
+    "description": "",
+    "status": "alive",
+    "prominence": 1.5,
+    "culture": "nightshelf",
+    "tags": {
+      "secretive": true,
+      "mystical": true
+    },
+    "coordinates": {
+      "x": 15,
+      "y": 85,
+      "z": 22
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "artifact_deep_map",
+    "kind": "artifact",
+    "subtype": "tome",
+    "name": "The Hollows Chart",
+    "summary": "A mining survey map recovered from the Drowned Ledge, its edges water-damaged and its deeper sections annotated in a hand that Keeper Hollows doesn't recognize—though it's clearly his own. The chart shows the official tunnel network in standard Nightshelf notation, but below a certain depth the markings change: geometric symbols, depth measurements in units no guild uses, and a large chamber labeled only with a glyph that makes readers' eyes water. Hollows found it in his pack after the flooding, though he has no memory of drawing it. The Midnight Claws have offered substantial payment for the original; he's refused every time, sleeping with it pressed against his chest.",
+    "description": "",
+    "status": "damaged",
+    "prominence": 1.5,
+    "culture": "nightshelf",
+    "tags": {
+      "secretive": true,
+      "mystical": true
+    },
+    "coordinates": {
+      "x": 14,
+      "y": 84,
+      "z": 20
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "loc_corpse_current",
+    "kind": "location",
+    "subtype": "anomaly",
+    "name": "The Corpse Current",
+    "summary": "An underwater convergence in the frozen sea where currents meet and temperatures run warmer than physics should allow. Fish swim in spirals here, caught in patterns they can't escape; debris from the deep surfaces coated in frost that won't melt. The orcas call it the place where the dead god's blood still circulates, and their shamans make pilgrimage to float in waters that taste of iron and age. No penguin has ever seen it—the location is a closely guarded secret, shared only among the Wake-Singers who conduct their bloodiest rituals in its embrace. Grandmother Deep claims the current has been growing stronger, its reach extending toward the Berg's foundations.",
+    "description": "",
+    "status": "thriving",
+    "prominence": 2.5,
+    "culture": "orca",
+    "tags": {
+      "anomaly": true,
+      "mystical": true,
+      "hostile": true
+    },
+    "coordinates": {
+      "x": 8,
+      "y": 8,
+      "z": 5
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "npc_grandmother_deep",
+    "kind": "npc",
+    "subtype": "orca",
+    "name": "Grandmother Deep",
+    "summary": "The oldest orca matriarch in living memory, who dove to touch the dead god's body and returned changed. Her left eye sees the present; her right eye, clouded white, sees something else—futures, pasts, or simply bone, depending on who's asking. She leads no pod directly but advises all of them, her whale-song carrying prophecies that have proven accurate often enough to terrify. Grandmother Deep remembers when penguins were just food, before they built their towers and channeled their lights. She's curious why they've changed, and whether the change makes them more or less suitable for sacrifice. The scars across her flank spell words in a language the dead god's followers haven't used in generations.",
+    "description": "",
+    "status": "alive",
+    "prominence": 2.5,
+    "culture": "orca",
+    "tags": {
+      "leader": true,
+      "mystical": true,
+      "hostile": true
+    },
+    "coordinates": {
+      "x": 10,
+      "y": 12,
+      "z": 8
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "faction_wake_singers",
+    "kind": "faction",
+    "subtype": "cult",
+    "name": "The Wake-Singers",
+    "summary": "A cult of orca shamans who believe accumulated blood sacrifice will wake the dead god from its slumber beneath the frozen sea. They've grown bolder in recent years, their raids targeting not just penguin fishing parties but settlements, stockpiling captives in underwater caves for rituals that leave the water red for days. The Wake-Singers wear bone headdresses carved from their own ancestors and sing in frequencies that make ice crack and penguins' hearts stutter. Grandmother Deep guides their theology; younger shamans handle the operational details of kidnapping, containment, and systematic drowning. They believe they're close to a breakthrough. They believe the god has started dreaming.",
+    "description": "",
+    "status": "active",
+    "prominence": 2.5,
+    "culture": "orca",
+    "tags": {
+      "mystical": true,
+      "hostile": true,
+      "organized": true
+    },
+    "coordinates": {
+      "x": 6,
+      "y": 10,
+      "z": 10
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "artifact_god_tooth",
+    "kind": "artifact",
+    "subtype": "relic",
+    "name": "The Dreaming Tooth",
+    "summary": "A tooth larger than an adult orca, carved from the dead god's jaw by a shaman whose name has been deliberately forgotten. The tooth hums at frequencies that resonate with pressure-magic, and those who hold it too long report dreams of drowning in warm darkness while something vast watches with patient hunger. The Wake-Singers keep it at the Corpse Current's heart, using it to focus their rituals and amplify their songs. Wielders gain power over water pressure and the ability to speak to things in the deep—but they also develop an increasing compulsion to feed the ocean. Three shamans have walked into the depths carrying the tooth, never to surface. The current bearer, a young orca named Tidescream, has started talking to something no one else can see.",
+    "description": "",
+    "status": "intact",
+    "prominence": 2.5,
+    "culture": "orca",
+    "tags": {
+      "mystical": true,
+      "hostile": true
+    },
+    "coordinates": {
+      "x": 9,
+      "y": 9,
+      "z": 6
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "loc_still_pools",
+    "kind": "location",
+    "subtype": "colony",
+    "name": "The Still Pools",
+    "summary": "A geothermally-heated lagoon hidden in a crater at the Berg's far edge, perpetually shrouded in steam that the Veil Vents have produced for longer than anyone can remember. A handful of Aurora Stack dissidents settled here generations ago, rejecting the Flipper Accord and its endless politics for a life of deliberate isolation. They fish the warm waters, tend small ice-gardens, and maintain a strict policy of no contact with either colony. No census has ever counted them; no map officially marks their location. The steam is thinning as the vents fail, and the oldest residents know their hidden paradise has perhaps a decade before the mists clear and the outside world comes looking.",
+    "description": "",
+    "status": "unspoiled",
+    "prominence": 1.5,
+    "culture": "aurora-stack",
+    "tags": {
+      "colony": true,
+      "secretive": true,
+      "resource": true
+    },
+    "coordinates": {
+      "x": 92,
+      "y": 90,
+      "z": 82
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "loc_veil_vents",
+    "kind": "location",
+    "subtype": "anomaly",
+    "name": "The Veil Vents",
+    "summary": "A cluster of geothermal vents that ring the Still Pools, producing the concealing steam that has hidden the settlement for generations. The vents tap into the same volcanic system that powers the Nightshelf's fire-cores, though the Still Pools residents have never made that connection—they've had no contact with the tunnel-dwellers and prefer to believe the heat comes from the Berg itself. Output has been declining for decades: steam clouds that once rose high enough to be mistaken for weather now barely obscure the crater's rim. The oldest vent went cold last winter. The residents tend the remaining vents like sacred flames, feeding them offerings of fish bones and aurora-crystals, praying to forces they don't understand for a miracle that geology cannot provide.",
+    "description": "",
+    "status": "waning",
+    "prominence": 1.5,
+    "culture": "aurora-stack",
+    "tags": {
+      "anomaly": true,
+      "secretive": true,
+      "dangerous": true
+    },
+    "coordinates": {
+      "x": 90,
+      "y": 88,
+      "z": 78
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  {
+    "id": "loc_forgotten_shore",
+    "kind": "location",
+    "subtype": "point_of_interest",
+    "name": "The Forgotten Shore",
+    "summary": "A mist-choked stretch of berg-edge where the frozen sea meets the crater that holds the Still Pools. Explorers who reach this shore see only fog and assume there's nothing beyond; the few who've pushed through the steam emerged confused, their memories of the passage fuzzy and unreliable. The Still Pools residents maintain subtle markers that guide them home—arrangements of stones, scratches on ice that look natural—but outsiders see only chaos. One Aurora Stack cartographer reached the shore a decade ago and noted 'persistent fog, no features of interest' before turning back. His map is the closest anyone has come to documenting the approach. The residents found his abandoned survey flag and still use it to mark the point where the mists grow thick enough to hide them.",
+    "description": "",
+    "status": "unspoiled",
+    "prominence": 1.5,
+    "culture": "nightshelf",
+    "tags": {
+      "secretive": true,
+      "dangerous": true
+    },
+    "coordinates": {
+      "x": 95,
+      "y": 92,
+      "z": 88
+    },
+    "links": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  }
+]

@@ -5,17 +5,16 @@
  * - Which placement paths are being used
  * - Whether culture context is being passed
  * - Region usage per entity kind
- * - Fallback behavior
+ * - Placement behavior
  */
 
 export interface PlacementEvent {
   tick: number;
   entityKind: string;
-  method: 'deriveCoordinates' | 'deriveCoordinatesWithCulture' | 'addEntityInRegion' | 'placeWithCulture' | 'placeNearEntity' | 'spawnEmergent' | 'fallbackCenter';
+  method: 'deriveCoordinatesWithCulture' | 'placeWithCulture' | 'placeNearEntity' | 'placeInRegion' | 'spawnEmergent';
   cultureId?: string;
   regionId?: string | null;
   hadReferenceEntities: boolean;
-  usedFallback: boolean;
   coordinates: { x: number; y: number; z: number };
 }
 
@@ -33,7 +32,6 @@ export interface CoordinateStatsSummary {
   placementsByKind: Record<string, number>;
   placementsWithCulture: number;
   placementsWithoutCulture: number;
-  fallbacksToCenter: number;
   regionsCreatedPerKind: Record<string, number>;
   regionUsagePerKind: Record<string, number>;
   cultureClusterStats: CultureClusterStats[];
@@ -71,19 +69,6 @@ class CoordinateStatisticsCollector {
   recordPlacement(event: PlacementEvent): void {
     if (!this.enabled) return;
     this.placements.push(event);
-
-    // Warn on specific conditions
-    if (event.usedFallback) {
-      this.warnings.push(
-        `Tick ${event.tick}: ${event.entityKind} used fallback placement (method: ${event.method})`
-      );
-    }
-
-    if (event.method === 'deriveCoordinates' && !event.hadReferenceEntities) {
-      this.warnings.push(
-        `Tick ${event.tick}: ${event.entityKind} deriveCoordinates called with no reference entities`
-      );
-    }
   }
 
   /**
@@ -111,7 +96,6 @@ class CoordinateStatisticsCollector {
     const placementsByKind: Record<string, number> = {};
     let placementsWithCulture = 0;
     let placementsWithoutCulture = 0;
-    let fallbacksToCenter = 0;
 
     // Aggregate placement stats
     for (const p of this.placements) {
@@ -122,10 +106,6 @@ class CoordinateStatisticsCollector {
         placementsWithCulture++;
       } else {
         placementsWithoutCulture++;
-      }
-
-      if (p.usedFallback || p.method === 'fallbackCenter') {
-        fallbacksToCenter++;
       }
     }
 
@@ -152,7 +132,6 @@ class CoordinateStatisticsCollector {
       placementsByKind,
       placementsWithCulture,
       placementsWithoutCulture,
-      fallbacksToCenter,
       regionsCreatedPerKind,
       regionUsagePerKind,
       cultureClusterStats,
@@ -248,12 +227,6 @@ class CoordinateStatisticsCollector {
     if (summary.placementsWithoutCulture > 0 && summary.totalPlacements > 0) {
       const pct = ((summary.placementsWithoutCulture / summary.totalPlacements) * 100).toFixed(1);
       console.log(`  ⚠️  ${pct}% of placements have no culture context!`);
-    }
-
-    console.log('\n--- Fallbacks ---');
-    console.log(`  Fallbacks to center: ${summary.fallbacksToCenter}`);
-    if (summary.fallbacksToCenter > 0) {
-      console.log(`  ⚠️  ${summary.fallbacksToCenter} entities used fallback coordinates!`);
     }
 
     console.log('\n--- Regions Created per Kind ---');

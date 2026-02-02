@@ -5,14 +5,23 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 5000",
-    "build": "vite build",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "@canonry/dsl": "file:../../../packages/canonry-dsl",
     "@canonry/world-schema": "file:../../../packages/world-schema",
+    "@penguin-tales/shared-components": "file:../../../packages/shared-components",
+    "@aws-sdk/client-s3": "^3.760.0",
+    "@aws-sdk/credential-provider-cognito-identity": "^3.760.0",
+    "amazon-cognito-identity-js": "^6.3.12",
+    "jszip": "^3.10.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zustand": "^5.0.2",
+    "@penguin-tales/image-store": "file:../../../packages/image-store"
   },
   "devDependencies": {
     "@module-federation/vite": "^1.1.0",

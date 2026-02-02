@@ -1,0 +1,113 @@
+{
+  "version": "1.0.0",
+  "entities": {
+    "npc": {
+      "hero": {
+        "target": 12,
+        "comment": "Heroes and companions that emerge during conflict"
+      },
+      "merchant": {
+        "target": 8,
+        "comment": "Trade network NPCs and guild workers"
+      },
+      "mayor": {
+        "target": 6,
+        "comment": "Colony leaders, founders, and aides"
+      },
+      "orca": {
+        "target": 8,
+        "comment": "External threat NPCs (hunt in pairs)"
+      },
+      "outlaw": {
+        "target": 10,
+        "comment": "Criminal faction members, splinter recruits, cult acolytes"
+      }
+    },
+    "location": {
+      "colony": {
+        "target": 4,
+        "comment": "Major settlements (2 initial + limited growth)"
+      },
+      "resource_node": {
+        "target": 7,
+        "comment": "Resource locations (krill blooms, hunting grounds)"
+      },
+      "point_of_interest": {
+        "target": 12,
+        "comment": "Strategic or notable sites"
+      },
+      "anomaly": {
+        "target": 6,
+        "comment": "Magical locations (enables cult/magic creation)"
+      }
+    },
+    "faction": {
+      "political": {
+        "target": 4,
+        "comment": "Major political factions (from splinters)"
+      },
+      "company": {
+        "target": 7,
+        "comment": "Trade organizations and guilds"
+      },
+      "criminal": {
+        "target": 4,
+        "comment": "Criminal syndicates"
+      },
+      "cult": {
+        "target": 4,
+        "comment": "Mystical factions"
+      }
+    },
+    "rule": {
+      "social": {
+        "target": 6,
+        "comment": "Cultural norms and ideologies"
+      },
+      "law": {
+        "target": 6,
+        "comment": "Civic laws and emergency measures"
+      },
+      "ideology": {
+        "target": 4,
+        "comment": "Ideological movements"
+      },
+      "memorial": {
+        "target": 4,
+        "comment": "Legends and commemorations"
+      }
+    },
+    "ability": {
+      "magic": {
+        "target": 7,
+        "comment": "Mystical techniques"
+      },
+      "technology": {
+        "target": 7,
+        "comment": "Practical innovations"
+      },
+      "combat": {
+        "target": 6,
+        "comment": "Combat techniques"
+      }
+    },
+    "artifact": {
+      "weapon": {
+        "target": 5,
+        "comment": "Combat artifacts - blades, war-horns, etc."
+      },
+      "relic": {
+        "target": 6,
+        "comment": "Sacred or historical objects"
+      },
+      "tome": {
+        "target": 4,
+        "comment": "Books of knowledge and magic"
+      },
+      "instrument": {
+        "target": 3,
+        "comment": "Tools and devices with special powers"
+      }
+    }
+  }
+}

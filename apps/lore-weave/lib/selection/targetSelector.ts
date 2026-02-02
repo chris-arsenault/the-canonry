@@ -12,8 +12,9 @@
  */
 
 import { Graph } from '../engine/types';
-import { HardState, Relationship, Prominence } from '../core/worldTypes';
+import { HardState, Relationship, ProminenceLabel } from '../core/worldTypes';
 import { findEntities, hasTag } from '../utils';
+import { prominenceLabel } from '../rules/types';
 
 /**
  * Selection bias configuration - defines preferences and penalties
@@ -28,7 +29,7 @@ export interface SelectionBias {
     tags?: string[];
 
     /** Preferred prominence levels */
-    prominence?: Prominence[];
+    prominence?: ProminenceLabel[];
 
     /** Same location as reference entity (for local recruitment) */
     sameLocationAs?: string; // Entity ID
@@ -269,18 +270,24 @@ export class TargetSelector {
       }
 
       // Prominence preference
-      if (bias.prefer.prominence?.includes(entity.prominence)) {
+      if (bias.prefer.prominence?.includes(prominenceLabel(entity.prominence))) {
         score *= boost;
       }
 
       // Location preference (same location as reference)
       if (bias.prefer.sameLocationAs) {
-        const sameLocation = entity.links.some(
-          l => l.kind === 'resident_of' &&
-               graph.getEntity(bias.prefer!.sameLocationAs!)?.links.some(
-                 rl => rl.kind === 'resident_of' && rl.dst === l.dst
-               )
-        );
+        const refEntity = graph.getEntity(bias.prefer.sameLocationAs);
+        const refLocations = refEntity
+          ? new Set(
+              graph.getEntityRelationships(refEntity.id, 'src')
+                .filter(r => r.kind === 'resident_of')
+                .map(r => r.dst)
+            )
+          : new Set<string>();
+        const sameLocation = refLocations.size > 0 &&
+          graph.getEntityRelationships(entity.id, 'src').some(
+            r => r.kind === 'resident_of' && refLocations.has(r.dst)
+          );
         if (sameLocation) {
           score *= boost;
         }
@@ -303,8 +310,8 @@ export class TargetSelector {
       // Count penalized relationships
       let penalizedCount = 0;
       if (bias.avoid.relationshipKinds) {
-        penalizedCount = entity.links.filter(l =>
-          bias.avoid!.relationshipKinds!.includes(l.kind)
+        penalizedCount = graph.getEntityRelationships(entity.id, 'both').filter(r =>
+          bias.avoid!.relationshipKinds!.includes(r.kind)
         ).length;
       }
 
@@ -318,7 +325,7 @@ export class TargetSelector {
       }
 
       // Total relationship penalty (general hub avoidance)
-      const totalLinks = entity.links.length;
+      const totalLinks = graph.getEntityRelationships(entity.id, 'both').length;
       if (totalLinks > 5) { // Only penalize if significantly connected
         const generalPenalty = 1 / (1 + Math.pow(totalLinks - 5, 0.5));
         score *= generalPenalty;
@@ -362,7 +369,7 @@ export class TargetSelector {
 
     if (bias.avoid?.maxTotalRelationships !== undefined) {
       filtered = filtered.filter(
-        s => s.entity.links.length < bias.avoid!.maxTotalRelationships!
+        s => graph.getEntityRelationships(s.entity.id, 'both').length < bias.avoid!.maxTotalRelationships!
       );
     }
 

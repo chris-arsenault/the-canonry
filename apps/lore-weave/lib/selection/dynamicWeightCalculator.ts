@@ -9,6 +9,10 @@
 import { GrowthTemplate } from '../engine/types';
 import { PopulationMetrics } from '../statistics/populationTracker';
 
+export interface TemplateCreationInfo {
+  entityKinds: Array<{ kind: string; subtype: string }>;
+}
+
 export interface WeightAdjustment {
   templateId: string;
   baseWeight: number;
@@ -28,7 +32,8 @@ export class DynamicWeightCalculator {
   calculateWeight(
     template: GrowthTemplate,
     baseWeight: number,
-    metrics: PopulationMetrics
+    metrics: PopulationMetrics,
+    creationInfo?: TemplateCreationInfo
   ): WeightAdjustment {
     if (baseWeight === 0) {
       return {
@@ -41,8 +46,7 @@ export class DynamicWeightCalculator {
     }
 
     // Check if template produces any tracked entities
-    const produces = template.metadata?.produces;
-    if (!produces || !produces.entityKinds || produces.entityKinds.length === 0) {
+    if (!creationInfo || creationInfo.entityKinds.length === 0) {
       return {
         templateId: template.id,
         baseWeight,
@@ -56,7 +60,7 @@ export class DynamicWeightCalculator {
     let cumulativeAdjustment = 1.0;
     const reasons: string[] = [];
 
-    produces.entityKinds.forEach(entityKind => {
+    creationInfo.entityKinds.forEach(entityKind => {
       const key = `${entityKind.kind}:${entityKind.subtype}`;
       const metric = metrics.entities.get(key);
 
@@ -98,17 +102,20 @@ export class DynamicWeightCalculator {
 
   /**
    * Calculate weights for all templates
+   * @param creationInfoMap Map of template ID -> creation info extracted from declarative templates
    */
   calculateAllWeights(
     templates: GrowthTemplate[],
     baseWeights: Map<string, number>,
-    metrics: PopulationMetrics
+    metrics: PopulationMetrics,
+    creationInfoMap?: Map<string, TemplateCreationInfo>
   ): Map<string, WeightAdjustment> {
     const adjustments = new Map<string, WeightAdjustment>();
 
     templates.forEach(template => {
       const baseWeight = baseWeights.get(template.id) || 0;
-      const adjustment = this.calculateWeight(template, baseWeight, metrics);
+      const creationInfo = creationInfoMap?.get(template.id);
+      const adjustment = this.calculateWeight(template, baseWeight, metrics, creationInfo);
       adjustments.set(template.id, adjustment);
     });
 

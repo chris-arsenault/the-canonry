@@ -1,0 +1,170 @@
+/**
+ * SystemActivityPanel - Styles for system activity visualization
+ */
+
+.system-activity-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.system-activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.system-activity-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.system-activity-toggles {
+  display: flex;
+  gap: 4px;
+  background: rgb(0 0 0 / 20%);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.system-toggle {
+  padding: 4px 12px;
+  font-size: 12px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.system-toggle:hover {
+  color: #e2e8f0;
+}
+
+.system-toggle.active {
+  background: rgb(139 92 246 / 30%);
+  color: #c4b5fd;
+}
+
+/* Summary cards */
+.system-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.system-card {
+  background: rgb(0 0 0 / 20%);
+  border-radius: 6px;
+  padding: 10px 12px;
+  border-left: 3px solid #64748b;
+}
+
+.system-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.system-card-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+
+.system-card-count {
+  font-size: 10px;
+  color: #64748b;
+  background: rgb(0 0 0 / 30%);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.system-card-stats {
+  display: flex;
+  gap: 12px;
+}
+
+.system-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.system-stat-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c4b5fd;
+}
+
+.system-stat-label {
+  font-size: 9px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Chart area */
+.system-activity-chart {
+  min-height: 200px;
+  background: rgb(0 0 0 / 15%);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+/* Legend */
+.system-activity-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.legend-line {
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.legend-line.dashed {
+  background: repeating-linear-gradient(
+    to right,
+    currentcolor 0,
+    currentcolor 4px,
+    transparent 4px,
+    transparent 6px
+  );
+  background-color: transparent !important;
+}
+
+/* Empty state */
+.system-activity-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 20px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.system-activity-empty-icon {
+  font-size: 24px;
+  opacity: 0.5;
+}

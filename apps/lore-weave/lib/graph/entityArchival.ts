@@ -8,7 +8,7 @@
 
 import { Graph } from '../engine/types';
 import { HardState, Relationship } from '../core/worldTypes';
-import { FRAMEWORK_STATUS, FRAMEWORK_RELATIONSHIP_KINDS } from '../core/frameworkPrimitives';
+import { FRAMEWORK_STATUS, FRAMEWORK_RELATIONSHIP_KINDS } from '@canonry/world-schema';
 import { archiveRelationship, addRelationship } from '../utils';
 
 /**
@@ -63,9 +63,8 @@ export function archiveEntity(
     status = FRAMEWORK_STATUS.HISTORICAL
   } = options;
 
-  // Mark entity as historical
-  entity.status = status;
-  entity.updatedAt = graph.tick;
+  // Mark entity as historical (use updateEntity to trigger mutation tracking)
+  graph.updateEntity(entityId, { status });
 
   // Archive relationships if requested
   if (shouldArchiveRels) {
@@ -144,8 +143,14 @@ export function transferRelationships(
     // Skip if no change (shouldn't happen with proper source filtering)
     if (newSrc === rel.src && newDst === rel.dst) return;
 
-    // Avoid self-loops
-    if (newSrc === newDst) return;
+    // Handle self-loops (both endpoints are being transferred to same target)
+    // Don't create self-referential relationship, but DO archive the original
+    if (newSrc === newDst) {
+      if (archiveOriginals) {
+        archiveRelationship(graph, rel.src, rel.dst, rel.kind);
+      }
+      return;
+    }
 
     // Avoid duplicates
     const key = `${newSrc}:${newDst}:${rel.kind}`;

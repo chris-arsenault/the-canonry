@@ -4,7 +4,8 @@
  * Types for statistics collection, distribution tracking, and fitness evaluation.
  */
 
-import { Prominence } from '../core/worldTypes';
+import { ProminenceLabel } from '../core/worldTypes';
+import type { EpochEraSummary } from '../engine/types';
 
 // ============================================================================
 // EPOCH AND DISTRIBUTION STATS
@@ -13,7 +14,7 @@ import { Prominence } from '../core/worldTypes';
 export interface EpochStats {
   epoch: number;
   tick: number;
-  era: string;
+  era: EpochEraSummary;
 
   // Entity metrics
   totalEntities: number;
@@ -40,7 +41,7 @@ export interface DistributionStats {
   entityKindRatios: Record<string, number>;
   entityKindDeviation: number;
 
-  // Prominence distribution
+  // ProminenceLabel distribution
   prominenceRatios: Record<string, number>;
   prominenceDeviation: number;
 
@@ -120,7 +121,6 @@ export interface TemporalStats {
 
   // Era progression
   erasVisited: string[];
-  ticksPerEra: Record<string, number>;
 
   // Generation efficiency
   entitiesPerTick: number;
@@ -157,7 +157,6 @@ export interface SimulationStatistics {
   // Final counts
   finalEntityCount: number;
   finalRelationshipCount: number;
-  finalHistoryEventCount: number;
 
   // Per-epoch tracking
   epochStats: EpochStats[];
@@ -182,15 +181,12 @@ export interface SimulationStatistics {
 
   // Configuration snapshot (for reproducibility)
   configSnapshot: {
-    epochLength: number;
-    simulationTicksPerGrowth: number;
-    targetEntitiesPerKind: number;
+    ticksPerEpoch: number;
     maxTicks: number;
     relationshipBudget?: {
       maxPerSimulationTick: number;
       maxPerGrowthPhase: number;
     };
-    distributionTargetsEnabled: boolean;
   };
 }
 
@@ -199,104 +195,17 @@ export interface SimulationStatistics {
 // ============================================================================
 
 /**
- * Statistical distribution targets for world generation tuning
+ * Per-subtype targets for homeostatic template weighting
  */
 export interface DistributionTargets {
   $schema?: string;
   version: string;
-  global: GlobalTargets;
-  perEra: Record<string, EraTargetOverrides>;
-  tuning: TuningParameters;
-  relationshipCategories: Record<string, string[] | string>;  // Allow comment field
+  entities: Record<string, Record<string, EntityTarget>>;
 }
 
-export interface GlobalTargets {
-  totalEntities: {
-    target: number;
-    tolerance: number;
-    comment?: string;
-  };
-  entityKindDistribution: {
-    type: 'uniform' | 'normal' | 'custom';
-    targets: Record<string, number>;
-    tolerance: number;
-    comment?: string;
-  };
-  prominenceDistribution: {
-    type: 'normal' | 'uniform' | 'powerlaw';
-    mean?: string;
-    stdDev?: number;
-    targets: Record<Prominence, number>;
-    perKind?: {
-      enabled: boolean;
-      comment?: string;
-    };
-    comment?: string;
-  };
-  relationshipDistribution: {
-    type: 'diverse' | 'concentrated' | 'custom';
-    maxSingleTypeRatio: number;
-    minTypesPresent: number;
-    minTypeRatio: number;
-    preferredDiversity?: Record<string, number>;
-    comment?: string;
-  };
-  graphConnectivity: {
-    type: 'clustered' | 'uniform' | 'hierarchical';
-    clusteringStrengthThreshold?: number;
-    clusteringComment?: string;
-    targetClusters: {
-      min: number;
-      max: number;
-      preferred: number;
-    };
-    clusterSizeDistribution: {
-      type: 'powerlaw' | 'normal' | 'uniform';
-      alpha?: number;
-      comment?: string;
-    };
-    densityTargets: {
-      intraCluster: number;
-      interCluster: number;
-      comment?: string;
-    };
-    isolatedNodeRatio: {
-      max: number;
-      comment?: string;
-    };
-    comment?: string;
-  };
-}
-
-export interface EraTargetOverrides {
+export interface EntityTarget {
+  target: number;
   comment?: string;
-  entityKindDistribution?: Partial<Record<string, number | string>>;
-  prominenceDistribution?: Partial<Record<Prominence | string, number | string>>;
-  relationshipDistribution?: {
-    preferredTypes?: string[];
-    preferredRatio?: number;
-    comment?: string;
-  };
-  graphConnectivity?: {
-    interCluster?: number;
-    comment?: string;
-  };
-}
-
-export interface TuningParameters {
-  comment?: string;
-  adjustmentSpeed: number;
-  deviationSensitivity: number;
-  minTemplateWeight: number;
-  maxTemplateWeight: number;
-  convergenceThreshold: number;
-  measurementInterval: number;
-  correctionStrength: {
-    entityKind: number;
-    prominence: number;
-    relationship: number;
-    connectivity: number;
-  };
 }
 
 /**
@@ -307,9 +216,9 @@ export interface DistributionState {
   totalEntities: number;
   entityKindCounts: Record<string, number>;
   entityKindRatios: Record<string, number>;
-  prominenceCounts: Record<Prominence, number>;
-  prominenceRatios: Record<Prominence, number>;
-  prominenceByKind: Record<string, Record<Prominence, number>>;
+  prominenceCounts: Record<ProminenceLabel, number>;
+  prominenceRatios: Record<ProminenceLabel, number>;
+  prominenceByKind: Record<string, Record<ProminenceLabel, number>>;
   relationshipTypeCounts: Record<string, number>;
   relationshipTypeRatios: Record<string, number>;
   relationshipCategoryCounts: Record<string, number>;
@@ -335,8 +244,8 @@ export interface DeviationScore {
   };
   prominence: {
     score: number;
-    deviations: Record<Prominence, number>;
-    byKind?: Record<string, Record<Prominence, number>>;
+    deviations: Record<ProminenceLabel, number>;
+    byKind?: Record<string, Record<ProminenceLabel, number>>;
   };
   relationship: {
     score: number;
@@ -349,79 +258,6 @@ export interface DeviationScore {
     clusterCount: number;
     densityBalance: number;
     isolatedNodes: number;
-  };
-}
-
-/**
- * Template metadata - declares what it produces
- */
-export interface TemplateMetadata {
-  produces: {
-    entityKinds: Array<{
-      kind: string;
-      subtype: string;
-      count: { min: number; max: number };
-      prominence: Array<{ level: Prominence; probability: number }>;
-    }>;
-    relationships: Array<{
-      kind: string;
-      category?: string;
-      probability: number;
-      comment?: string;
-    }>;
-  };
-  effects: {
-    graphDensity: number; // -1 (reduces) to +1 (increases)
-    clusterFormation: number; // -1 (disperses) to +1 (clusters)
-    diversityImpact: number; // -1 (homogenizes) to +1 (diversifies)
-    comment?: string;
-  };
-  parameters?: {
-    [key: string]: {
-      value: number;
-      min?: number;
-      max?: number;
-      description: string;
-    };
-  };
-  tags?: string[];
-}
-
-/**
- * System metadata - declares what it does
- */
-export interface SystemMetadata {
-  produces: {
-    relationships: Array<{
-      kind: string;
-      category?: string;
-      frequency: 'rare' | 'uncommon' | 'common' | 'very_common';
-      comment?: string;
-    }>;
-    modifications: Array<{
-      type: 'prominence' | 'status' | 'tags';
-      frequency: 'rare' | 'uncommon' | 'common';
-      comment?: string;
-    }>;
-  };
-  effects: {
-    graphDensity: number;
-    clusterFormation: number;
-    diversityImpact: number;
-    comment?: string;
-  };
-  parameters?: {
-    [key: string]: {
-      value: number;
-      min?: number;
-      max?: number;
-      description: string;
-    };
-  };
-  triggers?: {
-    pressures?: string[];
-    graphConditions?: string[];
-    comment?: string;
   };
 }
 

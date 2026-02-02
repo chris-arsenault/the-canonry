@@ -2,7 +2,7 @@
   "id": "world_domain",
   "cultureId": "world",
   "appliesTo": {
-    "kind": ["npc", "location", "faction", "rules", "abilities"],
+    "kind": ["npc", "location", "faction", "rule", "ability"],
     "subKind": [],
     "tags": []
   },

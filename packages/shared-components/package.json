@@ -1,0 +1,15 @@
+{
+  "name": "@penguin-tales/shared-components",
+  "version": "1.0.0",
+  "description": "Shared React components and CSS for Canonry MFEs",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./styles": "./src/styles/index.css",
+    "./TagSelector": "./src/TagSelector.jsx"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
+}

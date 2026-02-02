@@ -148,7 +148,7 @@
       }
     },
     {
-      "id": "rules",
+      "id": "rule",
       "name": "Rules",
       "subtypes": [
         { "id": "edict", "name": "Edict" },
@@ -186,7 +186,7 @@
       }
     },
     {
-      "id": "abilities",
+      "id": "ability",
       "name": "Abilities",
       "subtypes": [
         { "id": "magic", "name": "Magic" },
@@ -234,7 +234,7 @@
     { "id": "resident_of", "name": "Resident Of", "srcKinds": ["npc"], "dstKinds": ["location"] },
     { "id": "member_of", "name": "Member Of", "srcKinds": ["npc"], "dstKinds": ["faction"] },
     { "id": "leader_of", "name": "Leader Of", "srcKinds": ["npc"], "dstKinds": ["faction"] },
-    { "id": "practitioner_of", "name": "Practitioner Of", "srcKinds": ["npc"], "dstKinds": ["abilities"] },
+    { "id": "practitioner_of", "name": "Practitioner Of", "srcKinds": ["npc"], "dstKinds": ["ability"] },
     { "id": "ally_of", "name": "Ally Of", "srcKinds": ["npc"], "dstKinds": ["npc"] },
     { "id": "enemy_of", "name": "Enemy Of", "srcKinds": ["npc"], "dstKinds": ["npc"] },
     { "id": "rival_of", "name": "Rival Of", "srcKinds": ["npc"], "dstKinds": ["npc"] },
@@ -243,11 +243,11 @@
     { "id": "at_war_with", "name": "At War With", "srcKinds": ["faction"], "dstKinds": ["faction"] },
     { "id": "controls", "name": "Controls", "srcKinds": ["faction"], "dstKinds": ["location"] },
     { "id": "stronghold_of", "name": "Stronghold Of", "srcKinds": ["faction"], "dstKinds": ["location"] },
-    { "id": "applies_in", "name": "Applies In", "srcKinds": ["rules"], "dstKinds": ["location"] },
-    { "id": "champion_of", "name": "Champion Of", "srcKinds": ["npc"], "dstKinds": ["rules"] },
-    { "id": "believer_of", "name": "Believer Of", "srcKinds": ["npc"], "dstKinds": ["rules"] },
-    { "id": "manifests_at", "name": "Manifests At", "srcKinds": ["abilities"], "dstKinds": ["location"] },
-    { "id": "wields", "name": "Wields", "srcKinds": ["faction"], "dstKinds": ["abilities"] },
+    { "id": "applies_in", "name": "Applies In", "srcKinds": ["rule"], "dstKinds": ["location"] },
+    { "id": "champion_of", "name": "Champion Of", "srcKinds": ["npc"], "dstKinds": ["rule"] },
+    { "id": "believer_of", "name": "Believer Of", "srcKinds": ["npc"], "dstKinds": ["rule"] },
+    { "id": "manifests_at", "name": "Manifests At", "srcKinds": ["ability"], "dstKinds": ["location"] },
+    { "id": "wields", "name": "Wields", "srcKinds": ["faction"], "dstKinds": ["ability"] },
     { "id": "contains", "name": "Contains", "srcKinds": ["location"], "dstKinds": ["location"] },
     { "id": "adjacent_to", "name": "Adjacent To", "srcKinds": ["location"], "dstKinds": ["location"] }
   ],
@@ -261,15 +261,15 @@
         "npc": { "x": 70, "y": 55, "z": 35 },
         "location": { "x": 70, "y": 25, "z": 70 },
         "faction": { "x": 80, "y": 75, "z": 60 },
-        "rules": { "x": 70, "y": 40, "z": 70 },
-        "abilities": { "x": 30, "y": 40, "z": 50 }
+        "rule": { "x": 70, "y": 40, "z": 70 },
+        "ability": { "x": 30, "y": 40, "z": 50 }
       },
       "homeRegions": {
         "npc": ["aurora_stack"],
         "location": ["aurora_stack"],
         "faction": ["aurora_stack"],
-        "rules": ["aurora_stack"],
-        "abilities": ["aurora_stack"]
+        "rule": ["aurora_stack"],
+        "ability": ["aurora_stack"]
       }
     },
     {
@@ -280,15 +280,15 @@
         "npc": { "x": 45, "y": 50, "z": 65 },
         "location": { "x": 35, "y": 55, "z": 40 },
         "faction": { "x": 40, "y": 45, "z": 50 },
-        "rules": { "x": 35, "y": 65, "z": 30 },
-        "abilities": { "x": 75, "y": 55, "z": 60 }
+        "rule": { "x": 35, "y": 65, "z": 30 },
+        "ability": { "x": 75, "y": 55, "z": 60 }
       },
       "homeRegions": {
         "npc": ["nightfall_shelf"],
         "location": ["nightfall_shelf", "glow_fissure"],
         "faction": ["nightfall_shelf"],
-        "rules": ["nightfall_shelf"],
-        "abilities": ["nightfall_shelf", "glow_fissure"]
+        "rule": ["nightfall_shelf"],
+        "ability": ["nightfall_shelf", "glow_fissure"]
       }
     },
     {
@@ -299,15 +299,15 @@
         "npc": { "x": 15, "y": 60, "z": 25 },
         "location": { "x": 20, "y": 30, "z": 20 },
         "faction": { "x": 55, "y": 20, "z": 40 },
-        "rules": { "x": 50, "y": 50, "z": 50 },
-        "abilities": { "x": 20, "y": 85, "z": 70 }
+        "rule": { "x": 50, "y": 50, "z": 50 },
+        "ability": { "x": 20, "y": 85, "z": 70 }
       },
       "homeRegions": {
         "npc": ["orca_waters", "krill_shoals"],
         "location": ["krill_shoals"],
         "faction": [],
-        "rules": [],
-        "abilities": []
+        "rule": [],
+        "ability": []
       }
     },
     {
@@ -318,15 +318,15 @@
         "npc": { "x": 50, "y": 50, "z": 50 },
         "location": { "x": 50, "y": 50, "z": 50 },
         "faction": { "x": 50, "y": 50, "z": 50 },
-        "rules": { "x": 50, "y": 50, "z": 50 },
-        "abilities": { "x": 50, "y": 50, "z": 50 }
+        "rule": { "x": 50, "y": 50, "z": 50 },
+        "ability": { "x": 50, "y": 50, "z": 50 }
       },
       "homeRegions": {
         "npc": [],
         "location": ["aurora_berg"],
         "faction": [],
-        "rules": [],
-        "abilities": []
+        "rule": [],
+        "ability": []
       }
     }
   ],
@@ -481,7 +481,7 @@
 
     {
       "id": "ability_fissure_runes",
-      "kind": "abilities",
+      "kind": "ability",
       "subtype": "magic",
       "name": "Fissure-Drawn Runes",
       "description": "A school of ice-magic where glowing sigils are etched with claws chilled in the light of the Glow-Fissure.",
@@ -493,7 +493,7 @@
     },
     {
       "id": "ability_harmonic_harpoons",
-      "kind": "abilities",
+      "kind": "ability",
       "subtype": "technology",
       "name": "Harmonic Harpoon Arrays",
       "description": "Advanced fishing guns that fire sonic-locked harpoons, letting penguins reel in entire shoals with minimal effort.",

@@ -4,7 +4,7 @@
 
 A dramatically over-engineered procedural name generator for fantasy worlds, games, and fiction. Instead of a simple random name picker, we've built a system with phonological domains, context-free grammars, Markov chains, genetic algorithm optimization, and multi-culture support. You know, the essentials.
 
-**[Try it live at penguin-tales.com/name-forge](https://penguin-tales.com/name-forge/)**
+**[Try it live at lore-weave.dev/name-forge](https://lore-weave.dev/name-forge/)**
 
 [![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20Noncommercial-purple.svg)](https://polyformproject.org/licenses/noncommercial/1.0.0/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
@@ -258,14 +258,14 @@ Generate lexeme lists and templates using LLMs:
 # Set API key
 export ANTHROPIC_API_KEY="sk-ant-..."
 
-# Generate a lexeme list
-npm run generate -- lexeme specs/examples/elven-nouns-lexeme.json -v
+# Generate a lexeme list from a spec file
+npm run generate -- lexeme path/to/lexeme-spec.json -v
 
-# Generate templates
-npm run generate -- template specs/examples/orcish-battle-template.json -v
+# Generate templates from a spec file
+npm run generate -- template path/to/template-spec.json -v
 
 # Generate batch (multiple lexemes + templates)
-npm run generate -- batch specs/examples/penguin-imperial-batch.json -v
+npm run generate -- batch path/to/batch-spec.json -v
 ```
 
 ## Project Structure

@@ -2,7 +2,7 @@
  * NameForgeHost - Loads and hosts the Name Forge remote module
  */
 
-import React, { Suspense, lazy, useState, useEffect } from 'react';
+import React, { Suspense, lazy } from 'react';
 import RemotePlaceholder from './RemotePlaceholder';
 import { colors, typography } from '../theme';
 
@@ -36,22 +36,32 @@ const styles = {
   },
 };
 
+const loadingFallback = React.createElement(
+  'div',
+  { style: styles.loading },
+  'Loading Name Forge...'
+);
+
 export default function NameForgeHost({
+  projectId,
   schema,
-  namingData,
   onNamingDataChange,
+  onAddTag,
   activeSection,
   onSectionChange,
+  generators,
 }) {
   return (
     <div style={styles.container}>
-      <Suspense fallback={<div style={styles.loading}>Loading Name Forge...</div>}>
+      <Suspense fallback={loadingFallback}>
         <NameForgeRemote
+          projectId={projectId}
           schema={schema}
-          namingData={namingData}
           onNamingDataChange={onNamingDataChange}
+          onAddTag={onAddTag}
           activeSection={activeSection}
           onSectionChange={onSectionChange}
+          generators={generators}
         />
       </Suspense>
     </div>

@@ -6,9 +6,21 @@
 
 // ID generation counter
 let idCounter = 1000;
+let eventCounter = 0;
 
 export function generateId(prefix: string): string {
   return `${prefix}_${idCounter++}`;
+}
+
+/**
+ * Generate a globally unique ID for narrative events.
+ */
+export function generateEventId(): string {
+  const cryptoObj = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (cryptoObj?.randomUUID) {
+    return `event_${cryptoObj.randomUUID()}`;
+  }
+  return `event_${Date.now()}_${eventCounter++}`;
 }
 
 // ID generation for lore records

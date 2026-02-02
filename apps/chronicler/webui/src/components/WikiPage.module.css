@@ -1,0 +1,699 @@
+/**
+ * WikiPage CSS Module
+ * Styles for rendering wiki page content
+ */
+
+/* ===================
+   Container & Layout
+   =================== */
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* ===================
+   Chronicle Cover Hero
+   =================== */
+
+.coverHero {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  margin-bottom: var(--spacing-xl);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.coverHeroImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.coverHeroOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: linear-gradient(transparent 0%, rgba(10, 25, 41, 0.85) 70%, var(--color-bg-primary) 100%);
+  display: flex;
+  align-items: flex-end;
+  padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg);
+}
+
+.chronicleTitle {
+  font-family: var(--font-family-display);
+  font-size: 40px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  text-align: center;
+  letter-spacing: -0.02em;
+  line-height: var(--line-height-tight);
+  margin-bottom: var(--spacing-sm);
+}
+
+.chronicleTitleHero {
+  font-family: var(--font-family-display);
+  font-size: 40px;
+  font-weight: var(--font-weight-bold);
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  line-height: var(--line-height-tight);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7), 0 1px 3px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  text-align: center;
+}
+
+.summary {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-sm);
+}
+
+/* ===================
+   Breadcrumbs
+   =================== */
+
+.breadcrumbs {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-md);
+}
+
+.breadcrumbLink {
+  color: var(--color-accent);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.breadcrumbLink:hover {
+  text-decoration: underline;
+}
+
+.breadcrumbCurrent {
+  color: var(--color-text-secondary);
+}
+
+/* ===================
+   Content Layout
+   =================== */
+
+.content {
+  display: flex;
+  gap: var(--spacing-xl);
+}
+
+.contentColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ===================
+   Infobox (Wikipedia-style sidebar)
+   =================== */
+
+.infobox {
+  width: 260px;
+  flex-shrink: 0;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  align-self: flex-start;
+  position: sticky;
+  top: var(--spacing-xl);
+}
+
+.infoboxInline {
+  width: 100%;
+  position: static;
+  margin-bottom: var(--spacing-xl);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.infoboxHeader {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-accent);
+  color: var(--color-bg-primary);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
+  text-align: center;
+}
+
+/* Base infobox image - fallback for images without aspect metadata */
+/* Uses object-fit: contain to show full image with letterboxing */
+.infoboxImage {
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  display: block;
+  cursor: zoom-in;
+  background: var(--color-bg-secondary);
+}
+
+.infoboxImageMobile {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  display: block;
+  cursor: zoom-in;
+  background: var(--color-bg-secondary);
+}
+
+/* Aspect-specific infobox image classes - use object-fit: cover with optimal heights */
+/* Portrait images (taller than wide) - show more height */
+.infoboxImagePortrait {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  display: block;
+  cursor: zoom-in;
+}
+
+.infoboxImagePortraitMobile {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  display: block;
+  cursor: zoom-in;
+}
+
+/* Landscape images (wider than tall) - standard height */
+.infoboxImageLandscape {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+  cursor: zoom-in;
+}
+
+.infoboxImageLandscapeMobile {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+  cursor: zoom-in;
+}
+
+/* Square images - balanced height */
+.infoboxImageSquare {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+  cursor: zoom-in;
+}
+
+.infoboxImageSquareMobile {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+  cursor: zoom-in;
+}
+
+.infoboxBody {
+  padding: var(--spacing-sm);
+}
+
+.infoboxRow {
+  display: flex;
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-xs);
+}
+
+.infoboxRow:last-child {
+  border-bottom: none;
+}
+
+.infoboxLabel {
+  width: 80px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.infoboxValue {
+  color: var(--color-text-secondary);
+  flex: 1;
+}
+
+/* ===================
+   Table of Contents
+   =================== */
+
+.toc {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.tocTitle {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.tocItem {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  cursor: pointer;
+  padding: var(--spacing-xs) 0;
+  display: block;
+  text-decoration: none;
+  border: none;
+  background-color: transparent;
+  text-align: left;
+  width: 100%;
+  transition: opacity var(--transition-fast);
+}
+
+.tocItem:hover {
+  opacity: 0.8;
+}
+
+/* ===================
+   Sections
+   =================== */
+
+.section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.sectionHeading {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sectionWithImages {
+  position: relative;
+}
+
+.paragraph {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+  white-space: pre-wrap;
+}
+
+/* ===================
+   Entity Links
+   =================== */
+
+.entityLink {
+  color: var(--color-accent);
+  cursor: pointer;
+  border-bottom: 1px dotted var(--color-accent);
+  text-decoration: none;
+}
+
+.entityLink:hover {
+  opacity: 0.8;
+}
+
+/* ===================
+   Backlinks Section
+   =================== */
+
+.backlinks {
+  margin-top: var(--spacing-2xl);
+  padding: var(--spacing-md);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.backlinksTitle {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-sm);
+}
+
+.backlinkItem {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  cursor: pointer;
+  padding: var(--spacing-xs) 0;
+  display: block;
+  border: none;
+  background-color: transparent;
+  text-align: left;
+  transition: opacity var(--transition-fast);
+}
+
+.backlinkItem:hover {
+  opacity: 0.8;
+}
+
+/* ===================
+   Chronicles Section
+   =================== */
+
+.chronicles {
+  margin-top: var(--spacing-2xl);
+  padding: var(--spacing-md);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.chroniclesTitle {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-sm);
+}
+
+.chronicleItem {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  cursor: pointer;
+  padding: var(--spacing-xs) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  border: none;
+  background-color: transparent;
+  text-align: left;
+  transition: opacity var(--transition-fast);
+}
+
+.chronicleItem:hover {
+  opacity: 0.8;
+}
+
+.chronicleMeta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.moreText {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--spacing-sm);
+}
+
+/* ===================
+   Categories
+   =================== */
+
+.categories {
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.categoriesLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-sm);
+}
+
+.categoryTag {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  margin: 0 var(--spacing-xs) var(--spacing-xs) 0;
+  font-size: var(--font-size-xs);
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border: none;
+  transition: background-color var(--transition-fast);
+}
+
+.categoryTag:hover {
+  background-color: var(--color-accent-hover);
+}
+
+/* ===================
+   Disambiguation Notice
+   =================== */
+
+.disambiguationNotice {
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+  color: var(--color-text-muted);
+  background-color: rgba(59, 130, 246, 0.08);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-accent);
+  line-height: var(--line-height-relaxed);
+}
+
+.disambiguationLink {
+  color: var(--color-accent);
+  cursor: pointer;
+  margin-left: var(--spacing-xs);
+  font-style: normal;
+  font-weight: var(--font-weight-medium);
+}
+
+.disambiguationLink:hover {
+  text-decoration: underline;
+}
+
+/* ===================
+   Chronicle Images (Wikipedia-style thumbs)
+   =================== */
+
+.imageThumbRight {
+  float: right;
+  clear: right;
+  margin: var(--spacing-xs) 0 var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-secondary);
+  padding: var(--spacing-xs);
+}
+
+.imageThumbLeft {
+  float: left;
+  clear: left;
+  margin: var(--spacing-xs) var(--spacing-md) var(--spacing-sm) 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-secondary);
+  padding: var(--spacing-xs);
+}
+
+.imageSmall {
+  width: 150px;
+}
+
+.imageMedium {
+  width: 220px;
+}
+
+.imageLarge {
+  width: 350px;
+}
+
+.imageLargeLeft {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.imageLargeRight {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.imageFullWidth {
+  width: 100%;
+  margin: var(--spacing-xl) 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-secondary);
+  padding: var(--spacing-xs);
+}
+
+.figureImage {
+  width: 100%;
+  display: block;
+  border-radius: 2px;
+  cursor: zoom-in;
+}
+
+.imageCaption {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-muted);
+  padding: var(--spacing-xs) var(--spacing-xs) 2px;
+  text-align: center;
+}
+
+.imagePlaceholder {
+  width: 100%;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  background-color: var(--color-bg-tertiary);
+  border-radius: 2px;
+}
+
+.clearfix {
+  clear: both;
+}
+
+/* ===================
+   Seed Button
+   =================== */
+
+.seedButton {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+  transition: all var(--transition-fast);
+}
+
+.seedButton:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* ===================
+   Entity Preview Card (hover)
+   =================== */
+
+.previewCard {
+  position: fixed;
+  z-index: var(--z-modal);
+  width: 260px;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.previewHeader {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-sm);
+  background-color: var(--color-accent);
+  color: var(--color-bg-primary);
+}
+
+.previewThumbnail {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.previewThumbnailPlaceholder {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  background-color: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+}
+
+.previewTitle {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.previewBody {
+  padding: var(--spacing-sm) var(--spacing-sm);
+}
+
+.previewBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.previewBadge {
+  display: inline-block;
+  padding: 2px var(--spacing-xs);
+  font-size: 10px;
+  border-radius: 3px;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
+.previewBadgeKind {
+  composes: previewBadge;
+  background-color: rgba(16, 185, 129, 0.2);
+  color: var(--color-accent-light);
+}
+
+.previewBadgeStatus {
+  composes: previewBadge;
+  background-color: rgba(59, 130, 246, 0.2);
+  color: var(--color-text-muted);
+}
+
+.previewSummary {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+}
+
+/* ===================
+   Markdown Section
+   =================== */
+
+.markdownSection {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+}

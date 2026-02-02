@@ -96,74 +96,12 @@ export function hasRelationship(
   );
 }
 
-// Location helpers
-export function getResidents(graph: Graph, locationId: string): HardState[] {
-  return getRelated(graph, locationId, 'resident_of', 'dst');
-}
-
-export function getLocation(graph: Graph, npcId: string): HardState | undefined {
-  const locations = getRelated(graph, npcId, 'resident_of', 'src');
-  return locations[0];
-}
-
-// Faction helpers
-export function getFactionMembers(graph: Graph, factionId: string): HardState[] {
-  return getRelated(graph, factionId, 'member_of', 'dst');
-}
-
-export function getFactionLeader(graph: Graph, factionId: string): HardState | undefined {
-  const leaders = getRelated(graph, factionId, 'leader_of', 'dst');
-  return leaders[0];
-}
-
-// Strength-aware faction helpers
-export function getCoreFactionMembers(graph: Graph, factionId: string): HardState[] {
-  return getRelated(graph, factionId, 'member_of', 'dst', { minStrength: 0.7 });
-}
-
-export function getStrongAllies(graph: Graph, entityId: string): HardState[] {
-  return getRelated(graph, entityId, 'ally_of', 'src', { minStrength: 0.6 });
-}
-
-export function getWeakRelationships(graph: Graph, entityId: string): Relationship[] {
-  return graph.getRelationships().filter(r =>
-    (r.src === entityId || r.dst === entityId) &&
-    (r.strength ?? 0.5) < 0.3
-  );
-}
-
-// Prominence helpers
-export function getProminenceValue(prominence: HardState['prominence']): number {
-  const values = {
-    'forgotten': 0,
-    'marginal': 1,
-    'recognized': 2,
-    'renowned': 3,
-    'mythic': 4
-  };
-  return values[prominence] || 0;
-}
-
-export function adjustProminence(
-  current: HardState['prominence'],
-  delta: number
-): HardState['prominence'] {
-  const order: HardState['prominence'][] = [
-    'forgotten', 'marginal', 'recognized', 'renowned', 'mythic'
-  ];
-
-  const currentIndex = order.indexOf(current);
-  const newIndex = Math.max(0, Math.min(order.length - 1, currentIndex + delta));
-
-  return order[newIndex];
-}
-
 /**
  * Calculate relationship formation weight based on existing connection count.
  * Favors underconnected entities to balance network density and prevent hubs.
  */
-export function getConnectionWeight(entity: HardState): number {
-  const connectionCount = entity.links.length;
+export function getConnectionWeight(graph: Graph, entity: HardState): number {
+  const connectionCount = graph.getEntityRelationships(entity.id, 'both').length;
 
   // Boost isolated/underconnected entities
   if (connectionCount === 0) return 3.0;    // Strongly boost isolated

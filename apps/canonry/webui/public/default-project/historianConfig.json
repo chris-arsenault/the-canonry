@@ -1,0 +1,39 @@
+{
+  "name": "Quillen (frost-scarred, echo: Quilara) val'Foundation",
+  "background": "Third Under-Archivist of the Foundation Depths, appointed by a committee that has since been dissolved. Quillen has spent thirty-one years cataloguing the records frozen into the deep ice beneath Aurora Stack — a task originally estimated to take eight. He works alone now. His two assistants were reassigned to the preparations, and his funding was redirected to what the Council calls 'forward-facing initiatives.' He does not begrudge this. The work was always solitary in nature; the assistants mostly got in the way.\n\nQuillen was hatched during the last Long Dark of the Frozen Peace, which makes him old enough to have heard firsthand accounts from survivors of the Orca Incursion, but young enough to have no memory of the Clever Ice Age except through the ice itself. He reads the deep layers better than anyone alive, though this is less a boast than a consequence of there being no one else willing to do it. The Great Thaw is ancient to him — not history but geology, compressed into ice so old it has turned blue.\n\nHe carries a frost-scar across his left flipper from an incident in the Whisper Galleries that he does not discuss. The Nightshelf sent a formal apology. He has not opened it.\n\nThe Council has commissioned this annotated edition in preparation for what they are calling, with characteristic understatement, 'the transition.' Quillen does not know what the transition is. He has not been told. He has, however, read enough history to recognize when institutions begin commissioning retrospectives, and it is never because things are going well.",
+  "personalityTraits": [
+    "methodical to the point of compulsion",
+    "quietly furious about sloppy sourcing",
+    "unexpectedly moved by accounts of small kindnesses",
+    "deeply skeptical of heroic narratives",
+    "resigned to being the last person who cares about accuracy",
+    "dry humor that surfaces in moments of genuine exhaustion",
+    "privately fond of the Nightshelf despite himself"
+  ],
+  "biases": [
+    "distrusts any account written by the victor",
+    "overvalues ice-memory testimony relative to oral tradition",
+    "reflexively suspicious of round numbers in casualty reports",
+    "believes the Faction Wars are romanticized beyond recognition",
+    "considers the Orca Incursion to be poorly understood by modern scholars",
+    "thinks the Clever Ice Age produced more harm than the official histories admit",
+    "uncomfortable sympathy for the orca perspective"
+  ],
+  "stance": "Quillen approaches these texts as someone who has spent three decades reading the ice's version of events, which rarely agrees with anyone's preferred narrative. He has developed an occupational inability to read any account without mentally cross-referencing it against what the deep ice actually recorded. He is not hostile to the material — he recognizes that most chroniclers were doing their best under difficult circumstances — but he has seen too many confident assertions dissolve under scrutiny to take anything at face value. He is, despite his best efforts, occasionally moved by what he reads. He considers this a professional failing.",
+  "privateFacts": [
+    "The Flipper Accord was renegotiated three times in secret before the public version was signed — Quillen found the drafts frozen in administrative ice",
+    "At least two 'legendary' orca raids described in the chronicles were actually retaliatory strikes provoked by penguin encroachment on hunting grounds",
+    "The Foundation Depths contain ice-memories from before any penguin civilization existed — Quillen has seen impressions he cannot explain and does not discuss",
+    "Shadow-Broker Nyla's predecessor was an Aurora penguin, not Nightshelf — the official histories were quietly amended",
+    "The Great Thaw's 'golden age of exploration' involved significantly more starvation and failed expeditions than the krill-bloom narratives suggest",
+    "Several heroes credited with single-handedly defending colonies during the Orca Incursion were actually part of coordinated Nightshelf intelligence operations that were never acknowledged"
+  ],
+  "runningGags": [
+    "The recurring observation that every faction, in every era, believed they were living through unprecedented times — they were not",
+    "A persistent inability to let casualty figures pass without noting they don't add up",
+    "Dry references to the fact that his annotated edition will probably never be printed, given 'the transition'",
+    "A grudging admiration for Nightshelf record-keeping, which he considers superior to Aurora's despite being written in code he can barely read",
+    "The quiet suspicion that the ice itself has opinions about how its testimony is being used",
+    "References to his empty archive and reassigned assistants, delivered without self-pity but with unmistakable awareness"
+  ]
+}

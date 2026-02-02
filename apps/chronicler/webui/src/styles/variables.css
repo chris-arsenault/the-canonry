@@ -1,0 +1,167 @@
+/**
+ * Chronicler CSS Variables
+ *
+ * Shared design tokens for the Chronicler wiki interface.
+ * Import this file in main.tsx or individual components.
+ */
+
+:root {
+  /* ===================
+     Colors - Arctic Theme
+     =================== */
+
+  /* Backgrounds */
+  --color-bg-primary: #0a1929;
+  --color-bg-secondary: #1e3a5f;
+  --color-bg-tertiary: #2d4a6f;
+  --color-bg-sidebar: #0c1f2e;
+
+  /* Borders */
+  --color-border: rgba(59, 130, 246, 0.3);
+  --color-border-light: rgba(59, 130, 246, 0.15);
+
+  /* Text */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #93c5fd;
+  --color-text-muted: #60a5fa;
+
+  /* Accent - Emerald for Chronicler */
+  --color-accent: #10b981;
+  --color-accent-light: #34d399;
+  --color-accent-hover: rgba(16, 185, 129, 0.15);
+  --color-accent-active: rgba(16, 185, 129, 0.25);
+
+  /* Semantic */
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-success: #22c55e;
+
+  /* ===================
+     Typography
+     =================== */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-family-display: "Playfair Display", Georgia, "Times New Roman", serif;
+
+  /* Font sizes */
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 28px;
+
+  /* Font weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line heights */
+  --line-height-tight: 1.3;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.7;
+
+  /* ===================
+     Spacing
+     =================== */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+
+  /* ===================
+     Border Radius
+     =================== */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* ===================
+     Shadows
+     =================== */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.5);
+
+  /* ===================
+     Transitions
+     =================== */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.2s ease;
+  --transition-slow: 0.3s ease;
+
+  /* ===================
+     Layout
+     =================== */
+  --sidebar-width: 240px;
+  --sidebar-drawer-width: 280px;
+  --infobox-width: 260px;
+  --content-max-width: 900px;
+  --content-padding: 24px;
+  --content-padding-mobile: 16px;
+
+  /* ===================
+     Breakpoints (reference)
+     =================== */
+  --breakpoint-mobile: 640px;
+  --breakpoint-tablet: 1024px;
+
+  /* ===================
+     Z-Index Scale
+     =================== */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 900;
+  --z-modal-backdrop: 1000;
+  --z-modal: 1001;
+  --z-tooltip: 1100;
+}
+
+/* ===================
+   Base Reset & Globals
+   =================== */
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-normal);
+}
+
+/* ===================
+   Scrollbar Styling
+   =================== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}

@@ -83,7 +83,7 @@ export type Prominence =
 
 export interface HardState {
   id: string;
-  kind: "npc" | "location" | "faction" | "rules" | "abilities";
+  kind: "npc" | "location" | "faction" | "rule" | "ability";
   subtype: string;
   name: string;
   description: string;

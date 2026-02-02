@@ -1,0 +1,181 @@
+/**
+ * Naming Profile Viewer Styles
+ */
+
+.naming-profile-container {
+  padding: var(--spacing-2xl);
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.naming-profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-2xl);
+}
+
+.naming-profile-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.naming-profile-stats {
+  display: flex;
+  gap: var(--spacing-xl);
+  align-items: center;
+}
+
+.naming-profile-stat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.naming-profile-stat-value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.naming-profile-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xl);
+}
+
+.naming-profile-section {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+}
+
+.naming-profile-section-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.naming-profile-warning-icon {
+  color: var(--color-warning);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+.naming-profile-warning-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.naming-profile-warning-item {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: rgb(245 158 11 / 10%);
+  border: 1px solid rgb(245 158 11 / 30%);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: flex-start;
+}
+
+.naming-profile-mapping-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.naming-profile-table-header {
+  text-align: left;
+  padding: var(--spacing-md) var(--spacing-lg);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+  border-bottom: 1px solid var(--color-border);
+  text-transform: uppercase;
+  font-size: var(--font-size-xs);
+}
+
+.naming-profile-table-row {
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background-color var(--transition-fast);
+}
+
+.naming-profile-table-row:hover {
+  background-color: rgb(59 130 246 / 5%);
+}
+
+.naming-profile-warning-row {
+  background-color: rgb(245 158 11 / 5%);
+}
+
+.naming-profile-table-cell {
+  padding: var(--spacing-md) var(--spacing-lg);
+  color: var(--color-text);
+}
+
+.naming-profile-generator-cell {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-dim);
+}
+
+.naming-profile-kind-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: rgb(59 130 246 / 20%);
+  color: #60a5fa;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  margin-right: var(--spacing-xs);
+}
+
+.naming-profile-culture-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.naming-profile-culture-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.naming-profile-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.naming-profile-badge-match {
+  background-color: rgb(34 197 94 / 20%);
+  color: var(--color-success);
+}
+
+.naming-profile-badge-missing {
+  background-color: rgb(239 68 68 / 20%);
+  color: var(--color-danger);
+}
+
+.naming-profile-badge-inherited {
+  background-color: rgb(107 114 128 / 20%);
+  color: var(--color-gray);
+  margin-left: var(--spacing-xs);
+}
+
+.naming-profile-empty-state {
+  text-align: center;
+  padding: var(--spacing-4xl);
+  color: var(--color-text-muted);
+}

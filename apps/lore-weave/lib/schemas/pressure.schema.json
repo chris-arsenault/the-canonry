@@ -1,0 +1,291 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "pressure.schema.json",
+  "title": "DeclarativePressure",
+  "description": "A declarative pressure definition for world simulation",
+  "type": "object",
+  "required": ["id", "name", "initialValue", "homeostasis", "growth"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for this pressure"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description of the pressure, including what positive/negative values represent"
+    },
+    "initialValue": {
+      "type": "number",
+      "minimum": -100,
+      "maximum": 100,
+      "description": "Initial value (-100 to 100)"
+    },
+    "homeostasis": {
+      "type": "number",
+      "description": "Homeostatic factor pulling value toward equilibrium (0). Applied each tick as delta = (0 - currentValue) * homeostasis"
+    },
+    "growth": {
+      "$ref": "#/$defs/PressureGrowth",
+      "description": "Growth calculation configuration"
+    },
+    "contract": {
+      "$ref": "#/$defs/PressureContract",
+      "description": "Documentation contract for UI display"
+    }
+  },
+  "$defs": {
+    "PressureGrowth": {
+      "type": "object",
+      "required": ["positiveFeedback", "negativeFeedback"],
+      "properties": {
+        "positiveFeedback": {
+          "type": "array",
+          "description": "Factors that increase pressure",
+          "items": { "$ref": "#/$defs/FeedbackFactor" }
+        },
+        "negativeFeedback": {
+          "type": "array",
+          "description": "Factors that decrease pressure",
+          "items": { "$ref": "#/$defs/FeedbackFactor" }
+        }
+      }
+    },
+    "FeedbackFactor": {
+      "oneOf": [
+        { "$ref": "#/$defs/EntityCountFactor" },
+        { "$ref": "#/$defs/RelationshipCountFactor" },
+        { "$ref": "#/$defs/TagCountFactor" },
+        { "$ref": "#/$defs/TotalEntitiesFactor" },
+        { "$ref": "#/$defs/ConstantFactor" },
+        { "$ref": "#/$defs/RatioFactor" },
+        { "$ref": "#/$defs/StatusRatioFactor" },
+        { "$ref": "#/$defs/CrossCultureRatioFactor" }
+      ]
+    },
+    "BaseFeedbackFactor": {
+      "type": "object",
+      "properties": {
+        "coefficient": {
+          "type": "number",
+          "description": "Coefficient to multiply the result by"
+        },
+        "cap": {
+          "type": "number",
+          "description": "Optional cap on this factor's contribution"
+        }
+      }
+    },
+    "EntityCountFactor": {
+      "type": "object",
+      "required": ["type", "kind"],
+      "properties": {
+        "type": { "const": "entity_count" },
+        "kind": { "type": "string" },
+        "subtype": { "type": "string" },
+        "status": { "type": "string" },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "RelationshipCountFactor": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "relationship_count" },
+        "relationshipKinds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "direction": { "enum": ["src", "dst", "both"] },
+        "minStrength": { "type": "number", "minimum": 0, "maximum": 1 },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "TagCountFactor": {
+      "type": "object",
+      "required": ["type", "tags"],
+      "properties": {
+        "type": { "const": "tag_count" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "TotalEntitiesFactor": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "total_entities" },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "ConstantFactor": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": { "const": "constant" },
+        "value": { "type": "number" },
+        "coefficient": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "RatioFactor": {
+      "type": "object",
+      "required": ["type", "numerator", "denominator"],
+      "properties": {
+        "type": { "const": "ratio" },
+        "numerator": { "$ref": "#/$defs/SimpleCountFactor" },
+        "denominator": { "$ref": "#/$defs/SimpleCountFactor" },
+        "fallbackValue": {
+          "type": "number",
+          "description": "Value to use if denominator is 0 (default: 0)"
+        },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "StatusRatioFactor": {
+      "type": "object",
+      "required": ["type", "kind", "aliveStatus"],
+      "properties": {
+        "type": { "const": "status_ratio" },
+        "kind": { "type": "string" },
+        "subtype": { "type": "string" },
+        "aliveStatus": { "type": "string" },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "CrossCultureRatioFactor": {
+      "type": "object",
+      "required": ["type", "relationshipKinds"],
+      "properties": {
+        "type": { "const": "cross_culture_ratio" },
+        "relationshipKinds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "coefficient": { "type": "number" },
+        "cap": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "SimpleCountFactor": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "kind"],
+          "properties": {
+            "type": { "const": "entity_count" },
+            "kind": { "type": "string" },
+            "subtype": { "type": "string" },
+            "status": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "relationshipKinds"],
+          "properties": {
+            "type": { "const": "relationship_count" },
+            "relationshipKinds": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "tags"],
+          "properties": {
+            "type": { "const": "tag_count" },
+            "tags": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "total_entities" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "value"],
+          "properties": {
+            "type": { "const": "constant" },
+            "value": { "type": "number" }
+          }
+        }
+      ]
+    },
+    "PressureContract": {
+      "type": "object",
+      "properties": {
+        "purpose": { "type": "string" },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["component"],
+            "properties": {
+              "component": { "type": "string" },
+              "delta": { "type": "number" },
+              "formula": { "type": "string" }
+            }
+          }
+        },
+        "sinks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["component"],
+            "properties": {
+              "component": { "type": "string" },
+              "delta": { "type": "number" },
+              "formula": { "type": "string" }
+            }
+          }
+        },
+        "affects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["component", "effect"],
+            "properties": {
+              "component": { "type": "string" },
+              "effect": { "enum": ["enabler", "amplifier", "suppressor"] },
+              "threshold": { "type": "number" },
+              "factor": { "type": "number" }
+            }
+          }
+        },
+        "equilibrium": {
+          "type": "object",
+          "required": ["expectedRange", "restingPoint"],
+          "properties": {
+            "expectedRange": {
+              "type": "array",
+              "items": { "type": "number", "minimum": -100, "maximum": 100 },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "restingPoint": { "type": "number", "const": 0 },
+            "oscillationPeriod": { "type": "number" }
+          }
+        }
+      }
+    }
+  }
+}

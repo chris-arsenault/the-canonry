@@ -1,0 +1,17 @@
+{
+  "worldIcon": "penguin",
+  "prominenceLevels": [
+    "forgotten",
+    "marginal",
+    "recognized",
+    "renowned",
+    "mythic"
+  ],
+  "prominenceColors": {
+    "forgotten": "#6b7280",
+    "marginal": "#d97706",
+    "recognized": "#059669",
+    "renowned": "#2563eb",
+    "mythic": "#7c3aed"
+  }
+}

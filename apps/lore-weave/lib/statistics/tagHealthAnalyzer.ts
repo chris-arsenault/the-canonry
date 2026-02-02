@@ -19,10 +19,10 @@ import {
   getConsolidationSuggestions as getConsolidationSuggestionsHelper
 } from '../statistics/tagRegistryHelpers';
 
-/** Helper to get tag keys from EntityTags, normalizing 'name' to 'name:*' for analysis */
+/** Helper to get tag keys from EntityTags */
 function getTagKeys(tags: EntityTags | undefined): string[] {
   if (!tags) return [];
-  return Object.keys(tags).map(key => key === 'name' ? 'name:*' : key);
+  return Object.keys(tags);
 }
 
 /** Helper to get tag key count */
@@ -492,10 +492,7 @@ export class TagHealthAnalyzer {
    * Check if tags are orphans (unregistered)
    */
   public checkTagOrphans(tagsToAdd: string[]): { hasOrphans: boolean; orphanTags: string[] } {
-    const orphanTags = tagsToAdd.filter(tag => {
-      const normalizedTag = tag.startsWith('name:') ? 'name:*' : tag;
-      return !this.getTagMetadata(normalizedTag);
-    });
+    const orphanTags = tagsToAdd.filter(tag => !this.getTagMetadata(tag));
 
     return {
       hasOrphans: orphanTags.length > 0,

@@ -1,0 +1,189 @@
+[
+  {
+    "id": "resource_availibility",
+    "name": "Resource Availibility",
+    "initialValue": 15,
+    "homeostasis": 0.1,
+    "growth": {
+      "positiveFeedback": [
+        {
+          "type": "entity_count",
+          "coefficient": 1.5,
+          "kind": "location",
+          "subtype": "resource_node"
+        }
+      ],
+      "negativeFeedback": [
+        {
+          "type": "entity_count",
+          "coefficient": 0.15,
+          "kind": "location",
+          "subtype": "colony"
+        },
+        {
+          "type": "ratio",
+          "coefficient": 0.15,
+          "numerator": {
+            "type": "entity_count",
+            "kind": "location"
+          },
+          "denominator": {
+            "type": "total_entities"
+          },
+          "fallbackValue": 0
+        }
+      ]
+    },
+    "description": "How many unused resources there are. Positive = plenty of resources, negative = resource crisis."
+  },
+  {
+    "id": "magical_stability",
+    "name": "Magical Stability",
+    "initialValue": 30,
+    "homeostasis": 0.25,
+    "growth": {
+      "positiveFeedback": [
+        {
+          "type": "entity_count",
+          "coefficient": 1,
+          "kind": "ability",
+          "subtype": "magic"
+        },
+        {
+          "type": "entity_count",
+          "coefficient": 0.4,
+          "kind": "faction",
+          "subtype": "cult"
+        }
+      ],
+      "negativeFeedback": [
+        {
+          "type": "entity_count",
+          "coefficient": 0.7,
+          "kind": "faction",
+          "subtype": "criminal"
+        },
+        {
+          "type": "tag_count",
+          "coefficient": 0.15,
+          "tags": [
+            "wild",
+            "mystical",
+            "anomaly"
+          ]
+        }
+      ]
+    },
+    "description": "How stable the 'bergs native magic is. Positive values mean less wild magic is appearing, negative values mean anomalies happen frequently. Cults harness wild magic to stabilize it for their purposes. Criminal syndicates destabilize through artifact smuggling and black market magic trade."
+  },
+  {
+    "id": "iceberg_security",
+    "name": "Iceberg Security",
+    "initialValue": 0,
+    "homeostasis": 0.25,
+    "growth": {
+      "positiveFeedback": [
+        {
+          "type": "entity_count",
+          "coefficient": 0.8,
+          "kind": "npc",
+          "subtype": "hero"
+        },
+        {
+          "type": "relationship_count",
+          "relationshipKinds": [
+            "allied_with"
+          ],
+          "coefficient": 0.08
+        }
+      ],
+      "negativeFeedback": [
+        {
+          "type": "tag_count",
+          "coefficient": 0.6,
+          "tags": [
+            "hostile",
+            "raider",
+            "orca",
+            "external"
+          ]
+        },
+        {
+          "type": "tag_count",
+          "coefficient": 1.2,
+          "tags": [
+            "armed_raider",
+            "war_leader"
+          ]
+        }
+      ]
+    },
+    "description": "How well defended the 'berg is. Positive values mean no external threat / enough defenses, negative values mean a looming external threat (probably orcas)"
+  },
+  {
+    "id": "cultural_harmony",
+    "name": "Cultural Harmony",
+    "initialValue": 0,
+    "homeostasis": 0.25,
+    "growth": {
+      "positiveFeedback": [
+        {
+          "type": "tag_count",
+          "coefficient": 0.2,
+          "tags": [
+            "libertarian",
+            "follower",
+            "organized"
+          ]
+        },
+        {
+          "type": "relationship_count",
+          "relationshipKinds": [
+            "allied_with"
+          ],
+          "coefficient": 0.3
+        },
+        {
+          "type": "relationship_count",
+          "relationshipKinds": [
+            "trades_with"
+          ],
+          "coefficient": 0.05
+        }
+      ],
+      "negativeFeedback": [
+        {
+          "type": "tag_count",
+          "coefficient": 0.3,
+          "tags": [
+            "splinter",
+            "leader",
+            "authoritarian"
+          ]
+        },
+        {
+          "type": "relationship_count",
+          "relationshipKinds": [
+            "at_war_with"
+          ],
+          "coefficient": 0.1
+        },
+        {
+          "type": "relationship_count",
+          "relationshipKinds": [
+            "enemy_of"
+          ],
+          "coefficient": 0.3
+        },
+        {
+          "type": "relationship_count",
+          "relationshipKinds": [
+            "controls"
+          ],
+          "coefficient": 0.2
+        }
+      ]
+    },
+    "description": "Are the clans getting along? Positive values mean little inter-culture strife, negative values mean war could break out at any point."
+  }
+]

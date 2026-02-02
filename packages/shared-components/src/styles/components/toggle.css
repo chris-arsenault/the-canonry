@@ -1,0 +1,52 @@
+/**
+ * Toggle switch component styles
+ */
+
+/* Toggle container */
+.toggle {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background-color: #374151;
+  cursor: pointer;
+  position: relative;
+  transition: background-color var(--transition-normal);
+  flex-shrink: 0;
+}
+
+.toggle-on {
+  background-color: var(--color-success);
+}
+
+.toggle-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Toggle knob */
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background-color: #fff;
+  transition: transform var(--transition-normal);
+}
+
+.toggle-on .toggle-knob {
+  transform: translateX(16px);
+}
+
+/* Toggle with label */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.toggle-label {
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+}

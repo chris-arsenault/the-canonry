@@ -2,134 +2,21 @@
  * HelpModal - Context-aware help modal showing detailed workflow for current screen
  */
 
-import React from 'react';
-import { colors, typography, spacing, radius } from '../theme';
+import React, { useRef } from 'react';
 
-const styles = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-  },
-  modal: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: radius.xl,
-    border: `1px solid ${colors.border}`,
-    maxWidth: '700px',
-    maxHeight: '85vh',
-    overflow: 'hidden',
-    display: 'flex',
-    flexDirection: 'column',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: `${spacing.lg} ${spacing.xl}`,
-    borderBottom: `1px solid ${colors.border}`,
-    backgroundColor: colors.bgSidebar,
-  },
-  title: {
-    fontSize: typography.sizeXxl,
-    fontWeight: typography.weightSemibold,
-    color: colors.textPrimary,
-    margin: 0,
-  },
-  closeButton: {
-    background: 'none',
-    border: 'none',
-    color: colors.textMuted,
-    fontSize: '24px',
-    cursor: 'pointer',
-    padding: spacing.xs,
-    lineHeight: 1,
-    borderRadius: radius.sm,
-    transition: 'color 0.15s, background-color 0.15s',
-  },
-  content: {
-    padding: spacing.xl,
-    overflowY: 'auto',
-    flex: 1,
-  },
-  section: {
-    marginBottom: spacing.xl,
-  },
-  sectionLast: {
-    marginBottom: 0,
-  },
-  sectionTitle: {
-    fontSize: typography.sizeLg,
-    fontWeight: typography.weightSemibold,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  text: {
-    fontSize: typography.sizeMd,
-    color: colors.textSecondary,
-    lineHeight: 1.7,
-    margin: 0,
-  },
-  // Workflow steps
-  workflowStep: {
-    marginBottom: spacing.lg,
-    paddingBottom: spacing.lg,
-    borderBottom: `1px solid ${colors.border}`,
-  },
-  workflowStepLast: {
-    marginBottom: 0,
-    paddingBottom: 0,
-    borderBottom: 'none',
-  },
-  stepHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  stepNumber: {
-    width: '24px',
-    height: '24px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: typography.sizeSm,
-    fontWeight: typography.weightBold,
-    color: colors.bgSidebar,
-  },
-  stepTitle: {
-    fontSize: typography.sizeMd,
-    fontWeight: typography.weightSemibold,
-    color: colors.textPrimary,
-  },
-  stepDesc: {
-    fontSize: typography.sizeSm,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-    marginLeft: '32px',
-  },
-  stepList: {
-    margin: 0,
-    paddingLeft: '48px',
-    fontSize: typography.sizeSm,
-    color: colors.textSecondary,
-    lineHeight: 1.8,
-  },
+// Accent colors for each screen (kept for dynamic theming)
+const SCREEN_COLORS = {
+  enumerist: '#f59e0b',
+  names: '#3b82f6',
+  cosmography: '#22c55e',
+  simulation: '#a855f7',
 };
 
 // Detailed workflow content for each screen
 const HELP_CONTENT = {
   enumerist: {
     title: 'Enumerist',
-    color: colors.accentEnumerist,
+    color: SCREEN_COLORS.enumerist,
     description: `Enumerist is where you define the building blocks of your world. Before you can name things or place them on semantic planes, you need to decide what kinds of things exist, how they can relate to each other, and which cultures shape them. Think of it as the data model for your universe.`,
     workflow: [
       {
@@ -166,7 +53,7 @@ const HELP_CONTENT = {
   },
   names: {
     title: 'Name Forge',
-    color: colors.accentNameForge,
+    color: SCREEN_COLORS.names,
     description: `Name Forge is a dramatically over-engineered name generator for fantasy worlds, games, and fiction. Instead of a simple random name picker, we've built a system with phonological domains, context-free grammars, Markov chains, genetic algorithm optimization, and multi-culture support. You know, the essentials.`,
     workflow: [
       {
@@ -206,7 +93,7 @@ const HELP_CONTENT = {
   },
   cosmography: {
     title: 'Cosmographer',
-    color: colors.accentCosmographer,
+    color: SCREEN_COLORS.cosmography,
     description: `Cosmographer lets you place entities on semantic planes - 2D spaces where position has meaning. Instead of arbitrary coordinates, entities exist on axes like Lawful-Chaotic, Urban-Wild, or Sacred-Profane. Cultures claim territories on these planes, and the relationships between entities form the connective tissue of your world.`,
     workflow: [
       {
@@ -255,7 +142,7 @@ const HELP_CONTENT = {
   },
   simulation: {
     title: 'Lore Weave',
-    color: colors.highlightPurple,
+    color: SCREEN_COLORS.simulation,
     description: `Coming soon: Lore Weave will run simulations to generate world history, evolve relationships, and create emergent narratives from your seed entities.`,
     workflow: [
       {
@@ -291,63 +178,57 @@ const HELP_CONTENT = {
 };
 
 export default function HelpModal({ isOpen, onClose, activeTab }) {
-  if (!isOpen) return null;
+  const mouseDownOnOverlay = useRef(false);
 
-  const content = HELP_CONTENT[activeTab] || HELP_CONTENT.enumerist;
+  const handleOverlayMouseDown = (e) => {
+    mouseDownOnOverlay.current = e.target === e.currentTarget;
+  };
 
   const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) {
+    if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
       onClose();
     }
   };
 
+  if (!isOpen) return null;
+
+  const content = HELP_CONTENT[activeTab] || HELP_CONTENT.enumerist;
+
   return (
-    <div style={styles.overlay} onClick={handleOverlayClick}>
-      <div style={styles.modal}>
-        <div style={{ ...styles.header, borderLeftColor: content.color }}>
-          <h2 style={{ ...styles.title, color: content.color }}>{content.title}</h2>
-          <button
-            style={styles.closeButton}
-            onClick={onClose}
-            onMouseEnter={(e) => {
-              e.target.style.color = colors.textPrimary;
-              e.target.style.backgroundColor = colors.bgTertiary;
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.color = colors.textMuted;
-              e.target.style.backgroundColor = 'transparent';
-            }}
-          >
-            x
-          </button>
+    <div className="modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
+      <div className="modal help-modal">
+        <div className="modal-header">
+          <div className="modal-title" style={{ color: content.color }}>
+            {content.title}
+          </div>
+          <button className="btn-close" onClick={onClose}>×</button>
         </div>
-        <div style={styles.content}>
+        <div className="modal-body modal-body-single">
           {/* Description */}
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>What is this?</h3>
-            <p style={styles.text}>{content.description}</p>
+          <div className="help-section">
+            <h3 className="help-section-title">What is this?</h3>
+            <p className="help-text">{content.description}</p>
           </div>
 
           {/* Workflow */}
-          <div style={styles.sectionLast}>
-            <h3 style={styles.sectionTitle}>Workflow</h3>
+          <div className="help-section">
+            <h3 className="help-section-title">Workflow</h3>
             {content.workflow.map((step, index) => (
               <div
                 key={index}
-                style={
-                  index === content.workflow.length - 1
-                    ? styles.workflowStepLast
-                    : styles.workflowStep
-                }
+                className="workflow-step"
               >
-                <div style={styles.stepHeader}>
-                  <div style={{ ...styles.stepNumber, backgroundColor: content.color }}>
+                <div className="workflow-step-header">
+                  <div
+                    className="workflow-step-number"
+                    style={{ backgroundColor: content.color }}
+                  >
                     {index + 1}
                   </div>
-                  <div style={styles.stepTitle}>{step.title}</div>
+                  <div className="workflow-step-title">{step.title}</div>
                 </div>
-                <p style={styles.stepDesc}>{step.desc}</p>
-                <ul style={styles.stepList}>
+                <p className="workflow-step-desc">{step.desc}</p>
+                <ul className="workflow-step-list">
                   {step.items.map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}

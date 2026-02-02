@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "entity.schema.json",
+  "title": "WorldEntity",
+  "description": "A world entity from simulation output",
+  "type": "object",
+  "required": ["id", "kind", "name", "prominence", "coordinates"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1, "description": "Unique identifier" },
+    "kind": { "type": "string", "minLength": 1, "description": "Entity kind (e.g., person, faction)" },
+    "subtype": { "type": "string", "description": "Entity subtype" },
+    "name": { "type": "string", "description": "Display name" },
+    "description": { "type": "string", "description": "Entity description" },
+    "status": { "type": "string", "description": "Entity status" },
+    "prominence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5,
+      "description": "Numeric prominence (0-5 scale)"
+    },
+    "culture": { "type": "string", "description": "Cultural affiliation" },
+    "tags": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "boolean" }
+        ]
+      },
+      "description": "Key-value semantic tags"
+    },
+    "eraId": { "type": "string", "description": "Era identifier" },
+    "createdAt": { "type": "number", "description": "Tick of creation" },
+    "updatedAt": { "type": "number", "description": "Last modification tick" },
+    "coordinates": {
+      "type": "object",
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      },
+      "description": "3D coordinates in semantic space"
+    },
+    "temporal": {
+      "type": "object",
+      "properties": {
+        "startTick": { "type": "number" },
+        "endTick": { "type": ["number", "null"] }
+      }
+    },
+    "catalyst": {
+      "type": "object",
+      "properties": {
+        "canAct": { "type": "boolean" }
+      }
+    },
+    "regionId": { "type": ["string", "null"] },
+    "allRegionIds": { "type": "array", "items": { "type": "string" } },
+    "summary": { "type": "string" },
+    "narrativeHint": { "type": "string" },
+    "lockedSummary": { "type": "boolean" },
+    "createdBy": {
+      "type": "object",
+      "properties": {
+        "tick": { "type": "number" },
+        "source": { "type": "string" },
+        "sourceId": { "type": "string" }
+      }
+    },
+    "enrichment": {
+      "type": "object",
+      "description": "LLM enrichment data"
+    }
+  }
+}

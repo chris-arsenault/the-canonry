@@ -1,0 +1,79 @@
+[
+  {
+    "id": "element",
+    "name": "Element",
+    "description": "",
+    "lowTag": "ice",
+    "highTag": "fire"
+  },
+  {
+    "id": "autonomy",
+    "name": "Autonomy",
+    "description": "",
+    "lowTag": "authoritarian",
+    "highTag": "libertarian"
+  },
+  {
+    "id": "power",
+    "name": "Power",
+    "description": "",
+    "lowTag": "emergent",
+    "highTag": "legendary"
+  },
+  {
+    "id": "pragmatism",
+    "name": "Pragmatism",
+    "description": "",
+    "lowTag": "mundane",
+    "highTag": "mystical"
+  },
+  {
+    "id": "authority",
+    "name": "Authority",
+    "description": "",
+    "lowTag": "follower",
+    "highTag": "leader"
+  },
+  {
+    "id": "structure",
+    "name": "Structure",
+    "description": "",
+    "lowTag": "chaotic",
+    "highTag": "organized"
+  },
+  {
+    "id": "alignment",
+    "name": "Alignment",
+    "description": "",
+    "lowTag": "hostile",
+    "highTag": "friendly"
+  },
+  {
+    "id": "visibility",
+    "name": "Visibility",
+    "description": "",
+    "lowTag": "hidden",
+    "highTag": "central"
+  },
+  {
+    "id": "latitude",
+    "name": "Latitude",
+    "description": "",
+    "lowTag": "south",
+    "highTag": "north"
+  },
+  {
+    "id": "longitude",
+    "name": "Longitude",
+    "description": "",
+    "lowTag": "west",
+    "highTag": "east"
+  },
+  {
+    "id": "purpose",
+    "name": "Purpose",
+    "description": "The intended use of the artifact",
+    "lowTag": "destructive",
+    "highTag": "protective"
+  }
+]

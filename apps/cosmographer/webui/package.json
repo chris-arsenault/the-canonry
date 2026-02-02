@@ -6,11 +6,14 @@
   "scripts": {
     "dev": "vite --port 5002",
     "dev:standalone": "STANDALONE=true vite --port 3001",
-    "build": "vite build",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && vite build",
     "preview": "vite preview",
     "serve": "serve dist -l 3001"
   },
   "dependencies": {
+    "@canonry/world-schema": "file:../../../packages/world-schema",
+    "@penguin-tales/shared-components": "file:../../../packages/shared-components",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "seedrandom": "^3.0.5",

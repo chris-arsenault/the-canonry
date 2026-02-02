@@ -1,0 +1,2925 @@
+[
+  {
+    "id": "seize_control",
+    "name": "Seize Control",
+    "description": "Take control of a location adjacent to territory already controlled",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "faction",
+        "filters": [
+          {
+            "type": "graph_path",
+            "assert": {
+              "check": "count_max",
+              "path": [
+                {
+                  "via": "controls",
+                  "direction": "any",
+                  "targetKind": "location",
+                  "targetSubtype": "any"
+                }
+              ],
+              "count": 2
+            }
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "filters": [
+        {
+          "type": "lacks_relationship",
+          "kind": "controls",
+          "with": "$actor"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "variables": {
+      "$previousOwner": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "controls",
+            "direction": "in"
+          },
+          "kind": "faction",
+          "pickStrategy": "first"
+        },
+        "required": false
+      }
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "archive_relationship",
+          "entity": "$previousOwner",
+          "relationshipKind": "controls",
+          "with": "$target"
+        },
+        {
+          "type": "create_relationship",
+          "kind": "controls",
+          "src": "$actor",
+          "dst": "$target",
+          "strength": 0.8
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "iceberg_security",
+          "delta": 3
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "resource_availibility",
+          "delta": 2
+        }
+      ],
+      "descriptionTemplate": "{actor.name} seized control of {target.name}",
+      "narrationTemplate": "{actor.name} seized control of {target.name} from {$previousOwner.name|the previous rulers}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.021,
+        "onFailure": 0.01
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.5,
+      "baseWeight": 1,
+      "pressureModifiers": [
+        {
+          "pressure": "resource_availibility",
+          "multiplier": -1
+        },
+        {
+          "pressure": "iceberg_security",
+          "multiplier": -1
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "form_alliance",
+    "name": "Form Alliance",
+    "description": "Create alliance between factions that are not already allied or at war",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "faction"
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "filters": [
+        {
+          "type": "exclude",
+          "entities": [
+            "$actor"
+          ]
+        },
+        {
+          "type": "lacks_relationship",
+          "kind": "allied_with",
+          "with": "$actor"
+        },
+        {
+          "type": "lacks_relationship",
+          "kind": "at_war_with",
+          "with": "$actor"
+        }
+      ]
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "allied_with",
+          "src": "$actor",
+          "dst": "$target",
+          "strength": 0.7,
+          "bidirectional": true
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "cultural_harmony",
+          "delta": 2
+        }
+      ],
+      "descriptionTemplate": "forged alliance with {target.name}",
+      "narrationTemplate": "{actor.name} and {target.name} formed an alliance.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.6,
+        "onFailure": 0.3
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.4,
+      "baseWeight": 0.8,
+      "pressureModifiers": [
+        {
+          "pressure": "cultural_harmony",
+          "multiplier": -0.6
+        },
+        {
+          "pressure": "iceberg_security",
+          "multiplier": -0.3
+        }
+      ]
+    },
+    "enabled": false
+  },
+  {
+    "id": "sue_for_peace",
+    "name": "Sue for Peace",
+    "description": "Surrender to end a war, removing self from the war",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "faction"
+      },
+      "instigator": {
+        "from": {
+          "relatedTo": "$actor",
+          "relationshipKind": "participant_in",
+          "direction": "src"
+        },
+        "kind": "occurrence",
+        "subtypes": [
+          "war"
+        ],
+        "status": "active",
+        "filters": [
+          {
+            "type": "has_tag",
+            "tag": "war_weary"
+          }
+        ],
+        "pickStrategy": "random",
+        "required": true
+      },
+      "conditions": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "exists",
+            "path": [
+              {
+                "via": "participant_in",
+                "direction": "out",
+                "targetKind": "occurrence",
+                "targetSubtype": "war",
+                "targetStatus": "active"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "filters": [
+        {
+          "type": "exclude",
+          "entities": [
+            "$actor"
+          ]
+        },
+        {
+          "type": "shares_related",
+          "relationshipKind": "participant_in",
+          "with": "$actor"
+        }
+      ]
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "archive_relationship",
+          "entity": "$actor",
+          "relationshipKind": "participant_in",
+          "with": "$instigator"
+        },
+        {
+          "type": "archive_relationship",
+          "entity": "$actor",
+          "relationshipKind": "enemy_of",
+          "with": "$target"
+        },
+        {
+          "type": "set_tag",
+          "entity": "$actor",
+          "tag": "defeated",
+          "value": true
+        },
+        {
+          "type": "set_tag",
+          "entity": "$actor",
+          "tag": "post_war_cooldown",
+          "value": true
+        },
+        {
+          "type": "remove_tag",
+          "entity": "$actor",
+          "tag": "conflict"
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "cultural_harmony",
+          "delta": 10
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "iceberg_security",
+          "delta": 3
+        }
+      ],
+      "descriptionTemplate": "surrendered to {target.name}",
+      "narrationTemplate": "{actor.name} sued for peace with {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.333,
+        "onFailure": 0.167
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.5,
+      "baseWeight": 0.25,
+      "pressureModifiers": [
+        {
+          "pressure": "cultural_harmony",
+          "multiplier": 0.3
+        },
+        {
+          "pressure": "iceberg_security",
+          "multiplier": 0.2
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "claim_victory",
+    "name": "Claim Victory",
+    "description": "The dominant faction claims victory in a war-weary conflict, seizing contested territory",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "faction"
+      },
+      "instigator": {
+        "from": {
+          "relatedTo": "$actor",
+          "relationshipKind": "participant_in",
+          "direction": "src"
+        },
+        "kind": "occurrence",
+        "subtypes": [
+          "war"
+        ],
+        "status": "active",
+        "filters": [
+          {
+            "type": "has_tag",
+            "tag": "war_weary"
+          }
+        ],
+        "pickStrategy": "random",
+        "required": true
+      },
+      "conditions": [
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "exists",
+            "path": [
+              {
+                "via": "participant_in",
+                "direction": "out",
+                "targetKind": "occurrence",
+                "targetStatus": "active",
+                "targetSubtype": "war"
+              }
+            ]
+          }
+        },
+        {
+          "type": "relationship_count",
+          "relationshipKind": "member_of",
+          "direction": "dst",
+          "min": 2
+        }
+      ]
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "filters": [
+        {
+          "type": "exclude",
+          "entities": [
+            "$actor"
+          ]
+        },
+        {
+          "type": "shares_related",
+          "relationshipKind": "participant_in",
+          "with": "$actor"
+        }
+      ]
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "archive_relationship",
+          "entity": "$target",
+          "relationshipKind": "participant_in",
+          "with": "$instigator"
+        },
+        {
+          "type": "change_status",
+          "entity": "$instigator",
+          "newStatus": "historical"
+        },
+        {
+          "type": "archive_all_relationships",
+          "entity": "$instigator",
+          "relationshipKind": "participant_in",
+          "direction": "dst"
+        },
+        {
+          "type": "archive_relationship",
+          "entity": "$actor",
+          "relationshipKind": "enemy_of",
+          "with": "$target"
+        },
+        {
+          "type": "set_tag",
+          "entity": "$target",
+          "tag": "defeated",
+          "value": true
+        },
+        {
+          "type": "set_tag",
+          "entity": "$actor",
+          "tag": "victorious",
+          "value": true
+        },
+        {
+          "type": "set_tag",
+          "entity": "$actor",
+          "tag": "post_war_cooldown",
+          "value": true
+        },
+        {
+          "type": "set_tag",
+          "entity": "$target",
+          "tag": "post_war_cooldown",
+          "value": true
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "cultural_harmony",
+          "delta": 8
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "iceberg_security",
+          "delta": 5
+        }
+      ],
+      "descriptionTemplate": "achieved victory over {target.name}",
+      "narrationTemplate": "{actor.name} claimed victory over {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.6,
+        "onFailure": 0.3
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.35,
+      "baseWeight": 0.3,
+      "pressureModifiers": [
+        {
+          "pressure": "iceberg_security",
+          "multiplier": 0.3
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "raid",
+    "name": "Raid",
+    "description": "Attack another faction's territory, creating enmity and weakening their hold",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "faction",
+        "saturationLimits": [
+          {
+            "relationshipKind": "enemy_of",
+            "direction": "both",
+            "maxCount": 2
+          }
+        ]
+      },
+      "conditions": [
+        {
+          "type": "pressure",
+          "pressureId": "cultural_harmony",
+          "min": -30
+        }
+      ]
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "filters": [
+        {
+          "type": "lacks_relationship",
+          "kind": "allied_with",
+          "with": "$actor"
+        },
+        {
+          "type": "lacks_relationship",
+          "kind": "enemy_of",
+          "with": "$actor"
+        },
+        {
+          "type": "has_relationship",
+          "kind": "controls",
+          "direction": "src"
+        },
+        {
+          "type": "exclude",
+          "entities": [
+            "$actor"
+          ]
+        }
+      ]
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "enemy_of",
+          "src": "$actor",
+          "dst": "$target",
+          "strength": 0.8,
+          "bidirectional": true
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "cultural_harmony",
+          "delta": -1.5
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "iceberg_security",
+          "delta": -2
+        }
+      ],
+      "descriptionTemplate": "raided {target.name}'s territory",
+      "narrationTemplate": "{actor.name} raided {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.201,
+        "onFailure": 0.103
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.35,
+      "baseWeight": 0.2,
+      "pressureModifiers": [
+        {
+          "pressure": "cultural_harmony",
+          "multiplier": -0.6
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "establish_trade_route",
+    "name": "Establish Trade Route",
+    "description": "Create trade connection between two thriving locations",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "faction"
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "statuses": [
+        "thriving",
+        "waning"
+      ],
+      "maxResults": 2,
+      "filters": [
+        {
+          "type": "has_any_tag",
+          "tags": [
+            "trade",
+            "resource"
+          ]
+        },
+        {
+          "type": "lacks_relationship",
+          "kind": "trades_with",
+          "with": "$target"
+        }
+      ]
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "trades_with",
+          "src": "$target",
+          "dst": "$target2",
+          "strength": 0.6,
+          "bidirectional": true
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "resource_availibility",
+          "delta": 2
+        }
+      ],
+      "descriptionTemplate": "established trade route between {target.name} and {target2.name}",
+      "narrationTemplate": "Trade route established between {target.name} and {target2.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.161,
+        "onFailure": 0.081
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.6,
+      "baseWeight": 0.6,
+      "pressureModifiers": [
+        {
+          "pressure": "resource_availibility",
+          "multiplier": -0.6
+        },
+        {
+          "pressure": "iceberg_security",
+          "multiplier": 0.2
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "corrupt_location",
+    "name": "Corrupt Location",
+    "description": "Spread magical corruption to a location",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "ability",
+        "subtypes": [
+          "magic"
+        ]
+      },
+      "conditions": [
+        {
+          "type": "pressure",
+          "pressureId": "magical_stability",
+          "max": 10
+        }
+      ],
+      "instigator": {
+        "from": {
+          "relatedTo": "$actor",
+          "relationshipKind": "practitioner_of",
+          "direction": "dst"
+        },
+        "kinds": [
+          "npc",
+          "faction"
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "filters": [
+        {
+          "type": "lacks_tag",
+          "tag": "corrupted"
+        },
+        {
+          "type": "lacks_tag",
+          "tag": "cleansed"
+        }
+      ]
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "corrupted_by",
+          "src": "$target",
+          "dst": "$actor",
+          "strength": 0.7
+        },
+        {
+          "type": "set_tag",
+          "tag": "corrupted",
+          "value": true,
+          "entity": "$target"
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "magical_stability",
+          "delta": -5
+        }
+      ],
+      "descriptionTemplate": "corrupted {target.name}",
+      "narrationTemplate": "Corruption spread to {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.112,
+        "onFailure": 0.056
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.25,
+      "baseWeight": 0.6,
+      "pressureModifiers": [
+        {
+          "pressure": "magical_stability",
+          "multiplier": 0.6
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "manifest_magic",
+    "name": "Manifest Magic",
+    "description": "Magic manifests at a location",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "ability",
+        "subtypes": [
+          "magic"
+        ]
+      },
+      "instigator": {
+        "from": {
+          "relatedTo": "$actor",
+          "relationshipKind": "practitioner_of",
+          "direction": "dst"
+        },
+        "kinds": [
+          "npc",
+          "faction"
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "filters": [
+        {
+          "type": "lacks_relationship",
+          "kind": "manifests_at",
+          "with": "$actor"
+        }
+      ]
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "manifests_at",
+          "src": "$actor",
+          "dst": "$target",
+          "strength": 0.8
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "magical_stability",
+          "delta": -2
+        }
+      ],
+      "descriptionTemplate": "manifested at {target.name}",
+      "narrationTemplate": "Magic manifested at {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.087,
+        "onFailure": 0.043
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.3,
+        "onFailure": 0.15
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.3,
+      "baseWeight": 0.6,
+      "pressureModifiers": [
+        {
+          "pressure": "magical_stability",
+          "multiplier": 0.6
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "spread_innovation",
+    "name": "Spread Innovation",
+    "description": "Technology spreads to new practitioners",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "ability",
+        "subtypes": [
+          "technology"
+        ],
+        "filters": [
+          {
+            "type": "graph_path",
+            "assert": {
+              "check": "count_max",
+              "path": [
+                {
+                  "via": "practitioner_of",
+                  "direction": "in",
+                  "targetKind": "faction",
+                  "targetSubtype": "any"
+                }
+              ],
+              "count": 3
+            }
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "filters": [
+        {
+          "type": "has_any_tag",
+          "tags": [
+            "organized",
+            "trade",
+            "resource"
+          ]
+        },
+        {
+          "type": "lacks_relationship",
+          "kind": "practitioner_of",
+          "with": "$actor"
+        }
+      ],
+      "saturationLimits": [
+        {
+          "relationshipKind": "practitioner_of",
+          "direction": "out",
+          "maxCount": 3
+        }
+      ]
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "practitioner_of",
+          "src": "$target",
+          "dst": "$actor",
+          "strength": 0.6
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "resource_availibility",
+          "delta": 1
+        }
+      ],
+      "descriptionTemplate": "spread to {target.name}",
+      "narrationTemplate": "{actor.name} spread to {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.097,
+        "onFailure": 0.049
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.4,
+      "baseWeight": 0.6,
+      "pressureModifiers": [
+        {
+          "pressure": "resource_availibility",
+          "multiplier": -0.6
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "draw_in_faction",
+    "name": "Draw In Faction",
+    "description": "Neutral faction becomes war participant",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "occurrence",
+        "subtypes": [
+          "war"
+        ],
+        "saturationLimits": [
+          {
+            "relationshipKind": "participant_in",
+            "direction": "in",
+            "maxCount": 3
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "filters": [
+        {
+          "type": "lacks_relationship",
+          "kind": "participant_in",
+          "with": "$actor"
+        }
+      ]
+    },
+    "variables": {},
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "participant_in",
+          "src": "$target",
+          "dst": "$actor",
+          "strength": 0.8
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "cultural_harmony",
+          "delta": -5
+        }
+      ],
+      "descriptionTemplate": "drew {target.name} into the war",
+      "narrationTemplate": "{actor.name} drew {target.name} into the conflict.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.6,
+        "onFailure": 0.3
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.3,
+      "baseWeight": 0.9,
+      "pressureModifiers": [
+        {
+          "pressure": "cultural_harmony",
+          "multiplier": 0.6
+        },
+        {
+          "pressure": "iceberg_security",
+          "multiplier": 0.4
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "escalate_war",
+    "name": "Escalate War",
+    "description": "War intensifies, strengthening participant relationships",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "occurrence",
+        "subtypes": [
+          "war"
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "filters": [
+        {
+          "type": "has_relationship",
+          "kind": "participant_in",
+          "with": "$actor",
+          "direction": "src"
+        }
+      ]
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "adjust_relationship_strength",
+          "kind": "participant_in",
+          "src": "$target",
+          "dst": "$actor",
+          "delta": 0.1
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "cultural_harmony",
+          "delta": -3
+        }
+      ],
+      "descriptionTemplate": "escalated in intensity",
+      "narrationTemplate": "{actor.name} escalated.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.543,
+        "onFailure": 0.272
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.4,
+      "baseWeight": 0.2,
+      "pressureModifiers": [
+        {
+          "pressure": "cultural_harmony",
+          "multiplier": -0.6
+        },
+        {
+          "pressure": "iceberg_security",
+          "multiplier": 0.4
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "spread_corruption",
+    "name": "Spread Corruption",
+    "description": "Disaster corrupts adjacent locations",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "location",
+        "filters": [
+          {
+            "type": "has_any_tag",
+            "tags": [
+              "mystical",
+              "anomaly",
+              "dangerous"
+            ]
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "filters": [
+        {
+          "type": "has_relationship",
+          "kind": "adjacent_to",
+          "with": "$actor",
+          "direction": "both"
+        },
+        {
+          "type": "lacks_any_tag",
+          "tags": [
+            "corrupted",
+            "cleansed"
+          ]
+        }
+      ]
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "corrupted_by",
+          "src": "$target",
+          "dst": "$actor",
+          "strength": 0.8
+        },
+        {
+          "type": "set_tag",
+          "tag": "corrupted",
+          "value": true,
+          "entity": "$target"
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "magical_stability",
+          "delta": -4
+        }
+      ],
+      "descriptionTemplate": "spread corruption to {target.name}",
+      "narrationTemplate": "Corruption spread from {actor.name} to {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.073,
+        "onFailure": 0.037
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.02,
+        "onFailure": 0.01
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.35,
+      "baseWeight": 0.5,
+      "pressureModifiers": [
+        {
+          "pressure": "magical_stability",
+          "multiplier": 0.6
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "wound_orca",
+    "name": "Wound Orca",
+    "description": "Armed heroes wound healthy orcas in combat",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "subtypes": [
+          "hero"
+        ],
+        "status": "alive",
+        "filters": [
+          {
+            "type": "has_tag",
+            "tag": "armed"
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "subtypes": [
+        "orca"
+      ],
+      "status": "alive",
+      "filters": [
+        {
+          "type": "exclude",
+          "entities": [
+            "$actor"
+          ]
+        },
+        {
+          "type": "lacks_tag",
+          "tag": "wounded"
+        },
+        {
+          "type": "lacks_tag",
+          "tag": "maimed"
+        }
+      ]
+    },
+    "outcome": {
+      "descriptionTemplate": "wounded {target.name}",
+      "narrationTemplate": "{actor.name} wounded {target.name}.",
+      "mutations": [
+        {
+          "type": "set_tag",
+          "entity": "$target",
+          "tag": "wounded",
+          "value": true
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "iceberg_security",
+          "delta": 0.5
+        }
+      ],
+      "actorProminenceDelta": {
+        "onSuccess": 0.463,
+        "onFailure": 0.231
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.278,
+        "onFailure": 0.139
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.6,
+      "baseWeight": 0.8,
+      "pressureModifiers": []
+    },
+    "enabled": true
+  },
+  {
+    "id": "maim_orca",
+    "name": "Maim Orca",
+    "description": "Armed heroes maim wounded orcas in combat",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "subtypes": [
+          "hero"
+        ],
+        "status": "alive",
+        "filters": [
+          {
+            "type": "has_tag",
+            "tag": "armed"
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "subtypes": [
+        "orca"
+      ],
+      "status": "alive",
+      "filters": [
+        {
+          "type": "exclude",
+          "entities": [
+            "$actor"
+          ]
+        },
+        {
+          "type": "has_tag",
+          "tag": "wounded"
+        },
+        {
+          "type": "lacks_tag",
+          "tag": "maimed"
+        }
+      ]
+    },
+    "outcome": {
+      "descriptionTemplate": "maimed {target.name}",
+      "narrationTemplate": "{actor.name} maimed {target.name}.",
+      "mutations": [
+        {
+          "type": "remove_tag",
+          "entity": "$target",
+          "tag": "wounded"
+        },
+        {
+          "type": "set_tag",
+          "entity": "$target",
+          "tag": "maimed",
+          "value": true
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "iceberg_security",
+          "delta": 0.5
+        }
+      ],
+      "actorProminenceDelta": {
+        "onSuccess": 0.6,
+        "onFailure": 0.3
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.36,
+        "onFailure": 0.18
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.5,
+      "baseWeight": 0.7,
+      "pressureModifiers": []
+    },
+    "enabled": true
+  },
+  {
+    "id": "kill_orca",
+    "name": "Kill Orca",
+    "description": "Armed heroes finish off maimed orcas",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "subtypes": [
+          "hero"
+        ],
+        "status": "alive",
+        "filters": [
+          {
+            "type": "has_tag",
+            "tag": "armed"
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "subtypes": [
+        "orca"
+      ],
+      "status": "alive",
+      "filters": [
+        {
+          "type": "exclude",
+          "entities": [
+            "$actor"
+          ]
+        },
+        {
+          "type": "has_tag",
+          "tag": "maimed"
+        }
+      ]
+    },
+    "outcome": {
+      "descriptionTemplate": "killed {target.name}",
+      "narrationTemplate": "{actor.name} killed {target.name}.",
+      "mutations": [
+        {
+          "type": "change_status",
+          "entity": "$target",
+          "newStatus": "historical"
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "iceberg_security",
+          "delta": 1
+        }
+      ],
+      "actorProminenceDelta": {
+        "onSuccess": 0.6,
+        "onFailure": 0.3
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.36,
+        "onFailure": 0.18
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.5,
+      "baseWeight": 0.6,
+      "pressureModifiers": []
+    },
+    "enabled": true
+  },
+  {
+    "id": "master_ability",
+    "name": "Master Ability",
+    "description": "An NPC studies and masters a notable ability",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "status": "alive",
+        "subtypes": [
+          "hero",
+          "mayor",
+          "merchant",
+          "outlaw"
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "ability",
+      "statuses": [
+        "active",
+        "discovered",
+        "emergent"
+      ],
+      "filters": [
+        {
+          "type": "lacks_relationship",
+          "kind": "practitioner_of",
+          "with": "$actor"
+        },
+        {
+          "type": "matches_culture",
+          "with": "$actor"
+        },
+        {
+          "type": "graph_path",
+          "assert": {
+            "check": "count_max",
+            "path": [
+              {
+                "via": "practitioner_of",
+                "direction": "any",
+                "targetKind": "npc",
+                "targetSubtype": ""
+              }
+            ],
+            "count": 4
+          }
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "practitioner_of",
+          "src": "$actor",
+          "dst": "$target",
+          "strength": 0.7
+        }
+      ],
+      "descriptionTemplate": "mastered the art of {target.name}",
+      "narrationTemplate": "{actor.name} mastered {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.077,
+        "onFailure": 0.04
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.5,
+      "baseWeight": 0.35,
+      "pressureModifiers": [
+        {
+          "pressure": "magical_stability",
+          "multiplier": 0.4
+        },
+        {
+          "pressure": "iceberg_security",
+          "multiplier": 0.2
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "echo_occurrence",
+    "name": "Echo Occurrence",
+    "description": "Historians discover an ability contributed to the scale of a major event",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "ability",
+        "subtypes": [
+          "magic",
+          "combat",
+          "technology"
+        ],
+        "statuses": [
+          "active",
+          "discovered",
+          "emergent"
+        ]
+      },
+      "conditions": [
+        {
+          "type": "relationship_count",
+          "relationshipKind": "practitioner_of",
+          "direction": "dst",
+          "min": 1
+        },
+        {
+          "type": "prominence",
+          "max": "renowned"
+        }
+      ]
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "occurrence",
+      "status": "active",
+      "subtypes": [
+        "war",
+        "disaster",
+        "celebration",
+        "succession_crisis"
+      ],
+      "filters": [
+        {
+          "type": "lacks_relationship",
+          "kind": "catalyst_of",
+          "with": "$actor"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "catalyst_of",
+          "src": "$actor",
+          "dst": "$target",
+          "strength": 0.8
+        },
+        {
+          "type": "adjust_prominence",
+          "delta": 0.164,
+          "entity": "$actor"
+        }
+      ],
+      "descriptionTemplate": "was linked to the outbreak of {target.name}",
+      "narrationTemplate": "Historians discovered that {actor.name} contributed to the scale of {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.272,
+        "onFailure": 0.136
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.35,
+      "baseWeight": 0.25,
+      "pressureModifiers": [
+        {
+          "pressure": "cultural_harmony",
+          "multiplier": -0.2
+        },
+        {
+          "pressure": "magical_stability",
+          "multiplier": 0.3
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "gift_artifact",
+    "name": "Gift Artifact",
+    "description": "An artifact is gifted by its owner to their faction",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "artifact",
+        "status": "intact",
+        "filters": [
+          {
+            "type": "has_relationship",
+            "kind": "owned_by",
+            "direction": "src"
+          }
+        ]
+      },
+      "instigator": {
+        "from": {
+          "relatedTo": "$actor",
+          "relationshipKind": "owned_by",
+          "direction": "src"
+        },
+        "kind": "npc",
+        "status": "alive"
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "filters": [
+        {
+          "type": "has_relationship",
+          "kind": "member_of",
+          "with": "$instigator",
+          "direction": "dst"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "archive_relationship",
+          "entity": "$actor",
+          "relationshipKind": "owned_by",
+          "with": "$instigator"
+        },
+        {
+          "type": "create_relationship",
+          "kind": "owned_by",
+          "src": "$actor",
+          "dst": "$target",
+          "strength": 0.9
+        },
+        {
+          "type": "set_tag",
+          "entity": "$actor",
+          "tag": "gifted",
+          "value": true
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "cultural_harmony",
+          "delta": 3
+        }
+      ],
+      "descriptionTemplate": "{instigator.name|An unknown benefactor} gifted {actor.name} to {target.name}",
+      "narrationTemplate": "{instigator.name|An unknown benefactor} gifted {actor.name} to {target.name}."
+    },
+    "probability": {
+      "baseSuccessChance": 0.25,
+      "baseWeight": 0.2,
+      "pressureModifiers": [
+        {
+          "pressure": "cultural_harmony",
+          "multiplier": 0.5
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "steal_artifact",
+    "name": "Steal Artifact",
+    "description": "An outlaw steals an artifact from a faction or location",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "subtypes": [
+          "outlaw",
+          "orca"
+        ],
+        "status": "alive",
+        "saturationLimits": [
+          {
+            "relationshipKind": "owned_by",
+            "direction": "dst",
+            "maxCount": 2
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "artifact",
+      "status": "intact",
+      "filters": [
+        {
+          "type": "lacks_relationship",
+          "kind": "owned_by",
+          "with": "$actor"
+        },
+        {
+          "type": "has_relationship",
+          "kind": "stored_at",
+          "direction": "src"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "archive_all_relationships",
+          "entity": "$target",
+          "relationshipKind": "owned_by"
+        },
+        {
+          "type": "create_relationship",
+          "kind": "owned_by",
+          "src": "$target",
+          "dst": "$actor",
+          "strength": 0.7
+        },
+        {
+          "type": "set_tag",
+          "entity": "$target",
+          "tag": "stolen",
+          "value": true
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "iceberg_security",
+          "delta": -5
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "cultural_harmony",
+          "delta": -1
+        }
+      ],
+      "descriptionTemplate": "{actor.name} stole the artifact {target.name}",
+      "narrationTemplate": "{actor.name} stole {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.062,
+        "onFailure": 0.031
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.037,
+        "onFailure": 0.019
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.2,
+      "baseWeight": 0.15,
+      "pressureModifiers": [
+        {
+          "pressure": "iceberg_security",
+          "multiplier": -0.5
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "cleanse_corruption",
+    "name": "Cleanse Corruption",
+    "description": "Heroes purify corrupted locations, driving back the darkness",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "subtypes": [
+          "hero"
+        ],
+        "status": "alive"
+      },
+      "conditions": [
+        {
+          "type": "relationship_count",
+          "relationshipKind": "practitioner_of",
+          "direction": "src",
+          "min": 1
+        }
+      ]
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "filters": [
+        {
+          "type": "has_relationship",
+          "kind": "corrupted_by"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "archive_all_relationships",
+          "entity": "$target",
+          "relationshipKind": "corrupted_by"
+        },
+        {
+          "type": "remove_tag",
+          "entity": "$target",
+          "tag": "corrupted"
+        },
+        {
+          "type": "remove_tag",
+          "entity": "$target",
+          "tag": "dangerous"
+        },
+        {
+          "type": "set_tag",
+          "entity": "$target",
+          "tag": "cleansed",
+          "value": true
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "magical_stability",
+          "delta": 5
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "iceberg_security",
+          "delta": 2
+        }
+      ],
+      "descriptionTemplate": "{actor.name} purified the corruption at {target.name}",
+      "narrationTemplate": "{actor.name} cleansed the corruption at {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.414,
+        "onFailure": 0.209
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.7,
+        "onFailure": 0.35
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.4,
+      "baseWeight": 0.6,
+      "pressureModifiers": [
+        {
+          "pressure": "magical_stability",
+          "multiplier": -0.3
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "seek_weapon",
+    "name": "Seek Weapon",
+    "description": "Unarmed heroes seek weapons to fight the orca threat",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "subtypes": [
+          "hero"
+        ],
+        "status": "alive",
+        "filters": [
+          {
+            "type": "lacks_tag",
+            "tag": "armed"
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "artifact",
+      "subtypes": [
+        "weapon"
+      ],
+      "status": "intact",
+      "filters": [
+        {
+          "type": "lacks_relationship",
+          "kind": "owned_by"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "owned_by",
+          "src": "$target",
+          "dst": "$actor",
+          "strength": 0.8
+        },
+        {
+          "type": "set_tag",
+          "entity": "$target",
+          "tag": "claimed",
+          "value": true
+        }
+      ],
+      "descriptionTemplate": "{actor.name} claimed the weapon {target.name}",
+      "narrationTemplate": "{actor.name} found {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.431,
+        "onFailure": 0.216
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.259,
+        "onFailure": 0.129
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.45,
+      "baseWeight": 0.7,
+      "pressureModifiers": [
+        {
+          "pressure": "iceberg_security",
+          "multiplier": -0.3
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "seek_cleansing",
+    "name": "Seek Cleansing",
+    "description": "Corrupted heroes seek instruments to purify themselves through music",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "subtypes": [
+          "hero"
+        ],
+        "status": "alive",
+        "filters": [
+          {
+            "type": "has_any_tag",
+            "tags": [
+              "corrupted",
+              "cursed"
+            ]
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "artifact",
+      "subtypes": [
+        "instrument"
+      ],
+      "status": "intact",
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "blessed_by",
+          "src": "$actor",
+          "dst": "$target",
+          "strength": 0.9
+        },
+        {
+          "type": "remove_tag",
+          "entity": "$actor",
+          "tag": "corrupted"
+        },
+        {
+          "type": "remove_tag",
+          "entity": "$actor",
+          "tag": "cursed"
+        },
+        {
+          "type": "set_tag",
+          "entity": "$actor",
+          "tag": "cleansed",
+          "value": true
+        }
+      ],
+      "descriptionTemplate": "{actor.name} was purified by the music of {target.name}",
+      "narrationTemplate": "{target.name} cleansed {actor.name} of corruption.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.6,
+        "onFailure": 0.3
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.36,
+        "onFailure": 0.18
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.6,
+      "baseWeight": 0.8,
+      "pressureModifiers": [
+        {
+          "pressure": "magical_stability",
+          "multiplier": 0.3
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "weapon_chooses_wielder",
+    "name": "Weapon Chooses Wielder",
+    "description": "A weapon of legend selects a worthy hero - either finding its first owner or abandoning a fallen/corrupted one",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "artifact",
+        "subtypes": [
+          "weapon"
+        ],
+        "statuses": [
+          "intact",
+          "damaged"
+        ]
+      },
+      "conditions": [
+        {
+          "type": "or",
+          "conditions": [
+            {
+              "type": "graph_path",
+              "assert": {
+                "check": "not_exists",
+                "path": [
+                  {
+                    "via": "owned_by",
+                    "direction": "src",
+                    "targetKind": "npc",
+                    "targetSubtype": "any"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "graph_path",
+              "assert": {
+                "check": "exists",
+                "path": [
+                  {
+                    "via": "owned_by",
+                    "direction": "src",
+                    "targetKind": "npc",
+                    "targetSubtype": "any",
+                    "filters": [
+                      {
+                        "type": "has_tag",
+                        "tag": "corrupted"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "subtypes": [
+        "hero"
+      ],
+      "status": "alive",
+      "filters": [
+        {
+          "type": "lacks_tag",
+          "tag": "armed"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "variables": {
+      "$previousOwner": {
+        "select": {
+          "from": {
+            "relatedTo": "$actor",
+            "relationshipKind": "owned_by",
+            "direction": "src"
+          },
+          "kind": "npc",
+          "pickStrategy": "first"
+        },
+        "required": false
+      }
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "archive_all_relationships",
+          "entity": "$actor",
+          "relationshipKind": "owned_by",
+          "direction": "src"
+        },
+        {
+          "type": "remove_tag",
+          "entity": "$previousOwner",
+          "tag": "armed"
+        },
+        {
+          "type": "create_relationship",
+          "kind": "owned_by",
+          "src": "$actor",
+          "dst": "$target",
+          "strength": 0.9
+        },
+        {
+          "type": "set_tag",
+          "entity": "$target",
+          "tag": "armed",
+          "value": true
+        },
+        {
+          "type": "adjust_prominence",
+          "entity": "$target",
+          "delta": 0.36
+        }
+      ],
+      "descriptionTemplate": "{actor.name} chose {target.name} as its wielder",
+      "narrationTemplate": "{actor.name} chose {target.name} as wielder."
+    },
+    "probability": {
+      "baseSuccessChance": 0.7,
+      "baseWeight": 0.6
+    },
+    "enabled": true
+  },
+  {
+    "id": "colony_elevates_resident",
+    "name": "Colony Elevates Resident",
+    "description": "A prospering colony's memory elevates a resident to prominence",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "location",
+        "subtypes": [
+          "colony"
+        ],
+        "status": "thriving",
+        "minProminence": "recognized"
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "status": "alive",
+      "filters": [
+        {
+          "type": "has_relationship",
+          "kind": "resident_of",
+          "with": "$actor",
+          "direction": "src"
+        },
+        {
+          "type": "lacks_tag",
+          "tag": "colony_remembered"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "set_tag",
+          "entity": "$target",
+          "tag": "colony_remembered",
+          "value": true
+        },
+        {
+          "type": "adjust_prominence",
+          "entity": "$target",
+          "delta": 0.094
+        }
+      ],
+      "descriptionTemplate": "The ice of {actor.name} remembered {target.name}",
+      "narrationTemplate": "{actor.name} elevated {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.156,
+        "onFailure": 0.078
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.5,
+      "baseWeight": 0.4
+    },
+    "enabled": true
+  },
+  {
+    "id": "war_marks_survivor",
+    "name": "War Marks Survivor",
+    "description": "A war leaves its mark on those who endured it",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "occurrence",
+        "subtypes": [
+          "war"
+        ],
+        "status": "active",
+        "minProminence": "recognized"
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "status": "alive",
+      "filters": [
+        {
+          "type": "has_relationship",
+          "kind": "member_of",
+          "direction": "src"
+        },
+        {
+          "type": "lacks_tag",
+          "tag": "war_marked"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "set_tag",
+          "entity": "$target",
+          "tag": "war_marked",
+          "value": true
+        },
+        {
+          "type": "adjust_prominence",
+          "entity": "$target",
+          "delta": 0.286
+        }
+      ],
+      "descriptionTemplate": "{actor.name} left its mark upon {target.name}",
+      "narrationTemplate": "{actor.name} marked {target.name} as a survivor.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.476,
+        "onFailure": 0.238
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.6,
+      "baseWeight": 0.5
+    },
+    "enabled": true
+  },
+  {
+    "id": "instrument_blesses_listener",
+    "name": "Instrument Blesses Listener",
+    "description": "An instrument's music touches a soul, blessing them with its resonance",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "artifact",
+        "subtypes": [
+          "instrument"
+        ],
+        "status": "intact"
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "subtypes": [
+        "merchant",
+        "outlaw",
+        "mayor"
+      ],
+      "status": "alive",
+      "filters": [
+        {
+          "type": "lacks_tag",
+          "tag": "blessed"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "blessed_by",
+          "src": "$target",
+          "dst": "$actor",
+          "strength": 0.6
+        },
+        {
+          "type": "set_tag",
+          "entity": "$target",
+          "tag": "blessed",
+          "value": true
+        },
+        {
+          "type": "adjust_prominence",
+          "entity": "$target",
+          "delta": 0.101
+        }
+      ],
+      "descriptionTemplate": "The music of {actor.name} blessed {target.name}",
+      "narrationTemplate": "{actor.name} blessed {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.169,
+        "onFailure": 0.084
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.4,
+      "baseWeight": 0.3
+    },
+    "enabled": true
+  },
+  {
+    "id": "steal_foreign_art",
+    "name": "Steal Foreign Art",
+    "description": "An outsider steals knowledge from another culture, forfeiting their right to lead",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "npc",
+        "status": "alive",
+        "subtypes": [
+          "outlaw",
+          "merchant",
+          "mayor"
+        ]
+      },
+      "conditions": [
+        {
+          "type": "lacks_tag",
+          "tag": "stolen_art"
+        }
+      ]
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "ability",
+      "statuses": [
+        "active",
+        "discovered",
+        "emergent"
+      ],
+      "filters": [
+        {
+          "type": "lacks_relationship",
+          "kind": "practitioner_of",
+          "with": "$actor"
+        },
+        {
+          "type": "not_matches_culture",
+          "with": "$actor"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "variables": {
+      "victimFaction": {
+        "select": {
+          "from": {
+            "relatedTo": "$target",
+            "relationshipKind": "practitioner_of",
+            "direction": "in"
+          },
+          "kind": "faction",
+          "pickStrategy": "random"
+        },
+        "required": false
+      }
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "practitioner_of",
+          "src": "$actor",
+          "dst": "$target",
+          "strength": 0.5
+        },
+        {
+          "type": "create_relationship",
+          "kind": "enemy_of",
+          "src": "$actor",
+          "dst": "$victimFaction",
+          "strength": 0.6,
+          "bidirectional": true
+        },
+        {
+          "type": "archive_all_relationships",
+          "entity": "$actor",
+          "relationshipKind": "leader_of",
+          "direction": "src"
+        },
+        {
+          "type": "set_tag",
+          "entity": "$actor",
+          "tag": "stolen_art",
+          "value": true
+        }
+      ],
+      "descriptionTemplate": "stole the secret of {target.name}, forfeiting leadership",
+      "narrationTemplate": "{actor.name} stole the technique of {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.481,
+        "onFailure": 0.24
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.15,
+      "baseWeight": 0.05,
+      "pressureModifiers": []
+    },
+    "enabled": true
+  },
+  {
+    "id": "occurrence_marks_artifact",
+    "name": "Event Marks Artifact",
+    "description": "A significant event leaves its memory upon an artifact, making it historically significant",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "occurrence",
+        "subtypes": [
+          "war",
+          "disaster",
+          "celebration",
+          "succession_crisis"
+        ],
+        "status": "active",
+        "minProminence": "marginal"
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "artifact",
+      "status": "intact",
+      "filters": [
+        {
+          "type": "lacks_relationship",
+          "kind": "participant_in",
+          "with": "$actor"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "participant_in",
+          "src": "$target",
+          "dst": "$actor",
+          "strength": 0.8
+        }
+      ],
+      "descriptionTemplate": "{actor.name} left its memory upon {target.name}",
+      "narrationTemplate": "{actor.name} marked {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.289,
+        "onFailure": 0.146
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.176,
+        "onFailure": 0.088
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.5,
+      "baseWeight": 0.5
+    },
+    "enabled": true
+  },
+  {
+    "id": "artifact_enshrines_tradition",
+    "name": "Artifact Enshrines Tradition",
+    "description": "A historically significant artifact becomes central to a cultural tradition",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "artifact",
+        "status": "intact",
+        "minProminence": "marginal",
+        "filters": [
+          {
+            "type": "has_relationship",
+            "kind": "participant_in",
+            "direction": "src"
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "rule",
+      "subtypes": [
+        "ideology",
+        "law",
+        "social",
+        "memorial"
+      ],
+      "filters": [
+        {
+          "type": "matches_culture",
+          "with": "$actor"
+        },
+        {
+          "type": "lacks_relationship",
+          "kind": "central_to",
+          "with": "$actor"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "central_to",
+          "src": "$actor",
+          "dst": "$target",
+          "strength": 0.8
+        }
+      ],
+      "descriptionTemplate": "{actor.name} became central to the practice of {target.name}",
+      "narrationTemplate": "{actor.name} became enshrined in {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.113,
+        "onFailure": 0.059
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.07,
+        "onFailure": 0.033
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.4,
+      "baseWeight": 0.4
+    },
+    "enabled": true
+  },
+  {
+    "id": "tradition_commemorates_event",
+    "name": "Tradition Commemorates Event",
+    "description": "A cultural tradition begins commemorating a significant event",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "rule",
+        "subtypes": [
+          "ideology",
+          "law",
+          "social",
+          "memorial"
+        ],
+        "minProminence": "marginal"
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "occurrence",
+      "subtypes": [
+        "war",
+        "disaster",
+        "celebration",
+        "succession_crisis"
+      ],
+      "filters": [
+        {
+          "type": "matches_culture",
+          "with": "$actor"
+        },
+        {
+          "type": "lacks_relationship",
+          "kind": "commemorates",
+          "with": "$actor"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "commemorates",
+          "src": "$actor",
+          "dst": "$target",
+          "strength": 0.7
+        }
+      ],
+      "descriptionTemplate": "The tradition of {actor.name} now commemorates {target.name}",
+      "narrationTemplate": "{actor.name} now commemorates {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.095,
+        "onFailure": 0.049
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.057,
+        "onFailure": 0.028
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.45,
+      "baseWeight": 0.4
+    },
+    "enabled": true
+  },
+  {
+    "id": "artifact_selects_custodian",
+    "name": "Artifact Selects Custodian",
+    "description": "An unclaimed artifact chooses a worthy faction to be its guardian",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "artifact",
+        "status": "intact",
+        "filters": [
+          {
+            "type": "lacks_relationship",
+            "kind": "owned_by"
+          },
+          {
+            "type": "has_relationship",
+            "kind": "stored_at",
+            "direction": "src"
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "filters": [
+        {
+          "type": "has_relationship",
+          "kind": "controls",
+          "direction": "src"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "owned_by",
+          "src": "$actor",
+          "dst": "$target",
+          "strength": 0.8
+        },
+        {
+          "type": "set_tag",
+          "entity": "$actor",
+          "tag": "claimed",
+          "value": true
+        }
+      ],
+      "descriptionTemplate": "{actor.name} chose {target.name} as its guardian",
+      "narrationTemplate": "{actor.name} selected {target.name} as custodian.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.197,
+        "onFailure": 0.098
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.118,
+        "onFailure": 0.059
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.5,
+      "baseWeight": 0.4
+    },
+    "enabled": true
+  },
+  {
+    "id": "ideology_conquers",
+    "name": "Ideology Conquers",
+    "description": "A powerful ideology spreads to claim new believers among the factions",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "rule",
+        "subtypes": [
+          "ideology",
+          "law"
+        ],
+        "minProminence": "marginal"
+      },
+      "conditions": [
+        {
+          "type": "relationship_count",
+          "relationshipKind": "believer_of",
+          "direction": "dst",
+          "min": 1
+        }
+      ]
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "faction",
+      "filters": [
+        {
+          "type": "lacks_relationship",
+          "kind": "believer_of",
+          "with": "$actor"
+        },
+        {
+          "type": "matches_culture",
+          "with": "$actor"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "create_relationship",
+          "kind": "believer_of",
+          "src": "$target",
+          "dst": "$actor",
+          "strength": 0.7
+        }
+      ],
+      "descriptionTemplate": "{actor.name} claimed {target.name} among its believers",
+      "narrationTemplate": "{actor.name} spread to {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.045,
+        "onFailure": 0.023
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.027,
+        "onFailure": 0.014
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.35,
+      "baseWeight": 0.5,
+      "pressureModifiers": [
+        {
+          "pressure": "cultural_harmony",
+          "multiplier": 0.4
+        }
+      ]
+    },
+    "enabled": true
+  },
+  {
+    "id": "artifact_attracts_restorer",
+    "name": "Artifact Attracts Restorer",
+    "description": "A damaged artifact's fading essence draws someone capable of preservation",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "artifact",
+        "status": "damaged",
+        "minProminence": "marginal"
+      },
+      "conditions": [
+        {
+          "type": "time_elapsed",
+          "minTicks": 12
+        }
+      ]
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "npc",
+      "subtypes": [
+        "mayor",
+        "merchant",
+        "hero"
+      ],
+      "status": "alive",
+      "pickStrategy": "weighted"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "change_status",
+          "entity": "$actor",
+          "newStatus": "intact"
+        },
+        {
+          "type": "create_relationship",
+          "kind": "owned_by",
+          "src": "$actor",
+          "dst": "$target",
+          "strength": 0.8
+        }
+      ],
+      "descriptionTemplate": "{actor.name} called to {target.name}, who restored it",
+      "narrationTemplate": "{target.name} restored {actor.name} to its former glory.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.6,
+        "onFailure": 0.3
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.36,
+        "onFailure": 0.18
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.15,
+      "baseWeight": 0.3
+    },
+    "enabled": true
+  },
+  {
+    "id": "tome_reveals_resources",
+    "name": "Tome Reveals Resources",
+    "description": "A tome of places reveals hidden resources in its resting place",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "artifact",
+        "subtypes": [
+          "tome"
+        ],
+        "status": "intact",
+        "filters": [
+          {
+            "type": "has_relationship",
+            "kind": "stored_at",
+            "direction": "src"
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "filters": [
+        {
+          "type": "has_relationship",
+          "kind": "stored_at",
+          "with": "$actor",
+          "direction": "dst"
+        },
+        {
+          "type": "lacks_tag",
+          "tag": "resource"
+        }
+      ]
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "set_tag",
+          "entity": "$target",
+          "tag": "resource",
+          "value": true
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "resource_availibility",
+          "delta": 5
+        }
+      ],
+      "descriptionTemplate": "{actor.name} revealed hidden riches at {target.name}",
+      "narrationTemplate": "{actor.name} revealed resources at {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.6,
+        "onFailure": 0.3
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.36,
+        "onFailure": 0.18
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.4,
+      "baseWeight": 0.5
+    },
+    "enabled": true
+  },
+  {
+    "id": "tome_dispels_danger",
+    "name": "Tome Dispels Danger",
+    "description": "A tome's secrets reveal safe passage through dangerous lands",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "artifact",
+        "subtypes": [
+          "tome"
+        ],
+        "status": "intact",
+        "filters": [
+          {
+            "type": "has_relationship",
+            "kind": "stored_at",
+            "direction": "src"
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "filters": [
+        {
+          "type": "has_tag",
+          "tag": "dangerous"
+        },
+        {
+          "type": "lacks_tag",
+          "tag": "safe"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "remove_tag",
+          "entity": "$target",
+          "tag": "dangerous"
+        },
+        {
+          "type": "set_tag",
+          "entity": "$target",
+          "tag": "safe",
+          "value": true
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "iceberg_security",
+          "delta": 3
+        }
+      ],
+      "descriptionTemplate": "{actor.name} revealed safe passage through {target.name}",
+      "narrationTemplate": "{actor.name} revealed safe passage through {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.197,
+        "onFailure": 0.098
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.75,
+        "onFailure": 0.375
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.35,
+      "baseWeight": 0.4
+    },
+    "enabled": true
+  },
+  {
+    "id": "tome_cleanses_corruption",
+    "name": "Tome Cleanses Corruption",
+    "description": "A mystical tome's secrets cleanse corruption from the land",
+    "actor": {
+      "selection": {
+        "strategy": "by_kind",
+        "kind": "artifact",
+        "subtypes": [
+          "tome"
+        ],
+        "status": "intact",
+        "filters": [
+          {
+            "type": "has_tag",
+            "tag": "mystical"
+          }
+        ]
+      }
+    },
+    "targeting": {
+      "strategy": "by_kind",
+      "kind": "location",
+      "filters": [
+        {
+          "type": "has_tag",
+          "tag": "corrupted"
+        },
+        {
+          "type": "matches_culture",
+          "with": "$actor"
+        }
+      ],
+      "pickStrategy": "random"
+    },
+    "outcome": {
+      "mutations": [
+        {
+          "type": "remove_tag",
+          "entity": "$target",
+          "tag": "corrupted"
+        },
+        {
+          "type": "remove_tag",
+          "entity": "$target",
+          "tag": "crisis"
+        },
+        {
+          "type": "modify_pressure",
+          "pressureId": "magical_stability",
+          "delta": 5
+        }
+      ],
+      "descriptionTemplate": "{actor.name} purified the corruption at {target.name}",
+      "narrationTemplate": "{actor.name} cleansed the corruption at {target.name}.",
+      "actorProminenceDelta": {
+        "onSuccess": 0.309,
+        "onFailure": 0.154
+      },
+      "targetProminenceDelta": {
+        "onSuccess": 0.05,
+        "onFailure": 0.025
+      }
+    },
+    "probability": {
+      "baseSuccessChance": 0.3,
+      "baseWeight": 0.4,
+      "pressureModifiers": [
+        {
+          "pressure": "magical_stability",
+          "multiplier": -0.4
+        }
+      ]
+    },
+    "enabled": true
+  }
+]

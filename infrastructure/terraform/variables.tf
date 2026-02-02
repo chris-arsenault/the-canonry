@@ -1,4 +1,4 @@
-# variables.tf - Input variables for penguin-tales infrastructure
+# variables.tf - Input variables for canonry full suite infrastructure
 
 variable "aws_region" {
   description = "AWS region to deploy resources"
@@ -9,11 +9,11 @@ variable "aws_region" {
 variable "prefix" {
   description = "Project prefix for namespacing resources"
   type        = string
-  default     = "pt"
+  default     = "canonry"
 }
 
 variable "domain_name" {
   description = "Domain name for the website"
   type        = string
-  default     = "penguin-tales.com"
+  default     = "the-canonry.com"
 }

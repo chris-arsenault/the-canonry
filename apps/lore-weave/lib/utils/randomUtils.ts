@@ -65,6 +65,10 @@ export function weightedRandom<T>(
 export function rollProbability(baseProbability: number, eraModifier: number = 1.0): boolean {
   const p = baseProbability;
 
+  // Edge cases: probability of 0 or 1 should be deterministic
+  if (p <= 0) return false;
+  if (p >= 1) return true;
+
   // odds scaling
   const odds = p / (1 - p);
   const scaledOdds = Math.pow(odds, eraModifier);

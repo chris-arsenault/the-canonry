@@ -18,6 +18,9 @@ terraform {
   #   encrypt        = true
   #   dynamodb_table = "penguin-tales-terraform-locks"
   # }
+  backend "local" {
+    path = "./canonry.tfstate"
+  }
 }
 
 provider "aws" {

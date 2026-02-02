@@ -1,0 +1,29 @@
+{
+  "name": "@canonry/dsl",
+  "version": "0.1.0",
+  "description": "Canonical DSL parser/compiler for Canonry .canon files",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "peggy": "^4.0.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "license": "MIT"
+}

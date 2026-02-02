@@ -18,11 +18,8 @@ export class RelationshipBuilder {
    * @param dst - Destination entity ID
    * @param strength - Optional relationship strength (0-1)
    */
-  add(kind: string, src: string, dst: string, strength?: number): this {
-    const rel: Relationship = { kind, src, dst };
-    if (strength !== undefined) {
-      rel.strength = strength;
-    }
+  add(kind: string, src: string, dst: string, strength: number = 0.5): this {
+    const rel: Relationship = { kind, src, dst, strength };
     this.relationships.push(rel);
     return this;
   }
@@ -128,11 +125,7 @@ export function createRelationship(
   kind: string,
   src: string,
   dst: string,
-  strength?: number
+  strength: number = 0.5
 ): Relationship {
-  const rel: Relationship = { kind, src, dst };
-  if (strength !== undefined) {
-    rel.strength = strength;
-  }
-  return rel;
+  return { kind, src, dst, strength };
 }

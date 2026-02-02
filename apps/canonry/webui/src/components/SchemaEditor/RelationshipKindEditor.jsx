@@ -2,224 +2,19 @@
  * RelationshipKindEditor - Edit relationship kinds
  */
 
-import React, { useState } from 'react';
-import { colors, typography, spacing, radius, components } from '../../theme';
-
-const styles = {
-  container: {
-    maxWidth: '900px',
-  },
-  header: {
-    marginBottom: spacing.xxl,
-  },
-  title: {
-    fontSize: typography.sizeTitle,
-    fontWeight: typography.weightSemibold,
-    fontFamily: typography.fontFamily,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    color: colors.textSecondary,
-    fontSize: typography.sizeLg,
-    fontFamily: typography.fontFamily,
-  },
-  toolbar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  count: {
-    color: colors.textMuted,
-    fontSize: typography.sizeMd,
-    fontFamily: typography.fontFamily,
-  },
-  addButton: {
-    ...components.buttonPrimary,
-  },
-  relList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: spacing.sm,
-  },
-  relCard: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: radius.lg,
-    border: `1px solid ${colors.border}`,
-    overflow: 'hidden',
-  },
-  relHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: `${spacing.md} ${spacing.lg}`,
-    cursor: 'pointer',
-  },
-  relHeaderLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  expandIcon: {
-    fontSize: typography.sizeSm,
-    color: colors.textMuted,
-    transition: 'transform 0.2s',
-    width: '16px',
-  },
-  relName: {
-    fontWeight: typography.weightMedium,
-    fontFamily: typography.fontFamily,
-    color: colors.textPrimary,
-  },
-  relId: {
-    color: colors.textMuted,
-    fontSize: typography.sizeXs,
-    fontFamily: typography.fontFamily,
-  },
-  relSummary: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing.sm,
-    fontSize: typography.sizeXs,
-    fontFamily: typography.fontFamily,
-    color: colors.textMuted,
-  },
-  summaryKind: {
-    padding: `2px ${spacing.sm}`,
-    backgroundColor: colors.bgTertiary,
-    borderRadius: radius.sm,
-    fontSize: typography.sizeXs,
-    fontFamily: typography.fontFamily,
-  },
-  relBody: {
-    padding: spacing.lg,
-    borderTop: `1px solid ${colors.border}`,
-    backgroundColor: colors.bgTertiary,
-  },
-  formRow: {
-    display: 'flex',
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-    alignItems: 'flex-start',
-  },
-  formGroup: {
-    flex: 1,
-  },
-  label: {
-    ...components.label,
-  },
-  input: {
-    ...components.input,
-  },
-  textarea: {
-    ...components.input,
-    resize: 'vertical',
-    minHeight: '60px',
-  },
-  constraintsSection: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  constraintsTitle: {
-    fontSize: typography.sizeMd,
-    fontWeight: typography.weightMedium,
-    fontFamily: typography.fontFamily,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  constraintRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing.lg,
-  },
-  kindBox: {
-    flex: 1,
-  },
-  kindBoxLabel: {
-    fontSize: typography.sizeXs,
-    fontFamily: typography.fontFamily,
-    color: colors.textMuted,
-    marginBottom: spacing.sm,
-    display: 'flex',
-    justifyContent: 'space-between',
-  },
-  kindGrid: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  kindChip: {
-    padding: `${spacing.sm} ${spacing.md}`,
-    borderRadius: radius.sm,
-    fontSize: typography.sizeSm,
-    fontFamily: typography.fontFamily,
-    cursor: 'pointer',
-    transition: 'background-color 0.15s',
-    border: '1px solid transparent',
-  },
-  kindChipActive: {
-    backgroundColor: colors.buttonPrimary,
-    color: 'white',
-  },
-  kindChipInactive: {
-    backgroundColor: colors.bgTertiary,
-    color: colors.textSecondary,
-    border: `1px solid ${colors.border}`,
-  },
-  arrow: {
-    fontSize: typography.sizeTitle,
-    color: colors.textMuted,
-    fontWeight: typography.weightNormal,
-  },
-  optionsRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  checkbox: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing.sm,
-    fontSize: typography.sizeMd,
-    fontFamily: typography.fontFamily,
-    color: colors.textSecondary,
-    cursor: 'pointer',
-  },
-  deleteButton: {
-    ...components.buttonDanger,
-  },
-  emptyState: {
-    color: colors.textMuted,
-    fontSize: typography.sizeLg,
-    fontFamily: typography.fontFamily,
-    textAlign: 'center',
-    padding: spacing.xxxl,
-  },
-  anyLabel: {
-    fontSize: typography.sizeXs,
-    fontFamily: typography.fontFamily,
-    color: colors.textMuted,
-    fontStyle: 'italic',
-  },
-  symmetricLabel: {
-    fontSize: typography.sizeXs,
-    fontFamily: typography.fontFamily,
-    color: colors.textMuted,
-  },
-};
+import React, { useMemo, useState } from 'react';
+import { ExpandableCard, FormGroup, SectionHeader, EmptyState } from '@penguin-tales/shared-components';
+import { ToolUsageBadges as UsageBadges, getRelationshipKindUsageSummary } from '@penguin-tales/shared-components';
 
 export default function RelationshipKindEditor({
   relationshipKinds,
   entityKinds,
   onChange,
+  schemaUsage = {},
 }) {
   const [expandedRels, setExpandedRels] = useState({});
 
-  // Use stable key for expand/collapse tracking (falls back to id for existing rels)
-  const getStableKey = (rel) => rel._key || rel.id;
+  const getStableKey = (rel) => rel._key || rel.kind;
 
   const toggleRel = (stableKey) => {
     setExpandedRels((prev) => ({ ...prev, [stableKey]: !prev[stableKey] }));
@@ -228,272 +23,273 @@ export default function RelationshipKindEditor({
   const addRelationship = () => {
     const stableKey = `rel_${Date.now()}`;
     const newRel = {
-      id: stableKey,
-      name: 'New Relationship',
-      description: '',
+      kind: stableKey,
+      description: 'New Relationship',
       srcKinds: [],
       dstKinds: [],
-      symmetric: false,
-      _key: stableKey, // Stable key for React, never changes
+      cullable: true,
+      decayRate: 'medium',
+      polarity: 'neutral',
+      _key: stableKey,
     };
     onChange([...relationshipKinds, newRel]);
     setExpandedRels((prev) => ({ ...prev, [stableKey]: true }));
   };
 
-  const updateRel = (relId, updates) => {
-    onChange(
-      relationshipKinds.map((r) => (r.id === relId ? { ...r, ...updates } : r))
-    );
+  const updateRel = (relKind, updates) => {
+    const existing = relationshipKinds.find((r) => r.kind === relKind);
+    if (existing?.isFramework) return;
+    onChange(relationshipKinds.map((r) => (r.kind === relKind ? { ...r, ...updates } : r)));
   };
 
-  const deleteRel = (relId) => {
+  const deleteRel = (relKind) => {
+    const existing = relationshipKinds.find((r) => r.kind === relKind);
+    if (existing?.isFramework) return;
     if (confirm('Delete this relationship kind?')) {
-      onChange(relationshipKinds.filter((r) => r.id !== relId));
+      onChange(relationshipKinds.filter((r) => r.kind !== relKind));
     }
   };
 
-  const toggleKind = (relId, field, kindId) => {
-    const rel = relationshipKinds.find((r) => r.id === relId);
-    if (!rel) return;
-
+  const toggleEntityKind = (relKind, field, entityKindId) => {
+    const rel = relationshipKinds.find((r) => r.kind === relKind);
+    if (!rel || rel.isFramework) return;
     const current = rel[field] || [];
-    const updated = current.includes(kindId)
-      ? current.filter((k) => k !== kindId)
-      : [...current, kindId];
-
-    updateRel(relId, { [field]: updated });
+    const updated = current.includes(entityKindId)
+      ? current.filter((k) => k !== entityKindId)
+      : [...current, entityKindId];
+    updateRel(relKind, { [field]: updated });
   };
 
   const getSummary = (rel) => {
-    const srcNames =
-      rel.srcKinds?.length > 0
-        ? rel.srcKinds
-            .map((id) => entityKinds.find((k) => k.id === id)?.name || id)
-            .slice(0, 2)
-        : ['Any'];
-    const dstNames =
-      rel.dstKinds?.length > 0
-        ? rel.dstKinds
-            .map((id) => entityKinds.find((k) => k.id === id)?.name || id)
-            .slice(0, 2)
-        : ['Any'];
-
+    const srcNames = rel.srcKinds?.length > 0
+      ? rel.srcKinds.map((k) => entityKinds.find((ek) => ek.kind === k)?.description || k).slice(0, 2)
+      : ['Any'];
+    const dstNames = rel.dstKinds?.length > 0
+      ? rel.dstKinds.map((k) => entityKinds.find((ek) => ek.kind === k)?.description || k).slice(0, 2)
+      : ['Any'];
     return { srcNames, dstNames };
   };
 
-  return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <div style={styles.title}>Relationship Kinds</div>
-        <div style={styles.subtitle}>
-          Define how entities can be connected to each other.
-        </div>
-      </div>
+  const flexFormStyle = useMemo(() => ({ flex: 1 }), []);
 
-      <div style={styles.toolbar}>
-        <span style={styles.count}>
-          {relationshipKinds.length} relationship
-          {relationshipKinds.length !== 1 ? 's' : ''}
-        </span>
-        <button style={styles.addButton} onClick={addRelationship}>
-          + Add Relationship
-        </button>
+  const renderHeaderActions = () => (
+    <button className="btn btn-primary" onClick={addRelationship}>
+      + Add Relationship
+    </button>
+  );
+
+  const renderRelationshipActions = (rel, srcNames, dstNames, isFramework) => (
+    <>
+      <UsageBadges usage={getRelationshipKindUsageSummary(schemaUsage, rel.kind)} compact />
+      {isFramework && <span className="badge badge-info">framework</span>}
+      {rel.cullable === false && <span className="badge badge-info">protected</span>}
+      <div className="text-muted text-small" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        {srcNames.map((name, i) => (
+          <span key={i} className="badge">{name}</span>
+        ))}
+        {rel.srcKinds?.length > 2 && <span>+{rel.srcKinds.length - 2}</span>}
+        <span>→</span>
+        {dstNames.map((name, i) => (
+          <span key={i} className="badge">{name}</span>
+        ))}
+        {rel.dstKinds?.length > 2 && <span>+{rel.dstKinds.length - 2}</span>}
       </div>
+    </>
+  );
+
+  return (
+    <div className="editor-container" style={{ maxWidth: '900px' }}>
+      <SectionHeader
+        title="Relationship Kinds"
+        description="Define how entities can be connected to each other."
+        count={relationshipKinds.length}
+        actions={renderHeaderActions()}
+      />
 
       {relationshipKinds.length === 0 ? (
-        <div style={styles.emptyState}>
-          No relationship kinds defined. Add one to connect entities.
-        </div>
+        <EmptyState
+          icon="🔗"
+          title="No relationship kinds defined"
+          description="Add one to connect entities."
+        />
       ) : (
-        <div style={styles.relList}>
+        <div className="list-stack">
           {relationshipKinds.map((rel) => {
             const stableKey = getStableKey(rel);
             const isExpanded = expandedRels[stableKey];
             const { srcNames, dstNames } = getSummary(rel);
+            const isFramework = Boolean(rel.isFramework);
 
             return (
-              <div key={stableKey} style={styles.relCard}>
-                <div
-                  style={styles.relHeader}
-                  onClick={() => toggleRel(stableKey)}
-                >
-                  <div style={styles.relHeaderLeft}>
-                    <span
-                      style={{
-                        ...styles.expandIcon,
-                        transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+              <ExpandableCard
+                key={stableKey}
+                expanded={isExpanded}
+                onToggle={() => toggleRel(stableKey)}
+                title={rel.description}
+                subtitle={rel.kind}
+                actions={renderRelationshipActions(rel, srcNames, dstNames, isFramework)}
+              >
+                {/* Display Name and Kind ID */}
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                  <FormGroup label="Display Name">
+                    <input
+                      className="input"
+                      value={rel.description}
+                      disabled={isFramework}
+                      onChange={(e) => updateRel(rel.kind, { description: e.target.value })}
+                      placeholder="Relationship display name"
+                    />
+                  </FormGroup>
+                  <FormGroup label="Kind ID">
+                    <input
+                      className="input"
+                      value={rel.kind}
+                      disabled={isFramework}
+                      onChange={(e) => {
+                        const newKind = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                        if (newKind && !relationshipKinds.some((r) => r.kind === newKind && r.kind !== rel.kind)) {
+                          updateRel(rel.kind, { kind: newKind });
+                        }
                       }}
-                    >
-                      ▶
-                    </span>
-                    <span style={styles.relName}>{rel.name}</span>
-                    <span style={styles.relId}>({rel.id})</span>
-                    {rel.symmetric && (
-                      <span style={styles.symmetricLabel}>
-                        ↔ symmetric
-                      </span>
-                    )}
-                  </div>
-                  <div style={styles.relSummary}>
-                    {srcNames.map((name, i) => (
-                      <span key={i} style={styles.summaryKind}>
-                        {name}
-                      </span>
-                    ))}
-                    {rel.srcKinds?.length > 2 && (
-                      <span>+{rel.srcKinds.length - 2}</span>
-                    )}
-                    <span style={{ color: colors.textMuted }}>→</span>
-                    {dstNames.map((name, i) => (
-                      <span key={i} style={styles.summaryKind}>
-                        {name}
-                      </span>
-                    ))}
-                    {rel.dstKinds?.length > 2 && (
-                      <span>+{rel.dstKinds.length - 2}</span>
-                    )}
+                      placeholder="relationship_kind_id"
+                    />
+                  </FormGroup>
+                </div>
+
+                {/* Entity Kind Constraints */}
+                <div className="nested-section-compact">
+                  <div className="label" style={{ marginBottom: '8px' }}>Entity Kind Constraints</div>
+                  {entityKinds.length === 0 ? (
+                    <div className="text-muted text-small">Define entity kinds first to set constraints.</div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span className="text-small text-muted">Source</span>
+                          {rel.srcKinds?.length === 0 && <span className="text-muted text-small">any</span>}
+                        </div>
+                        <div className="chip-list" style={{ marginBottom: 0 }}>
+                          {entityKinds.map((ek) => (
+                            <div
+                              key={ek.kind}
+                              className={`chip chip-clickable ${rel.srcKinds?.includes(ek.kind) ? 'chip-active' : ''}`}
+                              onClick={() => toggleEntityKind(rel.kind, 'srcKinds', ek.kind)}
+                              style={isFramework ? { pointerEvents: 'none', opacity: 0.6 } : undefined}
+                            >
+                              {ek.description}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="text-dim" style={{ fontSize: '16px' }}>→</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span className="text-small text-muted">Destination</span>
+                          {rel.dstKinds?.length === 0 && <span className="text-muted text-small">any</span>}
+                        </div>
+                        <div className="chip-list" style={{ marginBottom: 0 }}>
+                          {entityKinds.map((ek) => (
+                            <div
+                              key={ek.kind}
+                              className={`chip chip-clickable ${rel.dstKinds?.includes(ek.kind) ? 'chip-active' : ''}`}
+                              onClick={() => toggleEntityKind(rel.kind, 'dstKinds', ek.kind)}
+                              style={isFramework ? { pointerEvents: 'none', opacity: 0.6 } : undefined}
+                            >
+                              {ek.description}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Maintenance Settings */}
+                <div className="nested-section-compact">
+                  <div className="label" style={{ marginBottom: '8px' }}>Maintenance Settings</div>
+                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="text-small text-muted">Decay</span>
+                      <select
+                        className="input"
+                        style={{ width: 'auto', padding: '6px 10px' }}
+                        value={rel.decayRate || 'medium'}
+                        disabled={isFramework}
+                        onChange={(e) => updateRel(rel.kind, { decayRate: e.target.value })}
+                      >
+                        <option value="none">None</option>
+                        <option value="slow">Slow</option>
+                        <option value="medium">Medium</option>
+                        <option value="fast">Fast</option>
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="text-small text-muted">Polarity</span>
+                      <select
+                        className="input"
+                        style={{ width: 'auto', padding: '6px 10px' }}
+                        value={rel.polarity || 'neutral'}
+                        disabled={isFramework}
+                        onChange={(e) => updateRel(rel.kind, { polarity: e.target.value })}
+                        title="Affects narrative event types"
+                      >
+                        <option value="positive">Positive</option>
+                        <option value="neutral">Neutral</option>
+                        <option value="negative">Negative</option>
+                      </select>
+                    </div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={rel.cullable !== false}
+                        disabled={isFramework}
+                        onChange={(e) => updateRel(rel.kind, { cullable: e.target.checked })}
+                        style={{ width: '14px', height: '14px' }}
+                      />
+                      <span className="text-small">Cullable</span>
+                    </label>
                   </div>
                 </div>
 
-                {isExpanded && (
-                  <div style={styles.relBody}>
-                    {/* Name and ID */}
-                    <div style={styles.formRow}>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Name</label>
-                        <input
-                          style={styles.input}
-                          value={rel.name}
-                          onChange={(e) =>
-                            updateRel(rel.id, { name: e.target.value })
-                          }
-                          placeholder="Relationship name"
-                        />
-                      </div>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>ID</label>
-                        <input
-                          style={styles.input}
-                          value={rel.id}
-                          onChange={(e) => {
-                            const newId = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
-                            if (newId && !relationshipKinds.some((r) => r.id === newId && r.id !== rel.id)) {
-                              updateRel(rel.id, { id: newId });
-                            }
-                          }}
-                          placeholder="relationship_id"
-                        />
-                      </div>
-                    </div>
-
-                    <div style={styles.formRow}>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Description (optional)</label>
-                        <textarea
-                          style={styles.textarea}
-                          value={rel.description || ''}
-                          onChange={(e) =>
-                            updateRel(rel.id, { description: e.target.value })
-                          }
-                          placeholder="Describe what this relationship represents..."
-                        />
-                      </div>
-                    </div>
-
-                    {/* Entity Kind Constraints */}
-                    <div style={styles.constraintsSection}>
-                      <div style={styles.constraintsTitle}>
-                        Entity Kind Constraints
-                      </div>
-
-                      {entityKinds.length === 0 ? (
-                        <div style={{ color: colors.textMuted, fontSize: typography.sizeSm }}>
-                          Define entity kinds first to set constraints.
-                        </div>
-                      ) : (
-                        <div style={styles.constraintRow}>
-                          <div style={styles.kindBox}>
-                            <div style={styles.kindBoxLabel}>
-                              <span>Source Kinds</span>
-                              {rel.srcKinds?.length === 0 && (
-                                <span style={styles.anyLabel}>accepts any</span>
-                              )}
-                            </div>
-                            <div style={styles.kindGrid}>
-                              {entityKinds.map((kind) => (
-                                <div
-                                  key={kind.id}
-                                  style={{
-                                    ...styles.kindChip,
-                                    ...(rel.srcKinds?.includes(kind.id)
-                                      ? styles.kindChipActive
-                                      : styles.kindChipInactive),
-                                  }}
-                                  onClick={() =>
-                                    toggleKind(rel.id, 'srcKinds', kind.id)
-                                  }
-                                >
-                                  {kind.name}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div style={styles.arrow}>→</div>
-
-                          <div style={styles.kindBox}>
-                            <div style={styles.kindBoxLabel}>
-                              <span>Destination Kinds</span>
-                              {rel.dstKinds?.length === 0 && (
-                                <span style={styles.anyLabel}>accepts any</span>
-                              )}
-                            </div>
-                            <div style={styles.kindGrid}>
-                              {entityKinds.map((kind) => (
-                                <div
-                                  key={kind.id}
-                                  style={{
-                                    ...styles.kindChip,
-                                    ...(rel.dstKinds?.includes(kind.id)
-                                      ? styles.kindChipActive
-                                      : styles.kindChipInactive),
-                                  }}
-                                  onClick={() =>
-                                    toggleKind(rel.id, 'dstKinds', kind.id)
-                                  }
-                                >
-                                  {kind.name}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Options */}
-                    <div style={styles.optionsRow}>
-                      <label style={styles.checkbox}>
-                        <input
-                          type="checkbox"
-                          checked={rel.symmetric || false}
-                          onChange={(e) =>
-                            updateRel(rel.id, { symmetric: e.target.checked })
-                          }
-                        />
-                        Symmetric (A→B implies B→A)
-                      </label>
-
-                      <button
-                        style={styles.deleteButton}
-                        onClick={() => deleteRel(rel.id)}
-                      >
-                        Delete Relationship
-                      </button>
-                    </div>
+                {/* Narrative Verbs */}
+                <div className="nested-section-compact">
+                  <div className="label" style={{ marginBottom: '8px' }}>Narrative Verbs</div>
+                  <div className="text-muted text-small" style={{ marginBottom: '8px' }}>
+                    Verbs used in narrative event descriptions when this relationship is formed or ended.
                   </div>
-                )}
-              </div>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <FormGroup label="Formed" style={flexFormStyle}>
+                      <input
+                        className="input"
+                        value={rel.verbs?.formed || ''}
+                        disabled={isFramework}
+                        onChange={(e) => updateRel(rel.kind, {
+                          verbs: { ...rel.verbs, formed: e.target.value }
+                        })}
+                        placeholder="e.g., joined, allied with"
+                      />
+                    </FormGroup>
+                    <FormGroup label="Ended" style={flexFormStyle}>
+                      <input
+                        className="input"
+                        value={rel.verbs?.ended || ''}
+                        disabled={isFramework}
+                        onChange={(e) => updateRel(rel.kind, {
+                          verbs: { ...rel.verbs, ended: e.target.value }
+                        })}
+                        placeholder="e.g., left, broke ties with"
+                      />
+                    </FormGroup>
+                  </div>
+                </div>
+
+                {/* Delete */}
+                <div className="danger-zone">
+                  <button className="btn btn-danger" onClick={() => deleteRel(rel.kind)} disabled={isFramework}>
+                    Delete Relationship
+                  </button>
+                </div>
+              </ExpandableCard>
             );
           })}
         </div>
