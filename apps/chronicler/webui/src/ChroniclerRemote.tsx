@@ -9,6 +9,7 @@
 
 import './styles/variables.css';
 import WikiExplorer from './components/WikiExplorer.tsx';
+import { ParchmentTexture } from './components/Ornaments.tsx';
 import type { ChronicleRecord } from './lib/chronicleStorage.ts';
 import type { StaticPage } from './lib/staticPageStorage.ts';
 import type { WorldState, LoreData } from './types/world.ts';
@@ -39,6 +40,8 @@ export default function ChroniclerRemote({
 }: ChroniclerRemoteProps) {
   if (!worldData) {
     return (
+      <>
+      <ParchmentTexture />
       <div
         style={{
           height: '100%',
@@ -59,19 +62,23 @@ export default function ChroniclerRemote({
           </div>
         </div>
       </div>
+      </>
     );
   }
 
   return (
-    <WikiExplorer
-      projectId={projectId}
-      worldData={worldData}
-      loreData={loreData}
-      chronicles={chronicles}
-      staticPages={staticPages}
-      requestedPageId={requestedPageId}
-      onRequestedPageConsumed={onRequestedPageConsumed}
-      narrativeHistoryLoading={narrativeHistoryLoading}
-    />
+    <>
+      <ParchmentTexture />
+      <WikiExplorer
+        projectId={projectId}
+        worldData={worldData}
+        loreData={loreData}
+        chronicles={chronicles}
+        staticPages={staticPages}
+        requestedPageId={requestedPageId}
+        onRequestedPageConsumed={onRequestedPageConsumed}
+        narrativeHistoryLoading={narrativeHistoryLoading}
+      />
+    </>
   );
 }

@@ -138,6 +138,11 @@
   --z-modal-backdrop: 1000;
   --z-modal: 1001;
   --z-tooltip: 1100;
+
+  /* ===================
+     Ornamental SVGs (data URIs for CSS usage)
+     =================== */
+  --ornament-hr: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 24' fill='none'%3E%3Cline x1='20' y1='12' x2='220' y2='12' stroke='%23c49a5c' stroke-width='0.5' opacity='0.3'/%3E%3Cpath d='M120 6 L124 12 L120 18 L116 12 Z' fill='%23c49a5c' opacity='0.5'/%3E%3Ccircle cx='108' cy='12' r='1.2' fill='%238ab4c4' opacity='0.4'/%3E%3Ccircle cx='132' cy='12' r='1.2' fill='%238ab4c4' opacity='0.4'/%3E%3Cpath d='M108 12 C100 8 88 10 75 12' stroke='%23c49a5c' stroke-width='0.8' opacity='0.35' stroke-linecap='round'/%3E%3Cpath d='M132 12 C140 8 152 10 165 12' stroke='%23c49a5c' stroke-width='0.8' opacity='0.35' stroke-linecap='round'/%3E%3Ccircle cx='72' cy='12' r='1' fill='%238ab4c4' opacity='0.3'/%3E%3Ccircle cx='168' cy='12' r='1' fill='%238ab4c4' opacity='0.3'/%3E%3C/svg%3E");
 }
 
 /* ===================
@@ -158,17 +163,10 @@ body {
   color: var(--color-text-primary);
   line-height: var(--line-height-normal);
 
-  /* Layered parchment/vellum texture using CSS gradients */
+  /* Background: vignette + warm-to-cool base. Paper grain comes from SVG ParchmentTexture overlay. */
   background-color: var(--color-bg-primary);
   background-image:
-    /* Vignette - darkened edges like aged parchment */
     radial-gradient(ellipse at center, transparent 50%, rgba(10, 8, 5, 0.6) 100%),
-    /* Subtle warm grain - organic variation */
-    radial-gradient(ellipse at 20% 30%, rgba(196, 154, 92, 0.03) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(138, 180, 196, 0.02) 0%, transparent 40%),
-    radial-gradient(ellipse at 60% 70%, rgba(196, 154, 92, 0.025) 0%, transparent 45%),
-    radial-gradient(ellipse at 10% 80%, rgba(138, 180, 196, 0.015) 0%, transparent 35%),
-    /* Base warm-to-cool gradient (parchment with frost hint) */
     linear-gradient(170deg, #1c1812 0%, #1a1611 40%, #181a1e 100%);
   background-attachment: fixed;
 }

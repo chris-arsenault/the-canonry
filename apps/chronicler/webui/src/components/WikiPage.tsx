@@ -19,6 +19,7 @@ import { resolveAnchorPhrase } from '../lib/fuzzyAnchor.ts';
 import EntityTimeline from './EntityTimeline.tsx';
 import ProminenceTimeline from './ProminenceTimeline.tsx';
 import ImageLightbox from './ImageLightbox.tsx';
+import { SectionDivider, FrostEdge } from './Ornaments.tsx';
 import { prominenceLabelFromScale, type ProminenceScale } from '@canonry/world-schema';
 import styles from './WikiPage.module.css';
 
@@ -1554,6 +1555,7 @@ export default function WikiPageView({
         {/* Infobox - inline on mobile/tablet (rendered first, above content) */}
         {showInfoboxInline && page.content.infobox && (
           <div className={styles.infoboxInline}>
+            <FrostEdge className={styles.frostEdge} />
             <div className={styles.infoboxHeader}>{page.title}</div>
             {infoboxImageUrl && (
               <img
@@ -1652,7 +1654,10 @@ export default function WikiPageView({
           <div key={section.id} id={section.id} className={styles.section}>
             {/* Hide default "Chronicle" heading on chronicle pages */}
             {!(isChronicle && section.heading === 'Chronicle') && (
-              <h2 className={styles.sectionHeading}>{section.heading}</h2>
+              <>
+                <h2 className={styles.sectionHeading}>{section.heading}</h2>
+                <SectionDivider className={styles.sectionDividerSvg} />
+              </>
             )}
             <SectionWithImages
               section={section}
@@ -1674,6 +1679,7 @@ export default function WikiPageView({
         {isEntityPage && (narrativeLoading || narrativeEvents.length > 0) && (
           <div id="timeline" className={styles.section}>
             <h2 className={styles.sectionHeading}>Timeline</h2>
+            <SectionDivider className={styles.sectionDividerSvg} />
             <ProminenceTimeline
               events={narrativeEvents}
               entityId={page.id}
@@ -1769,6 +1775,7 @@ export default function WikiPageView({
         {/* Infobox - sidebar on desktop (rendered after main content) */}
         {!showInfoboxInline && page.content.infobox && (
           <div className={styles.infobox}>
+            <FrostEdge className={styles.frostEdge} />
             <div className={styles.infoboxHeader}>{page.title}</div>
             {infoboxImageUrl && (
               <img
