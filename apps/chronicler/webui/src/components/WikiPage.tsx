@@ -559,18 +559,29 @@ function SectionWithImages({
     const leftItems: MarginItem[] = [];
     const rightItems: MarginItem[] = [];
 
+    // Collect all margin items (images + callouts) then distribute balanced
+    const allMarginItems: MarginItem[] = [];
     for (const img of images) {
-      // Use image justification; default to balancing columns
-      if (img.justification === 'left' || (!img.justification && leftItems.length <= rightItems.length)) {
-        leftItems.push({ kind: 'image', image: img });
-      } else {
-        rightItems.push({ kind: 'image', image: img });
-      }
+      allMarginItems.push({ kind: 'image', image: img });
+    }
+    for (const { note } of fullNoteInserts) {
+      allMarginItems.push({ kind: 'callout', note });
     }
 
-    // Historian callouts always go in the right margin (traditional margin note position)
-    for (const { note } of fullNoteInserts) {
-      rightItems.push({ kind: 'callout', note });
+    // Distribute: respect explicit image justification, balance everything else
+    for (const item of allMarginItems) {
+      if (item.kind === 'image' && item.image.justification === 'left') {
+        leftItems.push(item);
+      } else if (item.kind === 'image' && item.image.justification === 'right') {
+        rightItems.push(item);
+      } else {
+        // Balance: put in the column with fewer items
+        if (leftItems.length <= rightItems.length) {
+          leftItems.push(item);
+        } else {
+          rightItems.push(item);
+        }
+      }
     }
 
     return (

@@ -767,6 +767,13 @@
   line-height: 2;
 }
 
+/* Force centering on wmde-markdown for verse styles (library sets text-align: left) */
+.chronicleBody[data-style="folk-song"] :global(.wmde-markdown),
+.chronicleBody[data-style="nursery-rhymes"] :global(.wmde-markdown),
+.chronicleBody[data-style="haiku-collection"] :global(.wmde-markdown) {
+  text-align: center !important;
+}
+
 .chronicleBody[data-dropcap][data-style="folk-song"] .markdownSection[data-first] p:first-of-type::first-letter,
 .chronicleBody[data-dropcap][data-style="nursery-rhymes"] .markdownSection[data-first] p:first-of-type::first-letter,
 .chronicleBody[data-dropcap][data-style="haiku-collection"] .markdownSection[data-first] p:first-of-type::first-letter {
@@ -872,9 +879,14 @@
 
 .marginLayout {
   display: grid;
-  grid-template-columns: 130px 1fr 130px;
+  /* Expand from .main (740px) to .container (1000px) using negative margins */
+  /* Each margin column: 200px for images; center: remaining ~560px for text */
+  grid-template-columns: 200px 1fr 200px;
   gap: 0 var(--spacing-lg);
   align-items: start;
+  width: calc(100% + 260px);
+  margin-left: -130px;
+  margin-right: -130px;
 }
 
 .marginLeft,
@@ -925,6 +937,9 @@
 @media (max-width: 640px) {
   .marginLayout {
     display: block;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .marginLeft,
