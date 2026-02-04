@@ -48,14 +48,14 @@
 
 /* Parchment noise — behind content, above the flat background.
    isolation:isolate on .main creates stacking context so z-index:1
-   sits between .main's background and its children. */
+   sits between .main's background and its children.
+   Opacity controlled via ParchmentConfig / inline style. */
 .parchmentOverlay {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   z-index: 1;
-  opacity: 1;
   pointer-events: none;
 }
 

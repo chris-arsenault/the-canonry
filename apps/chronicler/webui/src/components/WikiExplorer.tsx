@@ -27,7 +27,7 @@ import {
   prominenceLabelFromScale,
   type ProminenceScale,
 } from '@canonry/world-schema';
-import { ParchmentTexture, PageFrame } from './Ornaments.tsx';
+import { ParchmentTexture, PageFrame, ParchmentDebugPanel, DEFAULT_PARCHMENT_CONFIG, type ParchmentConfig } from './Ornaments.tsx';
 import styles from './WikiExplorer.module.css';
 
 /**
@@ -126,6 +126,7 @@ export default function WikiExplorer({
   const [chronicles, setChronicles] = useState<ChronicleRecord[]>(() => normalizeChronicles(chroniclesOverride));
   const [staticPages, setStaticPages] = useState<StaticPage[]>(() => normalizeStaticPages(staticPagesOverride));
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [parchmentConfig, setParchmentConfig] = useState<ParchmentConfig>(() => ({ ...DEFAULT_PARCHMENT_CONFIG }));
   const simulationRunId = (worldData as { metadata?: { simulationRunId?: string } }).metadata?.simulationRunId;
   const hasChroniclesOverride = chroniclesOverride !== undefined;
   const hasStaticPagesOverride = staticPagesOverride !== undefined;
@@ -589,8 +590,9 @@ export default function WikiExplorer({
 
       {/* Main Content */}
       <div className={styles.main}>
-        <ParchmentTexture className={styles.parchmentOverlay} />
+        <ParchmentTexture className={styles.parchmentOverlay} config={parchmentConfig} />
         <PageFrame className={styles.pageFrame} />
+        <ParchmentDebugPanel config={parchmentConfig} onChange={setParchmentConfig} />
         <div className={isMobile ? styles.contentMobile : styles.content}>
           {isChronicleIndex ? (
             <ChronicleIndex

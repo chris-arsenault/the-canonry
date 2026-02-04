@@ -8,107 +8,192 @@
  * Gold: #c49a5c  |  Frost: #8ab4c4
  */
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 
 /* ===================
    ParchmentTexture
-   Perlin noise overlay that gives the content area organic paper grain.
-   Position via CSS on the parent — this just renders the SVG.
-
-   Requires the parent to have position: relative and the caller to
-   apply positioning (e.g., position: absolute; inset: 0).
+   Three-layer Perlin noise: base grain, crease marks, age splotches.
+   All parameters configurable via ParchmentConfig.
    =================== */
 
-export function ParchmentTexture({ className }: { className?: string }) {
+export interface ParchmentConfig {
+  opacity: number;
+  base: { enabled: boolean; freq: number; octaves: number; alphaMul: number; alphaOff: number };
+  creases: { enabled: boolean; freqX: number; freqY: number; octaves: number; alphaMul: number; alphaOff: number };
+  splotches: { enabled: boolean; freq: number; octaves: number; alphaMul: number; alphaOff: number };
+}
+
+export const DEFAULT_PARCHMENT_CONFIG: ParchmentConfig = {
+  opacity: 1,
+  base:     { enabled: true, freq: 0.04,  octaves: 4, alphaMul: 0.33, alphaOff: -0.12 },
+  creases:  { enabled: true, freqX: 0.012, freqY: 0.035, octaves: 3, alphaMul: 0.3, alphaOff: -0.2 },
+  splotches:{ enabled: true, freq: 0.008, octaves: 2, alphaMul: 0.4, alphaOff: -0.25 },
+};
+
+export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG }: { className?: string; config?: ParchmentConfig }) {
+  const { base, creases, splotches } = config;
+
+  // Build alpha row strings for feColorMatrix
+  const baseAlpha = `${base.alphaMul} ${base.alphaMul} ${base.alphaMul} 0 ${base.alphaOff}`;
+  const creaseAlpha = `${creases.alphaMul} ${creases.alphaMul} ${creases.alphaMul} 0 ${creases.alphaOff}`;
+  const splotchAlpha = `${splotches.alphaMul} ${splotches.alphaMul} ${splotches.alphaMul} 0 ${splotches.alphaOff}`;
+
+  // Determine which layers feed into the final composite
+  const enabledLayers: string[] = [];
+  if (base.enabled) enabledLayers.push('base');
+  if (creases.enabled) enabledLayers.push('creases');
+  if (splotches.enabled) enabledLayers.push('splotches');
+
   return (
     <svg
       aria-hidden="true"
       className={className}
       width="100%"
       height="100%"
-      style={{ pointerEvents: 'none', display: 'block' }}
+      style={{ pointerEvents: 'none', display: 'block', opacity: config.opacity }}
     >
       <defs>
-        <filter
-          id="parchment-noise"
-          x="0%"
-          y="0%"
-          width="100%"
-          height="100%"
-        >
-          {/* === Layer 1: Base parchment grain === */}
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.04"
-            numOctaves={4}
-            seed={2}
-            stitchTiles="stitch"
-            result="grain"
-          />
-          {/* Warm gold with alpha from noise luminance */}
-          <feColorMatrix
-            type="matrix"
-            in="grain"
-            values="0    0    0    0 0.77
-                    0    0    0    0 0.60
-                    0    0    0    0 0.36
-                    0.33 0.33 0.33 0 -0.12"
-            result="base"
-          />
+        <filter id="parchment-noise" x="0%" y="0%" width="100%" height="100%">
+          {/* Always generate all noise sources so IDs exist */}
 
-          {/* === Layer 2: Crease marks (depth/folds) ===
-              Turbulence (not fractalNoise) for angular, fiber-like streaks.
-              Asymmetric frequency: low x = long horizontal features,
-              higher y = tighter vertical variation → elongated crease lines. */}
-          <feTurbulence
-            type="turbulence"
-            baseFrequency="0.012 0.05"
-            numOctaves={3}
-            seed={7}
-            stitchTiles="stitch"
-            result="creaseNoise"
-          />
-          {/* Dark warm brown, alpha from noise luminance */}
-          <feColorMatrix
-            type="matrix"
-            in="creaseNoise"
-            values="0   0   0   0 0.35
-                    0   0   0   0 0.28
-                    0   0   0   0 0.18
-                    0.6 0.6 0.6 0 -0.1"
-            result="creases"
-          />
+          {/* Base grain */}
+          <feTurbulence type="fractalNoise" baseFrequency={base.freq} numOctaves={base.octaves} seed={2} stitchTiles="stitch" result="grain" />
+          <feColorMatrix type="matrix" in="grain"
+            values={`0 0 0 0 0.77  0 0 0 0 0.60  0 0 0 0 0.36  ${baseAlpha}`}
+            result="base" />
 
-          {/* === Layer 3: Age splotches ===
-              Very low frequency fractalNoise for large blobs.
-              Heavy alpha threshold: only the brightest ~20% of noise
-              produces visible spots. */}
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.008"
-            numOctaves={2}
-            seed={13}
-            stitchTiles="stitch"
-            result="spotNoise"
-          />
-          {/* Dark brown spots, moderate offset */}
-          <feColorMatrix
-            type="matrix"
-            in="spotNoise"
-            values="0   0   0   0 0.30
-                    0   0   0   0 0.22
-                    0   0   0   0 0.12
-                    0.7 0.7 0.7 0 -0.15"
-            result="splotches"
-          />
+          {/* Creases */}
+          <feTurbulence type="turbulence" baseFrequency={`${creases.freqX} ${creases.freqY}`} numOctaves={creases.octaves} seed={7} stitchTiles="stitch" result="creaseNoise" />
+          <feColorMatrix type="matrix" in="creaseNoise"
+            values={`0 0 0 0 0.35  0 0 0 0 0.28  0 0 0 0 0.18  ${creaseAlpha}`}
+            result="creases" />
 
-          {/* Composite: base → creases over → splotches over */}
-          <feComposite in="creases" in2="base" operator="over" result="withCreases" />
-          <feComposite in="splotches" in2="withCreases" operator="over" />
+          {/* Splotches */}
+          <feTurbulence type="fractalNoise" baseFrequency={splotches.freq} numOctaves={splotches.octaves} seed={13} stitchTiles="stitch" result="spotNoise" />
+          <feColorMatrix type="matrix" in="spotNoise"
+            values={`0 0 0 0 0.30  0 0 0 0 0.22  0 0 0 0 0.12  ${splotchAlpha}`}
+            result="splotches" />
+
+          {/* Transparent fallback */}
+          <feFlood floodColor="black" floodOpacity="0" result="empty" />
+
+          {/* Pick enabled layers */}
+          {/* Layer 1: base or empty */}
+          <feComposite in={base.enabled ? 'base' : 'empty'} in2="SourceGraphic" operator="over" result="layer1" />
+          {/* Layer 2: creases over layer1 */}
+          <feComposite in={creases.enabled ? 'creases' : 'empty'} in2="layer1" operator="over" result="layer2" />
+          {/* Layer 3: splotches over layer2 */}
+          <feComposite in={splotches.enabled ? 'splotches' : 'empty'} in2="layer2" operator="over" />
         </filter>
       </defs>
       <rect width="100%" height="100%" filter="url(#parchment-noise)" />
     </svg>
+  );
+}
+
+/* ===================
+   ParchmentDebugPanel
+   Temporary config popup for tuning parchment filter params.
+   =================== */
+
+const PANEL: React.CSSProperties = {
+  position: 'absolute', top: 8, right: 8, zIndex: 100,
+  background: 'rgba(20,16,12,0.95)', border: '1px solid #c49a5c',
+  borderRadius: 8, padding: 12, width: 300, maxHeight: '80vh', overflowY: 'auto',
+  fontFamily: 'system-ui, sans-serif', fontSize: 11, color: '#e8dcc8',
+};
+const BTN: React.CSSProperties = {
+  position: 'absolute', top: 8, right: 8, zIndex: 100,
+  background: 'rgba(20,16,12,0.8)', border: '1px solid #c49a5c',
+  borderRadius: 6, padding: '4px 10px', cursor: 'pointer',
+  fontFamily: 'system-ui, sans-serif', fontSize: 11, color: '#c49a5c',
+};
+const SLIDER_ROW: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 };
+const LABEL: React.CSSProperties = { width: 70, flexShrink: 0, color: '#c4b99a' };
+const VAL: React.CSSProperties = { width: 42, textAlign: 'right', color: '#8a7d6b', flexShrink: 0 };
+const SECTION: React.CSSProperties = { marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid rgba(196,164,112,0.15)' };
+
+function Slider({ label, value, min, max, step, onChange }: {
+  label: string; value: number; min: number; max: number; step: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div style={SLIDER_ROW}>
+      <span style={LABEL}>{label}</span>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={e => onChange(parseFloat(e.target.value))}
+        style={{ flex: 1, accentColor: '#c49a5c' }} />
+      <span style={VAL}>{value.toFixed(step < 0.01 ? 3 : 2)}</span>
+    </div>
+  );
+}
+
+export function ParchmentDebugPanel({ config, onChange }: {
+  config: ParchmentConfig;
+  onChange: (c: ParchmentConfig) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const set = useCallback((path: string, val: number | boolean) => {
+    const next = JSON.parse(JSON.stringify(config)) as ParchmentConfig;
+    const parts = path.split('.');
+    let obj: any = next;
+    for (let i = 0; i < parts.length - 1; i++) obj = obj[parts[i]];
+    obj[parts[parts.length - 1]] = val;
+    onChange(next);
+  }, [config, onChange]);
+
+  if (!open) return <button style={BTN} onClick={() => setOpen(true)}>Parchment Config</button>;
+
+  return (
+    <div style={PANEL}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+        <strong style={{ color: '#c49a5c' }}>Parchment Config</strong>
+        <button onClick={() => setOpen(false)}
+          style={{ background: 'none', border: 'none', color: '#c49a5c', cursor: 'pointer', fontSize: 14 }}>✕</button>
+      </div>
+
+      <Slider label="Opacity" value={config.opacity} min={0} max={1} step={0.01} onChange={v => set('opacity', v)} />
+
+      <div style={SECTION}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontWeight: 600, color: '#c49a5c' }}>
+          <input type="checkbox" checked={config.base.enabled} onChange={e => set('base.enabled', e.target.checked)} />
+          Base Grain
+        </label>
+        <Slider label="Frequency" value={config.base.freq} min={0.005} max={0.15} step={0.001} onChange={v => set('base.freq', v)} />
+        <Slider label="Octaves" value={config.base.octaves} min={1} max={6} step={1} onChange={v => set('base.octaves', v)} />
+        <Slider label="α multiply" value={config.base.alphaMul} min={0} max={1} step={0.01} onChange={v => set('base.alphaMul', v)} />
+        <Slider label="α offset" value={config.base.alphaOff} min={-0.5} max={0.5} step={0.01} onChange={v => set('base.alphaOff', v)} />
+      </div>
+
+      <div style={SECTION}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontWeight: 600, color: '#c49a5c' }}>
+          <input type="checkbox" checked={config.creases.enabled} onChange={e => set('creases.enabled', e.target.checked)} />
+          Crease Marks
+        </label>
+        <Slider label="Freq X" value={config.creases.freqX} min={0.001} max={0.05} step={0.001} onChange={v => set('creases.freqX', v)} />
+        <Slider label="Freq Y" value={config.creases.freqY} min={0.005} max={0.1} step={0.001} onChange={v => set('creases.freqY', v)} />
+        <Slider label="Octaves" value={config.creases.octaves} min={1} max={6} step={1} onChange={v => set('creases.octaves', v)} />
+        <Slider label="α multiply" value={config.creases.alphaMul} min={0} max={1} step={0.01} onChange={v => set('creases.alphaMul', v)} />
+        <Slider label="α offset" value={config.creases.alphaOff} min={-0.5} max={0.5} step={0.01} onChange={v => set('creases.alphaOff', v)} />
+      </div>
+
+      <div style={SECTION}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontWeight: 600, color: '#c49a5c' }}>
+          <input type="checkbox" checked={config.splotches.enabled} onChange={e => set('splotches.enabled', e.target.checked)} />
+          Age Splotches
+        </label>
+        <Slider label="Frequency" value={config.splotches.freq} min={0.001} max={0.05} step={0.001} onChange={v => set('splotches.freq', v)} />
+        <Slider label="Octaves" value={config.splotches.octaves} min={1} max={4} step={1} onChange={v => set('splotches.octaves', v)} />
+        <Slider label="α multiply" value={config.splotches.alphaMul} min={0} max={1} step={0.01} onChange={v => set('splotches.alphaMul', v)} />
+        <Slider label="α offset" value={config.splotches.alphaOff} min={-0.5} max={0.5} step={0.01} onChange={v => set('splotches.alphaOff', v)} />
+      </div>
+
+      <button onClick={() => onChange({ ...DEFAULT_PARCHMENT_CONFIG })}
+        style={{ background: 'none', border: '1px solid rgba(196,164,112,0.3)', borderRadius: 4,
+          padding: '3px 10px', color: '#c4b99a', cursor: 'pointer', fontSize: 10 }}>
+        Reset Defaults
+      </button>
+    </div>
   );
 }
 
