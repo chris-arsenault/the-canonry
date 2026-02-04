@@ -30,20 +30,19 @@ import styles from './WikiPage.module.css';
  * Layout modes for chronicle sections:
  * - 'flow': Text wraps around floated images/callouts (traditional Wikipedia style).
  *           Best for long prose with 1-2 images.
- * - 'plate': Images render as centered block elements between paragraphs.
- *            Callouts render as full-width blocks. No CSS floats.
- *            Best for short content, many images, or document styles.
- * - 'centered': Content centered with plate-style images. For poetry/verse.
+ * - 'margin': 3-column grid with images/callouts in side margins, text in center.
+ *             Text flows uninterrupted. Best for short content, verse, documents.
+ * - 'centered': Text centered, no floats. For verse/poetry without images.
  */
-type LayoutMode = 'flow' | 'plate' | 'centered';
+type LayoutMode = 'flow' | 'margin' | 'centered';
 
-/** Narrative styles that always use centered layout */
+/** Narrative styles that use centered/verse layout */
 const CENTERED_STYLES = new Set([
   'folk-song', 'nursery-rhymes', 'haiku-collection',
 ]);
 
-/** Narrative styles that always use plate layout (images shouldn't float) */
-const PLATE_STYLES = new Set([
+/** Narrative styles where floats shouldn't interrupt text */
+const NO_FLOAT_STYLES = new Set([
   'wanted-notice', 'sacred-text', 'tavern-notices',
   'interrogation-record', 'diplomatic-accord',
 ]);
@@ -52,37 +51,42 @@ const PLATE_STYLES = new Set([
  * Analyze a section's content to determine the optimal layout mode.
  *
  * Decision factors:
- * - Narrative style (centered/plate styles override other logic)
+ * - Narrative style (centered/no-float styles override other logic)
  * - Word count vs float element count ratio
  * - Total float elements (images + full historian notes)
  *
  * Rules:
- * 1. Centered styles → 'centered'
- * 2. Plate styles → 'plate'
- * 3. Short content (<150 words) with any floats → 'plate'
- * 4. High float density (< 100 words per float element) → 'plate'
- * 5. Otherwise → 'flow'
+ * 1. Centered styles with floats → 'margin' (images in margins, text centered)
+ * 2. Centered styles without floats → 'centered' (just centered text)
+ * 3. No-float styles with floats → 'margin'
+ * 4. Short content (<150 words) with any floats → 'margin'
+ * 5. High float density (< 100 words per float element) → 'margin'
+ * 6. Otherwise → 'flow'
  */
 function analyzeLayout(
   section: WikiSection,
   fullNoteCount: number,
   narrativeStyleId?: string,
 ): LayoutMode {
-  if (narrativeStyleId && CENTERED_STYLES.has(narrativeStyleId)) return 'centered';
-  if (narrativeStyleId && PLATE_STYLES.has(narrativeStyleId)) return 'plate';
-
   const imageCount = (section.images || []).length;
   const floatCount = imageCount + fullNoteCount;
 
-  if (floatCount === 0) return 'flow'; // No float elements, mode doesn't matter
+  if (narrativeStyleId && CENTERED_STYLES.has(narrativeStyleId)) {
+    return floatCount > 0 ? 'margin' : 'centered';
+  }
+  if (narrativeStyleId && NO_FLOAT_STYLES.has(narrativeStyleId)) {
+    return floatCount > 0 ? 'margin' : 'flow';
+  }
+
+  if (floatCount === 0) return 'flow';
 
   const wordCount = section.content.split(/\s+/).length;
 
-  // Short content with float elements → plate to avoid awkward wrapping
-  if (wordCount < 150) return 'plate';
+  // Short content with float elements → margin to avoid awkward wrapping
+  if (wordCount < 150) return 'margin';
 
-  // High float density → plate to avoid collisions
-  if (wordCount / floatCount < 100) return 'plate';
+  // High float density → margin to avoid float collisions
+  if (wordCount / floatCount < 100) return 'margin';
 
   return 'flow';
 }
@@ -118,20 +122,6 @@ function getImageClassName(size: WikiSectionImage['size'], position: 'left' | 'r
   return `${styles.imageLarge} ${alignClass}`;
 }
 
-/**
- * Get className for an image in plate/centered layout mode.
- * All images render as centered blocks, no float.
- */
-function getPlateImageClassName(size: WikiSectionImage['size']): string {
-  const sizeClass = size === 'small'
-    ? styles.imageSmall
-    : size === 'medium'
-    ? styles.imageMedium
-    : size === 'large'
-    ? styles.imageLarge
-    : styles.imageFullWidth;
-  return `${styles.plateImage} ${sizeClass}`;
-}
 
 /**
  * Classify aspect ratio from width/height (for runtime detection fallback)
@@ -168,7 +158,7 @@ function getInfoboxImageClass(aspect: ImageAspect | undefined, isMobile: boolean
 /**
  * ChronicleImage - Renders an inline chronicle image
  * Loads images on-demand from the shared image store.
- * Supports flow mode (CSS float) and plate mode (centered block).
+ * Supports flow mode (CSS float) and margin mode (side column in grid).
  */
 function ChronicleImage({
   image,
@@ -182,9 +172,9 @@ function ChronicleImage({
   const { url: imageUrl, loading } = useImageUrl(image.imageId);
   const [error, setError] = useState(false);
 
-  const imageClassName = layoutMode === 'flow'
-    ? getImageClassName(image.size, image.justification || 'left')
-    : getPlateImageClassName(image.size);
+  const imageClassName = layoutMode === 'margin'
+    ? styles.marginImage
+    : getImageClassName(image.size, image.justification || 'left');
 
   if (loading) {
     return (
@@ -346,20 +336,18 @@ function injectPopoutFootnotesWithGlobalIndex(
 
 /**
  * HistorianCallout - Callout box for 'full' display notes.
- * Supports two rendering modes:
- * - 'float': Floated right, text wraps around (for flow layout)
- * - 'block': Full-width block, no float (for plate/centered layouts)
+ * - 'flow': Floated right, text wraps around
+ * - 'margin': Compact callout for side column in 3-column grid
  */
 function HistorianCallout({ note, layoutMode = 'flow' }: { note: WikiHistorianNote; layoutMode?: LayoutMode }) {
   const color = HISTORIAN_NOTE_COLORS[note.type] || HISTORIAN_NOTE_COLORS.commentary;
   const icon = HISTORIAN_NOTE_ICONS[note.type] || '✦';
   const label = HISTORIAN_NOTE_LABELS[note.type] || 'Commentary';
 
-  if (layoutMode !== 'flow') {
-    // Block mode: full-width, no float, uses CSS classes
+  if (layoutMode === 'margin') {
     return (
-      <aside className={styles.historianCalloutBlock} style={{ borderLeftColor: color }}>
-        <div className={styles.historianCalloutLabel} style={{ color }}>
+      <aside className={styles.marginCallout} style={{ borderLeftColor: color }}>
+        <div className={styles.marginCalloutLabel} style={{ color }}>
           {icon} {label}
         </div>
         {note.text}
@@ -367,7 +355,7 @@ function HistorianCallout({ note, layoutMode = 'flow' }: { note: WikiHistorianNo
     );
   }
 
-  // Flow mode: floated right with inline styles (matches original behavior)
+  // Flow mode: floated right with inline styles
   return (
     <aside style={{
       float: 'right',
@@ -456,8 +444,8 @@ function HistorianFootnoteTooltip({ note, position }: { note: WikiHistorianNote;
  *
  * Layout modes (chosen by analyzeLayout):
  * - 'flow': Float images/callouts, text wraps (Wikipedia style). For long prose.
- * - 'plate': Images/callouts as centered blocks between paragraphs. For short content.
- * - 'centered': Like plate but text is also centered. For verse/poetry.
+ * - 'margin': 3-column grid with images/callouts in side margins. For short content.
+ * - 'centered': Text centered, no floats. For verse/poetry without images.
  *
  * For flow mode:
  * 1. Float images FIRST in the DOM, before the text they float with
@@ -561,6 +549,87 @@ function SectionWithImages({
     );
   }
 
+  // ── Margin mode: 3-column grid with images/callouts in side margins ──
+  if (layoutMode === 'margin') {
+    // Distribute images and callouts to left/right margin columns
+    type MarginItem =
+      | { kind: 'image'; image: WikiSectionImage }
+      | { kind: 'callout'; note: WikiHistorianNote };
+
+    const leftItems: MarginItem[] = [];
+    const rightItems: MarginItem[] = [];
+
+    for (const img of images) {
+      // Use image justification; default to balancing columns
+      if (img.justification === 'left' || (!img.justification && leftItems.length <= rightItems.length)) {
+        leftItems.push({ kind: 'image', image: img });
+      } else {
+        rightItems.push({ kind: 'image', image: img });
+      }
+    }
+
+    // Historian callouts always go in the right margin (traditional margin note position)
+    for (const { note } of fullNoteInserts) {
+      rightItems.push({ kind: 'callout', note });
+    }
+
+    return (
+      <div className={styles.marginLayout} onMouseOver={handleFootnoteHover} onMouseOut={handleFootnoteLeave}>
+        <div className={styles.marginLeft}>
+          {leftItems.map((item, i) =>
+            item.kind === 'image' ? (
+              <ChronicleImage
+                key={`ml-img-${item.image.refId}-${i}`}
+                image={item.image}
+                onOpen={onImageOpen}
+                layoutMode="margin"
+              />
+            ) : (
+              <HistorianCallout
+                key={`ml-fn-${item.note.noteId}`}
+                note={item.note}
+                layoutMode="margin"
+              />
+            )
+          )}
+        </div>
+        <div className={styles.marginCenter}>
+          <MarkdownSection
+            content={annotatedContent}
+            entityNameMap={entityNameMap}
+            aliasMap={aliasMap}
+            linkableNames={linkableNames}
+            onNavigate={onNavigate}
+            onHoverEnter={onHoverEnter}
+            onHoverLeave={onHoverLeave}
+            isFirstFragment={isFirstChronicleSection}
+          />
+        </div>
+        <div className={styles.marginRight}>
+          {rightItems.map((item, i) =>
+            item.kind === 'image' ? (
+              <ChronicleImage
+                key={`mr-img-${item.image.refId}-${i}`}
+                image={item.image}
+                onOpen={onImageOpen}
+                layoutMode="margin"
+              />
+            ) : (
+              <HistorianCallout
+                key={`mr-fn-${item.note.noteId}`}
+                note={item.note}
+                layoutMode="margin"
+              />
+            )
+          )}
+        </div>
+        {hoveredNote && <HistorianFootnoteTooltip note={hoveredNote.note} position={hoveredNote.pos} />}
+      </div>
+    );
+  }
+
+  // ── Flow mode: fragment-based rendering with floated images/callouts ──
+
   // Build unified insert list: images + full notes, sorted by position in original content
   type InsertItem =
     | { kind: 'image'; image: WikiSectionImage; position: number }
@@ -623,47 +692,30 @@ function SectionWithImages({
 
   let firstTextSeen = false;
 
-  const wrapperClass = layoutMode === 'centered'
-    ? `${styles.sectionWithImages} ${styles.centeredLayout}`
-    : styles.sectionWithImages;
-
   return (
-    <div className={wrapperClass} onMouseOver={handleFootnoteHover} onMouseOut={handleFootnoteLeave}>
+    <div className={styles.sectionWithImages} onMouseOver={handleFootnoteHover} onMouseOut={handleFootnoteLeave}>
       {fragments.map((fragment, i) => {
         if (fragment.type === 'image') {
-          if (layoutMode === 'flow') {
-            // Flow mode: float small/medium images, block-level large/full-width
-            const isFloat = isFloatImage(fragment.image.size);
-            if (isFloat) {
-              return (
-                <ChronicleImage
-                  key={`img-${fragment.image.refId}-${i}`}
-                  image={fragment.image}
-                  onOpen={onImageOpen}
-                  layoutMode="flow"
-                />
-              );
-            } else {
-              return (
-                <React.Fragment key={`img-${fragment.image.refId}-${i}`}>
-                  <div className={styles.clearfix} />
-                  <ChronicleImage
-                    image={fragment.image}
-                    onOpen={onImageOpen}
-                    layoutMode="flow"
-                  />
-                </React.Fragment>
-              );
-            }
-          } else {
-            // Plate/centered mode: all images as centered blocks
+          const isFloat = isFloatImage(fragment.image.size);
+          if (isFloat) {
             return (
               <ChronicleImage
                 key={`img-${fragment.image.refId}-${i}`}
                 image={fragment.image}
                 onOpen={onImageOpen}
-                layoutMode={layoutMode}
+                layoutMode="flow"
               />
+            );
+          } else {
+            return (
+              <React.Fragment key={`img-${fragment.image.refId}-${i}`}>
+                <div className={styles.clearfix} />
+                <ChronicleImage
+                  image={fragment.image}
+                  onOpen={onImageOpen}
+                  layoutMode="flow"
+                />
+              </React.Fragment>
             );
           }
         } else if (fragment.type === 'fullNote') {
@@ -671,7 +723,7 @@ function SectionWithImages({
             <HistorianCallout
               key={`fn-${fragment.note.noteId}`}
               note={fragment.note}
-              layoutMode={layoutMode}
+              layoutMode="flow"
             />
           );
         } else {
@@ -692,8 +744,7 @@ function SectionWithImages({
           );
         }
       })}
-      {/* Final clearfix to contain floats (only needed in flow mode) */}
-      {layoutMode === 'flow' && <div className={styles.clearfix} />}
+      <div className={styles.clearfix} />
       {hoveredNote && <HistorianFootnoteTooltip note={hoveredNote.note} position={hoveredNote.pos} />}
     </div>
   );

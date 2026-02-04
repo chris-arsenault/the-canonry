@@ -864,70 +864,85 @@
 }
 
 /* ===================
-   Layout Engine - Plate Mode
-   Images render as centered block elements, no floats.
-   Used for short content, content with many images, or document styles.
+   Layout Engine - Margin Mode
+   3-column grid: left margin | center content | right margin.
+   Images and callouts sit in side margins, text flows uninterrupted.
+   Used for short content, verse, and document styles with images.
    =================== */
 
-.plateImage {
-  display: block;
-  margin: var(--spacing-2xl) auto;
-  max-width: 100%;
-  text-align: center;
+.marginLayout {
+  display: grid;
+  grid-template-columns: 130px 1fr 130px;
+  gap: 0 var(--spacing-lg);
+  align-items: start;
 }
 
-.plateImage .figureImage {
-  max-width: 100%;
-  margin: 0 auto;
+.marginLeft,
+.marginRight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding-top: var(--spacing-xs);
 }
 
-/* Plate mode: small images get wider since they're not floating */
-.plateImage.imageSmall {
-  width: auto;
-  max-width: 280px;
+.marginCenter {
+  min-width: 0;
 }
 
-.plateImage.imageMedium {
-  width: auto;
-  max-width: 400px;
+/* Margin images: fill the column width */
+.marginImage {
+  width: 100%;
 }
 
-.plateImage.imageLarge {
-  width: auto;
-  max-width: 560px;
+.marginImage .figureImage {
+  width: 100%;
 }
 
-/* ===================
-   Layout Engine - Historian Callout Block Mode
-   Full-width callout, no float. Used in plate/centered layouts.
-   =================== */
-
-.historianCalloutBlock {
-  margin: var(--spacing-xl) 0;
-  padding: 14px 20px;
-  background: rgba(196, 154, 92, 0.06);
-  border-left: 3px solid var(--color-accent);
+/* Margin callout: compact for side column */
+.marginCallout {
+  padding: var(--spacing-sm);
+  border-left: 2px solid var(--color-accent);
+  background: rgba(196, 154, 92, 0.04);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-family: Georgia, "Times New Roman", serif;
   font-style: italic;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   line-height: var(--line-height-relaxed);
 }
 
-.historianCalloutBlock .historianCalloutLabel {
-  font-size: 10px;
+.marginCalloutLabel {
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   font-style: normal;
   font-family: var(--font-family-ui);
 }
 
+/* On small screens, collapse margins to inline */
+@media (max-width: 640px) {
+  .marginLayout {
+    display: block;
+  }
+
+  .marginLeft,
+  .marginRight {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin: var(--spacing-md) 0;
+  }
+
+  .marginImage {
+    max-width: 45%;
+  }
+}
+
 /* ===================
    Layout Engine - Centered Mode
-   For poetry, songs, verse. Text centered, images as centered plates.
+   For poetry, songs, verse without images. Text centered, no grid.
    =================== */
 
 .centeredLayout {
