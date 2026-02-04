@@ -18,6 +18,14 @@ locals {
     "thumb/*"
   ]
 
+  # Domains
+  all_domains = distinct([for d in var.domains : trimspace(d)])
+  primary_domain = local.all_domains[0]
+  all_domain_aliases = distinct(concat(
+    local.all_domains,
+    [for d in local.all_domains : "www.${d}"]
+  ))
+
   # App build outputs and URL prefixes
   apps = {
     viewer = {
@@ -40,8 +48,9 @@ locals {
 # Route53 Hosted Zone (data source - zone must already exist)
 # -----------------------------------------------------------------------------
 
-data "aws_route53_zone" "main" {
-  name = var.domain_name
+data "aws_route53_zone" "zones" {
+  for_each = toset(local.all_domains)
+  name     = each.value
 }
 
 # -----------------------------------------------------------------------------
@@ -49,8 +58,8 @@ data "aws_route53_zone" "main" {
 # -----------------------------------------------------------------------------
 
 resource "aws_acm_certificate" "main" {
-  domain_name               = var.domain_name
-  subject_alternative_names = ["www.${var.domain_name}"]
+  domain_name               = local.primary_domain
+  subject_alternative_names = [for d in local.all_domain_aliases : d if d != local.primary_domain]
   validation_method         = "DNS"
 
   lifecycle {
@@ -61,9 +70,10 @@ resource "aws_acm_certificate" "main" {
 resource "aws_route53_record" "cert_validation" {
   for_each = {
     for dvo in aws_acm_certificate.main.domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      record = dvo.resource_record_value
-      type   = dvo.resource_record_type
+      name    = dvo.resource_record_name
+      record  = dvo.resource_record_value
+      type    = dvo.resource_record_type
+      zone_id = data.aws_route53_zone.zones[trimprefix(dvo.domain_name, "www.")].zone_id
     }
   }
 
@@ -72,7 +82,7 @@ resource "aws_route53_record" "cert_validation" {
   records         = [each.value.record]
   ttl             = 60
   type            = each.value.type
-  zone_id         = data.aws_route53_zone.main.zone_id
+  zone_id         = each.value.zone_id
 }
 
 resource "aws_acm_certificate_validation" "main" {
@@ -275,7 +285,7 @@ resource "terraform_data" "deployment_marker" {
 
 resource "aws_cloudfront_origin_access_control" "static_site" {
   name                              = "${var.prefix}-oac"
-  description                       = "OAC for ${var.domain_name}"
+  description                       = "OAC for ${local.primary_domain}"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
@@ -315,10 +325,10 @@ resource "aws_s3_bucket_policy" "static_site" {
 resource "aws_cloudfront_distribution" "static_site" {
   enabled             = true
   is_ipv6_enabled     = true
-  comment             = "${var.prefix} distribution for ${var.domain_name}"
+  comment             = "${var.prefix} distribution for ${local.primary_domain}"
   default_root_object = "index.html"
   price_class         = "PriceClass_100"
-  aliases             = [var.domain_name, "www.${var.domain_name}"]
+  aliases             = local.all_domain_aliases
 
   origin {
     domain_name              = aws_s3_bucket.static_site.bucket_regional_domain_name
@@ -452,9 +462,10 @@ resource "aws_cloudfront_distribution" "static_site" {
 # -----------------------------------------------------------------------------
 
 resource "aws_route53_record" "apex" {
-  zone_id = data.aws_route53_zone.main.zone_id
-  name    = var.domain_name
-  type    = "A"
+  for_each = data.aws_route53_zone.zones
+  zone_id  = each.value.zone_id
+  name     = each.key
+  type     = "A"
 
   alias {
     name                   = aws_cloudfront_distribution.static_site.domain_name
@@ -464,9 +475,10 @@ resource "aws_route53_record" "apex" {
 }
 
 resource "aws_route53_record" "www" {
-  zone_id = data.aws_route53_zone.main.zone_id
-  name    = "www.${var.domain_name}"
-  type    = "A"
+  for_each = data.aws_route53_zone.zones
+  zone_id  = each.value.zone_id
+  name     = "www.${each.key}"
+  type     = "A"
 
   alias {
     name                   = aws_cloudfront_distribution.static_site.domain_name

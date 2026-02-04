@@ -119,11 +119,12 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
   },
 
   async acceptChronicle(chronicleId: string) {
-    const chronicle = get().chronicles[chronicleId];
-    if (!chronicle) {
+    const cached = get().chronicles[chronicleId];
+    if (!cached) {
       console.error('[ChronicleStore] No chronicle found for chronicleId', chronicleId);
       return null;
     }
+    const chronicle = (await getChronicle(chronicleId)) || cached;
     if (!chronicle.assembledContent) {
       console.error('[ChronicleStore] Cannot accept without assembled content');
       return null;
@@ -135,7 +136,10 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
       const historyMatch = chronicle.generationHistory?.find((v) => v.versionId === activeVersionId);
       const activeContent = historyMatch?.content || chronicle.assembledContent;
 
-      await acceptChronicleInDb(chronicleId, activeContent);
+      await acceptChronicleInDb(chronicleId, {
+        finalContent: activeContent,
+        acceptedVersionId: activeVersionId,
+      });
       await get().refreshAll();
 
       return {

@@ -63,7 +63,7 @@ interface WorldData {
     era: string;
     eventKind: string;
     significance: number;
-    headline: string;
+    action?: string;
     description?: string;
     subject?: { id: string; name: string };
     object?: { id: string; name: string };
@@ -169,6 +169,23 @@ function buildEraContext(entity: WorldData['hardState'][0]): EraContext {
 }
 
 /**
+ * Build a stable event headline from subject + action, including description.
+ */
+export function buildEventHeadline(event: {
+  subject?: { id?: string; name?: string };
+  action?: string;
+  description?: string;
+}): string {
+  const subjectName = event.subject?.name || event.subject?.id || '';
+  const action = event.action || '';
+  const base = [subjectName, action].filter(Boolean).join(' ').trim();
+  if (event.description) {
+    return base ? `${base} - ${event.description}` : event.description;
+  }
+  return base || '(event)';
+}
+
+/**
  * Build narrative event context
  */
 function buildEventContext(
@@ -180,7 +197,7 @@ function buildEventContext(
     era: event.era,
     eventKind: event.eventKind,
     significance: event.significance,
-    headline: event.headline,
+    headline: buildEventHeadline(event),
     description: event.description,
     subjectId: event.subject?.id,
     subjectName: event.subject?.name,

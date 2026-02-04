@@ -14,6 +14,11 @@ import type { HistorianNote } from './historianTypes';
 // =============================================================================
 
 export type ChronicleFormat = 'story' | 'document';
+export type ChronicleSampling = 'normal' | 'low';
+export const CHRONICLE_SAMPLING_TOP_P: Record<ChronicleSampling, number> = {
+  normal: 1,
+  low: 0.95,
+};
 
 export interface ChronicleEntityRole {
   entityId: string;
@@ -756,8 +761,8 @@ export interface ChronicleRecord {
   // Generation prompts (stored for debugging/export - the ACTUAL prompts sent)
   generationSystemPrompt?: string;
   generationUserPrompt?: string;
-  /** Temperature used for the most recent generation */
-  generationTemperature?: number;
+  /** Sampling mode used for the most recent generation */
+  generationSampling?: ChronicleSampling;
   /** Prior generation versions (chronicle regeneration history) */
   generationHistory?: ChronicleGenerationVersion[];
   /** Version id that should be published on accept */
@@ -818,6 +823,8 @@ export interface ChronicleRecord {
   // Final content
   finalContent?: string;
   acceptedAt?: number;
+  /** Version id that was accepted/published */
+  acceptedVersionId?: string;
 
   /** Whether lore from this chronicle has been backported to cast entity descriptions */
   loreBackported?: boolean;
@@ -846,7 +853,7 @@ export interface ChronicleGenerationVersion {
   content: string;
   wordCount: number;
   model: string;
-  temperature?: number;
+  sampling?: ChronicleSampling;
   systemPrompt: string;
   userPrompt: string;
   cost?: { estimated: number; actual: number; inputTokens: number; outputTokens: number };
@@ -871,6 +878,8 @@ export interface ChronicleShellMetadata {
   selectedEventIds: string[];
   selectedRelationshipIds: string[];
   temporalContext?: ChronicleTemporalContext;
+  /** Requested sampling mode for initial generation */
+  generationSampling: ChronicleSampling;
 
   // Mechanical (optional)
   entrypointId?: string;
@@ -891,7 +900,7 @@ export interface ChronicleMetadata {
   // Generation prompts (the ACTUAL prompts sent to LLM - canonical source of truth)
   generationSystemPrompt?: string;
   generationUserPrompt?: string;
-  generationTemperature?: number;
+  generationSampling: ChronicleSampling;
   narrativeStyleId: string;
   narrativeStyle?: NarrativeStyle;
   roleAssignments: ChronicleRoleAssignment[];

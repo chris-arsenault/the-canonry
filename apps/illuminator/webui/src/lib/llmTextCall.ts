@@ -11,6 +11,7 @@ export interface LLMTextCallOptions {
   systemPrompt: string;
   prompt: string;
   temperature?: number;
+  topP?: number;
   autoMaxTokens?: number;
 }
 
@@ -50,6 +51,7 @@ export async function runTextCall(options: LLMTextCallOptions): Promise<LLMTextC
     model: options.callConfig.model,
     maxTokens: budget.totalMaxTokens,
     temperature: options.temperature,
+    topP: options.topP,
     thinkingBudget: budget.thinkingBudget,
   });
 

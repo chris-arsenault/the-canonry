@@ -19,6 +19,7 @@ import {
   saveCultureIdentities,
   saveEnrichmentConfig,
   saveStyleSelection,
+  saveHistorianConfig,
   getSlots,
   getSlot,
   getActiveSlotIndex,
@@ -491,6 +492,7 @@ export default function App() {
   const [cultureIdentities, setCultureIdentities] = useState(null);
   const [enrichmentConfig, setEnrichmentConfig] = useState(null);
   const [styleSelection, setStyleSelection] = useState(null);
+  const [historianConfig, setHistorianConfig] = useState(null);
   const [simulationResults, setSimulationResults] = useState(null);
   const [simulationState, setSimulationState] = useState(null);
   const [slots, setSlots] = useState({});
@@ -645,7 +647,7 @@ export default function App() {
   }, []);
 
   // Listen for hash changes to switch tabs (enables back button across MFEs)
-  // Hash formats: Archivist uses #/entity/{id}, Chronicler uses #/page/{id}
+  // Hash formats: Archivist uses #/entity/{id}, Chronicler uses #/page/{id|slug}
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
@@ -866,6 +868,9 @@ export default function App() {
       if (store?.styleSelection) {
         setStyleSelection(store.styleSelection);
       }
+      if (store?.historianConfig) {
+        setHistorianConfig(store.historianConfig);
+      }
     }
   }, [reloadProjectFromDefaults, currentProject?.id]);
 
@@ -900,6 +905,7 @@ export default function App() {
     setCultureIdentities(null);
     setEnrichmentConfig(null);
     setStyleSelection(null);
+    setHistorianConfig(null);
     setSlots({});
     setActiveSlotIndex(0);
 
@@ -953,6 +959,9 @@ export default function App() {
       }
       if (store?.styleSelection) {
         setStyleSelection(store.styleSelection);
+      }
+      if (store?.historianConfig) {
+        setHistorianConfig(store.historianConfig);
       }
     });
 
@@ -1137,6 +1146,16 @@ export default function App() {
     }, 300);
     return () => clearTimeout(timeoutId);
   }, [currentProject?.id, styleSelection]);
+
+  // Persist historian config when it changes (for Illuminator)
+  useEffect(() => {
+    if (!currentProject?.id) return;
+    if (!historianConfig) return;
+    const timeoutId = setTimeout(() => {
+      saveHistorianConfig(currentProject.id, historianConfig);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [currentProject?.id, historianConfig]);
 
   const mergeFrameworkOverrides = (items, existingItems, frameworkKeys, keyField) => {
     const filtered = (items || []).filter((item) => !item?.isFramework);
@@ -2018,6 +2037,8 @@ export default function App() {
                 onEnrichmentConfigChange={setEnrichmentConfig}
                 styleSelection={styleSelection}
                 onStyleSelectionChange={setStyleSelection}
+                historianConfig={historianConfig}
+                onHistorianConfigChange={setHistorianConfig}
                 activeSection={activeSection}
                 onSectionChange={setActiveSection}
                 activeSlotIndex={activeSlotIndex}
@@ -2097,8 +2118,10 @@ export default function App() {
       )}
       <div style={styles.content}>{renderContent()}</div>
       <footer style={styles.footer}>
-        <span>Copyright © 2025</span>
-        <img src="/tsonu-combined.png" alt="tsonu" height="14" />
+        <span>Copyright © 2026</span>
+        <a href="https://ahara.io" target="_blank" rel="noopener noreferrer">
+          <img src="/tsonu-combined.png" alt="tsonu" height="14" />
+        </a>
       </footer>
       {error && (
         <div

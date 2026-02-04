@@ -10,7 +10,7 @@ import EntityKindEditor from './EntityKindEditor';
 import RelationshipKindEditor from './RelationshipKindEditor';
 import CultureEditor from './CultureEditor';
 import TagRegistryEditor from './TagRegistryEditor';
-import RelationshipKindMatrix from '../coverage/RelationshipKindMatrix';
+import RelationshipKindMatrix from './RelationshipKindMatrix';
 import { colors, typography, spacing, radius, getAccentGradient, getHoverBg } from '../../theme';
 
 const styles = {

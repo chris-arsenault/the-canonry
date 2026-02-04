@@ -696,7 +696,7 @@ function MarkdownSection({
       }
 
       if (pageId) {
-        // Use #/page/{pageId} format that matches the router
+        // Use #/page/{pageId|slug} format that matches the router
         return `[${displayName}](#/page/${encodePageIdForHash(pageId)})`;
       }
       // Keep as-is if page not found
@@ -1184,6 +1184,23 @@ export default function WikiPageView({
 
   const isChronicle = page.type === 'chronicle';
 
+  const staticTitle = useMemo(() => {
+    if (page.type !== 'static') {
+      return { namespace: null as string | null, baseName: page.title, displayTitle: page.title };
+    }
+    const colonIdx = page.title.indexOf(':');
+    if (colonIdx > 0 && colonIdx < page.title.length - 1) {
+      const namespace = page.title.slice(0, colonIdx).trim();
+      const baseName = page.title.slice(colonIdx + 1).trim();
+      return {
+        namespace: namespace || null,
+        baseName: baseName || page.title,
+        displayTitle: baseName || page.title,
+      };
+    }
+    return { namespace: null, baseName: page.title, displayTitle: page.title };
+  }, [page.title, page.type]);
+
   return (
     <div className={styles.container}>
       {/* Breadcrumbs - always above everything including hero */}
@@ -1196,7 +1213,9 @@ export default function WikiPageView({
         </span>
         {' / '}
         <span>
-          {page.type === 'category'
+          {page.type === 'static'
+            ? (staticTitle.namespace || 'Pages')
+            : page.type === 'category'
             ? 'Categories'
             : page.type === 'chronicle'
             ? 'Chronicles'
@@ -1205,7 +1224,9 @@ export default function WikiPageView({
             : page.type}
         </span>
         {' / '}
-        <span className={styles.breadcrumbCurrent}>{page.title}</span>
+        <span className={styles.breadcrumbCurrent}>
+          {page.type === 'static' ? staticTitle.baseName : page.title}
+        </span>
       </div>
 
       {/* Chronicle hero banner with cover image */}
@@ -1226,7 +1247,9 @@ export default function WikiPageView({
         )}
         {/* Non-chronicle title: standard */}
         {!isChronicle && (
-          <h1 className={styles.title}>{page.title}</h1>
+          <h1 className={styles.title}>
+            {page.type === 'static' ? staticTitle.displayTitle : page.title}
+          </h1>
         )}
 
         {/* Disambiguation notice - Wikipedia-style hatnote */}
@@ -1258,8 +1281,8 @@ export default function WikiPageView({
           </div>
         )}
 
-        {/* Summary + cover image for non-chronicle pages only */}
-        {!isChronicle && page.content.summary && (
+        {/* Summary + cover image for non-chronicle, non-static pages only */}
+        {!isChronicle && page.type !== 'static' && page.content.summary && (
           <div className={styles.summary}>
             {page.content.coverImageId && (
               <ChronicleImage

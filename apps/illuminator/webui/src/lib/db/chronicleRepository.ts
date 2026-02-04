@@ -89,7 +89,7 @@ function buildGenerationVersion(record: ChronicleRecord): ChronicleGenerationVer
     content,
     wordCount: countWords(content),
     model: record.model || 'unknown',
-    temperature: record.generationTemperature,
+    sampling: record.generationSampling,
     systemPrompt:
       record.generationSystemPrompt ||
       '(prompt not stored - chronicle generated before prompt storage was implemented)',
@@ -111,6 +111,9 @@ export async function createChronicleShell(
   chronicleId: string,
   metadata: ChronicleShellMetadata
 ): Promise<ChronicleRecord> {
+  if (!metadata.generationSampling) {
+    throw new Error(`Chronicle ${chronicleId} missing generationSampling (required)`);
+  }
   const focusType = deriveFocusType(metadata.roleAssignments);
   const title = metadata.title || deriveTitleFromRoles(metadata.roleAssignments);
   const record: ChronicleRecord = {
@@ -130,6 +133,7 @@ export async function createChronicleShell(
     selectedEventIds: metadata.selectedEventIds,
     selectedRelationshipIds: metadata.selectedRelationshipIds,
     temporalContext: metadata.temporalContext,
+    generationSampling: metadata.generationSampling,
 
     // Mechanical
     entrypointId: metadata.entrypointId,
@@ -158,6 +162,9 @@ export async function createChronicle(
   chronicleId: string,
   metadata: ChronicleMetadata
 ): Promise<ChronicleRecord> {
+  if (!metadata.generationSampling) {
+    throw new Error(`Chronicle ${chronicleId} missing generationSampling (required)`);
+  }
   const focusType = deriveFocusType(metadata.roleAssignments);
   const title = metadata.title || deriveTitleFromRoles(metadata.roleAssignments);
   const assembledAt = Date.now();
@@ -188,7 +195,7 @@ export async function createChronicle(
     perspectiveSynthesis: metadata.perspectiveSynthesis,
     generationSystemPrompt: metadata.generationSystemPrompt,
     generationUserPrompt: metadata.generationUserPrompt,
-    generationTemperature: metadata.generationTemperature,
+    generationSampling: metadata.generationSampling,
     activeVersionId,
     status: 'assembly_ready',
     assembledContent: metadata.assembledContent,
@@ -246,7 +253,7 @@ export async function updateChronicleAssembly(
 }
 
 /**
- * Replace chronicle assembled content via temperature regeneration.
+ * Replace chronicle assembled content via sampling regeneration.
  * Preserves prior version in generationHistory and clears refinements.
  */
 export async function regenerateChronicleAssembly(
@@ -256,7 +263,7 @@ export async function regenerateChronicleAssembly(
     systemPrompt: string;
     userPrompt: string;
     model: string;
-    temperature?: number;
+    sampling?: ChronicleRecord['generationSampling'];
     cost: { estimated: number; actual: number; inputTokens: number; outputTokens: number };
   }
 ): Promise<void> {
@@ -264,6 +271,9 @@ export async function regenerateChronicleAssembly(
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
   if (record.status === 'complete' || record.finalContent) {
     throw new Error(`Chronicle ${chronicleId} is already accepted`);
+  }
+  if (!updates.sampling) {
+    throw new Error(`Chronicle ${chronicleId} missing sampling for regeneration`);
   }
 
   const historyVersion = buildGenerationVersion(record);
@@ -276,7 +286,7 @@ export async function regenerateChronicleAssembly(
   record.status = 'assembly_ready';
   record.generationSystemPrompt = updates.systemPrompt;
   record.generationUserPrompt = updates.userPrompt;
-  record.generationTemperature = updates.temperature;
+  record.generationSampling = updates.sampling;
   record.activeVersionId = `current_${record.assembledAt}`;
 
   record.failureStep = undefined;
@@ -682,11 +692,20 @@ export async function updateChronicleTemporalContext(
 /**
  * Mark chronicle as complete (user accepted)
  */
-export async function acceptChronicle(chronicleId: string, finalContent?: string): Promise<void> {
+export async function acceptChronicle(
+  chronicleId: string,
+  options?: { finalContent?: string; acceptedVersionId?: string }
+): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
 
-  record.finalContent = finalContent ?? record.assembledContent;
+  const currentVersionId = `current_${record.assembledAt ?? record.createdAt}`;
+  const activeVersionId = record.activeVersionId || currentVersionId;
+  const acceptedVersionId = options?.acceptedVersionId || activeVersionId;
+
+  record.finalContent = options?.finalContent ?? record.assembledContent;
+  record.acceptedVersionId = acceptedVersionId;
+  record.activeVersionId = acceptedVersionId;
   record.acceptedAt = Date.now();
   record.status = 'complete';
   record.updatedAt = Date.now();
@@ -703,6 +722,7 @@ export async function unpublishChronicle(chronicleId: string): Promise<void> {
 
   delete record.finalContent;
   delete record.acceptedAt;
+  delete record.acceptedVersionId;
   record.status = 'assembly_ready';
   record.updatedAt = Date.now();
 
@@ -718,6 +738,10 @@ export async function updateChronicleActiveVersion(
 ): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
+
+  if (record.status === 'complete' || record.finalContent) {
+    throw new Error(`Chronicle ${chronicleId} is accepted; unpublish before changing versions`);
+  }
 
   record.activeVersionId = versionId;
   record.updatedAt = Date.now();

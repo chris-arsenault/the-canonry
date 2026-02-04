@@ -6,6 +6,7 @@
  * Stores per-project:
  * - activeSlotIndex: Currently active slot (0=scratch, 1-4=saved)
  * - worldContext: Illuminator's world context (name, description, canon facts, tone)
+ * - historianConfig: Illuminator historian persona (project-level)
  * - enrichmentConfig: Illuminator's saved settings (shared across slots)
  *
  * Run slots are persisted in a separate IndexedDB store (canonry-runs).
@@ -437,6 +438,21 @@ export async function saveCultureIdentities(projectId, cultureIdentities) {
  */
 export async function saveStyleSelection(projectId, styleSelection) {
   await saveWorldStore(projectId, { styleSelection });
+}
+
+/**
+ * Save historian persona config (shared across slots)
+ */
+export async function saveHistorianConfig(projectId, historianConfig) {
+  await saveWorldStore(projectId, { historianConfig });
+}
+
+/**
+ * Load historian persona config
+ */
+export async function loadHistorianConfig(projectId) {
+  const store = await loadWorldStore(projectId);
+  return store?.historianConfig || null;
 }
 
 /**

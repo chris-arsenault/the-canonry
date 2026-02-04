@@ -8,6 +8,7 @@
 import { useMemo } from 'react';
 import { useChronicleStore } from './chronicleStore';
 import type { ChronicleRecord } from './chronicleRepository';
+import { isNoteActive } from '../historianTypes';
 
 // ============================================================================
 // Nav item type — lightweight projection for the chronicle list sidebar
@@ -29,6 +30,7 @@ export interface ChronicleNavItem {
   combineInstructions: boolean;
   coverImageComplete: boolean;
   loreBackported: boolean;
+  historianNoteCount: number;
   lens?: { entityName: string };
   imageRefCompleteCount: number;
   failureStep?: string;
@@ -48,6 +50,7 @@ function buildNavItem(
 ): ChronicleNavItem {
   const primaryCount = record.roleAssignments?.filter((r) => r.isPrimary).length || 0;
   const supportingCount = (record.roleAssignments?.length || 0) - primaryCount;
+  const historianNoteCount = (record.historianNotes || []).filter(isNoteActive).length;
   const displayName =
     record.title ||
     (record.roleAssignments?.length > 0
@@ -74,6 +77,7 @@ function buildNavItem(
     combineInstructions: !!record.combineInstructions,
     coverImageComplete: record.coverImage?.status === 'complete',
     loreBackported: !!record.loreBackported,
+    historianNoteCount,
     lens: record.lens ? { entityName: record.lens.entityName } : undefined,
     imageRefCompleteCount:
       record.imageRefs?.refs?.filter(

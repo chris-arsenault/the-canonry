@@ -36,6 +36,7 @@ export default function WorkspaceHeader({
           {item.focusType && (
             <span> &middot; {item.focusType === 'single' ? 'Single focus' : 'Ensemble'}</span>
           )}
+          <span> &middot; sampling {item.generationSampling ?? 'unspecified'}</span>
         </div>
       </div>
       <div className="chronicle-workspace-header-actions">

@@ -123,42 +123,48 @@ function PerspectiveSynthesisViewer({ synthesis }) {
 }
 
 // ============================================================================
-// Temperature Regeneration Control (kept for validation_ready)
+// Sampling Regeneration Control (kept for validation_ready)
 // ============================================================================
 
-function TemperatureRegenerationControl({ item, onRegenerateWithTemperature, isGenerating }) {
-  const baseTemperature = typeof item.generationTemperature === 'number'
-    ? item.generationTemperature
-    : (item.narrativeStyle?.temperature ?? 0.7);
-  const [temperature, setTemperature] = useState(baseTemperature);
+function SamplingRegenerationControl({ item, onRegenerateWithSampling, isGenerating }) {
+  const baseSampling = item.generationSampling;
+  const [lowSampling, setLowSampling] = useState(baseSampling === 'low');
 
   useEffect(() => {
-    setTemperature(baseTemperature);
-  }, [baseTemperature, item.chronicleId]);
+    setLowSampling(item.generationSampling === 'low');
+  }, [item.generationSampling, item.chronicleId]);
 
   const hasPrompts = Boolean(item.generationSystemPrompt && item.generationUserPrompt);
-  const disabled = isGenerating || !hasPrompts || !onRegenerateWithTemperature;
-  const clamp = (value) => Math.min(1, Math.max(0, value));
-  const handleChange = (value) => setTemperature(clamp(value));
+  const disabled = isGenerating || !hasPrompts || !onRegenerateWithSampling;
+  const samplingMode = lowSampling ? 'low' : 'normal';
+  const lastGenerationSampling = item.generationSampling ?? 'unspecified';
 
   return (
     <div style={{ marginBottom: '16px', padding: '12px 16px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
         <div style={{ fontSize: '13px', fontWeight: 500 }}>
-          Temperature Regeneration <span style={{ marginLeft: '8px', color: 'var(--text-muted)', fontSize: '12px' }}>(0&ndash;1)</span>
+          Sampling Regeneration <span style={{ marginLeft: '8px', color: 'var(--text-muted)', fontSize: '12px' }}>(normal vs low)</span>
         </div>
-        <button onClick={() => onRegenerateWithTemperature?.(temperature)} disabled={disabled} style={{ padding: '8px 14px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-secondary)', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1, fontSize: '12px' }}>
-          Regenerate with temperature
+        <button onClick={() => onRegenerateWithSampling?.(samplingMode)} disabled={disabled} style={{ padding: '8px 14px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-secondary)', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1, fontSize: '12px' }}>
+          Regenerate with sampling
         </button>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px', flexWrap: 'wrap' }}>
-        <input type="range" min="0" max="1" step="0.05" value={temperature} onChange={(e) => handleChange(parseFloat(e.target.value))} disabled={disabled} style={{ flex: 1, minWidth: '160px' }} />
-        <input type="number" min="0" max="1" step="0.01" value={temperature} onChange={(e) => handleChange(parseFloat(e.target.value || '0'))} disabled={disabled} style={{ width: '72px', padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontSize: '12px' }} />
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Current: {temperature.toFixed(2)}</span>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-primary)' }}>
+          <input
+            type="checkbox"
+            checked={lowSampling}
+            onChange={(e) => setLowSampling(e.target.checked)}
+            disabled={disabled}
+          />
+          Low sampling (`top_p=0.95`)
+        </label>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Last generation: {lastGenerationSampling}</span>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Next regeneration: {samplingMode}</span>
       </div>
       {!hasPrompts && (
         <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
-          Stored prompts unavailable for this chronicle (legacy generation). Temperature regen is disabled.
+          Stored prompts unavailable for this chronicle (legacy generation). Sampling regen is disabled.
         </div>
       )}
     </div>
@@ -242,7 +248,7 @@ export default function ChronicleReviewPanel({
   onAddImages,
   onAccept,
   onRegenerate,
-  onRegenerateWithTemperature,
+  onRegenerateWithSampling,
   onCompareVersions,
   onCombineVersions,
   onCorrectSuggestions,
@@ -313,7 +319,7 @@ export default function ChronicleReviewPanel({
         item={item}
         onAccept={onAccept}
         onRegenerate={onRegenerate}
-        onRegenerateWithTemperature={onRegenerateWithTemperature}
+        onRegenerateWithSampling={onRegenerateWithSampling}
         onCompareVersions={onCompareVersions}
         onCombineVersions={onCombineVersions}
         onValidate={onValidate}
@@ -365,7 +371,7 @@ export default function ChronicleReviewPanel({
       <ValidationReadyView
         item={item}
         onExport={onExport}
-        onRegenerateWithTemperature={onRegenerateWithTemperature}
+        onRegenerateWithSampling={onRegenerateWithSampling}
         onAccept={onAccept}
         onRegenerate={onRegenerate}
         onCorrectSuggestions={onCorrectSuggestions}
@@ -399,7 +405,7 @@ export default function ChronicleReviewPanel({
 function ValidationReadyView({
   item,
   onExport,
-  onRegenerateWithTemperature,
+  onRegenerateWithSampling,
   onAccept,
   onRegenerate,
   onCorrectSuggestions,
@@ -435,25 +441,26 @@ function ValidationReadyView({
 
   const versions = useMemo(() => {
     const history = (item.generationHistory || []).map((version, index) => {
-      const tempLabel = typeof version.temperature === 'number' ? version.temperature.toFixed(2) : 'default';
+      const samplingLabel = version.sampling ?? 'unspecified';
       return {
         id: version.versionId,
         content: version.content,
         wordCount: version.wordCount,
         shortLabel: `V${index + 1}`,
-        label: `Version ${index + 1} \u2022 ${new Date(version.generatedAt).toLocaleString()} \u2022 temp ${tempLabel}`,
+        label: `Version ${index + 1} \u2022 ${new Date(version.generatedAt).toLocaleString()} \u2022 sampling ${samplingLabel}`,
       };
     });
-    const currentTempLabel = typeof item.generationTemperature === 'number' ? item.generationTemperature.toFixed(2) : 'default';
+    const currentSamplingLabel = item.generationSampling ?? 'unspecified';
+    const currentVersionNumber = history.length + 1;
     history.push({
       id: currentVersionId,
       content: item.assembledContent,
       wordCount: wordCountFn(item.assembledContent),
-      shortLabel: 'Current',
-      label: `Current \u2022 ${new Date(item.assembledAt ?? item.createdAt).toLocaleString()} \u2022 temp ${currentTempLabel}`,
+      shortLabel: `V${currentVersionNumber}`,
+      label: `Version ${currentVersionNumber} \u2022 ${new Date(item.assembledAt ?? item.createdAt).toLocaleString()} \u2022 sampling ${currentSamplingLabel}`,
     });
     return history;
-  }, [item.generationHistory, item.assembledContent, item.assembledAt, item.createdAt, item.generationTemperature, currentVersionId]);
+  }, [item.generationHistory, item.assembledContent, item.assembledAt, item.createdAt, item.generationSampling, currentVersionId]);
 
   const [selectedVersionId, setSelectedVersionId] = useState(activeVersionId);
   const [compareToVersionId, setCompareToVersionId] = useState('');
@@ -518,9 +525,9 @@ function ValidationReadyView({
           </button>
         )}
       </div>
-      <TemperatureRegenerationControl
+      <SamplingRegenerationControl
         item={item}
-        onRegenerateWithTemperature={onRegenerateWithTemperature}
+        onRegenerateWithSampling={onRegenerateWithSampling}
         isGenerating={isGenerating}
       />
       {item.perspectiveSynthesis && (

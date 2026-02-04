@@ -718,7 +718,7 @@ export default function App() {
           }}
         >
           <span className="brand-icon">🐧</span>
-          <span className="brand-title">Penguin Tales</span>
+          <span className="brand-title">The Ice Remembers</span>
         </button>
         <HeaderSearch
           worldData={bundle.worldData}
@@ -752,8 +752,10 @@ export default function App() {
         </div>
       </main>
       <footer className="app-footer">
-        <span>Copyright © 2025</span>
-        <img src="/tsonu-combined.png" alt="tsonu" height="14" />
+        <span>Copyright © 2026</span>
+        <a href="https://ahara.io" target="_blank" rel="noopener noreferrer">
+          <img src="/tsonu-combined.png" alt="tsonu" height="14" />
+        </a>
       </footer>
     </div>
   );

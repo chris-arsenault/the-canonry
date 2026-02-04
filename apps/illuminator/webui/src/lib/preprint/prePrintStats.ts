@@ -130,7 +130,8 @@ export function computePrePrintStats(
     const aspect = img.aspect || 'square';
     byAspect[aspect]++;
 
-    const type = img.imageType || 'entity';
+    const isCover = img.imageRefId === '__cover_image__';
+    const type = isCover ? 'cover' : (img.imageType || 'entity');
     byType[type]++;
 
     if (img.width && img.height) {
@@ -139,13 +140,6 @@ export function computePrePrintStats(
       if (img.width > maxW) maxW = img.width;
       if (img.height < minH) minH = img.height;
       if (img.height > maxH) maxH = img.height;
-    }
-  }
-
-  // Count cover images separately
-  for (const c of publishedChronicles) {
-    if (c.coverImage?.generatedImageId && c.coverImage.status === 'complete') {
-      byType.cover++;
     }
   }
 
@@ -174,14 +168,12 @@ export function computePrePrintStats(
   // Completeness
   // =========================================================================
 
-  const entityImageIds = new Set(
-    images.filter((i) => (i.imageType || 'entity') === 'entity').map((i) => i.entityId)
-  );
+  const entitiesWithImage = entities.filter((e) => e.enrichment?.image?.imageId).length;
 
   const completeness: CompletenessStats = {
     entitiesTotal: entities.length,
     entitiesWithDescription: entities.filter((e) => e.description).length,
-    entitiesWithImage: entities.filter((e) => entityImageIds.has(e.id)).length,
+    entitiesWithImage,
     entitiesWithSummary: entities.filter((e) => e.summary).length,
     chroniclesTotal: publishedChronicles.length,
     chroniclesPublished: publishedChronicles.filter((c) => c.status === 'complete').length,

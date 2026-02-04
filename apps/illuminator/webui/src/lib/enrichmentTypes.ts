@@ -196,6 +196,10 @@ export interface EnrichmentTaskBase {
   chronicleContext?: ChronicleGenerationContext;
   chronicleStep?: ChronicleStep;
   chronicleId?: string;
+  /** Optional metadata snapshot for chronicle generation */
+  chronicleMetadata?: {
+    generationSampling?: 'normal' | 'low';
+  };
   // For chronicle image tasks
   imageRefId?: string;
   sceneDescription?: string;
@@ -227,8 +231,8 @@ export interface EnrichmentTaskBase {
   entityLockedSummaryText?: string;
   /** Narrative hint to guide description generation (always used as prompt input when present) */
   entityNarrativeHintText?: string;
-  /** Optional temperature override for chronicle generation/regeneration */
-  chronicleTemperature?: number;
+  /** Optional sampling mode for chronicle generation/regeneration */
+  chronicleSampling?: 'normal' | 'low';
   /** Elements to avoid in visual thesis (overused motifs, from project config) */
   visualAvoid?: string;
   /** Per-kind domain instructions for visual thesis (required for description tasks) */
@@ -271,7 +275,7 @@ export type QueueItem = EnrichmentTaskPayload & {
  */
 export type ChronicleStep =
   | 'generate_v2'  // Single-shot generation
-  | 'regenerate_temperature' // Re-run chronicle generation with prior prompts
+  | 'regenerate_temperature' // Re-run chronicle generation with prior prompts (sampling mode)
   | 'compare'  // Compare all versions (produces report, no new draft)
   | 'combine'  // Combine all versions into a new draft
   | 'validate'

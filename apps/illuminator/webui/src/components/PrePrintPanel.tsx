@@ -5,7 +5,7 @@
  * Loads all data on mount for the sub-views to use.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { PersistedEntity } from '../lib/db/illuminatorDb';
 import type { ChronicleRecord } from '../lib/chronicleTypes';
 import type { ImageMetadataRecord } from '../lib/preprint/prePrintStats';
@@ -30,7 +30,7 @@ interface PrePrintPanelProps {
 export default function PrePrintPanel({ entities, projectId, simulationRunId }: PrePrintPanelProps) {
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('stats');
   const [chronicles, setChronicles] = useState<ChronicleRecord[]>([]);
-  const [images, setImages] = useState<ImageMetadataRecord[]>([]);
+  const [allImages, setAllImages] = useState<ImageMetadataRecord[]>([]);
   const [staticPages, setStaticPages] = useState<StaticPage[]>([]);
   const [treeState, setTreeState] = useState<ContentTreeState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,8 +51,8 @@ export default function PrePrintPanel({ entities, projectId, simulationRunId }: 
     ]).then(([chrons, allImgs, pages, tree]) => {
       if (cancelled) return;
       setChronicles(chrons);
-      // Filter images to current project only
-      setImages(allImgs.filter((img) => img.projectId === projectId));
+      // Keep project-scoped images; further filtering happens in memo below.
+      setAllImages(allImgs.filter((img) => img.projectId === projectId));
       setStaticPages(pages);
       setTreeState(tree);
       setLoading(false);
@@ -68,6 +68,39 @@ export default function PrePrintPanel({ entities, projectId, simulationRunId }: 
     },
     []
   );
+
+  const images = useMemo(() => {
+    if (allImages.length === 0) return [];
+
+    const referencedIds = new Set<string>();
+
+    for (const entity of entities) {
+      const imageId = entity.enrichment?.image?.imageId;
+      if (imageId) referencedIds.add(imageId);
+    }
+
+    const publishableChronicles = chronicles.filter(
+      (c) => c.status === 'complete' || c.status === 'assembly_ready'
+    );
+
+    for (const chronicle of publishableChronicles) {
+      const coverId = chronicle.coverImage?.generatedImageId;
+      if (coverId && chronicle.coverImage?.status === 'complete') {
+        referencedIds.add(coverId);
+      }
+
+      if (chronicle.imageRefs?.refs) {
+        for (const ref of chronicle.imageRefs.refs) {
+          if (ref.type === 'prompt_request' && ref.status === 'complete' && ref.generatedImageId) {
+            referencedIds.add(ref.generatedImageId);
+          }
+        }
+      }
+    }
+
+    if (referencedIds.size === 0) return [];
+    return allImages.filter((img) => referencedIds.has(img.imageId));
+  }, [allImages, entities, chronicles]);
 
   if (loading) {
     return (

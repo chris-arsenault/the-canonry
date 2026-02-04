@@ -10,7 +10,13 @@ import type { LLMClient } from './llmClient';
 import type { EntityContext, EraContext } from './chronicleTypes';
 import type { EntityConstellation } from './constellationAnalyzer';
 import type { ResolvedLLMCallConfig } from './llmModelSettings';
-import type { NarrativeStyle } from '@canonry/world-schema';
+import {
+  type NarrativeStyle,
+  type ProminenceScale,
+  buildProminenceScale,
+  DEFAULT_PROMINENCE_DISTRIBUTION,
+  prominenceLabelFromScale,
+} from '@canonry/world-schema';
 import { runTextCall } from './llmTextCall';
 
 // =============================================================================
@@ -149,6 +155,26 @@ IMPORTANT: Output ONLY valid JSON. No markdown, no explanation, no commentary.`;
 
 function buildUserPrompt(input: PerspectiveSynthesisInput): string {
   const { constellation, entities, focalEra, toneFragments, culturalIdentities, factsWithMetadata, narrativeStyle, proseHints, worldDynamics } = input;
+  const prominenceScale = buildProminenceScale(
+    entities
+      .map((e) => Number(e.prominence))
+      .filter((value) => Number.isFinite(value)),
+    { distribution: DEFAULT_PROMINENCE_DISTRIBUTION }
+  );
+  const resolveProminenceLabel = (value: EntityContext['prominence'] | number | undefined, scale: ProminenceScale) => {
+    if (value == null) return 'unknown';
+    if (typeof value === 'number') {
+      return prominenceLabelFromScale(value, scale);
+    }
+    const trimmed = String(value).trim();
+    if (!trimmed) return 'unknown';
+    if (scale.labels.includes(trimmed)) return trimmed;
+    const numeric = Number(trimmed);
+    if (Number.isFinite(numeric)) {
+      return prominenceLabelFromScale(numeric, scale);
+    }
+    return trimmed;
+  };
 
   // Entity summaries
   const entitySummaries = entities
@@ -157,7 +183,8 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): string {
       const tags = e.tags && Object.keys(e.tags).length > 0
         ? ` [${Object.entries(e.tags).map(([k, v]) => `${k}=${v}`).join(', ')}]`
         : '';
-      return `- ${e.name} (${e.kind}, ${e.culture || 'unknown'})${tags}: ${e.summary || '(no summary)'}`;
+      const prominenceLabel = resolveProminenceLabel(e.prominence, prominenceScale);
+      return `- ${e.name} (${e.kind}, ${e.culture || 'unknown'}, ${prominenceLabel})${tags}: ${e.summary || '(no summary)'}`;
     })
     .join('\n');
 

@@ -844,9 +844,13 @@ export function validateRoleAssignments(
  */
 export function getRelevantRelationships(
   assignments: ChronicleRoleAssignment[],
-  allRelationships: RelationshipContext[]
+  allRelationships: RelationshipContext[],
+  extraEntityIds?: Iterable<string>
 ): RelationshipContext[] {
   const assignedIds = new Set(assignments.map(a => a.entityId));
+  if (extraEntityIds) {
+    for (const id of extraEntityIds) assignedIds.add(id);
+  }
   return allRelationships.filter(
     r => assignedIds.has(r.src) && assignedIds.has(r.dst)
   );

@@ -8,7 +8,9 @@ import type {
   EntityImageRef,
   PromptRequestRef,
   ChronicleImageSize,
+  ChronicleSampling,
 } from '../../lib/chronicleTypes';
+import { CHRONICLE_SAMPLING_TOP_P } from '../../lib/chronicleTypes';
 import { analyzeConstellation, type EntityConstellation } from '../../lib/constellationAnalyzer';
 import {
   synthesizePerspective,
@@ -95,7 +97,7 @@ async function executeEntityChronicleTask(
   }
 
   if (step === 'regenerate_temperature') {
-    return executeTemperatureRegenerationStep(task, chronicleRecord, context);
+    return executeSamplingRegenerationStep(task, chronicleRecord, context);
   }
 
   if (step === 'compare') {
@@ -156,10 +158,10 @@ function resolveTargetVersionContent(record: ChronicleRecord): { versionId: stri
 }
 
 /**
- * Regenerate chronicle content with a temperature override (no perspective synthesis).
+ * Regenerate chronicle content with a sampling override (no perspective synthesis).
  * Reuses stored prompts from the previous generation.
  */
-async function executeTemperatureRegenerationStep(
+async function executeSamplingRegenerationStep(
   task: WorkerTask,
   chronicleRecord: ChronicleRecord,
   context: TaskContext
@@ -171,7 +173,7 @@ async function executeTemperatureRegenerationStep(
   }
 
   if (chronicleRecord.status === 'complete' || chronicleRecord.finalContent) {
-    return { success: false, error: 'Temperature regeneration is only available before acceptance' };
+    return { success: false, error: 'Sampling regeneration is only available before acceptance' };
   }
 
   const systemPrompt = chronicleRecord.generationSystemPrompt;
@@ -181,10 +183,11 @@ async function executeTemperatureRegenerationStep(
   }
 
   const callConfig = getCallConfig(config, 'chronicle.generation');
-  const temperatureRaw = typeof task.chronicleTemperature === 'number'
-    ? task.chronicleTemperature
-    : (chronicleRecord.generationTemperature ?? chronicleRecord.narrativeStyle?.temperature ?? 0.85);
-  const temperature = Math.min(1, Math.max(0, temperatureRaw));
+  const sampling: ChronicleSampling | undefined = task.chronicleSampling;
+  if (!sampling) {
+    return { success: false, error: 'chronicleSampling is required for regeneration' };
+  }
+  const topP = CHRONICLE_SAMPLING_TOP_P[sampling];
 
   const styleMaxTokens = chronicleRecord.narrativeStyle
     ? getMaxTokensFromStyle(chronicleRecord.narrativeStyle)
@@ -196,7 +199,7 @@ async function executeTemperatureRegenerationStep(
     callConfig,
     systemPrompt,
     prompt: userPrompt,
-    temperature,
+    topP,
     autoMaxTokens: styleMaxTokens,
   });
 
@@ -209,7 +212,7 @@ async function executeTemperatureRegenerationStep(
   if (result.error || !result.text) {
     return {
       success: false,
-      error: `Temperature regeneration failed: ${result.error || 'No text returned'}`,
+      error: `Sampling regeneration failed: ${result.error || 'No text returned'}`,
       debug: result.debug,
     };
   }
@@ -220,7 +223,7 @@ async function executeTemperatureRegenerationStep(
       systemPrompt,
       userPrompt,
       model: callConfig.model,
-      temperature,
+      sampling,
       cost: {
         estimated: generationCall.estimate.estimatedCost,
         actual: generationCall.usage.actualCost,
@@ -418,15 +421,20 @@ async function executeV2GenerationStep(
   const prompt = buildV2Prompt(chronicleContext, narrativeStyle, selection);
   const styleMaxTokens = getMaxTokensFromStyle(narrativeStyle);
   const systemPrompt = getV2SystemPrompt(narrativeStyle);
-    const generationCall = await runTextCall({
-      llmClient,
-      callType: 'chronicle.generation',
-      callConfig,
-      systemPrompt,
-      prompt,
-      temperature: task.chronicleTemperature ?? narrativeStyle.temperature ?? 0.85,
-      autoMaxTokens: styleMaxTokens,
-    });
+  const sampling: ChronicleSampling | undefined = task.chronicleSampling;
+  if (!sampling) {
+    return { success: false, error: 'chronicleSampling is required for generation' };
+  }
+  const topP = CHRONICLE_SAMPLING_TOP_P[sampling];
+  const generationCall = await runTextCall({
+    llmClient,
+    callType: 'chronicle.generation',
+    callConfig,
+    systemPrompt,
+    prompt,
+    topP,
+    autoMaxTokens: styleMaxTokens,
+  });
   const result = generationCall.result;
 
   console.log(`[Worker] V2 prompt length: ${prompt.length} chars, maxTokens: ${generationCall.budget.totalMaxTokens}`);
@@ -484,7 +492,7 @@ async function executeV2GenerationStep(
       // Store the ACTUAL prompts sent to the LLM (canonical source of truth)
       generationSystemPrompt: systemPrompt,
       generationUserPrompt: prompt,
-      generationTemperature: narrativeStyle.temperature ?? 0.85,
+      generationSampling: sampling,
       // Store the generation context snapshot (post-perspective synthesis)
       // This is what was actually used to build the prompt
       generationContext: {
@@ -564,26 +572,29 @@ async function executeV2GenerationStep(
 
 function collectAllVersionTexts(
   chronicleRecord: NonNullable<Awaited<ReturnType<typeof getChronicle>>>
-): Array<{ label: string; content: string; temperature?: number; wordCount: number }> {
-  const versions: Array<{ label: string; content: string; temperature?: number; wordCount: number }> = [];
+): Array<{ label: string; content: string; sampling?: ChronicleSampling; wordCount: number }> {
+  const versions: Array<{ label: string; content: string; sampling?: ChronicleSampling; wordCount: number }> = [];
 
   // History versions
   const history = chronicleRecord.generationHistory || [];
   for (let i = 0; i < history.length; i++) {
+    const samplingLabel = history[i].sampling ?? 'unspecified';
     versions.push({
-      label: `Version ${i + 1} (T=${history[i].temperature ?? '?'})`,
+      label: `Version ${i + 1} (sampling=${samplingLabel})`,
       content: history[i].content,
-      temperature: history[i].temperature,
+      sampling: history[i].sampling,
       wordCount: history[i].wordCount,
     });
   }
 
   // Current assembled content
   if (chronicleRecord.assembledContent) {
+    const samplingLabel = chronicleRecord.generationSampling ?? 'unspecified';
+    const versionNumber = history.length + 1;
     versions.push({
-      label: `Current (T=${chronicleRecord.generationTemperature ?? '?'})`,
+      label: `Version ${versionNumber} (sampling=${samplingLabel})`,
       content: chronicleRecord.assembledContent,
-      temperature: chronicleRecord.generationTemperature,
+      sampling: chronicleRecord.generationSampling,
       wordCount: chronicleRecord.assembledContent.split(/\s+/).length,
     });
   }
@@ -632,7 +643,7 @@ async function executeCompareStep(
     `## ${v.label}\nWord count: ${v.wordCount}\n\n${v.content}`
   ).join('\n\n---\n\n');
 
-  const comparePrompt = `You are comparing ${versions.length} versions of the same chronicle. Each was generated from the same prompt and narrative style (${narrativeStyleName}) but at different temperatures (creative latitude).
+  const comparePrompt = `You are comparing ${versions.length} versions of the same chronicle. Each was generated from the same prompt and narrative style (${narrativeStyleName}) but with different sampling modes (normal vs low).
 ${narrativeStyleBlock ? `\n## Narrative Style Reference\n${narrativeStyleBlock}\n` : ''}
 Your output must have THREE sections in this exact order. Keep the total output under 800 words.
 
@@ -763,7 +774,7 @@ async function executeCombineStep(
   // Check for combine instructions from a prior compare step
   const hasCombineInstructions = !!chronicleRecord.combineInstructions;
 
-  const combinePrompt = `You are a narrative editor combining ${versions.length} versions of the same chronicle into a single final version. All versions follow the same prompt and narrative style — they differ in temperature (creative latitude).
+  const combinePrompt = `You are a narrative editor combining ${versions.length} versions of the same chronicle into a single final version. All versions follow the same prompt and narrative style — they differ in sampling mode (normal vs low).
 
 Your job is NOT to merge or average. Your job is to CHOOSE and REWRITE: take the stronger elements from each version and produce one polished chronicle.
 ${hasCombineInstructions ? `
@@ -797,13 +808,14 @@ ${versionsBlock}
 
 Produce the final chronicle by selecting the strongest elements from each version. Output ONLY the chronicle text — no commentary, no labels, no preamble.`;
 
+  const combineSampling: ChronicleSampling = 'normal';
   const combineCall = await runTextCall({
     llmClient,
     callType: 'chronicle.combine',
     callConfig,
     systemPrompt: 'You are a narrative editor producing the definitive version of a chronicle from multiple drafts. Output only the final chronicle text.',
     prompt: combinePrompt,
-    temperature: 0.4,
+    topP: CHRONICLE_SAMPLING_TOP_P[combineSampling],
   });
 
   if (isAborted()) {
@@ -824,6 +836,7 @@ Produce the final chronicle by selecting the strongest elements from each versio
     systemPrompt: chronicleRecord.generationSystemPrompt || '',
     userPrompt: chronicleRecord.generationUserPrompt || '',
     model: callConfig.model,
+    sampling: combineSampling,
     cost: {
       estimated: combineCall.estimate.estimatedCost,
       actual: combineCall.usage.actualCost,
@@ -975,7 +988,8 @@ interface TitlePromptContext {
   documentInstructions?: string;
 }
 
-function buildTitleCandidatesPrompt(content: string, ctx: TitlePromptContext): string {
+function buildTitleSystemPrompt(ctx: TitlePromptContext): string {
+  const formatLabel = ctx.format === 'document' ? 'document' : 'story';
   const styleContext = buildStyleContext(
     ctx.format,
     ctx.narrativeStyleName,
@@ -983,26 +997,52 @@ function buildTitleCandidatesPrompt(content: string, ctx: TitlePromptContext): s
     ctx.narrativeInstructions,
     ctx.proseInstructions,
     ctx.documentInstructions,
-  );
+  ).trim();
 
+  const approachList = ctx.format === 'document'
+    ? [
+        'Subject-focused (e.g., "The Art of War")',
+        'Formal heading (e.g., "A Treatise on...")',
+        'Topical or declarative (e.g., "On Liberty")',
+        'Named reference (e.g., "The Prince")',
+        'Chronicle/record framing (e.g., "The Annals of...")',
+      ]
+    : [
+        'Thematic tension (e.g., "Pride and Prejudice")',
+        'Place or setting (e.g., "Wuthering Heights")',
+        'Character + context (e.g., "The Great Gatsby")',
+        'Event or image (e.g., "The Fall of Gondolin")',
+        'Symbolic object or motif (e.g., "The Bell Jar")',
+      ];
+
+  const lengthRule = ctx.format === 'document'
+    ? 'Include varied lengths: at least one 2-3 words, two 4-6 words, and two 7-10 words.'
+    : 'Include varied lengths: at least one 2-3 words, two 4-6 words, and two 7-9 words.';
+
+  return [
+    `You are a creative title writer for an in-universe ${formatLabel}.`,
+    'Base diction, imagery, and formality on the narrative style context below (if absent, infer from the chronicle).',
+    'Generate exactly 5 candidate titles, ordered best to worst.',
+    'Rules:',
+    '- Output ONLY valid JSON.',
+    '- JSON format: {"titles": ["...", "...", "...", "...", "..."]}',
+    '- Title Case capitalization.',
+    `- ${lengthRule}`,
+    '- Each title must use a DIFFERENT structural approach from this list:',
+    ...approachList.map((entry) => `  - ${entry}`),
+    '- Titles must be specific, evocative, and meaningful even to someone unfamiliar with the chronicle.',
+    '- Do NOT use bare entity names alone; names need context to work as titles.',
+    ...(ctx.format === 'story' ? ['- At most ONE title may start with "The".'] : []),
+    '',
+    styleContext ? 'Narrative style context:' : 'Narrative style context: (none provided)',
+    styleContext || '',
+  ].filter(Boolean).join('\n');
+}
+
+function buildTitleCandidatesPrompt(content: string, ctx: TitlePromptContext): string {
   if (ctx.format === 'document') {
     return `Generate 5 candidate titles for the in-universe document below.
-${styleContext}
-Great document titles are concise and authoritative. They use varied approaches:
-- Subject-focused: "The Art of War", "Poetics", "The Republic", "Leviathan"
-- Formal heading: "A Treatise on Power", "Concerning the Nature of...", "The Chronicle of..."
-- Topical: "On Liberty", "Common Sense", "The Rights of Man"
-- Named reference: "The Prince", "Letters from a Stoic", "The Annals"
-
-The title should sound like a real historical document, treatise, or text — authoritative and specific to its subject matter.
-
-Rules:
-- Each title: 2-7 words
-- Title Case capitalization
-- Each candidate must use a DIFFERENT structural approach
-- Match the formality and genre of the document type
-- Titles must be specific to the document's actual subject, not generic
-- ${pickNudge('document')}
+Additional focus: ${pickNudge('document')}
 
 Document:
 ${content}
@@ -1012,62 +1052,13 @@ Return ONLY valid JSON in this exact format:
   }
 
   return `Generate 5 candidate titles for the story below.
-${styleContext}
-Great titles are concise and evocative. They range from 2-6 words and use varied approaches:
-- Thematic: "Pride and Prejudice", "A Farewell to Arms", "The Sound and the Fury"
-- Place/setting: "Wuthering Heights", "The Tower of Babel", "Dune"
-- Character + context: "The Great Gatsby", "The Once and Future King"
-- Event/image: "A Storm of Swords", "The Fall of Gondolin", "Blood Meridian"
-- Symbolic: "The Bell Jar", "Brave New World", "The Long Dark"
-
-The title should capture the ESSENCE of the chronicle — its central tension, setting, or theme — in a way that intrigues. It should NOT be a bare entity name or a plot summary.
-
-Rules:
-- Each title: 2-6 words
-- Title Case capitalization
-- Each candidate must use a DIFFERENT structural approach (thematic, place-based, event-based, symbolic, character-focused)
-- Do NOT use bare character or entity names alone as titles — a name needs context (e.g. "Macbeth" works because it's a famous play, but "Aerirei" alone means nothing to a reader)
-- Titles must be meaningful and evocative even to someone who hasn't read the chronicle
-- At most ONE title may start with "The"
-- ${pickNudge('story')}
+Additional focus: ${pickNudge('story')}
 
 Story:
 ${content}
 
 Return ONLY valid JSON in this exact format:
 {"titles": ["...", "...", "...", "...", "..."]}`;
-}
-
-function buildTitleSynthesisPrompt(
-  candidates: string[],
-  content: string,
-  ctx: TitlePromptContext,
-): string {
-  const styleContext = ctx.narrativeStyleName
-    ? `\nNarrative style: "${ctx.narrativeStyleName}"${ctx.narrativeStyleDescription ? ` — ${ctx.narrativeStyleDescription}` : ''}\n`
-    : '';
-
-  const candidateList = candidates.map((t, i) => `${i + 1}. ${t}`).join('\n');
-
-  const formatLabel = ctx.format === 'document' ? 'document' : 'story';
-
-  return `Here are 5 candidate titles for a ${formatLabel}:
-
-${candidateList}
-${styleContext}
-Your job: create the BEST possible title. You may pick one candidate if it's already excellent, or synthesize something new by combining the strongest elements. The result must sound like a real ${ctx.format === 'document' ? 'document or text name' : 'book title'} — concise, evocative, and meaningful.
-
-Rules:
-- 2-${ctx.format === 'document' ? '7' : '6'} words
-- Title Case capitalization
-- Must be meaningful and evocative even to someone unfamiliar with the content
-- Do NOT use bare entity names alone — names need context to work as titles
-
-${ctx.format === 'story' ? 'Story' : 'Document'} (for reference):
-${content}
-
-Return ONLY valid JSON in this exact format:
-{"title": "..."}`;
 }
 
 function formatImageRefEntities(
@@ -1412,13 +1403,14 @@ async function executeTitleStep(
     documentInstructions: narrativeStyle?.format === 'document' ? (narrativeStyle as any).documentInstructions : undefined,
   };
 
-  // --- Pass 1: Generate candidates ---
+  // --- Generate candidates (single pass) ---
   const candidatesPrompt = buildTitleCandidatesPrompt(content, titleCtx);
+  const titleSystemPrompt = buildTitleSystemPrompt(titleCtx);
   const candidatesCall = await runTextCall({
     llmClient,
     callType: 'chronicle.title',
     callConfig,
-    systemPrompt: 'You are a creative title writer. Always respond with valid JSON.',
+    systemPrompt: titleSystemPrompt,
     prompt: candidatesPrompt,
     temperature: 0.75,
   });
@@ -1435,62 +1427,38 @@ async function executeTitleStep(
     try {
       const parsed = parseJsonObject<Record<string, unknown>>(candidatesCall.result.text, 'title candidates response');
       if (Array.isArray(parsed.titles)) {
-        candidates = parsed.titles.filter((t): t is string => typeof t === 'string' && t.trim().length > 0).map(t => t.trim());
+        candidates = parsed.titles
+          .filter((t): t is string => typeof t === 'string' && t.trim().length > 0)
+          .map(t => t.trim());
       }
     } catch {
       // Candidates parse failed
     }
   }
 
+  if (candidates.length > 0) {
+    const seen = new Set<string>();
+    candidates = candidates
+      .map((title) => toTitleCase(title))
+      .filter((title) => {
+        const key = title.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }
+
   if (candidates.length === 0) {
     return { success: false, error: 'Title generation produced no candidates', debug: debugParts.join('\n---\n') || undefined };
   }
 
-  // --- Pass 2: Synthesize final title ---
-  let title: string;
-  let synthesisCall: Awaited<ReturnType<typeof runTextCall>> | undefined;
+  const title = candidates[0];
 
-  if (candidates.length >= 2) {
-    const synthesisPrompt = buildTitleSynthesisPrompt(candidates, content, titleCtx);
-    synthesisCall = await runTextCall({
-      llmClient,
-      callType: 'chronicle.title',
-      callConfig,
-      systemPrompt: 'You are a creative title writer. Always respond with valid JSON.',
-      prompt: synthesisPrompt,
-      temperature: 0.6,
-    });
-    if (synthesisCall.result.debug) debugParts.push(synthesisCall.result.debug);
-
-    if (isAborted()) {
-      return { success: false, error: 'Task aborted', debug: debugParts.join('\n---\n') || undefined };
-    }
-
-    title = candidates[0]; // fallback
-    if (!synthesisCall.result.error && synthesisCall.result.text) {
-      try {
-        const parsed = parseJsonObject<Record<string, unknown>>(synthesisCall.result.text, 'title synthesis response');
-        if (typeof parsed.title === 'string' && parsed.title.trim()) {
-          title = parsed.title.trim();
-        }
-      } catch {
-        // Synthesis parse failed — use first candidate
-      }
-    }
-  } else {
-    title = candidates[0];
-  }
-
-  // Enforce title case
-  title = toTitleCase(title);
-
-  // Combine costs
-  const allCalls = [candidatesCall, ...(synthesisCall ? [synthesisCall] : [])];
   const totalCost = {
-    estimated: allCalls.reduce((sum, c) => sum + c.estimate.estimatedCost, 0),
-    actual: allCalls.reduce((sum, c) => sum + c.usage.actualCost, 0),
-    inputTokens: allCalls.reduce((sum, c) => sum + c.usage.inputTokens, 0),
-    outputTokens: allCalls.reduce((sum, c) => sum + c.usage.outputTokens, 0),
+    estimated: candidatesCall.estimate.estimatedCost,
+    actual: candidatesCall.usage.actualCost,
+    inputTokens: candidatesCall.usage.inputTokens,
+    outputTokens: candidatesCall.usage.outputTokens,
   };
 
   const debug = debugParts.length > 0 ? debugParts.join('\n---\n') : undefined;

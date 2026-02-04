@@ -48,6 +48,8 @@ function summarizeTask(task: WorkerTask): Record<string, unknown> {
     simulationRunId: task.simulationRunId,
     imageType: task.imageType,
     chronicleId: task.chronicleId,
+    chronicleSampling: task.chronicleSampling,
+    chronicleMetadataSampling: task.chronicleMetadata?.generationSampling,
     imageRefId: task.imageRefId,
     promptChars: task.prompt?.length,
   };

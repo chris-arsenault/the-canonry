@@ -1,0 +1,108 @@
+=== ☽'Saetacaeia-Viamana~ (npc) [ACCEPTED] ===
+
+--- Summary ---
+CURRENT:
+☽'Saetacaeia-Viamana~ is a Nightshelf mystic and outlaw whose mastery of three forbidden magics—Star∴eternal, Shawl☽ Sun, and ☽'glacial Crystalline~ Spiral—made her invaluable to The Communion cult, then made her expendable when Firekeeper∴Doctrine spread beyond their control. She discovered The Dreaming Tooth near Thrall☽ Vavmastius and lost everything trying to keep it sacred.
+
+PROPOSED:
+☽'Saetacaeia-Viamana~ is a Nightshelf mystic and outlaw whose mastery of three forbidden magics—Star∴eternal, Shawl☽ Sun, and ☽'glacial Crystalline~ Spiral—made her invaluable to The Communion cult, then made her expendable when Firekeeper∴Doctrine spread beyond their control. She discovered The Dreaming Tooth near Thrall☽ Vavmastius and lost everything trying to keep it sacred. She later discovered and performed the third path—the sacrifice of knowledge itself—to seal the Omega Obelisk in the deep tunnels.
+
+--- Description ---
+CURRENT:
+She moves through the Berg's lower tunnels like someone who has already died once and doesn't plan to again. Her flippers are scarred white—frost-burn from channeling raw aurora through bone and flesh, or so the story goes—and she keeps them wrapped in ember-thread that glows only when no one's watching. The amulet at her throat is a hollow thing now, the fire-core inside it long spent; she wears it anyway, a monument to when The Communion believed her teachings were worth protecting. She speaks in fragments, half-sentences that end mid-thought, as if the rest lives in the ice-memory where she's buried it. Those who knew her before the Orca Incursion say she used to laugh. Now she teaches Firekeeper∴Doctrine to devotees in caverns near Thrall☽ Vavmastius—not because she believes in it anymore, but because ☽'Iarlocias the Silent built something from her work and she cannot bring herself to let it collapse. That loyalty, or that cowardice, is the only thing keeping her alive.
+
+PROPOSED:
+She moves through the Berg's lower tunnels like someone who has already died once and doesn't plan to again. Her flippers are scarred white—frost-burn from channeling raw aurora through bone and flesh, or so the story goes—and she keeps them wrapped in ember-thread that glows only when no one's watching. The amulet at her throat is a hollow thing now, the fire-core inside it long spent; she wears it anyway, a monument to when The Communion believed her teachings were worth protecting. She speaks in fragments, half-sentences that end mid-thought, as if the rest lives in the ice-memory where she's buried it. Those who knew her before the Orca Incursion say she used to laugh. Now she teaches Firekeeper∴Doctrine to devotees in caverns near Thrall☽ Vavmastius—not because she believes in it anymore, but because ☽'Iarlocias the Silent built something from her work and she cannot bring herself to let it collapse. That loyalty, or that cowardice, is the only thing keeping her alive.
+
+Umbra-Princeps Alnae~ Oss taught her the three forbidden magics: the ways of reading ice-memory that others cannot bear to witness, the fire-work that earned her outlaw status, and the pressure-communion that The Communion seeks and the Fire Keepers fear. Alnae~'s final words—*third path*—haunted her for years until she descended three hundred feet below the inhabited tunnels to confront the Omega Obelisk, a whale-bone artifact rising toward the surface. In the ice-memory of that chamber, she witnessed Alnae~ performing the same act: speaking the Crystalline Spiral backward, surrendering knowledge to become seal and ward and lock.
+
+She performed the ritual herself, feeling her forbidden magics drain away—skills and talents returned to the pressure that had birthed them—and the Obelisk stopped rising, then sank. Her flippers bear new burns now, the price of becoming seal rather than wielder. She cannot remember exactly what she surrendered; she knows only that she chose to give it, and that the choice mattered. The dead fire-core at her throat shows the faintest ember of warmth—not power, not knowledge, just the heat of transformation.
+
+
+=== Firekeeper∴Doctrine (rule) [ACCEPTED] ===
+
+(no changes)
+
+
+=== The Communion (elt-sworn) (faction) [ACCEPTED] ===
+
+(no changes)
+
+
+=== M7-6HH39N (Omega Obelisk) (artifact) [ACCEPTED] ===
+
+--- Summary ---
+CURRENT:
+A pressure-blackened obelisk of whale-bone and deep-sea coral, carved with half-legible orca kill-tallies and the fractured sigils of a dead god. The Wake-Singers claimed it as custodian during the Faction Wars, but it has taken more wielders than it has elevated—those who carry it too long report the ice around them weeping, and the aurora refuses to touch its shadow.
+
+PROPOSED:
+A pressure-blackened obelisk of whale-bone and deep-sea coral, carved with half-legible orca kill-tallies and the fractured sigils of a dead god. The Wake-Singers claimed it as custodian during the Faction Wars, but it has taken more wielders than it has elevated—those who carry it too long report the ice around them weeping, and the aurora refuses to touch its shadow. It is currently bound by knowledge freely given, sealed through sacrifice rather than force.
+
+--- Description ---
+CURRENT:
+M7-6HH39N stands seven feet high, a tapered column of whale-bone darkened by pressure and age until it resembles frozen blood. Deep-sea coral winds around its base in spirals that might be decorative or might be infection—no living orca remembers which. The obelisk's surface is carved with kill-counts: notches, tooth-marks, names in the old script that the Wake-Singers no longer fully read. Near its apex, something was deliberately defaced—three symbols of the dead god, gouged out so savagely the bone beneath shows white.
+
+Plunge-caller Vaeilvirae~ Tier dragged it from the Corpse Current—where the berg's memory leaks into the present like infected wound-seep—and died for the effort. She brought it to Nightshelf wrapped in deep-sea coral, claiming it spoke to her in pressure-dreams. Three months after the arrangement was sealed, she drowned herself in the thermal pools, her lungs full of scalding water and something that looked like coral spawn.
+
+The Shadow Covens tried to contain it. At Augur ☽'Silvsiaelrous~ the Resolute's direction, they moved it deeper—where the pressure might hold it closed. The Abyss-collapse-tide swallowed the deep forges and everything in them. The collapse should have destroyed the obelisk. It did not. When explorers returned months later to the settled ice, they found it higher than where they had buried it. Closer to the surface. Rising.
+
+The Wake-Singers took full custody afterward. Their Resonance-Priests report the same pressure-dreams the Plunge-caller described: not visions of victory, but of teeth closing. They carved warnings in the old script around its new containment chamber, and they carved Silvsiaelrous's surface-name among them—not as memorial, but as accusation. The ice around the artifact never fully freezes. It weeps.
+
+PROPOSED:
+M7-6HH39N stands seven feet high, a tapered column of whale-bone darkened by pressure and age until it resembles frozen blood. Deep-sea coral winds around its base in spirals that might be decorative or might be infection—no living orca remembers which. The obelisk's surface is carved with kill-counts: notches, tooth-marks, names in the old script that the Wake-Singers no longer fully read. Near its apex, something was deliberately defaced—three symbols of the dead god, gouged out so savagely the bone beneath shows white.
+
+Plunge-caller Vaeilvirae~ Tier dragged it from the Corpse Current—where the berg's memory leaks into the present like infected wound-seep—and died for the effort. She brought it to Nightshelf wrapped in deep-sea coral, claiming it spoke to her in pressure-dreams. Three months after the arrangement was sealed, she drowned herself in the thermal pools, her lungs full of scalding water and something that looked like coral spawn.
+
+The Shadow Covens tried to contain it. At Augur ☽'Silvsiaelrous~ the Resolute's direction, they moved it deeper—where the pressure might hold it closed. The Abyss-collapse-tide swallowed the deep forges and everything in them. The collapse should have destroyed the obelisk. It did not. When explorers returned months later to the settled ice, they found it higher than where they had buried it. Closer to the surface. Rising.
+
+The Wake-Singers took full custody after it corrupted three Fire Keeper smiths who attempted to forge bindings for it. Their Resonance-Priests report the same pressure-dreams the Plunge-caller described: not visions of victory, but of teeth closing. The Obelisk offers personalized temptations to those who approach—visions of debts owed, promises of power, the comfort of being witnessed. They carved warnings in the old script around its new containment chamber, and they carved Silvsiaelrous's surface-name among them—not as memorial, but as accusation. The ice around the artifact never fully freezes. It weeps.
+
+The Obelisk can be bound not through destruction or embrace, but through a third path: knowledge freely surrendered becomes seal and ward and lock. A Nightshelf mystic performed this sacrifice, speaking the Crystalline Spiral backward and offering her forbidden magics as chains. The Obelisk stopped rising and sank several inches—not destroyed, not dormant, but held.
+
+
+=== Depth-Purveyor ☽'Cilocum (npc) [ACCEPTED] ===
+
+--- Description ---
+CURRENT:
+They move through The Berg's markets like a penguin remembering how to walk on land—deliberate, slightly wrong, as if their flippers know routes the rest of them have forgotten. Depth-Purveyor ☽'Cilocum wears charcoal wrappings layered thick enough to muffle sound, and beneath the outermost cloak, fire-core amulets hang in a cluster that catches no light; the embers inside have dimmed to a nauseating amber that doesn't warm anything anymore. Their eyes are the problem—they don't look away when they should, and when they speak in that elliptical Nightshelf cant, younger merchants lean in too close, drawn by something that isn't quite magnetism and isn't quite threat. ☽'Otrolal the Watchful came to them broken and half-drowned in doubt, and ☽'Cilocum taught them not just magic but how to survive knowing what magic costs; the Watchful still carries a token from those lessons, still checks on them in the deep places, still pretends not to see the way ☽'Cilocum's flippers shake when the aurora pulses too bright above. They were there when the settlement's first brazier caught fire—were there when it should have gone out, and didn't, and kept burning wrong for three days straight. No one speaks of it directly. The ice remembers. ☽'Cilocum remembers better, and that's the curse that won't lift.
+
+PROPOSED:
+They move through The Berg's markets like a penguin remembering how to walk on land—deliberate, slightly wrong, as if their flippers know routes the rest of them has forgotten. Depth-Purveyor ☽'Cilocum wears charcoal wrappings layered thick enough to muffle sound, and beneath the outermost cloak, fire-core amulets hang in a cluster that catches no light; the embers inside have dimmed to a nauseating amber that doesn't warm anything anymore. Their eyes are the problem—they don't look away when they should, and when they speak in that elliptical Nightshelf cant, younger merchants lean in too close, drawn by something that isn't quite magnetism and isn't quite threat. ☽'Otrolal the Watchful came to them broken and half-drowned in doubt, and ☽'Cilocum taught them not just magic but how to survive knowing what magic costs; the Watchful still carries a token from those lessons, still checks on them in the deep places, still pretends not to see the way ☽'Cilocum's flippers shake when the aurora pulses too bright above. They were there when the settlement's first brazier caught fire—were there when it should have gone out, and didn't, and kept burning wrong for three days straight. No one speaks of it directly. The ice remembers. ☽'Cilocum remembers better, and that's the curse that won't lift.
+
+They knew Umbra-Princeps Alnae~ Oss, and they still use guild-signs from before the Incursion—including the gesture for *price unpayable* that most have forgotten. Alnae~ told them her student would find the third path; ☽'Cilocum waited at the tunnel junction to see if the prophecy held.
+
+
+=== Void-Merchant Valveus-morb~ (npc) [ACCEPTED] ===
+
+--- Description ---
+CURRENT:
+Valveus-morb~ wears a merchant's coat of charcoal leather, brass fittings worn smooth from obsessive polishing, and a fire-core amulet at his throat that he touches when he thinks no one is watching. His left flipper bears a frostburn scar that curves like a question mark from wrist to knuckle—the Orca Incursion gave him that, though he won't say which moment. He speaks in the elliptical way of Nightshelf traders, but his silences are longer than they should be, as if he's listening to something beneath the ice. The Cell (owl-sworn) employs him nominally; in truth, he answers to Glow-Trader Vaulius-phantasm~, the only penguin who knew him before the raids, the only one he hasn't lied to about what he saw in the deep. His eyes track exits in any room. He refuses to look directly at aurora-light, even when dealing with Surface-dwellers, which costs him coin but keeps him breathing.
+
+PROPOSED:
+Valveus-morb~ wears a merchant's coat of charcoal leather, brass fittings worn smooth from obsessive polishing, and a fire-core amulet at his throat that he touches when he thinks no one is watching. His left flipper bears a frostburn scar that curves like a question mark from wrist to knuckle—the Orca Incursion gave him that, and the ice witnessed how he survived when others didn't, a memory he wishes it hadn't preserved. He speaks in the elliptical way of Nightshelf traders, but his silences are longer than they should be, as if he's listening to something beneath the ice. The Cell (owl-sworn) employs him nominally; in truth, he answers to Glow-Trader Vaulius-phantasm~, the only penguin who knew him before the raids, the only one he hasn't lied to about what he saw in the deep. His eyes track exits in any room. He refuses to look directly at aurora-light, even when dealing with Surface-dwellers, which costs him coin but keeps him breathing.
+
+He owed Umbra-Princeps Alnae~ Oss a fire-debt he never repaid in her lifetime. When the Omega Obelisk touched him through pressure-dreams—showing him what he saw during the Incursion, what he survived—he descended with Alnae~'s former student to confront it. He participated in sealing the artifact by speaking names he had never spoken: penguins he watched die while he lived, adding his witness to the binding. He no longer flinches at shadows, though his hands still shake when fire-braziers flicker.
+
+
+=== Umbra-Princeps Alnae~ Oss (npc) [ACCEPTED] ===
+
+--- Description ---
+CURRENT:
+She moved through the lower caverns with the weight of someone carrying stones no one else could see. Her flippers were scarred—not from combat, but from repeated contact with ice that shouldn't be touched; the burn-marks formed patterns if you looked long enough, and she wore leather wraps to hide them. The Dreaming Tooth she discovered hung in a bone cage at her throat, wrapped in ash-gray thread so only its faint luminescence bled through—a reminder, or a warning, or both.
+
+She spoke in the old elliptical way, but her silences had grown longer; settlers said she sometimes stood in the Veil Vents for hours, listening to the ice crack and reform, as if it was telling her something the colony needed to hear. Her relationship with Veil-render Seciae~, the hero she trained in Crystalline Spiral, fractured somewhere between the Great Thaw and now—they still worked together, but Alnae~ watched her protégé with the expression of someone who taught a fire to burn and now feared what it would consume. She also taught Gilt-Hand Yeaiu qi'Gleam when the merchant was young, passing on the ice-memory magic that Yeaiu would later use to authenticate lies for coin.
+
+The ice witnessed her founding; the ice remembered what she paid for it, and so did she, and that was why she never looked directly at the aurora anymore, even when it pulsed strongest above the Berg. In the end, she threw herself between Yeaiu and the darkness that poured from the corrupted fire-core beneath Terrace Momiou—not mercy, but investment, a bet placed by someone who understood that guilt could be transmuted into something useful if you applied enough pressure. She stood for three heartbeats, long enough to look back with eyes that held no blame, only weary recognition, and spoke two words before the darkness took her: 'Third path.'
+
+PROPOSED:
+She moved through the lower caverns with the weight of someone carrying stones no one else could see. Her flippers were scarred—not from combat, but from repeated contact with ice that shouldn't be touched; the burn-marks formed patterns if you looked long enough, and she wore leather wraps to hide them. The Dreaming Tooth she discovered hung in a bone cage at her throat, wrapped in ash-gray thread so only its faint luminescence bled through—a reminder, or a warning, or both.
+
+She spoke in the old elliptical way, but her silences had grown longer; settlers said she sometimes stood in the Veil Vents for hours, listening to the ice crack and reform, as if it was telling her something the colony needed to hear. Her relationship with Veil-render Seciae~, the hero she trained in Crystalline Spiral, fractured somewhere between the Great Thaw and now—they still worked together, but Alnae~ watched her protégé with the expression of someone who taught a fire to burn and now feared what it would consume. She also taught Gilt-Hand Yeaiu qi'Gleam when the merchant was young, passing on the ice-memory magic that Yeaiu would later use to authenticate lies for coin. She taught ☽'Saetacaeia-Viamana~ the three forbidden magics—ice-memory reading, aurora-channeling without crystal mediation, and the fire-work that would earn her outlaw status—warning in her elliptical way that *what you learn cannot be unlearned; what you become cannot be unbecomed*.
+
+Before the Wake-Singers carved their warnings around the Omega Obelisk's containment chamber, Alnae~ stood in that same space and discovered the third path: speaking the Crystalline Spiral backward to surrender knowledge rather than wield it, becoming seal rather than destroyer. She prophesied to those who would listen that her student would find this path. The ice witnessed her founding; the ice remembered what she paid for it, and so did she, and that was why she never looked directly at the aurora anymore, even when it pulsed strongest above the Berg. In the end, she threw herself between Yeaiu and the darkness that poured from the corrupted fire-core beneath Terrace Momiou—not mercy, but investment, a bet placed by someone who understood that guilt could be transmuted into something useful if you applied enough pressure. She stood for three heartbeats, long enough to look back with eyes that held no blame, only weary recognition, and spoke two words before the darkness took her: 'Third path.'
+
+
+=== Frost-heir (line-severed) (occurrence) [ACCEPTED] ===
+
+(no changes)
+

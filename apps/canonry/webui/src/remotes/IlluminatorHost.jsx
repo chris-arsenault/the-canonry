@@ -58,6 +58,8 @@ export default function IlluminatorHost({
   onEnrichmentConfigChange,
   styleSelection,
   onStyleSelectionChange,
+  historianConfig,
+  onHistorianConfigChange,
   activeSection,
   onSectionChange,
   activeSlotIndex,
@@ -79,6 +81,8 @@ export default function IlluminatorHost({
           onEnrichmentConfigChange={onEnrichmentConfigChange}
           styleSelection={styleSelection}
           onStyleSelectionChange={onStyleSelectionChange}
+          historianConfig={historianConfig}
+          onHistorianConfigChange={onHistorianConfigChange}
           activeSection={activeSection}
           onSectionChange={onSectionChange}
           activeSlotIndex={activeSlotIndex}

@@ -228,6 +228,25 @@ function parseNamespace(title: string): { namespace?: string; baseName: string }
 }
 
 /**
+ * Build a static page slug from its title namespace (Category:Name -> category/name).
+ * Falls back to the stored slug or slugified title if needed.
+ */
+function buildStaticPageSlug(staticPage: StaticPage): string {
+  const { namespace, baseName } = parseNamespace(staticPage.title);
+  if (namespace) {
+    const namespaceSlug = slugify(namespace);
+    const baseSlug = slugify(baseName);
+    if (namespaceSlug && baseSlug) {
+      return `${namespaceSlug}/${baseSlug}`;
+    }
+    if (namespaceSlug) return namespaceSlug;
+    if (baseSlug) return baseSlug;
+  }
+  if (staticPage.slug) return staticPage.slug;
+  return slugify(staticPage.title);
+}
+
+/**
  * Get all regions across all entity kinds
  */
 function getAllRegionsFlat(worldData: WorldState): Array<{ region: Region; entityKind: string }> {
@@ -501,7 +520,7 @@ export function buildPageIndex(
       id: staticPage.pageId,
       title: staticPage.title,
       type: 'static',
-      slug: `page/${staticPage.slug}`,
+      slug: buildStaticPageSlug(staticPage),
       summary: staticPage.summary || undefined,
       categories: [],
       static: {
@@ -514,6 +533,14 @@ export function buildPageIndex(
 
     entries.push(entry);
     byId.set(entry.id, entry);
+    if (entry.slug && !bySlug.has(entry.slug)) {
+      bySlug.set(entry.slug, entry.id);
+    }
+    // Legacy URL support: previous static page hashes used "page/{slug}"
+    const legacySlug = staticPage.slug ? `page/${staticPage.slug}` : '';
+    if (legacySlug && !bySlug.has(legacySlug)) {
+      bySlug.set(legacySlug, entry.id);
+    }
   }
 
   // Build category entries (based on entity categories)
@@ -948,7 +975,7 @@ function buildStaticPageFromStaticPage(
 
   return {
     id: staticPage.pageId,
-    slug: `page/${staticPage.slug}`,
+    slug: buildStaticPageSlug(staticPage),
     title: staticPage.title,
     type: 'static',
     static: {

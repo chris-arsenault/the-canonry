@@ -23,7 +23,7 @@ export type LLMCallType =
   | 'chronicle.compare'          // Comparative analysis of multiple drafts (report only)
   | 'chronicle.combine'          // Synthesize multiple drafts into one
   | 'chronicle.summary'          // Summary only
-  | 'chronicle.title'            // Two-pass title generation (candidates + synthesis)
+  | 'chronicle.title'            // Single-pass title generation (candidate list)
   | 'chronicle.imageRefs'        // Image reference extraction
   | 'chronicle.coverImageScene'  // Cover image scene/montage description
 
@@ -240,7 +240,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
   },
   'chronicle.title': {
     label: 'Title',
-    description: 'Two-pass title generation: candidates then synthesis',
+    description: 'Single-pass title generation (candidate list)',
     category: 'chronicle',
     defaults: {
       model: 'claude-haiku-4-5-20251001',

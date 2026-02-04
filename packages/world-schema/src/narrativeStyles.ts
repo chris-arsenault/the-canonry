@@ -84,12 +84,6 @@ export interface StoryNarrativeStyle {
   /** Pacing - word count and scene count ranges */
   pacing: PacingConfig;
 
-  /**
-   * LLM temperature for chronicle generation (0.0-1.0).
-   * Higher values produce more creative/varied output.
-   * If not set, falls back to the hardcoded step default (0.7 for generation).
-   */
-  temperature?: number;
 }
 
 export const DEFAULT_NARRATIVE_STYLES: StoryNarrativeStyle[] = [
@@ -469,7 +463,6 @@ AVOID: Plot mechanics. Explaining what images mean. Rushing to conclusion. Gener
       sceneCount: { min: 3, max: 4 },
     },
 
-    temperature: 1.0,
   },
 
   // ============================================================================
@@ -1000,7 +993,6 @@ AVOID: Making the speaker obviously villainous. Making the "truth" explicitly st
       sceneCount: { min: 3, max: 4 },
     },
 
-    temperature: 0.9,
   },
 
   // ============================================================================
@@ -1202,7 +1194,6 @@ AVOID: Plot. Causality. Rational explanations. Metaphors that are "explained" - 
       sceneCount: { min: 3, max: 4 },
     },
 
-    temperature: 1.0,
   },
 
   // ============================================================================
@@ -1276,6 +1267,5 @@ AVOID: Nihilism. Destruction without meaning. Modern apocalyptic cliches (zombie
       sceneCount: { min: 4, max: 4 },
     },
 
-    temperature: 0.9,
   },
 ];

@@ -182,6 +182,11 @@ async function fetchDefaultProjectCanon() {
     } else {
       console.warn('Default project illuminatorConfig.json not found');
     }
+    const historianResponse = await fetch(`${baseUrl}historianConfig.json`);
+    if (historianResponse.ok) {
+      const historianConfig = await historianResponse.json();
+      illuminatorConfig = { ...(illuminatorConfig || {}), historianConfig };
+    }
 
     // Update timestamps to now
     const now = new Date().toISOString();
@@ -233,6 +238,11 @@ async function fetchDefaultProjectJson() {
       illuminatorConfig = await illuminatorResponse.json();
     } else {
       console.warn('Default project illuminatorConfig.json not found');
+    }
+    const historianResponse = await fetch(`${baseUrl}historianConfig.json`);
+    if (historianResponse.ok) {
+      const historianConfig = await historianResponse.json();
+      illuminatorConfig = { ...(illuminatorConfig || {}), historianConfig };
     }
 
     const now = new Date().toISOString();
@@ -599,6 +609,7 @@ export function useProjectStorage() {
             cultureIdentities: worldStore.cultureIdentities || null,
             enrichmentConfig: worldStore.enrichmentConfig || null,
             styleSelection: worldStore.styleSelection || null,
+            historianConfig: worldStore.historianConfig || null,
           };
           // Only include if there's actual data
           const hasData = Object.values(illuminatorConfig).some(v => v !== null);

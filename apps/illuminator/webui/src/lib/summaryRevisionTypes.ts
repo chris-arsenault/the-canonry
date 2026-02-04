@@ -139,4 +139,6 @@ export interface RevisionEntityContext {
   kindFocus?: string;
   /** True if this entity is the narrative lens (contextual frame, not a cast member) */
   isLens?: boolean;
+  /** True if this entity is a primary character in the chronicle (vs supporting cast) */
+  isPrimary?: boolean;
 }

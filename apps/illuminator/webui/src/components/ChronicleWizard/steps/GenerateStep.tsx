@@ -7,14 +7,11 @@
 import { useWizard } from '../WizardContext';
 
 interface GenerateStepProps {
-  onGenerate: (temperatureOverride?: number) => void;
+  onGenerate: () => void;
 }
 
 export default function GenerateStep({ onGenerate }: GenerateStepProps) {
-  const { state, setTemperatureOverride } = useWizard();
-  const styleDefault = state.narrativeStyle?.temperature ?? 0.85;
-  const temperature = state.temperatureOverride ?? styleDefault;
-  const setTemperature = (t: number) => setTemperatureOverride(t);
+  const { state, setLowSampling } = useWizard();
 
   // Count primary vs supporting roles
   const primaryCount = state.roleAssignments.filter(a => a.isPrimary).length;
@@ -149,7 +146,7 @@ export default function GenerateStep({ onGenerate }: GenerateStepProps) {
         </div>
       </div>
 
-      {/* Temperature Control */}
+      {/* Sampling Control */}
       <div style={{
         padding: '16px 20px',
         background: 'var(--bg-secondary)',
@@ -159,61 +156,51 @@ export default function GenerateStep({ onGenerate }: GenerateStepProps) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
           <div>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
-              Temperature
+              Sampling
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              Style default: {styleDefault}
-              {state.temperatureOverride !== null && (
-                <button
-                  onClick={() => setTemperatureOverride(null)}
-                  style={{
-                    marginLeft: '8px',
-                    padding: '1px 6px',
-                    fontSize: '10px',
-                    background: 'transparent',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  Reset
-                </button>
-              )}
+              Normal sampling uses `top_p=1.0`. Low sampling uses `top_p=0.95`.
             </div>
           </div>
-          <input
-            type="number"
-            value={temperature}
-            onChange={(e) => {
-              const v = parseFloat(e.target.value);
-              if (!isNaN(v)) setTemperature(Math.max(0, Math.min(1, v)));
-            }}
-            step={0.01}
-            min={0}
-            max={1}
-            style={{
-              width: '60px',
-              padding: '4px 6px',
-              fontSize: '13px',
-              fontWeight: 500,
-              textAlign: 'center',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '4px',
-              color: 'inherit',
-            }}
-          />
+          {state.lowSampling === null && (
+            <span style={{
+              fontSize: '10px',
+              color: 'var(--warning)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+            }}>
+              Required
+            </span>
+          )}
         </div>
-        <input
-          type="range"
-          value={temperature}
-          onChange={(e) => setTemperature(parseFloat(e.target.value))}
-          step={0.05}
-          min={0}
-          max={1}
-          style={{ width: '100%', cursor: 'pointer' }}
-        />
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '10px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-primary)' }}>
+            <input
+              type="radio"
+              name="sampling-mode"
+              checked={state.lowSampling === false}
+              onChange={() => setLowSampling(false)}
+            />
+            Normal sampling
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-primary)' }}>
+            <input
+              type="radio"
+              name="sampling-mode"
+              checked={state.lowSampling === true}
+              onChange={() => setLowSampling(true)}
+            />
+            Low sampling
+          </label>
+        </div>
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+          Low sampling slightly narrows token choices for steadier phrasing while keeping thinking enabled.
+        </div>
+        {state.lowSampling === null && (
+          <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
+            Choose a sampling mode to enable generation.
+          </div>
+        )}
       </div>
 
       {/* Info Box */}

@@ -18,7 +18,7 @@ export default function ChronicleWorkspace({
   // Actions
   onAccept,
   onRegenerate,
-  onRegenerateWithTemperature,
+  onRegenerateWithSampling,
   onCompareVersions,
   onCombineVersions,
   onValidate,
@@ -91,26 +91,25 @@ export default function ChronicleWorkspace({
 
   const versions = useMemo(() => {
     const history = (item.generationHistory || []).map((version, index) => {
-      const tempLabel = typeof version.temperature === 'number' ? version.temperature.toFixed(2) : 'default';
+      const samplingLabel = version.sampling ?? 'unspecified';
       return {
         id: version.versionId,
         content: version.content,
         wordCount: version.wordCount,
         shortLabel: `V${index + 1}`,
-        label: `Version ${index + 1} \u2022 ${new Date(version.generatedAt).toLocaleString()} \u2022 temp ${tempLabel}`,
+        label: `Version ${index + 1} \u2022 ${new Date(version.generatedAt).toLocaleString()} \u2022 sampling ${samplingLabel}`,
       };
     });
 
-    const currentTempLabel = typeof item.generationTemperature === 'number'
-      ? item.generationTemperature.toFixed(2)
-      : 'default';
+    const currentSamplingLabel = item.generationSampling ?? 'unspecified';
+    const currentVersionNumber = history.length + 1;
 
     history.push({
       id: currentVersionId,
       content: item.assembledContent,
       wordCount: wordCount(item.assembledContent),
-      shortLabel: 'Current',
-      label: `Current \u2022 ${new Date(item.assembledAt ?? item.createdAt).toLocaleString()} \u2022 temp ${currentTempLabel}`,
+      shortLabel: `V${currentVersionNumber}`,
+      label: `Version ${currentVersionNumber} \u2022 ${new Date(item.assembledAt ?? item.createdAt).toLocaleString()} \u2022 sampling ${currentSamplingLabel}`,
     });
 
     return history;
@@ -119,7 +118,7 @@ export default function ChronicleWorkspace({
     item.assembledContent,
     item.assembledAt,
     item.createdAt,
-    item.generationTemperature,
+    item.generationSampling,
     currentVersionId,
   ]);
 
@@ -190,6 +189,13 @@ export default function ChronicleWorkspace({
   // Title modal
   // ---------------------------------------------------------------------------
   const [showTitleAcceptModal, setShowTitleAcceptModal] = useState(false);
+  const [customTitle, setCustomTitle] = useState('');
+
+  useEffect(() => {
+    if (showTitleAcceptModal) {
+      setCustomTitle('');
+    }
+  }, [showTitleAcceptModal, item?.pendingTitle]);
 
   const handleGenerateTitleWithModal = useCallback(() => {
     if (!onGenerateTitle) return;
@@ -198,7 +204,8 @@ export default function ChronicleWorkspace({
   }, [onGenerateTitle]);
 
   const handleAcceptTitle = useCallback(async (chosenTitle) => {
-    if (onAcceptPendingTitle) await onAcceptPendingTitle(chosenTitle);
+    const normalized = typeof chosenTitle === 'string' ? chosenTitle.trim() : undefined;
+    if (onAcceptPendingTitle) await onAcceptPendingTitle(normalized || undefined);
     setShowTitleAcceptModal(false);
   }, [onAcceptPendingTitle]);
 
@@ -313,7 +320,7 @@ export default function ChronicleWorkspace({
             onGenerateCoverImageScene={onGenerateCoverImageScene}
             onGenerateCoverImage={onGenerateCoverImage}
             onImageClick={handleImageClick}
-            onRegenerateWithTemperature={onRegenerateWithTemperature}
+            onRegenerateWithSampling={onRegenerateWithSampling}
             entityMap={entityMap}
             styleLibrary={styleLibrary}
             styleSelection={styleSelection}
@@ -347,7 +354,7 @@ export default function ChronicleWorkspace({
             isGenerating={isGenerating}
             onSelectVersion={handleSelectVersion}
             onSelectCompareVersion={setCompareToVersionId}
-            onSetActiveVersion={onUpdateChronicleActiveVersion}
+            onSetActiveVersion={isComplete ? undefined : onUpdateChronicleActiveVersion}
             onCompareVersions={onCompareVersions}
             onCombineVersions={onCombineVersions}
             onUpdateCombineInstructions={onUpdateCombineInstructions}
@@ -406,7 +413,7 @@ export default function ChronicleWorkspace({
             activeVersionId={activeVersionId}
             onSelectVersion={handleSelectVersion}
             onSelectCompareVersion={setCompareToVersionId}
-            onSetActiveVersion={onUpdateChronicleActiveVersion}
+            onSetActiveVersion={isComplete ? undefined : onUpdateChronicleActiveVersion}
             isGenerating={isGenerating}
           />
         )}
@@ -478,7 +485,7 @@ export default function ChronicleWorkspace({
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '13px' }}>
                     <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--text-muted)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                    Two-pass title synthesis in progress...
+                    Generating title candidates...
                   </div>
                   <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                 </>
@@ -519,6 +526,42 @@ export default function ChronicleWorkspace({
                         {candidate}
                       </button>
                     ))}
+                  </div>
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginBottom: '16px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>Custom title</div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        className="illuminator-input"
+                        value={customTitle}
+                        onChange={(e) => setCustomTitle(e.target.value)}
+                        placeholder="Enter a custom title..."
+                        style={{ flex: 1, fontSize: '13px', padding: '8px 10px' }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const trimmed = e.currentTarget.value.trim();
+                            if (trimmed) handleAcceptTitle(trimmed);
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          const trimmed = customTitle.trim();
+                          if (trimmed) handleAcceptTitle(trimmed);
+                        }}
+                        disabled={!customTitle.trim()}
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          background: customTitle.trim() ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '6px',
+                          cursor: customTitle.trim() ? 'pointer' : 'not-allowed',
+                          color: customTitle.trim() ? 'white' : 'var(--text-muted)',
+                        }}
+                      >
+                        Use
+                      </button>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <button

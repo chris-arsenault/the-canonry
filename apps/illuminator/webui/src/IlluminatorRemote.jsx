@@ -34,6 +34,7 @@ import EntityRenameModal from './components/EntityRenameModal';
 import RevisionFilterModal from './components/RevisionFilterModal';
 import BackportConfigModal from './components/BackportConfigModal';
 import { useEnrichmentQueue } from './hooks/useEnrichmentQueue';
+import { useChronicleQueueWatcher } from './hooks/useChronicleQueueWatcher';
 import { useDynamicsGeneration } from './hooks/useDynamicsGeneration';
 import { useSummaryRevision } from './hooks/useSummaryRevision';
 import { useChronicleLoreBackport } from './hooks/useChronicleLoreBackport';
@@ -197,6 +198,8 @@ export default function IlluminatorRemote({
   onEnrichmentConfigChange,
   styleSelection: externalStyleSelection,
   onStyleSelectionChange,
+  historianConfig: externalHistorianConfig,
+  onHistorianConfigChange,
   activeSection,
   onSectionChange,
   activeSlotIndex = 0,
@@ -389,22 +392,66 @@ export default function IlluminatorRemote({
     setLocalCultureIdentities(nextCultureIdentities);
   }, [externalCultureIdentities]);
 
-  // Historian config - project-level persona definition
-  const [localHistorianConfig, setLocalHistorianConfig] = useState(() => {
-    // Try to load from localStorage as a cross-session fallback
+  const LEGACY_HISTORIAN_CONFIG_KEY = 'illuminator:historianConfig';
+  const readLegacyHistorianConfig = () => {
     try {
-      const stored = localStorage.getItem('illuminator:historianConfig');
+      const stored = localStorage.getItem(LEGACY_HISTORIAN_CONFIG_KEY);
       if (stored) return JSON.parse(stored);
     } catch {}
-    return DEFAULT_HISTORIAN_CONFIG;
+    return null;
+  };
+
+  // Historian config - project-level persona definition
+  const [localHistorianConfig, setLocalHistorianConfig] = useState(() => {
+    if (externalHistorianConfig) return externalHistorianConfig;
+    const legacy = readLegacyHistorianConfig();
+    return legacy || DEFAULT_HISTORIAN_CONFIG;
   });
   const historianConfig = localHistorianConfig;
+  const pendingHistorianConfigRef = useRef(localHistorianConfig);
+  const migratedHistorianConfigRef = useRef(false);
+  // Sync historian config from external prop
+  useEffect(() => {
+    if (externalHistorianConfig === undefined) return;
+    if (externalHistorianConfig) {
+      pendingHistorianConfigRef.current = externalHistorianConfig;
+      setLocalHistorianConfig(externalHistorianConfig);
+      return;
+    }
+
+    if (!migratedHistorianConfigRef.current) {
+      const legacy = readLegacyHistorianConfig();
+      if (legacy && isHistorianConfigured(legacy)) {
+        migratedHistorianConfigRef.current = true;
+        pendingHistorianConfigRef.current = legacy;
+        setLocalHistorianConfig(legacy);
+        if (onHistorianConfigChange) {
+          onHistorianConfigChange(legacy);
+        }
+        try {
+          localStorage.removeItem(LEGACY_HISTORIAN_CONFIG_KEY);
+        } catch {}
+        return;
+      }
+    }
+
+    const nextConfig = DEFAULT_HISTORIAN_CONFIG;
+    pendingHistorianConfigRef.current = nextConfig;
+    setLocalHistorianConfig(nextConfig);
+  }, [externalHistorianConfig, onHistorianConfigChange]);
+  const historianConfigSyncTimeoutRef = useRef(null);
   const updateHistorianConfig = useCallback((next) => {
     setLocalHistorianConfig(next);
-    try {
-      localStorage.setItem('illuminator:historianConfig', JSON.stringify(next));
-    } catch {}
-  }, []);
+    pendingHistorianConfigRef.current = next;
+    if (!onHistorianConfigChange) return;
+    if (historianConfigSyncTimeoutRef.current) {
+      clearTimeout(historianConfigSyncTimeoutRef.current);
+    }
+    historianConfigSyncTimeoutRef.current = setTimeout(() => {
+      onHistorianConfigChange(pendingHistorianConfigRef.current);
+      historianConfigSyncTimeoutRef.current = null;
+    }, 300);
+  }, [onHistorianConfigChange]);
 
   // Entities with enrichment state
   const [entities, setEntities] = useState([]);
@@ -647,6 +694,9 @@ export default function IlluminatorRemote({
     retry,
     clearCompleted,
   } = useEnrichmentQueue(handleEntityUpdate, projectId, simulationRunId);
+
+  // Bridge chronicle-related queue completions to chronicle store refreshes
+  useChronicleQueueWatcher(queue);
 
   // Initialize worker when API keys change
   useEffect(() => {
@@ -1156,13 +1206,20 @@ export default function IlluminatorRemote({
       return;
     }
 
-    // Build entity contexts for the cast
-    const castEntityIds = (chronicle.roleAssignments || []).map((r) => r.entityId);
-    const castContexts = getEntityContextsForRevision(castEntityIds);
-    if (castContexts.length === 0) {
+    // Build entity contexts for the cast, merging in isPrimary from roleAssignments
+    const roleAssignments = chronicle.roleAssignments || [];
+    const castEntityIds = roleAssignments.map((r) => r.entityId);
+    const baseContexts = getEntityContextsForRevision(castEntityIds);
+    if (baseContexts.length === 0) {
       console.warn('[Backport] No valid cast entities found for chronicle:', chronicleId);
       return;
     }
+    // Merge isPrimary from roleAssignments into entity contexts
+    const primarySet = new Set(roleAssignments.filter((r) => r.isPrimary).map((r) => r.entityId));
+    const castContexts = baseContexts.map((ctx) => ({
+      ...ctx,
+      isPrimary: primarySet.has(ctx.id),
+    }));
 
     // Include lens entity if present (marked specially for different prompt treatment)
     if (chronicle.lens && !castEntityIds.includes(chronicle.lens.entityId)) {
@@ -1391,68 +1448,106 @@ export default function IlluminatorRemote({
   const HISTORIAN_SAMPLING = useMemo(() => ({
     maxTotal: 15,       // Total notes in the sample
     maxPerTarget: 3,    // Max notes from any single entity/chronicle
+    relatedRatio: 0.3,  // Soft bias toward related entities/chronicles
   }), []);
 
   // Collect previous historian notes for memory/continuity (sample from entities + chronicles)
-  const collectPreviousNotes = useCallback(() => {
-    const { maxTotal, maxPerTarget } = HISTORIAN_SAMPLING;
+  const collectPreviousNotes = useCallback((options = {}) => {
+    const { maxTotal, maxPerTarget, relatedRatio } = HISTORIAN_SAMPLING;
+    const relatedEntityIds = new Set(options.relatedEntityIds || []);
+    const relatedChronicleIds = new Set(options.relatedChronicleIds || []);
 
-    // Group enabled notes by target name
-    const byTarget = {};
+    const shuffleInPlace = (items) => {
+      for (let i = items.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+    };
+
+    const takeRandomSample = (items, count) => {
+      if (!items.length || count <= 0) return [];
+      if (items.length <= count) return [...items];
+      const copy = [...items];
+      shuffleInPlace(copy);
+      return copy.slice(0, count);
+    };
+
+    // Group enabled notes by stable target key
+    const byTarget = new Map();
+
+    const addNotesForTarget = (targetKey, targetMeta, notes) => {
+      if (!notes.length) return;
+      const mapped = notes.map((note, index) => ({
+        noteKey: note.noteId || `${targetKey}:${index}`,
+        targetKey,
+        targetType: targetMeta.type,
+        targetId: targetMeta.id,
+        targetName: targetMeta.name,
+        anchorPhrase: note.anchorPhrase,
+        text: note.text,
+        type: note.type,
+      }));
+      byTarget.set(targetKey, mapped);
+    };
 
     // Entity notes
     for (const entity of entities) {
       const notes = (entity.enrichment?.historianNotes || []).filter(isNoteActive);
-      if (notes.length > 0) {
-        byTarget[entity.name] = notes.map(n => ({
-          targetName: entity.name,
-          anchorPhrase: n.anchorPhrase,
-          text: n.text,
-          type: n.type,
-        }));
-      }
+      addNotesForTarget(`entity:${entity.id}`, {
+        type: 'entity',
+        id: entity.id,
+        name: entity.name,
+      }, notes);
     }
 
     // Chronicle notes
     const chronicleRecords = useChronicleStore.getState().chronicles;
     for (const chronicle of Object.values(chronicleRecords)) {
       const notes = (chronicle.historianNotes || []).filter(isNoteActive);
-      if (notes.length > 0) {
-        const name = chronicle.title || chronicle.chronicleId;
-        byTarget[name] = (byTarget[name] || []).concat(notes.map(n => ({
-          targetName: name,
-          anchorPhrase: n.anchorPhrase,
-          text: n.text,
-          type: n.type,
-        })));
-      }
+      addNotesForTarget(`chronicle:${chronicle.chronicleId}`, {
+        type: 'chronicle',
+        id: chronicle.chronicleId,
+        name: chronicle.title || chronicle.chronicleId,
+      }, notes);
     }
 
-    // Cap each target at maxPerTarget
-    const targets = Object.keys(byTarget);
-    for (const target of targets) {
-      if (byTarget[target].length > maxPerTarget) {
-        byTarget[target] = byTarget[target].slice(0, maxPerTarget);
-      }
+    // Cap each target at maxPerTarget (randomized to avoid bias)
+    const cappedNotes = [];
+    for (const notes of byTarget.values()) {
+      const selected = notes.length > maxPerTarget
+        ? takeRandomSample(notes, maxPerTarget)
+        : notes.slice();
+      cappedNotes.push(...selected);
     }
 
-    // Round-robin across targets to fill up to maxTotal
-    const sample = [];
-    let round = 0;
-    while (sample.length < maxTotal && round < maxPerTarget) {
-      let added = false;
-      for (const target of targets) {
-        if (sample.length >= maxTotal) break;
-        if (round < byTarget[target].length) {
-          sample.push(byTarget[target][round]);
-          added = true;
-        }
-      }
-      if (!added) break;
-      round++;
-    }
+    if (cappedNotes.length === 0) return [];
 
-    return sample;
+    const total = Math.min(maxTotal, cappedNotes.length);
+    const relatedNotes = cappedNotes.filter((note) => {
+      if (note.targetType === 'entity') {
+        return relatedEntityIds.has(note.targetId);
+      }
+      if (note.targetType === 'chronicle') {
+        return relatedChronicleIds.has(note.targetId);
+      }
+      return false;
+    });
+
+    const relatedQuota = Math.min(relatedNotes.length, Math.round(total * relatedRatio));
+    const relatedSample = takeRandomSample(relatedNotes, relatedQuota);
+    const relatedKeys = new Set(relatedSample.map((note) => note.noteKey));
+    const remainingPool = cappedNotes.filter((note) => !relatedKeys.has(note.noteKey));
+    const remainingSample = takeRandomSample(remainingPool, total - relatedSample.length);
+
+    const finalSample = [...relatedSample, ...remainingSample];
+    shuffleInPlace(finalSample);
+
+    return finalSample.map((note) => ({
+      targetName: note.targetName,
+      anchorPhrase: note.anchorPhrase,
+      text: note.text,
+      type: note.type,
+    }));
   }, [entities, HISTORIAN_SAMPLING]);
 
   const handleHistorianReview = useCallback((entityId, tone) => {
@@ -1500,7 +1595,14 @@ export default function IlluminatorRemote({
       worldDynamics: (worldContext.worldDynamics || []).map((d) => d.text),
     });
 
-    const previousNotes = collectPreviousNotes();
+    const relatedEntityIds = new Set([entity.id]);
+    for (const rel of (relationshipsByEntity.get(entity.id) || [])) {
+      const targetId = rel.src === entity.id ? rel.dst : rel.src;
+      if (targetId) relatedEntityIds.add(targetId);
+    }
+    const previousNotes = collectPreviousNotes({
+      relatedEntityIds: Array.from(relatedEntityIds),
+    });
 
     startHistorianReview({
       projectId,
@@ -1523,8 +1625,8 @@ export default function IlluminatorRemote({
     const chronicle = await getChronicle(chronicleId);
     if (!chronicle) return;
 
-    const content = chronicle.finalContent || chronicle.assembledContent;
-    if (!content) return;
+    if (chronicle.status !== 'complete' || !chronicle.finalContent) return;
+    const content = chronicle.finalContent;
 
     // Build cast summaries
     const castSummaries = (chronicle.roleAssignments || []).slice(0, 10).map((ra) => {
@@ -1557,7 +1659,14 @@ export default function IlluminatorRemote({
       worldDynamics: (worldContext.worldDynamics || []).map((d) => d.text),
     });
 
-    const previousNotes = collectPreviousNotes();
+    const relatedEntityIds = new Set(
+      (chronicle.roleAssignments || [])
+        .map((ra) => ra.entityId)
+        .filter(Boolean)
+    );
+    const previousNotes = collectPreviousNotes({
+      relatedEntityIds: Array.from(relatedEntityIds),
+    });
 
     startHistorianReview({
       projectId,

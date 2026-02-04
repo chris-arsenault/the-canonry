@@ -17,10 +17,14 @@ import {
   collapseBidirectionalRelationships,
   type CollapsedRelationship,
 } from '../selectionWizard';
-import type {
-  NarrativeStyle,
-  StoryNarrativeStyle,
-  DocumentNarrativeStyle,
+import {
+  type NarrativeStyle,
+  type StoryNarrativeStyle,
+  type DocumentNarrativeStyle,
+  type ProminenceScale,
+  buildProminenceScale,
+  DEFAULT_PROMINENCE_DISTRIBUTION,
+  prominenceLabelFromScale,
 } from '@canonry/world-schema';
 import type { V2SelectionResult } from './types';
 
@@ -33,7 +37,33 @@ import type { EntityDirective } from '../../perspectiveSynthesizer';
 /**
  * Format a single entity with full details (for entry point).
  */
-function formatEntityFull(e: EntityContext): string {
+function resolveProminenceLabel(
+  value: EntityContext['prominence'] | number | undefined,
+  scale: ProminenceScale
+): string {
+  if (value == null) return 'unknown';
+  if (typeof value === 'number') {
+    return prominenceLabelFromScale(value, scale);
+  }
+  const trimmed = String(value).trim();
+  if (!trimmed) return 'unknown';
+  if (scale.labels.includes(trimmed)) return trimmed;
+  const numeric = Number(trimmed);
+  if (Number.isFinite(numeric)) {
+    return prominenceLabelFromScale(numeric, scale);
+  }
+  return trimmed;
+}
+
+function buildProminenceScaleForEntities(entities: Array<EntityContext | undefined>): ProminenceScale {
+  const values = entities
+    .filter((e): e is EntityContext => Boolean(e))
+    .map((e) => Number(e.prominence))
+    .filter((value) => Number.isFinite(value));
+  return buildProminenceScale(values, { distribution: DEFAULT_PROMINENCE_DISTRIBUTION });
+}
+
+function formatEntityFull(e: EntityContext, scale: ProminenceScale): string {
   const desc = e.description || '(no description available)';
   const tags = e.tags && Object.keys(e.tags).length > 0
     ? Object.entries(e.tags).map(([k, v]) => `${k}=${v}`).join(', ')
@@ -41,7 +71,7 @@ function formatEntityFull(e: EntityContext): string {
 
   const lines = [
     `Kind: ${e.kind}${e.subtype ? `/${e.subtype}` : ''}`,
-    `Prominence: ${e.prominence}`,
+    `Prominence: ${resolveProminenceLabel(e.prominence, scale)}`,
     e.culture ? `Culture: ${e.culture}` : null,
     tags ? `Tags: ${tags}` : null,
     '',
@@ -55,10 +85,10 @@ function formatEntityFull(e: EntityContext): string {
  * Format a single entity briefly (for supporting characters).
  * Uses ### to nest under ## Supporting Characters section.
  */
-function formatEntityBrief(e: EntityContext): string {
+function formatEntityBrief(e: EntityContext, scale: ProminenceScale): string {
   const desc = e.description || '(no description available)';
   return `### ${e.name} (${e.kind}${e.subtype ? `/${e.subtype}` : ''})
-Prominence: ${e.prominence}${e.culture ? `, Culture: ${e.culture}` : ''}
+Prominence: ${resolveProminenceLabel(e.prominence, scale)}${e.culture ? `, Culture: ${e.culture}` : ''}
 ${desc}`;
 }
 
@@ -132,7 +162,8 @@ function buildDataSection(selection: V2SelectionResult): string {
 
   if (selection.events.length > 0) {
     if (lines.length > 0) lines.push('');
-    lines.push('# Events');
+    lines.push('# TIMELINE');
+    lines.push('## Events');
     for (const evt of selection.events) {
       lines.push(formatEvent(evt));
     }
@@ -298,7 +329,10 @@ function buildEntityDirectivesSection(
  * Provides contextual framing from an intangible entity (rule, occurrence, ability)
  * that shapes the story without being a cast member.
  */
-function buildNarrativeLensSection(context: ChronicleGenerationContext): string {
+function buildNarrativeLensSection(
+  context: ChronicleGenerationContext,
+  scale: ProminenceScale
+): string {
   if (!context.lensEntity) {
     return '';
   }
@@ -313,7 +347,7 @@ function buildNarrativeLensSection(context: ChronicleGenerationContext): string 
   lines.push('This story exists in the shadow of:');
   lines.push('');
   lines.push(`## ${entity.name} (${entity.kind}${entity.subtype ? `/${entity.subtype}` : ''})`);
-  lines.push(`Prominence: ${entity.prominence}${entity.culture ? `, Culture: ${entity.culture}` : ''}`);
+  lines.push(`Prominence: ${resolveProminenceLabel(entity.prominence, scale)}${entity.culture ? `, Culture: ${entity.culture}` : ''}`);
   if (tags) lines.push(`Tags: ${tags}`);
   lines.push('');
   lines.push(desc);
@@ -355,7 +389,8 @@ function buildStoryStructureSection(style: StoryNarrativeStyle): string {
 function buildUnifiedCastSection(
   selection: V2SelectionResult,
   primaryEntityIds: Set<string>,
-  style: StoryNarrativeStyle
+  style: StoryNarrativeStyle,
+  prominenceScale: ProminenceScale
 ): string {
   const lines: string[] = [`# Cast (${selection.entities.length} characters)`];
 
@@ -382,7 +417,7 @@ function buildUnifiedCastSection(
     for (const entity of primaryEntities) {
       lines.push('');
       lines.push(`### ${entity.name}`);
-      lines.push(formatEntityFull(entity));
+      lines.push(formatEntityFull(entity, prominenceScale));
     }
   }
 
@@ -392,7 +427,7 @@ function buildUnifiedCastSection(
     lines.push('## Supporting Characters');
     for (const entity of supportingEntities) {
       lines.push('');
-      lines.push(formatEntityBrief(entity));
+      lines.push(formatEntityBrief(entity, prominenceScale));
     }
   }
 
@@ -469,7 +504,8 @@ function buildStoryPrompt(
   narrativeVoiceSection: string,
   entityDirectivesSection: string,
   nameBankSection: string,
-  style: StoryNarrativeStyle
+  style: StoryNarrativeStyle,
+  prominenceScale: ProminenceScale
 ): string {
   const pacing = style.pacing;
   const wordRange = `${pacing.totalWordCount.min}-${pacing.totalWordCount.max}`;
@@ -506,10 +542,10 @@ Requirements:
   // === WORLD DATA ===
 
   // 7. CAST (unified roles + characters)
-  const castSection = buildUnifiedCastSection(selection, primaryEntityIds, style);
+  const castSection = buildUnifiedCastSection(selection, primaryEntityIds, style, prominenceScale);
 
   // 7b. NARRATIVE LENS (contextual frame entity)
-  const lensSection = buildNarrativeLensSection(context);
+  const lensSection = buildNarrativeLensSection(context, prominenceScale);
 
   // 8. WORLD (setting context only, no style)
   const worldSection = buildWorldSection(context);
@@ -678,7 +714,8 @@ ${instructions}`;
 function buildUnifiedDocumentCastSection(
   selection: V2SelectionResult,
   primaryEntityIds: Set<string>,
-  style: DocumentNarrativeStyle
+  style: DocumentNarrativeStyle,
+  prominenceScale: ProminenceScale
 ): string {
   const lines: string[] = [`# Cast (${selection.entities.length} characters)`];
   const roles = getDocumentRoles(style);
@@ -706,7 +743,7 @@ function buildUnifiedDocumentCastSection(
     for (const entity of primaryEntities) {
       lines.push('');
       lines.push(`### ${entity.name}`);
-      lines.push(formatEntityFull(entity));
+      lines.push(formatEntityFull(entity, prominenceScale));
     }
   }
 
@@ -716,7 +753,7 @@ function buildUnifiedDocumentCastSection(
     lines.push('## Supporting Characters');
     for (const entity of supportingEntities) {
       lines.push('');
-      lines.push(formatEntityBrief(entity));
+      lines.push(formatEntityBrief(entity, prominenceScale));
     }
   }
 
@@ -749,7 +786,8 @@ function buildDocumentPrompt(
   narrativeVoiceSection: string,
   entityDirectivesSection: string,
   nameBankSection: string,
-  style: DocumentNarrativeStyle
+  style: DocumentNarrativeStyle,
+  prominenceScale: ProminenceScale
 ): string {
   const wordCount = getDocumentWordCount(style);
   const wordRange = `${wordCount.min}-${wordCount.max}`;
@@ -782,10 +820,10 @@ Requirements:
   // === WORLD DATA ===
 
   // 6. CAST (unified roles + characters)
-  const castSection = buildUnifiedDocumentCastSection(selection, primaryEntityIds, style);
+  const castSection = buildUnifiedDocumentCastSection(selection, primaryEntityIds, style, prominenceScale);
 
   // 6b. NARRATIVE LENS (contextual frame entity)
-  const lensSection = buildNarrativeLensSection(context);
+  const lensSection = buildNarrativeLensSection(context, prominenceScale);
 
   // 7. WORLD (setting context)
   const worldSection = buildWorldSection(context);
@@ -834,6 +872,10 @@ export function buildV2Prompt(
   const narrativeVoiceSection = buildNarrativeVoiceSection(context.narrativeVoice);
   const entityDirectivesSection = buildEntityDirectivesSection(context.entityDirectives);
   const nameBankSection = buildNameBankSection(context.nameBank, selection.entities);
+  const prominenceScale = buildProminenceScaleForEntities([
+    ...selection.entities,
+    context.lensEntity,
+  ]);
 
   if (style.format === 'story') {
     return buildStoryPrompt(
@@ -843,7 +885,8 @@ export function buildV2Prompt(
       narrativeVoiceSection,
       entityDirectivesSection,
       nameBankSection,
-      style as StoryNarrativeStyle
+      style as StoryNarrativeStyle,
+      prominenceScale
     );
   } else {
     return buildDocumentPrompt(
@@ -853,7 +896,8 @@ export function buildV2Prompt(
       narrativeVoiceSection,
       entityDirectivesSection,
       nameBankSection,
-      style as DocumentNarrativeStyle
+      style as DocumentNarrativeStyle,
+      prominenceScale
     );
   }
 }
@@ -867,8 +911,10 @@ export function getMaxTokensFromStyle(style: NarrativeStyle): number {
     ? (style as StoryNarrativeStyle).pacing.totalWordCount.max
     : getDocumentWordCount(style as DocumentNarrativeStyle).max;
 
-  // Add 50% buffer for safety
-  return Math.ceil(maxWords / 0.75 * 1.5);
+  // Add 50% buffer for safety, but never go below a practical minimum.
+  const minAutoMaxTokens = 1024;
+  const estimated = Math.ceil(maxWords / 0.75 * 1.5);
+  return Math.max(estimated, minAutoMaxTokens);
 }
 
 /**

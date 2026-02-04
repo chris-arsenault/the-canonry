@@ -13,6 +13,7 @@ export interface LLMConfig {
   apiKey?: string;
   maxTokens?: number;
   temperature?: number;
+  topP?: number;
 }
 
 export interface LLMRequest {
@@ -21,6 +22,7 @@ export interface LLMRequest {
   model?: string;
   maxTokens?: number;
   temperature?: number;
+  topP?: number;
   /** Enable extended thinking with budget in tokens (Sonnet/Opus only) */
   thinkingBudget?: number;
 }
@@ -56,7 +58,8 @@ export interface CallLogEntry {
   request: {
     model: string;
     maxTokens: number;
-    temperature: number;
+    temperature?: number;
+    topP?: number;
     systemPrompt: string;
     userPrompt: string;
   };
@@ -115,6 +118,28 @@ export class LLMClient {
   private callsCreated = 0;
   private callLog: CallLogEntry[] = [];
 
+  private resolveSampling(request: LLMRequest): {
+    useThinking: boolean;
+    maxTokens: number;
+    temperature?: number;
+    topP?: number;
+  } {
+    const useThinking = Boolean(request.thinkingBudget && request.thinkingBudget > 0);
+    const maxTokens = request.maxTokens || this.config.maxTokens || 256;
+    const topP = request.topP ?? this.config.topP;
+
+    if (request.temperature !== undefined && topP !== undefined) {
+      throw new Error('temperature and top_p are mutually exclusive');
+    }
+
+    if (topP !== undefined) {
+      return { useThinking, maxTokens, topP };
+    }
+
+    const temperature = useThinking ? 1 : (request.temperature ?? this.config.temperature ?? 0.4);
+    return { useThinking, maxTokens, temperature };
+  }
+
   constructor(config: LLMConfig) {
     this.config = {
       ...config,
@@ -156,21 +181,26 @@ export class LLMClient {
     while (attempt < maxAttempts) {
       attempt++;
       try {
-        const logEntry = this.logRequest(request, attempt, callNumber, resolvedModel);
+        const resolvedSampling = this.resolveSampling(request);
+        const logEntry = this.logRequest(request, attempt, callNumber, resolvedModel, resolvedSampling);
         const requestStart = Date.now();
 
         // Build request body - extended thinking requires special handling
-        const useThinking = request.thinkingBudget && request.thinkingBudget > 0;
-        const resolvedMaxTokens = request.maxTokens || this.config.maxTokens || 256;
-        const resolvedTemperature = useThinking ? 1 : (request.temperature ?? this.config.temperature ?? 0.4);
+        const { useThinking, maxTokens: resolvedMaxTokens, temperature: resolvedTemperature, topP: resolvedTopP } = resolvedSampling;
         const requestBody: Record<string, unknown> = {
           model: resolvedModel,
           max_tokens: resolvedMaxTokens,
-          // Temperature must be 1 when using extended thinking
-          temperature: resolvedTemperature,
           system: request.systemPrompt,
           messages: [{ role: 'user', content: request.prompt }],
         };
+
+        if (resolvedTemperature !== undefined) {
+          // Temperature must be 1 when using extended thinking (handled in resolver)
+          requestBody.temperature = resolvedTemperature;
+        }
+        if (resolvedTopP !== undefined) {
+          requestBody.top_p = resolvedTopP;
+        }
 
         // Add extended thinking if requested (Sonnet/Opus only)
         if (useThinking) {
@@ -189,6 +219,7 @@ export class LLMClient {
           model: resolvedModel,
           maxTokens: resolvedMaxTokens,
           temperature: resolvedTemperature,
+          topP: resolvedTopP,
           promptChars: request.prompt.length,
           systemChars: request.systemPrompt.length,
           thinkingBudget: request.thinkingBudget,
@@ -283,7 +314,8 @@ export class LLMClient {
   }
 
   private async createCacheKey(request: LLMRequest, model: string): Promise<string> {
-    const payload = `${model}|${request.systemPrompt}|${request.prompt}|${request.maxTokens}|${request.temperature}`;
+    const resolvedSampling = this.resolveSampling(request);
+    const payload = `${model}|${request.systemPrompt}|${request.prompt}|${resolvedSampling.maxTokens}|${resolvedSampling.temperature ?? 'none'}|${resolvedSampling.topP ?? 'none'}`;
     const encoder = new TextEncoder();
     const data = encoder.encode(payload);
     const hashBuffer = await crypto.subtle.digest('SHA-1', data);
@@ -291,15 +323,22 @@ export class LLMClient {
     return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
   }
 
-  private logRequest(request: LLMRequest, attempt: number, callNumber: number, model: string): CallLogEntry {
+  private logRequest(
+    request: LLMRequest,
+    attempt: number,
+    callNumber: number,
+    model: string,
+    resolvedSampling: { maxTokens: number; temperature?: number; topP?: number }
+  ): CallLogEntry {
     const entry: CallLogEntry = {
       callNumber,
       timestamp: new Date().toISOString(),
       attempt,
       request: {
         model,
-        maxTokens: request.maxTokens || this.config.maxTokens || 256,
-        temperature: request.temperature ?? this.config.temperature ?? 0.4,
+        maxTokens: resolvedSampling.maxTokens,
+        temperature: resolvedSampling.temperature,
+        topP: resolvedSampling.topP,
         systemPrompt: request.systemPrompt,
         userPrompt: request.prompt,
       },
