@@ -45,13 +45,16 @@
   position: relative;
 }
 
-/* Parchment noise — Perlin grain over the content area */
+/* Parchment noise — Perlin grain over the content area.
+   The SVG filter produces warm gold pixels with alpha derived from
+   noise luminance. No blend mode needed — the alpha IS the grain. */
 .parchmentOverlay {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 10;
-  mix-blend-mode: overlay;
-  opacity: 0.18;
+  opacity: 0.12;
   pointer-events: none;
 }
 

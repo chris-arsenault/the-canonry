@@ -24,7 +24,9 @@ export function ParchmentTexture({ className }: { className?: string }) {
     <svg
       aria-hidden="true"
       className={className}
-      style={{ pointerEvents: 'none' }}
+      width="100%"
+      height="100%"
+      style={{ pointerEvents: 'none', display: 'block' }}
     >
       <defs>
         <filter
@@ -34,6 +36,7 @@ export function ParchmentTexture({ className }: { className?: string }) {
           width="100%"
           height="100%"
         >
+          {/* Generate Perlin noise */}
           <feTurbulence
             type="fractalNoise"
             baseFrequency="0.65"
@@ -42,13 +45,17 @@ export function ParchmentTexture({ className }: { className?: string }) {
             stitchTiles="stitch"
             result="noise"
           />
+          {/* Convert noise luminance to alpha on a warm gold color.
+              RGB channels = fixed warm gold (#c49a5c ≈ 0.77, 0.60, 0.36).
+              Alpha = noise luminance mapped through offset so darker
+              noise areas become transparent, lighter ones semi-opaque. */}
           <feColorMatrix
             type="matrix"
             in="noise"
-            values="1.2 0   0   0 0.08
-                    0   1.0 0   0 0.05
-                    0   0   0.8 0 0.02
-                    0   0   0   1 0"
+            values="0    0    0    0 0.77
+                    0    0    0    0 0.60
+                    0    0    0    0 0.36
+                    0.33 0.33 0.33 0 -0.12"
           />
         </filter>
       </defs>
