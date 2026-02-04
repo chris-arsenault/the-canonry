@@ -66,9 +66,9 @@ function getEffectStyle(type: EntityEffect['type']): { icon: string; colorClass:
 
 // Entity link style for linkifyText (kept as inline style since it's passed to external function)
 const entityLinkStyle = {
-  color: '#10b981',
+  color: 'var(--color-accent)',
   cursor: 'pointer',
-  borderBottom: '1px dotted #10b981',
+  borderBottom: '1px dotted var(--color-accent)',
   textDecoration: 'none',
 };
 

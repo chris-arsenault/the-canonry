@@ -1,6 +1,11 @@
 /**
  * WikiExplorer CSS Module
  * Main layout component for the Chronicler wiki interface
+ *
+ * Editorial "coffee table book" aesthetic:
+ * - Open whitespace, no boxy sections
+ * - Playfair Display for headings, serif body, sans-serif UI
+ * - Warm palette with gold accents
  */
 
 /* ===================
@@ -75,7 +80,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(10, 8, 5, 0.7);
   z-index: var(--z-modal-backdrop);
 }
 
@@ -119,8 +124,8 @@
 }
 
 .errorCard {
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background-color: rgba(192, 57, 43, 0.08);
+  border: 1px solid rgba(192, 57, 43, 0.25);
   border-radius: var(--radius-lg);
   padding: var(--spacing-xl);
 }
@@ -129,6 +134,7 @@
   color: var(--color-danger);
   margin: 0 0 var(--spacing-lg) 0;
   font-size: var(--font-size-xl);
+  font-family: var(--font-family-display);
 }
 
 .errorDetails {
@@ -156,10 +162,15 @@
    Home Page
    =================== */
 
+.homeContainer {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
 .homeGrid {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
-  gap: var(--spacing-xl);
+  gap: var(--spacing-2xl);
 }
 
 .homeGridMobile {
@@ -169,20 +180,22 @@
 }
 
 .section {
-  margin-bottom: var(--spacing-xl);
-  padding: 20px;
-  background-color: var(--color-bg-secondary);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
+  margin-bottom: var(--spacing-2xl);
+  padding: 0;
+  background-color: transparent;
+  border-radius: 0;
+  border: none;
 }
 
 .sectionTitle {
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
   margin-bottom: var(--spacing-lg);
   color: var(--color-accent);
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: var(--spacing-sm);
+  border-bottom: none;
+  padding-bottom: 0;
+  letter-spacing: -0.01em;
 }
 
 /* ===================
@@ -190,16 +203,18 @@
    =================== */
 
 .aboutSection {
-  margin-bottom: var(--spacing-xl);
-  padding: var(--spacing-xl);
-  background-color: var(--color-bg-secondary);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
+  margin-bottom: var(--spacing-2xl);
+  padding: var(--spacing-xl) var(--spacing-2xl);
+  background-color: transparent;
+  border-radius: 0;
+  border: none;
+  border-left: 3px solid var(--color-accent);
 }
 
 .aboutTitle {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
   color: var(--color-accent);
   margin-bottom: var(--spacing-sm);
 }
@@ -219,6 +234,7 @@
   color: var(--color-accent);
   cursor: pointer;
   font-size: var(--font-size-sm);
+  font-family: var(--font-family-ui);
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
@@ -233,7 +249,7 @@
 
 .featuredLayout {
   display: flex;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-xl);
 }
 
 .featuredLayoutMobile {
@@ -243,8 +259,8 @@
 }
 
 .featuredImage {
-  width: 140px;
-  height: 140px;
+  width: 180px;
+  height: 180px;
   flex-shrink: 0;
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -252,11 +268,12 @@
   border: none;
   padding: 0;
   cursor: zoom-in;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
 }
 
 .featuredImageMobile {
   width: 100%;
-  height: 200px;
+  height: 240px;
   flex-shrink: 0;
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -264,6 +281,7 @@
   border: none;
   padding: 0;
   cursor: zoom-in;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
 }
 
 .featuredImageInner {
@@ -278,16 +296,19 @@
 }
 
 .featuredName {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-xs);
+  letter-spacing: -0.01em;
 }
 
 .featuredMeta {
   font-size: var(--font-size-xs);
+  font-family: var(--font-family-ui);
   color: var(--color-text-muted);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
   text-transform: capitalize;
 }
 
@@ -321,20 +342,23 @@
 }
 
 /* ===================
-   Did You Know
+   From the Historian's Desk / Did You Know
    =================== */
 
 .didYouKnowList {
   margin: 0;
-  padding-left: 20px;
-  list-style: disc;
+  padding-left: 0;
+  list-style: none;
 }
 
 .didYouKnowItem {
   font-size: var(--font-size-base);
   color: var(--color-text-secondary);
   line-height: var(--line-height-relaxed);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  padding-left: var(--spacing-lg);
+  border-left: 2px solid var(--color-border-light);
+  font-style: italic;
 }
 
 /* ===================
@@ -345,10 +369,10 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background-color: var(--color-bg-tertiary);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: transparent;
   border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
   border: none;
   width: 100%;
   text-align: left;
@@ -361,16 +385,17 @@
 }
 
 .entityCardImage {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: var(--radius-sm);
   object-fit: cover;
   flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
 .entityCardPlaceholder {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: var(--radius-sm);
   background-color: var(--color-bg-secondary);
   display: flex;
@@ -396,6 +421,7 @@
 
 .entityCardMeta {
   font-size: var(--font-size-xs);
+  font-family: var(--font-family-ui);
   color: var(--color-text-muted);
   text-transform: capitalize;
 }
@@ -408,12 +434,13 @@
   display: flex;
   justify-content: space-between;
   padding: var(--spacing-sm) 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-light);
   font-size: var(--font-size-base);
 }
 
 .statLabel {
   color: var(--color-text-muted);
+  font-family: var(--font-family-ui);
 }
 
 .statValue {
@@ -477,8 +504,10 @@
 .pagesIndexTitle {
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
   margin-bottom: var(--spacing-sm);
   color: var(--color-text-primary);
+  letter-spacing: -0.01em;
 }
 
 .pagesIndexDescription {
@@ -491,9 +520,9 @@
 .emptyState {
   padding: var(--spacing-3xl) var(--spacing-xl);
   text-align: center;
-  background-color: var(--color-bg-secondary);
+  background-color: transparent;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-light);
 }
 
 .emptyStateIcon {
@@ -503,6 +532,7 @@
 
 .emptyStateTitle {
   font-size: var(--font-size-lg);
+  font-family: var(--font-family-display);
   color: var(--color-text-secondary);
   margin-bottom: var(--spacing-sm);
 }
@@ -513,16 +543,17 @@
 }
 
 .namespaceGroup {
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-2xl);
 }
 
 .namespaceTitle {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
   color: var(--color-accent);
   margin-bottom: var(--spacing-md);
   padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .pageList {
@@ -535,9 +566,10 @@
   display: block;
   text-align: left;
   padding: var(--spacing-md) var(--spacing-lg);
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  background-color: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-light);
+  border-radius: 0;
   color: var(--color-text-primary);
   cursor: pointer;
   font-size: var(--font-size-md);
@@ -563,21 +595,24 @@
 .homeHeader {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-xl);
+  align-items: baseline;
+  margin-bottom: var(--spacing-2xl);
   padding-bottom: var(--spacing-lg);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .homeTitle {
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
   color: var(--color-text-primary);
   margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .homeStats {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-ui);
   color: var(--color-text-muted);
 }
 
@@ -593,8 +628,10 @@
 .categoryIndexTitle {
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
   margin-bottom: var(--spacing-sm);
   color: var(--color-text-primary);
+  letter-spacing: -0.01em;
 }
 
 .categoryIndexDescription {
@@ -613,17 +650,18 @@
 .categoryCard {
   display: block;
   padding: var(--spacing-lg);
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
+  background-color: transparent;
+  border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
   cursor: pointer;
   text-align: left;
-  transition: background-color var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .categoryCard:hover {
   background-color: var(--color-accent-hover);
+  border-color: var(--color-accent);
 }
 
 .categoryCardName {
@@ -634,6 +672,7 @@
 
 .categoryCardCount {
   font-size: var(--font-size-sm);
+  font-family: var(--font-family-ui);
   color: var(--color-text-muted);
 }
 
@@ -641,17 +680,12 @@
    Home Page Extended
    =================== */
 
-.homeContainer {
-  max-width: 900px;
-  margin: 0 auto;
-}
-
 .aboutBanner {
-  margin-bottom: var(--spacing-xl);
-  padding: var(--spacing-md) 20px;
-  background-color: rgba(16, 185, 129, 0.08);
-  border-radius: var(--radius-lg);
-  border-left: 4px solid var(--color-accent);
+  margin-bottom: var(--spacing-2xl);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  background-color: rgba(196, 154, 92, 0.06);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-accent);
 }
 
 .aboutBannerText {
@@ -669,6 +703,7 @@
   color: var(--color-accent);
   cursor: pointer;
   font-size: var(--font-size-sm);
+  font-family: var(--font-family-ui);
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
@@ -687,10 +722,12 @@
 }
 
 .titleButtonText {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-xs);
+  letter-spacing: -0.01em;
 }
 
 .titleButtonText:hover {
@@ -723,7 +760,7 @@
   gap: var(--spacing-md);
   text-align: left;
   padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--color-bg-tertiary);
+  background-color: transparent;
   border: none;
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
@@ -736,8 +773,8 @@
 }
 
 .eraNumber {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: var(--radius-full);
   background-color: var(--color-accent);
   color: var(--color-bg-primary);
@@ -746,6 +783,7 @@
   justify-content: center;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-ui);
   flex-shrink: 0;
 }
 
@@ -756,6 +794,7 @@
 
 .eraButtonSummary {
   font-size: var(--font-size-xs);
+  font-family: var(--font-family-ui);
   color: var(--color-text-muted);
   margin-left: auto;
 }
@@ -764,10 +803,11 @@
 .entityListItem {
   display: block;
   text-align: left;
-  padding: var(--spacing-md) var(--spacing-md);
-  background-color: var(--color-bg-tertiary);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-bottom: 1px solid var(--color-border-light);
+  border-radius: 0;
   color: var(--color-text-primary);
   cursor: pointer;
   transition: background-color var(--transition-fast);
@@ -791,14 +831,16 @@
 
 .entityListBadge {
   font-size: var(--font-size-xs);
+  font-family: var(--font-family-ui);
   color: var(--color-text-muted);
-  background-color: var(--color-bg-secondary);
+  background-color: rgba(196, 154, 92, 0.1);
   padding: 2px var(--spacing-xs);
   border-radius: var(--radius-sm);
 }
 
 .entityListMeta {
   font-size: var(--font-size-xs);
+  font-family: var(--font-family-ui);
   color: var(--color-text-muted);
   text-transform: capitalize;
 }
@@ -813,7 +855,7 @@
 .entityListColumn {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .sectionSubtext {
@@ -821,11 +863,13 @@
   color: var(--color-text-muted);
   margin-bottom: var(--spacing-md);
   margin-top: 0;
+  font-style: italic;
 }
 
 .sectionFootnote {
   margin-top: var(--spacing-md);
   font-size: var(--font-size-xs);
+  font-family: var(--font-family-ui);
   color: var(--color-text-muted);
 }
 
@@ -838,18 +882,21 @@
 
 .browseTypeButton {
   padding: var(--spacing-xs) var(--spacing-md);
-  background-color: var(--color-bg-tertiary);
-  border: none;
-  border-radius: var(--radius-sm);
+  background-color: transparent;
+  border: 1px solid var(--color-border-light);
+  border-radius: 20px;
   color: var(--color-text-secondary);
   cursor: pointer;
   font-size: var(--font-size-sm);
+  font-family: var(--font-family-ui);
   text-transform: capitalize;
-  transition: background-color var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .browseTypeButton:hover {
   background-color: var(--color-accent-hover);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .browseTypeCount {
@@ -868,10 +915,11 @@
   justify-content: space-between;
   align-items: center;
   text-align: left;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--color-bg-tertiary);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-bottom: 1px solid var(--color-border-light);
+  border-radius: 0;
   color: var(--color-text-primary);
   cursor: pointer;
   font-size: var(--font-size-base);
@@ -884,18 +932,21 @@
 
 .chronicleFormat {
   font-size: var(--font-size-xs);
+  font-family: var(--font-family-ui);
   color: var(--color-text-muted);
+  font-style: italic;
 }
 
 .viewAllButton {
-  margin-top: var(--spacing-md);
-  padding: var(--spacing-xs) var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
   background-color: transparent;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-light);
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-ui);
   width: 100%;
   transition: border-color var(--transition-fast), color var(--transition-fast);
 }

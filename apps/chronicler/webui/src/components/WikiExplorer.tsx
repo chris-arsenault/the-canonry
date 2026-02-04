@@ -874,14 +874,14 @@ function HomePage({
 
   return (
     <div className={styles.homeContainer}>
-      {/* Header with stats */}
+      {/* Header - book foyer style */}
       <div className={styles.homeHeader}>
         <h1 className={styles.homeTitle}>World Chronicle</h1>
         <div className={styles.homeStats}>
-          {worldData.hardState.filter(e => e.kind !== 'era').length} entities
+          {worldData.hardState.filter(e => e.kind !== 'era').length} entries
           {' · '}
-          {worldData.relationships.length} relationships
-          {eras.length > 0 && <> · {eras.length} eras</>}
+          {eras.length > 0 && <>{eras.length} eras · </>}
+          {chronicles.length > 0 && <>{chronicles.length} chronicles</>}
         </div>
       </div>
 
@@ -907,7 +907,7 @@ function HomePage({
           {/* Featured Article - Wikipedia style */}
           {featuredArticle && (
             <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Featured Article</h2>
+              <h2 className={styles.sectionTitle}>Featured</h2>
               <div className={isMobile ? styles.featuredLayoutMobile : styles.featuredLayout}>
                 {featuredImageUrl && (
                   <button
@@ -956,7 +956,7 @@ function HomePage({
           {/* Did You Know - Wikipedia style */}
           {didYouKnow.length > 0 && (
             <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Did you know...</h2>
+              <h2 className={styles.sectionTitle}>From the Historian's Desk</h2>
               <ul className={styles.didYouKnowList}>
                 {didYouKnow.map((fact, idx) => (
                   <li key={idx} className={styles.didYouKnowItem}>
@@ -1010,7 +1010,7 @@ function HomePage({
         <div>
           {/* Most Connected - with more context */}
           <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Most Connected</h2>
+            <h2 className={styles.sectionTitle}>Notable Figures</h2>
             <div className={styles.entityListColumn}>
               {linkStats.mostLinked.map(entity => {
                 const linkCount = linkStats.totalLinks.get(entity.id) || 0;
@@ -1041,9 +1041,9 @@ function HomePage({
 
           {/* Hidden Gems - with more context */}
           <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Hidden Gems</h2>
+            <h2 className={styles.sectionTitle}>Undiscovered</h2>
             <p className={styles.sectionSubtext}>
-              Lesser-known entities worth exploring
+              Corners of the world awaiting a curious reader
             </p>
             <div className={styles.entityListColumn}>
               {linkStats.leastLinked.map(entity => {

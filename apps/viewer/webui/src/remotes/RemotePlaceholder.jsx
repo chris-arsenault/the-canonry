@@ -22,7 +22,7 @@ const styles = {
   },
   message: {
     fontSize: '13px',
-    color: '#93c5fd',
+    color: '#c4b99a',
     lineHeight: 1.6,
   },
   instructions: {

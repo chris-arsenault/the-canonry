@@ -717,7 +717,7 @@ export default function App() {
             window.location.hash = '#/';
           }}
         >
-          <span className="brand-icon">🐧</span>
+          <span className="brand-icon" aria-hidden="true">&#x2756;</span>
           <span className="brand-title">The Ice Remembers</span>
         </button>
         <HeaderSearch

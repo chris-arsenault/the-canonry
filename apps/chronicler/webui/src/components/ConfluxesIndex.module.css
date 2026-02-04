@@ -11,8 +11,10 @@
 .heading {
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-sm);
+  letter-spacing: -0.01em;
 }
 
 .description {
@@ -45,9 +47,10 @@
 
 .statLabel {
   font-size: var(--font-size-xs);
+  font-family: var(--font-family-ui);
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.08em;
 }
 
 .filterBar {
@@ -59,8 +62,9 @@
 .filterButton {
   padding: var(--spacing-xs) var(--spacing-sm);
   font-size: var(--font-size-sm);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  font-family: var(--font-family-ui);
+  border-radius: 20px;
+  border: 1px solid var(--color-border-light);
   background-color: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -138,11 +142,12 @@
 .badge {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-ui);
   color: var(--color-bg-primary);
   padding: 2px var(--spacing-sm);
   border-radius: var(--radius-full);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.08em;
 }
 
 .badgeSystem {
@@ -152,16 +157,17 @@
 
 .badgeAction {
   composes: badge;
-  background-color: #f59e0b;
+  background-color: var(--color-warning);
 }
 
 .badgeTemplate {
   composes: badge;
-  background-color: #8b5cf6;
+  background-color: var(--color-purple);
 }
 
 .itemMeta {
   font-size: var(--font-size-xs);
+  font-family: var(--font-family-ui);
   color: var(--color-text-muted);
   display: flex;
   gap: var(--spacing-md);

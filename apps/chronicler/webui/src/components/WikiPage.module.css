@@ -1,6 +1,8 @@
 /**
  * WikiPage CSS Module
  * Styles for rendering wiki page content
+ *
+ * Theme: Warm Library - editorial coffee table book aesthetic
  */
 
 /* ===================
@@ -8,19 +10,21 @@
    =================== */
 
 .container {
-  max-width: 900px;
+  max-width: var(--content-max-width-wide, 1000px);
   margin: 0 auto;
 }
 
 .header {
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-2xl);
 }
 
 .title {
+  font-family: var(--font-family-display);
   font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-sm);
+  letter-spacing: -0.01em;
 }
 
 /* ===================
@@ -30,8 +34,8 @@
 .coverHero {
   position: relative;
   width: 100%;
-  height: 320px;
-  margin-bottom: var(--spacing-xl);
+  height: 400px;
+  margin-bottom: var(--spacing-2xl);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -48,8 +52,8 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 60%;
-  background: linear-gradient(transparent 0%, rgba(10, 25, 41, 0.85) 70%, var(--color-bg-primary) 100%);
+  height: 65%;
+  background: linear-gradient(transparent 0%, rgba(26, 22, 17, 0.85) 70%, var(--color-bg-primary) 100%);
   display: flex;
   align-items: flex-end;
   padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg);
@@ -70,10 +74,10 @@
   font-family: var(--font-family-display);
   font-size: 40px;
   font-weight: var(--font-weight-bold);
-  color: #ffffff;
+  color: #e8dcc8;
   letter-spacing: -0.02em;
   line-height: var(--line-height-tight);
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7), 0 1px 3px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.8), 0 1px 4px rgba(0, 0, 0, 0.6);
   width: 100%;
   text-align: center;
 }
@@ -90,6 +94,7 @@
    =================== */
 
 .breadcrumbs {
+  font-family: var(--font-family-ui);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   margin-bottom: var(--spacing-md);
@@ -121,16 +126,18 @@
 .contentColumn {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xl);
+  gap: var(--spacing-2xl);
 }
 
 .main {
   flex: 1;
   min-width: 0;
+  max-width: var(--content-max-width, 740px);
+  margin: 0 auto;
 }
 
 /* ===================
-   Infobox (Wikipedia-style sidebar)
+   Infobox (Entity sidebar)
    =================== */
 
 .infobox {
@@ -159,13 +166,13 @@
   padding: var(--spacing-sm) var(--spacing-md);
   background-color: var(--color-accent);
   color: var(--color-bg-primary);
-  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
+  font-weight: var(--font-weight-bold);
   font-size: var(--font-size-base);
   text-align: center;
 }
 
 /* Base infobox image - fallback for images without aspect metadata */
-/* Uses object-fit: contain to show full image with letterboxing */
 .infoboxImage {
   width: 100%;
   max-height: 320px;
@@ -184,8 +191,7 @@
   background: var(--color-bg-secondary);
 }
 
-/* Aspect-specific infobox image classes - use object-fit: cover with optimal heights */
-/* Portrait images (taller than wide) - show more height */
+/* Aspect-specific infobox image classes */
 .infoboxImagePortrait {
   width: 100%;
   height: 320px;
@@ -202,7 +208,6 @@
   cursor: zoom-in;
 }
 
-/* Landscape images (wider than tall) - standard height */
 .infoboxImageLandscape {
   width: 100%;
   height: 160px;
@@ -219,7 +224,6 @@
   cursor: zoom-in;
 }
 
-/* Square images - balanced height */
 .infoboxImageSquare {
   width: 100%;
   height: 220px;
@@ -254,6 +258,7 @@
 .infoboxLabel {
   width: 80px;
   color: var(--color-text-muted);
+  font-family: var(--font-family-ui);
   flex-shrink: 0;
 }
 
@@ -267,21 +272,26 @@
    =================== */
 
 .toc {
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-xl);
+  background-color: transparent;
+  border: none;
+  border-left: 2px solid var(--color-border);
+  border-radius: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-2xl);
 }
 
 .tocTitle {
-  font-size: var(--font-size-base);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   margin-bottom: var(--spacing-sm);
 }
 
 .tocItem {
+  font-family: var(--font-family-ui);
   font-size: var(--font-size-sm);
   color: var(--color-accent);
   cursor: pointer;
@@ -304,16 +314,17 @@
    =================== */
 
 .section {
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-3xl);
 }
 
 .sectionHeading {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
   padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .sectionWithImages {
@@ -326,6 +337,37 @@
   color: var(--color-text-secondary);
   margin-bottom: var(--spacing-sm);
   white-space: pre-wrap;
+}
+
+/* ===================
+   Drop Cap for Chronicles
+   =================== */
+
+.chronicleBody {
+  /* Wrapper for chronicle content - used for document type differentiation */
+}
+
+.chronicleBody[data-dropcap] .markdownSection[data-first] p:first-of-type::first-letter {
+  float: left;
+  font-family: var(--font-family-display);
+  font-size: 3.5em;
+  line-height: 0.8;
+  padding-right: 8px;
+  padding-top: 4px;
+  color: var(--color-accent);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Drop cap after horizontal rules (narrative starts after preamble) */
+.chronicleBody .markdownSection hr + p::first-letter {
+  float: left;
+  font-family: var(--font-family-display);
+  font-size: 3.5em;
+  line-height: 0.8;
+  padding-right: 8px;
+  padding-top: 4px;
+  color: var(--color-accent);
+  font-weight: var(--font-weight-bold);
 }
 
 /* ===================
@@ -348,17 +390,18 @@
    =================== */
 
 .backlinks {
-  margin-top: var(--spacing-2xl);
-  padding: var(--spacing-md);
-  background-color: var(--color-bg-secondary);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  margin-top: var(--spacing-3xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border-light);
 }
 
 .backlinksTitle {
-  font-size: var(--font-size-base);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   margin-bottom: var(--spacing-sm);
 }
 
@@ -383,17 +426,18 @@
    =================== */
 
 .chronicles {
-  margin-top: var(--spacing-2xl);
-  padding: var(--spacing-md);
-  background-color: var(--color-bg-secondary);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  margin-top: var(--spacing-3xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border-light);
 }
 
 .chroniclesTitle {
-  font-size: var(--font-size-base);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   margin-bottom: var(--spacing-sm);
 }
 
@@ -416,6 +460,7 @@
 }
 
 .chronicleMeta {
+  font-family: var(--font-family-ui);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
@@ -433,10 +478,11 @@
 .categories {
   margin-top: var(--spacing-xl);
   padding-top: var(--spacing-md);
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border-light);
 }
 
 .categoriesLabel {
+  font-family: var(--font-family-ui);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   margin-bottom: var(--spacing-sm);
@@ -446,6 +492,7 @@
   display: inline-block;
   padding: var(--spacing-xs) var(--spacing-sm);
   margin: 0 var(--spacing-xs) var(--spacing-xs) 0;
+  font-family: var(--font-family-ui);
   font-size: var(--font-size-xs);
   background-color: var(--color-bg-tertiary);
   border-radius: var(--radius-sm);
@@ -469,7 +516,7 @@
   font-size: var(--font-size-sm);
   font-style: italic;
   color: var(--color-text-muted);
-  background-color: rgba(59, 130, 246, 0.08);
+  background-color: rgba(196, 154, 92, 0.08);
   border-radius: var(--radius-sm);
   border-left: 3px solid var(--color-accent);
   line-height: var(--line-height-relaxed);
@@ -488,39 +535,31 @@
 }
 
 /* ===================
-   Chronicle Images (Wikipedia-style thumbs)
+   Chronicle Images - Editorial Style
    =================== */
 
 .imageThumbRight {
   float: right;
   clear: right;
-  margin: var(--spacing-xs) 0 var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-bg-secondary);
-  padding: var(--spacing-xs);
+  margin: var(--spacing-sm) 0 var(--spacing-md) var(--spacing-xl);
 }
 
 .imageThumbLeft {
   float: left;
   clear: left;
-  margin: var(--spacing-xs) var(--spacing-md) var(--spacing-sm) 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-bg-secondary);
-  padding: var(--spacing-xs);
+  margin: var(--spacing-sm) var(--spacing-xl) var(--spacing-md) 0;
 }
 
 .imageSmall {
-  width: 150px;
+  width: 170px;
 }
 
 .imageMedium {
-  width: 220px;
+  width: 240px;
 }
 
 .imageLarge {
-  width: 350px;
+  width: 380px;
 }
 
 .imageLargeLeft {
@@ -535,25 +574,24 @@
 
 .imageFullWidth {
   width: 100%;
-  margin: var(--spacing-xl) 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-bg-secondary);
-  padding: var(--spacing-xs);
+  margin: var(--spacing-2xl) 0;
 }
 
 .figureImage {
   width: 100%;
   display: block;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   cursor: zoom-in;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .imageCaption {
+  font-family: var(--font-family-ui);
   font-size: var(--font-size-xs);
+  font-style: italic;
   line-height: var(--line-height-normal);
   color: var(--color-text-muted);
-  padding: var(--spacing-xs) var(--spacing-xs) 2px;
+  padding: var(--spacing-sm) 0 2px;
   text-align: center;
 }
 
@@ -566,7 +604,7 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   background-color: var(--color-bg-tertiary);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .clearfix {
@@ -579,6 +617,7 @@
 
 .seedButton {
   padding: var(--spacing-xs) var(--spacing-sm);
+  font-family: var(--font-family-ui);
   font-size: var(--font-size-xs);
   background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
@@ -642,7 +681,8 @@
 }
 
 .previewTitle {
-  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
+  font-weight: var(--font-weight-bold);
   font-size: var(--font-size-base);
   line-height: var(--line-height-normal);
   flex: 1;
@@ -664,6 +704,7 @@
 .previewBadge {
   display: inline-block;
   padding: 2px var(--spacing-xs);
+  font-family: var(--font-family-ui);
   font-size: 10px;
   border-radius: 3px;
   background-color: var(--color-bg-tertiary);
@@ -672,13 +713,13 @@
 
 .previewBadgeKind {
   composes: previewBadge;
-  background-color: rgba(16, 185, 129, 0.2);
+  background-color: var(--color-accent-hover);
   color: var(--color-accent-light);
 }
 
 .previewBadgeStatus {
   composes: previewBadge;
-  background-color: rgba(59, 130, 246, 0.2);
+  background-color: rgba(196, 164, 112, 0.15);
   color: var(--color-text-muted);
 }
 
@@ -696,4 +737,189 @@
   font-size: var(--font-size-base);
   line-height: var(--line-height-relaxed);
   color: var(--color-text-secondary);
+}
+
+/* ===================
+   Document Type Visual Differentiation
+   Applied via data-style attribute on .chronicleBody
+   =================== */
+
+/* Verse forms: folk songs, nursery rhymes, haiku */
+.chronicleBody[data-style="folk-song"] .markdownSection,
+.chronicleBody[data-style="nursery-rhymes"] .markdownSection,
+.chronicleBody[data-style="haiku-collection"] .markdownSection {
+  text-align: center;
+  font-style: italic;
+  line-height: 2;
+}
+
+.chronicleBody[data-dropcap][data-style="folk-song"] .markdownSection[data-first] p:first-of-type::first-letter,
+.chronicleBody[data-dropcap][data-style="nursery-rhymes"] .markdownSection[data-first] p:first-of-type::first-letter,
+.chronicleBody[data-dropcap][data-style="haiku-collection"] .markdownSection[data-first] p:first-of-type::first-letter {
+  float: none;
+  font-size: inherit;
+  line-height: inherit;
+  padding: 0;
+}
+
+/* Letters / Correspondence - epistolary feel */
+.chronicleBody[data-style="collected-letters"] .markdownSection {
+  padding-left: var(--spacing-lg);
+  border-left: 2px solid var(--color-border);
+}
+
+/* Wanted Notice - poster-like treatment */
+.chronicleBody[data-style="wanted-notice"] .markdownSection {
+  text-align: center;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  background: rgba(196, 154, 92, 0.04);
+}
+
+.chronicleBody[data-dropcap][data-style="wanted-notice"] .markdownSection[data-first] p:first-of-type::first-letter {
+  float: none;
+  font-size: inherit;
+  line-height: inherit;
+  padding: 0;
+}
+
+/* Sacred Text - reverential, generous margins */
+.chronicleBody[data-style="sacred-text"] .markdownSection {
+  padding: 0 var(--spacing-2xl);
+  line-height: 2;
+}
+
+/* Interrogation Record - bureaucratic feel */
+.chronicleBody[data-style="interrogation-record"] .markdownSection {
+  font-family: "Courier New", Courier, monospace;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  letter-spacing: 0.02em;
+}
+
+.chronicleBody[data-dropcap][data-style="interrogation-record"] .markdownSection[data-first] p:first-of-type::first-letter {
+  float: none;
+  font-size: inherit;
+  line-height: inherit;
+  padding: 0;
+  font-family: inherit;
+}
+
+/* Personal Diary - warm, intimate */
+.chronicleBody[data-style="personal-diary"] .markdownSection {
+  background: rgba(196, 154, 92, 0.03);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
+  letter-spacing: 0.01em;
+}
+
+/* Herald's Dispatch / Field Report - formal header feel */
+.chronicleBody[data-style="heralds-dispatch"] .markdownSection,
+.chronicleBody[data-style="field-report"] .markdownSection {
+  border-top: 2px solid var(--color-border);
+  padding-top: var(--spacing-md);
+}
+
+/* Diplomatic Accord - formal document */
+.chronicleBody[data-style="diplomatic-accord"] .markdownSection {
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-left: 3px double var(--color-accent);
+  line-height: 2;
+}
+
+/* Chronicle Entry - archival */
+.chronicleBody[data-style="chronicle-entry"] .markdownSection {
+  border-left: 3px solid var(--color-text-muted);
+  padding-left: var(--spacing-lg);
+}
+
+/* Tavern Notice Board - community feel */
+.chronicleBody[data-style="tavern-notices"] .markdownSection {
+  background: rgba(196, 154, 92, 0.04);
+  border: 1px dashed var(--color-border);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-sm);
+}
+
+.chronicleBody[data-dropcap][data-style="tavern-notices"] .markdownSection[data-first] p:first-of-type::first-letter {
+  float: none;
+  font-size: inherit;
+  line-height: inherit;
+  padding: 0;
+}
+
+/* ===================
+   Layout Engine - Plate Mode
+   Images render as centered block elements, no floats.
+   Used for short content, content with many images, or document styles.
+   =================== */
+
+.plateImage {
+  display: block;
+  margin: var(--spacing-2xl) auto;
+  max-width: 100%;
+  text-align: center;
+}
+
+.plateImage .figureImage {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Plate mode: small images get wider since they're not floating */
+.plateImage.imageSmall {
+  width: auto;
+  max-width: 280px;
+}
+
+.plateImage.imageMedium {
+  width: auto;
+  max-width: 400px;
+}
+
+.plateImage.imageLarge {
+  width: auto;
+  max-width: 560px;
+}
+
+/* ===================
+   Layout Engine - Historian Callout Block Mode
+   Full-width callout, no float. Used in plate/centered layouts.
+   =================== */
+
+.historianCalloutBlock {
+  margin: var(--spacing-xl) 0;
+  padding: 14px 20px;
+  background: rgba(196, 154, 92, 0.06);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: var(--font-size-sm);
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.historianCalloutBlock .historianCalloutLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  font-style: normal;
+  font-family: var(--font-family-ui);
+}
+
+/* ===================
+   Layout Engine - Centered Mode
+   For poetry, songs, verse. Text centered, images as centered plates.
+   =================== */
+
+.centeredLayout {
+  text-align: center;
+}
+
+.centeredLayout .markdownSection {
+  text-align: center;
 }

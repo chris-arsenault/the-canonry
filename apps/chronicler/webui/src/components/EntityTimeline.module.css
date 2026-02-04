@@ -67,16 +67,16 @@
 }
 
 .row:hover {
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: var(--color-accent-hover);
 }
 
 .rowExpanded {
   composes: row;
-  background-color: rgba(16, 185, 129, 0.08);
+  background-color: var(--color-accent-hover);
 }
 
 .rowExpanded:hover {
-  background-color: rgba(16, 185, 129, 0.12);
+  background-color: var(--color-accent-active);
 }
 
 .td {
@@ -115,7 +115,7 @@
 }
 
 .effectsRow {
-  background-color: rgba(16, 185, 129, 0.05);
+  background-color: rgba(196, 154, 92, 0.05);
 }
 
 .effectsCell {
@@ -168,40 +168,40 @@
   font-size: var(--font-size-xs);
 }
 
-/* Weight tier colors */
+/* Weight tier colors - warm parchment scale */
 .weightHigh {
-  color: #f0f4ff;
+  color: var(--color-text-primary);
 }
 
 .weightMidHigh {
-  color: #c8d6f0;
+  color: var(--color-text-secondary);
 }
 
 .weightMidLow {
-  color: #a0b0c8;
+  color: var(--color-text-muted);
 }
 
 .weightLow {
-  color: #788898;
+  color: #6b6155;
 }
 
-/* Effect type colors */
+/* Effect type colors - warm palette */
 .effectCreated {
-  color: #34d399;
+  color: var(--color-success);
 }
 
 .effectEnded {
-  color: #f87171;
+  color: var(--color-danger);
 }
 
 .effectRelationship {
-  color: #60a5fa;
+  color: var(--color-accent);
 }
 
 .effectTag {
-  color: #a78bfa;
+  color: var(--color-purple);
 }
 
 .effectField {
-  color: #fbbf24;
+  color: var(--color-warning);
 }
