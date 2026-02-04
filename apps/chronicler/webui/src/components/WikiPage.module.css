@@ -370,6 +370,20 @@
   font-weight: var(--font-weight-bold);
 }
 
+/* Disable hr+p drop caps for verse/centered styles (stanzas use Roman numeral markers) */
+.chronicleBody[data-style="folk-song"] .markdownSection hr + p::first-letter,
+.chronicleBody[data-style="nursery-rhymes"] .markdownSection hr + p::first-letter,
+.chronicleBody[data-style="haiku-collection"] .markdownSection hr + p::first-letter,
+.chronicleBody[data-style="wanted-notice"] .markdownSection hr + p::first-letter,
+.chronicleBody[data-style="tavern-notices"] .markdownSection hr + p::first-letter {
+  float: none;
+  font-size: inherit;
+  line-height: inherit;
+  padding: 0;
+  font-weight: inherit;
+  color: inherit;
+}
+
 /* ===================
    Entity Links
    =================== */

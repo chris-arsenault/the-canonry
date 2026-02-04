@@ -1580,7 +1580,11 @@ export default function WikiPageView({
         <div
           className={isChronicle ? styles.chronicleBody : undefined}
           data-style={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
-          {...(isChronicle && page.content.sections[0]?.content && /^[a-zA-Z]/.test(page.content.sections[0].content.replace(/^[\s*_#>]+/, '')) ? { 'data-dropcap': '' } : {})}
+          {...(isChronicle && page.content.sections[0]?.content && (() => {
+            const stripped = page.content.sections[0].content.replace(/^[\s*_#>]+/, '');
+            // Must start with a letter, but not a Roman numeral section marker (e.g. "IV. Title")
+            return /^[a-zA-Z]/.test(stripped) && !/^[IVXLCDM]+\.\s/.test(stripped);
+          })() ? { 'data-dropcap': '' } : {})}
         >
         {page.content.sections.map((section, sectionIndex) => (
           <div key={section.id} id={section.id} className={styles.section}>
