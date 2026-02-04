@@ -19,7 +19,7 @@ import { resolveAnchorPhrase } from '../lib/fuzzyAnchor.ts';
 import EntityTimeline from './EntityTimeline.tsx';
 import ProminenceTimeline from './ProminenceTimeline.tsx';
 import ImageLightbox from './ImageLightbox.tsx';
-import { SectionDivider, FrostEdge } from './Ornaments.tsx';
+import { SectionDivider, FrostEdge, ScrollBorder } from './Ornaments.tsx';
 import { prominenceLabelFromScale, type ProminenceScale } from '@canonry/world-schema';
 import styles from './WikiPage.module.css';
 
@@ -236,6 +236,7 @@ function CoverHeroImage({
       <div className={styles.coverHeroOverlay}>
         <h1 className={styles.chronicleTitleHero}>{title}</h1>
       </div>
+      <FrostEdge position="bottom" className={styles.frostEdgeHero} />
     </div>
   );
 }
@@ -1555,6 +1556,7 @@ export default function WikiPageView({
         {/* Infobox - inline on mobile/tablet (rendered first, above content) */}
         {showInfoboxInline && page.content.infobox && (
           <div className={styles.infoboxInline}>
+            <ScrollBorder className={styles.scrollBorder} />
             <FrostEdge className={styles.frostEdge} />
             <div className={styles.infoboxHeader}>{page.title}</div>
             {infoboxImageUrl && (
@@ -1615,6 +1617,7 @@ export default function WikiPageView({
 
         {chronicleLinks.length > 0 && (
           <div className={styles.chronicles}>
+            <FrostEdge className={styles.frostEdgeDivider} />
             <div className={styles.chroniclesTitle}>
               Chronicles ({chronicleLinks.length})
             </div>
@@ -1735,6 +1738,7 @@ export default function WikiPageView({
           {/* Backlinks */}
           {backlinks.length > 0 && (
             <div className={styles.backlinks}>
+              <FrostEdge className={styles.frostEdgeDivider} />
               <div className={styles.backlinksTitle}>
                 What links here ({backlinks.length})
               </div>
@@ -1775,6 +1779,7 @@ export default function WikiPageView({
         {/* Infobox - sidebar on desktop (rendered after main content) */}
         {!showInfoboxInline && page.content.infobox && (
           <div className={styles.infobox}>
+            <ScrollBorder className={styles.scrollBorder} />
             <FrostEdge className={styles.frostEdge} />
             <div className={styles.infoboxHeader}>{page.title}</div>
             {infoboxImageUrl && (
