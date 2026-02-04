@@ -43,39 +43,46 @@
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  isolation: isolate;
 }
 
-/* Parchment noise — Perlin grain over the content area.
-   The SVG filter produces warm gold pixels with alpha derived from
-   noise luminance. No blend mode needed — the alpha IS the grain. */
+/* Parchment noise — behind content, above the flat background.
+   isolation:isolate on .main creates stacking context so z-index:1
+   sits between .main's background and its children. */
 .parchmentOverlay {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 10;
+  z-index: 1;
   opacity: 1;
   pointer-events: none;
 }
 
-/* Scroll work corner frame */
+/* Scroll work corner frame — on top of everything */
 .pageFrame {
-  z-index: 11;
+  z-index: 4;
 }
 
 .header {
+  position: relative;
+  z-index: 2;
   padding: var(--spacing-md) var(--spacing-xl);
   border-bottom: 1px solid var(--color-border);
   background-color: var(--color-bg-secondary);
 }
 
 .content {
+  position: relative;
+  z-index: 2;
   flex: 1;
   overflow: auto;
   padding: var(--spacing-xl);
 }
 
 .contentMobile {
+  position: relative;
+  z-index: 2;
   flex: 1;
   overflow: auto;
   padding: var(--spacing-lg);

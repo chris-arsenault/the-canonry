@@ -39,7 +39,7 @@ export function ParchmentTexture({ className }: { className?: string }) {
           {/* Generate Perlin noise */}
           <feTurbulence
             type="fractalNoise"
-            baseFrequency="0.65"
+            baseFrequency="0.04"
             numOctaves={4}
             seed={2}
             stitchTiles="stitch"
