@@ -36,27 +36,75 @@ export function ParchmentTexture({ className }: { className?: string }) {
           width="100%"
           height="100%"
         >
-          {/* Generate Perlin noise */}
+          {/* === Layer 1: Base parchment grain === */}
           <feTurbulence
             type="fractalNoise"
             baseFrequency="0.04"
             numOctaves={4}
             seed={2}
             stitchTiles="stitch"
-            result="noise"
+            result="grain"
           />
-          {/* Convert noise luminance to alpha on a warm gold color.
-              RGB channels = fixed warm gold (#c49a5c ≈ 0.77, 0.60, 0.36).
-              Alpha = noise luminance mapped through offset so darker
-              noise areas become transparent, lighter ones semi-opaque. */}
+          {/* Warm gold with alpha from noise luminance */}
           <feColorMatrix
             type="matrix"
-            in="noise"
+            in="grain"
             values="0    0    0    0 0.77
                     0    0    0    0 0.60
                     0    0    0    0 0.36
                     0.33 0.33 0.33 0 -0.12"
+            result="base"
           />
+
+          {/* === Layer 2: Crease marks (depth/folds) ===
+              Turbulence (not fractalNoise) for angular, fiber-like streaks.
+              Asymmetric frequency: low x = long horizontal features,
+              higher y = tighter vertical variation → elongated crease lines. */}
+          <feTurbulence
+            type="turbulence"
+            baseFrequency="0.012 0.05"
+            numOctaves={3}
+            seed={7}
+            stitchTiles="stitch"
+            result="creaseNoise"
+          />
+          {/* Dark warm brown, alpha heavily offset so only peaks visible */}
+          <feColorMatrix
+            type="matrix"
+            in="creaseNoise"
+            values="0   0   0   0 0.35
+                    0   0   0   0 0.28
+                    0   0   0   0 0.18
+                    0.4 0.4 0.4 0 -0.28"
+            result="creases"
+          />
+
+          {/* === Layer 3: Age splotches ===
+              Very low frequency fractalNoise for large blobs.
+              Heavy alpha threshold: only the brightest ~20% of noise
+              produces visible spots. */}
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.008"
+            numOctaves={2}
+            seed={13}
+            stitchTiles="stitch"
+            result="spotNoise"
+          />
+          {/* Dark brown spots, strong negative offset isolates peaks */}
+          <feColorMatrix
+            type="matrix"
+            in="spotNoise"
+            values="0   0   0   0 0.30
+                    0   0   0   0 0.22
+                    0   0   0   0 0.12
+                    0.5 0.5 0.5 0 -0.38"
+            result="splotches"
+          />
+
+          {/* Composite: base → creases over → splotches over */}
+          <feComposite in="creases" in2="base" operator="over" result="withCreases" />
+          <feComposite in="splotches" in2="withCreases" operator="over" />
         </filter>
       </defs>
       <rect width="100%" height="100%" filter="url(#parchment-noise)" />
