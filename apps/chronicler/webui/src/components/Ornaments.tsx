@@ -68,14 +68,14 @@ export function ParchmentTexture({ className }: { className?: string }) {
             stitchTiles="stitch"
             result="creaseNoise"
           />
-          {/* Dark warm brown, alpha heavily offset so only peaks visible */}
+          {/* Dark warm brown, alpha from noise luminance */}
           <feColorMatrix
             type="matrix"
             in="creaseNoise"
             values="0   0   0   0 0.35
                     0   0   0   0 0.28
                     0   0   0   0 0.18
-                    0.4 0.4 0.4 0 -0.28"
+                    0.6 0.6 0.6 0 -0.1"
             result="creases"
           />
 
@@ -91,14 +91,14 @@ export function ParchmentTexture({ className }: { className?: string }) {
             stitchTiles="stitch"
             result="spotNoise"
           />
-          {/* Dark brown spots, strong negative offset isolates peaks */}
+          {/* Dark brown spots, moderate offset */}
           <feColorMatrix
             type="matrix"
             in="spotNoise"
             values="0   0   0   0 0.30
                     0   0   0   0 0.22
                     0   0   0   0 0.12
-                    0.5 0.5 0.5 0 -0.38"
+                    0.7 0.7 0.7 0 -0.15"
             result="splotches"
           />
 
