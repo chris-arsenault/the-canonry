@@ -19,7 +19,7 @@ import { resolveAnchorPhrase } from '../lib/fuzzyAnchor.ts';
 import EntityTimeline from './EntityTimeline.tsx';
 import ProminenceTimeline from './ProminenceTimeline.tsx';
 import ImageLightbox from './ImageLightbox.tsx';
-import { SectionDivider, FrostEdge, ScrollBorder } from './Ornaments.tsx';
+import { SectionDivider, FrostEdge } from './Ornaments.tsx';
 import { prominenceLabelFromScale, type ProminenceScale } from '@canonry/world-schema';
 import styles from './WikiPage.module.css';
 
@@ -1556,7 +1556,6 @@ export default function WikiPageView({
         {/* Infobox - inline on mobile/tablet (rendered first, above content) */}
         {showInfoboxInline && page.content.infobox && (
           <div className={styles.infoboxInline}>
-            <ScrollBorder className={styles.scrollBorder} />
             <FrostEdge className={styles.frostEdge} />
             <div className={styles.infoboxHeader}>{page.title}</div>
             {infoboxImageUrl && (
@@ -1779,7 +1778,6 @@ export default function WikiPageView({
         {/* Infobox - sidebar on desktop (rendered after main content) */}
         {!showInfoboxInline && page.content.infobox && (
           <div className={styles.infobox}>
-            <ScrollBorder className={styles.scrollBorder} />
             <FrostEdge className={styles.frostEdge} />
             <div className={styles.infoboxHeader}>{page.title}</div>
             {infoboxImageUrl && (
