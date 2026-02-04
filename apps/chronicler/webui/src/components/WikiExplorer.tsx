@@ -27,6 +27,7 @@ import {
   prominenceLabelFromScale,
   type ProminenceScale,
 } from '@canonry/world-schema';
+import { ParchmentTexture, PageFrame } from './Ornaments.tsx';
 import styles from './WikiExplorer.module.css';
 
 /**
@@ -588,6 +589,8 @@ export default function WikiExplorer({
 
       {/* Main Content */}
       <div className={styles.main}>
+        <ParchmentTexture className={styles.parchmentOverlay} />
+        <PageFrame className={styles.pageFrame} />
         <div className={isMobile ? styles.contentMobile : styles.content}>
           {isChronicleIndex ? (
             <ChronicleIndex

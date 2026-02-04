@@ -42,6 +42,22 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+}
+
+/* Parchment noise — Perlin grain over the content area */
+.parchmentOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  mix-blend-mode: overlay;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+/* Scroll work corner frame */
+.pageFrame {
+  z-index: 11;
 }
 
 .header {

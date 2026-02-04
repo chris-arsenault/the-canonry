@@ -1,9 +1,8 @@
 /**
  * Ornaments - SVG decorative elements for the Chronicler wiki
  *
- * Provides parchment texture, section dividers, frost accents,
- * and ornamental HR data URIs. All SVG definitions in one file
- * for easy reuse across components.
+ * Provides parchment texture, page frame scroll work, section dividers,
+ * frost accents, and ornamental HR data URIs.
  *
  * Theme: Warm Library with frost/ice accents
  * Gold: #c49a5c  |  Frost: #8ab4c4
@@ -13,29 +12,19 @@ import React from 'react';
 
 /* ===================
    ParchmentTexture
-   Full-viewport Perlin noise overlay that gives the background
-   an organic paper grain. Render once at app root level.
+   Perlin noise overlay that gives the content area organic paper grain.
+   Position via CSS on the parent — this just renders the SVG.
 
-   Sits ON TOP of all content with pointer-events: none so it
-   doesn't block interaction. High z-index ensures it overlays
-   elements with solid backgrounds.
+   Requires the parent to have position: relative and the caller to
+   apply positioning (e.g., position: absolute; inset: 0).
    =================== */
 
-export function ParchmentTexture() {
+export function ParchmentTexture({ className }: { className?: string }) {
   return (
     <svg
       aria-hidden="true"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 9999,
-        mixBlendMode: 'overlay' as const,
-        opacity: 0.12,
-      }}
+      className={className}
+      style={{ pointerEvents: 'none' }}
     >
       <defs>
         <filter
@@ -45,8 +34,6 @@ export function ParchmentTexture() {
           width="100%"
           height="100%"
         >
-          {/* Fractal noise produces organic, paper-like texture.
-              baseFrequency 0.65 = fine grain. numOctaves 4 = multi-scale detail. */}
           <feTurbulence
             type="fractalNoise"
             baseFrequency="0.65"
@@ -55,8 +42,6 @@ export function ParchmentTexture() {
             stitchTiles="stitch"
             result="noise"
           />
-          {/* Warm-tint the noise toward parchment tones:
-              boost red, slightly reduce blue, add warm offset */}
           <feColorMatrix
             type="matrix"
             in="noise"
@@ -69,6 +54,88 @@ export function ParchmentTexture() {
       </defs>
       <rect width="100%" height="100%" filter="url(#parchment-noise)" />
     </svg>
+  );
+}
+
+/* ===================
+   PageFrame
+   Four corner scroll work ornaments for framing the content area.
+   Each corner is a fixed-size SVG (doesn't stretch/distort).
+   Render inside a position:relative container.
+   =================== */
+
+function ScrollCorner() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 120 120"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Main gold L-curve */}
+      <path
+        d="M6,115 L6,35 C6,16 16,6 35,6 L115,6"
+        stroke="#c49a5c" strokeWidth="1.5" opacity="0.55" strokeLinecap="round"
+      />
+      {/* Corner scroll — bold curve at the bend */}
+      <path
+        d="M6,35 C8,20 20,8 35,6"
+        stroke="#c49a5c" strokeWidth="2.5" opacity="0.6" strokeLinecap="round"
+      />
+      {/* Inner curl — decorative spiral at corner */}
+      <path
+        d="M22,42 C24,28 28,22 42,20 C34,25 28,31 26,40"
+        stroke="#c49a5c" strokeWidth="1.2" opacity="0.45" strokeLinecap="round"
+      />
+      {/* Secondary inner curve */}
+      <path
+        d="M14,90 L14,48 C14,28 28,14 48,14 L90,14"
+        stroke="#c49a5c" strokeWidth="0.7" opacity="0.25" strokeLinecap="round"
+      />
+      {/* Frost accent tendril */}
+      <path
+        d="M10,100 C10,55 18,32 42,16 L78,11"
+        stroke="#8ab4c4" strokeWidth="0.8" opacity="0.3" strokeLinecap="round"
+      />
+      {/* Corner diamond */}
+      <path d="M30 30 L34 25 L38 30 L34 35 Z" fill="#c49a5c" opacity="0.45" />
+      {/* Terminal gold dots */}
+      <circle cx="6" cy="115" r="2.5" fill="#c49a5c" opacity="0.45" />
+      <circle cx="115" cy="6" r="2.5" fill="#c49a5c" opacity="0.45" />
+      {/* Frost dots */}
+      <circle cx="14" cy="90" r="1.5" fill="#8ab4c4" opacity="0.3" />
+      <circle cx="90" cy="14" r="1.5" fill="#8ab4c4" opacity="0.3" />
+    </svg>
+  );
+}
+
+export function PageFrame({ className }: { className?: string }) {
+  const base: React.CSSProperties = {
+    position: 'absolute',
+    width: 90,
+    height: 90,
+    pointerEvents: 'none',
+  };
+
+  return (
+    <div aria-hidden="true" className={className} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+      {/* Top-left */}
+      <div style={{ ...base, top: 0, left: 0 }}>
+        <ScrollCorner />
+      </div>
+      {/* Top-right */}
+      <div style={{ ...base, top: 0, right: 0, transform: 'scaleX(-1)' }}>
+        <ScrollCorner />
+      </div>
+      {/* Bottom-left */}
+      <div style={{ ...base, bottom: 0, left: 0, transform: 'scaleY(-1)' }}>
+        <ScrollCorner />
+      </div>
+      {/* Bottom-right */}
+      <div style={{ ...base, bottom: 0, right: 0, transform: 'scale(-1)' }}>
+        <ScrollCorner />
+      </div>
+    </div>
   );
 }
 
@@ -197,83 +264,6 @@ export function FrostEdge({
       <circle cx="137" cy="0" r="1.0" fill="#d0e8f0" opacity="0.6" />
       <circle cx="177" cy="2" r="0.8" fill="#a8ccd8" opacity="0.5" />
       <circle cx="217" cy="1" r="0.9" fill="#a8ccd8" opacity="0.5" />
-    </svg>
-  );
-}
-
-/* ===================
-   ScrollBorder
-   Ornamental border frame using gold scrollwork corners
-   and frost-tinted edges. Wraps content areas like infoboxes.
-   =================== */
-
-export function ScrollBorder({ className }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 260 400"
-      className={className}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      preserveAspectRatio="none"
-    >
-      {/* Top-left corner scrollwork */}
-      <path
-        d="M4,20 C4,10 10,4 20,4 M4,20 C6,15 8,12 14,10 C10,14 8,18 8,24"
-        stroke="#c49a5c" strokeWidth="1" opacity="0.5" strokeLinecap="round"
-      />
-      <path
-        d="M20,4 C14,6 10,10 8,16"
-        stroke="#8ab4c4" strokeWidth="0.6" opacity="0.3" strokeLinecap="round"
-      />
-      <circle cx="4" cy="20" r="1.5" fill="#c49a5c" opacity="0.4" />
-
-      {/* Top-right corner scrollwork */}
-      <path
-        d="M256,20 C256,10 250,4 240,4 M256,20 C254,15 252,12 246,10 C250,14 252,18 252,24"
-        stroke="#c49a5c" strokeWidth="1" opacity="0.5" strokeLinecap="round"
-      />
-      <path
-        d="M240,4 C246,6 250,10 252,16"
-        stroke="#8ab4c4" strokeWidth="0.6" opacity="0.3" strokeLinecap="round"
-      />
-      <circle cx="256" cy="20" r="1.5" fill="#c49a5c" opacity="0.4" />
-
-      {/* Bottom-left corner scrollwork */}
-      <path
-        d="M4,380 C4,390 10,396 20,396 M4,380 C6,385 8,388 14,390 C10,386 8,382 8,376"
-        stroke="#c49a5c" strokeWidth="1" opacity="0.5" strokeLinecap="round"
-      />
-      <path
-        d="M20,396 C14,394 10,390 8,384"
-        stroke="#8ab4c4" strokeWidth="0.6" opacity="0.3" strokeLinecap="round"
-      />
-      <circle cx="4" cy="380" r="1.5" fill="#c49a5c" opacity="0.4" />
-
-      {/* Bottom-right corner scrollwork */}
-      <path
-        d="M256,380 C256,390 250,396 240,396 M256,380 C254,385 252,388 246,390 C250,386 252,382 252,376"
-        stroke="#c49a5c" strokeWidth="1" opacity="0.5" strokeLinecap="round"
-      />
-      <path
-        d="M240,396 C246,394 250,390 252,384"
-        stroke="#8ab4c4" strokeWidth="0.6" opacity="0.3" strokeLinecap="round"
-      />
-      <circle cx="256" cy="380" r="1.5" fill="#c49a5c" opacity="0.4" />
-
-      {/* Top edge — thin frost line with gold center accent */}
-      <line x1="24" y1="2" x2="236" y2="2" stroke="#8ab4c4" strokeWidth="0.4" opacity="0.2" />
-      <line x1="100" y1="2" x2="160" y2="2" stroke="#c49a5c" strokeWidth="0.6" opacity="0.25" />
-
-      {/* Bottom edge */}
-      <line x1="24" y1="398" x2="236" y2="398" stroke="#8ab4c4" strokeWidth="0.4" opacity="0.2" />
-      <line x1="100" y1="398" x2="160" y2="398" stroke="#c49a5c" strokeWidth="0.6" opacity="0.25" />
-
-      {/* Left edge — frost line */}
-      <line x1="2" y1="24" x2="2" y2="376" stroke="#8ab4c4" strokeWidth="0.4" opacity="0.15" />
-
-      {/* Right edge — frost line */}
-      <line x1="258" y1="24" x2="258" y2="376" stroke="#8ab4c4" strokeWidth="0.4" opacity="0.15" />
     </svg>
   );
 }
