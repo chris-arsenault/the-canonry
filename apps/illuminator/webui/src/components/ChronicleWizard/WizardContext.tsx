@@ -91,9 +91,6 @@ export interface WizardState {
   /** Manual override for focal era (null = auto-detect) */
   focalEraOverride: string | null;
 
-  // Step 5: Generation settings
-  temperatureOverride: number | null;
-
   // Validation
   isValid: boolean;
   validationErrors: string[];
@@ -120,7 +117,6 @@ type WizardAction =
   | { type: 'SELECT_ALL_RELATIONSHIPS'; relationshipIds: string[] }
   | { type: 'DESELECT_ALL_RELATIONSHIPS' }
   | { type: 'SET_FOCAL_ERA_OVERRIDE'; eraId: string | null }
-  | { type: 'SET_TEMPERATURE_OVERRIDE'; temperature: number | null }
   | { type: 'RESET' }
   | { type: 'INIT_FROM_SEED'; seed: ChronicleSeed; style: NarrativeStyle; entryPoint: EntityContext; candidates: EntityContext[]; relationships: RelationshipContext[]; events: NarrativeEventContext[] };
 
@@ -145,7 +141,6 @@ const initialState: WizardState = {
   selectedEventIds: new Set(),
   selectedRelationshipIds: new Set(),
   focalEraOverride: null,
-  temperatureOverride: null,
   isValid: false,
   validationErrors: [],
 };
@@ -323,9 +318,6 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
     case 'SET_FOCAL_ERA_OVERRIDE':
       return { ...state, focalEraOverride: action.eraId };
 
-    case 'SET_TEMPERATURE_OVERRIDE':
-      return { ...state, temperatureOverride: action.temperature };
-
     case 'RESET':
       return initialState;
 
@@ -403,7 +395,6 @@ interface WizardContextValue {
   eras: EraTemporalInfo[];
   /** Set manual override for focal era (null to clear and use auto-detection) */
   setFocalEraOverride: (eraId: string | null) => void;
-  setTemperatureOverride: (temperature: number | null) => void;
 
   // Step 4 actions
   autoFillEvents: (preferFocalEra?: boolean) => void;
@@ -630,10 +621,12 @@ export function WizardProvider({ children, entityKinds, eras = [], simulationRun
 
   // Auto-fill all events and relationships (used when skipping step 4 with defaults)
   const autoFillEventsAndRelationships = useCallback(() => {
-    // Get all relevant relationships
+    // Get all relevant relationships (include lens entity)
+    const lensIds = state.lens ? [state.lens.entityId] : [];
     const relevantRelationships = getRelevantRelationships(
       state.roleAssignments,
-      state.candidateRelationships
+      state.candidateRelationships,
+      lensIds
     );
     const relationshipIds = relevantRelationships.map(
       r => `${r.src}:${r.dst}:${r.kind}`
@@ -650,7 +643,7 @@ export function WizardProvider({ children, entityKinds, eras = [], simulationRun
     // Select all
     dispatch({ type: 'SELECT_ALL_RELATIONSHIPS', relationshipIds });
     dispatch({ type: 'SELECT_ALL_EVENTS', eventIds });
-  }, [state.roleAssignments, state.candidateRelationships, state.candidateEvents, state.narrativeStyle]);
+  }, [state.roleAssignments, state.candidateRelationships, state.candidateEvents, state.narrativeStyle, state.lens]);
 
   // Step 3: Auto-fill roles
   const autoFillRoles = useCallback((metricsMap?: Map<string, EntitySelectionMetrics>) => {
@@ -720,11 +713,6 @@ export function WizardProvider({ children, entityKinds, eras = [], simulationRun
     dispatch({ type: 'SET_FOCAL_ERA_OVERRIDE', eraId });
   }, []);
 
-  // Temperature override
-  const setTemperatureOverride = useCallback((temperature: number | null) => {
-    dispatch({ type: 'SET_TEMPERATURE_OVERRIDE', temperature });
-  }, []);
-
   // Reset
   const reset = useCallback(() => {
     dispatch({ type: 'RESET' });
@@ -784,7 +772,6 @@ export function WizardProvider({ children, entityKinds, eras = [], simulationRun
     detectedFocalEra,
     eras,
     setFocalEraOverride,
-    setTemperatureOverride,
     autoFillEvents,
     autoFillEventsAndRelationships,
     toggleEvent,
@@ -819,7 +806,6 @@ export function WizardProvider({ children, entityKinds, eras = [], simulationRun
     detectedFocalEra,
     eras,
     setFocalEraOverride,
-    setTemperatureOverride,
     autoFillEvents,
     autoFillEventsAndRelationships,
     toggleEvent,

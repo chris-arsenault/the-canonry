@@ -30,21 +30,21 @@ User Request ──────▶│  │ /            ──▶ viewer     │
 1. AWS CLI configured with appropriate credentials
 2. Terraform >= 1.5
 3. Node.js and npm (for building the webui)
-4. Route53 hosted zone for your domain (must already exist)
+4. Route53 hosted zone for each domain (must already exist)
 
 ## Resources Created
 
 - **ACM Certificate** with DNS validation via Route53
 - **S3 Bucket** with versioning, encryption, and private access
 - **CloudFront Distribution** with Origin Access Control
-- **Route53 A Records** for apex and www subdomain
+- **Route53 A Records** for apex and www subdomain for each domain
 
 ## Quick Start
 
 ```bash
 cd infrastructure/terraform-viewer
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars if needed
+# Create terraform.tfvars
+# Edit terraform.tfvars as needed
 
 ./deploy.sh
 ```
@@ -73,7 +73,7 @@ The `deploy.sh` script performs the following steps:
 |----------|-------------|---------|
 | `aws_region` | AWS region | `us-east-1` |
 | `prefix` | Project prefix for namespacing resources | `pt-viewer` |
-| `domain_name` | Domain name | `penguin-tales.com` |
+| `domains` | Domain names (apex, `www` is added automatically) | (required) |
 
 Resource names are derived from the prefix:
 - S3 bucket: `{prefix}-static-{account_id}`
@@ -87,4 +87,5 @@ Resource names are derived from the prefix:
 - `s3_bucket_name` - S3 bucket name (deprecated alias)
 - `s3_bucket_arn` - S3 bucket ARN
 - `acm_certificate_arn` - Certificate ARN
-- `route53_zone_id` - Hosted zone ID
+- `route53_zone_id` - Hosted zone ID for the primary domain
+- `route53_zone_ids` - Hosted zone IDs keyed by domain

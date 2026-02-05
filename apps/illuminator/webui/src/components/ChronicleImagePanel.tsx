@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom';
 import { resolveAnchorPhrase } from '../lib/fuzzyAnchor';
 import { useImageUrl } from '../hooks/useImageUrl';
 import ImageModal from './ImageModal';
+import ChronicleImagePicker from './ChronicleImagePicker';
 import { resolveStyleSelection } from './StyleSelector';
 import { ImageSettingsSummary } from './ImageSettingsDrawer';
 import { buildChronicleScenePrompt } from '../lib/promptBuilders';
@@ -79,6 +80,12 @@ interface ChronicleImagePanelProps {
   onUpdateSize?: (ref: EntityImageRef | PromptRequestRef, size: ChronicleImageRefs['refs'][number]['size']) => void;
   /** Callback to update justification for a ref */
   onUpdateJustification?: (ref: EntityImageRef | PromptRequestRef, justification: 'left' | 'right') => void;
+  /** Callback to select an existing image for a ref */
+  onSelectExistingImage?: (ref: PromptRequestRef, imageId: string) => void;
+  /** Project ID for image picker filtering */
+  projectId?: string;
+  /** Chronicle ID for image picker filtering */
+  chronicleId?: string;
   /** Full chronicle text for anchor validation */
   chronicleText?: string;
   isGenerating?: boolean;
@@ -557,6 +564,7 @@ function PromptRequestCard({
   onGenerate,
   onReset,
   onRegenerateDescription,
+  onSelectExisting,
   onImageClick,
   onUpdateAnchorText,
   onUpdateSize,
@@ -569,6 +577,7 @@ function PromptRequestCard({
   onGenerate?: () => void;
   onReset?: () => void;
   onRegenerateDescription?: () => void;
+  onSelectExisting?: () => void;
   onImageClick?: (imageId: string, title: string) => void;
   onUpdateAnchorText?: (next: string) => void;
   onUpdateSize?: (size: PromptRequestRef['size']) => void;
@@ -810,42 +819,59 @@ function PromptRequestCard({
           </div>
         )}
 
-        {canGenerate && onGenerate && (
-          <button
-            onClick={onGenerate}
-            style={{
-              marginTop: '8px',
-              padding: '6px 12px',
-              fontSize: '11px',
-              background: 'var(--accent-primary)',
-              border: 'none',
-              borderRadius: '4px',
-              color: 'white',
-              cursor: 'pointer',
-              fontWeight: 500,
-            }}
-          >
-            Generate Image
-          </button>
-        )}
-        {canRegenerate && onGenerate && (
-          <button
-            onClick={onGenerate}
-            style={{
-              marginTop: '8px',
-              padding: '6px 12px',
-              fontSize: '11px',
-              background: 'var(--accent-primary)',
-              border: 'none',
-              borderRadius: '4px',
-              color: 'white',
-              cursor: 'pointer',
-              fontWeight: 500,
-            }}
-          >
-            Regenerate Image
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+          {canGenerate && onGenerate && (
+            <button
+              onClick={onGenerate}
+              style={{
+                padding: '6px 12px',
+                fontSize: '11px',
+                background: 'var(--accent-primary)',
+                border: 'none',
+                borderRadius: '4px',
+                color: 'white',
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              Generate Image
+            </button>
+          )}
+          {canRegenerate && onGenerate && (
+            <button
+              onClick={onGenerate}
+              style={{
+                padding: '6px 12px',
+                fontSize: '11px',
+                background: 'var(--accent-primary)',
+                border: 'none',
+                borderRadius: '4px',
+                color: 'white',
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              Regenerate Image
+            </button>
+          )}
+          {onSelectExisting && !isGenerating && (
+            <button
+              onClick={onSelectExisting}
+              style={{
+                padding: '6px 12px',
+                fontSize: '11px',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '4px',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              Select Existing
+            </button>
+          )}
+        </div>
         {canReset && onReset && (
           <button
             onClick={onReset}
@@ -878,6 +904,9 @@ export default function ChronicleImagePanel({
   onUpdateAnchorText,
   onUpdateSize,
   onUpdateJustification,
+  onSelectExistingImage,
+  projectId,
+  chronicleId,
   chronicleText,
   isGenerating = false,
   styleLibrary,
@@ -904,6 +933,21 @@ export default function ChronicleImagePanel({
   const handleImageClick = useCallback((imageId: string, title: string) => {
     setImageModal({ open: true, imageId, title });
   }, []);
+
+  // Image picker state
+  const [pickerRef, setPickerRef] = useState<PromptRequestRef | null>(null);
+  const handleOpenPicker = useCallback((ref: PromptRequestRef) => {
+    setPickerRef(ref);
+  }, []);
+  const handleClosePicker = useCallback(() => {
+    setPickerRef(null);
+  }, []);
+  const handleSelectImage = useCallback((imageId: string) => {
+    if (pickerRef && onSelectExistingImage) {
+      onSelectExistingImage(pickerRef, imageId);
+    }
+    setPickerRef(null);
+  }, [pickerRef, onSelectExistingImage]);
 
   // Culture selection from global settings
   const selectedCultureId = imageGenSettings?.selectedCultureId || '';
@@ -1150,6 +1194,7 @@ export default function ChronicleImagePanel({
                 onGenerate={() => handleGenerateImage(ref)}
                 onReset={onResetImage ? () => onResetImage(ref) : undefined}
                 onRegenerateDescription={onRegenerateDescription ? () => onRegenerateDescription(ref) : undefined}
+                onSelectExisting={onSelectExistingImage && projectId ? () => handleOpenPicker(ref) : undefined}
                 onImageClick={handleImageClick}
                 onUpdateAnchorText={onUpdateAnchorText ? (next) => onUpdateAnchorText(ref, next) : undefined}
                 onUpdateSize={onUpdateSize ? (size) => onUpdateSize(ref, size) : undefined}
@@ -1183,6 +1228,18 @@ export default function ChronicleImagePanel({
         title={imageModal.title}
         onClose={() => setImageModal({ open: false, imageId: '', title: '' })}
       />
+
+      {projectId && (
+        <ChronicleImagePicker
+          isOpen={!!pickerRef}
+          onClose={handleClosePicker}
+          onSelect={handleSelectImage}
+          projectId={projectId}
+          chronicleId={chronicleId}
+          imageRefId={pickerRef?.refId}
+          currentImageId={pickerRef?.generatedImageId}
+        />
+      )}
     </div>
   );
 }

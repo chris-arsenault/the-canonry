@@ -89,7 +89,7 @@ function buildGenerationVersion(record: ChronicleRecord): ChronicleGenerationVer
     content,
     wordCount: countWords(content),
     model: record.model || 'unknown',
-    temperature: record.generationTemperature,
+    sampling: record.generationSampling,
     systemPrompt:
       record.generationSystemPrompt ||
       '(prompt not stored - chronicle generated before prompt storage was implemented)',
@@ -111,6 +111,9 @@ export async function createChronicleShell(
   chronicleId: string,
   metadata: ChronicleShellMetadata
 ): Promise<ChronicleRecord> {
+  if (!metadata.generationSampling) {
+    throw new Error(`Chronicle ${chronicleId} missing generationSampling (required)`);
+  }
   const focusType = deriveFocusType(metadata.roleAssignments);
   const title = metadata.title || deriveTitleFromRoles(metadata.roleAssignments);
   const record: ChronicleRecord = {
@@ -130,6 +133,7 @@ export async function createChronicleShell(
     selectedEventIds: metadata.selectedEventIds,
     selectedRelationshipIds: metadata.selectedRelationshipIds,
     temporalContext: metadata.temporalContext,
+    generationSampling: metadata.generationSampling,
 
     // Mechanical
     entrypointId: metadata.entrypointId,
@@ -158,6 +162,9 @@ export async function createChronicle(
   chronicleId: string,
   metadata: ChronicleMetadata
 ): Promise<ChronicleRecord> {
+  if (!metadata.generationSampling) {
+    throw new Error(`Chronicle ${chronicleId} missing generationSampling (required)`);
+  }
   const focusType = deriveFocusType(metadata.roleAssignments);
   const title = metadata.title || deriveTitleFromRoles(metadata.roleAssignments);
   const assembledAt = Date.now();
@@ -188,7 +195,7 @@ export async function createChronicle(
     perspectiveSynthesis: metadata.perspectiveSynthesis,
     generationSystemPrompt: metadata.generationSystemPrompt,
     generationUserPrompt: metadata.generationUserPrompt,
-    generationTemperature: metadata.generationTemperature,
+    generationSampling: metadata.generationSampling,
     activeVersionId,
     status: 'assembly_ready',
     assembledContent: metadata.assembledContent,
@@ -232,13 +239,7 @@ export async function updateChronicleAssembly(
   record.summaryGeneratedAt = undefined;
   record.summaryModel = undefined;
   record.summaryTargetVersionId = undefined;
-  record.imageRefs = undefined;
-  record.imageRefsGeneratedAt = undefined;
-  record.imageRefsModel = undefined;
-  record.imageRefsTargetVersionId = undefined;
-  record.coverImage = undefined;
-  record.coverImageGeneratedAt = undefined;
-  record.coverImageModel = undefined;
+  // Preserve imageRefs and coverImage - user decides via keep/regenerate UI
   record.validationStale = false;
   record.updatedAt = Date.now();
 
@@ -246,7 +247,7 @@ export async function updateChronicleAssembly(
 }
 
 /**
- * Replace chronicle assembled content via temperature regeneration.
+ * Replace chronicle assembled content via sampling regeneration.
  * Preserves prior version in generationHistory and clears refinements.
  */
 export async function regenerateChronicleAssembly(
@@ -256,7 +257,7 @@ export async function regenerateChronicleAssembly(
     systemPrompt: string;
     userPrompt: string;
     model: string;
-    temperature?: number;
+    sampling?: ChronicleRecord['generationSampling'];
     cost: { estimated: number; actual: number; inputTokens: number; outputTokens: number };
   }
 ): Promise<void> {
@@ -264,6 +265,9 @@ export async function regenerateChronicleAssembly(
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
   if (record.status === 'complete' || record.finalContent) {
     throw new Error(`Chronicle ${chronicleId} is already accepted`);
+  }
+  if (!updates.sampling) {
+    throw new Error(`Chronicle ${chronicleId} missing sampling for regeneration`);
   }
 
   const historyVersion = buildGenerationVersion(record);
@@ -276,7 +280,7 @@ export async function regenerateChronicleAssembly(
   record.status = 'assembly_ready';
   record.generationSystemPrompt = updates.systemPrompt;
   record.generationUserPrompt = updates.userPrompt;
-  record.generationTemperature = updates.temperature;
+  record.generationSampling = updates.sampling;
   record.activeVersionId = `current_${record.assembledAt}`;
 
   record.failureStep = undefined;
@@ -288,13 +292,7 @@ export async function regenerateChronicleAssembly(
   record.summaryGeneratedAt = undefined;
   record.summaryModel = undefined;
   record.summaryTargetVersionId = undefined;
-  record.imageRefs = undefined;
-  record.imageRefsGeneratedAt = undefined;
-  record.imageRefsModel = undefined;
-  record.imageRefsTargetVersionId = undefined;
-  record.coverImage = undefined;
-  record.coverImageGeneratedAt = undefined;
-  record.coverImageModel = undefined;
+  // Preserve imageRefs and coverImage - user decides via keep/regenerate UI
   record.validationStale = false;
   record.editVersion = 0;
   record.editedAt = undefined;
@@ -329,12 +327,7 @@ export async function updateChronicleEdit(
   record.summary = undefined;
   record.summaryGeneratedAt = undefined;
   record.summaryModel = undefined;
-  record.imageRefs = undefined;
-  record.imageRefsGeneratedAt = undefined;
-  record.imageRefsModel = undefined;
-  record.coverImage = undefined;
-  record.coverImageGeneratedAt = undefined;
-  record.coverImageModel = undefined;
+  // Preserve imageRefs and coverImage - user decides via keep/regenerate UI
   record.validationStale = false;
   record.status = 'editing';
   record.failureStep = undefined;
@@ -609,6 +602,55 @@ export async function updateChronicleImageRef(
 }
 
 /**
+ * Apply image ref selections after version change.
+ * - 'reuse': Keep the ref as-is
+ * - 'regenerate': Reset the ref (clear generated image, set status to pending)
+ * - 'skip': Remove the ref entirely
+ *
+ * Also updates imageRefsTargetVersionId to the new version.
+ */
+export async function applyImageRefSelections(
+  chronicleId: string,
+  selections: Array<{ refId: string; action: 'reuse' | 'regenerate' | 'skip' }>,
+  newTargetVersionId: string
+): Promise<void> {
+  const record = await db.chronicles.get(chronicleId);
+  if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
+  if (!record.imageRefs) throw new Error(`Chronicle ${chronicleId} has no image refs`);
+
+  const selectionMap = new Map(selections.map((s) => [s.refId, s.action]));
+
+  // Filter and transform refs based on selections
+  const updatedRefs = record.imageRefs.refs
+    .filter((ref) => {
+      const action = selectionMap.get(ref.refId) ?? 'reuse';
+      return action !== 'skip';
+    })
+    .map((ref) => {
+      const action = selectionMap.get(ref.refId) ?? 'reuse';
+      if (action === 'regenerate' && ref.type === 'prompt_request') {
+        // Reset prompt request refs for regeneration
+        return {
+          ...ref,
+          status: 'pending' as const,
+          generatedImageId: undefined,
+          error: undefined,
+        };
+      }
+      return ref;
+    });
+
+  record.imageRefs = {
+    ...record.imageRefs,
+    refs: updatedRefs,
+  };
+  record.imageRefsTargetVersionId = newTargetVersionId;
+  record.updatedAt = Date.now();
+
+  await db.chronicles.put(record);
+}
+
+/**
  * Update chronicle with cover image scene description
  */
 export async function updateChronicleCoverImage(
@@ -682,11 +724,20 @@ export async function updateChronicleTemporalContext(
 /**
  * Mark chronicle as complete (user accepted)
  */
-export async function acceptChronicle(chronicleId: string, finalContent?: string): Promise<void> {
+export async function acceptChronicle(
+  chronicleId: string,
+  options?: { finalContent?: string; acceptedVersionId?: string }
+): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
 
-  record.finalContent = finalContent ?? record.assembledContent;
+  const currentVersionId = `current_${record.assembledAt ?? record.createdAt}`;
+  const activeVersionId = record.activeVersionId || currentVersionId;
+  const acceptedVersionId = options?.acceptedVersionId || activeVersionId;
+
+  record.finalContent = options?.finalContent ?? record.assembledContent;
+  record.acceptedVersionId = acceptedVersionId;
+  record.activeVersionId = acceptedVersionId;
   record.acceptedAt = Date.now();
   record.status = 'complete';
   record.updatedAt = Date.now();
@@ -703,6 +754,7 @@ export async function unpublishChronicle(chronicleId: string): Promise<void> {
 
   delete record.finalContent;
   delete record.acceptedAt;
+  delete record.acceptedVersionId;
   record.status = 'assembly_ready';
   record.updatedAt = Date.now();
 
@@ -718,6 +770,10 @@ export async function updateChronicleActiveVersion(
 ): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
+
+  if (record.status === 'complete' || record.finalContent) {
+    throw new Error(`Chronicle ${chronicleId} is accepted; unpublish before changing versions`);
+  }
 
   record.activeVersionId = versionId;
   record.updatedAt = Date.now();
@@ -742,6 +798,70 @@ export async function updateChronicleCombineInstructions(
   }
   record.updatedAt = Date.now();
 
+  await db.chronicles.put(record);
+}
+
+/**
+ * Delete a specific version from a chronicle's generation history.
+ * Cannot delete the current (active) version - only historical versions.
+ * If the deleted version was the active version, switches to the most recent remaining version.
+ */
+export async function deleteChronicleVersion(
+  chronicleId: string,
+  versionId: string
+): Promise<void> {
+  const record = await db.chronicles.get(chronicleId);
+  if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
+
+  if (record.status === 'complete' || record.finalContent) {
+    throw new Error(`Chronicle ${chronicleId} is accepted; unpublish before deleting versions`);
+  }
+
+  // Current version ID
+  const currentVersionId = `current_${record.assembledAt || record.createdAt}`;
+  const isCurrentVersion = versionId === currentVersionId;
+
+  // Find version in history
+  const historyIndex = (record.generationHistory || []).findIndex(
+    (v) => v.versionId === versionId
+  );
+
+  if (!isCurrentVersion && historyIndex === -1) {
+    throw new Error(`Version ${versionId} not found in chronicle ${chronicleId}`);
+  }
+
+  // Count total versions (history + current)
+  const totalVersions = (record.generationHistory?.length || 0) + (record.assembledContent ? 1 : 0);
+  if (totalVersions <= 1) {
+    throw new Error(`Cannot delete the only version of chronicle ${chronicleId}`);
+  }
+
+  if (isCurrentVersion) {
+    // Deleting current version: restore most recent history version as current
+    const history = record.generationHistory || [];
+    if (history.length === 0) {
+      throw new Error(`Cannot delete current version with no history to restore`);
+    }
+    const restored = history[history.length - 1];
+    record.assembledContent = restored.content;
+    record.assembledAt = restored.generatedAt;
+    record.generationSystemPrompt = restored.systemPrompt;
+    record.generationUserPrompt = restored.userPrompt;
+    record.generationSampling = restored.sampling;
+    record.generationHistory = history.slice(0, -1);
+    record.activeVersionId = `current_${restored.generatedAt}`;
+  } else {
+    // Deleting a history version
+    record.generationHistory = (record.generationHistory || []).filter(
+      (v) => v.versionId !== versionId
+    );
+    // If deleted version was active, switch to current
+    if (record.activeVersionId === versionId) {
+      record.activeVersionId = currentVersionId;
+    }
+  }
+
+  record.updatedAt = Date.now();
   await db.chronicles.put(record);
 }
 
@@ -902,4 +1022,30 @@ export async function getNarrativeStyleUsageStats(
   }
 
   return stats;
+}
+
+// ============================================================================
+// Bulk Operations
+// ============================================================================
+
+/**
+ * Reset loreBackported flag to false on all chronicles in a simulation.
+ * Returns the count of chronicles that were updated.
+ */
+export async function resetAllBackportFlags(simulationRunId: string): Promise<number> {
+  const chronicles = await getChroniclesForSimulation(simulationRunId);
+  const toUpdate = chronicles.filter((c) => c.loreBackported === true);
+
+  if (toUpdate.length === 0) return 0;
+
+  const now = Date.now();
+  await db.chronicles.bulkPut(
+    toUpdate.map((c) => ({
+      ...c,
+      loreBackported: false,
+      updatedAt: now,
+    }))
+  );
+
+  return toUpdate.length;
 }

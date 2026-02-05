@@ -173,9 +173,9 @@ export interface LinkifyOptions {
 }
 
 const defaultLinkStyle: React.CSSProperties = {
-  color: '#10b981',
+  color: 'var(--color-accent, #c49a5c)',
   cursor: 'pointer',
-  borderBottom: '1px dotted #10b981',
+  borderBottom: '1px dotted var(--color-accent, #c49a5c)',
   textDecoration: 'none',
 };
 

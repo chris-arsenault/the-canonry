@@ -1,45 +1,143 @@
 /**
  * useChronicleQueueWatcher - Bridges the enrichment queue to the chronicle store.
  *
- * Watches for entityChronicle task completions in the queue and triggers
- * targeted refreshChronicle() calls on the Zustand store.
+ * Watches for chronicle-related task completions (chronicle generation + chronicle images)
+ * and triggers targeted refreshChronicle() calls on the Zustand store.
+ *
+ * Also handles retries by allowing tasks to be processed again if they return
+ * to queued/running after an error.
  */
 
 import { useEffect, useRef } from 'react';
 import type { QueueItem } from '../lib/enrichmentTypes';
 import { useChronicleStore } from '../lib/db/chronicleStore';
+import {
+  updateChronicleCoverImageStatus,
+  updateChronicleImageRef,
+} from '../lib/db/chronicleRepository';
+
+type ProcessedStatus = 'complete' | 'error';
 
 export function useChronicleQueueWatcher(queue: QueueItem[]): void {
-  const processedRef = useRef<Set<string>>(new Set());
+  const processedRef = useRef<Map<string, ProcessedStatus>>(new Map());
+  const activeRef = useRef(true);
 
   useEffect(() => {
-    const chronicleTasks = queue.filter((item) => item.type === 'entityChronicle');
+    activeRef.current = true;
+    return () => {
+      activeRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const processed = processedRef.current;
+
+    // Clear processed markers if task is retried (queued/running again).
+    for (const item of queue) {
+      if ((item.status === 'queued' || item.status === 'running') && processed.has(item.id)) {
+        processed.delete(item.id);
+      }
+    }
+
+    // Prune processed entries for tasks no longer in queue.
+    const queueIds = new Set(queue.map((item) => item.id));
+    for (const id of processed.keys()) {
+      if (!queueIds.has(id)) processed.delete(id);
+    }
+
+    const chronicleTasks = queue.filter((item) =>
+      item.type === 'entityChronicle' ||
+      (item.type === 'image' && item.imageType === 'chronicle')
+    );
 
     const completedTasks = chronicleTasks.filter(
       (item) =>
         (item.status === 'complete' || item.status === 'error') &&
-        !processedRef.current.has(item.id),
+        processed.get(item.id) !== item.status,
     );
 
     if (completedTasks.length > 0) {
       const chronicleIds = new Set<string>();
+      const updates: Promise<unknown>[] = [];
+      let refreshAll = false;
+
       for (const task of completedTasks) {
-        processedRef.current.add(task.id);
-        if (task.chronicleId) {
-          chronicleIds.add(task.chronicleId);
+        processed.set(task.id, task.status as ProcessedStatus);
+
+        if (task.type === 'image' && task.imageType === 'chronicle') {
+          if (!task.chronicleId || !task.imageRefId) continue;
+          const chronicleId = task.chronicleId;
+          const isCover = task.imageRefId === '__cover_image__';
+          const imageId = task.result?.imageId || '';
+
+          if (task.status === 'complete') {
+            if (!imageId) {
+              const error = 'Image generation returned no image id';
+              if (isCover) {
+                updates.push(updateChronicleCoverImageStatus(chronicleId, {
+                  status: 'failed',
+                  error,
+                }));
+              } else {
+                updates.push(updateChronicleImageRef(chronicleId, task.imageRefId, {
+                  status: 'failed',
+                  error,
+                }));
+              }
+            } else if (isCover) {
+              updates.push(updateChronicleCoverImageStatus(chronicleId, {
+                status: 'complete',
+                generatedImageId: imageId,
+              }));
+            } else {
+              updates.push(updateChronicleImageRef(chronicleId, task.imageRefId, {
+                status: 'complete',
+                generatedImageId: imageId,
+              }));
+            }
+          } else {
+            const error = task.error || 'Image generation failed';
+            if (isCover) {
+              updates.push(updateChronicleCoverImageStatus(chronicleId, {
+                status: 'failed',
+                error,
+              }));
+            } else {
+              updates.push(updateChronicleImageRef(chronicleId, task.imageRefId, {
+                status: 'failed',
+                error,
+              }));
+            }
+          }
+
+          chronicleIds.add(chronicleId);
+          continue;
         }
-        console.log(
-          `[Chronicle] Task ${task.id} completed (${task.status}), refreshing chronicle ${task.chronicleId ?? '(unknown)'}`,
-        );
+
+        if (task.type === 'entityChronicle') {
+          if (task.chronicleId) {
+            chronicleIds.add(task.chronicleId);
+          } else {
+            refreshAll = true;
+          }
+        }
       }
 
       const store = useChronicleStore.getState();
-      if (chronicleIds.size > 0) {
+      const refresh = () => {
+        if (!activeRef.current) return;
+        if (refreshAll) {
+          store.refreshAll();
+        }
         for (const id of chronicleIds) {
           store.refreshChronicle(id);
         }
+      };
+
+      if (updates.length > 0) {
+        Promise.allSettled(updates).then(refresh);
       } else {
-        store.refreshAll();
+        refresh();
       }
     }
   }, [queue]);

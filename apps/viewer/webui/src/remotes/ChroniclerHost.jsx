@@ -22,7 +22,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
-    color: '#93c5fd',
+    color: '#c4b99a',
     fontSize: '14px',
   },
 };

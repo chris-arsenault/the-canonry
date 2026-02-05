@@ -22,13 +22,29 @@ function generatePageId() {
 }
 
 function generateSlug(title) {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .substring(0, 100);
+  const slugifyPart = (value) => {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, 100);
+  };
+
+  const raw = String(title || '');
+  const colonIndex = raw.indexOf(':');
+  if (colonIndex > 0 && colonIndex < raw.length - 1) {
+    const namespace = slugifyPart(raw.slice(0, colonIndex).trim());
+    const baseName = slugifyPart(raw.slice(colonIndex + 1).trim());
+    if (namespace && baseName) {
+      return `${namespace}/${baseName}`;
+    }
+    if (namespace) return namespace;
+    if (baseName) return baseName;
+  }
+
+  return slugifyPart(raw);
 }
 
 function extractEntityLinks(content) {

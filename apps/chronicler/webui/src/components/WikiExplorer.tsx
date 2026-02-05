@@ -9,7 +9,7 @@
  */
 
 import { useState, useMemo, useEffect, useLayoutEffect, useCallback } from 'react';
-import type { WorldState, LoreData, WikiPage, HardState } from '../types/world.ts';
+import type { WorldState, LoreData, WikiPage, HardState, NarrativeEvent } from '../types/world.ts';
 import { useImageUrl } from '@penguin-tales/image-store';
 import { buildPageIndex, buildPageById } from '../lib/wikiBuilder.ts';
 import { getCompletedChroniclesForSimulation, type ChronicleRecord } from '../lib/chronicleStorage.ts';
@@ -27,11 +27,13 @@ import {
   prominenceLabelFromScale,
   type ProminenceScale,
 } from '@canonry/world-schema';
+import { useNarrativeStore } from '@penguin-tales/narrative-store';
+import { ParchmentTexture, PageFrame, ParchmentDebugPanel, DEFAULT_PARCHMENT_CONFIG, type ParchmentConfig } from './Ornaments.tsx';
 import styles from './WikiExplorer.module.css';
 
 /**
- * Parse page ID from URL hash
- * Hash format: #/page/{pageId} or #/ for home
+ * Parse page ID or slug from URL hash
+ * Hash format: #/page/{pageId|slug} or #/ for home
  */
 function parseHashPageId(): string | null {
   const hash = window.location.hash;
@@ -44,7 +46,7 @@ function parseHashPageId(): string | null {
 }
 
 /**
- * Build hash URL for a page
+ * Build hash URL for a page (id or slug)
  */
 function buildPageHash(pageId: string | null): string {
   if (!pageId) {
@@ -125,6 +127,7 @@ export default function WikiExplorer({
   const [chronicles, setChronicles] = useState<ChronicleRecord[]>(() => normalizeChronicles(chroniclesOverride));
   const [staticPages, setStaticPages] = useState<StaticPage[]>(() => normalizeStaticPages(staticPagesOverride));
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [parchmentConfig, setParchmentConfig] = useState<ParchmentConfig>(() => ({ ...DEFAULT_PARCHMENT_CONFIG }));
   const simulationRunId = (worldData as { metadata?: { simulationRunId?: string } }).metadata?.simulationRunId;
   const hasChroniclesOverride = chroniclesOverride !== undefined;
   const hasStaticPagesOverride = staticPagesOverride !== undefined;
@@ -197,36 +200,19 @@ export default function WikiExplorer({
     };
   }, [projectId, staticPagesOverride, hasStaticPagesOverride]);
 
-  // Sync hash changes to state (for back/forward buttons)
+  // Bridge worldData.narrativeHistory → narrative-store zustand store
+  // The canonry shell puts narrative events in worldData props but doesn't
+  // call ingestChunk (the viewer app does). We bridge the gap here so that
+  // entity timelines (which read from the store) get their data.
   useEffect(() => {
-    const handleHashChange = () => {
-      const pageId = parseHashPageId();
-      setCurrentPageId(pageId);
-      setSearchQuery('');
-    };
+    const events = (worldData as { narrativeHistory?: unknown[] }).narrativeHistory;
+    if (!events || events.length === 0) return;
 
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
-
-  // Handle external navigation requests (e.g., from Archivist)
-  // Use useLayoutEffect to update state synchronously before paint, avoiding flash of home page
-  useLayoutEffect(() => {
-    if (!requestedPageId) return;
-
-    // Update state immediately (before paint)
-    setCurrentPageId(requestedPageId);
-    setSearchQuery('');
-
-    // Update hash (this will be picked up by hashchange listener for future back navigation)
-    const newHash = buildPageHash(requestedPageId);
-    if (window.location.hash !== newHash) {
-      window.location.hash = newHash;
-    }
-
-    // Signal that the request has been handled
-    onRequestedPageConsumed?.();
-  }, [requestedPageId, onRequestedPageConsumed]);
+    const store = useNarrativeStore.getState();
+    store.reset();
+    store.ingestChunk(events as NarrativeEvent[]);
+    store.setStatus({ loading: false, chunksTotal: 1, chunksLoaded: 1 });
+  }, [worldData]);
 
   // Validate world data before building index
   // Returns first validation error found, or null if valid
@@ -270,6 +256,67 @@ export default function WikiExplorer({
     }
     return { pageIndex, entityIndex };
   }, [worldData, loreData, chronicles, staticPages, dataError, prominenceScale]);
+
+  const resolvePageId = useCallback((pageId: string | null): string | null => {
+    if (!pageId) return null;
+    if (pageIndex.byId.has(pageId)) return pageId;
+    const resolved = pageIndex.bySlug.get(pageId);
+    return resolved ?? pageId;
+  }, [pageIndex]);
+
+  const resolveUrlId = useCallback((pageId: string | null): string | null => {
+    if (!pageId) return null;
+    const resolvedId = resolvePageId(pageId);
+    if (!resolvedId) return pageId;
+    const entry = pageIndex.byId.get(resolvedId);
+    const shouldUseSlug = entry && (entry.type === 'entity' || entry.type === 'chronicle' || entry.type === 'static');
+    return shouldUseSlug && entry?.slug ? entry.slug : pageId;
+  }, [pageIndex, resolvePageId]);
+
+  // Sync hash changes to state (for back/forward buttons)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const rawPageId = parseHashPageId();
+      const pageId = resolvePageId(rawPageId);
+      setCurrentPageId(pageId);
+      setSearchQuery('');
+
+      if (rawPageId) {
+        const canonicalUrlId = resolveUrlId(rawPageId);
+        if (canonicalUrlId) {
+          const canonicalHash = buildPageHash(canonicalUrlId);
+          if (window.location.hash !== canonicalHash) {
+            window.history.replaceState(null, '', canonicalHash);
+          }
+        }
+      }
+    };
+
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [resolvePageId, resolveUrlId]);
+
+  // Handle external navigation requests (e.g., from Archivist)
+  // Use useLayoutEffect to update state synchronously before paint, avoiding flash of home page
+  useLayoutEffect(() => {
+    if (!requestedPageId) return;
+
+    // Update state immediately (before paint)
+    const resolvedPageId = resolvePageId(requestedPageId);
+    setCurrentPageId(resolvedPageId);
+    setSearchQuery('');
+
+    // Update hash (this will be picked up by hashchange listener for future back navigation)
+    const urlId = resolveUrlId(requestedPageId) ?? requestedPageId;
+    const newHash = buildPageHash(urlId);
+    if (window.location.hash !== newHash) {
+      window.location.hash = newHash;
+    }
+
+    // Signal that the request has been handled
+    onRequestedPageConsumed?.();
+  }, [requestedPageId, onRequestedPageConsumed, resolvePageId, resolveUrlId]);
 
   // Page cache - stores fully built pages by ID
   // Use useMemo to create a NEW cache when data changes, ensuring synchronous invalidation
@@ -376,10 +423,22 @@ export default function WikiExplorer({
     return pageIndex.byBaseName.get(baseName);
   }, [currentPage, pageIndex.byBaseName]);
 
+  const documentTitle = useMemo(() => {
+    if (!currentPage) return null;
+    if (currentPage.type === 'static') {
+      const colonIdx = currentPage.title.indexOf(':');
+      if (colonIdx > 0 && colonIdx < currentPage.title.length - 1) {
+        const baseName = currentPage.title.slice(colonIdx + 1).trim();
+        return baseName || currentPage.title;
+      }
+    }
+    return currentPage.title;
+  }, [currentPage]);
+
   // Update page/tab title based on current page
   useEffect(() => {
-    if (currentPage) {
-      document.title = `${currentPage.title} | The Canonry`;
+    if (documentTitle) {
+      document.title = `${documentTitle} | The Canonry`;
     } else if (isChronicleIndex) {
       document.title = 'Chronicles | The Canonry';
     } else if (isPagesIndex) {
@@ -396,12 +455,9 @@ export default function WikiExplorer({
   }, [currentPage, isChronicleIndex, isPagesIndex, isConfluxesIndex, isHuddlesIndex, isPageCategory, pageCategoryNamespace]);
 
   // Handle navigation - updates hash which triggers state update via hashchange
-  // Uses slug for entity/chronicle page URLs (prettier, rename-friendly)
+  // Uses slug for entity/chronicle/static page URLs (prettier, rename-friendly)
   const handleNavigate = useCallback((pageId: string) => {
-    const entry = pageIndex.byId.get(pageId);
-    const urlId = (entry && (entry.type === 'entity' || entry.type === 'chronicle') && entry.slug)
-      ? entry.slug
-      : pageId;
+    const urlId = resolveUrlId(pageId) ?? pageId;
     const newHash = buildPageHash(urlId);
     if (window.location.hash !== newHash) {
       window.location.hash = newHash;
@@ -410,7 +466,7 @@ export default function WikiExplorer({
     if (isMobile) {
       setIsSidebarOpen(false);
     }
-  }, [isMobile, pageIndex]);
+  }, [isMobile, resolveUrlId]);
 
   const handleNavigateToEntity = useCallback((entityId: string) => {
     // Check if entity ID exists in index
@@ -549,6 +605,9 @@ export default function WikiExplorer({
 
       {/* Main Content */}
       <div className={styles.main}>
+        <ParchmentTexture className={styles.parchmentOverlay} config={parchmentConfig} />
+        <PageFrame className={styles.pageFrame} />
+        <ParchmentDebugPanel config={parchmentConfig} onChange={setParchmentConfig} />
         <div className={isMobile ? styles.contentMobile : styles.content}>
           {isChronicleIndex ? (
             <ChronicleIndex
@@ -835,14 +894,14 @@ function HomePage({
 
   return (
     <div className={styles.homeContainer}>
-      {/* Header with stats */}
+      {/* Header - book foyer style */}
       <div className={styles.homeHeader}>
         <h1 className={styles.homeTitle}>World Chronicle</h1>
         <div className={styles.homeStats}>
-          {worldData.hardState.filter(e => e.kind !== 'era').length} entities
+          {worldData.hardState.filter(e => e.kind !== 'era').length} entries
           {' · '}
-          {worldData.relationships.length} relationships
-          {eras.length > 0 && <> · {eras.length} eras</>}
+          {eras.length > 0 && <>{eras.length} eras · </>}
+          {chronicles.length > 0 && <>{chronicles.length} chronicles</>}
         </div>
       </div>
 
@@ -868,7 +927,7 @@ function HomePage({
           {/* Featured Article - Wikipedia style */}
           {featuredArticle && (
             <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Featured Article</h2>
+              <h2 className={styles.sectionTitle}>Featured</h2>
               <div className={isMobile ? styles.featuredLayoutMobile : styles.featuredLayout}>
                 {featuredImageUrl && (
                   <button
@@ -917,7 +976,7 @@ function HomePage({
           {/* Did You Know - Wikipedia style */}
           {didYouKnow.length > 0 && (
             <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Did you know...</h2>
+              <h2 className={styles.sectionTitle}>From the Historian's Desk</h2>
               <ul className={styles.didYouKnowList}>
                 {didYouKnow.map((fact, idx) => (
                   <li key={idx} className={styles.didYouKnowItem}>
@@ -971,7 +1030,7 @@ function HomePage({
         <div>
           {/* Most Connected - with more context */}
           <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Most Connected</h2>
+            <h2 className={styles.sectionTitle}>Notable Figures</h2>
             <div className={styles.entityListColumn}>
               {linkStats.mostLinked.map(entity => {
                 const linkCount = linkStats.totalLinks.get(entity.id) || 0;
@@ -1002,9 +1061,9 @@ function HomePage({
 
           {/* Hidden Gems - with more context */}
           <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Hidden Gems</h2>
+            <h2 className={styles.sectionTitle}>Undiscovered</h2>
             <p className={styles.sectionSubtext}>
-              Lesser-known entities worth exploring
+              Corners of the world awaiting a curious reader
             </p>
             <div className={styles.entityListColumn}>
               {linkStats.leastLinked.map(entity => {

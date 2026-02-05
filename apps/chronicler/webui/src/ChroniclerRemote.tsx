@@ -45,13 +45,13 @@ export default function ChroniclerRemote({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#0a1929',
-          color: '#707080',
+          backgroundColor: 'var(--color-bg-primary, #352a1e)',
+          color: 'var(--color-text-muted, #8a7d6b)',
         }}
       >
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📖</div>
-          <div style={{ fontSize: '18px', color: '#f0f0f0', marginBottom: '8px' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>&#x2756;</div>
+          <div style={{ fontSize: '18px', color: 'var(--color-text-primary, #e8dcc8)', marginBottom: '8px', fontFamily: '"Playfair Display", Georgia, serif' }}>
             No World Data
           </div>
           <div style={{ fontSize: '14px' }}>
@@ -64,14 +64,14 @@ export default function ChroniclerRemote({
 
   return (
     <WikiExplorer
-      projectId={projectId}
-      worldData={worldData}
-      loreData={loreData}
-      chronicles={chronicles}
-      staticPages={staticPages}
-      requestedPageId={requestedPageId}
-      onRequestedPageConsumed={onRequestedPageConsumed}
-      narrativeHistoryLoading={narrativeHistoryLoading}
-    />
+        projectId={projectId}
+        worldData={worldData}
+        loreData={loreData}
+        chronicles={chronicles}
+        staticPages={staticPages}
+        requestedPageId={requestedPageId}
+        onRequestedPageConsumed={onRequestedPageConsumed}
+        narrativeHistoryLoading={narrativeHistoryLoading}
+      />
   );
 }

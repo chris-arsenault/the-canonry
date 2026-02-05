@@ -84,12 +84,6 @@ export interface StoryNarrativeStyle {
   /** Pacing - word count and scene count ranges */
   pacing: PacingConfig;
 
-  /**
-   * LLM temperature for chronicle generation (0.0-1.0).
-   * Higher values produce more creative/varied output.
-   * If not set, falls back to the hardcoded step default (0.7 for generation).
-   */
-  temperature?: number;
 }
 
 export const DEFAULT_NARRATIVE_STYLES: StoryNarrativeStyle[] = [
@@ -104,53 +98,51 @@ export const DEFAULT_NARRATIVE_STYLES: StoryNarrativeStyle[] = [
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: RETROSPECTIVE CHRONICLE
-This story is told looking backward. The chronicler knows the outcome. The reader learns the ending before the beginning. Tension comes not from "what happens" but from "how did it come to this" and "what does the telling reveal."
+This story is told looking backward. The chronicler knows the outcome. The reader learns the ending before the beginning. Tension comes not from "what happens" but from "how did it come to this."
 
 === SCENE 1: THE CHRONICLER'S FRAME ===
-Open in the present. The chronicler (witness role) prepares to record or recite. We learn immediately how it ended - who fell, what was lost, what changed. This is not a spoiler; it is the premise. The chronicler may be bitter, reverent, or conflicted about what they must tell.
+Open in the present. The chronicler (witness role) prepares to record or recite. We learn immediately how it ended - who fell, what was lost, what changed. This is not a spoiler; it is the premise.
 
-Establish: The outcome. The chronicler's relationship to events. The weight of recording.
-End with: The chronicler beginning to tell. "It began when..." or equivalent.
+Establish: The outcome. The chronicler's physical presence - they carry what happened in their body. The weight of recording.
+End with: The chronicler beginning to tell.
 
 === SCENES 2-3: THE EVENTS (TOLD AS MEMORY) ===
-The chronicler recounts. These scenes are the past, but filtered through memory and purpose. The chronicler may:
-- Compress time ("Three seasons passed in preparation")
-- Editorialize ("What none of us understood then...")
-- Skip to significant moments rather than proceeding linearly
-- Show their bias in what they emphasize or omit
+The chronicler recounts. These scenes are the past, but vivid - dramatized, not summarized. The chronicler:
+- Compresses time between significant moments
+- Skips to significant moments rather than proceeding linearly
+- TELLS THE STORY rather than commenting on the telling
 
-Scene 2 should cover the RISE or GATHERING - the protagonist assembling power, allies, purpose. The antagonist's threat becoming clear.
+Scene 2: THE GATHERING - The protagonist assembling power, allies, purpose. Show the relationships between characters - the bitter humor, the debts owed, the friction and loyalty. Ground characters in physical details that recur.
 
-Scene 3 should cover the CRISIS and FALL - the confrontation, the cost, the moment everything changed. This is where the outcome we already know comes to pass.
+Scene 3: THE CRISIS AND FALL - The confrontation, the cost, the moment everything changed. Deaths and losses should land in the moment, not be reported from a distance.
 
 === SCENE 4: THE CHRONICLER'S CLOSE ===
-Return to present. The chronicler finishes. But now we see:
-- What the record will leave out (and why)
-- What the chronicler learned that cannot be written
-- The gap between history and truth
+Return to present. The chronicler finishes.
 
-Do NOT end with a moral or lesson. End with the chronicler alone with what they know.`,
+End with the chronicler alone. Not a meditation on history. Not a reflection on what was learned. A moment - concrete, present, landing.
 
-    proseInstructions: `TONE: Elegiac, weighted, already-grieving. The narrator speaks from beyond the events.
+The last line should arrive unexpectedly. Not a summary of theme.`,
 
-DIALOGUE: Past dialogue is reported, not dramatized in full. "She said the alliance would hold" not extended conversation. The chronicler may quote key phrases that echo.
+    proseInstructions: `TONE: Elegiac, weighted, already-grieving. The narrator speaks from beyond the events - but speaks INTO them, not about them.
 
-DESCRIPTION: Past scenes described with the vividness of memory - certain details hyper-clear, others vague. Present-frame scenes spare and immediate.
+DIALOGUE: Past dialogue is dramatic, not merely reported. Key exchanges should play out with the weight they carried. Let characters speak to each other, not through the chronicler's summary.
 
-TECHNIQUE - THE WEIGHT OF KNOWING: The chronicler's voice carries knowledge of what's coming. Phrases like "the last time I would see..." or "none of us knew that..." used sparingly but pointedly.
+DESCRIPTION: Past scenes vivid as memory - certain details hyper-clear, others compressed. Present-frame scenes spare and immediate. Physical details that recur across scenes anchor the reader in bodies, not concepts.
 
-TECHNIQUE - COMPRESSION: Time moves at chronicle-pace. Years in a sentence, hours in a page. The story earns its length through significance, not duration.
+TECHNIQUE - THE WEIGHT OF KNOWING: The chronicler's voice carries knowledge of what's coming. This creates dramatic irony, not commentary.
 
-AVOID: Linear blow-by-blow narration. The chronicler explaining what events "meant." Happy endings that ignore the frame's grief.`,
+TECHNIQUE - BITTER CAMARADERIE: Even in grief, characters have relationships. Dark humor. Debts and loyalties. Small moments between large events. Grimness without relief becomes a document.
 
-    eventInstructions: 'Events are what the chronicler chooses to record. Some are emphasized beyond their apparent importance; others are mentioned only in passing. The selection itself reveals the chronicler.',
+AVOID: The chronicler explaining what events "meant." Losses described at a distance rather than felt in the moment. Ending with thematic summary. Commentary on the act of chronicling itself. Conceptual descriptions where physical ones would serve.`,
+
+    eventInstructions: 'Events are what the chronicler dramatizes. Significant moments should play out, not be summarized. The chronicle is a story, not a historical summary with narrative framing.',
 
     roles: [
-      { role: 'chronicler', count: { min: 1, max: 1 }, description: 'The witness who survived to tell this - they frame everything, their bias shapes the tale' },
-      { role: 'protagonist', count: { min: 1, max: 1 }, description: 'The central figure of the chronicle - may be heroic, tragic, or ambiguous in the telling' },
-      { role: 'antagonist', count: { min: 1, max: 1 }, description: 'The opposing force - villain, rival power, or circumstance the chronicler must explain' },
-      { role: 'the-lost', count: { min: 0, max: 2 }, description: 'Those who did not survive - their absence haunts the chronicle' },
-      { role: 'the-weight', count: { min: 0, max: 1 }, description: 'The force that shaped events - a law that bound hands, a power that corrupted, an occurrence that changed everything. Present in the telling even when no one names it directly' },
+      { role: 'chronicler', count: { min: 1, max: 1 }, description: 'The witness who survived to tell this - they frame everything, but tell the story rather than comment on telling it' },
+      { role: 'protagonist', count: { min: 1, max: 1 }, description: 'The central figure - ground them in physical presence, not conceptual traits' },
+      { role: 'antagonist', count: { min: 1, max: 1 }, description: 'The opposing force - villain, rival power, or circumstance' },
+      { role: 'the-lost', count: { min: 0, max: 2 }, description: 'Those who did not survive - their loss should land, not be reported' },
+      { role: 'the-weight', count: { min: 0, max: 1 }, description: 'The force that shaped events - a law, a power, an occurrence. Present in effects, not explained' },
     ],
 
     pacing: {
@@ -469,7 +461,6 @@ AVOID: Plot mechanics. Explaining what images mean. Rushing to conclusion. Gener
       sceneCount: { min: 3, max: 4 },
     },
 
-    temperature: 1.0,
   },
 
   // ============================================================================
@@ -1000,7 +991,6 @@ AVOID: Making the speaker obviously villainous. Making the "truth" explicitly st
       sceneCount: { min: 3, max: 4 },
     },
 
-    temperature: 0.9,
   },
 
   // ============================================================================
@@ -1202,7 +1192,6 @@ AVOID: Plot. Causality. Rational explanations. Metaphors that are "explained" - 
       sceneCount: { min: 3, max: 4 },
     },
 
-    temperature: 1.0,
   },
 
   // ============================================================================
@@ -1276,6 +1265,5 @@ AVOID: Nihilism. Destruction without meaning. Modern apocalyptic cliches (zombie
       sceneCount: { min: 4, max: 4 },
     },
 
-    temperature: 0.9,
   },
 ];

@@ -48,15 +48,47 @@ export default function WikiNav({
   isDrawer,
   onCloseDrawer,
 }: WikiNavProps) {
-  // Collapsible section state (confluxes and huddles default to collapsed)
+  // Collapsible section state
+  const [loreExpanded, setLoreExpanded] = useState(false);
+  const [expandedEras, setExpandedEras] = useState<Set<string>>(new Set());
+  const [appendicesExpanded, setAppendicesExpanded] = useState(false);
   const [confluxesExpanded, setConfluxesExpanded] = useState(false);
   const [huddlesExpanded, setHuddlesExpanded] = useState(false);
-  const [showChronicleTypes, setShowChronicleTypes] = useState(false);
 
-  // Get top categories for quick access
+  // Get top categories for quick access (entity kinds)
   const topCategories = categories
     .filter(c => c.id.startsWith('kind-'))
     .slice(0, 10);
+
+  // Organize static pages by namespace
+  const frontMatterPages: WikiPage[] = [];
+  const lorePages: WikiPage[] = [];
+  const culturePages: WikiPage[] = [];
+  const systemPages: WikiPage[] = [];
+  const otherPages: WikiPage[] = [];
+
+  for (const page of staticPages) {
+    const title = page.title;
+    // Front matter: specific key pages
+    if (title === 'Lore:Foreword to the Annotated Chronicle') {
+      frontMatterPages.unshift(page); // Foreword first
+    } else if (title === 'System:About This Project') {
+      frontMatterPages.push(page); // About second
+    } else if (title.startsWith('Lore:')) {
+      lorePages.push(page);
+    } else if (title.startsWith('Cultures:')) {
+      culturePages.push(page);
+    } else if (title.startsWith('System:')) {
+      systemPages.push(page);
+    } else {
+      otherPages.push(page);
+    }
+  }
+
+  // Sort lore pages alphabetically by title (without prefix)
+  lorePages.sort((a, b) => a.title.replace('Lore:', '').localeCompare(b.title.replace('Lore:', '')));
+  culturePages.sort((a, b) => a.title.replace('Cultures:', '').localeCompare(b.title.replace('Cultures:', '')));
+  systemPages.sort((a, b) => a.title.replace('System:', '').localeCompare(b.title.replace('System:', '')));
 
   // Random page function
   const handleRandomPage = () => {
@@ -71,30 +103,42 @@ export default function WikiNav({
   const storyChronicles = chroniclePages.filter((page) => page.chronicle?.format === 'story');
   const documentChronicles = chroniclePages.filter((page) => page.chronicle?.format === 'document');
 
-  const formatChronicleSubtype = (typeId: string) => {
-    return typeId
-      .split(/[-_]+/)
-      .filter(Boolean)
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ');
-  };
+  // Group chronicles by era
+  const chroniclesByEra = chroniclePages.reduce((groups, page) => {
+    const focalEra = page.chronicle?.temporalContext?.focalEra;
+    const eraId = focalEra?.id || 'unknown';
+    const eraName = focalEra?.name || 'Unknown Era';
+    const eraOrder = focalEra?.order ?? focalEra?.startTick ?? Infinity;
 
-  const chronicleTypeGroups = chroniclePages.reduce((groups, page) => {
-    const typeId = page.chronicle?.narrativeStyleId || 'unknown';
-    if (!groups.has(typeId)) {
-      groups.set(typeId, []);
+    if (!groups.has(eraId)) {
+      groups.set(eraId, { eraId, eraName, eraOrder, stories: [], documents: [], all: [] });
     }
-    groups.get(typeId)?.push(page);
-    return groups;
-  }, new Map<string, WikiPage[]>());
 
-  const sortedChronicleTypeGroups = Array.from(chronicleTypeGroups.entries())
-    .map(([typeId, pages]) => ({
-      typeId,
-      label: typeId === 'unknown' ? 'Unknown Type' : formatChronicleSubtype(typeId),
-      pages,
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+    const group = groups.get(eraId)!;
+    group.all.push(page);
+    if (page.chronicle?.format === 'story') {
+      group.stories.push(page);
+    } else if (page.chronicle?.format === 'document') {
+      group.documents.push(page);
+    }
+
+    return groups;
+  }, new Map<string, { eraId: string; eraName: string; eraOrder: number; stories: WikiPage[]; documents: WikiPage[]; all: WikiPage[] }>());
+
+  // Sort eras chronologically (by order or startTick)
+  const sortedEras = Array.from(chroniclesByEra.values()).sort((a, b) => a.eraOrder - b.eraOrder);
+
+  const toggleEra = (eraId: string) => {
+    setExpandedEras(prev => {
+      const next = new Set(prev);
+      if (next.has(eraId)) {
+        next.delete(eraId);
+      } else {
+        next.add(eraId);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className={styles.container}>
@@ -114,10 +158,142 @@ export default function WikiNav({
 
       <nav className={styles.nav}>
 
-      {/* Browse by Type */}
+      {/* FRONT MATTER - Key introductory pages */}
+      {frontMatterPages.length > 0 && (
+        <div className={styles.section}>
+          {frontMatterPages.map(page => {
+            const isActive = currentPageId === page.id;
+            // Display name without namespace prefix
+            const displayName = page.title.includes(':')
+              ? page.title.split(':')[1]
+              : page.title;
+            return (
+              <button
+                key={page.id}
+                className={isActive ? styles.navItemActive : styles.navItem}
+                onClick={() => onNavigate(page.id)}
+              >
+                {displayName}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* LORE - World essays and background (collapsible) */}
+      {lorePages.length > 0 && (
+        <div className={styles.section}>
+          <button
+            className={styles.sectionTitleCollapsible}
+            onClick={() => setLoreExpanded(!loreExpanded)}
+            aria-expanded={loreExpanded}
+          >
+            <span className={styles.collapseIcon}>{loreExpanded ? '▼' : '▶'}</span>
+            Lore
+            <span className={styles.badge}>({lorePages.length})</span>
+          </button>
+          {loreExpanded && lorePages.map(page => {
+            const isActive = currentPageId === page.id;
+            const displayName = page.title.replace('Lore:', '');
+            return (
+              <button
+                key={page.id}
+                className={isActive ? styles.navItemActive : styles.navItem}
+                onClick={() => onNavigate(page.id)}
+              >
+                {displayName}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* CHRONICLES - The stories, organized by era */}
+      {chroniclePages.length > 0 && (
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>Chronicles</div>
+
+          {/* Era sections */}
+          {sortedEras.map(era => {
+            const isExpanded = expandedEras.has(era.eraId);
+            const eraAllId = `chronicles-era-${era.eraId}`;
+            const eraStoriesId = `chronicles-era-${era.eraId}-story`;
+            const eraDocsId = `chronicles-era-${era.eraId}-document`;
+
+            return (
+              <div key={era.eraId}>
+                <button
+                  className={styles.sectionTitleCollapsible}
+                  onClick={() => toggleEra(era.eraId)}
+                  aria-expanded={isExpanded}
+                  style={{ paddingLeft: '4px', fontSize: 'var(--font-size-sm)' }}
+                >
+                  <span className={styles.collapseIcon}>{isExpanded ? '▼' : '▶'}</span>
+                  {era.eraName}
+                  <span className={styles.badge}>({era.all.length})</span>
+                </button>
+                {isExpanded && (
+                  <>
+                    <button
+                      className={currentPageId === eraAllId ? styles.navItemActive : styles.navItem}
+                      onClick={() => onNavigate(eraAllId)}
+                      style={{ paddingLeft: '24px' }}
+                    >
+                      View All
+                      <span className={currentPageId === eraAllId ? styles.badgeActive : styles.badge}>({era.all.length})</span>
+                    </button>
+                    {era.stories.length > 0 && (
+                      <button
+                        className={currentPageId === eraStoriesId ? styles.navItemActive : styles.navItem}
+                        onClick={() => onNavigate(eraStoriesId)}
+                        style={{ paddingLeft: '24px' }}
+                      >
+                        Stories
+                        <span className={currentPageId === eraStoriesId ? styles.badgeActive : styles.badge}>({era.stories.length})</span>
+                      </button>
+                    )}
+                    {era.documents.length > 0 && (
+                      <button
+                        className={currentPageId === eraDocsId ? styles.navItemActive : styles.navItem}
+                        onClick={() => onNavigate(eraDocsId)}
+                        style={{ paddingLeft: '24px' }}
+                      >
+                        Documents
+                        <span className={currentPageId === eraDocsId ? styles.badgeActive : styles.badge}>({era.documents.length})</span>
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })}
+
+          {/* All Stories / All Documents at bottom */}
+          {storyChronicles.length > 0 && (
+            <button
+              className={currentPageId === 'chronicles-story' ? styles.navItemActive : styles.navItem}
+              onClick={() => onNavigate('chronicles-story')}
+            >
+              All Stories
+              <span className={currentPageId === 'chronicles-story' ? styles.badgeActive : styles.badge}>({storyChronicles.length})</span>
+            </button>
+          )}
+          {documentChronicles.length > 0 && (
+            <button
+              className={currentPageId === 'chronicles-document' ? styles.navItemActive : styles.navItem}
+              onClick={() => onNavigate('chronicles-document')}
+            >
+              All Documents
+              <span className={currentPageId === 'chronicles-document' ? styles.badgeActive : styles.badge}>({documentChronicles.length})</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ENCYCLOPEDIA - Entity browsing */}
       {topCategories.length > 0 && (
         <div className={styles.section}>
-          <div className={styles.sectionTitle}>Browse by Type</div>
+          <div className={styles.sectionTitle}>Encyclopedia</div>
           {topCategories.map(category => {
             const isActive = currentPageId === `category-${category.id}`;
             return (
@@ -134,209 +310,163 @@ export default function WikiNav({
         </div>
       )}
 
-      {chroniclePages.length > 0 && (
+      {/* CULTURES - Cultural reference pages */}
+      {culturePages.length > 0 && (
         <div className={styles.section}>
-          <div className={styles.sectionTitleRow}>
-            <span className={styles.sectionTitleLabel}>Chronicles</span>
-            <label className={styles.sectionToggle}>
-              <input
-                type="checkbox"
-                checked={showChronicleTypes}
-                onChange={(event) => setShowChronicleTypes(event.target.checked)}
-              />
-              Types
-            </label>
-          </div>
-          <button
-            className={currentPageId === 'chronicles' ? styles.navItemActive : styles.navItem}
-            onClick={() => onNavigate('chronicles')}
-          >
-            All Chronicles
-            <span className={currentPageId === 'chronicles' ? styles.badgeActive : styles.badge}>({chroniclePages.length})</span>
-          </button>
-          {showChronicleTypes ? (
-            sortedChronicleTypeGroups.map((group) => {
-              const targetId = `chronicles-type-${group.typeId}`;
-              const isActive = currentPageId === targetId;
-              return (
-                <button
-                  key={group.typeId}
-                  className={isActive ? styles.navItemActive : styles.navItem}
-                  onClick={() => onNavigate(targetId)}
-                >
-                  {group.label}
-                  <span className={isActive ? styles.badgeActive : styles.badge}>({group.pages.length})</span>
-                </button>
-              );
-            })
-          ) : (
-            <>
-              {storyChronicles.length > 0 && (
-                <button
-                  className={currentPageId === 'chronicles-story' ? styles.navItemActive : styles.navItem}
-                  onClick={() => onNavigate('chronicles-story')}
-                >
-                  Stories
-                  <span className={currentPageId === 'chronicles-story' ? styles.badgeActive : styles.badge}>({storyChronicles.length})</span>
-                </button>
-              )}
-              {documentChronicles.length > 0 && (
-                <button
-                  className={currentPageId === 'chronicles-document' ? styles.navItemActive : styles.navItem}
-                  onClick={() => onNavigate('chronicles-document')}
-                >
-                  Documents
-                  <span className={currentPageId === 'chronicles-document' ? styles.badgeActive : styles.badge}>({documentChronicles.length})</span>
-                </button>
-              )}
-            </>
-          )}
+          <div className={styles.sectionTitle}>Cultures</div>
+          {culturePages.map(page => {
+            const isActive = currentPageId === page.id;
+            const displayName = page.title.replace('Cultures:', '');
+            return (
+              <button
+                key={page.id}
+                className={isActive ? styles.navItemActive : styles.navItem}
+                onClick={() => onNavigate(page.id)}
+              >
+                {displayName}
+              </button>
+            );
+          })}
         </div>
       )}
 
-      {/* Static Pages - show by namespace category (moved above confluxes/huddles) */}
-      {staticPages.length > 0 && (() => {
-        // Group pages by namespace prefix (e.g., "System:", "Cultures:", "Names:")
-        const pagesByNamespace = new Map<string, WikiPage[]>();
-        for (const page of staticPages) {
-          const colonIndex = page.title.indexOf(':');
-          const namespace = colonIndex > 0 ? page.title.slice(0, colonIndex) : 'General';
-          if (!pagesByNamespace.has(namespace)) {
-            pagesByNamespace.set(namespace, []);
-          }
-          pagesByNamespace.get(namespace)!.push(page);
-        }
-
-        // Sort namespaces alphabetically, but keep "General" at the end
-        const sortedNamespaces = Array.from(pagesByNamespace.keys()).sort((a, b) => {
-          if (a === 'General') return 1;
-          if (b === 'General') return -1;
-          return a.localeCompare(b);
-        });
-
-        return (
-          <div className={styles.section}>
-            <div className={styles.sectionTitle}>Pages</div>
-            <button
-              className={currentPageId === 'pages' ? styles.navItemActive : styles.navItem}
-              onClick={() => onNavigate('pages')}
-            >
-              All Pages
-              <span className={currentPageId === 'pages' ? styles.badgeActive : styles.badge}>({staticPages.length})</span>
-            </button>
-            {sortedNamespaces.map(namespace => {
-              const isActive = currentPageId === `page-category-${namespace}`;
+      {/* APPENDICES - Collapsible section for reference material */}
+      <div className={styles.section}>
+        <button
+          className={styles.sectionTitleCollapsible}
+          onClick={() => setAppendicesExpanded(!appendicesExpanded)}
+          aria-expanded={appendicesExpanded}
+        >
+          <span className={styles.collapseIcon}>{appendicesExpanded ? '▼' : '▶'}</span>
+          Appendices
+        </button>
+        {appendicesExpanded && (
+          <>
+            {/* System pages */}
+            {systemPages.length > 0 && systemPages.map(page => {
+              const isActive = currentPageId === page.id;
+              const displayName = page.title.replace('System:', '');
               return (
                 <button
-                  key={namespace}
+                  key={page.id}
                   className={isActive ? styles.navItemActive : styles.navItem}
-                  onClick={() => onNavigate(`page-category-${namespace}`)}
+                  onClick={() => onNavigate(page.id)}
                 >
-                  {namespace}
-                  <span className={isActive ? styles.badgeActive : styles.badge}>({pagesByNamespace.get(namespace)!.length})</span>
+                  {displayName}
                 </button>
               );
             })}
-          </div>
-        );
-      })()}
 
-      {/* Confluxes - collapsible, default collapsed */}
-      {confluxPages.length > 0 && (
-        <div className={styles.section}>
-          <button
-            className={styles.sectionTitleCollapsible}
-            onClick={() => setConfluxesExpanded(!confluxesExpanded)}
-            aria-expanded={confluxesExpanded}
-          >
-            <span className={styles.collapseIcon}>{confluxesExpanded ? '▼' : '▶'}</span>
-            Confluxes
-            <span className={styles.badge}>({confluxPages.length})</span>
-          </button>
-          {confluxesExpanded && (
-            <>
-              <button
-                className={currentPageId === 'confluxes' ? styles.navItemActive : styles.navItem}
-                onClick={() => onNavigate('confluxes')}
-              >
-                All Confluxes
-                <span className={currentPageId === 'confluxes' ? styles.badgeActive : styles.badge}>({confluxPages.length})</span>
-              </button>
-              {/* Show 5 rarest confluxes */}
-              {confluxPages
-                .sort((a, b) => (a.conflux?.manifestations ?? 0) - (b.conflux?.manifestations ?? 0))
-                .slice(0, 5)
-                .map(page => {
-                  const isActive = currentPageId === page.id;
-                  return (
+            {/* Other uncategorized pages */}
+            {otherPages.length > 0 && otherPages.map(page => {
+              const isActive = currentPageId === page.id;
+              return (
+                <button
+                  key={page.id}
+                  className={isActive ? styles.navItemActive : styles.navItem}
+                  onClick={() => onNavigate(page.id)}
+                >
+                  {page.title}
+                </button>
+              );
+            })}
+
+            {/* All Categories */}
+            <button
+              className={currentPageId === 'all-categories' ? styles.navItemActive : styles.navItem}
+              onClick={() => onNavigate('all-categories')}
+            >
+              All Categories
+              <span className={currentPageId === 'all-categories' ? styles.badgeActive : styles.badge}>({categories.length})</span>
+            </button>
+
+            {/* Confluxes - nested collapsible */}
+            {confluxPages.length > 0 && (
+              <>
+                <button
+                  className={styles.sectionTitleCollapsible}
+                  onClick={() => setConfluxesExpanded(!confluxesExpanded)}
+                  aria-expanded={confluxesExpanded}
+                  style={{ paddingLeft: '8px' }}
+                >
+                  <span className={styles.collapseIcon}>{confluxesExpanded ? '▼' : '▶'}</span>
+                  Confluxes
+                  <span className={styles.badge}>({confluxPages.length})</span>
+                </button>
+                {confluxesExpanded && (
+                  <>
                     <button
-                      key={page.id}
-                      className={isActive ? styles.navItemActive : styles.navItem}
-                      onClick={() => onNavigate(page.id)}
+                      className={currentPageId === 'confluxes' ? styles.navItemActive : styles.navItem}
+                      onClick={() => onNavigate('confluxes')}
                     >
-                      {page.title}
-                      <span className={isActive ? styles.badgeActive : styles.badge}>({page.conflux?.manifestations ?? 0})</span>
+                      All Confluxes
+                      <span className={currentPageId === 'confluxes' ? styles.badgeActive : styles.badge}>({confluxPages.length})</span>
                     </button>
-                  );
-                })}
-            </>
-          )}
-        </div>
-      )}
+                    {confluxPages
+                      .sort((a, b) => (a.conflux?.manifestations ?? 0) - (b.conflux?.manifestations ?? 0))
+                      .slice(0, 5)
+                      .map(page => {
+                        const isActive = currentPageId === page.id;
+                        return (
+                          <button
+                            key={page.id}
+                            className={isActive ? styles.navItemActive : styles.navItem}
+                            onClick={() => onNavigate(page.id)}
+                          >
+                            {page.title}
+                            <span className={isActive ? styles.badgeActive : styles.badge}>({page.conflux?.manifestations ?? 0})</span>
+                          </button>
+                        );
+                      })}
+                  </>
+                )}
+              </>
+            )}
 
-      {/* Huddles - collapsible, default collapsed */}
-      {huddlePages.length > 0 && (
-        <div className={styles.section}>
-          <button
-            className={styles.sectionTitleCollapsible}
-            onClick={() => setHuddlesExpanded(!huddlesExpanded)}
-            aria-expanded={huddlesExpanded}
-          >
-            <span className={styles.collapseIcon}>{huddlesExpanded ? '▼' : '▶'}</span>
-            Huddles
-            <span className={styles.badge}>({huddlePages.length})</span>
-          </button>
-          {huddlesExpanded && (
-            <>
-              <button
-                className={currentPageId === 'huddles' ? styles.navItemActive : styles.navItem}
-                onClick={() => onNavigate('huddles')}
-              >
-                All Huddles
-                <span className={currentPageId === 'huddles' ? styles.badgeActive : styles.badge}>({huddlePages.length})</span>
-              </button>
-              {/* Show 5 largest huddle types */}
-              {huddlePages
-                .sort((a, b) => (b.huddleType?.largestSize ?? 0) - (a.huddleType?.largestSize ?? 0))
-                .slice(0, 5)
-                .map(page => {
-                  const isActive = currentPageId === page.id;
-                  return (
+            {/* Huddles - nested collapsible */}
+            {huddlePages.length > 0 && (
+              <>
+                <button
+                  className={styles.sectionTitleCollapsible}
+                  onClick={() => setHuddlesExpanded(!huddlesExpanded)}
+                  aria-expanded={huddlesExpanded}
+                  style={{ paddingLeft: '8px' }}
+                >
+                  <span className={styles.collapseIcon}>{huddlesExpanded ? '▼' : '▶'}</span>
+                  Huddles
+                  <span className={styles.badge}>({huddlePages.length})</span>
+                </button>
+                {huddlesExpanded && (
+                  <>
                     <button
-                      key={page.id}
-                      className={isActive ? styles.navItemActive : styles.navItem}
-                      onClick={() => onNavigate(page.id)}
+                      className={currentPageId === 'huddles' ? styles.navItemActive : styles.navItem}
+                      onClick={() => onNavigate('huddles')}
                     >
-                      {page.title}
-                      <span className={isActive ? styles.badgeActive : styles.badge}>({page.huddleType?.largestSize ?? 0})</span>
+                      All Huddles
+                      <span className={currentPageId === 'huddles' ? styles.badgeActive : styles.badge}>({huddlePages.length})</span>
                     </button>
-                  );
-                })}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* All Categories */}
-      <div className={styles.section}>
-        <div className={styles.sectionTitle}>All Categories</div>
-        <button
-          className={styles.navItem}
-          onClick={() => onNavigate('all-categories')}
-        >
-          View All Categories
-          <span className={styles.badge}>({categories.length})</span>
-        </button>
+                    {huddlePages
+                      .sort((a, b) => (b.huddleType?.largestSize ?? 0) - (a.huddleType?.largestSize ?? 0))
+                      .slice(0, 5)
+                      .map(page => {
+                        const isActive = currentPageId === page.id;
+                        return (
+                          <button
+                            key={page.id}
+                            className={isActive ? styles.navItemActive : styles.navItem}
+                            onClick={() => onNavigate(page.id)}
+                          >
+                            {page.title}
+                            <span className={isActive ? styles.badgeActive : styles.badge}>({page.huddleType?.largestSize ?? 0})</span>
+                          </button>
+                        );
+                      })}
+                  </>
+                )}
+              </>
+            )}
+          </>
+        )}
       </div>
 
       {/* Refresh Index */}

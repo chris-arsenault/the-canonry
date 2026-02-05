@@ -19,8 +19,78 @@ import { resolveAnchorPhrase } from '../lib/fuzzyAnchor.ts';
 import EntityTimeline from './EntityTimeline.tsx';
 import ProminenceTimeline from './ProminenceTimeline.tsx';
 import ImageLightbox from './ImageLightbox.tsx';
+import { SectionDivider, FrostEdge } from './Ornaments.tsx';
 import { prominenceLabelFromScale, type ProminenceScale } from '@canonry/world-schema';
 import styles from './WikiPage.module.css';
+
+// ============================================================================
+// Layout Engine
+// ============================================================================
+
+/**
+ * Layout modes for chronicle sections:
+ * - 'flow': Text wraps around floated images/callouts (traditional Wikipedia style).
+ *           Best for long prose with 1-2 images.
+ * - 'margin': 3-column grid with images/callouts in side margins, text in center.
+ *             Text flows uninterrupted. Best for short content, verse, documents.
+ * - 'centered': Text centered, no floats. For verse/poetry without images.
+ */
+type LayoutMode = 'flow' | 'margin' | 'centered';
+
+/** Narrative styles that use centered/verse layout */
+const CENTERED_STYLES = new Set([
+  'folk-song', 'nursery-rhymes', 'haiku-collection',
+]);
+
+/** Narrative styles where floats shouldn't interrupt text */
+const NO_FLOAT_STYLES = new Set([
+  'wanted-notice', 'sacred-text', 'tavern-notices',
+  'interrogation-record', 'diplomatic-accord',
+]);
+
+/**
+ * Analyze a section's content to determine the optimal layout mode.
+ *
+ * Decision factors:
+ * - Narrative style (centered/no-float styles override other logic)
+ * - Word count vs float element count ratio
+ * - Total float elements (images + full historian notes)
+ *
+ * Rules:
+ * 1. Centered styles with floats → 'margin' (images in margins, text centered)
+ * 2. Centered styles without floats → 'centered' (just centered text)
+ * 3. No-float styles with floats → 'margin'
+ * 4. Short content (<150 words) with any floats → 'margin'
+ * 5. High float density (< 100 words per float element) → 'margin'
+ * 6. Otherwise → 'flow'
+ */
+function analyzeLayout(
+  section: WikiSection,
+  fullNoteCount: number,
+  narrativeStyleId?: string,
+): LayoutMode {
+  const imageCount = (section.images || []).length;
+  const floatCount = imageCount + fullNoteCount;
+
+  if (narrativeStyleId && CENTERED_STYLES.has(narrativeStyleId)) {
+    return floatCount > 0 ? 'margin' : 'centered';
+  }
+  if (narrativeStyleId && NO_FLOAT_STYLES.has(narrativeStyleId)) {
+    return floatCount > 0 ? 'margin' : 'flow';
+  }
+
+  if (floatCount === 0) return 'flow';
+
+  const wordCount = section.content.split(/\s+/).length;
+
+  // Short content with float elements → margin to avoid awkward wrapping
+  if (wordCount < 150) return 'margin';
+
+  // High float density → margin to avoid float collisions
+  if (wordCount / floatCount < 100) return 'margin';
+
+  return 'flow';
+}
 
 /**
  * Check if image size is a float (small/medium) vs block (large/full-width)
@@ -30,9 +100,9 @@ function isFloatImage(size: WikiSectionImage['size']): boolean {
 }
 
 /**
- * Get the combined className for an image based on size
- * Float images (small/medium): thumb frame + size width
- * Block images (large/full-width): centered block style
+ * Get the combined className for an image in flow layout mode.
+ * Float images (small/medium/large): thumb frame + size width
+ * Block images (full-width): centered block style
  */
 function getImageClassName(size: WikiSectionImage['size'], position: 'left' | 'right' = 'left'): string {
   const isFloat = isFloatImage(size);
@@ -52,6 +122,7 @@ function getImageClassName(size: WikiSectionImage['size'], position: 'left' | 'r
   const alignClass = position === 'right' ? styles.imageLargeRight : styles.imageLargeLeft;
   return `${styles.imageLarge} ${alignClass}`;
 }
+
 
 /**
  * Classify aspect ratio from width/height (for runtime detection fallback)
@@ -87,19 +158,24 @@ function getInfoboxImageClass(aspect: ImageAspect | undefined, isMobile: boolean
 
 /**
  * ChronicleImage - Renders an inline chronicle image
- * Loads images on-demand from the shared image store
+ * Loads images on-demand from the shared image store.
+ * Supports flow mode (CSS float) and margin mode (side column in grid).
  */
 function ChronicleImage({
   image,
   onOpen,
+  layoutMode = 'flow',
 }: {
   image: WikiSectionImage;
   onOpen?: (imageUrl: string, image: WikiSectionImage) => void;
+  layoutMode?: LayoutMode;
 }) {
   const { url: imageUrl, loading } = useImageUrl(image.imageId);
   const [error, setError] = useState(false);
 
-  const imageClassName = getImageClassName(image.size, image.justification || 'left');
+  const imageClassName = layoutMode === 'margin'
+    ? styles.marginImage
+    : getImageClassName(image.size, image.justification || 'left');
 
   if (loading) {
     return (
@@ -160,6 +236,7 @@ function CoverHeroImage({
       <div className={styles.coverHeroOverlay}>
         <h1 className={styles.chronicleTitleHero}>{title}</h1>
       </div>
+      <FrostEdge position="bottom" className={styles.frostEdgeHero} />
     </div>
   );
 }
@@ -169,9 +246,9 @@ function CoverHeroImage({
 // ============================================================================
 
 const HISTORIAN_NOTE_COLORS: Record<string, string> = {
-  commentary: '#8b7355',
+  commentary: '#c49a5c',
   correction: '#c0392b',
-  tangent: '#7d6b91',
+  tangent: '#8b7355',
   skepticism: '#d4a017',
   pedantic: '#5b7a5e',
 };
@@ -218,7 +295,7 @@ function injectPopoutFootnotes(
   for (let i = resolved.length - 1; i >= 0; i--) {
     const { index, phraseLen } = resolved[i];
     const insertAt = index + phraseLen;
-    const sup = `<sup class="historian-fn" data-note-idx="${i}" style="color:${HISTORIAN_NOTE_COLORS[resolved[i].note.type] || '#8b7355'};cursor:pointer;font-weight:700;font-size:10px;margin-left:1px">${i + 1}</sup>`;
+    const sup = `<sup class="historian-fn" data-note-idx="${i}" style="color:${HISTORIAN_NOTE_COLORS[resolved[i].note.type] || '#8b7355'};cursor:pointer;font-weight:700;font-size:12px;margin-left:2px">${i + 1}</sup>`;
     result = result.slice(0, insertAt) + sup + result.slice(insertAt);
   }
 
@@ -252,7 +329,7 @@ function injectPopoutFootnotesWithGlobalIndex(
   for (let i = resolved.length - 1; i >= 0; i--) {
     const { index, phraseLen, globalIdx, note } = resolved[i];
     const insertAt = index + phraseLen;
-    const sup = `<sup class="historian-fn" data-note-idx="${globalIdx}" style="color:${HISTORIAN_NOTE_COLORS[note.type] || '#8b7355'};cursor:pointer;font-weight:700;font-size:10px;margin-left:1px">${globalIdx + 1}</sup>`;
+    const sup = `<sup class="historian-fn" data-note-idx="${globalIdx}" style="color:${HISTORIAN_NOTE_COLORS[note.type] || '#8b7355'};cursor:pointer;font-weight:700;font-size:12px;margin-left:2px">${globalIdx + 1}</sup>`;
     result = result.slice(0, insertAt) + sup + result.slice(insertAt);
   }
 
@@ -260,29 +337,42 @@ function injectPopoutFootnotesWithGlobalIndex(
 }
 
 /**
- * HistorianCalloutFloat - Floated callout box for 'full' display notes.
- * Text flows around this element. Allowed to break right margin.
+ * HistorianCallout - Callout box for 'full' display notes.
+ * - 'flow': Floated right, text wraps around
+ * - 'margin': Compact callout for side column in 3-column grid
  */
-function HistorianCalloutFloat({ note }: { note: WikiHistorianNote }) {
+function HistorianCallout({ note, layoutMode = 'flow' }: { note: WikiHistorianNote; layoutMode?: LayoutMode }) {
   const color = HISTORIAN_NOTE_COLORS[note.type] || HISTORIAN_NOTE_COLORS.commentary;
   const icon = HISTORIAN_NOTE_ICONS[note.type] || '✦';
   const label = HISTORIAN_NOTE_LABELS[note.type] || 'Commentary';
 
+  if (layoutMode === 'margin') {
+    return (
+      <aside className={styles.marginCallout} style={{ borderLeftColor: color }}>
+        <div className={styles.marginCalloutLabel} style={{ color }}>
+          {icon} {label}
+        </div>
+        {note.text}
+      </aside>
+    );
+  }
+
+  // Flow mode: floated right with inline styles
   return (
     <aside style={{
       float: 'right',
       clear: 'right',
-      width: '280px',
-      margin: '4px -40px 8px 16px',
-      padding: '10px 14px',
-      background: 'rgba(139, 115, 85, 0.08)',
+      width: '300px',
+      margin: '4px -40px 8px 20px',
+      padding: '14px 16px',
+      background: 'rgba(196, 154, 92, 0.06)',
       borderLeft: `3px solid ${color}`,
       borderRadius: '0 4px 4px 0',
-      fontSize: '13px',
+      fontSize: '14px',
       fontFamily: 'Georgia, "Times New Roman", serif',
       fontStyle: 'italic',
-      color: 'var(--color-text-muted)',
-      lineHeight: '1.6',
+      color: 'var(--color-text-secondary, #c4b99a)',
+      lineHeight: '1.7',
     }}>
       <div style={{
         fontSize: '10px',
@@ -290,9 +380,9 @@ function HistorianCalloutFloat({ note }: { note: WikiHistorianNote }) {
         color,
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
-        marginBottom: '4px',
+        marginBottom: '6px',
         fontStyle: 'normal',
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: 'var(--font-family-ui, system-ui, sans-serif)',
       }}>
         {icon} {label}
       </div>
@@ -321,16 +411,16 @@ function HistorianFootnoteTooltip({ note, position }: { note: WikiHistorianNote;
       left,
       top: position.y + 8,
       width: tooltipWidth,
-      padding: '10px 14px',
-      background: 'var(--color-bg-elevated, #2a2520)',
+      padding: '12px 16px',
+      background: 'var(--color-bg-elevated, #3a3228)',
       borderLeft: `3px solid ${color}`,
       borderRadius: '0 4px 4px 0',
       boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-      fontSize: '13px',
+      fontSize: '14px',
       fontFamily: 'Georgia, "Times New Roman", serif',
       fontStyle: 'italic',
       color: 'var(--color-text-secondary, #c4b99a)',
-      lineHeight: '1.6',
+      lineHeight: '1.7',
       zIndex: 1000,
       pointerEvents: 'none',
     }}>
@@ -340,9 +430,9 @@ function HistorianFootnoteTooltip({ note, position }: { note: WikiHistorianNote;
         color,
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
-        marginBottom: '4px',
+        marginBottom: '6px',
         fontStyle: 'normal',
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: 'var(--font-family-ui, system-ui, sans-serif)',
       }}>
         {icon} {label}
       </div>
@@ -352,14 +442,17 @@ function HistorianFootnoteTooltip({ note, position }: { note: WikiHistorianNote;
 }
 
 /**
- * SectionWithImages - Renders a section with Wikipedia-style image layout
+ * SectionWithImages - Renders a section with content-aware layout
  *
- * For text to properly wrap around floated images, we need:
+ * Layout modes (chosen by analyzeLayout):
+ * - 'flow': Float images/callouts, text wraps (Wikipedia style). For long prose.
+ * - 'margin': 3-column grid with images/callouts in side margins. For short content.
+ * - 'centered': Text centered, no floats. For verse/poetry without images.
+ *
+ * For flow mode:
  * 1. Float images FIRST in the DOM, before the text they float with
  * 2. Text in a single continuous block (not fragmented into separate divs)
  * 3. Block images inserted at paragraph boundaries
- *
- * Wikipedia approach: float images at section start, text flows around them
  */
 function SectionWithImages({
   section,
@@ -371,6 +464,8 @@ function SectionWithImages({
   onHoverLeave,
   onImageOpen,
   historianNotes,
+  isFirstChronicleSection,
+  narrativeStyleId,
 }: {
   section: WikiSection;
   entityNameMap: Map<string, string>;
@@ -381,6 +476,8 @@ function SectionWithImages({
   onHoverLeave?: () => void;
   onImageOpen?: (imageUrl: string, image: WikiSectionImage) => void;
   historianNotes?: WikiHistorianNote[];
+  isFirstChronicleSection?: boolean;
+  narrativeStyleId?: string;
 }) {
   const images = section.images || [];
   const content = section.content;
@@ -406,6 +503,12 @@ function SectionWithImages({
       .sort((a, b) => a.position - b.position);
   }, [allNotes, content]);
 
+  // Determine layout mode based on content analysis
+  const layoutMode = useMemo(
+    () => analyzeLayout(section, fullNoteInserts.length, narrativeStyleId),
+    [section, fullNoteInserts.length, narrativeStyleId],
+  );
+
   // Hover state for popout footnote tooltips
   const [hoveredNote, setHoveredNote] = React.useState<{ note: WikiHistorianNote; pos: { x: number; y: number } } | null>(null);
 
@@ -430,8 +533,9 @@ function SectionWithImages({
   const hasInserts = images.length > 0 || fullNoteInserts.length > 0;
 
   if (!hasInserts) {
+    const wrapperClass = layoutMode === 'centered' ? styles.centeredLayout : undefined;
     return (
-      <div onMouseOver={handleFootnoteHover} onMouseOut={handleFootnoteLeave}>
+      <div className={wrapperClass} onMouseOver={handleFootnoteHover} onMouseOut={handleFootnoteLeave}>
         <MarkdownSection
           content={annotatedContent}
           entityNameMap={entityNameMap}
@@ -440,11 +544,104 @@ function SectionWithImages({
           onNavigate={onNavigate}
           onHoverEnter={onHoverEnter}
           onHoverLeave={onHoverLeave}
+          isFirstFragment={isFirstChronicleSection}
         />
         {hoveredNote && <HistorianFootnoteTooltip note={hoveredNote.note} position={hoveredNote.pos} />}
       </div>
     );
   }
+
+  // ── Margin mode: 3-column grid with images/callouts in side margins ──
+  if (layoutMode === 'margin') {
+    // Distribute images and callouts to left/right margin columns
+    type MarginItem =
+      | { kind: 'image'; image: WikiSectionImage }
+      | { kind: 'callout'; note: WikiHistorianNote };
+
+    const leftItems: MarginItem[] = [];
+    const rightItems: MarginItem[] = [];
+
+    // Collect all margin items (images + callouts) then distribute balanced
+    const allMarginItems: MarginItem[] = [];
+    for (const img of images) {
+      allMarginItems.push({ kind: 'image', image: img });
+    }
+    for (const { note } of fullNoteInserts) {
+      allMarginItems.push({ kind: 'callout', note });
+    }
+
+    // Distribute: respect explicit image justification, balance everything else
+    for (const item of allMarginItems) {
+      if (item.kind === 'image' && item.image.justification === 'left') {
+        leftItems.push(item);
+      } else if (item.kind === 'image' && item.image.justification === 'right') {
+        rightItems.push(item);
+      } else {
+        // Balance: put in the column with fewer items
+        if (leftItems.length <= rightItems.length) {
+          leftItems.push(item);
+        } else {
+          rightItems.push(item);
+        }
+      }
+    }
+
+    return (
+      <div className={styles.marginLayout} onMouseOver={handleFootnoteHover} onMouseOut={handleFootnoteLeave}>
+        <div className={styles.marginLeft}>
+          {leftItems.map((item, i) =>
+            item.kind === 'image' ? (
+              <ChronicleImage
+                key={`ml-img-${item.image.refId}-${i}`}
+                image={item.image}
+                onOpen={onImageOpen}
+                layoutMode="margin"
+              />
+            ) : (
+              <HistorianCallout
+                key={`ml-fn-${item.note.noteId}`}
+                note={item.note}
+                layoutMode="margin"
+              />
+            )
+          )}
+        </div>
+        <div className={styles.marginCenter}>
+          <MarkdownSection
+            content={annotatedContent}
+            entityNameMap={entityNameMap}
+            aliasMap={aliasMap}
+            linkableNames={linkableNames}
+            onNavigate={onNavigate}
+            onHoverEnter={onHoverEnter}
+            onHoverLeave={onHoverLeave}
+            isFirstFragment={isFirstChronicleSection}
+          />
+        </div>
+        <div className={styles.marginRight}>
+          {rightItems.map((item, i) =>
+            item.kind === 'image' ? (
+              <ChronicleImage
+                key={`mr-img-${item.image.refId}-${i}`}
+                image={item.image}
+                onOpen={onImageOpen}
+                layoutMode="margin"
+              />
+            ) : (
+              <HistorianCallout
+                key={`mr-fn-${item.note.noteId}`}
+                note={item.note}
+                layoutMode="margin"
+              />
+            )
+          )}
+        </div>
+        {hoveredNote && <HistorianFootnoteTooltip note={hoveredNote.note} position={hoveredNote.pos} />}
+      </div>
+    );
+  }
+
+  // ── Flow mode: fragment-based rendering with floated images/callouts ──
 
   // Build unified insert list: images + full notes, sorted by position in original content
   type InsertItem =
@@ -506,6 +703,8 @@ function SectionWithImages({
     fragments.push({ type: 'text', content: annotated });
   }
 
+  let firstTextSeen = false;
+
   return (
     <div className={styles.sectionWithImages} onMouseOver={handleFootnoteHover} onMouseOut={handleFootnoteLeave}>
       {fragments.map((fragment, i) => {
@@ -517,6 +716,7 @@ function SectionWithImages({
                 key={`img-${fragment.image.refId}-${i}`}
                 image={fragment.image}
                 onOpen={onImageOpen}
+                layoutMode="flow"
               />
             );
           } else {
@@ -526,18 +726,22 @@ function SectionWithImages({
                 <ChronicleImage
                   image={fragment.image}
                   onOpen={onImageOpen}
+                  layoutMode="flow"
                 />
               </React.Fragment>
             );
           }
         } else if (fragment.type === 'fullNote') {
           return (
-            <HistorianCalloutFloat
+            <HistorianCallout
               key={`fn-${fragment.note.noteId}`}
               note={fragment.note}
+              layoutMode="flow"
             />
           );
         } else {
+          const isFirst = isFirstChronicleSection && !firstTextSeen;
+          firstTextSeen = true;
           return (
             <MarkdownSection
               key={`text-${i}`}
@@ -548,11 +752,11 @@ function SectionWithImages({
               onNavigate={onNavigate}
               onHoverEnter={onHoverEnter}
               onHoverLeave={onHoverLeave}
+              isFirstFragment={isFirst}
             />
           );
         }
       })}
-      {/* Final clearfix to contain floats */}
       <div className={styles.clearfix} />
       {hoveredNote && <HistorianFootnoteTooltip note={hoveredNote.note} position={hoveredNote.pos} />}
     </div>
@@ -654,6 +858,7 @@ function MarkdownSection({
   onNavigate,
   onHoverEnter,
   onHoverLeave,
+  isFirstFragment,
 }: {
   content: string;
   entityNameMap: Map<string, string>;
@@ -662,6 +867,7 @@ function MarkdownSection({
   onNavigate: (pageId: string) => void;
   onHoverEnter?: (pageId: string, e: React.MouseEvent) => void;
   onHoverLeave?: () => void;
+  isFirstFragment?: boolean;
 }) {
   const encodePageIdForHash = useCallback((pageId: string) => {
     return pageId.split('/').map((segment) => encodeURIComponent(segment)).join('/');
@@ -696,7 +902,7 @@ function MarkdownSection({
       }
 
       if (pageId) {
-        // Use #/page/{pageId} format that matches the router
+        // Use #/page/{pageId|slug} format that matches the router
         return `[${displayName}](#/page/${encodePageIdForHash(pageId)})`;
       }
       // Keep as-is if page not found
@@ -750,6 +956,7 @@ function MarkdownSection({
       onMouseOver={handleMouseOver}
       onMouseOut={handleMouseOut}
       className={styles.markdownSection}
+      {...(isFirstFragment ? { 'data-first': '' } : {})}
     >
       <MDEditor.Markdown
         source={processedContent}
@@ -759,17 +966,34 @@ function MarkdownSection({
         .wmde-markdown {
           background: transparent !important;
           color: var(--color-text-secondary) !important;
-          font-size: 14px !important;
-          line-height: 1.7 !important;
+          font-size: var(--font-size-base, 16px) !important;
+          line-height: var(--line-height-relaxed, 1.85) !important;
+          font-family: var(--font-family) !important;
+        }
+        .wmde-markdown p {
+          margin-bottom: 1em !important;
         }
         .wmde-markdown h1,
         .wmde-markdown h2,
         .wmde-markdown h3,
         .wmde-markdown h4 {
           color: var(--color-text-primary) !important;
+          font-family: var(--font-family-display) !important;
           border-bottom: none !important;
-          margin-top: 1.5em !important;
-          margin-bottom: 0.5em !important;
+          margin-top: 1.8em !important;
+          margin-bottom: 0.6em !important;
+          letter-spacing: -0.01em !important;
+        }
+        .wmde-markdown h3 {
+          font-size: 1.15em !important;
+          color: var(--color-text-secondary) !important;
+        }
+        .wmde-markdown h4 {
+          font-size: 1em !important;
+          font-family: var(--font-family-ui) !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.06em !important;
+          color: var(--color-text-muted) !important;
         }
         .wmde-markdown a {
           color: var(--color-accent) !important;
@@ -778,6 +1002,13 @@ function MarkdownSection({
         }
         .wmde-markdown a:hover {
           opacity: 0.8;
+        }
+        .wmde-markdown h1 a,
+        .wmde-markdown h2 a,
+        .wmde-markdown h3 a,
+        .wmde-markdown h4 a {
+          border-bottom: none !important;
+          color: inherit !important;
         }
         .wmde-markdown code {
           background: var(--color-bg-tertiary) !important;
@@ -797,20 +1028,23 @@ function MarkdownSection({
         .wmde-markdown blockquote {
           border-left: 3px solid var(--color-accent) !important;
           color: var(--color-text-muted) !important;
-          background: rgba(16, 185, 129, 0.08) !important;
+          background: rgba(196, 154, 92, 0.06) !important;
           padding: 8px 16px !important;
-          margin: 16px 0 !important;
+          margin: 1.2em 0 !important;
           border-radius: 0 4px 4px 0 !important;
+          font-style: italic !important;
         }
         .wmde-markdown ul,
         .wmde-markdown ol {
           padding-left: 24px !important;
+          margin-bottom: 1em !important;
         }
         .wmde-markdown li {
-          margin-bottom: 4px !important;
+          margin-bottom: 6px !important;
         }
         .wmde-markdown table {
           border-collapse: collapse !important;
+          margin: 1em 0 !important;
         }
         .wmde-markdown th,
         .wmde-markdown td {
@@ -819,9 +1053,20 @@ function MarkdownSection({
         }
         .wmde-markdown th {
           background: var(--color-bg-secondary) !important;
+          font-family: var(--font-family-ui) !important;
+          font-size: var(--font-size-sm) !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.04em !important;
+        }
+        .wmde-markdown table tr {
+          background-color: transparent !important;
+        }
+        .wmde-markdown table tr:nth-child(2n) {
+          background-color: rgba(196, 154, 92, 0.06) !important;
         }
         .wmde-markdown hr {
           border-color: var(--color-border) !important;
+          margin: 1.5em 0 !important;
         }
         .wmde-markdown strong {
           color: var(--color-text-primary) !important;
@@ -865,6 +1110,7 @@ export default function WikiPageView({
     title: string;
     summary?: string;
   } | null>(null);
+  const [timelineOpen, setTimelineOpen] = useState(false);
   const [hoveredBacklink, setHoveredBacklink] = useState<{
     id: string;
     position: { x: number; y: number };
@@ -1184,6 +1430,23 @@ export default function WikiPageView({
 
   const isChronicle = page.type === 'chronicle';
 
+  const staticTitle = useMemo(() => {
+    if (page.type !== 'static') {
+      return { namespace: null as string | null, baseName: page.title, displayTitle: page.title };
+    }
+    const colonIdx = page.title.indexOf(':');
+    if (colonIdx > 0 && colonIdx < page.title.length - 1) {
+      const namespace = page.title.slice(0, colonIdx).trim();
+      const baseName = page.title.slice(colonIdx + 1).trim();
+      return {
+        namespace: namespace || null,
+        baseName: baseName || page.title,
+        displayTitle: baseName || page.title,
+      };
+    }
+    return { namespace: null, baseName: page.title, displayTitle: page.title };
+  }, [page.title, page.type]);
+
   return (
     <div className={styles.container}>
       {/* Breadcrumbs - always above everything including hero */}
@@ -1196,7 +1459,9 @@ export default function WikiPageView({
         </span>
         {' / '}
         <span>
-          {page.type === 'category'
+          {page.type === 'static'
+            ? (staticTitle.namespace || 'Pages')
+            : page.type === 'category'
             ? 'Categories'
             : page.type === 'chronicle'
             ? 'Chronicles'
@@ -1205,7 +1470,9 @@ export default function WikiPageView({
             : page.type}
         </span>
         {' / '}
-        <span className={styles.breadcrumbCurrent}>{page.title}</span>
+        <span className={styles.breadcrumbCurrent}>
+          {page.type === 'static' ? staticTitle.baseName : page.title}
+        </span>
       </div>
 
       {/* Chronicle hero banner with cover image */}
@@ -1226,7 +1493,9 @@ export default function WikiPageView({
         )}
         {/* Non-chronicle title: standard */}
         {!isChronicle && (
-          <h1 className={styles.title}>{page.title}</h1>
+          <h1 className={styles.title}>
+            {page.type === 'static' ? staticTitle.displayTitle : page.title}
+          </h1>
         )}
 
         {/* Disambiguation notice - Wikipedia-style hatnote */}
@@ -1258,8 +1527,8 @@ export default function WikiPageView({
           </div>
         )}
 
-        {/* Summary + cover image for non-chronicle pages only */}
-        {!isChronicle && page.content.summary && (
+        {/* Summary + cover image for non-chronicle, non-static pages only */}
+        {!isChronicle && page.type !== 'static' && page.content.summary && (
           <div className={styles.summary}>
             {page.content.coverImageId && (
               <ChronicleImage
@@ -1294,6 +1563,7 @@ export default function WikiPageView({
         {/* Infobox - inline on mobile/tablet (rendered first, above content) */}
         {showInfoboxInline && page.content.infobox && (
           <div className={styles.infoboxInline}>
+            <FrostEdge className={styles.frostEdge} />
             <div className={styles.infoboxHeader}>{page.title}</div>
             {infoboxImageUrl && (
               <img
@@ -1351,6 +1621,42 @@ export default function WikiPageView({
             </div>
           )}
 
+        {/* Sections */}
+        <div
+          className={isChronicle ? styles.chronicleBody : undefined}
+          data-style={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
+          {...(isChronicle && page.content.sections[0]?.content && (() => {
+            const stripped = page.content.sections[0].content.replace(/^[\s*_#>]+/, '');
+            // Must start with a letter, but not a Roman numeral section marker (e.g. "IV. Title")
+            return /^[a-zA-Z]/.test(stripped) && !/^[IVXLCDM]+\.\s/.test(stripped);
+          })() ? { 'data-dropcap': '' } : {})}
+        >
+        {page.content.sections.map((section, sectionIndex) => (
+          <div key={section.id} id={section.id} className={styles.section}>
+            {/* Hide default "Chronicle" heading on chronicle pages */}
+            {!(isChronicle && section.heading === 'Chronicle') && (
+              <>
+                <h2 className={styles.sectionHeading}>{section.heading}</h2>
+                <SectionDivider className={styles.sectionDividerSvg} />
+              </>
+            )}
+            <SectionWithImages
+              section={section}
+              entityNameMap={entityNameMap}
+              aliasMap={aliasMap}
+              linkableNames={linkableNames}
+              onNavigate={handleEntityClick}
+              onHoverEnter={handleEntityHoverEnter}
+              onHoverLeave={handleEntityHoverLeave}
+              onImageOpen={handleInlineImageOpen}
+              historianNotes={page.content.historianNotes}
+              isFirstChronicleSection={isChronicle && sectionIndex === 0}
+              narrativeStyleId={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
+            />
+          </div>
+        ))}
+        </div>
+
         {chronicleLinks.length > 0 && (
           <div className={styles.chronicles}>
             <div className={styles.chroniclesTitle}>
@@ -1378,44 +1684,34 @@ export default function WikiPageView({
           </div>
         )}
 
-        {/* Sections */}
-        {page.content.sections.map(section => (
-          <div key={section.id} id={section.id} className={styles.section}>
-            {/* Hide default "Chronicle" heading on chronicle pages */}
-            {!(isChronicle && section.heading === 'Chronicle') && (
-              <h2 className={styles.sectionHeading}>{section.heading}</h2>
-            )}
-            <SectionWithImages
-              section={section}
-              entityNameMap={entityNameMap}
-              aliasMap={aliasMap}
-              linkableNames={linkableNames}
-              onNavigate={handleEntityClick}
-              onHoverEnter={handleEntityHoverEnter}
-              onHoverLeave={handleEntityHoverLeave}
-              onImageOpen={handleInlineImageOpen}
-              historianNotes={page.content.historianNotes}
-            />
-          </div>
-        ))}
-
         {isEntityPage && (narrativeLoading || narrativeEvents.length > 0) && (
           <div id="timeline" className={styles.section}>
-            <h2 className={styles.sectionHeading}>Timeline</h2>
-            <ProminenceTimeline
-              events={narrativeEvents}
-              entityId={page.id}
-              prominenceScale={prominenceScale}
-            />
-            <EntityTimeline
-              events={narrativeEvents}
-              entityId={page.id}
-              entityIndex={entityIndex}
-              onNavigate={handleEntityClick}
-              onHoverEnter={handleEntityHoverEnter}
-              onHoverLeave={handleEntityHoverLeave}
-              loading={narrativeLoading}
-            />
+            <button
+              className={styles.sectionHeadingToggle}
+              onClick={() => setTimelineOpen(o => !o)}
+            >
+              <span className={timelineOpen ? styles.expandArrowOpen : styles.expandArrow}>▶</span>
+              <h2 className={styles.sectionHeading}>Timeline</h2>
+            </button>
+            <SectionDivider className={styles.sectionDividerSvg} />
+            {timelineOpen && (
+              <>
+                <ProminenceTimeline
+                  events={narrativeEvents}
+                  entityId={page.id}
+                  prominenceScale={prominenceScale}
+                />
+                <EntityTimeline
+                  events={narrativeEvents}
+                  entityId={page.id}
+                  entityIndex={entityIndex}
+                  onNavigate={handleEntityClick}
+                  onHoverEnter={handleEntityHoverEnter}
+                  onHoverLeave={handleEntityHoverLeave}
+                  loading={narrativeLoading}
+                />
+              </>
+            )}
           </div>
         )}
 
@@ -1428,7 +1724,7 @@ export default function WikiPageView({
             if (unmatched.length === 0) return null;
             return (
               <div style={{ marginTop: '16px', marginBottom: '12px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: '#8b7355', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-accent, #c49a5c)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px', fontFamily: 'var(--font-family-ui, system-ui, sans-serif)' }}>
                   Historian's Notes
                 </div>
                 {unmatched.map(note => {
@@ -1437,13 +1733,13 @@ export default function WikiPageView({
                   const label = HISTORIAN_NOTE_LABELS[note.type] || 'Commentary';
                   return (
                     <div key={note.noteId} style={{
-                      margin: '6px 0 6px 16px', padding: '8px 12px',
-                      background: 'rgba(139, 115, 85, 0.08)', borderLeft: `3px solid ${color}`,
-                      borderRadius: '0 4px 4px 0', fontSize: '13px',
+                      margin: '6px 0 6px 16px', padding: '10px 14px',
+                      background: 'rgba(196, 154, 92, 0.06)', borderLeft: `3px solid ${color}`,
+                      borderRadius: '0 4px 4px 0', fontSize: '14px',
                       fontFamily: 'Georgia, "Times New Roman", serif', fontStyle: 'italic',
-                      color: 'var(--color-text-muted)', lineHeight: '1.6',
+                      color: 'var(--color-text-secondary, #c4b99a)', lineHeight: '1.7',
                     }}>
-                      <div style={{ fontSize: '10px', fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', fontStyle: 'normal', fontFamily: 'system-ui, sans-serif' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px', fontStyle: 'normal', fontFamily: 'var(--font-family-ui, system-ui, sans-serif)' }}>
                         {icon} {label}
                       </div>
                       {note.text}
@@ -1457,6 +1753,7 @@ export default function WikiPageView({
           {/* Backlinks */}
           {backlinks.length > 0 && (
             <div className={styles.backlinks}>
+              <FrostEdge className={styles.frostEdgeDivider} />
               <div className={styles.backlinksTitle}>
                 What links here ({backlinks.length})
               </div>
@@ -1497,6 +1794,7 @@ export default function WikiPageView({
         {/* Infobox - sidebar on desktop (rendered after main content) */}
         {!showInfoboxInline && page.content.infobox && (
           <div className={styles.infobox}>
+            <FrostEdge className={styles.frostEdge} />
             <div className={styles.infoboxHeader}>{page.title}</div>
             {infoboxImageUrl && (
               <img

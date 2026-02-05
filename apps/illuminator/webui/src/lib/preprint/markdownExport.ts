@@ -14,6 +14,7 @@ import type { ImageMetadataRecord } from './prePrintStats';
 import type { StaticPage } from '../staticPageTypes';
 import type { HistorianNote } from '../historianTypes';
 import { isNoteActive } from '../historianTypes';
+import { resolveAnchorPhrase } from '../fuzzyAnchor';
 import type {
   ContentTreeState,
   ContentTreeNode,
@@ -252,50 +253,39 @@ function formatChronicleMarkdown(
 
     // Insert image markers at anchor points
     if (chronicle.imageRefs?.refs) {
-      // Sort by anchorIndex descending to insert from end to start (preserve offsets)
-      const sortedRefs = [...chronicle.imageRefs.refs]
-        .filter((r): r is Extract<ChronicleImageRef, { type: 'prompt_request' }> =>
+      const promptRefs = chronicle.imageRefs.refs.filter(
+        (r): r is Extract<ChronicleImageRef, { type: 'prompt_request' }> =>
           r.type === 'prompt_request' && r.status === 'complete' && !!r.generatedImageId
-        )
-        .sort((a, b) => (b.anchorIndex ?? 0) - (a.anchorIndex ?? 0));
+      );
 
-      for (const ref of sortedRefs) {
+      const promptInsertions = promptRefs.map((ref) => ({
+        ref,
+        insertAt: resolveInsertPosition(content, ref.anchorText, ref.anchorIndex),
+      })).sort((a, b) => b.insertAt - a.insertAt);
+
+      for (const { ref, insertAt } of promptInsertions) {
         const imgId = ref.generatedImageId!;
         registerImage(referencedImages, imgId, imageMap, 'chronicle', undefined, undefined, chronicle.chronicleId);
         const ext = getImageExt(imageMap.get(imgId));
         const caption = ref.caption || '';
         const marker = `\n\n<!-- IMAGE: images/${imgId}${ext} | size: ${ref.size} | float: ${ref.justification || 'none'} | caption: "${caption}" -->\n\n`;
-
-        // Try to find anchor text and insert after
-        if (ref.anchorText) {
-          const idx = annotatedContent.indexOf(ref.anchorText);
-          if (idx >= 0) {
-            const insertAt = idx + ref.anchorText.length;
-            annotatedContent = annotatedContent.slice(0, insertAt) + marker + annotatedContent.slice(insertAt);
-            continue;
-          }
-        }
-        // Fallback: append at end
-        annotatedContent += marker;
+        annotatedContent = annotatedContent.slice(0, insertAt) + marker + annotatedContent.slice(insertAt);
       }
 
       // Entity ref images
       const entityRefs = chronicle.imageRefs.refs.filter(
         (r): r is Extract<ChronicleImageRef, { type: 'entity_ref' }> => r.type === 'entity_ref'
       );
-      for (const ref of entityRefs) {
+      const entityInsertions = entityRefs.map((ref) => ({
+        ref,
+        insertAt: resolveInsertPosition(content, ref.anchorText, ref.anchorIndex),
+      })).sort((a, b) => b.insertAt - a.insertAt);
+
+      for (const { ref, insertAt } of entityInsertions) {
         // Entity portraits are registered via entity pages; just add comment markers
         const caption = ref.caption || '';
         const marker = `\n\n<!-- IMAGE: entity-portrait-${ref.entityId} | size: ${ref.size} | float: ${ref.justification || 'none'} | caption: "${caption}" -->\n\n`;
-        if (ref.anchorText) {
-          const idx = annotatedContent.indexOf(ref.anchorText);
-          if (idx >= 0) {
-            const insertAt = idx + ref.anchorText.length;
-            annotatedContent = annotatedContent.slice(0, insertAt) + marker + annotatedContent.slice(insertAt);
-            continue;
-          }
-        }
-        annotatedContent += marker;
+        annotatedContent = annotatedContent.slice(0, insertAt) + marker + annotatedContent.slice(insertAt);
       }
     }
 
@@ -315,6 +305,24 @@ function formatChronicleMarkdown(
   }
 
   return lines.join('\n');
+}
+
+function resolveInsertPosition(
+  text: string,
+  anchorText: string,
+  anchorIndex?: number
+): number {
+  const resolved = anchorText ? resolveAnchorPhrase(anchorText, text) : null;
+  let position = resolved ? resolved.index : -1;
+  if (position < 0 && anchorIndex !== undefined && anchorIndex < text.length) {
+    position = anchorIndex;
+  }
+  if (position < 0) position = text.length;
+
+  const anchorLength = anchorText?.length ?? 0;
+  const anchorEnd = position + anchorLength;
+  const paragraphEnd = text.indexOf('\n\n', anchorEnd);
+  return paragraphEnd >= 0 ? paragraphEnd : text.length;
 }
 
 function formatStaticPageMarkdown(

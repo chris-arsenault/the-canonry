@@ -8,7 +8,7 @@
  * - Range selection helpers
  */
 
-import type { NarrativeEventContext, EntityContext } from '../chronicleTypes';
+import type { NarrativeEventContext, EntityContext, ChronicleRoleAssignment, NarrativeLens } from '../chronicleTypes';
 
 export interface EraRange {
   id: string;
@@ -247,4 +247,128 @@ export function getEventFill(event: TimelineEvent): string {
  */
 export function getEventHeight(significance: number, maxHeight: number = 40, minHeight: number = 16): number {
   return minHeight + significance * (maxHeight - minHeight);
+}
+
+// =============================================================================
+// Cast Markers - Show when cast members were created on the timeline
+// =============================================================================
+
+export interface CastMarker {
+  entityId: string;
+  entityName: string;
+  entityKind: string;
+  subtype?: string;
+  createdAt: number;
+  role?: string;
+  isPrimary: boolean;
+  isEntryPoint: boolean;
+  isLens: boolean;
+}
+
+/**
+ * Get SVG path data for a cast marker based on entity kind.
+ * Paths are centered at (0,0) — use transform to position.
+ */
+export function getCastMarkerShape(kind: string): { path: string; size: number } {
+  switch (kind) {
+    case 'person':
+      // Diamond
+      return { path: 'M 0 -4 L 4 0 L 0 4 L -4 0 Z', size: 8 };
+    case 'faction':
+      // Circle
+      return { path: 'M 0 -3.5 A 3.5 3.5 0 1 1 0 3.5 A 3.5 3.5 0 1 1 0 -3.5 Z', size: 7 };
+    case 'location':
+      // Square
+      return { path: 'M -3 -3 L 3 -3 L 3 3 L -3 3 Z', size: 6 };
+    case 'occurrence':
+      // 6-pointed star (outer=4, inner=2)
+      return { path: 'M 0 -4 L 1 -1.7 L 3.5 -2 L 2 0 L 3.5 2 L 1 1.7 L 0 4 L -1 1.7 L -3.5 2 L -2 0 L -3.5 -2 L -1 -1.7 Z', size: 8 };
+    default:
+      // Triangle
+      return { path: 'M 0 -3.5 L 3.5 3 L -3.5 3 Z', size: 7 };
+  }
+}
+
+/**
+ * Get color for a cast marker based on entity kind.
+ * Uses a pastel palette distinct from event card fills.
+ */
+export function getCastMarkerColor(kind: string): string {
+  switch (kind) {
+    case 'person': return '#818cf8';
+    case 'faction': return '#a78bfa';
+    case 'location': return '#34d399';
+    case 'occurrence': return '#fbbf24';
+    case 'ability': return '#f472b6';
+    case 'rule': return '#22d3ee';
+    default: return '#9ca3af';
+  }
+}
+
+/**
+ * Build cast markers from role assignments, lens, and entity data.
+ * Includes the entry point and lens (if provided) and dedupes by entity ID.
+ */
+export function prepareCastMarkers(
+  roleAssignments: ChronicleRoleAssignment[],
+  entityMap: Map<string, EntityContext>,
+  entryPoint?: EntityContext | null,
+  lens?: NarrativeLens | null
+): CastMarker[] {
+  const seen = new Set<string>();
+  const markers: CastMarker[] = [];
+
+  if (entryPoint) {
+    seen.add(entryPoint.id);
+    markers.push({
+      entityId: entryPoint.id,
+      entityName: entryPoint.name,
+      entityKind: entryPoint.kind,
+      subtype: entryPoint.subtype,
+      createdAt: entryPoint.createdAt,
+      isPrimary: true,
+      isEntryPoint: true,
+      isLens: false,
+    });
+  }
+
+  if (lens && !seen.has(lens.entityId)) {
+    seen.add(lens.entityId);
+    const lensEntity = entityMap.get(lens.entityId);
+    if (lensEntity) {
+      markers.push({
+        entityId: lens.entityId,
+        entityName: lens.entityName,
+        entityKind: lens.entityKind,
+        subtype: lensEntity.subtype,
+        createdAt: lensEntity.createdAt,
+        isPrimary: false,
+        isEntryPoint: false,
+        isLens: true,
+      });
+    }
+  }
+
+  for (const assignment of roleAssignments) {
+    if (seen.has(assignment.entityId)) continue;
+    seen.add(assignment.entityId);
+
+    const entity = entityMap.get(assignment.entityId);
+    if (!entity) continue;
+
+    markers.push({
+      entityId: assignment.entityId,
+      entityName: assignment.entityName,
+      entityKind: assignment.entityKind,
+      subtype: entity.subtype,
+      createdAt: entity.createdAt,
+      role: assignment.role,
+      isPrimary: assignment.isPrimary,
+      isEntryPoint: false,
+      isLens: false,
+    });
+  }
+
+  markers.sort((a, b) => a.createdAt - b.createdAt);
+  return markers;
 }

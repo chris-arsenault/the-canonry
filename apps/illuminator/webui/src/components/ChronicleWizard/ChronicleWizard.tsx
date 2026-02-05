@@ -62,8 +62,6 @@ export interface WizardGenerateConfig {
   lens?: NarrativeLens;
   /** Temporal context computed from selected events and eras */
   temporalContext: ChronicleTemporalContext | null;
-  /** Optional temperature override (if not set, uses narrative style default) */
-  temperatureOverride?: number;
 }
 
 // =============================================================================
@@ -174,6 +172,9 @@ function InnerWizard({
     }
   }, [state]);
 
+  // Always can generate on step 5 since sampling is now controlled globally
+  const canGenerate = true;
+
   // Handle generate
   const handleGenerate = useCallback(() => {
     if (!state.narrativeStyleId || !state.narrativeStyle || !state.entryPoint) return;
@@ -189,7 +190,6 @@ function InnerWizard({
       selectedRelationshipIds: Array.from(state.selectedRelationshipIds),
       lens: state.lens || undefined,
       temporalContext,
-      temperatureOverride: state.temperatureOverride ?? undefined,
     };
 
     onGenerate(config);
@@ -341,6 +341,7 @@ function InnerWizard({
             ) : (
               <button
                 onClick={handleGenerate}
+                disabled={!canGenerate}
                 className="illuminator-btn illuminator-btn-primary"
               >
                 Generate Chronicle

@@ -28,7 +28,7 @@ export default function EnrichmentTab({
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 500 }}>Title</div>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Regenerate the chronicle title using two-pass synthesis.
+                  Regenerate the chronicle title with single-pass candidate generation.
                 </div>
                 {item.titleGeneratedAt && (
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>

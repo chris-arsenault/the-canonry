@@ -12,21 +12,21 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { prominenceLabelFromScale, type ProminenceScale, type NarrativeEvent } from '@canonry/world-schema';
 import styles from './ProminenceTimeline.module.css';
 
-// Prominence level colors used in SVG
+// Prominence level colors used in SVG - warm palette
 const PROMINENCE_COLORS = {
-  forgotten: '#6b7280',   // gray
-  marginal: '#f59e0b',    // amber
-  recognized: '#3b82f6',  // blue
-  renowned: '#8b5cf6',    // purple
-  mythic: '#ec4899',      // pink
+  forgotten: '#6b6155',   // warm gray
+  marginal: '#d4a017',    // warm amber
+  recognized: '#c49a5c',  // burnished gold
+  renowned: '#8b7355',    // warm brown
+  mythic: '#d4aa6c',      // light gold
 };
 
-// SVG graph colors
+// SVG graph colors - warm palette
 const graphColors = {
-  line: '#10b981',
-  marker: '#f59e0b',
-  levelLine: 'rgba(255, 255, 255, 0.1)',
-  textMuted: '#60a5fa',
+  line: '#c49a5c',
+  marker: '#d4a017',
+  levelLine: 'rgba(232, 220, 200, 0.1)',
+  textMuted: '#8a7d6b',
 };
 
 interface ProminenceDataPoint {

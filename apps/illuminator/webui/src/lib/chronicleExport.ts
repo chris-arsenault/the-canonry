@@ -69,7 +69,7 @@ interface ExportLLMCall {
 interface ExportChronicleVersion {
   versionId: string;
   generatedAt: string;
-  temperature?: number;
+  sampling?: 'normal' | 'low';
   model: string;
   wordCount: number;
   content: string;
@@ -82,9 +82,10 @@ interface ExportChronicleVersion {
  * Full chronicle export structure
  */
 export interface ChronicleExport {
-  exportVersion: '1.2';
+  exportVersion: '1.3';
   exportedAt: string;
   activeVersionId?: string;
+  acceptedVersionId?: string;
 
   // Chronicle identity
   chronicle: {
@@ -132,7 +133,9 @@ export interface ChronicleExport {
         cultureBalance: string;
         dominantCulture?: string;
       };
-      facts?: Array<{ id: string; text: string; type?: string }>;
+      facts?: Array<{ id: string; text: string; type?: string; required?: boolean }>;
+      worldDynamics?: Array<{ id: string; text: string }>;
+      factSelectionTarget?: number;
       culturalIdentities?: Record<string, Record<string, string>>;
       entities?: Array<{ name: string; kind: string; culture?: string }>;
     };
@@ -222,6 +225,8 @@ function exportPerspectiveSynthesis(
       narrativeStyleName: record.narrativeStyleName,
       constellation: record.constellation,
       facts: record.inputFacts,
+      worldDynamics: record.inputWorldDynamics,
+      factSelectionTarget: record.factSelectionTarget,
       culturalIdentities: record.inputCulturalIdentities,
       entities: record.inputEntities,
     },
@@ -248,11 +253,15 @@ function exportPerspectiveSynthesis(
 export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExport {
   const currentVersionId = `current_${chronicle.assembledAt ?? chronicle.createdAt}`;
   const activeVersionId = chronicle.activeVersionId || currentVersionId;
+  const isAccepted = Boolean(chronicle.acceptedAt && chronicle.finalContent);
+  const acceptedVersionId = chronicle.acceptedVersionId || (isAccepted ? activeVersionId : undefined);
+  const effectiveVersionId = isAccepted ? (acceptedVersionId || activeVersionId) : activeVersionId;
 
+  const currentContent = chronicle.assembledContent || chronicle.finalContent || '';
   const currentVersion = {
     id: currentVersionId,
-    content: chronicle.finalContent || chronicle.assembledContent || '',
-    wordCount: (chronicle.finalContent || chronicle.assembledContent || '').split(/\s+/).filter(Boolean).length,
+    content: currentContent,
+    wordCount: currentContent.split(/\s+/).filter(Boolean).length,
     systemPrompt:
       chronicle.generationSystemPrompt ||
       '(prompt not stored - chronicle generated before prompt storage was implemented)',
@@ -262,8 +271,8 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
     model: chronicle.model,
   };
 
-  const historyMatch = chronicle.generationHistory?.find((version) => version.versionId === activeVersionId);
-  const activeVersion = historyMatch
+  const historyMatch = chronicle.generationHistory?.find((version) => version.versionId === effectiveVersionId);
+  const effectiveVersion = historyMatch
     ? {
         id: historyMatch.versionId,
         content: historyMatch.content,
@@ -274,17 +283,21 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
       }
     : currentVersion;
 
-  const content = activeVersion.content;
-  const wordCount = activeVersion.wordCount;
-  const systemPrompt = activeVersion.systemPrompt;
-  const userPrompt = activeVersion.userPrompt;
-  const currentContent = chronicle.assembledContent || chronicle.finalContent || '';
+  const content = isAccepted && chronicle.finalContent
+    ? chronicle.finalContent
+    : effectiveVersion.content;
+  const wordCount = isAccepted && chronicle.finalContent
+    ? chronicle.finalContent.split(/\s+/).filter(Boolean).length
+    : effectiveVersion.wordCount;
+  const systemPrompt = effectiveVersion.systemPrompt;
+  const userPrompt = effectiveVersion.userPrompt;
   const currentWordCount = currentContent.split(/\s+/).filter(Boolean).length;
 
   const exportData: ChronicleExport = {
-    exportVersion: '1.2',
+    exportVersion: '1.3',
     exportedAt: new Date().toISOString(),
     activeVersionId,
+    acceptedVersionId,
 
     chronicle: {
       id: chronicle.chronicleId,
@@ -307,7 +320,7 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
     generationLLMCall: {
       systemPrompt,
       userPrompt,
-      model: activeVersion.model,
+      model: effectiveVersion.model,
     },
   };
 
@@ -317,7 +330,7 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
       versions.push({
         versionId: version.versionId,
         generatedAt: new Date(version.generatedAt).toISOString(),
-        temperature: version.temperature,
+        sampling: version.sampling,
         model: version.model,
         wordCount: version.wordCount,
         content: version.content,
@@ -331,7 +344,7 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
   versions.push({
     versionId: `current_${chronicle.assembledAt ?? chronicle.createdAt}`,
     generatedAt: new Date(chronicle.assembledAt ?? chronicle.createdAt).toISOString(),
-    temperature: chronicle.generationTemperature,
+    sampling: chronicle.generationSampling,
     model: chronicle.model,
     wordCount: currentWordCount,
     content: currentContent,

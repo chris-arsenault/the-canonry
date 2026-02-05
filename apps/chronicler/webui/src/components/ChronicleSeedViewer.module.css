@@ -15,9 +15,10 @@
 .sectionTitle {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-ui);
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.08em;
   margin-bottom: var(--spacing-sm);
 }
 
@@ -28,6 +29,7 @@
 }
 
 .fieldLabel {
+  font-family: var(--font-family-ui);
   color: var(--color-text-muted);
   min-width: 80px;
 }
@@ -57,13 +59,15 @@
   border-radius: 3px;
   font-size: 10px;
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-ui);
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .primaryBadge {
   composes: roleBadge;
   background: var(--color-accent);
-  color: white;
+  color: var(--color-bg-primary);
 }
 
 .supportingBadge {
@@ -105,7 +109,7 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(10, 8, 5, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -136,6 +140,7 @@
 .modalTitle {
   margin: 0;
   font-size: var(--font-size-md);
+  font-family: var(--font-family-display);
   color: var(--color-text-primary);
 }
 

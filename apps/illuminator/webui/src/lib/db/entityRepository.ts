@@ -463,6 +463,63 @@ export async function setHistorianNotes(
 }
 
 // ---------------------------------------------------------------------------
+// Backport Reset
+// ---------------------------------------------------------------------------
+
+/**
+ * Reset entity descriptions to their pre-backport state.
+ * For each entity that has lore-backport entries in descriptionHistory:
+ * - Find the first 'lore-backport' entry
+ * - Restore the description from that entry (which is the pre-backport state)
+ * - Truncate history to remove all entries from that point onward
+ * - Clear chronicleBackrefs (these were set by backport operations)
+ *
+ * Returns count of entities that were reset.
+ */
+export async function resetEntitiesToPreBackportState(
+  simulationRunId: string
+): Promise<{ resetCount: number; entityIds: string[] }> {
+  const entities = await getEntitiesForRun(simulationRunId);
+  const resetEntityIds: string[] = [];
+
+  await db.transaction('rw', db.entities, async () => {
+    for (const entity of entities) {
+      const history = entity.enrichment?.descriptionHistory || [];
+      if (history.length === 0) continue;
+
+      // Find the first 'lore-backport' entry
+      const firstBackportIndex = history.findIndex((h) => h.source === 'lore-backport');
+      if (firstBackportIndex === -1) continue; // Never backported
+
+      // The description in that entry is the pre-backport state
+      const preBackportDescription = history[firstBackportIndex].description;
+
+      // Truncate history to remove entries from the first backport onward
+      const newHistory = history.slice(0, firstBackportIndex);
+
+      // Clear chronicleBackrefs since those were set by backport
+      const newEnrichment = {
+        ...entity.enrichment,
+        descriptionHistory: newHistory,
+        chronicleBackrefs: [],
+      };
+
+      await db.entities.update(entity.id, {
+        description: preBackportDescription,
+        enrichment: newEnrichment,
+      });
+
+      resetEntityIds.push(entity.id);
+    }
+  });
+
+  return {
+    resetCount: resetEntityIds.length,
+    entityIds: resetEntityIds,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Cleanup
 // ---------------------------------------------------------------------------
 

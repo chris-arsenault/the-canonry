@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import ChronicleImagePanel from '../ChronicleImagePanel';
 import { useImageUrl } from '../../hooks/useImageUrl';
 
@@ -146,104 +145,6 @@ function CoverImageControls({
 }
 
 // ============================================================================
-// Temperature Regeneration Control (local)
-// ============================================================================
-
-function TemperatureRegenerationControl({ item, onRegenerateWithTemperature, isGenerating }) {
-  const baseTemperature = typeof item.generationTemperature === 'number'
-    ? item.generationTemperature
-    : (item.narrativeStyle?.temperature ?? 0.7);
-  const [temperature, setTemperature] = useState(baseTemperature);
-
-  useEffect(() => {
-    setTemperature(baseTemperature);
-  }, [baseTemperature, item.chronicleId]);
-
-  const hasPrompts = Boolean(item.generationSystemPrompt && item.generationUserPrompt);
-  const disabled = isGenerating || !hasPrompts || !onRegenerateWithTemperature;
-
-  const clamp = (value) => Math.min(1, Math.max(0, value));
-  const handleChange = (value) => setTemperature(clamp(value));
-
-  return (
-    <div
-      style={{
-        marginBottom: '16px',
-        padding: '12px 16px',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '8px',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-        <div style={{ fontSize: '13px', fontWeight: 500 }}>
-          Temperature Regeneration
-          <span style={{ marginLeft: '8px', color: 'var(--text-muted)', fontSize: '12px' }}>
-            (0&ndash;1)
-          </span>
-        </div>
-        <button
-          onClick={() => onRegenerateWithTemperature?.(temperature)}
-          disabled={disabled}
-          style={{
-            padding: '8px 14px',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '6px',
-            color: 'var(--text-secondary)',
-            cursor: disabled ? 'not-allowed' : 'pointer',
-            opacity: disabled ? 0.6 : 1,
-            fontSize: '12px',
-          }}
-        >
-          Regenerate with temperature
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px', flexWrap: 'wrap' }}>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          value={temperature}
-          onChange={(e) => handleChange(parseFloat(e.target.value))}
-          disabled={disabled}
-          style={{ flex: 1, minWidth: '160px' }}
-        />
-        <input
-          type="number"
-          min="0"
-          max="1"
-          step="0.01"
-          value={temperature}
-          onChange={(e) => handleChange(parseFloat(e.target.value || '0'))}
-          disabled={disabled}
-          style={{
-            width: '72px',
-            padding: '6px 8px',
-            borderRadius: '6px',
-            border: '1px solid var(--border-color)',
-            background: 'var(--bg-tertiary)',
-            color: 'var(--text-primary)',
-            fontSize: '12px',
-          }}
-        />
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-          Current: {temperature.toFixed(2)}
-        </span>
-      </div>
-
-      {!hasPrompts && (
-        <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
-          Stored prompts unavailable for this chronicle (legacy generation). Temperature regen is disabled.
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ============================================================================
 // Refinement Checklist Row
 // ============================================================================
 
@@ -325,7 +226,7 @@ export default function PipelineTab({
   onGenerateCoverImageScene,
   onGenerateCoverImage,
   onImageClick,
-  onRegenerateWithTemperature,
+  onRegenerateWithSampling,
   entityMap,
   styleLibrary,
   styleSelection,
@@ -395,7 +296,7 @@ export default function PipelineTab({
                 Title
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '24px' }}>
-                Generate an evocative title using two-pass synthesis.
+                Generate an evocative title using single-pass candidate generation.
               </div>
               {titleState.generatedAt && (
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', marginLeft: '24px' }}>
@@ -508,12 +409,6 @@ export default function PipelineTab({
         </div>
       </div>
 
-      {/* Temperature Regeneration */}
-      <TemperatureRegenerationControl
-        item={item}
-        onRegenerateWithTemperature={onRegenerateWithTemperature}
-        isGenerating={isGenerating}
-      />
     </div>
   );
 }

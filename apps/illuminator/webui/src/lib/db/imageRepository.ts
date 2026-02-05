@@ -347,6 +347,7 @@ export async function searchImagesWithFilters(filters: {
   model?: string;
   imageType?: string;
   chronicleId?: string;
+  imageRefId?: string;
   searchText?: string;
   limit?: number;
 } = {}): Promise<Array<Omit<ImageRecord, 'blob'> & { hasBlob: boolean }>> {
@@ -363,6 +364,7 @@ export async function searchImagesWithFilters(filters: {
   if (filters.model) images = images.filter((img) => img.model === filters.model);
   if (filters.imageType) images = images.filter((img) => img.imageType === filters.imageType);
   if (filters.chronicleId) images = images.filter((img) => img.chronicleId === filters.chronicleId);
+  if (filters.imageRefId) images = images.filter((img) => img.imageRefId === filters.imageRefId);
 
   if (filters.searchText) {
     const search = filters.searchText.toLowerCase();
@@ -381,6 +383,58 @@ export async function searchImagesWithFilters(filters: {
   }
 
   return images;
+}
+
+/**
+ * Search chronicle images with pagination.
+ * Uses indexed queries when possible for better performance on large libraries.
+ */
+export async function searchChronicleImages(filters: {
+  projectId: string;
+  chronicleId?: string;
+  imageRefId?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{
+  items: Array<Omit<ImageRecord, 'blob'> & { hasBlob: boolean }>;
+  total: number;
+  hasMore: boolean;
+}> {
+  const { projectId, chronicleId, imageRefId, limit = 20, offset = 0 } = filters;
+
+  // Start with indexed query on chronicleId if provided, else projectId
+  let query = chronicleId
+    ? db.images.where('chronicleId').equals(chronicleId)
+    : db.images.where('projectId').equals(projectId);
+
+  let records = await query.toArray();
+
+  // Apply additional filters
+  if (chronicleId && !imageRefId) {
+    // Already filtered by chronicleId via index
+  } else if (imageRefId) {
+    records = records.filter((r) => r.imageRefId === imageRefId);
+  }
+
+  // Only include chronicle images
+  records = records.filter((r) => r.imageType === 'chronicle');
+
+  // Sort by generatedAt descending
+  records.sort((a, b) => (b.generatedAt || 0) - (a.generatedAt || 0));
+
+  const total = records.length;
+
+  // Paginate
+  const items = records.slice(offset, offset + limit).map((record) => ({
+    ...record,
+    hasBlob: true,
+  }));
+
+  return {
+    items,
+    total,
+    hasMore: offset + items.length < total,
+  };
 }
 
 /**

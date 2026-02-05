@@ -1,5 +1,24 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import ChronicleVersionSelector from './ChronicleVersionSelector';
+import { getCallConfig } from '../../lib/llmModelSettings';
+
+/** Format LLM config for display */
+function formatLLMConfig(config) {
+  const parts = [];
+  // Model (shortened)
+  const modelShort = config.model?.replace('claude-', '').replace('-latest', '') || 'default';
+  parts.push(modelShort);
+  // Thinking
+  if (config.thinkingBudget > 0) {
+    parts.push(`think:${config.thinkingBudget}`);
+    // Show topP when thinking is enabled
+    parts.push(`top_p:${config.topP ?? 1.0}`);
+  } else {
+    // Show temperature when thinking is disabled
+    parts.push(`temp:${config.temperature ?? 1.0}`);
+  }
+  return parts.join(', ');
+}
 
 export default function VersionsTab({
   item,
@@ -11,14 +30,27 @@ export default function VersionsTab({
   onSelectVersion,
   onSelectCompareVersion,
   onSetActiveVersion,
+  onDeleteVersion,
   onCompareVersions,
   onCombineVersions,
+  onRegenerateFull,
+  onRegenerateWithSampling,
   onUpdateCombineInstructions,
   compareRunning,
   combineRunning,
 }) {
   const [editingCombineInstructions, setEditingCombineInstructions] = useState(false);
   const [combineInstructionsDraft, setCombineInstructionsDraft] = useState('');
+
+  // Get current LLM settings for display
+  const llmConfigDisplay = useMemo(() => {
+    const perspectiveConfig = getCallConfig('perspective.synthesis');
+    const generationConfig = getCallConfig('chronicle.generation');
+    return {
+      perspective: formatLLMConfig(perspectiveConfig),
+      generation: formatLLMConfig(generationConfig),
+    };
+  }, []);
 
   return (
     <div>
@@ -32,6 +64,7 @@ export default function VersionsTab({
           onSelectVersion={onSelectVersion}
           onSelectCompareVersion={onSelectCompareVersion}
           onSetActiveVersion={onSetActiveVersion}
+          onDeleteVersion={onDeleteVersion}
           disabled={isGenerating}
         />
       </div>
@@ -49,21 +82,21 @@ export default function VersionsTab({
         <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '10px' }}>
           Version Analysis
           <span style={{ marginLeft: '8px', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 400 }}>
-            ({versions.length} versions available)
+            ({versions.length} version{versions.length !== 1 ? 's' : ''} available)
           </span>
         </div>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <button
             onClick={onCompareVersions}
-            disabled={isGenerating || compareRunning || combineRunning}
+            disabled={isGenerating || compareRunning || combineRunning || versions.length < 2}
             style={{
               padding: '8px 14px',
               background: 'var(--bg-tertiary)',
               border: '1px solid var(--border-color)',
               borderRadius: '6px',
               color: 'var(--text-secondary)',
-              cursor: isGenerating || compareRunning || combineRunning ? 'not-allowed' : 'pointer',
-              opacity: isGenerating || compareRunning || combineRunning ? 0.6 : 1,
+              cursor: isGenerating || compareRunning || combineRunning || versions.length < 2 ? 'not-allowed' : 'pointer',
+              opacity: isGenerating || compareRunning || combineRunning || versions.length < 2 ? 0.6 : 1,
               fontSize: '12px',
             }}
           >
@@ -71,15 +104,15 @@ export default function VersionsTab({
           </button>
           <button
             onClick={onCombineVersions}
-            disabled={isGenerating || compareRunning || combineRunning}
+            disabled={isGenerating || compareRunning || combineRunning || versions.length < 2}
             style={{
               padding: '8px 14px',
               background: 'var(--bg-tertiary)',
               border: '1px solid var(--border-color)',
               borderRadius: '6px',
               color: 'var(--text-secondary)',
-              cursor: isGenerating || compareRunning || combineRunning ? 'not-allowed' : 'pointer',
-              opacity: isGenerating || compareRunning || combineRunning ? 0.6 : 1,
+              cursor: isGenerating || compareRunning || combineRunning || versions.length < 2 ? 'not-allowed' : 'pointer',
+              opacity: isGenerating || compareRunning || combineRunning || versions.length < 2 ? 0.6 : 1,
               fontSize: '12px',
             }}
           >
@@ -87,7 +120,9 @@ export default function VersionsTab({
           </button>
         </div>
         <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>
-          Compare produces an analysis report. Combine synthesizes all drafts into a new version.
+          {versions.length < 2
+            ? 'Create a new version first to enable comparison and combination.'
+            : 'Compare produces an analysis report. Combine synthesizes all drafts into a new version.'}
           {item.comparisonReport && !item.combineInstructions && (
             <span style={{ color: 'var(--warning-color, #e6a700)' }}>
               {' '}Combine instructions missing — combine will use generic criteria.
@@ -216,6 +251,102 @@ export default function VersionsTab({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Create New Version */}
+      <div
+        style={{
+          marginBottom: '16px',
+          padding: '12px 16px',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '8px',
+        }}
+      >
+        <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '10px' }}>
+          Create New Version
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+          {/* Regenerate with existing perspective */}
+          <button
+            onClick={() => onRegenerateWithSampling?.()}
+            disabled={
+              isGenerating ||
+              compareRunning ||
+              combineRunning ||
+              !item.generationSystemPrompt ||
+              !item.generationUserPrompt
+            }
+            title="Reuse stored prompts with current LLM sampling settings (fast, same perspective)"
+            style={{
+              padding: '8px 16px',
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '6px',
+              color: 'var(--text-secondary)',
+              cursor:
+                isGenerating ||
+                compareRunning ||
+                combineRunning ||
+                !item.generationSystemPrompt ||
+                !item.generationUserPrompt
+                  ? 'not-allowed'
+                  : 'pointer',
+              opacity:
+                isGenerating ||
+                compareRunning ||
+                combineRunning ||
+                !item.generationSystemPrompt ||
+                !item.generationUserPrompt
+                  ? 0.6
+                  : 1,
+              fontSize: '12px',
+            }}
+          >
+            {isGenerating ? 'Generating...' : 'Regenerate with existing perspective'}
+          </button>
+
+          {/* Regenerate with new perspective */}
+          <button
+            onClick={() => onRegenerateFull?.()}
+            disabled={isGenerating || compareRunning || combineRunning || !onRegenerateFull}
+            title="Run fresh perspective synthesis with current world facts & tone (slower, may differ significantly)"
+            style={{
+              padding: '8px 16px',
+              background: 'var(--accent-primary)',
+              border: 'none',
+              borderRadius: '6px',
+              color: 'white',
+              cursor:
+                isGenerating || compareRunning || combineRunning || !onRegenerateFull
+                  ? 'not-allowed'
+                  : 'pointer',
+              opacity:
+                isGenerating || compareRunning || combineRunning || !onRegenerateFull ? 0.6 : 1,
+              fontSize: '12px',
+            }}
+          >
+            {isGenerating ? 'Generating...' : 'Regenerate with new perspective'}
+          </button>
+        </div>
+
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+          <span style={{ fontWeight: 500 }}>LLM Config:</span>{' '}
+          <span title="perspective.synthesis">perspective: {llmConfigDisplay.perspective}</span>
+          {' · '}
+          <span title="chronicle.generation">generation: {llmConfigDisplay.generation}</span>
+          {(!item.generationSystemPrompt || !item.generationUserPrompt) && (
+            <span style={{ color: 'var(--warning-color, #e6a700)', marginLeft: '8px' }}>
+              Existing perspective unavailable (legacy chronicle).
+            </span>
+          )}
+          {!onRegenerateFull && (
+            <span style={{ color: 'var(--warning-color, #e6a700)', marginLeft: '8px' }}>
+              New perspective requires toneFragments and canonFactsWithMetadata.
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Comparison Report */}

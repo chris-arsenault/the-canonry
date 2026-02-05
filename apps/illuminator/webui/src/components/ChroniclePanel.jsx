@@ -8,13 +8,12 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import ChronicleReviewPanel from './ChronicleReviewPanel';
 import { ChronicleWizard } from './ChronicleWizard';
-import { buildChronicleContext } from '../lib/chronicleContextBuilder';
+import { buildChronicleContext, buildEventHeadline } from '../lib/chronicleContextBuilder';
 import { generateNameBank, extractCultureIds } from '../lib/chronicle/nameBank';
 import { deriveStatus } from '../hooks/useChronicleGeneration';
 import { useChronicleStore } from '../lib/db/chronicleStore';
 import { useChronicleNavItems, useSelectedChronicle } from '../lib/db/chronicleSelectors';
 import { useChronicleActions } from '../hooks/useChronicleActions';
-import { useChronicleQueueWatcher } from '../hooks/useChronicleQueueWatcher';
 import { buildChronicleScenePrompt } from '../lib/promptBuilders';
 import { resolveStyleSelection } from './StyleSelector';
 import { getCoverImageConfig } from '../lib/coverImageStyles';
@@ -29,8 +28,13 @@ import {
   generateChronicleId,
   deriveTitleFromRoles,
   createChronicleShell,
+  resetAllBackportFlags,
+  deleteChronicleVersion,
+  applyImageRefSelections,
 } from '../lib/db/chronicleRepository';
+import { resetEntitiesToPreBackportState } from '../lib/db/entityRepository';
 import { downloadChronicleExport } from '../lib/chronicleExport';
+import { getCallConfig } from '../lib/llmModelSettings';
 
 const REFINEMENT_STEPS = new Set(['summary', 'image_refs', 'compare', 'combine', 'cover_image_scene', 'cover_image']);
 const NAV_PAGE_SIZE = 10;
@@ -146,13 +150,18 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
       syms.push({ symbol: '\u21C4', title: 'Lore backported to cast', color: 'var(--text-secondary)' });
     }
 
+    // Historian notes
+    if (item.historianNoteCount > 0) {
+      syms.push({ symbol: '\u2020', title: 'Historian notes', color: '#8b7355' });
+    }
+
     // Narrative lens
     if (item.lens) {
       syms.push({ symbol: '\u25C8', title: `Lens: ${item.lens.entityName}`, color: '#8b5cf6' });
     }
 
     return syms;
-  }, [item.focusType, item.primaryCount, item.perspectiveSynthesis, item.combineInstructions, item.coverImageComplete, item.loreBackported, item.lens]);
+  }, [item.focusType, item.primaryCount, item.perspectiveSynthesis, item.combineInstructions, item.coverImageComplete, item.loreBackported, item.historianNoteCount, item.lens]);
 
   // Compact numeric badge: cast count + scene image count
   const castCount = (item.primaryCount || 0) + (item.supportingCount || 0);
@@ -327,6 +336,10 @@ export default function ChroniclePanel({
   const [showRestartModal, setShowRestartModal] = useState(false);
   const [pendingRestartChronicleId, setPendingRestartChronicleId] = useState(null);
 
+  // State for reset backport flags modal
+  const [showResetBackportModal, setShowResetBackportModal] = useState(false);
+  const [resetBackportResult, setResetBackportResult] = useState(null);
+
   // State for wizard modal
   const [showWizard, setShowWizard] = useState(false);
   // Seed for restarting with previous settings
@@ -354,16 +367,14 @@ export default function ChroniclePanel({
     }
   }, [simulationRunId]);
 
-  // Bridge enrichment queue completions to targeted store refreshes
-  useChronicleQueueWatcher(queue);
-
   // Enqueue-dependent actions (generate, compare, combine)
   const {
     generateV2,
     generateSummary,
     generateTitle,
     generateImageRefs: _generateImageRefs,
-    regenerateWithTemperature,
+    regenerateWithSampling,
+    regenerateFull,
     compareVersions,
     combineVersions,
   } = useChronicleActions(onEnqueue);
@@ -721,6 +732,7 @@ export default function ChroniclePanel({
         // Required for perspective synthesis
         toneFragments: worldContext.toneFragments,
         canonFactsWithMetadata: worldContext.canonFactsWithMetadata,
+        factSelection: worldContext.factSelection,
         worldDynamics: worldContext.worldDynamics,
       };
 
@@ -932,11 +944,81 @@ export default function ChroniclePanel({
     ]);
   }, [selectedItem, styleLibrary, chronicleStyleSelection, worldContext, onEnqueue, refreshChronicle, chronicleImageSize, chronicleImageQuality]);
 
-  const handleRegenerateWithTemperature = useCallback((temperature) => {
+  const handleRegenerateWithSampling = useCallback(() => {
     if (!selectedItem) return;
-    const clamped = Math.min(1, Math.max(0, Number(temperature)));
-    regenerateWithTemperature(selectedItem.chronicleId, clamped);
-  }, [selectedItem, regenerateWithTemperature]);
+    regenerateWithSampling(selectedItem.chronicleId);
+  }, [selectedItem, regenerateWithSampling]);
+
+  // Full regeneration with new perspective synthesis
+  const handleRegenerateFull = useCallback(async () => {
+    if (!selectedItem || !worldData || !worldContext) {
+      console.error('[Chronicle] Missing selectedItem, worldData, or worldContext for full regeneration');
+      return;
+    }
+
+    // Get the narrative style from library
+    const narrativeStyle = selectedItem.narrativeStyle || styleLibrary?.narrativeStyles?.find(
+      (s) => s.id === selectedItem.narrativeStyleId
+    );
+    if (!narrativeStyle) {
+      console.error('[Chronicle] Narrative style not found:', selectedItem.narrativeStyleId);
+      return;
+    }
+
+    // Validate world context has required fields
+    if (!worldContext?.toneFragments || !worldContext?.canonFactsWithMetadata) {
+      console.error('[Chronicle] Missing toneFragments or canonFactsWithMetadata for full regeneration');
+      return;
+    }
+
+    // Build selections from stored chronicle record
+    const selections = {
+      roleAssignments: selectedItem.roleAssignments || [],
+      lens: selectedItem.lens,
+      selectedEventIds: selectedItem.selectedEventIds || [],
+      selectedRelationshipIds: selectedItem.selectedRelationshipIds || [],
+      entrypointId: selectedItem.entrypointId,
+    };
+
+    // Build world context struct
+    const wc = {
+      name: worldContext?.name || 'The World',
+      description: worldContext?.description || '',
+      toneFragments: worldContext.toneFragments,
+      canonFactsWithMetadata: worldContext.canonFactsWithMetadata,
+      factSelection: worldContext.factSelection,
+      worldDynamics: worldContext.worldDynamics,
+    };
+
+    // Generate name bank for invented characters if needed
+    const entityIds = (selectedItem.roleAssignments || []).map(r => r.entityId);
+    const selectedEntities = worldData.hardState?.filter(e => entityIds.includes(e.id)) || [];
+    const cultureIds = extractCultureIds(selectedEntities);
+    let regenNameBank = {};
+    if (cultureIds.length > 0 && worldData.schema?.cultures) {
+      try {
+        regenNameBank = await generateNameBank(worldData.schema.cultures, cultureIds);
+        console.log('[Chronicle] Generated name bank for full regen:', regenNameBank);
+      } catch (e) {
+        console.warn('[Chronicle] Failed to generate name bank:', e);
+      }
+    }
+
+    // Build chronicle context
+    const context = buildChronicleContext(
+      selections,
+      worldData,
+      wc,
+      narrativeStyle,
+      regenNameBank,
+      worldContext?.proseHints,
+      worldContext?.culturalIdentities,
+      selectedItem.temporalContext
+    );
+
+    // Call regenerateFull with the context (sampling derived from LLM config)
+    regenerateFull(selectedItem.chronicleId, context);
+  }, [selectedItem, worldData, worldContext, styleLibrary?.narrativeStyles, regenerateFull]);
 
   const handleCompareVersions = useCallback(() => {
     if (!selectedItem) return;
@@ -995,6 +1077,41 @@ export default function ChroniclePanel({
     setPendingRestartChronicleId(null);
   }, []);
 
+  // Handle reset all backport flags AND entity descriptions
+  const handleResetBackportConfirm = useCallback(async () => {
+    if (!simulationRunId) return;
+    try {
+      // Reset chronicle flags
+      const chronicleCount = await resetAllBackportFlags(simulationRunId);
+
+      // Reset entity descriptions to pre-backport state
+      const entityResult = await resetEntitiesToPreBackportState(simulationRunId);
+
+      setResetBackportResult({
+        success: true,
+        chronicleCount,
+        entityCount: entityResult.resetCount,
+      });
+      await refresh();
+
+      // Notify host to refresh entity data
+      if (entityResult.entityIds.length > 0) {
+        window.dispatchEvent(new CustomEvent('entities-updated', {
+          detail: { entityIds: entityResult.entityIds },
+        }));
+      }
+    } catch (err) {
+      console.error('[Chronicle] Failed to reset backport state:', err);
+      setResetBackportResult({ success: false, error: String(err) });
+    }
+    setShowResetBackportModal(false);
+  }, [simulationRunId, refresh]);
+
+  const handleResetBackportCancel = useCallback(() => {
+    setShowResetBackportModal(false);
+    setResetBackportResult(null);
+  }, []);
+
   // Prepare wizard data
   const wizardEntities = useMemo(() => {
     if (!entities) return [];
@@ -1045,8 +1162,7 @@ export default function ChroniclePanel({
       era: e.era,
       eventKind: e.eventKind,
       significance: e.significance,
-      // NarrativeEvent.description is the natural language summary (used as headline)
-      headline: e.description,
+      headline: buildEventHeadline(e),
       description: e.description,
       subjectId: e.subject?.id,
       subjectName: e.subject?.name,
@@ -1110,6 +1226,11 @@ export default function ChroniclePanel({
       return;
     }
 
+    // Derive sampling mode from global LLM config
+    const chronicleConfig = getCallConfig('chronicle.generation');
+    const NORMAL_TOP_P = 1.0;
+    const isLowSampling = (chronicleConfig.topP ?? NORMAL_TOP_P) < NORMAL_TOP_P;
+
     // Generate unique chronicle ID (chronicle-first: ID is independent of entities)
     const chronicleId = generateChronicleId();
 
@@ -1132,6 +1253,7 @@ export default function ChroniclePanel({
       description: worldContext?.description || '',
       toneFragments: worldContext.toneFragments,
       canonFactsWithMetadata: worldContext.canonFactsWithMetadata,
+      factSelection: worldContext.factSelection,
       worldDynamics: worldContext.worldDynamics,
     };
 
@@ -1193,6 +1315,7 @@ export default function ChroniclePanel({
       selectedRelationshipIds: wizardConfig.selectedRelationshipIds,
       entrypointId: wizardConfig.entryPointId,
       temporalContext: wizardConfig.temporalContext,
+      generationSampling: isLowSampling ? 'low' : 'normal',
     };
 
     console.log('[Chronicle Wizard] Generated chronicle:', {
@@ -1221,6 +1344,7 @@ export default function ChroniclePanel({
         selectedRelationshipIds: wizardConfig.selectedRelationshipIds,
         entrypointId: wizardConfig.entryPointId,
         temporalContext: wizardConfig.temporalContext,
+        generationSampling: isLowSampling ? 'low' : 'normal',
       });
       // Refresh to show the new shell record
       await refresh();
@@ -1228,8 +1352,8 @@ export default function ChroniclePanel({
       console.error('[Chronicle Wizard] Failed to create shell record:', err);
     }
 
-    // Generate the chronicle
-    generateV2(chronicleId, context, chronicleMetadata, wizardConfig.temperatureOverride);
+    // Generate the chronicle (sampling is now controlled globally via LLM config)
+    generateV2(chronicleId, context, chronicleMetadata);
 
     // Select the newly generated chronicle by its chronicleId
     setSelectedItemId(chronicleId);
@@ -1317,6 +1441,28 @@ export default function ChroniclePanel({
     [selectedItem, refreshChronicle]
   );
 
+  const handleApplyImageRefSelections = useCallback(
+    async (selections, newTargetVersionId) => {
+      if (!selectedItem?.chronicleId) return;
+      await applyImageRefSelections(selectedItem.chronicleId, selections, newTargetVersionId);
+      await refreshChronicle(selectedItem.chronicleId);
+    },
+    [selectedItem, refreshChronicle]
+  );
+
+  const handleSelectExistingImage = useCallback(
+    async (ref, imageId) => {
+      if (!selectedItem?.chronicleId) return;
+      await updateChronicleImageRef(selectedItem.chronicleId, ref.refId, {
+        generatedImageId: imageId,
+        status: 'complete',
+        error: undefined,
+      });
+      await refreshChronicle(selectedItem.chronicleId);
+    },
+    [selectedItem, refreshChronicle]
+  );
+
   const handleUpdateChronicleTemporalContext = useCallback(
     (focalEraId) => {
       if (!selectedItem?.chronicleId || !focalEraId) return;
@@ -1376,7 +1522,19 @@ export default function ChroniclePanel({
   const handleUpdateChronicleActiveVersion = useCallback(
     (versionId) => {
       if (!selectedItem?.chronicleId || !versionId) return;
-      updateChronicleActiveVersion(selectedItem.chronicleId, versionId).then(() => refreshChronicle(selectedItem.chronicleId));
+      updateChronicleActiveVersion(selectedItem.chronicleId, versionId)
+        .then(() => refreshChronicle(selectedItem.chronicleId))
+        .catch((err) => console.error('[Chronicle] Failed to update active version:', err));
+    },
+    [selectedItem, refreshChronicle]
+  );
+
+  const handleDeleteVersion = useCallback(
+    (versionId) => {
+      if (!selectedItem?.chronicleId || !versionId) return;
+      deleteChronicleVersion(selectedItem.chronicleId, versionId)
+        .then(() => refreshChronicle(selectedItem.chronicleId))
+        .catch((err) => console.error('[Chronicle] Failed to delete version:', err));
     },
     [selectedItem, refreshChronicle]
   );
@@ -1411,64 +1569,6 @@ export default function ChroniclePanel({
 
     downloadChronicleExport(chronicle);
   }, [selectedItem]);
-
-  // Track completed chronicle image tasks and update chronicle records
-  const processedChronicleImageTasksRef = useRef(new Set());
-  useEffect(() => {
-    for (const task of queue) {
-      // Look for completed chronicle image tasks that we haven't processed yet
-      if (
-        task.type === 'image' &&
-        task.imageType === 'chronicle' &&
-        task.status === 'complete' &&
-        task.chronicleId &&
-        task.imageRefId &&
-        task.result?.imageId &&
-        !processedChronicleImageTasksRef.current.has(task.id)
-      ) {
-        // Mark as processed to avoid duplicate updates
-        processedChronicleImageTasksRef.current.add(task.id);
-
-        if (task.imageRefId === '__cover_image__') {
-          // Update cover image status
-          updateChronicleCoverImageStatus(task.chronicleId, {
-            status: 'complete',
-            generatedImageId: task.result.imageId,
-          }).then(() => refreshChronicle(task.chronicleId));
-        } else {
-          // Update the chronicle's image ref with the generated image ID
-          updateChronicleImageRef(task.chronicleId, task.imageRefId, {
-            status: 'complete',
-            generatedImageId: task.result.imageId,
-          }).then(() => refreshChronicle(task.chronicleId));
-        }
-      }
-
-      // Also handle failed chronicle image tasks
-      if (
-        task.type === 'image' &&
-        task.imageType === 'chronicle' &&
-        task.status === 'error' &&
-        task.chronicleId &&
-        task.imageRefId &&
-        !processedChronicleImageTasksRef.current.has(task.id)
-      ) {
-        processedChronicleImageTasksRef.current.add(task.id);
-
-        if (task.imageRefId === '__cover_image__') {
-          updateChronicleCoverImageStatus(task.chronicleId, {
-            status: 'failed',
-            error: task.error || 'Image generation failed',
-          }).then(() => refreshChronicle(task.chronicleId));
-        } else {
-          updateChronicleImageRef(task.chronicleId, task.imageRefId, {
-            status: 'failed',
-            error: task.error || 'Image generation failed',
-          }).then(() => refreshChronicle(task.chronicleId));
-        }
-      }
-    }
-  }, [queue, refreshChronicle]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -1513,6 +1613,17 @@ export default function ChroniclePanel({
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
               {stats.complete} / {chronicleItems.length} complete
             </span>
+            <button
+              onClick={() => setShowResetBackportModal(true)}
+              className="illuminator-button"
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+              }}
+              title="Reset loreBackported flag on all chronicles (for re-running backport)"
+            >
+              Reset Backports
+            </button>
             {autoBackportQueue ? (
               <button
                 onClick={onCancelAutoBackport}
@@ -1860,7 +1971,8 @@ export default function ChroniclePanel({
                   imageModel={imageModel}
                   imageGenSettings={imageGenSettings}
                   onOpenImageSettings={onOpenImageSettings}
-                  onRegenerateWithTemperature={handleRegenerateWithTemperature}
+                  onRegenerateWithSampling={handleRegenerateWithSampling}
+                  onRegenerateFull={handleRegenerateFull}
                   onCompareVersions={handleCompareVersions}
                   onCombineVersions={handleCombineVersions}
                   onGenerateChronicleImage={handleGenerateChronicleImage}
@@ -1869,13 +1981,18 @@ export default function ChroniclePanel({
                   onUpdateChronicleAnchorText={handleUpdateChronicleAnchorText}
                   onUpdateChronicleImageSize={handleUpdateChronicleImageSize}
                   onUpdateChronicleImageJustification={handleUpdateChronicleImageJustification}
+                  onApplyImageRefSelections={handleApplyImageRefSelections}
+                  onSelectExistingImage={handleSelectExistingImage}
                   onUpdateChronicleTemporalContext={handleUpdateChronicleTemporalContext}
                   onUpdateChronicleActiveVersion={handleUpdateChronicleActiveVersion}
+                  onDeleteVersion={handleDeleteVersion}
                   onUpdateCombineInstructions={handleUpdateCombineInstructions}
                   onUnpublish={handleUnpublish}
                   onExport={handleExport}
                   onBackportLore={onBackportLore ? () => onBackportLore(selectedItem.chronicleId) : undefined}
-                  onHistorianReview={onHistorianReview && historianConfigured ? (tone) => onHistorianReview(selectedItem.chronicleId, tone) : undefined}
+                  onHistorianReview={onHistorianReview && historianConfigured && selectedItem.status === 'complete'
+                    ? (tone) => onHistorianReview(selectedItem.chronicleId, tone)
+                    : undefined}
                   isHistorianActive={isHistorianActive}
                   onUpdateHistorianNote={onUpdateHistorianNote}
                   isGenerating={isGenerating}
@@ -1957,6 +2074,118 @@ export default function ChroniclePanel({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Reset Backport Flags confirmation modal */}
+      {showResetBackportModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={handleResetBackportCancel}
+        >
+          <div
+            style={{
+              background: 'var(--bg-primary)',
+              borderRadius: '12px',
+              padding: '24px',
+              maxWidth: '450px',
+              width: '90%',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px' }}>Reset All Backports?</h3>
+            <p style={{ margin: '0 0 16px 0', color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6 }}>
+              This will:
+            </p>
+            <ul style={{ margin: '0 0 16px 0', paddingLeft: '20px', color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.8 }}>
+              <li>Set <code style={{ background: 'var(--bg-tertiary)', padding: '2px 6px', borderRadius: '4px' }}>loreBackported = false</code> on all chronicles</li>
+              <li>Restore entity descriptions to their pre-backport state</li>
+              <li>Clear chronicle backref links from entities</li>
+            </ul>
+            <p style={{ margin: '0 0 20px 0', color: 'var(--text-muted)', fontSize: '13px' }}>
+              Use this when you plan to regenerate chronicles and re-run backporting from scratch.
+              Entity descriptions will be reverted to what they were before any lore backport was applied.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={handleResetBackportCancel}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResetBackportConfirm}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  background: '#f59e0b',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                Reset All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Backport Result notification */}
+      {resetBackportResult && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            background: resetBackportResult.success ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)',
+            color: 'white',
+            padding: '16px 24px',
+            borderRadius: '8px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+            zIndex: 1001,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+          onClick={() => setResetBackportResult(null)}
+        >
+          <span>
+            {resetBackportResult.success
+              ? `Reset ${resetBackportResult.chronicleCount} chronicle${resetBackportResult.chronicleCount !== 1 ? 's' : ''}, restored ${resetBackportResult.entityCount} entit${resetBackportResult.entityCount !== 1 ? 'ies' : 'y'}`
+              : `Error: ${resetBackportResult.error}`}
+          </span>
+          <button
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '16px',
+            }}
+          >
+            &times;
+          </button>
         </div>
       )}
 

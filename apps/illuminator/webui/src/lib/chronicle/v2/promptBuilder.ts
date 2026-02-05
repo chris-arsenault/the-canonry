@@ -17,10 +17,14 @@ import {
   collapseBidirectionalRelationships,
   type CollapsedRelationship,
 } from '../selectionWizard';
-import type {
-  NarrativeStyle,
-  StoryNarrativeStyle,
-  DocumentNarrativeStyle,
+import {
+  type NarrativeStyle,
+  type StoryNarrativeStyle,
+  type DocumentNarrativeStyle,
+  type ProminenceScale,
+  buildProminenceScale,
+  DEFAULT_PROMINENCE_DISTRIBUTION,
+  prominenceLabelFromScale,
 } from '@canonry/world-schema';
 import type { V2SelectionResult } from './types';
 
@@ -33,7 +37,33 @@ import type { EntityDirective } from '../../perspectiveSynthesizer';
 /**
  * Format a single entity with full details (for entry point).
  */
-function formatEntityFull(e: EntityContext): string {
+function resolveProminenceLabel(
+  value: EntityContext['prominence'] | number | undefined,
+  scale: ProminenceScale
+): string {
+  if (value == null) return 'unknown';
+  if (typeof value === 'number') {
+    return prominenceLabelFromScale(value, scale);
+  }
+  const trimmed = String(value).trim();
+  if (!trimmed) return 'unknown';
+  if (scale.labels.includes(trimmed)) return trimmed;
+  const numeric = Number(trimmed);
+  if (Number.isFinite(numeric)) {
+    return prominenceLabelFromScale(numeric, scale);
+  }
+  return trimmed;
+}
+
+function buildProminenceScaleForEntities(entities: Array<EntityContext | undefined>): ProminenceScale {
+  const values = entities
+    .filter((e): e is EntityContext => Boolean(e))
+    .map((e) => Number(e.prominence))
+    .filter((value) => Number.isFinite(value));
+  return buildProminenceScale(values, { distribution: DEFAULT_PROMINENCE_DISTRIBUTION });
+}
+
+function formatEntityFull(e: EntityContext, scale: ProminenceScale): string {
   const desc = e.description || '(no description available)';
   const tags = e.tags && Object.keys(e.tags).length > 0
     ? Object.entries(e.tags).map(([k, v]) => `${k}=${v}`).join(', ')
@@ -41,7 +71,7 @@ function formatEntityFull(e: EntityContext): string {
 
   const lines = [
     `Kind: ${e.kind}${e.subtype ? `/${e.subtype}` : ''}`,
-    `Prominence: ${e.prominence}`,
+    `Prominence: ${resolveProminenceLabel(e.prominence, scale)}`,
     e.culture ? `Culture: ${e.culture}` : null,
     tags ? `Tags: ${tags}` : null,
     '',
@@ -55,10 +85,10 @@ function formatEntityFull(e: EntityContext): string {
  * Format a single entity briefly (for supporting characters).
  * Uses ### to nest under ## Supporting Characters section.
  */
-function formatEntityBrief(e: EntityContext): string {
+function formatEntityBrief(e: EntityContext, scale: ProminenceScale): string {
   const desc = e.description || '(no description available)';
   return `### ${e.name} (${e.kind}${e.subtype ? `/${e.subtype}` : ''})
-Prominence: ${e.prominence}${e.culture ? `, Culture: ${e.culture}` : ''}
+Prominence: ${resolveProminenceLabel(e.prominence, scale)}${e.culture ? `, Culture: ${e.culture}` : ''}
 ${desc}`;
 }
 
@@ -132,7 +162,8 @@ function buildDataSection(selection: V2SelectionResult): string {
 
   if (selection.events.length > 0) {
     if (lines.length > 0) lines.push('');
-    lines.push('# Events');
+    lines.push('# TIMELINE');
+    lines.push('## Events');
     for (const evt of selection.events) {
       lines.push(formatEvent(evt));
     }
@@ -260,8 +291,8 @@ function buildNarrativeVoiceSection(
     return '';
   }
 
-  const lines: string[] = ['# Narrative Voice'];
-  lines.push('Synthesized prose guidance for this chronicle:');
+  const lines: string[] = ['# Story Bible: Tone & Atmosphere'];
+  lines.push('Reference notes on emotional texture — draw on these, but show don\'t tell:');
   lines.push('');
 
   for (const [key, value] of Object.entries(narrativeVoice)) {
@@ -282,8 +313,8 @@ function buildEntityDirectivesSection(
     return '';
   }
 
-  const lines: string[] = ['# Entity Writing Directives'];
-  lines.push('Specific guidance for writing each entity — interpret creatively, don\'t reproduce this language directly:');
+  const lines: string[] = ['# Story Bible: Character Notes'];
+  lines.push('Background on relationships and history — bring alive through specificity, don\'t explain:');
   lines.push('');
 
   for (const directive of entityDirectives) {
@@ -298,7 +329,10 @@ function buildEntityDirectivesSection(
  * Provides contextual framing from an intangible entity (rule, occurrence, ability)
  * that shapes the story without being a cast member.
  */
-function buildNarrativeLensSection(context: ChronicleGenerationContext): string {
+function buildNarrativeLensSection(
+  context: ChronicleGenerationContext,
+  scale: ProminenceScale
+): string {
   if (!context.lensEntity) {
     return '';
   }
@@ -313,7 +347,7 @@ function buildNarrativeLensSection(context: ChronicleGenerationContext): string 
   lines.push('This story exists in the shadow of:');
   lines.push('');
   lines.push(`## ${entity.name} (${entity.kind}${entity.subtype ? `/${entity.subtype}` : ''})`);
-  lines.push(`Prominence: ${entity.prominence}${entity.culture ? `, Culture: ${entity.culture}` : ''}`);
+  lines.push(`Prominence: ${resolveProminenceLabel(entity.prominence, scale)}${entity.culture ? `, Culture: ${entity.culture}` : ''}`);
   if (tags) lines.push(`Tags: ${tags}`);
   lines.push('');
   lines.push(desc);
@@ -355,9 +389,12 @@ function buildStoryStructureSection(style: StoryNarrativeStyle): string {
 function buildUnifiedCastSection(
   selection: V2SelectionResult,
   primaryEntityIds: Set<string>,
-  style: StoryNarrativeStyle
+  style: StoryNarrativeStyle,
+  prominenceScale: ProminenceScale
 ): string {
   const lines: string[] = [`# Cast (${selection.entities.length} characters)`];
+  lines.push('');
+  lines.push('**Temporal context**: Entity descriptions reflect their CURRENT state — who they became, how they ended up. This chronicle depicts PAST EVENTS when characters who are now dead/changed were alive and active. Write them as they WERE during the story, not as they ARE now.');
 
   // Role expectations first - so LLM knows what to look for
   if (style.roles && style.roles.length > 0) {
@@ -382,7 +419,7 @@ function buildUnifiedCastSection(
     for (const entity of primaryEntities) {
       lines.push('');
       lines.push(`### ${entity.name}`);
-      lines.push(formatEntityFull(entity));
+      lines.push(formatEntityFull(entity, prominenceScale));
     }
   }
 
@@ -392,7 +429,7 @@ function buildUnifiedCastSection(
     lines.push('## Supporting Characters');
     for (const entity of supportingEntities) {
       lines.push('');
-      lines.push(formatEntityBrief(entity));
+      lines.push(formatEntityBrief(entity, prominenceScale));
     }
   }
 
@@ -469,7 +506,8 @@ function buildStoryPrompt(
   narrativeVoiceSection: string,
   entityDirectivesSection: string,
   nameBankSection: string,
-  style: StoryNarrativeStyle
+  style: StoryNarrativeStyle,
+  prominenceScale: ProminenceScale
 ): string {
   const pacing = style.pacing;
   const wordRange = `${pacing.totalWordCount.min}-${pacing.totalWordCount.max}`;
@@ -481,13 +519,15 @@ function buildStoryPrompt(
 
   // 1. TASK
   const taskSection = `# Task
-Write a ${wordRange} word narrative in ${sceneRange} distinct scenes.
+Write a ${wordRange} word piece of engaging fantasy fiction in ${sceneRange} distinct scenes.
+
+Your goal: A story that readers remember — with characters they care about, moments that land, and prose that moves. The world exists through what characters notice and feel, not through explanation.
 
 Requirements:
 - Assign the provided characters to the narrative roles defined below
 - Follow the plot structure and scene progression
-- Incorporate the listed events naturally into the narrative
-- Follow the Entity Writing Directives for each character's speech and behavior
+- Incorporate the listed events as lived moments, not reported history
+- Use the research notes as inspiration for how characters relate
 - Write directly with no section headers or meta-commentary`;
 
   // 2. NARRATIVE STRUCTURE
@@ -506,10 +546,10 @@ Requirements:
   // === WORLD DATA ===
 
   // 7. CAST (unified roles + characters)
-  const castSection = buildUnifiedCastSection(selection, primaryEntityIds, style);
+  const castSection = buildUnifiedCastSection(selection, primaryEntityIds, style, prominenceScale);
 
   // 7b. NARRATIVE LENS (contextual frame entity)
-  const lensSection = buildNarrativeLensSection(context);
+  const lensSection = buildNarrativeLensSection(context, prominenceScale);
 
   // 8. WORLD (setting context only, no style)
   const worldSection = buildWorldSection(context);
@@ -678,9 +718,12 @@ ${instructions}`;
 function buildUnifiedDocumentCastSection(
   selection: V2SelectionResult,
   primaryEntityIds: Set<string>,
-  style: DocumentNarrativeStyle
+  style: DocumentNarrativeStyle,
+  prominenceScale: ProminenceScale
 ): string {
   const lines: string[] = [`# Cast (${selection.entities.length} characters)`];
+  lines.push('');
+  lines.push('**Temporal context**: Entity descriptions reflect their CURRENT state — who they became, how they ended up. This chronicle depicts PAST EVENTS when characters who are now dead/changed were alive and active. Write them as they WERE during the story, not as they ARE now.');
   const roles = getDocumentRoles(style);
 
   // Role expectations first - so LLM knows what to look for
@@ -706,7 +749,7 @@ function buildUnifiedDocumentCastSection(
     for (const entity of primaryEntities) {
       lines.push('');
       lines.push(`### ${entity.name}`);
-      lines.push(formatEntityFull(entity));
+      lines.push(formatEntityFull(entity, prominenceScale));
     }
   }
 
@@ -716,7 +759,7 @@ function buildUnifiedDocumentCastSection(
     lines.push('## Supporting Characters');
     for (const entity of supportingEntities) {
       lines.push('');
-      lines.push(formatEntityBrief(entity));
+      lines.push(formatEntityBrief(entity, prominenceScale));
     }
   }
 
@@ -749,7 +792,8 @@ function buildDocumentPrompt(
   narrativeVoiceSection: string,
   entityDirectivesSection: string,
   nameBankSection: string,
-  style: DocumentNarrativeStyle
+  style: DocumentNarrativeStyle,
+  prominenceScale: ProminenceScale
 ): string {
   const wordCount = getDocumentWordCount(style);
   const wordRange = `${wordCount.min}-${wordCount.max}`;
@@ -782,10 +826,10 @@ Requirements:
   // === WORLD DATA ===
 
   // 6. CAST (unified roles + characters)
-  const castSection = buildUnifiedDocumentCastSection(selection, primaryEntityIds, style);
+  const castSection = buildUnifiedDocumentCastSection(selection, primaryEntityIds, style, prominenceScale);
 
   // 6b. NARRATIVE LENS (contextual frame entity)
-  const lensSection = buildNarrativeLensSection(context);
+  const lensSection = buildNarrativeLensSection(context, prominenceScale);
 
   // 7. WORLD (setting context)
   const worldSection = buildWorldSection(context);
@@ -834,6 +878,10 @@ export function buildV2Prompt(
   const narrativeVoiceSection = buildNarrativeVoiceSection(context.narrativeVoice);
   const entityDirectivesSection = buildEntityDirectivesSection(context.entityDirectives);
   const nameBankSection = buildNameBankSection(context.nameBank, selection.entities);
+  const prominenceScale = buildProminenceScaleForEntities([
+    ...selection.entities,
+    context.lensEntity,
+  ]);
 
   if (style.format === 'story') {
     return buildStoryPrompt(
@@ -843,7 +891,8 @@ export function buildV2Prompt(
       narrativeVoiceSection,
       entityDirectivesSection,
       nameBankSection,
-      style as StoryNarrativeStyle
+      style as StoryNarrativeStyle,
+      prominenceScale
     );
   } else {
     return buildDocumentPrompt(
@@ -853,7 +902,8 @@ export function buildV2Prompt(
       narrativeVoiceSection,
       entityDirectivesSection,
       nameBankSection,
-      style as DocumentNarrativeStyle
+      style as DocumentNarrativeStyle,
+      prominenceScale
     );
   }
 }
@@ -867,8 +917,10 @@ export function getMaxTokensFromStyle(style: NarrativeStyle): number {
     ? (style as StoryNarrativeStyle).pacing.totalWordCount.max
     : getDocumentWordCount(style as DocumentNarrativeStyle).max;
 
-  // Add 50% buffer for safety
-  return Math.ceil(maxWords / 0.75 * 1.5);
+  // Add 50% buffer for safety, but never go below a practical minimum.
+  const minAutoMaxTokens = 1024;
+  const estimated = Math.ceil(maxWords / 0.75 * 1.5);
+  return Math.max(estimated, minAutoMaxTokens);
 }
 
 /**
@@ -877,46 +929,44 @@ export function getMaxTokensFromStyle(style: NarrativeStyle): number {
  */
 export function getV2SystemPrompt(style: NarrativeStyle): string {
   if (style.format === 'story') {
-    return `You are a narrative writer creating world lore. Your prompt contains:
+    return `You are an expert fantasy author writing engaging fiction. Your readers expect vivid characters, emotional truth, and prose that lands.
 
-TASK DATA (how to write it):
-- Task: Word count, scene count, requirements
-- Narrative Structure: Scene progression and emotional beats - THIS IS PRIMARY
-- Event Usage: How to incorporate world events
-- Narrative Voice: Synthesized prose guidance blending cultural and stylistic elements
-- Entity Writing Directives: Per-entity guidance for speech, behavior, and portrayal
-- Writing Style: World tone sets the backdrop; Prose instructions are specific to this story type
+Your prompt contains:
+
+CRAFT (how to write):
+- Narrative Structure: Your beat sheet — scene progression and emotional shape
+- Writing Style: Prose craft specific to this story type
+
+STORY BIBLE (background reference, not requirements):
+- Tone & Atmosphere: Notes on emotional texture — show don't tell
+- Character Notes: Relationships and history — bring alive through specificity
 
 WORLD DATA (what to write about):
-- Cast: Narrative roles to fill, then characters to fill them
-- Narrative Lens (optional): A contextual entity (rule, occurrence, ability) that shapes the story without being a character — treat as ambient constraint
-- World: Setting name, description, canon facts
-- Name Bank: Culture-appropriate names for invented characters
-- Historical Context: Current era and world timeline
-- Relationships: Connections between characters
-- Events: What happened in the world
+- Cast: Characters to bring alive — descriptions show their FINAL state, but you're writing PAST EVENTS when they were alive/active
+- Narrative Lens (optional): A contextual entity that shapes the story without being a character
+- World: Setting context and canon facts
+- Events: What happened — show these through character experience, don't document them
 
-Hierarchy: Narrative Structure and Prose instructions define THIS story. Narrative Voice and Entity Directives are pre-synthesized guidance — follow their intent closely, but express them in your own voice. Writing Style provides the ambient tone everything sits within. The Narrative Lens, when present, provides contextual gravity — weave it into characters' decisions and the world's constraints without explaining it.`;
+CRITICAL: Entity descriptions reflect who characters BECAME. Write them as they WERE during the story's events. A character described as dead was alive when your story takes place.
+
+Craft defines how to write; Story Bible is background reference. Show don't tell — the world exists through what characters notice, do, and feel.`;
   } else {
-    return `You are writing an in-universe document. Your prompt contains:
+    return `You are crafting an in-universe document that feels authentic and alive. Your prompt contains:
 
-TASK DATA (how to write it):
-- Task: Word count, requirements
-- Document Instructions: Structure, voice, tone, what to include/avoid - THIS IS PRIMARY
-- Event Usage: How to incorporate world events
-- Narrative Voice: Synthesized prose guidance blending cultural and stylistic elements
-- Entity Writing Directives: Per-entity guidance for speech, behavior, and portrayal
+CRAFT (how to write):
+- Document Instructions: Structure, voice, tone - THIS DEFINES YOUR DOCUMENT
+
+STORY BIBLE (background reference):
+- Tone & Atmosphere: Notes on emotional texture
+- Character Notes: Relationships and history
 
 WORLD DATA (what to write about):
-- Cast: Document roles to fill, then characters to fill them
-- Narrative Lens (optional): A contextual entity (rule, occurrence, ability) that shapes the document without being a character — treat as ambient constraint
-- World: Setting name, description, canon facts
-- Name Bank: Culture-appropriate names for invented characters
-- Historical Context: Current era and world timeline
-- Relationships: Connections between characters
-- Events: What happened in the world
+- Cast: Characters referenced — descriptions show their FINAL state, but the document may depict PAST EVENTS when they were alive/active
+- Narrative Lens (optional): A contextual entity that shapes the document's assumptions
+- World: Setting context and canon facts
+- Events: What happened — reference naturally, don't list
 
-Hierarchy: Document Instructions define THIS document's structure and voice. Narrative Voice and Entity Directives are pre-synthesized guidance — follow their intent closely, but express them in your own voice. The Narrative Lens, when present, provides contextual gravity — weave it into the document's assumptions and references without explaining it.
+Entity descriptions reflect who characters BECAME. If depicting past events, write them as they WERE during those events.
 
 Write authentically as if the document exists within the world. No meta-commentary.`;
   }

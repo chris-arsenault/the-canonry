@@ -7,6 +7,7 @@
 
 import type { ChronicleFormat, ChronicleGenerationContext, ChronicleImageRefs, EraTemporalInfo } from './chronicleTypes';
 import type { HistorianNote } from './historianTypes';
+import type { ResolvedLLMCallSettings } from './llmModelSettings';
 
 export type EnrichmentType = 'description' | 'image' | 'entityChronicle' | 'paletteExpansion' | 'dynamicsGeneration' | 'summaryRevision' | 'chronicleLoreBackport' | 'copyEdit' | 'historianReview';
 
@@ -196,6 +197,10 @@ export interface EnrichmentTaskBase {
   chronicleContext?: ChronicleGenerationContext;
   chronicleStep?: ChronicleStep;
   chronicleId?: string;
+  /** Optional metadata snapshot for chronicle generation */
+  chronicleMetadata?: {
+    generationSampling?: 'normal' | 'low';
+  };
   // For chronicle image tasks
   imageRefId?: string;
   sceneDescription?: string;
@@ -227,8 +232,6 @@ export interface EnrichmentTaskBase {
   entityLockedSummaryText?: string;
   /** Narrative hint to guide description generation (always used as prompt input when present) */
   entityNarrativeHintText?: string;
-  /** Optional temperature override for chronicle generation/regeneration */
-  chronicleTemperature?: number;
   /** Elements to avoid in visual thesis (overused motifs, from project config) */
   visualAvoid?: string;
   /** Per-kind domain instructions for visual thesis (required for description tasks) */
@@ -271,7 +274,8 @@ export type QueueItem = EnrichmentTaskPayload & {
  */
 export type ChronicleStep =
   | 'generate_v2'  // Single-shot generation
-  | 'regenerate_temperature' // Re-run chronicle generation with prior prompts
+  | 'regenerate_temperature' // Re-run chronicle generation with prior prompts (sampling mode)
+  | 'regenerate_full' // Full regeneration with new perspective synthesis (creates new version)
   | 'compare'  // Compare all versions (produces report, no new draft)
   | 'combine'  // Combine all versions into a new draft
   | 'validate'
@@ -289,6 +293,8 @@ export type ChronicleStep =
  */
 export type WorkerTask = EnrichmentTaskPayload & {
   projectId: string;
+  /** Snapshot of resolved LLM call settings at execution time */
+  llmCallSettings?: ResolvedLLMCallSettings;
 };
 
 /**

@@ -12,10 +12,14 @@ variable "prefix" {
   default     = "pt-viewer"
 }
 
-variable "domain_name" {
-  description = "Domain name for the website"
-  type        = string
-  default     = "penguin-tales.com"
+variable "domains" {
+  description = "Domain names for the website (apex domains)."
+  type        = list(string)
+
+  validation {
+    condition     = length(var.domains) > 0 && alltrue([for d in var.domains : trimspace(d) != ""])
+    error_message = "domains must include at least one non-empty domain name."
+  }
 }
 
 variable "image_prefix" {

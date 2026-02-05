@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 export default function ChronicleVersionSelector({
   versions,
   selectedVersionId,
@@ -6,15 +8,30 @@ export default function ChronicleVersionSelector({
   onSelectVersion,
   onSelectCompareVersion,
   onSetActiveVersion,
+  onDeleteVersion,
   disabled,
 }) {
   const isActive = selectedVersionId === activeVersionId;
+  const canDelete = versions.length > 1 && onDeleteVersion;
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const handleDeleteClick = () => {
+    if (confirmingDelete) {
+      onDeleteVersion(selectedVersionId);
+      setConfirmingDelete(false);
+    } else {
+      setConfirmingDelete(true);
+    }
+  };
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
       <select
         value={selectedVersionId}
-        onChange={(e) => onSelectVersion(e.target.value)}
+        onChange={(e) => {
+          onSelectVersion(e.target.value);
+          setConfirmingDelete(false);
+        }}
         disabled={disabled}
         className="illuminator-select"
         style={{ width: 'auto', minWidth: '240px', fontSize: '12px', padding: '4px 6px' }}
@@ -65,6 +82,27 @@ export default function ChronicleVersionSelector({
           }}
         >
           Make Active
+        </button>
+      )}
+      {canDelete && (
+        <button
+          onClick={handleDeleteClick}
+          onBlur={() => setConfirmingDelete(false)}
+          disabled={disabled}
+          title={confirmingDelete ? 'Click again to confirm deletion' : 'Delete this version'}
+          style={{
+            padding: '6px 12px',
+            fontSize: '11px',
+            background: confirmingDelete ? 'var(--error-color, #ef4444)' : 'var(--bg-tertiary)',
+            border: `1px solid ${confirmingDelete ? 'var(--error-color, #ef4444)' : 'var(--border-color)'}`,
+            borderRadius: '6px',
+            color: confirmingDelete ? '#fff' : 'var(--text-muted)',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            opacity: disabled ? 0.6 : 1,
+            transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+          }}
+        >
+          {confirmingDelete ? 'Confirm Delete' : 'Delete'}
         </button>
       )}
     </div>

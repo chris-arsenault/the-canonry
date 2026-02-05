@@ -26,7 +26,9 @@ import {
   computeIntensityCurve,
   getTimelineExtent,
   getEventsInRange,
+  prepareCastMarkers,
 } from '../../../lib/chronicle/timelineUtils';
+import type { EntityContext } from '../../../lib/chronicleTypes';
 import { IntensitySparkline, TimelineBrush, NarrativeTimeline } from '../visualizations';
 
 export default function EventResolutionStep() {
@@ -56,10 +58,15 @@ export default function EventResolutionStep() {
     setEventMetrics(metrics);
   }, [computeEventMetricsForSelection]);
 
-  // Get relevant relationships (between assigned entities)
+  // Get relevant relationships (between assigned entities + lens)
+  const lensEntityIds = useMemo(() =>
+    state.lens ? [state.lens.entityId] : [],
+    [state.lens]
+  );
+
   const relevantRelationships = useMemo(() => {
-    return getRelevantRelationships(state.roleAssignments, state.candidateRelationships);
-  }, [state.roleAssignments, state.candidateRelationships]);
+    return getRelevantRelationships(state.roleAssignments, state.candidateRelationships, lensEntityIds);
+  }, [state.roleAssignments, state.candidateRelationships, lensEntityIds]);
 
   // Get ALL relevant events (involving assigned entities) - before filtering
   const allRelevantEvents = useMemo(() => {
@@ -105,6 +112,20 @@ export default function EventResolutionStep() {
   const timelineExtent = useMemo(() => {
     return getTimelineExtent(eras);
   }, [eras]);
+
+  // Build entity map for cast marker lookup
+  const entityMap = useMemo(() => {
+    const map = new Map<string, EntityContext>();
+    for (const entity of state.candidates) {
+      map.set(entity.id, entity);
+    }
+    return map;
+  }, [state.candidates]);
+
+  // Compute cast markers from role assignments, entry point, and lens
+  const castMarkers = useMemo(() => {
+    return prepareCastMarkers(state.roleAssignments, entityMap, state.entryPoint, state.lens);
+  }, [state.roleAssignments, entityMap, state.entryPoint, state.lens]);
 
   // Collapse bidirectional relationships for display
   const collapsedRelationships = useMemo(() =>
@@ -262,10 +283,11 @@ export default function EventResolutionStep() {
             events={timelineEvents}
             eraRanges={eraRanges}
             width={700}
-            height={120}
+            height={castMarkers.length > 0 ? 148 : 120}
             onToggleEvent={toggleEvent}
             focalEraId={effectiveFocalEraId}
             extent={timelineExtent}
+            castMarkers={castMarkers}
           />
         </div>
 

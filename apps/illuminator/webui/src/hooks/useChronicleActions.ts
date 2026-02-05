@@ -7,7 +7,7 @@
  */
 
 import { useCallback } from 'react';
-import type { ChronicleGenerationContext } from '../lib/chronicleTypes';
+import type { ChronicleGenerationContext, ChronicleSampling } from '../lib/chronicleTypes';
 import type { EnrichmentType, ChronicleStep } from '../lib/enrichmentTypes';
 import { useChronicleStore } from '../lib/db/chronicleStore';
 import type { ChronicleRecord } from '../lib/db/chronicleRepository';
@@ -20,6 +20,7 @@ export interface ChronicleMetadata {
   chronicleId: string;
   title?: string;
   format: 'story' | 'document';
+  generationSampling: ChronicleSampling;
   roleAssignments: Array<{
     role: string;
     entityId: string;
@@ -55,7 +56,6 @@ interface EnqueueItem {
   chronicleStep?: ChronicleStep;
   chronicleId?: string;
   chronicleMetadata?: ChronicleMetadata;
-  chronicleTemperature?: number;
 }
 
 type OnEnqueue = (items: EnqueueItem[]) => void;
@@ -143,8 +143,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
     (
       chronicleId: string,
       context: ChronicleGenerationContext,
-      metadata?: ChronicleMetadata,
-      temperatureOverride?: number,
+      metadata: ChronicleMetadata | undefined,
     ) => {
       if (!context.focus) {
         console.error('[Chronicle V2] Focus context required');
@@ -167,7 +166,6 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
           chronicleStep: 'generate_v2',
           chronicleId: metadata?.chronicleId || chronicleId,
           chronicleMetadata: metadata,
-          chronicleTemperature: temperatureOverride,
         },
       ]);
     },
@@ -268,15 +266,15 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
     [onEnqueue, getChronicle],
   );
 
-  const regenerateWithTemperature = useCallback(
-    (chronicleId: string, temperature: number) => {
+  const regenerateWithSampling = useCallback(
+    (chronicleId: string) => {
       const chronicle = getChronicle(chronicleId);
       if (!chronicle) {
         console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
         return;
       }
       if (chronicle.finalContent || chronicle.status === 'complete') {
-        console.error('[Chronicle] Temperature regeneration is only available before acceptance');
+        console.error('[Chronicle] Sampling regeneration is only available before acceptance');
         return;
       }
       if (!chronicle.generationSystemPrompt || !chronicle.generationUserPrompt) {
@@ -291,7 +289,6 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
           prompt: '',
           chronicleStep: 'regenerate_temperature',
           chronicleId,
-          chronicleTemperature: temperature,
         },
       ]);
     },
@@ -358,12 +355,52 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
     [onEnqueue, getChronicle],
   );
 
+  /**
+   * Full regeneration with new perspective synthesis.
+   * Creates a new version by running the complete generation pipeline.
+   * Unlike sampling regeneration, this generates fresh perspective synthesis.
+   */
+  const regenerateFull = useCallback(
+    (chronicleId: string, context: ChronicleGenerationContext) => {
+      const chronicle = getChronicle(chronicleId);
+      if (!chronicle) {
+        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        return;
+      }
+      if (chronicle.finalContent || chronicle.status === 'complete') {
+        console.error('[Chronicle] Full regeneration requires unpublishing first');
+        return;
+      }
+      if (!context.narrativeStyle) {
+        console.error('[Chronicle] Narrative style required for full regeneration');
+        return;
+      }
+      if (!context.toneFragments || !context.canonFactsWithMetadata) {
+        console.error('[Chronicle] Full regeneration requires toneFragments and canonFactsWithMetadata');
+        return;
+      }
+
+      onEnqueue([
+        {
+          entity: buildEntityRefFromRecord(chronicleId, chronicle),
+          type: 'entityChronicle' as EnrichmentType,
+          prompt: '',
+          chronicleContext: context,
+          chronicleStep: 'regenerate_full',
+          chronicleId,
+        },
+      ]);
+    },
+    [onEnqueue, getChronicle],
+  );
+
   return {
     generateV2,
     generateSummary,
     generateTitle,
     generateImageRefs,
-    regenerateWithTemperature,
+    regenerateWithSampling,
+    regenerateFull,
     compareVersions,
     combineVersions,
   };

@@ -16,6 +16,12 @@ import type {
   SummaryRevisionLLMResponse,
   RevisionEntityContext,
 } from '../../lib/summaryRevisionTypes';
+import {
+  type ProminenceScale,
+  buildProminenceScale,
+  DEFAULT_PROMINENCE_DISTRIBUTION,
+  prominenceLabelFromScale,
+} from '@canonry/world-schema';
 import { getRevisionRun, updateRevisionRun } from '../../lib/db/summaryRevisionRepository';
 import { runTextCall } from '../../lib/llmTextCall';
 import { getCallConfig } from './llmCallConfig';
@@ -36,7 +42,7 @@ Use your thinking budget. For each entity, work through these steps:
 **Step 2 — Check for overlap.** Compare each new fact against the existing description. If the existing text already covers an event or fact — even vaguely or without names — that is NOT new lore. Do not repeat it, restate it, or expand on it. If the chronicle adds a specific name or detail to something already described in general terms, note this as a detail refinement (Step 3), not new lore.
 
 **Step 3 — Classify each change.**
-- **Detail refinement**: The existing text describes something generally, and the chronicle reveals a specific name, date, or detail. Example: existing says "a traveler brought it"; chronicle reveals the traveler's name. In this case, REWRITE the existing sentence to include the detail. Do not add a separate sentence that restates the same event.
+- **Detail refinement**: The existing text describes something generally, and the chronicle reveals a specific name, date, or detail. REWRITE the existing sentence to include the detail. Do not add a separate sentence that restates the same event.
 - **New fact**: Something not covered at all in the existing text. Add this as new sentences or a new paragraph.
 
 **Step 4 — Reorganize into paragraphs.** The description array is a sequence of paragraphs. Group related content together:
@@ -61,23 +67,35 @@ Break existing wall-of-text into logical paragraphs where natural boundaries exi
 Each description is a standalone wiki article about ONE entity. A reader arrives at this page knowing nothing about any chronicle. Apply these filters to every new sentence:
 
 1. **Is this about this entity?** Every sentence must be about what this entity did, owns, experienced, or became. If a sentence is really about what happened to someone else, or about a broader event's plot, it belongs on that other entity's page — not here.
-2. **Would this make sense without the chronicle?** If a new sentence references an artifact, event, or person not already in this description, you must introduce it with a brief identifying clause — or omit the detail entirely. Never assume the reader knows what "the incident" or "the harp" refers to.
-3. **Compress, don't replay.** A chronicle may spend 500 words on a scene. The backport should distill that into 1-2 sentences of entity-relevant fact. "Xi was blessed — or cursed — by the Radiant Aurora-harp, a memory-singing instrument; the blessing left them aware of its location at all times." That's enough. Don't reconstruct the scene.
+2. **Would this make sense without the chronicle?** If a new sentence references an artifact, event, or person not already in this description, you must introduce it with a brief identifying clause — or omit the detail entirely. Never assume the reader has context from the chronicle.
+3. **Compress, don't replay.** A chronicle may spend 500 words on a scene. The backport should distill that into 1-2 sentences of entity-relevant fact. State what happened and what changed. No atmospheric verbs, no sensory reconstruction, no emotional staging.
 4. **When in doubt, omit.** A shorter description that stands alone is better than a longer one that requires chronicle context to parse.
+5. **Length guidance.** Scale new content to entity prominence and chronicle role (shown as [PRIMARY] tag and Chronicle Role field):
+   - **High-prominence entities** (renowned, mythic): Brief additions only. They already have rich descriptions; this chronicle is one of many.
+   - **Low-prominence primary entities** (forgotten, marginal, recognized with [PRIMARY] tag): More space is appropriate—this chronicle may be their defining lore. A heroic sacrifice or transformation can be 2-3 sentences.
+   - **Supporting cast** (no [PRIMARY] tag): 1-2 sentences maximum regardless of prominence.
+
+   When in doubt, compress. Prioritize: status changes > new capabilities/limitations > relationship changes > event participation.
 
 ## Description Register
 
-Descriptions are wiki articles, not prose narratives. They follow the world's tone but state facts plainly. Do not:
-- Import atmospheric language or emotional imagery from the chronicle
-- Fabricate causal details not stated in the chronicle (e.g., don't invent WHY something looks damaged — just note that it is)
-- Include quoted dialogue — paraphrase instead
-- Editorialize ("a war that changed everything") — state what changed specifically
+Descriptions are wiki articles, not prose narratives. They follow the world's tone but state facts plainly.
 
-The existing descriptions have voice and personality — match that voice. But new content you add should convey facts, not import the chronicle's literary style.
+**TENSE**: Match the tense of the existing description. Most living entities are written in present tense; deceased entities use past tense. For chronicle events, use past tense for actions taken and present tense for lasting consequences that persist beyond the chronicle. NEVER use "currently," "now," or "remains" to describe states from the chronicle — the chronicle may be set in an earlier era, and what was true then may not be true at the time of reading.
+
+**AVOID**:
+- Atmospheric language or emotional imagery from the chronicle
+- Fabricated causal details not stated in the chronicle
+- Quoted dialogue — paraphrase instead
+- Editorializing — state what changed specifically, not how significant it was
+- **Resolution language** — adverbs and phrases that signal arc completion or personal growth. These close character arcs. Wiki articles describe ongoing state, not narrative conclusions.
+- **Thematic statements** — moral lessons, philosophical conclusions, and metaphorical summaries belong in chronicles, not wiki articles.
+
+The existing descriptions have voice and personality — match that voice. But new content you add should convey facts, not import the chronicle's literary style or narrative arc.
 
 ## Description Rules
 
-- Frame all content as canonical world facts, not chronicle narration. Write "She brokered the accord" not "During the chronicle, she brokered an accord."
+- Frame all content as canonical world facts, not chronicle narration. Never reference the chronicle as a source or frame events as happening "during" it.
 - Match the voice and register of the existing description.
 - Preserve all existing semantic information. Every fact in the original must appear in your output. You may reword a sentence to integrate a new detail, but you must not drop any information.
 - It is acceptable to output the existing description unchanged if the chronicle reveals nothing new.
@@ -109,8 +127,19 @@ You are updating all cast entities in one batch. When the same fact applies to m
 - An **NPC's** description should describe individual actions, personal motivations, and character development.
 - A **location's** description should describe physical changes, territorial shifts, and environmental state.
 - An **event's** description should describe the arc, consequences, and resolution — what happened and what changed.
+- An **artifact's** description should describe its current state and properties, not narrate what happened to it.
 
 Do not state the same fact in two entity descriptions. Each entity's description should cover a distinct facet of the shared event.
+
+## Preserving Story Potential
+
+Wiki articles describe current state, not closed arcs. When updating entities after chronicle events:
+
+- **For NPCs**: Describe what changed about them — new scars, lost abilities, shifted allegiances — without language that signals arc completion or personal growth.
+- **For artifacts**: Describe properties and status without finality. Use language that implies the state could change.
+- **For relationships**: Note that they changed, not that they resolved.
+
+The world continues after every chronicle. Leave room for future stories.
 
 ## Anchor Phrase
 
@@ -163,6 +192,26 @@ function buildUserPrompt(
 ): string {
   const sections: string[] = [];
   let chronicleFormat = '';
+  const prominenceScale = buildProminenceScale(
+    entities
+      .map((e) => Number(e.prominence))
+      .filter((value) => Number.isFinite(value)),
+    { distribution: DEFAULT_PROMINENCE_DISTRIBUTION }
+  );
+  const resolveProminenceLabel = (value: RevisionEntityContext['prominence'] | number | undefined, scale: ProminenceScale) => {
+    if (value == null) return 'unknown';
+    if (typeof value === 'number') {
+      return prominenceLabelFromScale(value, scale);
+    }
+    const trimmed = String(value).trim();
+    if (!trimmed) return 'unknown';
+    if (scale.labels.includes(trimmed)) return trimmed;
+    const numeric = Number(trimmed);
+    if (Number.isFinite(numeric)) {
+      return prominenceLabelFromScale(numeric, scale);
+    }
+    return trimmed;
+  };
 
   // Chronicle text
   sections.push(`=== CHRONICLE TEXT ===\n${chronicleText}`);
@@ -206,9 +255,11 @@ function buildUserPrompt(
   function formatEntityBlock(e: RevisionEntityContext): string {
     const parts: string[] = [];
     const lensTag = e.isLens ? ' [NARRATIVE LENS]' : '';
-    parts.push(`### ${e.name} (${e.kind}${e.subtype ? ` / ${e.subtype}` : ''})${lensTag}`);
+    const primaryTag = e.isPrimary ? ' [PRIMARY]' : '';
+    parts.push(`### ${e.name} (${e.kind}${e.subtype ? ` / ${e.subtype}` : ''})${lensTag}${primaryTag}`);
     parts.push(`ID: ${e.id}`);
-    parts.push(`Prominence: ${e.prominence} | Culture: ${e.culture} | Status: ${e.status}`);
+    const chronicleRole = e.isPrimary ? 'primary' : 'supporting';
+    parts.push(`Prominence: ${resolveProminenceLabel(e.prominence, prominenceScale)} | Chronicle Role: ${chronicleRole} | Culture: ${e.culture} | Status: ${e.status}`);
 
     if (e.kindFocus) {
       parts.push(`Description Focus (${e.kind}): ${e.kindFocus}`);
@@ -284,8 +335,10 @@ For ${e.name}, follow the thinking steps:
 1. What genuinely new facts does the chronicle reveal about ${e.name} specifically?
 2. Does each new fact already appear in the existing description? If so, skip it.
 3. For each new fact: is it a detail refinement (edit existing sentence) or a new fact (add content)?
-4. Compress each new fact into 1-2 sentences of entity-relevant wiki content. Do not reconstruct chronicle scenes.
-5. Final check: would every sentence make sense to someone who has never read this chronicle?${criticalNote}`;
+4. Compress: 1-2 sentences per new fact. No atmospheric verbs, no scene reconstruction. Scale length to prominence and chronicle role—low-prominence primary entities may warrant more; high-prominence or supporting entities need less.
+5. Match the existing description's tense. Use past tense for chronicle actions, present tense for lasting consequences. Never use "currently," "now," or "remains" for chronicle-sourced states.
+6. Avoid resolution language — no adverbs or phrases that signal arc completion, personal growth, or thematic conclusions.
+7. Final check: would every sentence make sense to someone who has never read this chronicle?${criticalNote}`;
   }).join('\n\n');
 
   const criticalSection = customInstructions

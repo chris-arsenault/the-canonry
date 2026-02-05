@@ -37,7 +37,7 @@ output "acm_certificate_arn" {
 
 output "website_url" {
   description = "URL to access the application"
-  value       = "https://${var.domain_name}/"
+  value       = "https://${local.primary_domain}/"
 }
 
 output "aws_region" {
@@ -46,6 +46,11 @@ output "aws_region" {
 }
 
 output "route53_zone_id" {
-  description = "Route53 hosted zone ID"
-  value       = data.aws_route53_zone.main.zone_id
+  description = "Route53 hosted zone ID for the primary domain"
+  value       = data.aws_route53_zone.zones[local.primary_domain].zone_id
+}
+
+output "route53_zone_ids" {
+  description = "Route53 hosted zone IDs keyed by domain"
+  value       = { for domain, zone in data.aws_route53_zone.zones : domain => zone.zone_id }
 }

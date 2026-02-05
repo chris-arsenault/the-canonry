@@ -57,15 +57,13 @@ export interface ToneFragments {
 }
 
 /**
- * Canon fact with metadata
+ * Canon fact for perspective synthesis
  */
 export interface CanonFactWithMetadata {
   id: string;
   text: string;
   type?: 'world_truth' | 'generation_constraint';
-  basePriority: number;
-  cultureTags?: string[];
-  themeTags?: string[];
+  required?: boolean;
 }
 
 /**
@@ -75,7 +73,7 @@ export interface WorldContext {
   name: string;                              // World name
   description: string;                       // Genre/setting brief (1-2 sentences)
   toneFragments: ToneFragments;              // Composable tone guidance
-  canonFactsWithMetadata: CanonFactWithMetadata[];  // Facts with relevance metadata
+  canonFactsWithMetadata: CanonFactWithMetadata[];  // Facts for perspective synthesis
   speciesConstraint?: string;                // Species rule for image generation
 }
 

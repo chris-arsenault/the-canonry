@@ -17,8 +17,6 @@ testArchive/
 artifacts/
 .turbo/
 tsconfig.tsbuildinfo
-/.beads/beads.left.jsonl
-/.beads/beads.left.meta.json
 
 # TypeScript build artifacts (should only be in dist/)
 *.js.map
