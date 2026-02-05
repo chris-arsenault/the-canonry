@@ -1,7 +1,7 @@
 :root {
-  --bg-primary: #1a1611;
-  --bg-secondary: #2a2318;
-  --bg-tertiary: #352e24;
+  --bg-primary: #352a1e;
+  --bg-secondary: #41352a;
+  --bg-tertiary: #4d4036;
   --border: rgba(196, 164, 112, 0.2);
   --text-primary: #e8dcc8;
   --text-muted: #c4b99a;
@@ -25,11 +25,11 @@ body {
   margin: 0;
   font-family: "Merriweather", Georgia, "Times New Roman", serif;
   color: var(--text-primary);
-  /* Background: vignette + base gradient. Paper grain from SVG ParchmentTexture overlay. */
+  /* Background: vignette + warm base. Paper grain from ParchmentTexture overlay. */
   background-color: var(--bg-primary);
   background-image:
-    radial-gradient(ellipse at center, transparent 50%, rgba(10, 8, 5, 0.6) 100%),
-    linear-gradient(170deg, #1c1812 0%, #1a1611 40%, #181a1e 100%);
+    radial-gradient(ellipse at center, transparent 50%, rgba(20, 15, 10, 0.4) 100%),
+    linear-gradient(170deg, #3a2e22 0%, #352a1e 40%, #322820 100%);
   background-attachment: fixed;
 }
 

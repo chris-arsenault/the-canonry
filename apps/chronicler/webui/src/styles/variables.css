@@ -13,12 +13,12 @@
      Colors - Warm Library Theme
      =================== */
 
-  /* Backgrounds */
-  --color-bg-primary: #1a1611;
-  --color-bg-secondary: #2a2318;
-  --color-bg-tertiary: #352e24;
-  --color-bg-sidebar: #1e1a14;
-  --color-bg-elevated: #3a3228;
+  /* Backgrounds — warm brown (leather/wood, not black) */
+  --color-bg-primary: #352a1e;
+  --color-bg-secondary: #41352a;
+  --color-bg-tertiary: #4d4036;
+  --color-bg-sidebar: #2d231a;
+  --color-bg-elevated: #574a3e;
 
   /* Borders */
   --color-border: rgba(196, 164, 112, 0.2);
@@ -163,11 +163,11 @@ body {
   color: var(--color-text-primary);
   line-height: var(--line-height-normal);
 
-  /* Background: vignette + warm-to-cool base. Paper grain comes from SVG ParchmentTexture overlay. */
+  /* Background: vignette + warm base. Paper grain comes from ParchmentTexture overlay. */
   background-color: var(--color-bg-primary);
   background-image:
-    radial-gradient(ellipse at center, transparent 50%, rgba(10, 8, 5, 0.6) 100%),
-    linear-gradient(170deg, #1c1812 0%, #1a1611 40%, #181a1e 100%);
+    radial-gradient(ellipse at center, transparent 50%, rgba(20, 15, 10, 0.4) 100%),
+    linear-gradient(170deg, #3a2e22 0%, #352a1e 40%, #322820 100%);
   background-attachment: fixed;
 }
 

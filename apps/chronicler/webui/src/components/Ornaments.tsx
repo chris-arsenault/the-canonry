@@ -5,9 +5,9 @@
  * through a canvas pipeline:
  *   1. Frequency blend — fiber detail from parchment + smooth tones from vellum
  *   2. Mirror tile — 2x2 flip for guaranteed seamless tiling
- *   3. Desaturate — neutral grayscale so blend mode adds texture without color cast
- * The processed tile is displayed with mix-blend-mode: soft-light over the
- * dark background. This preserves the organic structure of the photographs.
+ * Natural warm tones are preserved (no desaturation). The processed tile
+ * is displayed with mix-blend-mode: soft-light over the warm brown background,
+ * adding organic grain variation.
  *
  * Theme: Warm Library with frost/ice accents
  * Gold: #c49a5c  |  Frost: #8ab4c4
@@ -143,24 +143,6 @@ function mirrorTile(src: HTMLCanvasElement): HTMLCanvasElement {
   return c;
 }
 
-/**
- * Convert to grayscale — removes color cast so the blend mode
- * adds pure luminance texture without shifting the background hue.
- */
-function desaturate(src: HTMLCanvasElement): HTMLCanvasElement {
-  const ctx = src.getContext('2d')!;
-  const imgData = ctx.getImageData(0, 0, src.width, src.height);
-  const data = imgData.data;
-
-  for (let i = 0; i < data.length; i += 4) {
-    const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-    data[i] = data[i + 1] = data[i + 2] = lum;
-  }
-
-  ctx.putImageData(imgData, 0, 0);
-  return src;
-}
-
 /** Export canvas as object URL (more memory-efficient than data URL) */
 function canvasToObjectURL(canvas: HTMLCanvasElement): Promise<string> {
   return new Promise((resolve) => {
@@ -221,10 +203,10 @@ export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG 
         const pCanvas = drawScaled(parchmentImg, WORK_SIZE, WORK_SIZE);
         const vCanvas = drawScaled(vellumImg, WORK_SIZE, WORK_SIZE);
 
-        // Pipeline: frequency blend → mirror tile → desaturate
+        // Pipeline: frequency blend → mirror tile
+        // Keep natural warm tones — soft-light blend adds organic warmth
         const blended = frequencyBlend(pCanvas, vCanvas, config.blurRadius, config.detailStrength);
         const tileable = mirrorTile(blended);
-        desaturate(tileable);
 
         const url = await canvasToObjectURL(tileable);
         if (!cancelled) {

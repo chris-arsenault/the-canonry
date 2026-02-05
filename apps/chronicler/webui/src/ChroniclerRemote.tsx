@@ -45,7 +45,7 @@ export default function ChroniclerRemote({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: 'var(--color-bg-primary, #1a1611)',
+          backgroundColor: 'var(--color-bg-primary, #352a1e)',
           color: 'var(--color-text-muted, #8a7d6b)',
         }}
       >
