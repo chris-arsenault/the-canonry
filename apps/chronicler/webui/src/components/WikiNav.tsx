@@ -105,11 +105,13 @@ export default function WikiNav({
 
   // Group chronicles by era
   const chroniclesByEra = chroniclePages.reduce((groups, page) => {
-    const eraId = page.chronicle?.temporalContext?.focalEra?.id || 'unknown';
-    const eraName = page.chronicle?.temporalContext?.focalEra?.name || 'Unknown Era';
+    const focalEra = page.chronicle?.temporalContext?.focalEra;
+    const eraId = focalEra?.id || 'unknown';
+    const eraName = focalEra?.name || 'Unknown Era';
+    const eraOrder = focalEra?.order ?? focalEra?.startTick ?? Infinity;
 
     if (!groups.has(eraId)) {
-      groups.set(eraId, { eraId, eraName, stories: [], documents: [], all: [] });
+      groups.set(eraId, { eraId, eraName, eraOrder, stories: [], documents: [], all: [] });
     }
 
     const group = groups.get(eraId)!;
@@ -121,10 +123,10 @@ export default function WikiNav({
     }
 
     return groups;
-  }, new Map<string, { eraId: string; eraName: string; stories: WikiPage[]; documents: WikiPage[]; all: WikiPage[] }>());
+  }, new Map<string, { eraId: string; eraName: string; eraOrder: number; stories: WikiPage[]; documents: WikiPage[]; all: WikiPage[] }>());
 
-  // Sort eras by name
-  const sortedEras = Array.from(chroniclesByEra.values()).sort((a, b) => a.eraName.localeCompare(b.eraName));
+  // Sort eras chronologically (by order or startTick)
+  const sortedEras = Array.from(chroniclesByEra.values()).sort((a, b) => a.eraOrder - b.eraOrder);
 
   const toggleEra = (eraId: string) => {
     setExpandedEras(prev => {
