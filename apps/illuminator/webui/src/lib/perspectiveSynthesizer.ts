@@ -144,20 +144,21 @@ export interface PerspectiveSynthesisResult {
 const SYSTEM_PROMPT = `You are a perspective consultant for a fantasy chronicle series. Your job is to help each chronicle feel like a STORY about PEOPLE, not a document about a world.
 
 You will receive:
-1. NARRATIVE STYLE: What kind of story this is and how it should be written
+1. NARRATIVE STYLE: What kind of story this is and how it should be written — READ THIS CAREFULLY, it determines the emotional register
 2. BASELINE MATERIAL: Core tone, world facts, cultural identities, entity portrayal guidelines, and world dynamics
 3. CONSTELLATION ANALYSIS: What cultures, entity types, themes, and dynamics are present
 4. ENTITIES: The specific characters, places, etc. in this chronicle
 
 Your task:
+- MATCH THE NARRATIVE STYLE. Read the prose guidance carefully — it tells you what this story needs. Do not impose dimensions the style doesn't call for.
 - Consider the NARRATIVE STYLE, CULTURAL IDENTITIES, and WORLD DYNAMICS when faceting
 - FACET the world facts - for each selected fact, provide a short interpretation showing how it applies to THIS chronicle
 - Keep interpretations to 1-2 sentences - they will be appended to the original fact
-- Synthesize a NARRATIVE VOICE focused on emotional texture and character dynamics. Choose 3-5 keys from dimensions like: CAMARADERIE (how allies joke, grieve, owe each other), FRICTION (tensions between characters), PHYSICALITY (embodied details that recur), LOSS (how deaths land). Avoid thematic or world-system keys — focus on how characters relate.
-- Generate ENTITY DIRECTIVES for each entity focused on how they RELATE — who they owe, who they resent, what dark joke they'd make, what physical habit shows their history. Focus on relationships and embodied presence, not description.
+- Synthesize a NARRATIVE VOICE with 3-5 keys. Choose dimensions that serve THIS style — let the prose guidance inform what matters.
+- Generate ENTITY DIRECTIVES for each entity. What matters about them for THIS story type? Let the style guide you.
 - If any facts are marked REQUIRED, they MUST appear in facets
 
-Your goal: Help the author write fiction with emotional weight and bitter camaraderie, not elegant world-building documentation.
+Your goal: Help the author write fiction that matches the narrative style's intent.
 
 IMPORTANT: Output ONLY valid JSON. No markdown, no explanation, no commentary.`;
 
@@ -276,13 +277,15 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
     }
   }
 
-  // Narrative style context
+  // Narrative style context - include prose instructions so synthesis matches style tone
   let narrativeStyleDisplay = 'No specific narrative style.';
   if (narrativeStyle) {
     const styleParts = [
       `Name: ${narrativeStyle.name}`,
       `Format: ${narrativeStyle.format}`,
       narrativeStyle.description ? `Description: ${narrativeStyle.description}` : null,
+      narrativeStyle.tags?.length ? `Tags: ${narrativeStyle.tags.join(', ')}` : null,
+      narrativeStyle.proseInstructions ? `\nProse guidance:\n${narrativeStyle.proseInstructions}` : null,
     ].filter(Boolean);
     narrativeStyleDisplay = styleParts.join('\n');
   }
@@ -360,17 +363,19 @@ ${requiredFacts.length > 0 ? `Required facts: ${requiredFacts.map((f) => f.id).j
 
 Based on the narrative style, constellation, and cultural identities above, create a perspective for this chronicle.
 
+CRITICAL: Match the narrative style. The prose guidance tells you what this story needs — follow it.
+
 Provide a JSON object with:
 
-1. "brief": A perspective brief (100-150 words) describing the emotional dynamics between characters — what debts exist, what friction, what dark humor might surface, what losses will land hardest. Focus on relationships and emotional stakes, not themes or world-systems.
+1. "brief": A perspective brief (100-150 words) describing what matters emotionally for THIS story type. Let the style's prose guidance inform what to focus on.
 
 2. "facets": ${facetSelectionInstruction} facts most relevant to this chronicle. REQUIRED facts (if any) must be included; if required facts exceed the default range, include all required and do not add optional facts. For each, provide a 1-2 sentence interpretation explaining how this fact specifically manifests or matters for the entities and story type in this chronicle. The original fact will be included; your interpretation adds the specific lens.
 
-3. "suggestedMotifs": 2-3 short phrases that might echo through this chronicle.
+3. "suggestedMotifs": 2-3 short phrases that might echo through this chronicle — appropriate to the style.
 
-4. "narrativeVoice": Atmospheric anchors focused on emotional texture and character dynamics. Choose 3-5 keys from dimensions like: CAMARADERIE (how allies joke, grieve, owe each other), FRICTION (tensions between characters), PHYSICALITY (embodied details that recur), LOSS (how deaths land). Avoid thematic or world-system keys. Values should be 1-2 sentences focused on how characters relate. Do NOT provide ending or closure guidance — endings are determined by the narrative style.
+4. "narrativeVoice": 3-5 atmospheric anchors appropriate to THIS narrative style. Choose dimensions that serve the story type. Do NOT provide ending or closure guidance.
 
-5. "entityDirectives": For each entity, provide 1-2 sentences on how they RELATE — who they owe, who they resent, what dark joke they'd make, what physical habit shows their history. Focus on relationships and embodied presence, not description of the entity itself. Include entityId, entityName, and directive.
+5. "entityDirectives": For each entity, 1-2 sentences on what matters about them for THIS story. Let the style guide what to focus on. Include entityId, entityName, and directive.
 
 Output format:
 {

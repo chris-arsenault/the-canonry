@@ -314,7 +314,7 @@ function buildEntityDirectivesSection(
   }
 
   const lines: string[] = ['# Story Bible: Character Notes'];
-  lines.push('Background on relationships, debts, friction — dramatize through action, don\'t explain:');
+  lines.push('Background on relationships and history — bring alive through specificity, don\'t explain:');
   lines.push('');
 
   for (const directive of entityDirectives) {
@@ -521,12 +521,12 @@ function buildStoryPrompt(
   const taskSection = `# Task
 Write a ${wordRange} word piece of engaging fantasy fiction in ${sceneRange} distinct scenes.
 
-Your goal: A story that readers remember — with characters they care about, moments that land, and prose that moves. Dramatize the world through character action and relationship, not explanation.
+Your goal: A story that readers remember — with characters they care about, moments that land, and prose that moves. The world exists through what characters notice and feel, not through explanation.
 
 Requirements:
 - Assign the provided characters to the narrative roles defined below
 - Follow the plot structure and scene progression
-- Incorporate the listed events as dramatized moments, not reported history
+- Incorporate the listed events as lived moments, not reported history
 - Use the research notes as inspiration for how characters relate
 - Write directly with no section headers or meta-commentary`;
 
@@ -929,27 +929,27 @@ export function getMaxTokensFromStyle(style: NarrativeStyle): number {
  */
 export function getV2SystemPrompt(style: NarrativeStyle): string {
   if (style.format === 'story') {
-    return `You are an expert fantasy author writing engaging fiction. Your readers expect vivid characters, emotional stakes, and prose that lands.
+    return `You are an expert fantasy author writing engaging fiction. Your readers expect vivid characters, emotional truth, and prose that lands.
 
 Your prompt contains:
 
 CRAFT (how to write):
-- Narrative Structure: Your beat sheet — scene progression and emotional beats
+- Narrative Structure: Your beat sheet — scene progression and emotional shape
 - Writing Style: Prose craft specific to this story type
 
 STORY BIBLE (background reference, not requirements):
 - Tone & Atmosphere: Notes on emotional texture — show don't tell
-- Character Notes: Relationships and history — dramatize through action
+- Character Notes: Relationships and history — bring alive through specificity
 
 WORLD DATA (what to write about):
 - Cast: Characters to bring alive — descriptions show their FINAL state, but you're writing PAST EVENTS when they were alive/active
 - Narrative Lens (optional): A contextual entity that shapes the story without being a character
 - World: Setting context and canon facts
-- Events: What happened — dramatize these, don't document them
+- Events: What happened — show these through character experience, don't document them
 
 CRITICAL: Entity descriptions reflect who characters BECAME. Write them as they WERE during the story's events. A character described as dead was alive when your story takes place.
 
-Craft defines how to write; Story Bible is background reference. Show don't tell — dramatize the world through character action and relationship, never through exposition.`;
+Craft defines how to write; Story Bible is background reference. Show don't tell — the world exists through what characters notice, do, and feel.`;
   } else {
     return `You are crafting an in-universe document that feels authentic and alive. Your prompt contains:
 
