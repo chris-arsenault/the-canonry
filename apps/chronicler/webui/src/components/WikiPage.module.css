@@ -612,10 +612,10 @@
 
 .imageCaption {
   font-family: var(--font-family-ui);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   font-style: italic;
   line-height: var(--line-height-normal);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   padding: var(--spacing-sm) 0 2px;
   text-align: center;
 }
