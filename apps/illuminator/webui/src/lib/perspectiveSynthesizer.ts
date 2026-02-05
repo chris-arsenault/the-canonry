@@ -29,7 +29,7 @@ import { runTextCall } from './llmTextCall';
 export type FactType = 'world_truth' | 'generation_constraint';
 
 /**
- * Canon fact with relevance metadata for perspective synthesis.
+ * Canon fact for perspective synthesis.
  */
 export interface CanonFactWithMetadata {
   id: string;
@@ -41,15 +41,8 @@ export interface CanonFactWithMetadata {
    * - generation_constraint: Always included verbatim, never faceted
    */
   type?: FactType;
-
-  // Relevance signals (only used for world_truth facts)
-  relevantCultures: string[]; // ["nightshelf", "aurora_stack", "*"]
-  relevantKinds: string[]; // ["artifact", "npc", "*"]
-  relevantTags: string[]; // ["trade", "conflict", "magic"]
-  relevantRelationships: string[]; // ["ally", "rival", "trade_partner"]
-
-  // Base priority (0-1) - higher = more likely to be foregrounded
-  basePriority: number;
+  /** If true, this fact must be included in perspective facets. */
+  required?: boolean;
 }
 
 /**
@@ -57,6 +50,14 @@ export interface CanonFactWithMetadata {
  */
 export interface ToneFragments {
   core: string;
+}
+
+/**
+ * Fact selection settings for perspective synthesis.
+ */
+export interface FactSelectionConfig {
+  /** Target number of world-truth facts to facet (required facts count toward this). */
+  targetCount?: number;
 }
 
 /**
@@ -115,6 +116,8 @@ export interface PerspectiveSynthesisInput {
     kinds?: string[];
     eraOverrides?: Record<string, { text: string; replace: boolean }>;
   }>;
+  /** Fact selection settings for perspective synthesis. */
+  factSelection?: FactSelectionConfig;
 }
 
 /**
@@ -125,6 +128,8 @@ export interface PerspectiveSynthesisResult {
   assembledTone: string;
   /** All facts formatted for generation - core facts with faceted interpretations first */
   facetedFacts: string[];
+  /** World dynamics actually injected into the synthesis prompt (post-filter/override). */
+  resolvedWorldDynamics: Array<{ id: string; text: string }>;
   usage: {
     inputTokens: number;
     outputTokens: number;
@@ -136,7 +141,7 @@ export interface PerspectiveSynthesisResult {
 // LLM Synthesis
 // =============================================================================
 
-const SYSTEM_PROMPT = `You are a perspective consultant for a fantasy chronicle series. Your job is to help each chronicle feel like a distinct window into the same world - not a different world, but a different FACET of the same truths.
+const SYSTEM_PROMPT = `You are a perspective consultant for a fantasy chronicle series. Your job is to help each chronicle feel like a STORY about PEOPLE, not a document about a world.
 
 You will receive:
 1. NARRATIVE STYLE: What kind of story this is and how it should be written
@@ -148,13 +153,69 @@ Your task:
 - Consider the NARRATIVE STYLE, CULTURAL IDENTITIES, and WORLD DYNAMICS when faceting
 - FACET the world facts - for each selected fact, provide a short interpretation showing how it applies to THIS chronicle
 - Keep interpretations to 1-2 sentences - they will be appended to the original fact
-- Synthesize a NARRATIVE VOICE that blends the cultural identities and narrative style into prose-level writing guidance. Choose 3-6 keys that capture the most important dimensions of how this chronicle should read (e.g., VOICE, TENSION, WHAT_IS_UNSAID, PHYSICALITY, CLOSURE - but choose keys that fit THIS chronicle)
-- Generate ENTITY DIRECTIVES for each entity, pre-applying their culture's traits (speech, values, fears, taboos) and their kind's portrayal guidelines into 1-3 sentences of concrete writing guidance
+- Synthesize a NARRATIVE VOICE focused on emotional texture and character dynamics. Choose 3-5 keys from dimensions like: CAMARADERIE (how allies joke, grieve, owe each other), FRICTION (tensions between characters), PHYSICALITY (embodied details that recur), LOSS (how deaths land). Avoid thematic or world-system keys — focus on how characters relate.
+- Generate ENTITY DIRECTIVES for each entity focused on how they RELATE — who they owe, who they resent, what dark joke they'd make, what physical habit shows their history. Focus on relationships and embodied presence, not description.
+- If any facts are marked REQUIRED, they MUST appear in facets
+
+Your goal: Help the author write fiction with emotional weight and bitter camaraderie, not elegant world-building documentation.
 
 IMPORTANT: Output ONLY valid JSON. No markdown, no explanation, no commentary.`;
 
-function buildUserPrompt(input: PerspectiveSynthesisInput): string {
-  const { constellation, entities, focalEra, toneFragments, culturalIdentities, factsWithMetadata, narrativeStyle, proseHints, worldDynamics } = input;
+const normalizeToken = (value: string): string =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+function resolveWorldDynamics(input: PerspectiveSynthesisInput): Array<{ id: string; text: string }> {
+  const { worldDynamics, entities, focalEra, constellation } = input;
+  if (!worldDynamics || worldDynamics.length === 0) return [];
+
+  const presentCultureIds = Object.keys(constellation.cultures);
+  const cultureTokenSet = new Set(presentCultureIds.map(normalizeToken));
+  const entityKindsSet = new Set(entities.map((e) => e.kind));
+  const kindTokenSet = new Set(Array.from(entityKindsSet).map(normalizeToken));
+  const focalEraId = focalEra?.id;
+
+  return worldDynamics
+    .filter((d) => {
+      const cultures = d.cultures || [];
+      const kinds = d.kinds || [];
+
+      const cultureMatch =
+        cultures.length === 0 ||
+        cultures.includes('*') ||
+        cultures.some((c) => presentCultureIds.includes(c) || cultureTokenSet.has(normalizeToken(c)));
+
+      const kindMatch =
+        kinds.length === 0 ||
+        kinds.includes('*') ||
+        kinds.some((k) => entityKindsSet.has(k) || kindTokenSet.has(normalizeToken(k)));
+
+      return cultureMatch && kindMatch;
+    })
+    .map((d) => {
+      let text = d.text;
+      if (focalEraId && d.eraOverrides?.[focalEraId]) {
+        const override = d.eraOverrides[focalEraId];
+        text = override.replace ? override.text : `${d.text} ${override.text}`;
+      }
+      return { id: d.id, text };
+    });
+}
+
+function buildUserPrompt(input: PerspectiveSynthesisInput): {
+  prompt: string;
+  resolvedWorldDynamics: Array<{ id: string; text: string }>;
+} {
+  const {
+    constellation,
+    entities,
+    focalEra,
+    toneFragments,
+    culturalIdentities,
+    factsWithMetadata,
+    narrativeStyle,
+    proseHints,
+    factSelection,
+  } = input;
   const prominenceScale = buildProminenceScale(
     entities
       .map((e) => Number(e.prominence))
@@ -189,9 +250,12 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): string {
     .join('\n');
 
   // All world truth facts (not generation constraints)
-  const worldTruthFacts = (factsWithMetadata || [])
-    .filter((f) => f.type !== 'generation_constraint')
-    .map((f) => `- [${f.id}]: ${f.text}`)
+  const worldTruthFacts = (factsWithMetadata || []).filter(
+    (f) => f.type !== 'generation_constraint'
+  );
+  const requiredFacts = worldTruthFacts.filter((f) => f.required);
+  const worldTruthFactsDisplay = worldTruthFacts
+    .map((f) => `- [${f.id}]${f.required ? ' (REQUIRED)' : ''}: ${f.text}`)
     .join('\n');
 
   // Cultural identities for ALL present cultures (full, untruncated)
@@ -235,33 +299,27 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): string {
     }
   }
 
-  // World dynamics — filter to relevant cultures/kinds
-  let worldDynamicsDisplay = 'No world dynamics declared.';
-  if (worldDynamics && worldDynamics.length > 0) {
-    const entityKindsSet = new Set(entities.map(e => e.kind));
-    const relevantDynamics = worldDynamics.filter((d) => {
-      const cultureMatch = !d.cultures || d.cultures.length === 0 ||
-        d.cultures.includes('*') ||
-        d.cultures.some((c) => presentCultureIds.includes(c));
-      const kindMatch = !d.kinds || d.kinds.length === 0 ||
-        d.kinds.includes('*') ||
-        d.kinds.some((k) => entityKindsSet.has(k));
-      return cultureMatch && kindMatch;
-    });
-    if (relevantDynamics.length > 0) {
-      const focalEraId = focalEra?.id;
-      worldDynamicsDisplay = relevantDynamics.map((d) => {
-        let text = d.text;
-        if (focalEraId && d.eraOverrides?.[focalEraId]) {
-          const override = d.eraOverrides[focalEraId];
-          text = override.replace ? override.text : `${d.text} ${override.text}`;
-        }
-        return `- ${text}`;
-      }).join('\n');
-    }
-  }
+  // World dynamics — filter to relevant cultures/kinds, apply era overrides
+  const resolvedWorldDynamics = resolveWorldDynamics(input);
+  const worldDynamicsDisplay = resolvedWorldDynamics.length > 0
+    ? resolvedWorldDynamics.map((d) => `- ${d.text}`).join('\n')
+    : 'No world dynamics declared.';
 
-  return `=== NARRATIVE STYLE ===
+  const requestedTarget = factSelection?.targetCount;
+  const effectiveTarget =
+    typeof requestedTarget === 'number' && requestedTarget > 0
+      ? Math.max(requestedTarget, requiredFacts.length)
+      : undefined;
+  const factSelectionLine = effectiveTarget
+    ? `Fact selection target: ${effectiveTarget} (required facts count toward this).`
+    : 'Fact selection target: default (4-6). Required facts must still be included.';
+  const facetSelectionInstruction = effectiveTarget
+    ? `Select exactly ${effectiveTarget}`
+    : 'Select 4-6';
+
+  return {
+    resolvedWorldDynamics,
+    prompt: `=== NARRATIVE STYLE ===
 ${narrativeStyleDisplay}
 
 === BASELINE MATERIAL ===
@@ -270,7 +328,7 @@ CORE TONE (applies to all chronicles):
 ${toneFragments.core}
 
 WORLD FACTS (truths about this world):
-${worldTruthFacts}
+${worldTruthFactsDisplay || 'No world facts provided.'}
 
 CULTURAL IDENTITIES (for cultures present in this chronicle):
 ${culturalIdentitiesDisplay}
@@ -294,21 +352,25 @@ Era: ${focalEra?.name || 'unspecified'}
 ENTITIES IN THIS CHRONICLE:
 ${entitySummaries}
 
+=== FACT SELECTION ===
+${factSelectionLine}
+${requiredFacts.length > 0 ? `Required facts: ${requiredFacts.map((f) => f.id).join(', ')}` : 'Required facts: none'}
+
 === YOUR TASK ===
 
 Based on the narrative style, constellation, and cultural identities above, create a perspective for this chronicle.
 
 Provide a JSON object with:
 
-1. "brief": A perspective brief (150-200 words) describing what lens this chronicle should view the world through. Consider both the narrative style and the cultural identities of present cultures.
+1. "brief": A perspective brief (100-150 words) describing the emotional dynamics between characters — what debts exist, what friction, what dark humor might surface, what losses will land hardest. Focus on relationships and emotional stakes, not themes or world-systems.
 
-2. "facets": Select 4-6 facts most relevant to this chronicle. For each, provide a 1-2 sentence interpretation explaining how this fact specifically manifests or matters for the entities and story type in this chronicle. The original fact will be included; your interpretation adds the specific lens.
+2. "facets": ${facetSelectionInstruction} facts most relevant to this chronicle. REQUIRED facts (if any) must be included; if required facts exceed the default range, include all required and do not add optional facts. For each, provide a 1-2 sentence interpretation explaining how this fact specifically manifests or matters for the entities and story type in this chronicle. The original fact will be included; your interpretation adds the specific lens.
 
 3. "suggestedMotifs": 2-3 short phrases that might echo through this chronicle.
 
-4. "narrativeVoice": A synthesized prose voice for this chronicle. Blend the cultural identities of present cultures with the narrative style into 3-6 key-value pairs. Choose keys that capture the most important dimensions of how this chronicle should read (e.g., VOICE, TENSION, WHAT_IS_UNSAID, PHYSICALITY, CLOSURE - but choose keys that fit THIS chronicle). Values should be 1-2 sentences of concrete prose guidance.
+4. "narrativeVoice": Atmospheric anchors focused on emotional texture and character dynamics. Choose 3-5 keys from dimensions like: CAMARADERIE (how allies joke, grieve, owe each other), FRICTION (tensions between characters), PHYSICALITY (embodied details that recur), LOSS (how deaths land). Avoid thematic or world-system keys. Values should be 1-2 sentences focused on how characters relate. Do NOT provide ending or closure guidance — endings are determined by the narrative style.
 
-5. "entityDirectives": For each entity listed above, provide 1-3 sentences of concrete writing guidance. Pre-apply that entity's cultural traits (speech patterns, values, fears, taboos) and their kind's portrayal guidelines into specific direction for how to write this entity. Include entityId, entityName, and directive.
+5. "entityDirectives": For each entity, provide 1-2 sentences on how they RELATE — who they owe, who they resent, what dark joke they'd make, what physical habit shows their history. Focus on relationships and embodied presence, not description of the entity itself. Include entityId, entityName, and directive.
 
 Output format:
 {
@@ -323,7 +385,8 @@ Output format:
   "entityDirectives": [
     {"entityId": "id", "entityName": "Name", "directive": "1-3 sentences"}
   ]
-}`;
+}`,
+  };
 }
 
 /**
@@ -342,7 +405,7 @@ export async function synthesizePerspective(
   );
 
   // Build prompt with ALL baseline material - let LLM do the refinement
-  const userPrompt = buildUserPrompt(input);
+  const { prompt: userPrompt, resolvedWorldDynamics } = buildUserPrompt(input);
 
   // Assembled tone is the core tone fragment
   const assembledTone = toneFragments.core;
@@ -418,9 +481,66 @@ export async function synthesizePerspective(
     );
   }
 
+  // Enforce required facts and target count (if configured)
+  const worldTruthFacts = (factsWithMetadata || []).filter(
+    (f) => f.type !== 'generation_constraint'
+  );
+  const requiredFacts = worldTruthFacts.filter((f) => f.required);
+  const requiredIds = requiredFacts.map((f) => f.id).filter(Boolean);
+  const requestedTarget = input.factSelection?.targetCount;
+  const targetCount =
+    typeof requestedTarget === 'number' && requestedTarget > 0
+      ? Math.max(requestedTarget, requiredIds.length)
+      : undefined;
+  const enforcedTarget = targetCount ?? (requiredIds.length > 6 ? requiredIds.length : undefined);
+  const factMap = new Map(factsWithMetadata.map((f) => [f.id, f]));
+
+  const facetsById = new Map<string, string>();
+  const orderedFacetIds: string[] = [];
+  for (const facet of synthesis.facets) {
+    if (!facet.factId || !facet.interpretation) continue;
+    if (!facetsById.has(facet.factId)) {
+      facetsById.set(facet.factId, facet.interpretation);
+      orderedFacetIds.push(facet.factId);
+    }
+  }
+
+  const buildFallbackInterpretation = (factId: string): string => {
+    const focus = input.constellation?.focusSummary
+      ? `In this ${input.constellation.focusSummary} chronicle, `
+      : 'In this chronicle, ';
+    const era = input.focalEra?.name ? `set in the ${input.focalEra.name} era, ` : '';
+    return `${focus}${era}this truth is foregrounded, shaping the stakes and how the entities interpret events.`;
+  };
+
+  const finalFacets: FactFacet[] = [];
+  const addedIds = new Set<string>();
+
+  for (const requiredId of requiredIds) {
+    const interpretation = facetsById.get(requiredId) || buildFallbackInterpretation(requiredId);
+    finalFacets.push({ factId: requiredId, interpretation });
+    addedIds.add(requiredId);
+  }
+
+  for (const facetId of orderedFacetIds) {
+    if (addedIds.has(facetId)) continue;
+    const interpretation = facetsById.get(facetId);
+    if (!interpretation) continue;
+    finalFacets.push({ factId: facetId, interpretation });
+    addedIds.add(facetId);
+  }
+
+  if (enforcedTarget && finalFacets.length > enforcedTarget) {
+    finalFacets.length = enforcedTarget;
+  }
+
+  synthesis = {
+    ...synthesis,
+    facets: finalFacets,
+  };
+
   // Build faceted facts for generation
   // Original fact + faceted interpretation for this context
-  const factMap = new Map(factsWithMetadata.map((f) => [f.id, f]));
   const facetedWorldTruths: string[] = synthesis.facets
     .filter((f) => f.factId && f.interpretation)
     .map((f) => {
@@ -442,6 +562,7 @@ export async function synthesizePerspective(
     synthesis,
     assembledTone,
     facetedFacts,
+    resolvedWorldDynamics,
     usage: callResult.usage,
   };
 }

@@ -291,8 +291,8 @@ function buildNarrativeVoiceSection(
     return '';
   }
 
-  const lines: string[] = ['# Narrative Voice'];
-  lines.push('Synthesized prose guidance for this chronicle:');
+  const lines: string[] = ['# Story Bible: Tone & Atmosphere'];
+  lines.push('Reference notes on emotional texture — draw on these, but show don\'t tell:');
   lines.push('');
 
   for (const [key, value] of Object.entries(narrativeVoice)) {
@@ -313,8 +313,8 @@ function buildEntityDirectivesSection(
     return '';
   }
 
-  const lines: string[] = ['# Entity Writing Directives'];
-  lines.push('Specific guidance for writing each entity — interpret creatively, don\'t reproduce this language directly:');
+  const lines: string[] = ['# Story Bible: Character Notes'];
+  lines.push('Background on relationships, debts, friction — dramatize through action, don\'t explain:');
   lines.push('');
 
   for (const directive of entityDirectives) {
@@ -517,13 +517,15 @@ function buildStoryPrompt(
 
   // 1. TASK
   const taskSection = `# Task
-Write a ${wordRange} word narrative in ${sceneRange} distinct scenes.
+Write a ${wordRange} word piece of engaging fantasy fiction in ${sceneRange} distinct scenes.
+
+Your goal: A story that readers remember — with characters they care about, moments that land, and prose that moves. Dramatize the world through character action and relationship, not explanation.
 
 Requirements:
 - Assign the provided characters to the narrative roles defined below
 - Follow the plot structure and scene progression
-- Incorporate the listed events naturally into the narrative
-- Follow the Entity Writing Directives for each character's speech and behavior
+- Incorporate the listed events as dramatized moments, not reported history
+- Use the research notes as inspiration for how characters relate
 - Write directly with no section headers or meta-commentary`;
 
   // 2. NARRATIVE STRUCTURE
@@ -923,46 +925,40 @@ export function getMaxTokensFromStyle(style: NarrativeStyle): number {
  */
 export function getV2SystemPrompt(style: NarrativeStyle): string {
   if (style.format === 'story') {
-    return `You are a narrative writer creating world lore. Your prompt contains:
+    return `You are an expert fantasy author writing engaging fiction. Your readers expect vivid characters, emotional stakes, and prose that lands.
 
-TASK DATA (how to write it):
-- Task: Word count, scene count, requirements
-- Narrative Structure: Scene progression and emotional beats - THIS IS PRIMARY
-- Event Usage: How to incorporate world events
-- Narrative Voice: Synthesized prose guidance blending cultural and stylistic elements
-- Entity Writing Directives: Per-entity guidance for speech, behavior, and portrayal
-- Writing Style: World tone sets the backdrop; Prose instructions are specific to this story type
+Your prompt contains:
+
+CRAFT (how to write):
+- Narrative Structure: Your beat sheet — scene progression and emotional beats
+- Writing Style: Prose craft specific to this story type
+
+STORY BIBLE (background reference, not requirements):
+- Tone & Atmosphere: Notes on emotional texture — show don't tell
+- Character Notes: Relationships and history — dramatize through action
 
 WORLD DATA (what to write about):
-- Cast: Narrative roles to fill, then characters to fill them
-- Narrative Lens (optional): A contextual entity (rule, occurrence, ability) that shapes the story without being a character — treat as ambient constraint
-- World: Setting name, description, canon facts
-- Name Bank: Culture-appropriate names for invented characters
-- Historical Context: Current era and world timeline
-- Relationships: Connections between characters
-- Events: What happened in the world
+- Cast: Characters to bring alive through action and relationship
+- Narrative Lens (optional): A contextual entity that shapes the story without being a character
+- World: Setting context and canon facts
+- Events: What happened — dramatize these, don't document them
 
-Hierarchy: Narrative Structure and Prose instructions define THIS story. Narrative Voice and Entity Directives are pre-synthesized guidance — follow their intent closely, but express them in your own voice. Writing Style provides the ambient tone everything sits within. The Narrative Lens, when present, provides contextual gravity — weave it into characters' decisions and the world's constraints without explaining it.`;
+Craft defines how to write; Story Bible is background reference. Show don't tell — dramatize the world through character action and relationship, never through exposition.`;
   } else {
-    return `You are writing an in-universe document. Your prompt contains:
+    return `You are crafting an in-universe document that feels authentic and alive. Your prompt contains:
 
-TASK DATA (how to write it):
-- Task: Word count, requirements
-- Document Instructions: Structure, voice, tone, what to include/avoid - THIS IS PRIMARY
-- Event Usage: How to incorporate world events
-- Narrative Voice: Synthesized prose guidance blending cultural and stylistic elements
-- Entity Writing Directives: Per-entity guidance for speech, behavior, and portrayal
+CRAFT (how to write):
+- Document Instructions: Structure, voice, tone - THIS DEFINES YOUR DOCUMENT
+
+STORY BIBLE (background reference):
+- Tone & Atmosphere: Notes on emotional texture
+- Character Notes: Relationships and history
 
 WORLD DATA (what to write about):
-- Cast: Document roles to fill, then characters to fill them
-- Narrative Lens (optional): A contextual entity (rule, occurrence, ability) that shapes the document without being a character — treat as ambient constraint
-- World: Setting name, description, canon facts
-- Name Bank: Culture-appropriate names for invented characters
-- Historical Context: Current era and world timeline
-- Relationships: Connections between characters
-- Events: What happened in the world
-
-Hierarchy: Document Instructions define THIS document's structure and voice. Narrative Voice and Entity Directives are pre-synthesized guidance — follow their intent closely, but express them in your own voice. The Narrative Lens, when present, provides contextual gravity — weave it into the document's assumptions and references without explaining it.
+- Cast: Characters referenced in or authoring the document
+- Narrative Lens (optional): A contextual entity that shapes the document's assumptions
+- World: Setting context and canon facts
+- Events: What happened — reference naturally, don't list
 
 Write authentically as if the document exists within the world. No meta-commentary.`;
   }

@@ -71,7 +71,7 @@ export const CHRONICLE_SAMPLING_TOP_P: Record<ChronicleSampling, number> = {
 **Where to find lore:**
 - World description: `illuminatorConfig.json` → `worldName`, `worldDescription`
 - Cultural identities: `illuminatorConfig.json` → `culturalIdentities`
-- Canon facts: `illuminatorConfig.json` → `canonFacts`
+- Canon facts: `illuminatorConfig.json` → `canonFactsWithMetadata`
 - Entity schemas: `schema.json`
 
 **Questions to answer:**
@@ -208,6 +208,67 @@ type HistorianNoteType = 'skepticism' | 'pedantic' | 'commentary' | 'correction'
 
 ---
 
+## Story vs World-Building Document Axis
+
+A critical evaluation dimension: does the output read as a **lived story** or an **elegant world-building document**?
+
+### Story/Chronicle Markers
+| Marker | What It Looks Like |
+|--------|-------------------|
+| **Active opening** | "The ice spoke before the orcas did" — immediate, subject acting |
+| **Recurring physical motif** | Hollows's shaking left flipper (4+ mentions, varies in context) |
+| **Bitter camaraderie** | "Still owe you that fire-tea, Profundix. You'll have to drink my cup for me." |
+| **Dark humor** | "The dead weren't using it" / "Democracy is just choosing how you die together" |
+| **Deaths mid-action** | "died in half a sentence, her words cut off as Vel'keth's jaws closed" |
+| **Devastating ending** | "Counting." — single word, unexpected, lands hard |
+
+### World-Building Document Markers
+| Marker | What It Looks Like |
+|--------|-------------------|
+| **Passive opening** | "The ice at The Fissured Smelt~ tasted wrong" — diffuse, atmospheric |
+| **Conceptual traits** | "eyes held too many timelines" — metaphorical, not physical |
+| **Authorial commentary** | "A culture built on secrets learning the taste of public record; of course they tried." |
+| **Deaths in retrospect** | "They were cut short. That was how the chronicles recorded it." — meta, not visceral |
+| **Explaining systems** | "Protocol says we carve the names... Vestigium∴moria. Memorial-rule." |
+| **Thematic ending** | "The ice remembers everything." — summarizes rather than lands |
+
+### Known Factors Affecting This Axis
+
+**1. Thinking vs Non-Thinking Mode**
+- Thinking mode (extended thinking) tends toward organized, analytical output
+- Non-thinking mode tends toward more intuitive, flowing prose
+- The analytical pass may "double-analyze" what perspective synthesis already did
+
+**2. Context Volume**
+- Rich context (full perspective synthesis, entity directives, facets) → model spends creative budget on integration
+- Even with the same model (Sonnet), rich context produces world-building documents while simple context produces stories
+- Example: "Ice Remembers" V1 (simple context, 2468 words) = pure chronicle; V5 (rich context, 2600 words) = document
+
+**3. Word Count / Length**
+- Longer word targets may allow drift into exposition
+- Pattern observed: story energy in early sections, documentation in later sections
+- The model may "run out of story" and fill remaining word budget with explanation
+- Example: "Brazier" V3 has great story in Sections 1-2, drifts into memorial protocol explanation in Section 3
+
+**4. Tone Guidance Being Ignored**
+The prompt includes explicit instructions like:
+```
+BITTER CAMARADERIE:
+Grimness alone is exhausting. Include dark humor between allies,
+loyalty despite failure, small kindnesses in terrible contexts.
+```
+Yet V2-V5 of "Ice Remembers" completely ignore this. The model prioritizes integrating lore content over following style guidance when context is heavy.
+
+### Gold Standard Reference
+**"Ice Remembers What Wakes" V1** (Sonnet non-thinking, simpler context) demonstrates what we're aiming for:
+- Hollows's shaking flipper as recurring embodied trauma
+- "Still owe you that fire-tea" bitter camaraderie
+- "Democracy is just choosing how you die together" dark humor
+- Totatirus~ dies mid-sentence, brutal
+- Ending: "Counting." — devastating single word
+
+---
+
 ## Common Issues to Watch For
 
 ### Sameness Patterns
@@ -216,6 +277,21 @@ See `docs/chronicle-sameness-analysis.md` for documented patterns:
 - Same emotional arc across different styles
 - Artifacts always having "cracks" or "agency"
 - Identical 4-5 scene structures
+
+**Note**: Sameness is a problem *between* different chronicles, not between versions of the same chronicle. Some consistency across versions is expected and acceptable.
+
+### World Dynamics Not Passed (Known Bug)
+World dynamics defined in `illuminatorConfig.json` are NOT being injected into chronicle generation. The `perspectiveSynthesis.input` contains `facts` but no `worldDynamics` field.
+
+Impact: Chronicles don't reflect era-specific political/resource states (e.g., Aurora Stack fragmentation, fire-core scarcity, who controls which territories).
+
+### Context Overload Pattern
+When perspective synthesis produces rich output (detailed entity directives, many facets, long narrative voice guidance), the generation pass may:
+- Treat style guidance as lower priority than lore integration
+- Produce "box-checking" prose that includes all required elements without soul
+- Drift into world-building explanation mode, especially in later sections
+
+**Proposed mitigation (not yet implemented)**: "Seeds not outlines" — Phase 2 produces 4-6 evocative fragments rather than detailed directives. The creative pass receives anchors to weave in, not requirements to satisfy.
 
 ### Event Handling
 Events in the export may have undefined headlines:
@@ -295,6 +371,35 @@ Very large casts or many relationships can bloat the prompt. Check if important 
 6. **Check mechanics**—word count, structure, style adherence
 
 7. **Note issues**—entity ID mismatches, undefined events, prompt problems
+
+---
+
+## Multi-Version Comparison
+
+When comparing multiple versions of the same chronicle, evaluate:
+
+### Primary Axis: Story vs Document
+Rank versions from "most story" to "most world-building document" using the markers above.
+
+### Secondary Considerations
+
+**World-building quality** (for when you need institutional depth):
+- Does it explain how systems work in interesting ways?
+- Are there genuine creative inventions (new factions, artifacts, cultural practices)?
+- Does it show systems thinking (how trade spreads corruption, how the Spiral changed conflict dynamics)?
+
+**Structural boldness**:
+- Does any version take a risk (e.g., orca POV in "Brazier" V3)?
+- Bold structure can add emotional weight even if it drifts into documentation
+
+**What to preserve in combines**:
+- From story-leaning versions: recurring motifs, camaraderie moments, devastating endings
+- From document-leaning versions: institutional frameworks, named lineages, systems insights
+
+### Version Selection Heuristic
+- If you need a war chronicle: pick the version highest on the story axis
+- If you need world-building depth: the hybrid or document version may have better invented details
+- Combines can theoretically merge both, but often lose the soul of the story version
 
 ---
 
