@@ -6,7 +6,7 @@
  * - Search, Home, Random at bottom
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { WikiPage, WikiCategory, PageIndexEntry } from '../types/world.ts';
 import WikiSearch from './WikiSearch.tsx';
 import styles from './WikiNav.module.css';
@@ -50,6 +50,7 @@ export default function WikiNav({
 }: WikiNavProps) {
   // Collapsible section state
   const [showChronicleTypes, setShowChronicleTypes] = useState(false);
+  const [loreExpanded, setLoreExpanded] = useState(false);
   const [appendicesExpanded, setAppendicesExpanded] = useState(false);
   const [confluxesExpanded, setConfluxesExpanded] = useState(false);
   const [huddlesExpanded, setHuddlesExpanded] = useState(false);
@@ -127,6 +128,45 @@ export default function WikiNav({
     }))
     .sort((a, b) => a.label.localeCompare(b.label));
 
+  // Featured chronicles: one story and one document per era, randomly selected
+  // useMemo ensures stable selection during session, but random on page load
+  const featuredChronicles = useMemo(() => {
+    // Group chronicles by era
+    const byEra = new Map<string, { stories: WikiPage[]; documents: WikiPage[]; eraName: string }>();
+
+    for (const page of chroniclePages) {
+      const eraId = page.chronicle?.temporalContext?.focalEra?.id || 'unknown';
+      const eraName = page.chronicle?.temporalContext?.focalEra?.name || 'Unknown Era';
+
+      if (!byEra.has(eraId)) {
+        byEra.set(eraId, { stories: [], documents: [], eraName });
+      }
+
+      const group = byEra.get(eraId)!;
+      if (page.chronicle?.format === 'story') {
+        group.stories.push(page);
+      } else if (page.chronicle?.format === 'document') {
+        group.documents.push(page);
+      }
+    }
+
+    // Pick one random story and one random document per era
+    const featured: { page: WikiPage; eraName: string }[] = [];
+
+    for (const [, group] of byEra) {
+      if (group.stories.length > 0) {
+        const randomStory = group.stories[Math.floor(Math.random() * group.stories.length)];
+        featured.push({ page: randomStory, eraName: group.eraName });
+      }
+      if (group.documents.length > 0) {
+        const randomDoc = group.documents[Math.floor(Math.random() * group.documents.length)];
+        featured.push({ page: randomDoc, eraName: group.eraName });
+      }
+    }
+
+    return featured;
+  }, [chroniclePages]);
+
   return (
     <div className={styles.container}>
       {/* Drawer header with close button (mobile only) */}
@@ -167,11 +207,19 @@ export default function WikiNav({
         </div>
       )}
 
-      {/* LORE - World essays and background */}
+      {/* LORE - World essays and background (collapsible) */}
       {lorePages.length > 0 && (
         <div className={styles.section}>
-          <div className={styles.sectionTitle}>Lore</div>
-          {lorePages.map(page => {
+          <button
+            className={styles.sectionTitleCollapsible}
+            onClick={() => setLoreExpanded(!loreExpanded)}
+            aria-expanded={loreExpanded}
+          >
+            <span className={styles.collapseIcon}>{loreExpanded ? '▼' : '▶'}</span>
+            Lore
+            <span className={styles.badge}>({lorePages.length})</span>
+          </button>
+          {loreExpanded && lorePages.map(page => {
             const isActive = currentPageId === page.id;
             const displayName = page.title.replace('Lore:', '');
             return (
@@ -201,6 +249,22 @@ export default function WikiNav({
               By Style
             </label>
           </div>
+          {/* Featured chronicles - one story + one document per era */}
+          {featuredChronicles.length > 0 && featuredChronicles.map(({ page, eraName }) => {
+            const isActive = currentPageId === page.id;
+            const formatIcon = page.chronicle?.format === 'story' ? '◈' : '◇';
+            return (
+              <button
+                key={page.id}
+                className={isActive ? styles.navItemActive : styles.navItem}
+                onClick={() => onNavigate(page.id)}
+                title={`${page.chronicle?.format === 'story' ? 'Story' : 'Document'} · ${eraName}`}
+              >
+                <span className={styles.itemMeta}>{formatIcon}</span>
+                {page.title}
+              </button>
+            );
+          })}
           <button
             className={currentPageId === 'chronicles' ? styles.navItemActive : styles.navItem}
             onClick={() => onNavigate('chronicles')}
