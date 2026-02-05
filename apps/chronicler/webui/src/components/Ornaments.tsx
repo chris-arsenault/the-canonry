@@ -5,9 +5,9 @@
  * through a canvas pipeline:
  *   1. Frequency blend — fiber detail from parchment + smooth tones from vellum
  *   2. Mirror tile — 2x2 flip for guaranteed seamless tiling
- *   3. Luminance extraction — remap grain detail to dark background color
- * Result is a dark image with organic grain baked in, used as a
- * simple repeating background with no blend mode needed.
+ *   3. Desaturate — neutral grayscale so blend mode adds texture without color cast
+ * The processed tile is displayed with mix-blend-mode: soft-light over the
+ * dark background. This preserves the organic structure of the photographs.
  *
  * Theme: Warm Library with frost/ice accents
  * Gold: #c49a5c  |  Frost: #8ab4c4
@@ -67,12 +67,13 @@ function blurCanvas(src: HTMLCanvasElement, radius: number): HTMLCanvasElement {
 
 /**
  * Frequency blend — high-frequency detail from parchment on smooth vellum base.
- * result = vellum + (parchment - blur(parchment))
+ * result = vellum + strength * (parchment - blur(parchment))
  */
 function frequencyBlend(
   parchmentCanvas: HTMLCanvasElement,
   vellumCanvas: HTMLCanvasElement,
   blurRadius: number,
+  strength: number,
 ): HTMLCanvasElement {
   const w = parchmentCanvas.width;
   const h = parchmentCanvas.height;
@@ -91,11 +92,11 @@ function frequencyBlend(
   const vImgData = vCtx.getImageData(0, 0, w, h);
   const vData = vImgData.data;
 
-  // result = vellum + (parchment - blur(parchment))
+  // result = vellum + strength * (parchment - blur(parchment))
   for (let i = 0; i < vData.length; i += 4) {
     for (let c = 0; c < 3; c++) {
       const highPass = pData[i + c] - bData[i + c];
-      vData[i + c] = Math.max(0, Math.min(255, vData[i + c] + highPass));
+      vData[i + c] = Math.max(0, Math.min(255, vData[i + c] + highPass * strength));
     }
   }
 
@@ -143,52 +144,17 @@ function mirrorTile(src: HTMLCanvasElement): HTMLCanvasElement {
 }
 
 /**
- * Luminance extraction + remap to dark background color.
- * Extracts local brightness detail from the texture, discards absolute
- * brightness, and remaps the grain to a narrow range around the dark
- * background color with optional warm tint.
+ * Convert to grayscale — removes color cast so the blend mode
+ * adds pure luminance texture without shifting the background hue.
  */
-function adaptForDarkBg(
-  src: HTMLCanvasElement,
-  config: ParchmentConfig,
-): HTMLCanvasElement {
-  const w = src.width;
-  const h = src.height;
+function desaturate(src: HTMLCanvasElement): HTMLCanvasElement {
   const ctx = src.getContext('2d')!;
-  const imgData = ctx.getImageData(0, 0, w, h);
+  const imgData = ctx.getImageData(0, 0, src.width, src.height);
   const data = imgData.data;
-  const len = w * h;
 
-  const { grainStrength, detailBoost, warmTint } = config;
-
-  // Base background color
-  const baseR = 26, baseG = 22, baseB = 17; // #1a1611
-
-  // Warm tint multipliers (more red, less blue)
-  const tR = 1 + warmTint * 0.2;
-  const tG = 1;
-  const tB = 1 - warmTint * 0.3;
-
-  // Step 1: Compute luminance array and mean
-  const lum = new Float32Array(len);
-  let sum = 0;
-  for (let i = 0; i < len; i++) {
-    const idx = i * 4;
-    lum[i] = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114) / 255;
-    sum += lum[i];
-  }
-  const mean = sum / len;
-
-  // Step 2: Remap — baseColor + (detail * grainStrength * detailBoost)
-  for (let i = 0; i < len; i++) {
-    const idx = i * 4;
-    const detail = (lum[i] - mean) * detailBoost;
-    const shift = detail * grainStrength * 255;
-
-    data[idx]     = Math.max(0, Math.min(255, baseR + shift * tR));
-    data[idx + 1] = Math.max(0, Math.min(255, baseG + shift * tG));
-    data[idx + 2] = Math.max(0, Math.min(255, baseB + shift * tB));
-    data[idx + 3] = 255;
+  for (let i = 0; i < data.length; i += 4) {
+    const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+    data[i] = data[i + 1] = data[i + 2] = lum;
   }
 
   ctx.putImageData(imgData, 0, 0);
@@ -209,26 +175,22 @@ function canvasToObjectURL(canvas: HTMLCanvasElement): Promise<string> {
    ========================================= */
 
 export interface ParchmentConfig {
-  opacity: number;
-  grainStrength: number;  // how visible the grain detail is
-  detailBoost: number;    // local contrast enhancement
-  blurRadius: number;     // frequency split point for blending
-  warmTint: number;       // warm color shift (0 = neutral, 1 = warm)
+  opacity: number;        // overall texture visibility (0–1)
+  blurRadius: number;     // frequency split point for blending (2–20)
+  detailStrength: number; // how much parchment fiber detail to add (0–3)
 }
 
 export const DEFAULT_PARCHMENT_CONFIG: ParchmentConfig = {
-  opacity: 1,
-  grainStrength: 0.3,
-  detailBoost: 1.5,
+  opacity: 0.4,
   blurRadius: 8,
-  warmTint: 0.5,
+  detailStrength: 1.5,
 };
 
 /* =========================================
    ParchmentTexture component
    Loads real parchment/vellum photos, processes
    them through the canvas pipeline, and displays
-   as a repeating background image.
+   as a repeating background with soft-light blend.
    ========================================= */
 
 export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG }: {
@@ -240,10 +202,8 @@ export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG 
 
   // Regenerate when processing params change — opacity is CSS-only
   const genKey = JSON.stringify({
-    gs: config.grainStrength,
-    db: config.detailBoost,
     br: config.blurRadius,
-    wt: config.warmTint,
+    ds: config.detailStrength,
   });
 
   useEffect(() => {
@@ -261,10 +221,10 @@ export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG 
         const pCanvas = drawScaled(parchmentImg, WORK_SIZE, WORK_SIZE);
         const vCanvas = drawScaled(vellumImg, WORK_SIZE, WORK_SIZE);
 
-        // Pipeline: frequency blend → mirror tile → dark adaptation
-        const blended = frequencyBlend(pCanvas, vCanvas, config.blurRadius);
+        // Pipeline: frequency blend → mirror tile → desaturate
+        const blended = frequencyBlend(pCanvas, vCanvas, config.blurRadius, config.detailStrength);
         const tileable = mirrorTile(blended);
-        adaptForDarkBg(tileable, config);
+        desaturate(tileable);
 
         const url = await canvasToObjectURL(tileable);
         if (!cancelled) {
@@ -311,6 +271,7 @@ export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG 
         backgroundRepeat: 'repeat',
         backgroundSize: `${tileSize}px ${tileSize}px`,
         opacity: config.opacity,
+        mixBlendMode: 'soft-light',
         pointerEvents: 'none',
       }}
     />
@@ -374,10 +335,8 @@ export function ParchmentDebugPanel({ config, onChange }: {
       </div>
 
       <Slider label="Opacity" value={config.opacity} min={0} max={1} step={0.01} onChange={v => set('opacity', v)} />
-      <Slider label="Grain strength" value={config.grainStrength} min={0} max={1} step={0.01} onChange={v => set('grainStrength', v)} />
-      <Slider label="Detail boost" value={config.detailBoost} min={0.5} max={4} step={0.1} onChange={v => set('detailBoost', v)} />
       <Slider label="Blur radius" value={config.blurRadius} min={2} max={20} step={1} onChange={v => set('blurRadius', v)} />
-      <Slider label="Warm tint" value={config.warmTint} min={0} max={1} step={0.01} onChange={v => set('warmTint', v)} />
+      <Slider label="Detail" value={config.detailStrength} min={0} max={3} step={0.1} onChange={v => set('detailStrength', v)} />
 
       <button onClick={() => onChange({ ...DEFAULT_PARCHMENT_CONFIG })}
         style={{ background: 'none', border: '1px solid rgba(196,164,112,0.3)', borderRadius: 4,

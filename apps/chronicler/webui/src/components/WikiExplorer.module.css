@@ -44,6 +44,7 @@
   overflow: hidden;
   position: relative;
   isolation: isolate;
+  background-color: var(--color-bg-primary);
 }
 
 /* Parchment noise — behind content, above the flat background.
