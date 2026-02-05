@@ -85,28 +85,29 @@ function generateTexture(config: ParchmentConfig): string {
 
   const img = ctx.createImageData(TILE_SIZE, TILE_SIZE);
   const d = img.data;
-  const { grain, creases, splotches } = config;
+  const { warmth, grain, creases, splotches } = config;
   const gGrid = Math.max(2, Math.round(grain.scale));
   const cGrid = Math.max(2, Math.round(creases.scale));
   const sGrid = Math.max(1, Math.round(splotches.scale));
 
   for (let y = 0; y < TILE_SIZE; y++) {
     for (let x = 0; x < TILE_SIZE; x++) {
-      let v = 0;
+      // Start with noise in 0-1 range
+      let noise = 0;
 
-      // Base grain — multi-octave fractal noise
+      // Fine grain — multi-octave fractal noise for paper fiber texture
       if (grain.enabled) {
-        v = fbm(x, y, 42, gGrid, grain.octaves) * grain.intensity;
+        noise = fbm(x, y, 42, gGrid, grain.octaves);
       }
 
-      // Crease marks — low-frequency noise, thresholded for sharp features
+      // Creases darken the grain (reduce noise in crease areas)
       if (creases.enabled) {
         const cv = fbm(x, y, 137, cGrid, 2);
         const cm = Math.min(1, Math.max(0, cv - 0.52) * 4);
-        v = Math.max(0, v - cm * creases.intensity);
+        noise = Math.max(0, noise - cm * creases.intensity);
       }
 
-      // Age splotches — very low-frequency noise, soft blob shapes
+      // Splotches darken the grain (reduce noise in aged areas)
       if (splotches.enabled) {
         const sv = smoothNoise(
           x * sGrid / TILE_SIZE,
@@ -114,10 +115,13 @@ function generateTexture(config: ParchmentConfig): string {
           313, sGrid,
         );
         const sm = Math.pow(Math.max(0, sv - 0.4) / 0.6, 0.8);
-        v = Math.max(0, v - sm * splotches.intensity);
+        noise = Math.max(0, noise - sm * splotches.intensity);
       }
 
-      v = Math.max(0, Math.min(1, v));
+      // Combine: uniform warm base + noise adds grain variation on top
+      // warmth = minimum brightness (overall warm tint)
+      // grain.contrast = how much noise modulates above the base
+      const v = Math.min(1, warmth + noise * grain.contrast);
       const i = (y * TILE_SIZE + x) * 4;
       d[i]     = (P_R * v) | 0;
       d[i + 1] = (P_G * v) | 0;
@@ -136,16 +140,18 @@ function generateTexture(config: ParchmentConfig): string {
 
 export interface ParchmentConfig {
   opacity: number;
-  grain: { enabled: boolean; scale: number; intensity: number; octaves: number };
+  warmth: number;
+  grain: { enabled: boolean; scale: number; contrast: number; octaves: number };
   creases: { enabled: boolean; scale: number; intensity: number };
   splotches: { enabled: boolean; scale: number; intensity: number };
 }
 
 export const DEFAULT_PARCHMENT_CONFIG: ParchmentConfig = {
   opacity: 1,
-  grain:    { enabled: true, scale: 20, intensity: 0.6, octaves: 4 },
-  creases:  { enabled: true, scale: 4,  intensity: 0.3 },
-  splotches:{ enabled: true, scale: 3,  intensity: 0.25 },
+  warmth: 0.12,
+  grain:    { enabled: true, scale: 128, contrast: 0.15, octaves: 4 },
+  creases:  { enabled: true, scale: 5,   intensity: 0.08 },
+  splotches:{ enabled: true, scale: 3,   intensity: 0.06 },
 };
 
 /* =========================================
@@ -162,7 +168,7 @@ export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG 
   const [textureUrl, setTextureUrl] = useState<string | null>(null);
 
   // Only regenerate when layer params change — opacity is CSS-only
-  const genKey = JSON.stringify({ g: config.grain, c: config.creases, s: config.splotches });
+  const genKey = JSON.stringify({ w: config.warmth, g: config.grain, c: config.creases, s: config.splotches });
 
   useEffect(() => {
     setTextureUrl(generateTexture(config));
@@ -250,14 +256,15 @@ export function ParchmentDebugPanel({ config, onChange }: {
       </div>
 
       <Slider label="Opacity" value={config.opacity} min={0} max={1} step={0.01} onChange={v => set('opacity', v)} />
+      <Slider label="Warmth" value={config.warmth} min={0} max={0.5} step={0.01} onChange={v => set('warmth', v)} />
 
       <div style={SECTION}>
         <label style={SECTION_LABEL}>
           <input type="checkbox" checked={config.grain.enabled} onChange={e => set('grain.enabled', e.target.checked)} />
-          Base Grain
+          Paper Grain
         </label>
-        <Slider label="Scale" value={config.grain.scale} min={4} max={64} step={1} onChange={v => set('grain.scale', v)} />
-        <Slider label="Intensity" value={config.grain.intensity} min={0} max={1} step={0.01} onChange={v => set('grain.intensity', v)} />
+        <Slider label="Scale" value={config.grain.scale} min={16} max={256} step={1} onChange={v => set('grain.scale', v)} />
+        <Slider label="Contrast" value={config.grain.contrast} min={0} max={0.5} step={0.01} onChange={v => set('grain.contrast', v)} />
         <Slider label="Octaves" value={config.grain.octaves} min={1} max={6} step={1} onChange={v => set('grain.octaves', v)} />
       </div>
 
