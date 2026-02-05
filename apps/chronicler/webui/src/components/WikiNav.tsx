@@ -6,7 +6,7 @@
  * - Search, Home, Random at bottom
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useRef } from 'react';
 import type { WikiPage, WikiCategory, PageIndexEntry } from '../types/world.ts';
 import WikiSearch from './WikiSearch.tsx';
 import styles from './WikiNav.module.css';
@@ -129,8 +129,10 @@ export default function WikiNav({
     .sort((a, b) => a.label.localeCompare(b.label));
 
   // Featured chronicles: one story and one document per era, randomly selected
-  // useMemo ensures stable selection during session, but random on page load
-  const featuredChronicles = useMemo(() => {
+  // useRef ensures selection only happens once per component mount (hard refresh)
+  const featuredChroniclesRef = useRef<{ page: WikiPage; eraName: string }[] | null>(null);
+
+  if (featuredChroniclesRef.current === null && chroniclePages.length > 0) {
     // Group chronicles by era
     const byEra = new Map<string, { stories: WikiPage[]; documents: WikiPage[]; eraName: string }>();
 
@@ -164,8 +166,10 @@ export default function WikiNav({
       }
     }
 
-    return featured;
-  }, [chroniclePages]);
+    featuredChroniclesRef.current = featured;
+  }
+
+  const featuredChronicles = featuredChroniclesRef.current || [];
 
   return (
     <div className={styles.container}>
