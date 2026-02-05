@@ -18,7 +18,7 @@ export type { LLMCallType, LLMCallConfig };
 export { LLM_CALL_METADATA, ALL_LLM_CALL_TYPES } from './llmCallTypes';
 
 const STORAGE_KEY = 'illuminator:llmModelSettings';
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 /**
  * Per-call settings (can override defaults)
@@ -27,6 +27,8 @@ export interface LLMCallConfigStored {
   model?: string;           // undefined = use default
   thinkingBudget?: number;  // undefined = use default, 0 = disabled
   maxTokens?: number;       // undefined = use default, 0 = auto (style-derived)
+  temperature?: number;     // undefined = use default
+  topP?: number;            // undefined = use default (1.0 = normal, 0.95 = low)
 }
 
 /**
@@ -47,6 +49,8 @@ export interface ResolvedLLMCallConfig {
   model: string;
   thinkingBudget: number;
   maxTokens: number;
+  temperature?: number;
+  topP?: number;
 }
 
 /**
@@ -69,8 +73,13 @@ function migrateSettings(stored: unknown): LLMModelSettings {
     return settings as LLMModelSettings;
   }
 
-  // Future migrations go here
-  // if (settings.version === 1) { ... migrate to v2 ... }
+  // v1 -> v2: add optional sampling fields, keep existing overrides
+  if (settings.version === 1) {
+    return {
+      callOverrides: (settings.callOverrides as LLMModelSettings['callOverrides']) || {},
+      version: CURRENT_VERSION,
+    };
+  }
 
   // Default: return with current version
   return {
@@ -110,12 +119,16 @@ export function saveLLMModelSettings(settings: LLMModelSettings): void {
       const hasModelOverride = config.model && config.model !== metadata.defaults.model;
       const hasThinkingOverride = config.thinkingBudget !== undefined && config.thinkingBudget !== metadata.defaults.thinkingBudget;
       const hasMaxTokensOverride = config.maxTokens !== undefined && config.maxTokens !== metadata.defaults.maxTokens;
+      const hasTemperatureOverride = config.temperature !== undefined && config.temperature !== metadata.defaults.temperature;
+      const hasTopPOverride = config.topP !== undefined && config.topP !== metadata.defaults.topP;
 
-      if (hasModelOverride || hasThinkingOverride || hasMaxTokensOverride) {
+      if (hasModelOverride || hasThinkingOverride || hasMaxTokensOverride || hasTemperatureOverride || hasTopPOverride) {
         cleanOverrides[callType as LLMCallType] = {
           ...(hasModelOverride ? { model: config.model } : {}),
           ...(hasThinkingOverride ? { thinkingBudget: config.thinkingBudget } : {}),
           ...(hasMaxTokensOverride ? { maxTokens: config.maxTokens } : {}),
+          ...(hasTemperatureOverride ? { temperature: config.temperature } : {}),
+          ...(hasTopPOverride ? { topP: config.topP } : {}),
         };
       }
     }
@@ -163,13 +176,18 @@ export function getCallConfig(callType: LLMCallType): ResolvedLLMCallConfig {
   const model = getModelForCall(callType);
   let thinkingBudget = getThinkingBudgetForCall(callType);
   const maxTokens = getMaxTokensForCall(callType);
+  const settings = getLLMModelSettings();
+  const override = settings.callOverrides[callType];
+  const defaults = LLM_CALL_METADATA[callType].defaults;
+  const temperature = override?.temperature ?? defaults.temperature;
+  const topP = override?.topP ?? defaults.topP;
 
   // Ensure thinking is disabled for models that don't support it
   if (!THINKING_CAPABLE_MODELS.includes(model)) {
     thinkingBudget = 0;
   }
 
-  return { model, thinkingBudget, maxTokens };
+  return { model, thinkingBudget, maxTokens, temperature, topP };
 }
 
 /**
@@ -211,7 +229,9 @@ export function hasOverrides(callType: LLMCallType): boolean {
   return (
     (override.model !== undefined && override.model !== metadata.defaults.model) ||
     (override.thinkingBudget !== undefined && override.thinkingBudget !== metadata.defaults.thinkingBudget) ||
-    (override.maxTokens !== undefined && override.maxTokens !== metadata.defaults.maxTokens)
+    (override.maxTokens !== undefined && override.maxTokens !== metadata.defaults.maxTokens) ||
+    (override.temperature !== undefined && override.temperature !== metadata.defaults.temperature) ||
+    (override.topP !== undefined && override.topP !== metadata.defaults.topP)
   );
 }
 

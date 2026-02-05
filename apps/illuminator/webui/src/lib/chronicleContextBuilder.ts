@@ -26,6 +26,7 @@ import type {
   ChronicleTemporalContext,
   ToneFragments,
   CanonFactWithMetadata,
+  FactSelectionConfig,
   WorldDynamic,
 } from './chronicleTypes';
 
@@ -85,6 +86,7 @@ interface WorldContext {
   // Required for chronicle generation (perspective synthesis)
   toneFragments: ToneFragments;
   canonFactsWithMetadata: CanonFactWithMetadata[];
+  factSelection?: FactSelectionConfig;
 
   // World dynamics (optional narrative context statements)
   worldDynamics?: WorldDynamic[];
@@ -353,6 +355,7 @@ export function buildChronicleContext(
     // Input for perspective synthesis (required)
     toneFragments: worldContext.toneFragments,
     canonFactsWithMetadata: worldContext.canonFactsWithMetadata,
+    factSelection: worldContext.factSelection,
 
     // Chronicle focus (primary)
     focus,

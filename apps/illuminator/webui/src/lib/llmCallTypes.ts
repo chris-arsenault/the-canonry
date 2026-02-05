@@ -75,6 +75,10 @@ export interface LLMCallDefaults {
   model: string;
   thinkingBudget: number;  // 0 = disabled
   maxTokens: number;       // 0 = auto (style-derived)
+  /** Temperature for non-thinking calls (when no top_p is used). */
+  temperature?: number;
+  /** Top-p for thinking-enabled calls. 1.0 = normal, 0.95 = low sampling. */
+  topP?: number;
 }
 
 export interface LLMCallMetadata {
@@ -92,6 +96,8 @@ export interface LLMCallConfig {
   model?: string;
   thinkingBudget?: number;  // 0 = disabled
   maxTokens?: number;       // 0 = auto (style-derived)
+  temperature?: number;
+  topP?: number;
 }
 
 // Available models
@@ -202,6 +208,8 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       model: 'claude-sonnet-4-5-20250929',
       thinkingBudget: 0,
       maxTokens: 0,
+      temperature: 1.0,
+      topP: 1.0,  // 1.0 = normal, 0.95 = low sampling (controlled via checkbox)
     },
     recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
   },

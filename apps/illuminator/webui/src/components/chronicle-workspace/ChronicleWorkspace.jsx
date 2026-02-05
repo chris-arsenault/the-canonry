@@ -19,6 +19,7 @@ export default function ChronicleWorkspace({
   onAccept,
   onRegenerate,
   onRegenerateWithSampling,
+  onRegenerateFull,
   onCompareVersions,
   onCombineVersions,
   onValidate,
@@ -33,6 +34,7 @@ export default function ChronicleWorkspace({
   onUpdateChronicleAnchorText,
   onUpdateChronicleTemporalContext,
   onUpdateChronicleActiveVersion,
+  onDeleteVersion,
   onUpdateCombineInstructions,
   onUnpublish,
 
@@ -49,6 +51,12 @@ export default function ChronicleWorkspace({
   // Image layout edits
   onUpdateChronicleImageSize,
   onUpdateChronicleImageJustification,
+
+  // Image ref selections (version migration)
+  onApplyImageRefSelections,
+
+  // Select existing image for a ref
+  onSelectExistingImage,
 
   // Export
   onExport,
@@ -166,7 +174,6 @@ export default function ChronicleWorkspace({
   const imageRefsIndicator = formatTargetIndicator(item.imageRefsTargetVersionId);
   const imageRefsTargetContent = versionContentMap.get(item.imageRefsTargetVersionId || activeVersionId) || item.assembledContent;
 
-  const hasMultipleVersions = versions.length >= 2;
   const compareRunning = refinements?.compare?.running || false;
   const combineRunning = refinements?.combine?.running || false;
 
@@ -244,17 +251,13 @@ export default function ChronicleWorkspace({
     }
     const t = [
       { id: 'pipeline', label: 'Pipeline' },
-    ];
-    if (hasMultipleVersions) {
-      t.push({ id: 'versions', label: 'Versions', indicator: `(${versions.length})` });
-    }
-    t.push(
+      { id: 'versions', label: 'Versions', indicator: versions.length > 1 ? `(${versions.length})` : undefined },
       { id: 'images', label: 'Images' },
       { id: 'reference', label: 'Reference' },
       { id: 'content', label: 'Content', align: 'right' },
-    );
+    ];
     return t;
-  }, [isComplete, hasMultipleVersions, versions.length]);
+  }, [isComplete, versions.length]);
 
   // If active tab no longer exists (e.g., versions tab disappeared), reset
   useEffect(() => {
@@ -355,8 +358,11 @@ export default function ChronicleWorkspace({
             onSelectVersion={handleSelectVersion}
             onSelectCompareVersion={setCompareToVersionId}
             onSetActiveVersion={isComplete ? undefined : onUpdateChronicleActiveVersion}
+            onDeleteVersion={isComplete ? undefined : onDeleteVersion}
             onCompareVersions={onCompareVersions}
             onCombineVersions={onCombineVersions}
+            onRegenerateFull={onRegenerateFull}
+            onRegenerateWithSampling={onRegenerateWithSampling}
             onUpdateCombineInstructions={onUpdateCombineInstructions}
             compareRunning={compareRunning}
             combineRunning={combineRunning}
@@ -388,6 +394,10 @@ export default function ChronicleWorkspace({
             imageGenSettings={imageGenSettings}
             onOpenImageSettings={onOpenImageSettings}
             chronicleText={chronicleText}
+            versions={versions}
+            activeVersionId={activeVersionId}
+            onApplyImageRefSelections={onApplyImageRefSelections}
+            onSelectExistingImage={onSelectExistingImage}
           />
         )}
 
@@ -414,6 +424,7 @@ export default function ChronicleWorkspace({
             onSelectVersion={handleSelectVersion}
             onSelectCompareVersion={setCompareToVersionId}
             onSetActiveVersion={isComplete ? undefined : onUpdateChronicleActiveVersion}
+            onDeleteVersion={isComplete ? undefined : onDeleteVersion}
             isGenerating={isGenerating}
           />
         )}

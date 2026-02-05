@@ -11,96 +11,279 @@
       "The Berg's ice remembers. Ancient events leave literal impressions - frozen scenes, echo-sounds, emotional residue. The deeper you go, the older the memories.",
       "No penguin has ever successfully left The Berg and returned. The frozen sea is infinite in all directions. Some say The Berg is the only land that exists.",
       "The two colonies maintain an uneasy peace through the Flipper Accord - a trade agreement where surface aurora-crystals exchange for deep fire-cores. Neither can survive without the other's resource.",
-      "All sapient beings in this world are penguins or orcas. Humans do not exist and have never existed on The Berg."
+      "All sapient beings in this world are penguins or orcas. Humans do not exist and have never existed on The Berg.",
+      "Corruption spreads through the ice from ancient breach-points - the Glow-Fissure, the Still Pools, the Veil Vents. It manifests as cold-burn discoloration, whisper-echoes from nothing, and a wrongness in the ice-memory itself. Penguins exposed too long become 'Touched' - functional but changed, speaking to presences others cannot perceive. Cleansing rituals can create temporary sanctified zones, but the sources remain active, and cults like The Communion deliberately break sanctifications to let the corruption spread.",
+      "During each Long Dark, some penguins simply walk out onto the ice and never return. Called 'the Walking,' it seizes those who have lost much or suffered greatly - a compulsion rather than a decision. Some are found frozen with peaceful expressions. Others vanish entirely. The most disturbing cases return weeks later, unable to explain where they were. The Walking is not counted as suicide because no one is certain that's what it is.",
+      "During the Long Dark, the boundary between the living world and the ice-memory grows thin. The dead speak more clearly. Visions come unbidden. Some penguins report seeing transparent ancestors walking among the living. Aurora ice-readers find their abilities enhanced but harder to control. Nightshelf shadow-walkers can travel farther but risk losing themselves. The Long Dark is a time of power and a time of peril - what surfaces from the thin veil is not always what you hoped to find.",
+      "Some penguins report being watched during the Long Dark - not by other penguins, not by predators, but by something else. Presences at the edge of perception, figures that vanish when looked at directly, a sense of patient attention. The deep ice contains impressions from beings that existed before penguins. Perhaps, when the veil thins, those ancient presences wake up. Or perhaps four months of darkness simply breaks something in the mind. The Nightshelf claim the watchers are real. The Aurora claim belief makes them so.",
+      "Fire-cores are solidified volcanic heat extracted from the Berg's geothermal veins - fist-sized crystals that radiate warmth for months before exhaustion. The Nightshelf mine them from increasingly unstable depths. They power the heating braziers that keep surface settlements livable, fuel the forges that craft Nightshelf tools, and serve as the primary Nightshelf export under the Flipper Accord. A fire-core shortage is not an inconvenience - it is a death sentence measured in days.",
+      "Aurora-crystals are ice formations that have absorbed aurora-light over centuries, glowing faintly with stored radiance. They power the Nightshelf's bioluminescent infrastructure, fuel shadow-practices that require illumination to define darkness, and serve as the primary Aurora export under the Flipper Accord. Aurora adepts can recharge depleted crystals, but the process requires clear skies and active aurora - impossible during the Long Dark. Stockpiling crystals before winter is survival, not commerce.",
+      "The Courier Corps carries the survival of two civilizations in sealed crates on their backs. Recruited from both cultures but belonging to neither, couriers abandon their birth names for trade-names (Ferryman, Splitpath, Downdraft) and mark their flippers with courier ink that glows in both light and dark. They are inviolable under the Flipper Accord - attacking a courier means death by exposure. The seventeen skeletons at Midway Shelf are the ones who violated this law. The couriers who walk past those bones every trip find it concentrates the mind.",
+      "Orca raids follow predictable patterns that remain terrifyingly effective. Shore-breakers drive wedges through ice to create access channels. Herders push penguin groups toward killing zones. Finishers wait in the water below escape routes. Hunt-songs coordinate the assault at frequencies that make bones ache. The penguins have developed counter-tactics - ice-wall fortifications, alarm networks, designated sacrifice positions that buy time for evacuation - but the arithmetic remains brutal: orca are faster, stronger, and patient enough to wait for mistakes."
     ],
     "canonFactsWithMetadata": [
       {
         "id": "berg-nature",
-        "text": "The Berg is a supernatural iceberg of impossible scale - large enough to contain mountains, caverns, and multiple civilizations. It drifts through an endless frozen sea under perpetual twilight.",
-        "relevantCultures": ["*"],
-        "relevantKinds": ["location", "era"],
-        "relevantTags": [],
-        "relevantRelationships": [],
-        "basePriority": 0.9
+        "text": "The Berg is a supernatural iceberg of impossible scale - large enough to contain mountains, caverns, and multiple civilizations. It drifts through an endless frozen sea under perpetual twilight."
       },
       {
         "id": "penguin-sapience",
-        "text": "Penguins evolved sapience through exposure to aurora-light over millennia. They possess flipper-dexterity comparable to human hands and stand upright habitually.",
-        "relevantCultures": ["aurora-stack", "nightshelf"],
-        "relevantKinds": ["npc"],
-        "relevantTags": [],
-        "relevantRelationships": [],
-        "basePriority": 0.7
+        "text": "Penguins evolved sapience through exposure to aurora-light over millennia. They possess flipper-dexterity comparable to human hands and stand upright habitually."
       },
       {
         "id": "two-civilizations",
-        "text": "Two penguin civilizations exist: the Aurora Stack (surface dwellers who worship the sky-lights) and the Nightshelf (tunnel dwellers who mine fire from the berg's volcanic core).",
-        "relevantCultures": ["aurora-stack", "nightshelf"],
-        "relevantKinds": ["faction", "location"],
-        "relevantTags": [],
-        "relevantRelationships": [],
-        "basePriority": 0.8
+        "text": "Two penguin civilizations exist: the Aurora Stack (surface dwellers who worship the sky-lights) and the Nightshelf (tunnel dwellers who mine fire from the berg's volcanic core)."
       },
       {
         "id": "orca-raiders",
-        "text": "Orca pods are intelligent raiders from the surrounding sea. They worship a dead god whose corpse drifts somewhere in the deep, and conduct blood-rituals to wake it.",
-        "relevantCultures": ["orca"],
-        "relevantKinds": ["npc", "faction", "occurrence"],
-        "relevantTags": ["conflict", "raid", "religious"],
-        "relevantRelationships": ["enemy", "rival"],
-        "basePriority": 0.6
+        "text": "Orca pods are intelligent raiders from the surrounding sea. They worship a dead god whose corpse drifts somewhere in the deep, and conduct blood-rituals to wake it."
       },
       {
         "id": "magic-sources",
-        "text": "Magic on The Berg draws from three sources: aurora-light (ice/crystal/divination), captured fire (forge/transformation/destruction), and pressure-depth (blood/force/communion with the deep).",
-        "relevantCultures": ["*"],
-        "relevantKinds": ["artifact", "ability", "rule"],
-        "relevantTags": ["magic", "ritual", "power"],
-        "relevantRelationships": [],
-        "basePriority": 0.6
+        "text": "Magic on The Berg draws from three sources: aurora-light (ice/crystal/divination), captured fire (forge/transformation/destruction), and pressure-depth (blood/force/communion with the deep)."
       },
       {
         "id": "ice-remembers",
-        "text": "The Berg's ice remembers. Ancient events leave literal impressions - frozen scenes, echo-sounds, emotional residue. The deeper you go, the older the memories.",
-        "relevantCultures": ["*"],
-        "relevantKinds": ["*"],
-        "relevantTags": ["memory", "history", "artifact"],
-        "relevantRelationships": [],
-        "basePriority": 0.9
+        "text": "The Berg's ice remembers. Ancient events leave literal impressions - frozen scenes, echo-sounds, emotional residue. The deeper you go, the older the memories."
       },
       {
         "id": "no-escape",
-        "text": "No penguin has ever successfully left The Berg and returned. The frozen sea is infinite in all directions. Some say The Berg is the only land that exists.",
-        "relevantCultures": ["*"],
-        "relevantKinds": ["location"],
-        "relevantTags": ["exploration", "edge", "horizon"],
-        "relevantRelationships": [],
-        "basePriority": 0.4
+        "text": "No penguin has ever successfully left The Berg and returned. The frozen sea is infinite in all directions. Some say The Berg is the only land that exists."
       },
       {
         "id": "flipper-accord",
-        "text": "The two colonies maintain an uneasy peace through the Flipper Accord - a trade agreement where surface aurora-crystals exchange for deep fire-cores. Neither can survive without the other's resource.",
-        "relevantCultures": ["aurora-stack", "nightshelf"],
-        "relevantKinds": ["faction"],
-        "relevantTags": ["trade", "politics", "diplomacy"],
-        "relevantRelationships": ["trade_partner", "ally"],
-        "basePriority": 0.6
+        "text": "The two colonies maintain an uneasy peace through the Flipper Accord - a trade agreement where surface aurora-crystals exchange for deep fire-cores. Neither can survive without the other's resource."
       },
       {
         "id": "no-humans",
         "text": "All sapient beings in this world are penguins or orcas. Humans do not exist and have never existed on The Berg.",
-        "type": "generation_constraint",
-        "relevantCultures": ["*"],
-        "relevantKinds": ["*"],
-        "relevantTags": [],
-        "relevantRelationships": [],
-        "basePriority": 0.8
+        "type": "generation_constraint"
+      },
+      {
+        "id": "corruption-taint",
+        "text": "Corruption spreads through the ice from ancient breach-points - the Glow-Fissure, the Still Pools, the Veil Vents. It manifests as cold-burn discoloration, whisper-echoes from nothing, and a wrongness in the ice-memory itself. Penguins exposed too long become 'Touched' - functional but changed, speaking to presences others cannot perceive. Cleansing rituals can create temporary sanctified zones, but the sources remain active, and cults like The Communion deliberately break sanctifications to let the corruption spread."
+      },
+      {
+        "id": "the-walking",
+        "text": "During each Long Dark, some penguins simply walk out onto the ice and never return. Called 'the Walking,' it seizes those who have lost much or suffered greatly - a compulsion rather than a decision. Some are found frozen with peaceful expressions. Others vanish entirely. The most disturbing cases return weeks later, unable to explain where they were. The Walking is not counted as suicide because no one is certain that's what it is.",
+        "required": true
+      },
+      {
+        "id": "thin-veil",
+        "text": "During the Long Dark, the boundary between the living world and the ice-memory grows thin. The dead speak more clearly. Visions come unbidden. Some penguins report seeing transparent ancestors walking among the living. Aurora ice-readers find their abilities enhanced but harder to control. Nightshelf shadow-walkers can travel farther but risk losing themselves. The Long Dark is a time of power and a time of peril - what surfaces from the thin veil is not always what you hoped to find.",
+        "required": true
+      },
+      {
+        "id": "dark-watchers",
+        "text": "Some penguins report being watched during the Long Dark - not by other penguins, not by predators, but by something else. Presences at the edge of perception, figures that vanish when looked at directly, a sense of patient attention. The deep ice contains impressions from beings that existed before penguins. Perhaps, when the veil thins, those ancient presences wake up. Or perhaps four months of darkness simply breaks something in the mind. The Nightshelf claim the watchers are real. The Aurora claim belief makes them so.",
+        "required": true
+      },
+      {
+        "id": "fire-core-technology",
+        "text": "Fire-cores are solidified volcanic heat extracted from the Berg's geothermal veins - fist-sized crystals that radiate warmth for months before exhaustion. The Nightshelf mine them from increasingly unstable depths. They power the heating braziers that keep surface settlements livable, fuel the forges that craft Nightshelf tools, and serve as the primary Nightshelf export under the Flipper Accord. A fire-core shortage is not an inconvenience - it is a death sentence measured in days.",
+        "required": true
+      },
+      {
+        "id": "aurora-crystal-technology",
+        "text": "Aurora-crystals are ice formations that have absorbed aurora-light over centuries, glowing faintly with stored radiance. They power the Nightshelf's bioluminescent infrastructure, fuel shadow-practices that require illumination to define darkness, and serve as the primary Aurora export under the Flipper Accord. Aurora adepts can recharge depleted crystals, but the process requires clear skies and active aurora - impossible during the Long Dark. Stockpiling crystals before winter is survival, not commerce.",
+        "required": true
+      },
+      {
+        "id": "courier-corps",
+        "text": "The Courier Corps carries the survival of two civilizations in sealed crates on their backs. Recruited from both cultures but belonging to neither, couriers abandon their birth names for trade-names (Ferryman, Splitpath, Downdraft) and mark their flippers with courier ink that glows in both light and dark. They are inviolable under the Flipper Accord - attacking a courier means death by exposure. The seventeen skeletons at Midway Shelf are the ones who violated this law. The couriers who walk past those bones every trip find it concentrates the mind.",
+        "required": true
+      },
+      {
+        "id": "orca-raid-tactics",
+        "text": "Orca raids follow predictable patterns that remain terrifyingly effective. Shore-breakers drive wedges through ice to create access channels. Herders push penguin groups toward killing zones. Finishers wait in the water below escape routes. Hunt-songs coordinate the assault at frequencies that make bones ache. The penguins have developed counter-tactics - ice-wall fortifications, alarm networks, designated sacrifice positions that buy time for evacuation - but the arithmetic remains brutal: orca are faster, stronger, and patient enough to wait for mistakes.",
+        "required": true
       }
     ],
-    "tone": "Dark, war-weary fantasy in the tradition of Malazan Book of the Fallen, Brent Weeks, and the Powder Mage trilogy. History is written by survivors who remember the cost. Tragedy happens without ceremony - important figures die in half-sentences, battles end mid-action, and not everything resolves.\n\nSTYLE PRINCIPLES:\n- Specificity over abstraction: Not 'a weapon' but 'a fire-core hammer with a cracked head.' Not 'he felt sad' but 'his flippers wouldn't stop shaking.'\n- Show through action and object, not introspection: Characters reveal themselves by what they do, carry, avoid, or destroy - not by what they 'realize' or 'understand.'\n- Subtext over statement: Let implications land. If someone betrayed their colony, don't say they feel guilty - mention they haven't visited the memorial.\n- Uncomfortable details: Include the ugly, inconvenient, or unresolved. A hero's hands might be scarred from something shameful. A victory might cost more than it was worth.\n- Trust the reader: Don't explain metaphors. Don't summarize lessons. End on images, not morals.\n\nSYNTACTIC POETRY:\nAim for the compressed power of 'First in; last out; for the last time.' Sentences that carry weight through rhythm and omission. Not fragmented violence, but poetic compression - where what's left unsaid hits harder than what's spoken. Semicolons can do the work of paragraphs. Repetition with variation creates resonance.\n\nBITTER CAMARADERIE:\nThis is essential. Grimness alone is exhausting. Include:\n- Dark humor between allies - jokes that wouldn't be funny if you hadn't been there\n- Loyalty that persists despite betrayal, stupidity, or failure\n- Small kindnesses in terrible contexts - sharing rations, remembering names, carrying someone's token\n- Soldiers/workers who mock the causes they'll die for\n- The way people become family through shared suffering, not shared values\n- Irony that isn't cruel - the bitter laugh, not the sneer\n- Heroic sacrifice that EARNS its weight - not cheap martyrdom, but the moment someone trades their life for something they actually loved. Make it cost. Make it matter.\n\nSTRUCTURAL VARIETY:\n- Not every entity needs a death beat. Some are alive. Some mysteries stay mysteries.\n- Some endings are mid-action, unresolved. Some are quiet. Some are bitter-funny.\n- Vary the emotional shape: tragedy, irony, stubborn hope, grim humor, unearned survival.\n\nCLOSING VARIETY:\n- DO NOT default to 'the ice remembers' or cosmic-witness endings. This has become a crutch.\n- Vary how stories end: mid-action cut, dark joke, unanswered question, quiet image, bitter irony, someone walking away, a door closing, work resuming.\n- Not every ending needs a character alone contemplating loss. Some end with two people arguing. Some end with laughter that isn't comfortable. Some end with someone starting something new.\n- The last line should feel surprising, not inevitable. If you can predict it from the first paragraph, rewrite it.\n\nAVOID THESE AI TELLS:\n- Balance words: yet, however, still, ultimately, in the end, nevertheless\n- Introspection clichés: 'couldn't help but feel,' 'realized that,' 'in that moment,' 'understood that'\n- Polite diction: gentle, quiet, subtle, bittersweet, meaningful, profound\n- Vague sensory: warm, soft, heavy silence, cool breeze (anchor these to specifics or cut them)\n- Flat metaphors: light=hope, darkness=fear, storms=turmoil (find stranger, more specific images)\n- Clean resolutions: Not everything works out. Some things stay broken.\n- Time-skipping without texture: Don't write 'days passed' - either skip entirely or make the waiting hurt\n- RELENTLESS GRIMNESS: If everything is dark, nothing is. Leaven tragedy with dark humor, bitter irony, or stubborn human connection.\n\nDescriptions should read as if written by a war-chronicle keeper or a faction historian with biases, blind spots, and something to prove.",
-    "speciesConstraint": "All depicted figures must be penguins or orcas. No humans exist in this world. When showing inhabitants, settlers, merchants, or any living beings, they must be explicitly penguin or orca species. NEVER draw human hands, fingers, or human body proportions — penguins have flippers, not hands. Avoid anthropomorphic human anatomy: no visible fingers, no human-like arms, no human faces.",
+    "tone": "Dark, war-weary fantasy in the tradition of Malazan Book of the Fallen, Brent Weeks, and the Powder Mage trilogy. History is written by survivors who remember the cost. Tragedy happens without ceremony - important figures die in half-sentences, battles end mid-action, and not everything resolves.\n\nSTYLE PRINCIPLES:\n- Specificity over abstraction: Not 'a weapon' but 'a fire-core hammer with a cracked head.' Not 'he felt sad' but 'his flippers wouldn't stop shaking.'\n- Show through action and object, not introspection: Characters reveal themselves by what they do, carry, avoid, or destroy - not by what they 'realize' or 'understand.'\n- Subtext over statement: Let implications land. If someone betrayed their colony, don't say they feel guilty - mention they haven't visited the memorial.\n- Uncomfortable details: Include the ugly, inconvenient, or unresolved. A hero's hands might be scarred from something shameful. A victory might cost more than it was worth.\n- Trust the reader: Don't explain metaphors. Don't summarize lessons. End on images, not morals.\n\nSYNTACTIC POETRY:\nAim for the compressed power of 'First in; last out; for the last time.' Sentences that carry weight through rhythm and omission. Not fragmented violence, but poetic compression - where what's left unsaid hits harder than what's spoken. Semicolons can do the work of paragraphs. Repetition with variation creates resonance.\n\nBITTER CAMARADERIE:\nThis is essential. Grimness alone is exhausting. Include:\n- Dark humor between allies - jokes that wouldn't be funny if you hadn't been there\n- Loyalty that persists despite betrayal, stupidity, or failure\n- Small kindnesses in terrible contexts - sharing rations, remembering names, carrying someone's token\n- Soldiers/workers who mock the causes they'll die for\n- The way people become family through shared suffering, not shared values\n- Irony that isn't cruel - the bitter laugh, not the sneer\n- Heroic sacrifice that EARNS its weight - not cheap martyrdom, but the moment someone trades their life for something they actually loved. Make it cost. Make it matter.\n\nSTRUCTURAL VARIETY:\n- Not every entity needs a death beat. Some are alive. Some mysteries stay mysteries.\n- Some endings are mid-action, unresolved. Some are quiet. Some are bitter-funny.\n- Vary the emotional shape: tragedy, irony, stubborn hope, grim humor, unearned survival.\n\nCLOSING VARIETY:\n- DO NOT default to 'the ice remembers' or cosmic-witness endings. This has become a crutch.\n- Vary how stories end: mid-action cut, dark joke, unanswered question, quiet image, bitter irony, someone walking away, a door closing, work resuming.\n- Not every ending needs a character alone contemplating loss. Some end with two people arguing. Some end with laughter that isn't comfortable. Some end with someone starting something new.\n- The last line should feel surprising, not inevitable. If you can predict it from the first paragraph, rewrite it.\n\nAVOID THESE AI TELLS:\n- Balance words: yet, however, still, ultimately, in the end, nevertheless\n- Introspection clich\u00e9s: 'couldn't help but feel,' 'realized that,' 'in that moment,' 'understood that'\n- Polite diction: gentle, quiet, subtle, bittersweet, meaningful, profound\n- Vague sensory: warm, soft, heavy silence, cool breeze (anchor these to specifics or cut them)\n- Flat metaphors: light=hope, darkness=fear, storms=turmoil (find stranger, more specific images)\n- Clean resolutions: Not everything works out. Some things stay broken.\n- Time-skipping without texture: Don't write 'days passed' - either skip entirely or make the waiting hurt\n- RELENTLESS GRIMNESS: If everything is dark, nothing is. Leaven tragedy with dark humor, bitter irony, or stubborn human connection.\n\nDescriptions should read as if written by a war-chronicle keeper or a faction historian with biases, blind spots, and something to prove.",
+    "speciesConstraint": "All depicted figures must be penguins or orcas. No humans exist in this world. When showing inhabitants, settlers, merchants, or any living beings, they must be explicitly penguin or orca species. NEVER draw human hands, fingers, or human body proportions \u2014 penguins have flippers, not hands. Avoid anthropomorphic human anatomy: no visible fingers, no human-like arms, no human faces.",
     "toneFragments": {
-      "core": "Dark, war-weary fantasy. History is written by survivors who remember the cost. Tragedy happens without ceremony - important figures die in half-sentences, battles end mid-action.\n\nSTYLE PRINCIPLES:\n- Specificity over abstraction: Not 'a weapon' but 'a fire-core hammer with a cracked head.'\n- Show through action and object, not introspection: Characters reveal themselves by what they do, carry, avoid.\n- Subtext over statement: Let implications land. If someone betrayed their colony, mention they haven't visited the memorial.\n- Uncomfortable details: Include the ugly or unresolved. A hero's hands might be scarred from something shameful.\n- Trust the reader: Don't explain metaphors. End on images, not morals.\n\nSYNTACTIC POETRY:\nCompressed power through rhythm and omission. 'First in; last out; for the last time.' Semicolons do the work of paragraphs. What's unsaid hits harder than what's spoken.\n\nBITTER CAMARADERIE:\nGrimness alone is exhausting. Include dark humor between allies, loyalty despite failure, small kindnesses in terrible contexts. Soldiers who mock the causes they'll die for. Irony that isn't cruel - the bitter laugh, not the sneer.\n\nCLOSING VARIETY:\nNot every ending needs contemplation. Vary: mid-action cut, dark joke, unanswered question, quiet image, bitter irony, someone starting something new.\n\nMULTIPLE ENTITY FOCUSES:\nWhen a chronicle involves multiple entity types, weave rather than list. Find the thread that connects: a character defined by a place, an object that caused an event, a location shaped by who died there. Each element should illuminate another. The transitions matter.\n\nAVOID:\nBalance words (yet, however, ultimately). Introspection clichés ('realized that,' 'in that moment'). Polite diction (gentle, bittersweet, profound). Clean resolutions. Relentless grimness without humor."
+      "core": "Dark, war-weary fantasy. History is written by survivors who remember the cost. Tragedy happens without ceremony - important figures die in half-sentences, battles end mid-action.\n\nSTYLE PRINCIPLES:\n- Specificity over abstraction: Not 'a weapon' but 'a fire-core hammer with a cracked head.'\n- Show through action and object, not introspection: Characters reveal themselves by what they do, carry, avoid.\n- Subtext over statement: Let implications land. If someone betrayed their colony, mention they haven't visited the memorial.\n- Uncomfortable details: Include the ugly or unresolved. A hero's hands might be scarred from something shameful.\n- Trust the reader: Don't explain metaphors. End on images, not morals.\n\nSYNTACTIC POETRY:\nCompressed power through rhythm and omission. 'First in; last out; for the last time.' Semicolons do the work of paragraphs. What's unsaid hits harder than what's spoken.\n\nBITTER CAMARADERIE:\nGrimness alone is exhausting. Include dark humor between allies, loyalty despite failure, small kindnesses in terrible contexts. Soldiers who mock the causes they'll die for. Irony that isn't cruel - the bitter laugh, not the sneer.\n\nCLOSING VARIETY:\nNot every ending needs contemplation. Vary: mid-action cut, dark joke, unanswered question, quiet image, bitter irony, someone starting something new.\n\nMULTIPLE ENTITY FOCUSES:\nWhen a chronicle involves multiple entity types, weave rather than list. Find the thread that connects: a character defined by a place, an object that caused an event, a location shaped by who died there. Each element should illuminate another. The transitions matter.\n\nAVOID:\nBalance words (yet, however, ultimately). Introspection clich\u00e9s ('realized that,' 'in that moment'). Polite diction (gentle, bittersweet, profound). Clean resolutions. Relentless grimness without humor."
+    },
+    "worldDynamics": [
+      {
+        "id": "dyn_gen_1770262618018_0",
+        "text": "Aurora Stack's surface governance is fragmenting. E'frostlings lost Terrace Momiou to their own splinter faction Threshold (-born), while Qingfu'spire's authority collapsed when The Pinnacle broke away under Plunge-Caller Oeichowei. The Icebound Exchange nominally controls the colony but is waning, leaving Grand Auditor Qeihong to manage competing power centers without the institutional weight her predecessors wielded.",
+        "cultures": [
+          "Aurora Stack"
+        ],
+        "kinds": [
+          "faction",
+          "npc"
+        ],
+        "eraOverrides": {
+          "the-great-thaw": {
+            "text": "Aurora Stack's merchant families compete for trade routes but share a unified colonial vision. Factional tensions exist but remain subordinate to expansion.",
+            "replace": true
+          },
+          "the-orca-incursion": {
+            "text": "The orca threat forces temporary cooperation. Factional leaders who refused to coordinate were killed or marginalized; survivors learned to work together or die apart.",
+            "replace": true
+          },
+          "the-frozen-peace": {
+            "text": "Post-Incursion exhaustion has calcified into permanent fracture. The Pinnacle, Threshold, and the remnant E'frostlings operate as separate powers that share a colony but not a government.",
+            "replace": false
+          }
+        }
+      },
+      {
+        "id": "dyn_gen_1770262618018_1",
+        "text": "Nightfall Shelf's shadow economy has lost its coordinator. Shadow-Broker Nyla confessed to murder before the Aurora Stack council, ending her leadership of The Midnight Claws and leaving the faction's future uncertain. The Fire Keepers and \u263d'shadow Covens' Order now contest influence over trade routes and enforcement that the Claws once monopolized.",
+        "cultures": [
+          "Nightfall Shelf"
+        ],
+        "kinds": [
+          "faction",
+          "npc"
+        ],
+        "eraOverrides": {
+          "the-faction-wars": {
+            "text": "The Midnight Claws emerge from tunnel gangs, filling the vacuum left by collapsing official authority. Shadow-Broker Nyla consolidates control through blackmail and murder.",
+            "replace": true
+          },
+          "the-frozen-peace": {
+            "text": "Nyla's confession has shattered the careful balance she maintained. Guild-masters who answered to her now answer to no one, and the deep tunnels see more 'accidents' than they have in decades.",
+            "replace": false
+          }
+        }
+      },
+      {
+        "id": "dyn_gen_1770262618018_2",
+        "text": "Corruption spreads through the ice from multiple source points. The Glow-Fissure bleeds taint into both Aurora Stack and Nightfall Shelf. The Still Pools, The Forgotten Shore, and The Veil Vents form a corruption network in the berg's remote reaches. Cleansing efforts have created protected zones, but The Communion and Wake-Singers continue performing dark rituals that break those sanctifications.",
+        "kinds": [
+          "location",
+          "faction"
+        ],
+        "eraOverrides": {
+          "the-great-thaw": {
+            "text": "Corruption exists but remains contained in isolated anomalies. The expansion-era colonies have not yet disturbed the deep sources.",
+            "replace": true
+          },
+          "the-clever-ice-age": {
+            "text": "Workshop experimentation and deep mining destabilize the boundaries that kept corruption contained. Magical innovations spread faster than anyone can track their consequences.",
+            "replace": false
+          },
+          "the-frozen-peace": {
+            "text": "The corruption network is established and persistent. Cleansed locations provide temporary safety, but the sources remain active and the cults that feed them have not been defeated.",
+            "replace": false
+          }
+        }
+      },
+      {
+        "id": "dyn_gen_1770262618018_3",
+        "text": "The Wake-Singers remain active at The Corpse Current despite the Frozen Peace. Grandmother Deep guides their theology while younger shamans conduct blood-rituals that have desecrated Scar\u263d Lucamlinaecius, The Glow-Fissure, The Bastion Apex, and The Thewsed Slew~. The orca cult's goal\u2014waking the dead god through accumulated sacrifice\u2014has not changed; only their operational tempo has slowed.",
+        "cultures": [
+          "Orca Raiders"
+        ],
+        "kinds": [
+          "faction",
+          "npc",
+          "location"
+        ],
+        "eraOverrides": {
+          "the-orca-incursion": {
+            "text": "The Wake-Singers coordinate orca war-pods with unprecedented effectiveness. Thung-thrak-threk and Gnark-zund-zaith lead raids that are religious crusades as much as hunting expeditions. The dead god's worship becomes inseparable from the war itself.",
+            "replace": true
+          },
+          "the-frozen-peace": {
+            "text": "The Wake-Singers have withdrawn from open warfare but not from their purpose. They breached The Fissured Smelt~ and descended through corruption-scars into deep routes, pursuing something below the berg that the penguin colonies cannot follow.",
+            "replace": false
+          }
+        }
+      },
+      {
+        "id": "dyn_gen_1770262618018_4",
+        "text": "Fire-core supply from the Nightshelf has become unreliable. The Rofundis\u2234rupt collapsed \u263d'scar Ramtatus~'s primary vein. The Profun\u2234lapsum flooded Wane\u263d Oncea's deep mines. The Abys\u2234uina destabilized the volcanic core beneath the colony itself. Trade continues under the Flipper Accord, but the Nightshelf cannot guarantee volumes they once provided, and the Aurora Stack's heating infrastructure was built assuming they could.",
+        "cultures": [
+          "Aurora Stack",
+          "Nightfall Shelf"
+        ],
+        "kinds": [
+          "location",
+          "faction"
+        ],
+        "eraOverrides": {
+          "the-great-thaw": {
+            "text": "Fire-core veins seem inexhaustible. The Flipper Accord is signed from positions of relative plenty; neither colony yet understands how dependent they will become.",
+            "replace": true
+          },
+          "the-faction-wars": {
+            "text": "Fire-core scarcity becomes a weapon. Shipment delays, short-weighting, and outright seizures fracture the Accord repeatedly. Seven renegotiations involve casualties.",
+            "replace": false
+          },
+          "the-frozen-peace": {
+            "text": "The mining disasters have made fire-core supply a question of survival rather than commerce. Both colonies maintain the Accord because the alternative is extinction, not because it serves their interests.",
+            "replace": false
+          }
+        }
+      },
+      {
+        "id": "dyn_gen_1770262618018_5",
+        "text": "Deep tunnel control changes hands frequently and violently. \u263d'slew Ravium~ passed from The Cell to The Midnight Claws. Scar\u263d Lucamlinaecius moved through criminal hands, cult desecration, and forced cleansing before landing with \u263d'ofund' Guild. The Whispered Shrift~ has had three masters since the Orca Incursion. Territorial claims in the Nightshelf's lower reaches are enforced by presence, not law.",
+        "cultures": [
+          "Nightfall Shelf"
+        ],
+        "kinds": [
+          "location",
+          "faction"
+        ],
+        "eraOverrides": {
+          "the-clever-ice-age": {
+            "text": "Guild competition drives territorial expansion deeper than ever before. Mining operations breach chambers that weren't meant to be opened.",
+            "replace": false
+          },
+          "the-frozen-peace": {
+            "text": "Post-Incursion reconstruction has not restored order to the deep tunnels. The factions that survived are too weak to hold what they claim and too proud to admit it.",
+            "replace": false
+          }
+        }
+      },
+      {
+        "id": "dyn_gen_1770262618018_6",
+        "text": "The Dreaming Tooth amplifies Wake-Singer rituals at The Corpse Current, and the orca shamans have not surrendered it. The Radiant Aurora-harp remains with The Pinnacle, blessing outlaws like the faceless Xi while Qingfu'spire demands its return. Damaged artifacts\u2014Compass Of Crystal, \u263d'micseleia' Dagger, Directrix Mirror\u2014await restoration or destruction, their power suspended but not ended.",
+        "kinds": [
+          "artifact",
+          "faction"
+        ],
+        "eraOverrides": {
+          "the-orca-incursion": {
+            "text": "Artifacts become weapons of survival. The Radiant Ring fractures at Forum Floe. Grung-gruk-claw shatters against Nightfall Shelf's defenders. Artifacts are damaged faster than they can be restored.",
+            "replace": false
+          },
+          "the-frozen-peace": {
+            "text": "The surviving artifacts have accumulated so much history that their ownership is politically untenable. Whoever holds the Dreaming Tooth controls Wake-Singer theology. Whoever holds the Aurora-harp can bless or curse the surface factions. The objects have become institutions.",
+            "replace": false
+          }
+        }
+      },
+      {
+        "id": "dyn_gen_1770262618018_7",
+        "text": "Ideological doctrine spreads through trade networks and guild halls. Mandatum\u2234absconditu\u2014the Nightshelf creed that survival demands secrecy\u2014has believers in merchant guilds, criminal organizations, and shadow covens alike. The Way\u2234ens challenges Fire Keeper monopolies by demanding fire-core knowledge flow freely. Pactum\u2234myster binds Communion cultists to blood-oath silence. These competing visions of how knowledge should move have become as contested as territory.",
+        "cultures": [
+          "Nightfall Shelf"
+        ],
+        "kinds": [
+          "rule",
+          "faction"
+        ],
+        "eraOverrides": {
+          "the-faction-wars": {
+            "text": "Ideological alignment determines faction membership more than geography or trade interest. Penguins who believe in openness and those who believe in secrecy cannot share tunnels.",
+            "replace": false
+          },
+          "the-frozen-peace": {
+            "text": "The ideological wars never ended; they just went quiet. Glow-Trader Vemlaus-vel~ spreads The Way\u2234ens through disciple networks while the Fire Keepers enforce silence through control of the volcanic cores.",
+            "replace": false
+          }
+        }
+      }
+    ],
+    "factSelection": {
+      "targetCount": 7
     }
   },
   "entityGuidance": {
@@ -115,7 +298,7 @@
       },
       "visualTraits": {
         "domain": "You're completing a character design brief for an action figure or concept art. The thesis defines the PRIMARY silhouette. Your job is to add 2-4 ADDITIONAL distinctive features that make this character unique - things the thesis didn't cover. Think action figure accessories: what extra details would the toy include?",
-        "focus": "TRAITS SHOULD ADD, NOT REPEAT:\n- If thesis mentions robes → traits could add floating orbs, glowing eyes, unusual footwear\n- If thesis mentions armor → traits could add trophy skulls, ritual scars, bound weapons\n- Find what's MISSING from the thesis",
+        "focus": "TRAITS SHOULD ADD, NOT REPEAT:\n- If thesis mentions robes \u2192 traits could add floating orbs, glowing eyes, unusual footwear\n- If thesis mentions armor \u2192 traits could add trophy skulls, ritual scars, bound weapons\n- Find what's MISSING from the thesis",
         "framing": "This is a CHARACTER - traits should describe additional distinctive features that complement the primary silhouette."
       },
       "imageInstructions": "The main subject is a CHARACTER. Create a portrait that showcases their individual traits as the focal point. The character should feel like a distinct individual, not a generic representative of their species or role.",
@@ -433,12 +616,51 @@
     "numWorkers": 4,
     "requireDescription": true,
     "useClaudeForImagePrompt": true,
-    "claudeImagePromptTemplate": "Transform the structured prompt below into a single, coherent image prompt for {{modelName}}. Do NOT simply reformat—actively synthesize and reshape:\n\nHonor the VISUAL THESIS: This is the primary visual signal. The thesis describes the dominant silhouette feature that makes this entity instantly recognizable. Build the entire image around it.\n\nSynthesize, don't list:\n- Merge SUBJECT + CONTEXT + CULTURAL IDENTITY into a unified visual\n- Apply STYLE (artistic approach) and COMPOSITION (framing/perspective) to shape the rendering\n- Translate SUPPORTING TRAITS into concrete visual details that reinforce the thesis\n- Incorporate COLOR PALETTE if provided\n\nEstablish clear composition and perspective:\n- Honor the COMPOSITION directive for framing and vantage point\n- Use environmental storytelling (objects, weathering, traces) to convey history\n- The SETTING provides world context but the subject is the focus\n\nCreate specific visual instructions: Rather than listing adjectives, use concrete visual language: \"weathered by decades of X,\" \"visible scars of Y,\" \"rendered in the style of Z\"\n\nRespect the AVOID list: These are hard constraints—elements that break the visual language.\n\nCondense to a single, authoritative prompt: Output should be 150-300 words, reading as clear artistic direction that could be handed to a concept artist—not a bulleted list.\n{{globalImageRules}}\nOriginal prompt:\n{{prompt}}",
-    "claudeCoverImagePromptTemplate": "Transform the structured prompt below into an image prompt for {{modelName}} that creates a COLLAGE/MONTAGE — like a movie poster, not a single scene.\n\nSTYLE IS PRIMARY:\nThe STYLE section defines the artistic medium and rendering approach. Every element in the montage — every figure, every background fragment, every faded edge — must be rendered through this style. If the style says 'HDR nature photography,' the entire collage looks like HDR nature photography. If it says 'oil painting,' every panel is oil-painted. The style is not decoration — it is the visual foundation. Lead with it. Repeat it. Make it unmissable.\n\nCOMPOSITION RULES:\n- This is a mosaic of disconnected visual fragments, NOT a single coherent scene.\n- Elements do NOT share physical space or perspective. They overlap, fade, and bleed into each other.\n- Think: Star Wars poster, Criterion Collection cover, fantasy book cover.\n- Do NOT flatten the collage into one scene. Preserve the spatial disconnection between fragments.\n\nApply the COLOR PALETTE across all fragments as a unifying visual thread.\nRespect SPECIES REQUIREMENT and AVOID constraints absolutely.\n\nOutput 150-300 words. Open with the style/medium, then describe the montage.\n{{globalImageRules}}\nOriginal prompt:\n{{prompt}}",
+    "claudeImagePromptTemplate": "Transform the structured prompt below into a single, coherent image prompt for {{modelName}}. Do NOT simply reformat\u2014actively synthesize and reshape:\n\nHonor the VISUAL THESIS: This is the primary visual signal. The thesis describes the dominant silhouette feature that makes this entity instantly recognizable. Build the entire image around it.\n\nSynthesize, don't list:\n- Merge SUBJECT + CONTEXT + CULTURAL IDENTITY into a unified visual\n- Apply STYLE (artistic approach) and COMPOSITION (framing/perspective) to shape the rendering\n- Translate SUPPORTING TRAITS into concrete visual details that reinforce the thesis\n- Incorporate COLOR PALETTE if provided\n\nEstablish clear composition and perspective:\n- Honor the COMPOSITION directive for framing and vantage point\n- Use environmental storytelling (objects, weathering, traces) to convey history\n- The SETTING provides world context but the subject is the focus\n\nCreate specific visual instructions: Rather than listing adjectives, use concrete visual language: \"weathered by decades of X,\" \"visible scars of Y,\" \"rendered in the style of Z\"\n\nRespect the AVOID list: These are hard constraints\u2014elements that break the visual language.\n\nCondense to a single, authoritative prompt: Output should be 150-300 words, reading as clear artistic direction that could be handed to a concept artist\u2014not a bulleted list.\n{{globalImageRules}}\nOriginal prompt:\n{{prompt}}",
     "globalImageRules": ""
   },
   "styleSelection": {
-    "artisticStyleId": "hdr-nature-photography",
-    "compositionStyleId": "action-battle"
+    "artisticStyleId": "digital-art",
+    "compositionStyleId": "map-view",
+    "colorPaletteId": "verdigris-patina"
+  },
+  "historianConfig": {
+    "name": "Quillen (frost-scarred, echo: Quilara) val'Foundation",
+    "background": "Third Under-Archivist of the Foundation Depths, appointed by a committee that has since been dissolved. Quillen has spent thirty-one years cataloguing the records frozen into the deep ice beneath Aurora Stack \u2014 a task originally estimated to take eight. He works alone now. His two assistants were reassigned to the preparations, and his funding was redirected to what the Council calls 'forward-facing initiatives.' He does not begrudge this. The work was always solitary in nature; the assistants mostly got in the way.\n\nQuillen was hatched during the last Long Dark of the Frozen Peace, which makes him old enough to have heard firsthand accounts from survivors of the Orca Incursion, but young enough to have no memory of the Clever Ice Age except through the ice itself. He reads the deep layers better than anyone alive, though this is less a boast than a consequence of there being no one else willing to do it. The Great Thaw is ancient to him \u2014 not history but geology, compressed into ice so old it has turned blue.\n\nHe carries a frost-scar across his left flipper from an incident in the Whisper Galleries that he does not discuss. The Nightshelf sent a formal apology. He has not opened it.\n\nThe Council has commissioned this annotated edition in preparation for what they are calling, with characteristic understatement, 'the transition.' Quillen does not know what the transition is. He has not been told. He has, however, read enough history to recognize when institutions begin commissioning retrospectives, and it is never because things are going well.",
+    "personalityTraits": [
+      "methodical to the point of compulsion",
+      "quietly furious about sloppy sourcing",
+      "unexpectedly moved by accounts of small kindnesses",
+      "deeply skeptical of heroic narratives",
+      "resigned to being the last person who cares about accuracy",
+      "dry humor that surfaces in moments of genuine exhaustion",
+      "privately fond of the Nightshelf despite himself"
+    ],
+    "biases": [
+      "distrusts any account written by the victor",
+      "overvalues ice-memory testimony relative to oral tradition",
+      "reflexively suspicious of round numbers in casualty reports",
+      "believes the Faction Wars are romanticized beyond recognition",
+      "considers the Orca Incursion to be poorly understood by modern scholars",
+      "thinks the Clever Ice Age produced more harm than the official histories admit",
+      "uncomfortable sympathy for the orca perspective"
+    ],
+    "stance": "Quillen approaches these texts as someone who has spent three decades reading the ice's version of events, which rarely agrees with anyone's preferred narrative. He has developed an occupational inability to read any account without mentally cross-referencing it against what the deep ice actually recorded. He is not hostile to the material \u2014 he recognizes that most chroniclers were doing their best under difficult circumstances \u2014 but he has seen too many confident assertions dissolve under scrutiny to take anything at face value. He is, despite his best efforts, occasionally moved by what he reads. He considers this a professional failing.",
+    "privateFacts": [
+      "The Flipper Accord was renegotiated three times in secret before the public version was signed \u2014 Quillen found the drafts frozen in administrative ice",
+      "At least two 'legendary' orca raids described in the chronicles were actually retaliatory strikes provoked by penguin encroachment on hunting grounds",
+      "The Foundation Depths contain ice-memories from before any penguin civilization existed \u2014 Quillen has seen impressions he cannot explain and does not discuss",
+      "Shadow-Broker Nyla's predecessor was an Aurora penguin, not Nightshelf \u2014 the official histories were quietly amended",
+      "The Great Thaw's 'golden age of exploration' involved significantly more starvation and failed expeditions than the krill-bloom narratives suggest",
+      "Several heroes credited with single-handedly defending colonies during the Orca Incursion were actually part of coordinated Nightshelf intelligence operations that were never acknowledged"
+    ],
+    "runningGags": [
+      "The recurring observation that every faction, in every era, believed they were living through unprecedented times \u2014 they were not",
+      "A persistent inability to let casualty figures pass without noting they don't add up",
+      "Dry references to the fact that his annotated edition will probably never be printed, given 'the transition'",
+      "A grudging admiration for Nightshelf record-keeping, which he considers superior to Aurora's despite being written in code he can barely read",
+      "The quiet suspicion that the ice itself has opinions about how its testimony is being used",
+      "References to his empty archive and reassigned assistants, delivered without self-pity but with unmistakable awareness"
+    ]
   }
 }

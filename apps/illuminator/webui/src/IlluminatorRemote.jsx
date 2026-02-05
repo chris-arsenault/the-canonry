@@ -180,6 +180,7 @@ const DEFAULT_WORLD_CONTEXT = {
   // Structured fields - the canonical source of truth
   toneFragments: { core: '' },
   canonFactsWithMetadata: [],
+  factSelection: {},
   worldDynamics: [],
 };
 

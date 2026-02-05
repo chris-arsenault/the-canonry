@@ -104,6 +104,9 @@ async function persistResult(task: WorkerTask, result?: EnrichmentResult): Promi
 async function executeTask(task: WorkerTask, port: MessagePort): Promise<void> {
   const taskState = activeTasks.get(task.id);
   const checkAborted = () => taskState?.aborted ?? false;
+  const taskConfig = task.llmCallSettings
+    ? { ...config!, llmCallSettings: task.llmCallSettings }
+    : config!;
 
   safePostMessage(port, { type: 'started', taskId: task.id });
 
@@ -111,7 +114,7 @@ async function executeTask(task: WorkerTask, port: MessagePort): Promise<void> {
     let result;
 
     result = await executeEnrichmentTask(task, {
-      config: config!,
+      config: taskConfig,
       llmClient: llmClient!,
       imageClient: imageClient!,
       isAborted: checkAborted,

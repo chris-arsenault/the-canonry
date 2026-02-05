@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import ChronicleImagePanel from '../ChronicleImagePanel';
 import { useImageUrl } from '../../hooks/useImageUrl';
 
@@ -141,85 +140,6 @@ function CoverImageControls({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// Sampling Regeneration Control (local)
-// ============================================================================
-
-function SamplingRegenerationControl({ item, onRegenerateWithSampling, isGenerating }) {
-  const baseSampling = item.generationSampling;
-  const [lowSampling, setLowSampling] = useState(baseSampling === 'low');
-
-  useEffect(() => {
-    setLowSampling(item.generationSampling === 'low');
-  }, [item.generationSampling, item.chronicleId]);
-
-  const hasPrompts = Boolean(item.generationSystemPrompt && item.generationUserPrompt);
-  const disabled = isGenerating || !hasPrompts || !onRegenerateWithSampling;
-  const samplingMode = lowSampling ? 'low' : 'normal';
-  const lastGenerationSampling = item.generationSampling ?? 'unspecified';
-
-  return (
-    <div
-      style={{
-        marginBottom: '16px',
-        padding: '12px 16px',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '8px',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-        <div style={{ fontSize: '13px', fontWeight: 500 }}>
-          Sampling Regeneration
-          <span style={{ marginLeft: '8px', color: 'var(--text-muted)', fontSize: '12px' }}>
-            (normal vs low)
-          </span>
-        </div>
-        <button
-          onClick={() => onRegenerateWithSampling?.(samplingMode)}
-          disabled={disabled}
-          style={{
-            padding: '8px 14px',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '6px',
-            color: 'var(--text-secondary)',
-            cursor: disabled ? 'not-allowed' : 'pointer',
-            opacity: disabled ? 0.6 : 1,
-            fontSize: '12px',
-          }}
-        >
-          Regenerate with sampling
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px', flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-primary)' }}>
-          <input
-            type="checkbox"
-            checked={lowSampling}
-            onChange={(e) => setLowSampling(e.target.checked)}
-            disabled={disabled}
-          />
-          Low sampling (`top_p=0.95`)
-        </label>
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-          Last generation: {lastGenerationSampling}
-        </span>
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-          Next regeneration: {samplingMode}
-        </span>
-      </div>
-
-      {!hasPrompts && (
-        <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
-          Stored prompts unavailable for this chronicle (legacy generation). Sampling regen is disabled.
-        </div>
-      )}
     </div>
   );
 }
@@ -489,12 +409,6 @@ export default function PipelineTab({
         </div>
       </div>
 
-      {/* Sampling Regeneration */}
-      <SamplingRegenerationControl
-        item={item}
-        onRegenerateWithSampling={onRegenerateWithSampling}
-        isGenerating={isGenerating}
-      />
     </div>
   );
 }

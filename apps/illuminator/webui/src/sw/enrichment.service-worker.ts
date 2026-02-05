@@ -187,9 +187,14 @@ async function executeTask(task: WorkerTask, handleId: string): Promise<void> {
   log('info', 'Task started', summarizeTask(task));
   safePostMessage(handleId, { type: 'started', taskId: task.id });
 
+  // Merge task-level llmCallSettings with global config (same as other workers)
+  const taskConfig = task.llmCallSettings
+    ? { ...config!, llmCallSettings: task.llmCallSettings }
+    : config!;
+
   try {
     const result = await executeEnrichmentTask(task, {
-      config: config!,
+      config: taskConfig,
       llmClient: llmClient!,
       imageClient: imageClient!,
       isAborted: checkAborted,

@@ -133,7 +133,9 @@ export interface ChronicleExport {
         cultureBalance: string;
         dominantCulture?: string;
       };
-      facts?: Array<{ id: string; text: string; type?: string }>;
+      facts?: Array<{ id: string; text: string; type?: string; required?: boolean }>;
+      worldDynamics?: Array<{ id: string; text: string }>;
+      factSelectionTarget?: number;
       culturalIdentities?: Record<string, Record<string, string>>;
       entities?: Array<{ name: string; kind: string; culture?: string }>;
     };
@@ -223,6 +225,8 @@ function exportPerspectiveSynthesis(
       narrativeStyleName: record.narrativeStyleName,
       constellation: record.constellation,
       facts: record.inputFacts,
+      worldDynamics: record.inputWorldDynamics,
+      factSelectionTarget: record.factSelectionTarget,
       culturalIdentities: record.inputCulturalIdentities,
       entities: record.inputEntities,
     },

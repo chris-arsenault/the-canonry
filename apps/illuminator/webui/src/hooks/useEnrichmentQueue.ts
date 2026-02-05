@@ -24,6 +24,7 @@ import type {
 import { applyEnrichmentResult } from '../lib/enrichmentTypes';
 import type { WorkerConfig, WorkerOutbound } from '../workers/enrichment.worker';
 import { createWorkerPool, resetWorkerPool, type WorkerHandle } from '../lib/workerFactory';
+import { getResolvedLLMCallSettings } from '../lib/llmModelSettings';
 
 export interface EnrichedEntity {
   id: string;
@@ -231,9 +232,14 @@ export function useEnrichmentQueue(
         estimatedCost: _estimatedCost,
         ...taskPayload
       } = nextItem;
+      const latestLlmSettings = getResolvedLLMCallSettings();
+      if (configRef.current) {
+        configRef.current = { ...configRef.current, llmCallSettings: latestLlmSettings };
+      }
       const task: WorkerTask = {
         ...taskPayload,
         projectId: projectIdRef.current || 'unknown',
+        llmCallSettings: latestLlmSettings,
       };
 
       workerState.worker.postMessage({ type: 'execute', task });

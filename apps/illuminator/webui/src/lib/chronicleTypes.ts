@@ -367,7 +367,7 @@ export interface ChronicleFocus {
 export type FactType = 'world_truth' | 'generation_constraint';
 
 /**
- * Canon fact with relevance metadata for perspective synthesis.
+ * Canon fact for perspective synthesis.
  */
 export interface CanonFactWithMetadata {
   id: string;
@@ -380,16 +380,16 @@ export interface CanonFactWithMetadata {
    */
   type?: FactType;
 
-  /** Cultures this fact is especially relevant to. Use "*" for universal. */
-  relevantCultures: string[];
-  /** Entity kinds this fact is especially relevant to. Use "*" for universal. */
-  relevantKinds: string[];
-  /** Thematic tags this fact relates to (e.g., "trade", "conflict", "magic") */
-  relevantTags: string[];
-  /** Relationship kinds this fact relates to (e.g., "enemy", "trade_partner") */
-  relevantRelationships: string[];
-  /** Base priority 0-1. Higher = more likely to be foregrounded. */
-  basePriority: number;
+  /** If true, this fact must be included in perspective facets. */
+  required?: boolean;
+}
+
+/**
+ * Fact selection settings for perspective synthesis.
+ */
+export interface FactSelectionConfig {
+  /** Target number of world-truth facts to facet (required facts count toward this). */
+  targetCount?: number;
 }
 
 /**
@@ -437,12 +437,20 @@ export interface PerspectiveSynthesisRecord {
   /** Narrative style that weighted the synthesis */
   narrativeStyleId?: string;
   narrativeStyleName?: string;
-  /** All facts that were sent (with metadata) */
+  /** All facts that were sent */
   inputFacts?: Array<{
     id: string;
     text: string;
     type?: 'world_truth' | 'generation_constraint';
+    required?: boolean;
   }>;
+  /** World dynamics injected into the synthesis prompt (post-filter/override). */
+  inputWorldDynamics?: Array<{
+    id: string;
+    text: string;
+  }>;
+  /** Target number of facts requested for faceting (if configured). */
+  factSelectionTarget?: number;
   /** Cultural identities that were sent (culture -> trait -> value) */
   inputCulturalIdentities?: Record<string, Record<string, string>>;
   /** Entity summaries that were sent */
@@ -480,6 +488,8 @@ export interface ChronicleGenerationContext {
   // These are used to generate the final tone/canonFacts above
   toneFragments: ToneFragments;
   canonFactsWithMetadata: CanonFactWithMetadata[];
+  /** Fact selection settings for perspective synthesis. */
+  factSelection?: FactSelectionConfig;
 
   // Narrative style used for generation
   narrativeStyle: NarrativeStyle;
@@ -542,6 +552,11 @@ export interface ChronicleGenerationContext {
    * Filtered by present cultures/kinds during perspective synthesis.
    */
   worldDynamics?: WorldDynamic[];
+  /**
+   * World dynamics resolved for this chronicle (post-filter/override).
+   * Used to inject era-appropriate dynamics into generation prompts.
+   */
+  worldDynamicsResolved?: string[];
 }
 
 // =============================================================================
@@ -607,6 +622,48 @@ export interface ChronicleImageRefs {
   refs: ChronicleImageRef[];
   generatedAt: number;
   model: string;
+}
+
+/**
+ * Compatibility analysis for a single image ref against new content.
+ * Used when regenerating a chronicle to determine which image refs can be reused.
+ */
+export interface ImageRefCompatibility {
+  refId: string;
+  /** Whether the anchor text was found in the new content */
+  anchorFound: boolean;
+  /** Similarity score 0-1 (based on shared context around anchor) */
+  contextSimilarity: number;
+  /** Recommendation based on analysis */
+  recommendation: 'reuse' | 'regenerate' | 'manual_review';
+  /** Reason for the recommendation */
+  reason: string;
+}
+
+/**
+ * Result of analyzing image refs compatibility with new chronicle content.
+ */
+export interface ImageRefCompatibilityAnalysis {
+  /** Source version the image refs were generated for */
+  sourceVersionId: string;
+  /** Target version being analyzed against */
+  targetVersionId: string;
+  /** Per-ref compatibility results */
+  refs: ImageRefCompatibility[];
+  /** Overall summary */
+  summary: {
+    reusable: number;
+    needsRegeneration: number;
+    needsReview: number;
+  };
+}
+
+/**
+ * User selection for how to handle each image ref during regeneration.
+ */
+export interface ImageRefSelection {
+  refId: string;
+  action: 'reuse' | 'regenerate' | 'skip';
 }
 
 // =============================================================================

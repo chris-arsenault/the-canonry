@@ -27,12 +27,12 @@ Entity Constellation + Focal Era
 │  Inputs:                    │
 │  - Constellation analysis   │
 │  - Core tone fragments      │
-│  - All facts with metadata  │
+│  - All facts                │
 │  - Narrative style          │
 │                             │
 │  Outputs:                   │
-│  - Perspective brief (200w) │
-│  - Prioritized facts (3-5)  │
+│  - Perspective brief (150-200w) │
+│  - Faceted facts (configurable) │
 │  - Suggested motifs         │
 └─────────────────────────────┘
          │
@@ -44,7 +44,7 @@ Entity Constellation + Focal Era
 │  Receives:                  │
 │  - Core tone (always)       │
 │  - Perspective brief        │
-│  - Prioritized facts        │
+│  - Faceted facts            │
 │  - Full entity context      │
 └─────────────────────────────┘
 ```
@@ -168,170 +168,24 @@ function analyzeConstellation(input: ConstellationInput): EntityConstellation {
 
 ---
 
-## Component 2: Fact Metadata
+## Component 2: Canon Facts
 
-Each fact gets metadata for relevance scoring.
+Facts are plain world truths with minimal control metadata. The LLM is responsible for selecting which facts to facet based on the chronicle’s constellation.
 
 ### Schema
 ```typescript
 interface CanonFactWithMetadata {
   id: string;
   text: string;
-
-  // Relevance boosters
-  relevantCultures: string[];      // ["nightshelf", "aurora_stack", "*"]
-  relevantKinds: string[];         // ["artifact", "npc", "*"]
-  relevantTags: string[];          // ["trade", "conflict", "magic"]
-  relevantRelationships: string[]; // ["ally", "rival", "trade_partner"]
-
-  // Base priority (0-1)
-  basePriority: number;  // Higher = more likely to be included
-
-  // Is this a core world truth that should never be excluded?
-  isCore: boolean;
+  type?: 'world_truth' | 'generation_constraint';
+  required?: boolean; // If true, must appear in facets
 }
 ```
 
-### Current Facts with Proposed Metadata
-
-```typescript
-const CANON_FACTS: CanonFactWithMetadata[] = [
-  {
-    id: "berg-nature",
-    text: "The Berg is a supernatural iceberg of impossible scale...",
-    relevantCultures: ["*"],
-    relevantKinds: ["location", "era"],
-    relevantTags: [],
-    relevantRelationships: [],
-    basePriority: 0.9,
-    isCore: true  // Always include - defines the world
-  },
-  {
-    id: "penguin-sapience",
-    text: "Penguins evolved sapience through exposure to aurora-light...",
-    relevantCultures: ["aurora_stack", "nightshelf"],
-    relevantKinds: ["npc"],
-    relevantTags: [],
-    relevantRelationships: [],
-    basePriority: 0.7,
-    isCore: true  // Always include - species definition
-  },
-  {
-    id: "two-civilizations",
-    text: "Two penguin civilizations exist: the Aurora Stack... and the Nightshelf...",
-    relevantCultures: ["aurora_stack", "nightshelf"],
-    relevantKinds: ["faction", "location"],
-    relevantTags: [],
-    relevantRelationships: [],
-    basePriority: 0.8,
-    isCore: true  // Always include - world structure
-  },
-  {
-    id: "orca-raiders",
-    text: "Orca pods are intelligent raiders from the surrounding sea...",
-    relevantCultures: ["orca"],
-    relevantKinds: ["npc", "faction", "occurrence"],
-    relevantTags: ["conflict", "raid", "religious"],
-    relevantRelationships: ["enemy", "rival"],
-    basePriority: 0.5,
-    isCore: false  // Only relevant when orcas involved
-  },
-  {
-    id: "magic-sources",
-    text: "Magic on The Berg draws from three sources...",
-    relevantCultures: ["*"],
-    relevantKinds: ["artifact", "ability", "rule"],
-    relevantTags: ["magic", "ritual", "power"],
-    relevantRelationships: [],
-    basePriority: 0.6,
-    isCore: false  // Important but not always relevant
-  },
-  {
-    id: "ice-remembers",
-    text: "The Berg's ice remembers. Ancient events leave literal impressions...",
-    relevantCultures: ["*"],
-    relevantKinds: ["artifact", "location", "era", "occurrence"],
-    relevantTags: ["ancient", "historical", "memory"],
-    relevantRelationships: [],
-    basePriority: 0.4,  // LOWER base priority - not every story needs this
-    isCore: false  // NOT core - this is a feature, not a foundation
-  },
-  {
-    id: "no-escape",
-    text: "No penguin has ever successfully left The Berg and returned...",
-    relevantCultures: ["*"],
-    relevantKinds: ["location"],
-    relevantTags: ["exploration", "edge", "horizon"],
-    relevantRelationships: [],
-    basePriority: 0.3,
-    isCore: false  // Rarely relevant unless story is about edges/escape
-  },
-  {
-    id: "flipper-accord",
-    text: "The two colonies maintain an uneasy peace through the Flipper Accord...",
-    relevantCultures: ["aurora_stack", "nightshelf"],
-    relevantKinds: ["faction"],
-    relevantTags: ["trade", "politics", "diplomacy"],
-    relevantRelationships: ["trade_partner", "ally"],
-    basePriority: 0.5,
-    isCore: false  // Only relevant for cross-cultural or trade stories
-  },
-  {
-    id: "no-humans",
-    text: "All sapient beings in this world are penguins or orcas...",
-    relevantCultures: ["*"],
-    relevantKinds: ["*"],
-    relevantTags: [],
-    relevantRelationships: [],
-    basePriority: 0.9,
-    isCore: true  // Always include - prevents human intrusion
-  }
-];
-```
-
-### Relevance Scoring
-
-```typescript
-function scoreFacts(
-  facts: CanonFactWithMetadata[],
-  constellation: EntityConstellation
-): Array<{ fact: CanonFactWithMetadata; score: number }> {
-  return facts.map(fact => {
-    let score = fact.basePriority;
-
-    // Culture boost
-    if (fact.relevantCultures.includes("*") ||
-        fact.relevantCultures.some(c => constellation.cultures[c])) {
-      score += 0.2;
-    }
-
-    // Kind boost
-    if (fact.relevantKinds.includes("*") ||
-        fact.relevantKinds.some(k => constellation.kinds[k])) {
-      score += 0.15;
-    }
-
-    // Tag boost
-    const matchingTags = fact.relevantTags.filter(t =>
-      constellation.prominentTags.includes(t)
-    );
-    score += matchingTags.length * 0.1;
-
-    // Relationship boost
-    const matchingRels = fact.relevantRelationships.filter(r =>
-      constellation.relationshipKinds[r]
-    );
-    score += matchingRels.length * 0.1;
-
-    // Core facts get minimum floor
-    if (fact.isCore) {
-      score = Math.max(score, 0.8);
-    }
-
-    return { fact, score };
-  });
-}
-```
+### Fact Selection Rules
+- `generation_constraint` facts are always included verbatim in generation and never faceted.
+- `required` facts must appear in the facets list.
+- An optional `factSelection.targetCount` can request an exact number of facts to facet. Required facts count toward this. If required facts exceed the target (or the default 4–6 range), required facts are still included and optional facts are omitted.
 
 ---
 
@@ -497,8 +351,8 @@ Relationship dynamics: {hasConflict ? 'conflict present' : ''} {hasTrade ? 'trad
 ENTITIES IN THIS CHRONICLE:
 {entities.map(e => `- ${e.name} (${e.kind}, ${e.culture}): ${e.summary || e.description?.slice(0, 100)}`).join('\n')}
 
-WORLD FACTS (with relevance to this chronicle):
-{scoredFacts.map(f => `[${f.score.toFixed(1)}] ${f.fact.text}`).join('\n')}
+WORLD FACTS (truths about this world):
+{factsWithMetadata.map(f => `- [${f.id}] ${f.text}`).join('\n')}
 
 CORE TONE:
 {toneFragments.core}
@@ -515,8 +369,9 @@ most present to THEM?
 Do NOT invent new world facts. Do NOT contradict existing facts. Instead, choose
 what to emphasize - what's in the foreground vs background for these characters.
 
-2. PRIORITIZED FACTS (list 3-5 fact IDs in order of relevance)
-Which facts matter most for THIS specific story? List by ID.
+2. FACETED FACTS (select the most relevant facts)
+Select the most relevant world-truth facts for this chronicle (4-6 by default, or the configured target).
+For each, provide a 1-2 sentence interpretation showing how this fact manifests for these entities.
 
 3. SUGGESTED MOTIFS (2-3 short phrases)
 What recurring images, phrases, or themes might echo through this chronicle?
@@ -528,43 +383,12 @@ remembers" unless this chronicle is specifically about memory/artifacts.
 
 ```typescript
 interface PerspectiveSynthesis {
-  brief: string;           // 150-200 words of perspective guidance
-  prioritizedFactIds: string[];  // e.g., ["berg-nature", "two-civilizations", "flipper-accord"]
-  suggestedMotifs: string[];     // e.g., ["fire shared is debt owed", "the tunnels know"]
+  brief: string; // 150-200 words of perspective guidance
+  facets: Array<{ factId: string; interpretation: string }>;
+  suggestedMotifs: string[];
+  narrativeVoice: Record<string, string>;
+  entityDirectives: Array<{ entityId: string; entityName: string; directive: string }>;
 }
-```
-
-### Example Output
-
-For a chronicle with 3 Nightshelf NPCs, 1 artifact tagged "trade", mixed with 1 Aurora Stack character:
-
-```
-PERSPECTIVE BRIEF:
-This chronicle sees the world from below - literally. The characters live where
-light is work, not given. Fire is the measure of all things: debts are counted in
-fire-core hours, trust is proven by who you'd share warmth with, betrayal is
-letting someone's fire go out.
-
-The Aurora Stack character is an outsider here, their assumptions about "up" and
-"open" constantly challenged. They notice the dark; the Nightshelf characters
-notice *them* noticing. The trade artifact matters because trade is how these
-worlds touch without merging - and touch leaves marks.
-
-Emphasize: the weight of what's above, the cost of warmth, the way secrets move
-through tunnels faster than official messages. De-emphasize: aurora-magic,
-surface politics, the orca threat (they're distant here, a story told to scare
-children).
-
-PRIORITIZED FACTS:
-- two-civilizations
-- flipper-accord
-- magic-sources
-- berg-nature
-
-SUGGESTED MOTIFS:
-- "Fire shared is fire halved" (Nightshelf proverb about cost of generosity)
-- "The ceiling remembers" (local variant - not ice, but stone above)
-- "Surface manners" (said dismissively about politeness without substance)
 ```
 
 ---
@@ -586,6 +410,7 @@ export async function buildChronicleContextWithPerspective(
     temporalContext?: ChronicleTemporalContext | null;
     toneFragments: ToneFragments;
     factsWithMetadata: CanonFactWithMetadata[];
+    factSelection?: { targetCount?: number };
   }
 ): Promise<ChronicleGenerationContext> {
 
@@ -603,32 +428,28 @@ export async function buildChronicleContextWithPerspective(
     focalEra: baseContext.era,
   });
 
-  // 3. Score facts
-  const scoredFacts = scoreFacts(options.factsWithMetadata, constellation);
-
-  // 4. Assemble tone from fragments
+  // 3. Assemble tone from fragments
   const assembledTone = assembleTone(options.toneFragments, constellation);
 
-  // 5. Synthesize perspective (LLM call)
+  // 4. Synthesize perspective (LLM call)
   const perspective = await synthesizePerspective({
     constellation,
     entities: baseContext.entities,
     focalEra: baseContext.era,
-    scoredFacts,
-    coreTone: options.toneFragments.core,
+    factsWithMetadata: options.factsWithMetadata,
+    toneFragments: options.toneFragments,
+    factSelection: options.factSelection,
   });
 
-  // 6. Return augmented context
+  // 5. Return augmented context
   return {
     ...baseContext,
 
     // Replace flat tone with assembled + perspective
     tone: assembledTone + '\n\n' + 'PERSPECTIVE FOR THIS CHRONICLE:\n' + perspective.brief,
 
-    // Replace all facts with prioritized subset
-    canonFacts: perspective.prioritizedFactIds
-      .map(id => options.factsWithMetadata.find(f => f.id === id)?.text)
-      .filter(Boolean) as string[],
+    // Replace all facts with faceted facts
+    canonFacts: perspective.facetedFacts,
 
     // Add suggested motifs for generation to use
     suggestedMotifs: perspective.suggestedMotifs,
@@ -642,7 +463,7 @@ export async function buildChronicleContextWithPerspective(
 
 1. **Tone fragment authoring** - Should I draft the full fragmented tone based on the current blob, or do you want to author these?
 
-2. **Fact metadata** - The proposed metadata above is a starting point. Should facts have more/different relevance signals?
+2. **Fact selection controls** - Is `required` + `targetCount` enough, or do we need additional steering?
 
 3. **LLM model choice** - The perspective synthesis could use a smaller/faster model (haiku) since it's extraction/emphasis, not generation. Cost/quality tradeoff?
 
@@ -656,7 +477,7 @@ export async function buildChronicleContextWithPerspective(
 
 1. [ ] Review and refine this design
 2. [ ] Author tone fragments from existing tone blob
-3. [ ] Add metadata to facts in illuminatorConfig.json
+3. [ ] Add required/target configuration to `illuminatorConfig.json`
 4. [ ] Implement constellation analyzer
 5. [ ] Implement perspective synthesizer
 6. [ ] Integrate into chronicle generation pipeline

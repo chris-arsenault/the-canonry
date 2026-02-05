@@ -10,6 +10,7 @@ import { diffWords } from 'diff';
 import CohesionReportViewer from './CohesionReportViewer';
 import ImageModal from './ImageModal';
 import ChronicleWorkspace from './chronicle-workspace/ChronicleWorkspace';
+import ChronicleVersionSelector from './chronicle-workspace/ChronicleVersionSelector';
 
 // ============================================================================
 // Perspective Synthesis Viewer (kept for validation_ready)
@@ -123,81 +124,6 @@ function PerspectiveSynthesisViewer({ synthesis }) {
 }
 
 // ============================================================================
-// Sampling Regeneration Control (kept for validation_ready)
-// ============================================================================
-
-function SamplingRegenerationControl({ item, onRegenerateWithSampling, isGenerating }) {
-  const baseSampling = item.generationSampling;
-  const [lowSampling, setLowSampling] = useState(baseSampling === 'low');
-
-  useEffect(() => {
-    setLowSampling(item.generationSampling === 'low');
-  }, [item.generationSampling, item.chronicleId]);
-
-  const hasPrompts = Boolean(item.generationSystemPrompt && item.generationUserPrompt);
-  const disabled = isGenerating || !hasPrompts || !onRegenerateWithSampling;
-  const samplingMode = lowSampling ? 'low' : 'normal';
-  const lastGenerationSampling = item.generationSampling ?? 'unspecified';
-
-  return (
-    <div style={{ marginBottom: '16px', padding: '12px 16px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-        <div style={{ fontSize: '13px', fontWeight: 500 }}>
-          Sampling Regeneration <span style={{ marginLeft: '8px', color: 'var(--text-muted)', fontSize: '12px' }}>(normal vs low)</span>
-        </div>
-        <button onClick={() => onRegenerateWithSampling?.(samplingMode)} disabled={disabled} style={{ padding: '8px 14px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-secondary)', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1, fontSize: '12px' }}>
-          Regenerate with sampling
-        </button>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px', flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-primary)' }}>
-          <input
-            type="checkbox"
-            checked={lowSampling}
-            onChange={(e) => setLowSampling(e.target.checked)}
-            disabled={disabled}
-          />
-          Low sampling (`top_p=0.95`)
-        </label>
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Last generation: {lastGenerationSampling}</span>
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Next regeneration: {samplingMode}</span>
-      </div>
-      {!hasPrompts && (
-        <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
-          Stored prompts unavailable for this chronicle (legacy generation). Sampling regen is disabled.
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ============================================================================
-// Version Selector (kept for validation_ready)
-// ============================================================================
-
-function ChronicleVersionSelector({ versions, selectedVersionId, activeVersionId, compareToVersionId, onSelectVersion, onSelectCompareVersion, onSetActiveVersion, disabled }) {
-  const isActive = selectedVersionId === activeVersionId;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-      <select value={selectedVersionId} onChange={(e) => onSelectVersion(e.target.value)} disabled={disabled} className="illuminator-select" style={{ width: 'auto', minWidth: '240px', fontSize: '12px', padding: '4px 6px' }}>
-        {versions.map((version) => (<option key={version.id} value={version.id}>{version.label}</option>))}
-      </select>
-      <select value={compareToVersionId} onChange={(e) => onSelectCompareVersion(e.target.value)} disabled={disabled} className="illuminator-select" style={{ width: 'auto', minWidth: '160px', fontSize: '12px', padding: '4px 6px' }} title="Select a version to diff against">
-        <option value="">Compare to...</option>
-        {versions.filter(v => v.id !== selectedVersionId).map((version) => (<option key={version.id} value={version.id}>{version.shortLabel || version.label}</option>))}
-      </select>
-      {isActive ? (
-        <span style={{ fontSize: '11px', padding: '2px 8px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', borderRadius: '999px', fontWeight: 500 }}>Active</span>
-      ) : (
-        <button onClick={() => onSetActiveVersion?.(selectedVersionId)} disabled={disabled || !onSetActiveVersion} style={{ padding: '6px 12px', fontSize: '11px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-secondary)', cursor: disabled || !onSetActiveVersion ? 'not-allowed' : 'pointer', opacity: disabled || !onSetActiveVersion ? 0.6 : 1 }}>
-          Make Active
-        </button>
-      )}
-    </div>
-  );
-}
-
-// ============================================================================
 // Assembled Content Viewer (kept for validation_ready)
 // ============================================================================
 
@@ -249,6 +175,7 @@ export default function ChronicleReviewPanel({
   onAccept,
   onRegenerate,
   onRegenerateWithSampling,
+  onRegenerateFull,
   onCompareVersions,
   onCombineVersions,
   onCorrectSuggestions,
@@ -264,6 +191,7 @@ export default function ChronicleReviewPanel({
   onUpdateChronicleAnchorText,
   onUpdateChronicleTemporalContext,
   onUpdateChronicleActiveVersion,
+  onDeleteVersion,
   onUpdateCombineInstructions,
   onUnpublish,
 
@@ -280,6 +208,12 @@ export default function ChronicleReviewPanel({
   // Image layout edits
   onUpdateChronicleImageSize,
   onUpdateChronicleImageJustification,
+
+  // Image ref selections (version migration)
+  onApplyImageRefSelections,
+
+  // Select existing image for a ref
+  onSelectExistingImage,
 
   // Export
   onExport,
@@ -320,6 +254,7 @@ export default function ChronicleReviewPanel({
         onAccept={onAccept}
         onRegenerate={onRegenerate}
         onRegenerateWithSampling={onRegenerateWithSampling}
+        onRegenerateFull={onRegenerateFull}
         onCompareVersions={onCompareVersions}
         onCombineVersions={onCombineVersions}
         onValidate={onValidate}
@@ -334,6 +269,7 @@ export default function ChronicleReviewPanel({
         onUpdateChronicleAnchorText={onUpdateChronicleAnchorText}
         onUpdateChronicleTemporalContext={onUpdateChronicleTemporalContext}
         onUpdateChronicleActiveVersion={onUpdateChronicleActiveVersion}
+        onDeleteVersion={onDeleteVersion}
         onUpdateCombineInstructions={onUpdateCombineInstructions}
         onUnpublish={onUnpublish}
         onGenerateCoverImageScene={onGenerateCoverImageScene}
@@ -346,6 +282,8 @@ export default function ChronicleReviewPanel({
         onOpenImageSettings={onOpenImageSettings}
         onUpdateChronicleImageSize={onUpdateChronicleImageSize}
         onUpdateChronicleImageJustification={onUpdateChronicleImageJustification}
+        onApplyImageRefSelections={onApplyImageRefSelections}
+        onSelectExistingImage={onSelectExistingImage}
         onExport={onExport}
         onBackportLore={onBackportLore}
         onHistorianReview={onHistorianReview}
@@ -384,6 +322,7 @@ export default function ChronicleReviewPanel({
         onUpdateChronicleImageSize={onUpdateChronicleImageSize}
         onUpdateChronicleImageJustification={onUpdateChronicleImageJustification}
         onUpdateChronicleActiveVersion={onUpdateChronicleActiveVersion}
+        onDeleteVersion={onDeleteVersion}
         isGenerating={isGenerating}
         refinements={refinements}
         entities={entities}
@@ -418,6 +357,7 @@ function ValidationReadyView({
   onUpdateChronicleImageSize,
   onUpdateChronicleImageJustification,
   onUpdateChronicleActiveVersion,
+  onDeleteVersion,
   isGenerating,
   refinements,
   entities,
@@ -525,11 +465,6 @@ function ValidationReadyView({
           </button>
         )}
       </div>
-      <SamplingRegenerationControl
-        item={item}
-        onRegenerateWithSampling={onRegenerateWithSampling}
-        isGenerating={isGenerating}
-      />
       {item.perspectiveSynthesis && (
         <PerspectiveSynthesisViewer synthesis={item.perspectiveSynthesis} />
       )}
@@ -579,6 +514,7 @@ function ValidationReadyView({
               }}
               onSelectCompareVersion={setCompareToVersionId}
               onSetActiveVersion={onUpdateChronicleActiveVersion}
+              onDeleteVersion={onDeleteVersion}
               disabled={isGenerating}
             />
           </div>

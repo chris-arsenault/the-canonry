@@ -3,7 +3,7 @@
  *
  * Exposes:
  * - World name and description
- * - Canon facts with metadata (for perspective synthesis)
+ * - Canon facts (for perspective synthesis)
  * - Tone fragments (core + culture/kind overlays)
  * - Legacy: simple canon facts and tone (for backwards compatibility)
  */
@@ -16,18 +16,21 @@ const TONE_TEXTAREA_STYLE = Object.freeze({ minHeight: '80px', resize: 'vertical
 const COMPACT_TEXTAREA_STYLE = Object.freeze({ minHeight: '60px', resize: 'vertical', fontSize: '12px' });
 
 // ============================================================================
-// Fact with Metadata Viewer/Editor
+// Canon Facts Editor
 // ============================================================================
 
-function FactMetadataCard({ fact, onUpdate, onRemove }) {
+function FactCard({ fact, onUpdate, onRemove }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const updateField = (field, value) => {
-    onUpdate({ ...fact, [field]: value });
+    const next = { ...fact, [field]: value };
+    if (field === 'type' && value === 'generation_constraint') {
+      next.required = false;
+    }
+    onUpdate(next);
   };
 
-  const formatArray = (arr) => (arr || []).join(', ');
-  const parseArray = (str) => str.split(',').map((s) => s.trim()).filter(Boolean);
+  const isConstraint = fact.type === 'generation_constraint';
 
   return (
     <div
@@ -79,25 +82,28 @@ function FactMetadataCard({ fact, onUpdate, onRemove }) {
           style={{
             fontSize: '10px',
             padding: '2px 6px',
-            background: fact.type === 'generation_constraint' ? 'var(--warning-bg, #4a3f00)' : 'var(--bg-secondary)',
+            background: isConstraint ? 'var(--warning-bg, #4a3f00)' : 'var(--bg-secondary)',
             borderRadius: '4px',
-            color: fact.type === 'generation_constraint' ? 'var(--warning, #ffc107)' : 'var(--text-muted)',
+            color: isConstraint ? 'var(--warning, #ffc107)' : 'var(--text-muted)',
           }}
-          title={fact.type === 'generation_constraint' ? 'Meta-instruction (always verbatim)' : 'World truth (faceted by perspective)'}
+          title={isConstraint ? 'Meta-instruction (always verbatim)' : 'World truth (faceted by perspective)'}
         >
-          {fact.type === 'generation_constraint' ? 'constraint' : 'truth'}
+          {isConstraint ? 'constraint' : 'truth'}
         </span>
-        <span
-          style={{
-            fontSize: '10px',
-            padding: '2px 6px',
-            background: 'var(--bg-secondary)',
-            borderRadius: '4px',
-            color: 'var(--text-muted)',
-          }}
-        >
-          pri: {(fact.basePriority || 0).toFixed(1)}
-        </span>
+        {fact.required && !isConstraint && (
+          <span
+            style={{
+              fontSize: '10px',
+              padding: '2px 6px',
+              background: 'var(--bg-secondary)',
+              borderRadius: '4px',
+              color: 'var(--accent-color)',
+            }}
+            title="Required fact (must be included in perspective facets)"
+          >
+            required
+          </span>
+        )}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -142,60 +148,6 @@ function FactMetadataCard({ fact, onUpdate, onRemove }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
               <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Relevant Cultures (comma-separated, * for all)
-              </label>
-              <input
-                type="text"
-                value={formatArray(fact.relevantCultures)}
-                onChange={(e) => updateField('relevantCultures', parseArray(e.target.value))}
-                className="illuminator-input"
-                style={{ fontSize: '12px' }}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Relevant Kinds (comma-separated, * for all)
-              </label>
-              <input
-                type="text"
-                value={formatArray(fact.relevantKinds)}
-                onChange={(e) => updateField('relevantKinds', parseArray(e.target.value))}
-                className="illuminator-input"
-                style={{ fontSize: '12px' }}
-              />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <div>
-              <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Relevant Tags (comma-separated)
-              </label>
-              <input
-                type="text"
-                value={formatArray(fact.relevantTags)}
-                onChange={(e) => updateField('relevantTags', parseArray(e.target.value))}
-                className="illuminator-input"
-                style={{ fontSize: '12px' }}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Relevant Relationships (comma-separated)
-              </label>
-              <input
-                type="text"
-                value={formatArray(fact.relevantRelationships)}
-                onChange={(e) => updateField('relevantRelationships', parseArray(e.target.value))}
-                className="illuminator-input"
-                style={{ fontSize: '12px' }}
-              />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '10px' }}>
-            <div>
-              <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
                 Fact Type
               </label>
               <select
@@ -210,20 +162,19 @@ function FactMetadataCard({ fact, onUpdate, onRemove }) {
             </div>
             <div>
               <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Base Priority (0-1)
+                Required
               </label>
-              <input
-                type="number"
-                min="0"
-                max="1"
-                step="0.1"
-                value={fact.basePriority || 0.5}
-                onChange={(e) => updateField('basePriority', parseFloat(e.target.value) || 0.5)}
-                className="illuminator-input"
-                style={{ fontSize: '12px' }}
-                disabled={fact.type === 'generation_constraint'}
-                title={fact.type === 'generation_constraint' ? 'Priority not used for constraints' : ''}
-              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(fact.required) && !isConstraint}
+                  onChange={(e) => updateField('required', e.target.checked)}
+                  disabled={isConstraint}
+                />
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  Always include in perspective facets
+                </span>
+              </label>
             </div>
           </div>
         </div>
@@ -232,38 +183,42 @@ function FactMetadataCard({ fact, onUpdate, onRemove }) {
   );
 }
 
-function FactsWithMetadataEditor({ facts, onChange }) {
+function FactsEditor({ facts, onChange }) {
   const [newFactId, setNewFactId] = useState('');
+
+  const normalizeFact = (fact) => ({
+    id: fact.id,
+    text: fact.text || '',
+    type: fact.type || 'world_truth',
+    required: fact.type === 'generation_constraint' ? false : Boolean(fact.required),
+  });
 
   const handleAddFact = () => {
     if (!newFactId.trim()) return;
-    const newFact = {
+    const newFact = normalizeFact({
       id: newFactId.trim().toLowerCase().replace(/\s+/g, '-'),
       text: '',
-      relevantCultures: ['*'],
-      relevantKinds: ['*'],
-      relevantTags: [],
-      relevantRelationships: [],
-      basePriority: 0.5,
-    };
+      type: 'world_truth',
+      required: false,
+    });
     onChange([...facts, newFact]);
     setNewFactId('');
   };
 
   const handleUpdateFact = (index, updatedFact) => {
     const newFacts = [...facts];
-    newFacts[index] = updatedFact;
-    onChange(newFacts);
+    newFacts[index] = normalizeFact(updatedFact);
+    onChange(newFacts.map(normalizeFact));
   };
 
   const handleRemoveFact = (index) => {
-    onChange(facts.filter((_, i) => i !== index));
+    onChange(facts.filter((_, i) => i !== index).map(normalizeFact));
   };
 
   return (
     <div>
       {facts.map((fact, index) => (
-        <FactMetadataCard
+        <FactCard
           key={fact.id || index}
           fact={fact}
           onUpdate={(updated) => handleUpdateFact(index, updated)}
@@ -834,17 +789,43 @@ export default function WorldContextEditor({ worldContext, onWorldContextChange,
           </p>
         </div>
 
-        {/* Facts with Metadata */}
+        {/* Canon Facts */}
         <div className="illuminator-card">
           <div className="illuminator-card-header">
-            <h2 className="illuminator-card-title">Facts with Metadata</h2>
+            <h2 className="illuminator-card-title">Canon Facts</h2>
           </div>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-            World facts with relevance metadata. Higher priority facts and those matching the
-            chronicle's constellation are more likely to be foregrounded. The LLM synthesizer
-            provides faceted interpretations for selected facts.
+            World truths and generation constraints. Required facts must appear in perspective
+            facets. Generation constraints are always included verbatim and never faceted.
           </p>
-          <FactsWithMetadataEditor
+          <div className="illuminator-form-group" style={{ marginBottom: '16px' }}>
+            <label className="illuminator-label">Facet Target (optional)</label>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={worldContext.factSelection?.targetCount ?? ''}
+              onChange={(e) => {
+                const raw = e.target.value;
+                const num = Number(raw);
+                const parsed =
+                  raw === ''
+                    ? undefined
+                    : Number.isFinite(num)
+                      ? Math.max(1, Math.floor(num))
+                      : undefined;
+                updateField('factSelection', { ...(worldContext.factSelection || {}), targetCount: parsed });
+              }}
+              placeholder="default (4-6)"
+              className="illuminator-input"
+              style={{ maxWidth: '160px' }}
+            />
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
+              Target number of world-truth facts to facet. Required facts count toward this; if required
+              exceeds the target, the target is raised to match.
+            </div>
+          </div>
+          <FactsEditor
             facts={worldContext.canonFactsWithMetadata || []}
             onChange={(facts) => updateField('canonFactsWithMetadata', facts)}
           />

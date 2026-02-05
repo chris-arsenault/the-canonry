@@ -461,6 +461,12 @@ function buildExportBase(value, fallback) {
     .replace(/(^-|-$)/g, '');
 }
 
+function normalizeWorldContextForExport(worldContext) {
+  if (!worldContext || typeof worldContext !== 'object') return null;
+  const worldDynamics = Array.isArray(worldContext.worldDynamics) ? worldContext.worldDynamics : [];
+  return { ...worldContext, worldDynamics };
+}
+
 function normalizeUiState(raw) {
   const activeTab = VALID_TABS.includes(raw?.activeTab) ? raw.activeTab : null;
   const activeSectionByTab = raw?.activeSectionByTab && typeof raw.activeSectionByTab === 'object'
@@ -1489,6 +1495,7 @@ export default function App() {
       return;
     }
 
+    const exportWorldContext = normalizeWorldContextForExport(worldContext);
     const exportPayload = {
       format: SLOT_EXPORT_FORMAT,
       version: SLOT_EXPORT_VERSION,
@@ -1502,7 +1509,7 @@ export default function App() {
       worldData,
       simulationResults: slot.simulationResults || null,
       simulationState: slot.simulationState || null,
-      worldContext: worldContext ?? null,
+      worldContext: exportWorldContext,
       entityGuidance: entityGuidance ?? null,
       cultureIdentities: cultureIdentities ?? null,
     };
@@ -1607,6 +1614,7 @@ export default function App() {
       const exportTitle = slot.title || (slotIndex === 0 ? 'Scratch' : `Slot ${slotIndex}`);
       const safeBase = buildExportBase(exportTitle, `slot-${slotIndex}`);
       const exportedAt = new Date().toISOString();
+      // Note: illuminatorConfig is intentionally omitted from viewer bundles.
       const bundle = {
         format: 'canonry-viewer-bundle',
         version: 1,

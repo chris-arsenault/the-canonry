@@ -55,38 +55,52 @@ const MAX_TOKENS_SHORT_LABELS = {
 function CallTypeRow({ callType, config, isDefault, onUpdate, isLast }) {
   const metadata = LLM_CALL_METADATA[callType];
   const canThink = THINKING_CAPABLE_MODELS.includes(config.model);
+  const supportsSamplingControls = callType === 'chronicle.generation';
   const maxTokenOptions = metadata.defaults.maxTokens === 0 || config.maxTokens === 0
     ? [{ value: 0, label: 'Auto' }, ...MAX_TOKENS_OPTIONS]
     : MAX_TOKENS_OPTIONS;
+
+  const resolveOverride = (value, defaultValue) =>
+    value === defaultValue ? undefined : value;
+
+  const buildUpdatePayload = (overrides = {}) => ({
+    model: resolveOverride(overrides.model ?? config.model, metadata.defaults.model),
+    thinkingBudget: resolveOverride(overrides.thinkingBudget ?? config.thinkingBudget, metadata.defaults.thinkingBudget),
+    maxTokens: resolveOverride(overrides.maxTokens ?? config.maxTokens, metadata.defaults.maxTokens),
+    ...(supportsSamplingControls ? {
+      temperature: resolveOverride(overrides.temperature ?? config.temperature, metadata.defaults.temperature),
+      topP: resolveOverride(overrides.topP ?? config.topP, metadata.defaults.topP),
+    } : {}),
+  });
 
   const handleModelChange = (e) => {
     const newModel = e.target.value;
     const newThinkingBudget = THINKING_CAPABLE_MODELS.includes(newModel)
       ? config.thinkingBudget
       : 0;
-    onUpdate(callType, {
-      model: newModel === metadata.defaults.model ? undefined : newModel,
-      thinkingBudget: newThinkingBudget === metadata.defaults.thinkingBudget ? undefined : newThinkingBudget,
-      maxTokens: config.maxTokens === metadata.defaults.maxTokens ? undefined : config.maxTokens,
-    });
+    onUpdate(callType, buildUpdatePayload({ model: newModel, thinkingBudget: newThinkingBudget }));
   };
 
   const handleThinkingChange = (e) => {
     const newBudget = parseInt(e.target.value, 10);
-    onUpdate(callType, {
-      model: config.model === metadata.defaults.model ? undefined : config.model,
-      thinkingBudget: newBudget === metadata.defaults.thinkingBudget ? undefined : newBudget,
-      maxTokens: config.maxTokens === metadata.defaults.maxTokens ? undefined : config.maxTokens,
-    });
+    onUpdate(callType, buildUpdatePayload({ thinkingBudget: newBudget }));
   };
 
   const handleMaxTokensChange = (e) => {
     const newMaxTokens = parseInt(e.target.value, 10);
-    onUpdate(callType, {
-      model: config.model === metadata.defaults.model ? undefined : config.model,
-      thinkingBudget: config.thinkingBudget === metadata.defaults.thinkingBudget ? undefined : config.thinkingBudget,
-      maxTokens: newMaxTokens === metadata.defaults.maxTokens ? undefined : newMaxTokens,
-    });
+    onUpdate(callType, buildUpdatePayload({ maxTokens: newMaxTokens }));
+  };
+
+  const handleTemperatureChange = (e) => {
+    const newTemperature = parseFloat(e.target.value);
+    if (Number.isNaN(newTemperature)) return;
+    onUpdate(callType, buildUpdatePayload({ temperature: newTemperature }));
+  };
+
+  // Low sampling toggle: checked = 0.95, unchecked = 1.0
+  const handleLowSamplingToggle = (e) => {
+    const newTopP = e.target.checked ? 0.95 : 1.0;
+    onUpdate(callType, buildUpdatePayload({ topP: newTopP }));
   };
 
   const handleReset = () => {
@@ -129,6 +143,37 @@ function CallTypeRow({ callType, config, isDefault, onUpdate, isLast }) {
           ))}
         </select>
       </td>
+      <td className="llm-table-cell llm-table-cell-temp">
+        {supportsSamplingControls ? (
+          <input
+            type="number"
+            min="0"
+            max="2"
+            step="0.05"
+            value={config.temperature ?? metadata.defaults.temperature ?? ''}
+            onChange={handleTemperatureChange}
+            className="llm-table-input"
+            title="Temperature used when thinking is disabled"
+          />
+        ) : (
+          <span className="llm-table-cell-placeholder">—</span>
+        )}
+      </td>
+      <td className="llm-table-cell llm-table-cell-top-p">
+        {supportsSamplingControls ? (
+          <label className="llm-table-checkbox-label" title="Low sampling uses top_p=0.95 (when thinking enabled). Unchecked uses top_p=1.0.">
+            <input
+              type="checkbox"
+              checked={(config.topP ?? metadata.defaults.topP) <= 0.95}
+              onChange={handleLowSamplingToggle}
+              className="llm-table-checkbox"
+            />
+            <span className="llm-table-checkbox-text">Low</span>
+          </label>
+        ) : (
+          <span className="llm-table-cell-placeholder">—</span>
+        )}
+      </td>
       <td className="llm-table-cell llm-table-cell-max">
         <select
           value={config.maxTokens}
@@ -162,7 +207,7 @@ function CallTypeRow({ callType, config, isDefault, onUpdate, isLast }) {
 function CategoryHeader({ category }) {
   return (
     <tr className="llm-table-category-row">
-      <td colSpan={5} className="llm-table-category-cell">
+      <td colSpan={7} className="llm-table-category-cell">
         {CATEGORY_LABELS[category]}
       </td>
     </tr>
@@ -197,7 +242,7 @@ export default function LLMCallConfigPanel() {
 
   const handleResetAll = useCallback(() => {
     resetToDefaults();
-    setSettings({ callOverrides: {}, version: 1 });
+    setSettings(getLLMModelSettings());
     forceUpdate((n) => n + 1);
   }, []);
 
@@ -233,6 +278,8 @@ export default function LLMCallConfigPanel() {
               <th className="llm-table-th llm-table-th-label">Call Type</th>
               <th className="llm-table-th llm-table-th-model">Model</th>
               <th className="llm-table-th llm-table-th-thinking">Thinking</th>
+              <th className="llm-table-th llm-table-th-temp">Temp</th>
+              <th className="llm-table-th llm-table-th-top-p">Low P</th>
               <th className="llm-table-th llm-table-th-max">Max Tokens</th>
               <th className="llm-table-th llm-table-th-action"></th>
             </tr>

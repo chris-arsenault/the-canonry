@@ -124,6 +124,7 @@ export default function ContentTab({
   onSelectVersion,
   onSelectCompareVersion,
   onSetActiveVersion,
+  onDeleteVersion,
   isGenerating,
 }) {
   const content = isComplete
@@ -149,6 +150,7 @@ export default function ContentTab({
             onSelectVersion={onSelectVersion}
             onSelectCompareVersion={onSelectCompareVersion}
             onSetActiveVersion={onSetActiveVersion}
+            onDeleteVersion={onDeleteVersion}
             disabled={isGenerating}
           />
         </div>

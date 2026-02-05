@@ -4,13 +4,6 @@
 
 **NEVER run `git reset` in any form.** Not `git reset HEAD`, not `git reset --soft`, not `git reset --hard`, not `git reset` with any arguments. This command destroys work. If you need to unstage a file, use `git restore --staged <file>` instead. Violations of this rule are unacceptable.
 
-**Note**: This project uses [bd (beads)](https://github.com/steveyegge/beads) for issue tracking. Use `bd` commands instead of markdown TODOs or plan files. When working on multi-step tasks, create a bead with `bd create` to track progress rather than writing implementation plans to markdown files. See AGENTS.md for workflow details.
-
-**Bead Guidelines:**
-- **Never create analysis-only tickets.** Analysis is not useful on its own - implementation is. If analysis is needed, do it as part of implementing the ticket, not as a separate task.
-- When closing a ticket, ensure the work is actually done. If implementation remains, create a new implementation ticket before closing.
-- Beads should track actionable work, not research or investigation.
-
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview

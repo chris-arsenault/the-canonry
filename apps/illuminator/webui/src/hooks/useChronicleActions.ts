@@ -56,7 +56,6 @@ interface EnqueueItem {
   chronicleStep?: ChronicleStep;
   chronicleId?: string;
   chronicleMetadata?: ChronicleMetadata;
-  chronicleSampling?: ChronicleSampling;
 }
 
 type OnEnqueue = (items: EnqueueItem[]) => void;
@@ -145,7 +144,6 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
       chronicleId: string,
       context: ChronicleGenerationContext,
       metadata: ChronicleMetadata | undefined,
-      samplingOverride: ChronicleSampling,
     ) => {
       if (!context.focus) {
         console.error('[Chronicle V2] Focus context required');
@@ -154,9 +152,6 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
       if (!context.narrativeStyle) {
         console.error('[Chronicle V2] Narrative style required for generation');
         return;
-      }
-      if (!samplingOverride) {
-        throw new Error('Chronicle V2 generation requires an explicit sampling mode');
       }
 
       const chronicle = getChronicle(chronicleId);
@@ -171,7 +166,6 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
           chronicleStep: 'generate_v2',
           chronicleId: metadata?.chronicleId || chronicleId,
           chronicleMetadata: metadata,
-          chronicleSampling: samplingOverride,
         },
       ]);
     },
@@ -273,7 +267,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
   );
 
   const regenerateWithSampling = useCallback(
-    (chronicleId: string, sampling: ChronicleSampling) => {
+    (chronicleId: string) => {
       const chronicle = getChronicle(chronicleId);
       if (!chronicle) {
         console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
@@ -295,7 +289,6 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
           prompt: '',
           chronicleStep: 'regenerate_temperature',
           chronicleId,
-          chronicleSampling: sampling,
         },
       ]);
     },
@@ -362,12 +355,52 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
     [onEnqueue, getChronicle],
   );
 
+  /**
+   * Full regeneration with new perspective synthesis.
+   * Creates a new version by running the complete generation pipeline.
+   * Unlike sampling regeneration, this generates fresh perspective synthesis.
+   */
+  const regenerateFull = useCallback(
+    (chronicleId: string, context: ChronicleGenerationContext) => {
+      const chronicle = getChronicle(chronicleId);
+      if (!chronicle) {
+        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        return;
+      }
+      if (chronicle.finalContent || chronicle.status === 'complete') {
+        console.error('[Chronicle] Full regeneration requires unpublishing first');
+        return;
+      }
+      if (!context.narrativeStyle) {
+        console.error('[Chronicle] Narrative style required for full regeneration');
+        return;
+      }
+      if (!context.toneFragments || !context.canonFactsWithMetadata) {
+        console.error('[Chronicle] Full regeneration requires toneFragments and canonFactsWithMetadata');
+        return;
+      }
+
+      onEnqueue([
+        {
+          entity: buildEntityRefFromRecord(chronicleId, chronicle),
+          type: 'entityChronicle' as EnrichmentType,
+          prompt: '',
+          chronicleContext: context,
+          chronicleStep: 'regenerate_full',
+          chronicleId,
+        },
+      ]);
+    },
+    [onEnqueue, getChronicle],
+  );
+
   return {
     generateV2,
     generateSummary,
     generateTitle,
     generateImageRefs,
     regenerateWithSampling,
+    regenerateFull,
     compareVersions,
     combineVersions,
   };

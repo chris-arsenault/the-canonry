@@ -32,6 +32,7 @@ import {
   updateChronicleCoverImageStatus,
   updateChronicleFailure,
   getChronicle,
+  putChronicle,
 } from '../../lib/db/chronicleRepository';
 import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepository';
 import { resolveAnchorPhrase } from '../../lib/fuzzyAnchor';
@@ -100,6 +101,10 @@ async function executeEntityChronicleTask(
     return executeSamplingRegenerationStep(task, chronicleRecord, context);
   }
 
+  if (step === 'regenerate_full') {
+    return executeFullRegenerationStep(task, chronicleRecord, context);
+  }
+
   if (step === 'compare') {
     return executeCompareStep(task, chronicleRecord, context);
   }
@@ -158,6 +163,34 @@ function resolveTargetVersionContent(record: ChronicleRecord): { versionId: stri
 }
 
 /**
+ * Resolve sampling parameters from LLM call config.
+ * Sampling is now controlled globally via LLM config (topP: 1.0 = normal, 0.95 = low).
+ */
+function resolveChronicleSamplingParams(
+  callConfig: ReturnType<typeof getCallConfig>
+): { temperature?: number; topP?: number } {
+  const hasThinking = callConfig.thinkingBudget > 0;
+  if (hasThinking) {
+    // Use topP from config (1.0 = normal, 0.95 = low)
+    return { topP: callConfig.topP ?? CHRONICLE_SAMPLING_TOP_P.normal };
+  }
+
+  if (callConfig.temperature !== undefined) {
+    return { temperature: callConfig.temperature };
+  }
+
+  return {};
+}
+
+/**
+ * Derive ChronicleSampling value from config for storage/history.
+ */
+function deriveSamplingFromConfig(callConfig: ReturnType<typeof getCallConfig>): ChronicleSampling {
+  const topP = callConfig.topP ?? CHRONICLE_SAMPLING_TOP_P.normal;
+  return topP <= 0.95 ? 'low' : 'normal';
+}
+
+/**
  * Regenerate chronicle content with a sampling override (no perspective synthesis).
  * Reuses stored prompts from the previous generation.
  */
@@ -183,11 +216,8 @@ async function executeSamplingRegenerationStep(
   }
 
   const callConfig = getCallConfig(config, 'chronicle.generation');
-  const sampling: ChronicleSampling | undefined = task.chronicleSampling;
-  if (!sampling) {
-    return { success: false, error: 'chronicleSampling is required for regeneration' };
-  }
-  const topP = CHRONICLE_SAMPLING_TOP_P[sampling];
+  const samplingParams = resolveChronicleSamplingParams(callConfig);
+  const sampling = deriveSamplingFromConfig(callConfig);
 
   const styleMaxTokens = chronicleRecord.narrativeStyle
     ? getMaxTokensFromStyle(chronicleRecord.narrativeStyle)
@@ -199,7 +229,7 @@ async function executeSamplingRegenerationStep(
     callConfig,
     systemPrompt,
     prompt: userPrompt,
-    topP,
+    ...samplingParams,
     autoMaxTokens: styleMaxTokens,
   });
 
@@ -260,6 +290,280 @@ async function executeSamplingRegenerationStep(
       actualCost: generationCall.usage.actualCost,
       inputTokens: generationCall.usage.inputTokens,
       outputTokens: generationCall.usage.outputTokens,
+    },
+    debug: result.debug,
+  };
+}
+
+/**
+ * Full regeneration with new perspective synthesis.
+ * Creates a new version by running the complete generation pipeline,
+ * snapshotting the current version to history first.
+ */
+async function executeFullRegenerationStep(
+  task: WorkerTask,
+  chronicleRecord: ChronicleRecord,
+  context: TaskContext
+): Promise<TaskResult> {
+  const { config, llmClient, isAborted } = context;
+
+  if (!task.chronicleContext) {
+    return { success: false, error: 'Chronicle context required for full regeneration' };
+  }
+
+  let chronicleContext = task.chronicleContext!;
+  const narrativeStyle = chronicleContext.narrativeStyle;
+
+  if (!narrativeStyle) {
+    return { success: false, error: 'Narrative style is required for full regeneration' };
+  }
+
+  if (chronicleRecord.status === 'complete' || chronicleRecord.finalContent) {
+    return { success: false, error: 'Full regeneration requires unpublishing first' };
+  }
+
+  const callConfig = getCallConfig(config, 'chronicle.generation');
+  const chronicleId = chronicleRecord.chronicleId;
+  console.log(`[Worker] Full regeneration for chronicle=${chronicleId}, style="${narrativeStyle.name}", model=${callConfig.model}`);
+
+  // Validate perspective synthesis inputs
+  if (!chronicleContext.toneFragments || !chronicleContext.canonFactsWithMetadata) {
+    return {
+      success: false,
+      error: 'Full regeneration requires toneFragments and canonFactsWithMetadata. Configure world context with structured tone and facts.',
+    };
+  }
+
+  let perspectiveResult: PerspectiveSynthesisResult;
+  let perspectiveRecord: PerspectiveSynthesisRecord;
+  let constellation: EntityConstellation;
+
+  // Run perspective synthesis
+  {
+    console.log('[Worker] Running perspective synthesis for full regeneration...');
+    const perspectiveConfig = getCallConfig(config, 'perspective.synthesis');
+
+    constellation = analyzeConstellation({
+      entities: chronicleContext.entities,
+      relationships: chronicleContext.relationships,
+      events: chronicleContext.events,
+      focalEra: chronicleContext.era,
+    });
+    console.log(`[Worker] Constellation: ${constellation.focusSummary}`);
+
+    try {
+      perspectiveResult = await synthesizePerspective(
+        {
+          constellation,
+          entities: chronicleContext.entities,
+          focalEra: chronicleContext.era,
+          factsWithMetadata: chronicleContext.canonFactsWithMetadata,
+          toneFragments: chronicleContext.toneFragments,
+          culturalIdentities: chronicleContext.culturalIdentities,
+          narrativeStyle,
+          proseHints: chronicleContext.proseHints,
+          worldDynamics: chronicleContext.worldDynamics,
+          factSelection: chronicleContext.factSelection,
+        },
+        llmClient,
+        perspectiveConfig
+      );
+
+      perspectiveRecord = {
+        generatedAt: Date.now(),
+        model: perspectiveConfig.model,
+        brief: perspectiveResult.synthesis.brief,
+        facets: perspectiveResult.synthesis.facets,
+        suggestedMotifs: perspectiveResult.synthesis.suggestedMotifs,
+        narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
+        entityDirectives: perspectiveResult.synthesis.entityDirectives,
+        constellationSummary: constellation.focusSummary,
+        constellation: {
+          cultures: constellation.cultures,
+          kinds: constellation.kinds,
+          prominentTags: constellation.prominentTags,
+          dominantCulture: constellation.dominantCulture,
+          cultureBalance: constellation.cultureBalance,
+          relationshipKinds: constellation.relationshipKinds,
+        },
+        coreTone: chronicleContext.toneFragments?.core,
+        narrativeStyleId: narrativeStyle.id,
+        narrativeStyleName: narrativeStyle.name,
+        factSelectionTarget: (() => {
+          const requested = chronicleContext.factSelection?.targetCount;
+          const requiredCount = (chronicleContext.canonFactsWithMetadata || [])
+            .filter((f) => f.type !== 'generation_constraint' && f.required).length;
+          if (typeof requested === 'number' && requested > 0) {
+            return Math.max(requested, requiredCount);
+          }
+          return undefined;
+        })(),
+        inputFacts: chronicleContext.canonFactsWithMetadata?.map((f) => ({
+          id: f.id,
+          text: f.text,
+          type: f.type,
+          required: f.required,
+        })),
+        inputWorldDynamics: perspectiveResult.resolvedWorldDynamics,
+        inputCulturalIdentities: chronicleContext.culturalIdentities,
+        inputEntities: chronicleContext.entities.slice(0, 15).map((e) => ({
+          name: e.name,
+          kind: e.kind,
+          culture: e.culture,
+          summary: e.summary,
+        })),
+        inputTokens: perspectiveResult.usage.inputTokens,
+        outputTokens: perspectiveResult.usage.outputTokens,
+        actualCost: perspectiveResult.usage.actualCost,
+      };
+
+      const motifSection = perspectiveResult.synthesis.suggestedMotifs.length > 0
+        ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${perspectiveResult.synthesis.suggestedMotifs.map(m => `- "${m}"`).join('\n')}`
+        : '';
+
+      chronicleContext = {
+        ...chronicleContext,
+        tone:
+          perspectiveResult.assembledTone +
+          '\n\nPERSPECTIVE FOR THIS CHRONICLE:\n' +
+          perspectiveResult.synthesis.brief +
+          motifSection,
+        canonFacts: perspectiveResult.facetedFacts,
+        narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
+        entityDirectives: perspectiveResult.synthesis.entityDirectives,
+        worldDynamicsResolved: perspectiveResult.resolvedWorldDynamics.map((d) => d.text),
+      };
+
+      console.log(`[Worker] Perspective synthesis complete: ${perspectiveResult.facetedFacts.length} faceted facts, ${perspectiveResult.synthesis.suggestedMotifs.length} motifs`);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error('[Worker] Perspective synthesis failed:', errorMessage);
+      return { success: false, error: `Perspective synthesis failed: ${errorMessage}` };
+    }
+  }
+
+  // Generate new content
+  const selection = selectEntitiesV2(chronicleContext, DEFAULT_V2_CONFIG);
+  console.log(`[Worker] V2 selected ${selection.entities.length} entities, ${selection.events.length} events, ${selection.relationships.length} relationships`);
+
+  const prompt = buildV2Prompt(chronicleContext, narrativeStyle, selection);
+  const styleMaxTokens = getMaxTokensFromStyle(narrativeStyle);
+  const systemPrompt = getV2SystemPrompt(narrativeStyle);
+  const samplingParams = resolveChronicleSamplingParams(callConfig);
+  const sampling = deriveSamplingFromConfig(callConfig);
+  const generationCall = await runTextCall({
+    llmClient,
+    callType: 'chronicle.generation',
+    callConfig,
+    systemPrompt,
+    prompt,
+    ...samplingParams,
+    autoMaxTokens: styleMaxTokens,
+  });
+  const result = generationCall.result;
+
+  console.log(`[Worker] Full regen prompt length: ${prompt.length} chars, maxTokens: ${generationCall.budget.totalMaxTokens}`);
+
+  if (isAborted()) {
+    return { success: false, error: 'Task aborted', debug: result.debug };
+  }
+
+  if (result.error || !result.text) {
+    return {
+      success: false,
+      error: `Full regeneration failed: ${result.error || 'No text returned'}`,
+      debug: result.debug,
+    };
+  }
+
+  // Save as new version (snapshots current to history)
+  try {
+    await regenerateChronicleAssembly(chronicleId, {
+      assembledContent: result.text,
+      systemPrompt,
+      userPrompt: prompt,
+      model: callConfig.model,
+      sampling,
+      cost: {
+        estimated: generationCall.estimate.estimatedCost + perspectiveResult.usage.actualCost,
+        actual: generationCall.usage.actualCost + perspectiveResult.usage.actualCost,
+        inputTokens: generationCall.usage.inputTokens + perspectiveResult.usage.inputTokens,
+        outputTokens: generationCall.usage.outputTokens + perspectiveResult.usage.outputTokens,
+      },
+    });
+
+    // Update perspective synthesis record on the chronicle
+    const updatedChronicle = await getChronicle(chronicleId);
+    if (updatedChronicle) {
+      updatedChronicle.perspectiveSynthesis = perspectiveRecord;
+      updatedChronicle.generationContext = {
+        worldName: chronicleContext.worldName,
+        worldDescription: chronicleContext.worldDescription,
+        tone: chronicleContext.tone,
+        canonFacts: chronicleContext.canonFacts,
+        nameBank: chronicleContext.nameBank,
+        narrativeVoice: chronicleContext.narrativeVoice,
+        entityDirectives: chronicleContext.entityDirectives,
+      };
+      updatedChronicle.updatedAt = Date.now();
+      await putChronicle(updatedChronicle);
+    }
+
+    console.log(`[Worker] Full regeneration saved for chronicle ${chronicleId}`);
+  } catch (err) {
+    return { success: false, error: `Failed to save regenerated chronicle: ${err}` };
+  }
+
+  // Record perspective synthesis cost
+  const perspectiveConfig = getCallConfig(config, 'perspective.synthesis');
+  await saveCostRecordWithDefaults({
+    projectId: task.projectId,
+    simulationRunId: task.simulationRunId,
+    entityId: task.entityId,
+    entityName: task.entityName,
+    entityKind: task.entityKind,
+    chronicleId,
+    type: 'chroniclePerspective',
+    model: perspectiveConfig.model,
+    estimatedCost: perspectiveResult.usage.actualCost,
+    actualCost: perspectiveResult.usage.actualCost,
+    inputTokens: perspectiveResult.usage.inputTokens,
+    outputTokens: perspectiveResult.usage.outputTokens,
+  });
+
+  // Record generation cost
+  await saveCostRecordWithDefaults({
+    projectId: task.projectId,
+    simulationRunId: task.simulationRunId,
+    entityId: task.entityId,
+    entityName: task.entityName,
+    entityKind: task.entityKind,
+    chronicleId,
+    type: 'chronicleV2',
+    model: callConfig.model,
+    estimatedCost: generationCall.estimate.estimatedCost,
+    actualCost: generationCall.usage.actualCost,
+    inputTokens: generationCall.usage.inputTokens,
+    outputTokens: generationCall.usage.outputTokens,
+  });
+
+  const totalCost = {
+    estimated: generationCall.estimate.estimatedCost + perspectiveResult.usage.actualCost,
+    actual: generationCall.usage.actualCost + perspectiveResult.usage.actualCost,
+    inputTokens: generationCall.usage.inputTokens + perspectiveResult.usage.inputTokens,
+    outputTokens: generationCall.usage.outputTokens + perspectiveResult.usage.outputTokens,
+  };
+
+  return {
+    success: true,
+    result: {
+      chronicleId,
+      generatedAt: Date.now(),
+      model: callConfig.model,
+      estimatedCost: totalCost.estimated,
+      actualCost: totalCost.actual,
+      inputTokens: totalCost.inputTokens,
+      outputTokens: totalCost.outputTokens,
     },
     debug: result.debug,
   };
@@ -334,6 +638,7 @@ async function executeV2GenerationStep(
           narrativeStyle, // Pass narrative style to weight perspective
           proseHints: chronicleContext.proseHints, // Pass prose hints for entity directives
           worldDynamics: chronicleContext.worldDynamics, // Higher-level narrative context
+          factSelection: chronicleContext.factSelection, // Fact selection target + required
         },
         llmClient,
         perspectiveConfig
@@ -364,11 +669,22 @@ async function executeV2GenerationStep(
         coreTone: chronicleContext.toneFragments?.core,
         narrativeStyleId: narrativeStyle.id,
         narrativeStyleName: narrativeStyle.name,
+        factSelectionTarget: (() => {
+          const requested = chronicleContext.factSelection?.targetCount;
+          const requiredCount = (chronicleContext.canonFactsWithMetadata || [])
+            .filter((f) => f.type !== 'generation_constraint' && f.required).length;
+          if (typeof requested === 'number' && requested > 0) {
+            return Math.max(requested, requiredCount);
+          }
+          return undefined;
+        })(),
         inputFacts: chronicleContext.canonFactsWithMetadata?.map((f) => ({
           id: f.id,
           text: f.text,
           type: f.type,
+          required: f.required,
         })),
+        inputWorldDynamics: perspectiveResult.resolvedWorldDynamics,
         inputCulturalIdentities: chronicleContext.culturalIdentities,
         inputEntities: chronicleContext.entities.slice(0, 15).map((e) => ({
           name: e.name,
@@ -402,6 +718,8 @@ async function executeV2GenerationStep(
         // Add synthesized narrative voice and entity directives
         narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
         entityDirectives: perspectiveResult.synthesis.entityDirectives,
+        // Resolved world dynamics for this chronicle (post-filter/override)
+        worldDynamicsResolved: perspectiveResult.resolvedWorldDynamics.map((d) => d.text),
       };
 
       console.log(`[Worker] Perspective synthesis complete: ${perspectiveResult.facetedFacts.length} faceted facts, ${perspectiveResult.synthesis.suggestedMotifs.length} motifs`);
@@ -421,18 +739,15 @@ async function executeV2GenerationStep(
   const prompt = buildV2Prompt(chronicleContext, narrativeStyle, selection);
   const styleMaxTokens = getMaxTokensFromStyle(narrativeStyle);
   const systemPrompt = getV2SystemPrompt(narrativeStyle);
-  const sampling: ChronicleSampling | undefined = task.chronicleSampling;
-  if (!sampling) {
-    return { success: false, error: 'chronicleSampling is required for generation' };
-  }
-  const topP = CHRONICLE_SAMPLING_TOP_P[sampling];
+  const samplingParams = resolveChronicleSamplingParams(callConfig);
+  const sampling = deriveSamplingFromConfig(callConfig);
   const generationCall = await runTextCall({
     llmClient,
     callType: 'chronicle.generation',
     callConfig,
     systemPrompt,
     prompt,
-    topP,
+    ...samplingParams,
     autoMaxTokens: styleMaxTokens,
   });
   const result = generationCall.result;
@@ -643,8 +958,14 @@ async function executeCompareStep(
     `## ${v.label}\nWord count: ${v.wordCount}\n\n${v.content}`
   ).join('\n\n---\n\n');
 
+  // Build world facts block from canon facts (these are the faceted interpretations used in generation)
+  const canonFacts = chronicleRecord.generationContext?.canonFacts || [];
+  const worldFactsBlock = canonFacts.length > 0
+    ? `## World Facts (Faceted)\nThese are the world truths provided to the chronicle generator, already interpreted through the chronicle's perspective:\n${canonFacts.map((f, i) => `${i + 1}. ${f}`).join('\n')}\n`
+    : '';
+
   const comparePrompt = `You are comparing ${versions.length} versions of the same chronicle. Each was generated from the same prompt and narrative style (${narrativeStyleName}) but with different sampling modes (normal vs low).
-${narrativeStyleBlock ? `\n## Narrative Style Reference\n${narrativeStyleBlock}\n` : ''}
+${narrativeStyleBlock ? `\n## Narrative Style Reference\n${narrativeStyleBlock}\n` : ''}${worldFactsBlock ? `\n${worldFactsBlock}` : ''}
 Your output must have THREE sections in this exact order. Keep the total output under 800 words.
 
 ## Comparative Analysis
@@ -654,9 +975,10 @@ Cover each dimension in 2-3 sentences, naming the stronger version with one spec
 1. **Prose Quality**: Which has more natural, engaging prose? Where does each feel templated or forced?
 2. **Structural Choices**: How do versions differ in scene ordering, POV, pacing? Which makes more surprising or effective choices?
 3. **World-Building Detail**: Which invents richer names, places, customs, sensory details? Which feels more grounded?
-4. **Narrative Style Adherence (${narrativeStyleName})**: Evaluate against the narrative style above — its required structure, prose techniques, and specific instructions. Which better fulfills these? Which better follows entity directives?
-5. **Emotional Range**: Which has more varied emotional registers vs. falling into a single mood?
-6. **Perspective Integration**: Which better integrates the perspective synthesis outputs — narrative voice (synthesized prose guidance), entity directives (per-character writing guidance), faceted facts (world truths with chronicle-specific interpretations), and cultural identities? Which feels inhabited vs. described from outside?
+4. **Factual Utilization**: Review the World Facts above. Which version better integrates these facts — weaving them naturally into narrative rather than listing them? Which shows facts through action and dialogue vs. exposition? Are any facts missing or contradicted?
+5. **Narrative Style Adherence (${narrativeStyleName})**: Evaluate against the narrative style above — its required structure, prose techniques, and specific instructions. Which better fulfills these? Which better follows entity directives?
+6. **Emotional Range**: Which has more varied emotional registers vs. falling into a single mood?
+7. **Perspective Integration**: Which better integrates the perspective synthesis outputs — narrative voice (synthesized prose guidance), entity directives (per-character writing guidance), and cultural identities? Which feels inhabited vs. described from outside?
 
 ## Recommendation
 
@@ -808,14 +1130,15 @@ ${versionsBlock}
 
 Produce the final chronicle by selecting the strongest elements from each version. Output ONLY the chronicle text — no commentary, no labels, no preamble.`;
 
-  const combineSampling: ChronicleSampling = 'normal';
+  const samplingParams = resolveChronicleSamplingParams(callConfig);
+  const combineSampling = deriveSamplingFromConfig(callConfig);
   const combineCall = await runTextCall({
     llmClient,
     callType: 'chronicle.combine',
     callConfig,
     systemPrompt: 'You are a narrative editor producing the definitive version of a chronicle from multiple drafts. Output only the final chronicle text.',
     prompt: combinePrompt,
-    topP: CHRONICLE_SAMPLING_TOP_P[combineSampling],
+    ...samplingParams,
   });
 
   if (isAborted()) {

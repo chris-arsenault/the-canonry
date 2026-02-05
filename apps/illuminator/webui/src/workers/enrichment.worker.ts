@@ -111,12 +111,15 @@ async function executeTask(task: WorkerTask): Promise<WorkerResult> {
   emit({ type: 'started', taskId: task.id });
 
   const checkAborted = () => isAborted;
+  const taskConfig = task.llmCallSettings
+    ? { ...config!, llmCallSettings: task.llmCallSettings }
+    : config!;
 
   try {
     let result;
 
     result = await executeEnrichmentTask(task, {
-      config: config!,
+      config: taskConfig,
       llmClient: llmClient!,
       imageClient: imageClient!,
       isAborted: checkAborted,
