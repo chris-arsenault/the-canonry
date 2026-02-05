@@ -9,7 +9,7 @@
  */
 
 import { useState, useMemo, useEffect, useLayoutEffect, useCallback } from 'react';
-import type { WorldState, LoreData, WikiPage, HardState } from '../types/world.ts';
+import type { WorldState, LoreData, WikiPage, HardState, NarrativeEvent } from '../types/world.ts';
 import { useImageUrl } from '@penguin-tales/image-store';
 import { buildPageIndex, buildPageById } from '../lib/wikiBuilder.ts';
 import { getCompletedChroniclesForSimulation, type ChronicleRecord } from '../lib/chronicleStorage.ts';
@@ -27,6 +27,7 @@ import {
   prominenceLabelFromScale,
   type ProminenceScale,
 } from '@canonry/world-schema';
+import { useNarrativeStore } from '@penguin-tales/narrative-store';
 import { ParchmentTexture, PageFrame, ParchmentDebugPanel, DEFAULT_PARCHMENT_CONFIG, type ParchmentConfig } from './Ornaments.tsx';
 import styles from './WikiExplorer.module.css';
 
@@ -198,6 +199,20 @@ export default function WikiExplorer({
       cancelled = true;
     };
   }, [projectId, staticPagesOverride, hasStaticPagesOverride]);
+
+  // Bridge worldData.narrativeHistory → narrative-store zustand store
+  // The canonry shell puts narrative events in worldData props but doesn't
+  // call ingestChunk (the viewer app does). We bridge the gap here so that
+  // entity timelines (which read from the store) get their data.
+  useEffect(() => {
+    const events = (worldData as { narrativeHistory?: unknown[] }).narrativeHistory;
+    if (!events || events.length === 0) return;
+
+    const store = useNarrativeStore.getState();
+    store.reset();
+    store.ingestChunk(events as NarrativeEvent[]);
+    store.setStatus({ loading: false, chunksTotal: 1, chunksLoaded: 1 });
+  }, [worldData]);
 
   // Validate world data before building index
   // Returns first validation error found, or null if valid
