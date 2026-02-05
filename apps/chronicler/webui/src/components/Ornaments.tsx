@@ -163,9 +163,9 @@ export interface ParchmentConfig {
 }
 
 export const DEFAULT_PARCHMENT_CONFIG: ParchmentConfig = {
-  opacity: 0.4,
-  blurRadius: 8,
-  detailStrength: 1.5,
+  opacity: 1,
+  blurRadius: 10,
+  detailStrength: 1.2,
 };
 
 /* =========================================
@@ -347,36 +347,36 @@ function ScrollCorner() {
       {/* Main gold L-curve */}
       <path
         d="M6,115 L6,35 C6,16 16,6 35,6 L115,6"
-        stroke="#c49a5c" strokeWidth="1.5" opacity="0.55" strokeLinecap="round"
+        stroke="#d4aa6c" strokeWidth="2.5" opacity="0.75" strokeLinecap="round"
       />
       {/* Corner scroll — bold curve at the bend */}
       <path
         d="M6,35 C8,20 20,8 35,6"
-        stroke="#c49a5c" strokeWidth="2.5" opacity="0.6" strokeLinecap="round"
+        stroke="#d4aa6c" strokeWidth="4" opacity="0.8" strokeLinecap="round"
       />
       {/* Inner curl — decorative spiral at corner */}
       <path
         d="M22,42 C24,28 28,22 42,20 C34,25 28,31 26,40"
-        stroke="#c49a5c" strokeWidth="1.2" opacity="0.45" strokeLinecap="round"
+        stroke="#d4aa6c" strokeWidth="2" opacity="0.65" strokeLinecap="round"
       />
       {/* Secondary inner curve */}
       <path
         d="M14,90 L14,48 C14,28 28,14 48,14 L90,14"
-        stroke="#c49a5c" strokeWidth="0.7" opacity="0.25" strokeLinecap="round"
+        stroke="#d4aa6c" strokeWidth="1.2" opacity="0.4" strokeLinecap="round"
       />
       {/* Frost accent tendril */}
       <path
         d="M10,100 C10,55 18,32 42,16 L78,11"
-        stroke="#8ab4c4" strokeWidth="0.8" opacity="0.3" strokeLinecap="round"
+        stroke="#a8ccd8" strokeWidth="1.4" opacity="0.45" strokeLinecap="round"
       />
       {/* Corner diamond */}
-      <path d="M30 30 L34 25 L38 30 L34 35 Z" fill="#c49a5c" opacity="0.45" />
+      <path d="M30 30 L35 23 L40 30 L35 37 Z" fill="#d4aa6c" opacity="0.7" />
       {/* Terminal gold dots */}
-      <circle cx="6" cy="115" r="2.5" fill="#c49a5c" opacity="0.45" />
-      <circle cx="115" cy="6" r="2.5" fill="#c49a5c" opacity="0.45" />
+      <circle cx="6" cy="115" r="3.5" fill="#d4aa6c" opacity="0.65" />
+      <circle cx="115" cy="6" r="3.5" fill="#d4aa6c" opacity="0.65" />
       {/* Frost dots */}
-      <circle cx="14" cy="90" r="1.5" fill="#8ab4c4" opacity="0.3" />
-      <circle cx="90" cy="14" r="1.5" fill="#8ab4c4" opacity="0.3" />
+      <circle cx="14" cy="90" r="2.5" fill="#a8ccd8" opacity="0.45" />
+      <circle cx="90" cy="14" r="2.5" fill="#a8ccd8" opacity="0.45" />
     </svg>
   );
 }
@@ -384,8 +384,8 @@ function ScrollCorner() {
 export function PageFrame({ className }: { className?: string }) {
   const base: React.CSSProperties = {
     position: 'absolute',
-    width: 90,
-    height: 90,
+    width: 140,
+    height: 140,
     pointerEvents: 'none',
   };
 
