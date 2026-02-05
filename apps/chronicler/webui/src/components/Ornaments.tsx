@@ -1,137 +1,207 @@
 /**
  * Ornaments - Decorative elements for the Chronicler wiki
  *
- * Provides canvas-generated parchment texture, page frame scroll work,
- * section dividers, frost accents, and ornamental HR data URIs.
- *
- * Parchment texture uses tileable value noise rendered to a canvas,
- * displayed as a repeating CSS background with mix-blend-mode: screen.
- * On dark backgrounds, black areas are invisible and warm tan details
- * show through as organic paper grain.
+ * Parchment texture uses real photographic vellum images processed
+ * through a canvas pipeline:
+ *   1. Frequency blend — fiber detail from parchment + smooth tones from vellum
+ *   2. Mirror tile — 2x2 flip for guaranteed seamless tiling
+ *   3. Luminance extraction — remap grain detail to dark background color
+ * Result is a dark image with organic grain baked in, used as a
+ * simple repeating background with no blend mode needed.
  *
  * Theme: Warm Library with frost/ice accents
  * Gold: #c49a5c  |  Frost: #8ab4c4
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import parchmentSrc from '../assets/textures/parchment.jpg';
+import vellumSrc from '../assets/textures/vellum.jpg';
 
 /* =========================================
-   Tileable noise utilities
-   Value noise with wrapping for seamless tiles.
+   Image processing pipeline
    ========================================= */
 
-const TILE_SIZE = 512;
+const WORK_SIZE = 512;
 
-/** Integer hash → [0, 1] */
-function hash(x: number, y: number, seed: number): number {
-  let h = (seed + x * 374761393 + y * 668265263) | 0;
-  h = Math.imul(h ^ (h >>> 13), 1274126177) | 0;
-  h = h ^ (h >>> 16);
-  return ((h >>> 0) & 0x7fffffff) / 0x7fffffff;
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.crossOrigin = 'anonymous';
+    img.src = src;
+  });
 }
 
-/** Smooth interpolated value noise, tileable at `wrap` cells */
-function smoothNoise(x: number, y: number, seed: number, wrap: number): number {
-  const ix = Math.floor(x);
-  const iy = Math.floor(y);
-  const fx = x - ix;
-  const fy = y - iy;
-  const sx = fx * fx * (3 - 2 * fx);
-  const sy = fy * fy * (3 - 2 * fy);
-  const w = (c: number) => ((c % wrap) + wrap) % wrap;
-
-  const n00 = hash(w(ix), w(iy), seed);
-  const n10 = hash(w(ix + 1), w(iy), seed);
-  const n01 = hash(w(ix), w(iy + 1), seed);
-  const n11 = hash(w(ix + 1), w(iy + 1), seed);
-
-  return n00 * (1 - sx) * (1 - sy) + n10 * sx * (1 - sy) +
-         n01 * (1 - sx) * sy + n11 * sx * sy;
+/** Draw image scaled to fill a canvas of the given size */
+function drawScaled(img: HTMLImageElement | HTMLCanvasElement, w: number, h: number): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d')!;
+  ctx.drawImage(img, 0, 0, w, h);
+  return c;
 }
 
-/** Fractional Brownian Motion — layered octaves of value noise */
-function fbm(x: number, y: number, seed: number, baseGrid: number, octaves: number): number {
-  let value = 0;
-  let amp = 1;
-  let total = 0;
-  let grid = baseGrid;
+/**
+ * Downscale-upscale blur — works in all browsers (no ctx.filter needed).
+ * The downscale ratio controls blur strength.
+ */
+function blurCanvas(src: HTMLCanvasElement, radius: number): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = src.width;
+  c.height = src.height;
+  const ctx = c.getContext('2d')!;
 
-  for (let o = 0; o < octaves; o++) {
-    value += smoothNoise(x * grid / TILE_SIZE, y * grid / TILE_SIZE, seed + o * 31, grid) * amp;
-    total += amp;
-    amp *= 0.5;
-    grid *= 2;
-  }
+  // Downscale factor: smaller = more blur
+  const scale = Math.max(0.02, 1 / (radius * 1.5));
+  const sw = Math.max(1, (src.width * scale) | 0);
+  const sh = Math.max(1, (src.height * scale) | 0);
 
-  return value / total;
+  // Draw small, then scale back up — bilinear interpolation acts as blur
+  ctx.drawImage(src, 0, 0, sw, sh);
+  ctx.drawImage(c, 0, 0, sw, sh, 0, 0, c.width, c.height);
+
+  return c;
 }
 
-/* =========================================
-   Parchment texture generation
-   Renders multi-layer noise to an off-screen
-   canvas and returns a data URL for use as a
-   repeating CSS background-image.
-   ========================================= */
+/**
+ * Frequency blend — high-frequency detail from parchment on smooth vellum base.
+ * result = vellum + (parchment - blur(parchment))
+ */
+function frequencyBlend(
+  parchmentCanvas: HTMLCanvasElement,
+  vellumCanvas: HTMLCanvasElement,
+  blurRadius: number,
+): HTMLCanvasElement {
+  const w = parchmentCanvas.width;
+  const h = parchmentCanvas.height;
 
-// Warm parchment base color
-const P_R = 210, P_G = 185, P_B = 140;
+  // Get pixel data from both sources
+  const pCtx = parchmentCanvas.getContext('2d')!;
+  const pData = pCtx.getImageData(0, 0, w, h).data;
 
-function generateTexture(config: ParchmentConfig): string {
-  const canvas = document.createElement('canvas');
-  canvas.width = TILE_SIZE;
-  canvas.height = TILE_SIZE;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return '';
+  // Blur the parchment to extract its low-frequency component
+  const blurred = blurCanvas(parchmentCanvas, blurRadius);
+  const bData = blurred.getContext('2d')!.getImageData(0, 0, w, h).data;
 
-  const img = ctx.createImageData(TILE_SIZE, TILE_SIZE);
-  const d = img.data;
-  const { warmth, grain, creases, splotches } = config;
-  const gGrid = Math.max(2, Math.round(grain.scale));
-  const cGrid = Math.max(2, Math.round(creases.scale));
-  const sGrid = Math.max(1, Math.round(splotches.scale));
+  // Get vellum data (scaled to same size)
+  const vCanvas = drawScaled(vellumCanvas, w, h);
+  const vCtx = vCanvas.getContext('2d')!;
+  const vImgData = vCtx.getImageData(0, 0, w, h);
+  const vData = vImgData.data;
 
-  for (let y = 0; y < TILE_SIZE; y++) {
-    for (let x = 0; x < TILE_SIZE; x++) {
-      // Start with noise in 0-1 range
-      let noise = 0;
-
-      // Fine grain — multi-octave fractal noise for paper fiber texture
-      if (grain.enabled) {
-        noise = fbm(x, y, 42, gGrid, grain.octaves);
-      }
-
-      // Creases darken the grain (reduce noise in crease areas)
-      if (creases.enabled) {
-        const cv = fbm(x, y, 137, cGrid, 2);
-        const cm = Math.min(1, Math.max(0, cv - 0.52) * 4);
-        noise = Math.max(0, noise - cm * creases.intensity);
-      }
-
-      // Splotches darken the grain (reduce noise in aged areas)
-      if (splotches.enabled) {
-        const sv = smoothNoise(
-          x * sGrid / TILE_SIZE,
-          y * sGrid / TILE_SIZE,
-          313, sGrid,
-        );
-        const sm = Math.pow(Math.max(0, sv - 0.4) / 0.6, 0.8);
-        noise = Math.max(0, noise - sm * splotches.intensity);
-      }
-
-      // Combine: uniform warm base + noise adds grain variation on top
-      // warmth = minimum brightness (overall warm tint)
-      // grain.contrast = how much noise modulates above the base
-      const v = Math.min(1, warmth + noise * grain.contrast);
-      const i = (y * TILE_SIZE + x) * 4;
-      d[i]     = (P_R * v) | 0;
-      d[i + 1] = (P_G * v) | 0;
-      d[i + 2] = (P_B * v) | 0;
-      d[i + 3] = 255;
+  // result = vellum + (parchment - blur(parchment))
+  for (let i = 0; i < vData.length; i += 4) {
+    for (let c = 0; c < 3; c++) {
+      const highPass = pData[i + c] - bData[i + c];
+      vData[i + c] = Math.max(0, Math.min(255, vData[i + c] + highPass));
     }
   }
 
-  ctx.putImageData(img, 0, 0);
-  return canvas.toDataURL();
+  vCtx.putImageData(vImgData, 0, 0);
+  return vCanvas;
+}
+
+/**
+ * Mirror tile — 2x2 flip for guaranteed seamless tiling.
+ * For organic textures like parchment, the symmetry is undetectable.
+ */
+function mirrorTile(src: HTMLCanvasElement): HTMLCanvasElement {
+  const w = src.width;
+  const h = src.height;
+  const c = document.createElement('canvas');
+  c.width = w * 2;
+  c.height = h * 2;
+  const ctx = c.getContext('2d')!;
+
+  // Top-left: original
+  ctx.drawImage(src, 0, 0);
+
+  // Top-right: flipped horizontally
+  ctx.save();
+  ctx.translate(w * 2, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(src, 0, 0);
+  ctx.restore();
+
+  // Bottom-left: flipped vertically
+  ctx.save();
+  ctx.translate(0, h * 2);
+  ctx.scale(1, -1);
+  ctx.drawImage(src, 0, 0);
+  ctx.restore();
+
+  // Bottom-right: flipped both
+  ctx.save();
+  ctx.translate(w * 2, h * 2);
+  ctx.scale(-1, -1);
+  ctx.drawImage(src, 0, 0);
+  ctx.restore();
+
+  return c;
+}
+
+/**
+ * Luminance extraction + remap to dark background color.
+ * Extracts local brightness detail from the texture, discards absolute
+ * brightness, and remaps the grain to a narrow range around the dark
+ * background color with optional warm tint.
+ */
+function adaptForDarkBg(
+  src: HTMLCanvasElement,
+  config: ParchmentConfig,
+): HTMLCanvasElement {
+  const w = src.width;
+  const h = src.height;
+  const ctx = src.getContext('2d')!;
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+  const len = w * h;
+
+  const { grainStrength, detailBoost, warmTint } = config;
+
+  // Base background color
+  const baseR = 26, baseG = 22, baseB = 17; // #1a1611
+
+  // Warm tint multipliers (more red, less blue)
+  const tR = 1 + warmTint * 0.2;
+  const tG = 1;
+  const tB = 1 - warmTint * 0.3;
+
+  // Step 1: Compute luminance array and mean
+  const lum = new Float32Array(len);
+  let sum = 0;
+  for (let i = 0; i < len; i++) {
+    const idx = i * 4;
+    lum[i] = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114) / 255;
+    sum += lum[i];
+  }
+  const mean = sum / len;
+
+  // Step 2: Remap — baseColor + (detail * grainStrength * detailBoost)
+  for (let i = 0; i < len; i++) {
+    const idx = i * 4;
+    const detail = (lum[i] - mean) * detailBoost;
+    const shift = detail * grainStrength * 255;
+
+    data[idx]     = Math.max(0, Math.min(255, baseR + shift * tR));
+    data[idx + 1] = Math.max(0, Math.min(255, baseG + shift * tG));
+    data[idx + 2] = Math.max(0, Math.min(255, baseB + shift * tB));
+    data[idx + 3] = 255;
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+  return src;
+}
+
+/** Export canvas as object URL (more memory-efficient than data URL) */
+function canvasToObjectURL(canvas: HTMLCanvasElement): Promise<string> {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      resolve(URL.createObjectURL(blob!));
+    }, 'image/png');
+  });
 }
 
 /* =========================================
@@ -140,25 +210,25 @@ function generateTexture(config: ParchmentConfig): string {
 
 export interface ParchmentConfig {
   opacity: number;
-  warmth: number;
-  grain: { enabled: boolean; scale: number; contrast: number; octaves: number };
-  creases: { enabled: boolean; scale: number; intensity: number };
-  splotches: { enabled: boolean; scale: number; intensity: number };
+  grainStrength: number;  // how visible the grain detail is
+  detailBoost: number;    // local contrast enhancement
+  blurRadius: number;     // frequency split point for blending
+  warmTint: number;       // warm color shift (0 = neutral, 1 = warm)
 }
 
 export const DEFAULT_PARCHMENT_CONFIG: ParchmentConfig = {
   opacity: 1,
-  warmth: 0.12,
-  grain:    { enabled: true, scale: 128, contrast: 0.15, octaves: 4 },
-  creases:  { enabled: true, scale: 5,   intensity: 0.08 },
-  splotches:{ enabled: true, scale: 3,   intensity: 0.06 },
+  grainStrength: 0.3,
+  detailBoost: 1.5,
+  blurRadius: 8,
+  warmTint: 0.5,
 };
 
 /* =========================================
    ParchmentTexture component
-   Canvas-generated tileable parchment noise.
-   Renders as a div with repeating background
-   using mix-blend-mode: screen.
+   Loads real parchment/vellum photos, processes
+   them through the canvas pipeline, and displays
+   as a repeating background image.
    ========================================= */
 
 export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG }: {
@@ -166,16 +236,71 @@ export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG 
   config?: ParchmentConfig;
 }) {
   const [textureUrl, setTextureUrl] = useState<string | null>(null);
+  const [prevUrl, setPrevUrl] = useState<string | null>(null);
 
-  // Only regenerate when layer params change — opacity is CSS-only
-  const genKey = JSON.stringify({ w: config.warmth, g: config.grain, c: config.creases, s: config.splotches });
+  // Regenerate when processing params change — opacity is CSS-only
+  const genKey = JSON.stringify({
+    gs: config.grainStrength,
+    db: config.detailBoost,
+    br: config.blurRadius,
+    wt: config.warmTint,
+  });
 
   useEffect(() => {
-    setTextureUrl(generateTexture(config));
+    let cancelled = false;
+
+    async function generate() {
+      try {
+        const [parchmentImg, vellumImg] = await Promise.all([
+          loadImage(parchmentSrc),
+          loadImage(vellumSrc),
+        ]);
+        if (cancelled) return;
+
+        // Normalize both to working size
+        const pCanvas = drawScaled(parchmentImg, WORK_SIZE, WORK_SIZE);
+        const vCanvas = drawScaled(vellumImg, WORK_SIZE, WORK_SIZE);
+
+        // Pipeline: frequency blend → mirror tile → dark adaptation
+        const blended = frequencyBlend(pCanvas, vCanvas, config.blurRadius);
+        const tileable = mirrorTile(blended);
+        adaptForDarkBg(tileable, config);
+
+        const url = await canvasToObjectURL(tileable);
+        if (!cancelled) {
+          setTextureUrl(url);
+        }
+      } catch (err) {
+        console.error('[ParchmentTexture] Failed to generate:', err);
+      }
+    }
+
+    generate();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genKey]);
 
+  // Revoke previous object URL to avoid memory leaks
+  useEffect(() => {
+    if (prevUrl && prevUrl !== textureUrl) {
+      URL.revokeObjectURL(prevUrl);
+    }
+    setPrevUrl(textureUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textureUrl]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (textureUrl) URL.revokeObjectURL(textureUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (!textureUrl) return null;
+
+  // Mirror tile is 2x WORK_SIZE
+  const tileSize = WORK_SIZE * 2;
 
   return (
     <div
@@ -184,8 +309,7 @@ export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG 
       style={{
         backgroundImage: `url(${textureUrl})`,
         backgroundRepeat: 'repeat',
-        backgroundSize: `${TILE_SIZE}px`,
-        mixBlendMode: 'screen',
+        backgroundSize: `${tileSize}px ${tileSize}px`,
         opacity: config.opacity,
         pointerEvents: 'none',
       }}
@@ -210,11 +334,9 @@ const BTN: React.CSSProperties = {
   borderRadius: 6, padding: '4px 10px', cursor: 'pointer',
   fontFamily: 'system-ui, sans-serif', fontSize: 11, color: '#c49a5c',
 };
-const SLIDER_ROW: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 };
-const LABEL: React.CSSProperties = { width: 70, flexShrink: 0, color: '#c4b99a' };
-const VAL: React.CSSProperties = { width: 42, textAlign: 'right', color: '#8a7d6b', flexShrink: 0 };
-const SECTION: React.CSSProperties = { marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid rgba(196,164,112,0.15)' };
-const SECTION_LABEL: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontWeight: 600, color: '#c49a5c' };
+const SLIDER_ROW: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 };
+const LABEL_S: React.CSSProperties = { width: 85, flexShrink: 0, color: '#c4b99a' };
+const VAL_S: React.CSSProperties = { width: 42, textAlign: 'right', color: '#8a7d6b', flexShrink: 0 };
 
 function Slider({ label, value, min, max, step, onChange }: {
   label: string; value: number; min: number; max: number; step: number;
@@ -222,11 +344,11 @@ function Slider({ label, value, min, max, step, onChange }: {
 }) {
   return (
     <div style={SLIDER_ROW}>
-      <span style={LABEL}>{label}</span>
+      <span style={LABEL_S}>{label}</span>
       <input type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(parseFloat(e.target.value))}
         style={{ flex: 1, accentColor: '#c49a5c' }} />
-      <span style={VAL}>{step >= 1 ? value : value.toFixed(2)}</span>
+      <span style={VAL_S}>{step >= 1 ? value : value.toFixed(2)}</span>
     </div>
   );
 }
@@ -236,13 +358,9 @@ export function ParchmentDebugPanel({ config, onChange }: {
   onChange: (c: ParchmentConfig) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const set = useCallback((path: string, val: number | boolean) => {
-    const next = JSON.parse(JSON.stringify(config)) as ParchmentConfig;
-    const parts = path.split('.');
-    let obj: any = next;
-    for (let i = 0; i < parts.length - 1; i++) obj = obj[parts[i]];
-    obj[parts[parts.length - 1]] = val;
-    onChange(next);
+
+  const set = useCallback((key: keyof ParchmentConfig, val: number) => {
+    onChange({ ...config, [key]: val });
   }, [config, onChange]);
 
   if (!open) return <button style={BTN} onClick={() => setOpen(true)}>Parchment Config</button>;
@@ -256,39 +374,14 @@ export function ParchmentDebugPanel({ config, onChange }: {
       </div>
 
       <Slider label="Opacity" value={config.opacity} min={0} max={1} step={0.01} onChange={v => set('opacity', v)} />
-      <Slider label="Warmth" value={config.warmth} min={0} max={0.5} step={0.01} onChange={v => set('warmth', v)} />
-
-      <div style={SECTION}>
-        <label style={SECTION_LABEL}>
-          <input type="checkbox" checked={config.grain.enabled} onChange={e => set('grain.enabled', e.target.checked)} />
-          Paper Grain
-        </label>
-        <Slider label="Scale" value={config.grain.scale} min={16} max={256} step={1} onChange={v => set('grain.scale', v)} />
-        <Slider label="Contrast" value={config.grain.contrast} min={0} max={0.5} step={0.01} onChange={v => set('grain.contrast', v)} />
-        <Slider label="Octaves" value={config.grain.octaves} min={1} max={6} step={1} onChange={v => set('grain.octaves', v)} />
-      </div>
-
-      <div style={SECTION}>
-        <label style={SECTION_LABEL}>
-          <input type="checkbox" checked={config.creases.enabled} onChange={e => set('creases.enabled', e.target.checked)} />
-          Crease Marks
-        </label>
-        <Slider label="Scale" value={config.creases.scale} min={2} max={16} step={1} onChange={v => set('creases.scale', v)} />
-        <Slider label="Intensity" value={config.creases.intensity} min={0} max={1} step={0.01} onChange={v => set('creases.intensity', v)} />
-      </div>
-
-      <div style={SECTION}>
-        <label style={SECTION_LABEL}>
-          <input type="checkbox" checked={config.splotches.enabled} onChange={e => set('splotches.enabled', e.target.checked)} />
-          Age Splotches
-        </label>
-        <Slider label="Scale" value={config.splotches.scale} min={1} max={8} step={1} onChange={v => set('splotches.scale', v)} />
-        <Slider label="Intensity" value={config.splotches.intensity} min={0} max={1} step={0.01} onChange={v => set('splotches.intensity', v)} />
-      </div>
+      <Slider label="Grain strength" value={config.grainStrength} min={0} max={1} step={0.01} onChange={v => set('grainStrength', v)} />
+      <Slider label="Detail boost" value={config.detailBoost} min={0.5} max={4} step={0.1} onChange={v => set('detailBoost', v)} />
+      <Slider label="Blur radius" value={config.blurRadius} min={2} max={20} step={1} onChange={v => set('blurRadius', v)} />
+      <Slider label="Warm tint" value={config.warmTint} min={0} max={1} step={0.01} onChange={v => set('warmTint', v)} />
 
       <button onClick={() => onChange({ ...DEFAULT_PARCHMENT_CONFIG })}
         style={{ background: 'none', border: '1px solid rgba(196,164,112,0.3)', borderRadius: 4,
-          padding: '3px 10px', color: '#c4b99a', cursor: 'pointer', fontSize: 10 }}>
+          padding: '3px 10px', color: '#c4b99a', cursor: 'pointer', fontSize: 10, marginTop: 6 }}>
         Reset Defaults
       </button>
     </div>
