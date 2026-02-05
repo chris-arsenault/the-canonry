@@ -6,7 +6,7 @@
  * - Search, Home, Random at bottom
  */
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import type { WikiPage, WikiCategory, PageIndexEntry } from '../types/world.ts';
 import WikiSearch from './WikiSearch.tsx';
 import styles from './WikiNav.module.css';
@@ -49,8 +49,8 @@ export default function WikiNav({
   onCloseDrawer,
 }: WikiNavProps) {
   // Collapsible section state
-  const [showChronicleTypes, setShowChronicleTypes] = useState(false);
   const [loreExpanded, setLoreExpanded] = useState(false);
+  const [expandedEras, setExpandedEras] = useState<Set<string>>(new Set());
   const [appendicesExpanded, setAppendicesExpanded] = useState(false);
   const [confluxesExpanded, setConfluxesExpanded] = useState(false);
   const [huddlesExpanded, setHuddlesExpanded] = useState(false);
@@ -103,73 +103,40 @@ export default function WikiNav({
   const storyChronicles = chroniclePages.filter((page) => page.chronicle?.format === 'story');
   const documentChronicles = chroniclePages.filter((page) => page.chronicle?.format === 'document');
 
-  const formatChronicleSubtype = (typeId: string) => {
-    return typeId
-      .split(/[-_]+/)
-      .filter(Boolean)
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ');
-  };
+  // Group chronicles by era
+  const chroniclesByEra = chroniclePages.reduce((groups, page) => {
+    const eraId = page.chronicle?.temporalContext?.focalEra?.id || 'unknown';
+    const eraName = page.chronicle?.temporalContext?.focalEra?.name || 'Unknown Era';
 
-  const chronicleTypeGroups = chroniclePages.reduce((groups, page) => {
-    const typeId = page.chronicle?.narrativeStyleId || 'unknown';
-    if (!groups.has(typeId)) {
-      groups.set(typeId, []);
+    if (!groups.has(eraId)) {
+      groups.set(eraId, { eraId, eraName, stories: [], documents: [], all: [] });
     }
-    groups.get(typeId)?.push(page);
+
+    const group = groups.get(eraId)!;
+    group.all.push(page);
+    if (page.chronicle?.format === 'story') {
+      group.stories.push(page);
+    } else if (page.chronicle?.format === 'document') {
+      group.documents.push(page);
+    }
+
     return groups;
-  }, new Map<string, WikiPage[]>());
+  }, new Map<string, { eraId: string; eraName: string; stories: WikiPage[]; documents: WikiPage[]; all: WikiPage[] }>());
 
-  const sortedChronicleTypeGroups = Array.from(chronicleTypeGroups.entries())
-    .map(([typeId, pages]) => ({
-      typeId,
-      label: typeId === 'unknown' ? 'Unknown Type' : formatChronicleSubtype(typeId),
-      pages,
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  // Sort eras by name
+  const sortedEras = Array.from(chroniclesByEra.values()).sort((a, b) => a.eraName.localeCompare(b.eraName));
 
-  // Featured chronicles: one story and one document per era, randomly selected
-  // useRef ensures selection only happens once per component mount (hard refresh)
-  const featuredChroniclesRef = useRef<{ page: WikiPage; eraName: string }[] | null>(null);
-
-  if (featuredChroniclesRef.current === null && chroniclePages.length > 0) {
-    // Group chronicles by era
-    const byEra = new Map<string, { stories: WikiPage[]; documents: WikiPage[]; eraName: string }>();
-
-    for (const page of chroniclePages) {
-      const eraId = page.chronicle?.temporalContext?.focalEra?.id || 'unknown';
-      const eraName = page.chronicle?.temporalContext?.focalEra?.name || 'Unknown Era';
-
-      if (!byEra.has(eraId)) {
-        byEra.set(eraId, { stories: [], documents: [], eraName });
+  const toggleEra = (eraId: string) => {
+    setExpandedEras(prev => {
+      const next = new Set(prev);
+      if (next.has(eraId)) {
+        next.delete(eraId);
+      } else {
+        next.add(eraId);
       }
-
-      const group = byEra.get(eraId)!;
-      if (page.chronicle?.format === 'story') {
-        group.stories.push(page);
-      } else if (page.chronicle?.format === 'document') {
-        group.documents.push(page);
-      }
-    }
-
-    // Pick one random story and one random document per era
-    const featured: { page: WikiPage; eraName: string }[] = [];
-
-    for (const [, group] of byEra) {
-      if (group.stories.length > 0) {
-        const randomStory = group.stories[Math.floor(Math.random() * group.stories.length)];
-        featured.push({ page: randomStory, eraName: group.eraName });
-      }
-      if (group.documents.length > 0) {
-        const randomDoc = group.documents[Math.floor(Math.random() * group.documents.length)];
-        featured.push({ page: randomDoc, eraName: group.eraName });
-      }
-    }
-
-    featuredChroniclesRef.current = featured;
-  }
-
-  const featuredChronicles = featuredChroniclesRef.current || [];
+      return next;
+    });
+  };
 
   return (
     <div className={styles.container}>
@@ -239,79 +206,84 @@ export default function WikiNav({
         </div>
       )}
 
-      {/* CHRONICLES - The stories */}
+      {/* CHRONICLES - The stories, organized by era */}
       {chroniclePages.length > 0 && (
         <div className={styles.section}>
-          <div className={styles.sectionTitleRow}>
-            <span className={styles.sectionTitleLabel}>Chronicles</span>
-            <label className={styles.sectionToggle}>
-              <input
-                type="checkbox"
-                checked={showChronicleTypes}
-                onChange={(event) => setShowChronicleTypes(event.target.checked)}
-              />
-              By Style
-            </label>
-          </div>
-          {/* Featured chronicles - one story + one document per era */}
-          {featuredChronicles.length > 0 && featuredChronicles.map(({ page, eraName }) => {
-            const isActive = currentPageId === page.id;
-            const formatIcon = page.chronicle?.format === 'story' ? '◈' : '◇';
+          <div className={styles.sectionTitle}>Chronicles</div>
+
+          {/* Era sections */}
+          {sortedEras.map(era => {
+            const isExpanded = expandedEras.has(era.eraId);
+            const eraAllId = `chronicles-era-${era.eraId}`;
+            const eraStoriesId = `chronicles-era-${era.eraId}-story`;
+            const eraDocsId = `chronicles-era-${era.eraId}-document`;
+
             return (
-              <button
-                key={page.id}
-                className={isActive ? styles.navItemActive : styles.navItem}
-                onClick={() => onNavigate(page.id)}
-                title={`${page.chronicle?.format === 'story' ? 'Story' : 'Document'} · ${eraName}`}
-              >
-                <span className={styles.itemMeta}>{formatIcon}</span>
-                {page.title}
-              </button>
+              <div key={era.eraId}>
+                <button
+                  className={styles.sectionTitleCollapsible}
+                  onClick={() => toggleEra(era.eraId)}
+                  aria-expanded={isExpanded}
+                  style={{ paddingLeft: '4px', fontSize: 'var(--font-size-sm)' }}
+                >
+                  <span className={styles.collapseIcon}>{isExpanded ? '▼' : '▶'}</span>
+                  {era.eraName}
+                  <span className={styles.badge}>({era.all.length})</span>
+                </button>
+                {isExpanded && (
+                  <>
+                    <button
+                      className={currentPageId === eraAllId ? styles.navItemActive : styles.navItem}
+                      onClick={() => onNavigate(eraAllId)}
+                      style={{ paddingLeft: '24px' }}
+                    >
+                      View All
+                      <span className={currentPageId === eraAllId ? styles.badgeActive : styles.badge}>({era.all.length})</span>
+                    </button>
+                    {era.stories.length > 0 && (
+                      <button
+                        className={currentPageId === eraStoriesId ? styles.navItemActive : styles.navItem}
+                        onClick={() => onNavigate(eraStoriesId)}
+                        style={{ paddingLeft: '24px' }}
+                      >
+                        Stories
+                        <span className={currentPageId === eraStoriesId ? styles.badgeActive : styles.badge}>({era.stories.length})</span>
+                      </button>
+                    )}
+                    {era.documents.length > 0 && (
+                      <button
+                        className={currentPageId === eraDocsId ? styles.navItemActive : styles.navItem}
+                        onClick={() => onNavigate(eraDocsId)}
+                        style={{ paddingLeft: '24px' }}
+                      >
+                        Documents
+                        <span className={currentPageId === eraDocsId ? styles.badgeActive : styles.badge}>({era.documents.length})</span>
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
             );
           })}
-          <button
-            className={currentPageId === 'chronicles' ? styles.navItemActive : styles.navItem}
-            onClick={() => onNavigate('chronicles')}
-          >
-            All Chronicles
-            <span className={currentPageId === 'chronicles' ? styles.badgeActive : styles.badge}>({chroniclePages.length})</span>
-          </button>
-          {showChronicleTypes ? (
-            sortedChronicleTypeGroups.map((group) => {
-              const targetId = `chronicles-type-${group.typeId}`;
-              const isActive = currentPageId === targetId;
-              return (
-                <button
-                  key={group.typeId}
-                  className={isActive ? styles.navItemActive : styles.navItem}
-                  onClick={() => onNavigate(targetId)}
-                >
-                  {group.label}
-                  <span className={isActive ? styles.badgeActive : styles.badge}>({group.pages.length})</span>
-                </button>
-              );
-            })
-          ) : (
-            <>
-              {storyChronicles.length > 0 && (
-                <button
-                  className={currentPageId === 'chronicles-story' ? styles.navItemActive : styles.navItem}
-                  onClick={() => onNavigate('chronicles-story')}
-                >
-                  Stories
-                  <span className={currentPageId === 'chronicles-story' ? styles.badgeActive : styles.badge}>({storyChronicles.length})</span>
-                </button>
-              )}
-              {documentChronicles.length > 0 && (
-                <button
-                  className={currentPageId === 'chronicles-document' ? styles.navItemActive : styles.navItem}
-                  onClick={() => onNavigate('chronicles-document')}
-                >
-                  Documents
-                  <span className={currentPageId === 'chronicles-document' ? styles.badgeActive : styles.badge}>({documentChronicles.length})</span>
-                </button>
-              )}
-            </>
+
+          {/* All Stories / All Documents at bottom */}
+          {storyChronicles.length > 0 && (
+            <button
+              className={currentPageId === 'chronicles-story' ? styles.navItemActive : styles.navItem}
+              onClick={() => onNavigate('chronicles-story')}
+            >
+              All Stories
+              <span className={currentPageId === 'chronicles-story' ? styles.badgeActive : styles.badge}>({storyChronicles.length})</span>
+            </button>
+          )}
+          {documentChronicles.length > 0 && (
+            <button
+              className={currentPageId === 'chronicles-document' ? styles.navItemActive : styles.navItem}
+              onClick={() => onNavigate('chronicles-document')}
+            >
+              All Documents
+              <span className={currentPageId === 'chronicles-document' ? styles.badgeActive : styles.badge}>({documentChronicles.length})</span>
+            </button>
           )}
         </div>
       )}
