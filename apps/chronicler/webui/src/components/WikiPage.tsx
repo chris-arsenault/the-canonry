@@ -1621,33 +1621,6 @@ export default function WikiPageView({
             </div>
           )}
 
-        {chronicleLinks.length > 0 && (
-          <div className={styles.chronicles}>
-            <div className={styles.chroniclesTitle}>
-              Chronicles ({chronicleLinks.length})
-            </div>
-            {chronicleLinks.slice(0, 20).map(link => (
-              <button
-                key={link.id}
-                className={styles.chronicleItem}
-                onClick={() => onNavigate(link.id)}
-              >
-                <span>{link.title}</span>
-                {link.chronicle?.format && (
-                  <span className={styles.chronicleMeta}>
-                    {link.chronicle.format === 'document' ? 'Document' : 'Story'}
-                  </span>
-                )}
-              </button>
-            ))}
-            {chronicleLinks.length > 20 && (
-              <div className={styles.moreText}>
-                ...and {chronicleLinks.length - 20} more
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Sections */}
         <div
           className={isChronicle ? styles.chronicleBody : undefined}
@@ -1683,6 +1656,33 @@ export default function WikiPageView({
           </div>
         ))}
         </div>
+
+        {chronicleLinks.length > 0 && (
+          <div className={styles.chronicles}>
+            <div className={styles.chroniclesTitle}>
+              Chronicles ({chronicleLinks.length})
+            </div>
+            {chronicleLinks.slice(0, 20).map(link => (
+              <button
+                key={link.id}
+                className={styles.chronicleItem}
+                onClick={() => onNavigate(link.id)}
+              >
+                <span>{link.title}</span>
+                {link.chronicle?.format && (
+                  <span className={styles.chronicleMeta}>
+                    {link.chronicle.format === 'document' ? 'Document' : 'Story'}
+                  </span>
+                )}
+              </button>
+            ))}
+            {chronicleLinks.length > 20 && (
+              <div className={styles.moreText}>
+                ...and {chronicleLinks.length - 20} more
+              </div>
+            )}
+          </div>
+        )}
 
         {isEntityPage && (narrativeLoading || narrativeEvents.length > 0) && (
           <div id="timeline" className={styles.section}>
