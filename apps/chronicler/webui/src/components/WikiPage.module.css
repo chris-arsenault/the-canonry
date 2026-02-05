@@ -340,6 +340,32 @@
   margin: var(--spacing-sm) auto var(--spacing-md);
 }
 
+/* Clickable section heading with expand/collapse arrow */
+.sectionHeadingToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 0;
+}
+
+.expandArrow {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.expandArrowOpen {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+  transform: rotate(90deg);
+}
+
 .sectionWithImages {
   position: relative;
 }
@@ -452,17 +478,18 @@
    =================== */
 
 .chronicles {
-  margin-top: var(--spacing-3xl);
-  padding-top: var(--spacing-sm);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: var(--spacing-2xl);
 }
 
 .chroniclesTitle {
-  font-family: var(--font-family-ui);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
   margin-bottom: var(--spacing-sm);
 }
 

@@ -1058,6 +1058,12 @@ function MarkdownSection({
           text-transform: uppercase !important;
           letter-spacing: 0.04em !important;
         }
+        .wmde-markdown table tr {
+          background-color: transparent !important;
+        }
+        .wmde-markdown table tr:nth-child(2n) {
+          background-color: rgba(196, 154, 92, 0.06) !important;
+        }
         .wmde-markdown hr {
           border-color: var(--color-border) !important;
           margin: 1.5em 0 !important;
@@ -1104,6 +1110,7 @@ export default function WikiPageView({
     title: string;
     summary?: string;
   } | null>(null);
+  const [timelineOpen, setTimelineOpen] = useState(false);
   const [hoveredBacklink, setHoveredBacklink] = useState<{
     id: string;
     position: { x: number; y: number };
@@ -1616,7 +1623,6 @@ export default function WikiPageView({
 
         {chronicleLinks.length > 0 && (
           <div className={styles.chronicles}>
-            <FrostEdge className={styles.frostEdgeDivider} />
             <div className={styles.chroniclesTitle}>
               Chronicles ({chronicleLinks.length})
             </div>
@@ -1680,22 +1686,32 @@ export default function WikiPageView({
 
         {isEntityPage && (narrativeLoading || narrativeEvents.length > 0) && (
           <div id="timeline" className={styles.section}>
-            <h2 className={styles.sectionHeading}>Timeline</h2>
+            <button
+              className={styles.sectionHeadingToggle}
+              onClick={() => setTimelineOpen(o => !o)}
+            >
+              <span className={timelineOpen ? styles.expandArrowOpen : styles.expandArrow}>▶</span>
+              <h2 className={styles.sectionHeading}>Timeline</h2>
+            </button>
             <SectionDivider className={styles.sectionDividerSvg} />
-            <ProminenceTimeline
-              events={narrativeEvents}
-              entityId={page.id}
-              prominenceScale={prominenceScale}
-            />
-            <EntityTimeline
-              events={narrativeEvents}
-              entityId={page.id}
-              entityIndex={entityIndex}
-              onNavigate={handleEntityClick}
-              onHoverEnter={handleEntityHoverEnter}
-              onHoverLeave={handleEntityHoverLeave}
-              loading={narrativeLoading}
-            />
+            {timelineOpen && (
+              <>
+                <ProminenceTimeline
+                  events={narrativeEvents}
+                  entityId={page.id}
+                  prominenceScale={prominenceScale}
+                />
+                <EntityTimeline
+                  events={narrativeEvents}
+                  entityId={page.id}
+                  entityIndex={entityIndex}
+                  onNavigate={handleEntityClick}
+                  onHoverEnter={handleEntityHoverEnter}
+                  onHoverLeave={handleEntityHoverLeave}
+                  loading={narrativeLoading}
+                />
+              </>
+            )}
           </div>
         )}
 
