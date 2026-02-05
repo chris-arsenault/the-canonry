@@ -393,6 +393,8 @@ function buildUnifiedCastSection(
   prominenceScale: ProminenceScale
 ): string {
   const lines: string[] = [`# Cast (${selection.entities.length} characters)`];
+  lines.push('');
+  lines.push('**Temporal context**: Entity descriptions reflect their CURRENT state — who they became, how they ended up. This chronicle depicts PAST EVENTS when characters who are now dead/changed were alive and active. Write them as they WERE during the story, not as they ARE now.');
 
   // Role expectations first - so LLM knows what to look for
   if (style.roles && style.roles.length > 0) {
@@ -720,6 +722,8 @@ function buildUnifiedDocumentCastSection(
   prominenceScale: ProminenceScale
 ): string {
   const lines: string[] = [`# Cast (${selection.entities.length} characters)`];
+  lines.push('');
+  lines.push('**Temporal context**: Entity descriptions reflect their CURRENT state — who they became, how they ended up. This chronicle depicts PAST EVENTS when characters who are now dead/changed were alive and active. Write them as they WERE during the story, not as they ARE now.');
   const roles = getDocumentRoles(style);
 
   // Role expectations first - so LLM knows what to look for
@@ -938,10 +942,12 @@ STORY BIBLE (background reference, not requirements):
 - Character Notes: Relationships and history — dramatize through action
 
 WORLD DATA (what to write about):
-- Cast: Characters to bring alive through action and relationship
+- Cast: Characters to bring alive — descriptions show their FINAL state, but you're writing PAST EVENTS when they were alive/active
 - Narrative Lens (optional): A contextual entity that shapes the story without being a character
 - World: Setting context and canon facts
 - Events: What happened — dramatize these, don't document them
+
+CRITICAL: Entity descriptions reflect who characters BECAME. Write them as they WERE during the story's events. A character described as dead was alive when your story takes place.
 
 Craft defines how to write; Story Bible is background reference. Show don't tell — dramatize the world through character action and relationship, never through exposition.`;
   } else {
@@ -955,10 +961,12 @@ STORY BIBLE (background reference):
 - Character Notes: Relationships and history
 
 WORLD DATA (what to write about):
-- Cast: Characters referenced in or authoring the document
+- Cast: Characters referenced — descriptions show their FINAL state, but the document may depict PAST EVENTS when they were alive/active
 - Narrative Lens (optional): A contextual entity that shapes the document's assumptions
 - World: Setting context and canon facts
 - Events: What happened — reference naturally, don't list
+
+Entity descriptions reflect who characters BECAME. If depicting past events, write them as they WERE during those events.
 
 Write authentically as if the document exists within the world. No meta-commentary.`;
   }
