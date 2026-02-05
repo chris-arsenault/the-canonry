@@ -71,7 +71,7 @@ export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG 
           {/* Splotches */}
           <feTurbulence type="fractalNoise" baseFrequency={splotches.freq} numOctaves={splotches.octaves} seed={13} stitchTiles="stitch" result="spotNoise" />
           <feColorMatrix type="matrix" in="spotNoise"
-            values={`0 0 0 0 0.30  0 0 0 0 0.22  0 0 0 0 0.12  ${splotchAlpha}`}
+            values={`0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  ${splotchAlpha}`}
             result="splotches" />
 
           {/* Transparent fallback */}
