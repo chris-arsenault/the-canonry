@@ -57,6 +57,7 @@ export function useChronicleQueueWatcher(queue: QueueItem[]): void {
     );
 
     if (completedTasks.length > 0) {
+      console.log('[ChronicleQueueWatcher] Processing', completedTasks.length, 'completed tasks:', completedTasks.map(t => ({ id: t.id, type: t.type, step: t.chronicleStep, chronicleId: t.chronicleId, resultChronicleId: t.result?.chronicleId })));
       const chronicleIds = new Set<string>();
       const updates: Promise<unknown>[] = [];
       let refreshAll = false;
@@ -115,9 +116,12 @@ export function useChronicleQueueWatcher(queue: QueueItem[]): void {
         }
 
         if (task.type === 'entityChronicle') {
-          if (task.chronicleId) {
-            chronicleIds.add(task.chronicleId);
+          // Prefer result's chronicleId (the actual ID that was updated) over input chronicleId
+          const chronicleId = task.result?.chronicleId || task.chronicleId;
+          if (chronicleId) {
+            chronicleIds.add(chronicleId);
           } else {
+            console.log('[ChronicleQueueWatcher] No chronicleId found on task, triggering refreshAll');
             refreshAll = true;
           }
         }
@@ -125,11 +129,16 @@ export function useChronicleQueueWatcher(queue: QueueItem[]): void {
 
       const store = useChronicleStore.getState();
       const refresh = () => {
-        if (!activeRef.current) return;
+        if (!activeRef.current) {
+          console.log('[ChronicleQueueWatcher] Skipping refresh - component inactive');
+          return;
+        }
+        console.log('[ChronicleQueueWatcher] Refreshing:', { refreshAll, chronicleIds: Array.from(chronicleIds) });
         if (refreshAll) {
           store.refreshAll();
         }
         for (const id of chronicleIds) {
+          console.log('[ChronicleQueueWatcher] Calling refreshChronicle for:', id);
           store.refreshChronicle(id);
         }
       };

@@ -135,7 +135,7 @@ function buildEntityRefFromRecord(chronicleId: string, chronicle: ChronicleRecor
 export function useChronicleActions(onEnqueue: OnEnqueue) {
   const getChronicle = useCallback(
     (chronicleId: string): ChronicleRecord | undefined =>
-      useChronicleStore.getState().chronicles[chronicleId],
+      useChronicleStore.getState().cache.get(chronicleId),
     [],
   );
 

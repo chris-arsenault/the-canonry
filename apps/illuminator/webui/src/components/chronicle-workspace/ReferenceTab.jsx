@@ -1,5 +1,12 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { ExpandableSeedSection } from '../ChronicleSeedViewer';
+import NarrativeTimeline from '../ChronicleWizard/visualizations/NarrativeTimeline';
+import {
+  getEraRanges,
+  prepareTimelineEvents,
+  prepareCastMarkers,
+  getTimelineExtent,
+} from '../../lib/chronicle/timelineUtils';
 
 // ============================================================================
 // Perspective Synthesis Viewer (local)
@@ -14,7 +21,7 @@ function PerspectiveSynthesisViewer({ synthesis }) {
   const formatCost = (cost) => `$${cost.toFixed(4)}`;
   const formatTimestamp = (ts) => new Date(ts).toLocaleString();
 
-  const hasInputData = synthesis.coreTone || synthesis.inputFacts || synthesis.inputCulturalIdentities || synthesis.constellation;
+  const hasInputData = synthesis.coreTone || synthesis.inputFacts || synthesis.inputCulturalIdentities || synthesis.constellation || synthesis.inputWorldDynamics || synthesis.narrativeStyleName;
 
   return (
     <div
@@ -235,6 +242,78 @@ function PerspectiveSynthesisViewer({ synthesis }) {
 
           {activeTab === 'input' && (
             <>
+              {/* Narrative Style */}
+              {synthesis.narrativeStyleName && (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    NARRATIVE STYLE
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      padding: '10px 12px',
+                      background: 'var(--bg-tertiary)',
+                      borderRadius: '6px',
+                      borderLeft: '3px solid var(--accent-secondary, #8b5cf6)',
+                    }}
+                  >
+                    <span style={{ fontWeight: 500 }}>{synthesis.narrativeStyleName}</span>
+                    {synthesis.narrativeStyleId && (
+                      <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                        ({synthesis.narrativeStyleId})
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Focal Era */}
+              {synthesis.focalEra && (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    FOCAL ERA
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      padding: '10px 12px',
+                      background: 'var(--bg-tertiary)',
+                      borderRadius: '6px',
+                      borderLeft: '3px solid #10b981',
+                    }}
+                  >
+                    <span style={{ fontWeight: 500 }}>{synthesis.focalEra.name}</span>
+                    <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                      ({synthesis.focalEra.id})
+                    </span>
+                    {synthesis.focalEra.description && (
+                      <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        {synthesis.focalEra.description}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Fact Selection Range */}
+              {synthesis.factSelectionRange && (synthesis.factSelectionRange.min || synthesis.factSelectionRange.max) && (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    FACT SELECTION RANGE
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    {synthesis.factSelectionRange.min && synthesis.factSelectionRange.max
+                      ? synthesis.factSelectionRange.min === synthesis.factSelectionRange.max
+                        ? `Exactly ${synthesis.factSelectionRange.min} facts`
+                        : `${synthesis.factSelectionRange.min}–${synthesis.factSelectionRange.max} facts`
+                      : synthesis.factSelectionRange.min
+                        ? `At least ${synthesis.factSelectionRange.min} facts`
+                        : `Up to ${synthesis.factSelectionRange.max} facts`
+                    }
+                  </div>
+                </div>
+              )}
+
               {/* Core Tone */}
               {synthesis.coreTone && (
                 <div style={{ marginBottom: '16px' }}>
@@ -372,6 +451,36 @@ function PerspectiveSynthesisViewer({ synthesis }) {
                   </div>
                 </div>
               )}
+
+              {/* World Dynamics */}
+              {synthesis.inputWorldDynamics && synthesis.inputWorldDynamics.length > 0 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px' }}>
+                    WORLD DYNAMICS ({synthesis.inputWorldDynamics.length})
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {synthesis.inputWorldDynamics.map((dynamic, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          padding: '8px 12px',
+                          background: 'var(--bg-tertiary)',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          borderLeft: '3px solid #06b6d4',
+                        }}
+                      >
+                        <div style={{ fontFamily: 'monospace', fontSize: '11px', color: '#06b6d4', marginBottom: '4px' }}>
+                          {dynamic.id}
+                        </div>
+                        <div style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                          {dynamic.text}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -391,7 +500,22 @@ function PerspectiveSynthesisViewer({ synthesis }) {
 // Temporal Context Editor (local)
 // ============================================================================
 
-function TemporalContextEditor({ item, eras, onUpdateTemporalContext, isGenerating }) {
+function TemporalContextEditor({ item, eras, events, entities, onUpdateTemporalContext, isGenerating }) {
+  const containerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(600);
+
+  // Observe container width for responsive timeline
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   const availableEras = useMemo(() => {
     if (eras && eras.length > 0) return eras;
     return item.temporalContext?.allEras || [];
@@ -408,8 +532,53 @@ function TemporalContextEditor({ item, eras, onUpdateTemporalContext, isGenerati
   const focalEra = item.temporalContext?.focalEra;
   const tickRange = item.temporalContext?.chronicleTickRange;
 
+  // Build entity map for cast markers
+  const entityMap = useMemo(() => {
+    if (!entities) return new Map();
+    return new Map(entities.map((e) => [e.id, e]));
+  }, [entities]);
+
+  // Filter events to only those selected for this chronicle
+  const selectedEventIds = useMemo(
+    () => new Set(item.selectedEventIds || []),
+    [item.selectedEventIds]
+  );
+
+  // Build timeline events (mark all as selected since we're showing only selected ones)
+  const timelineEvents = useMemo(() => {
+    if (!events || events.length === 0) return [];
+    const filteredEvents = events.filter((e) => selectedEventIds.has(e.id));
+    const entryPointId = item.entrypointId || null;
+    const assignedEntityIds = new Set(
+      (item.roleAssignments || []).map((r) => r.entityId)
+    );
+    return prepareTimelineEvents(filteredEvents, entryPointId, assignedEntityIds, selectedEventIds);
+  }, [events, selectedEventIds, item.entrypointId, item.roleAssignments]);
+
+  // Build era ranges for timeline
+  const eraRanges = useMemo(() => {
+    if (availableEras.length === 0) return [];
+    return getEraRanges(availableEras);
+  }, [availableEras]);
+
+  // Build timeline extent from eras
+  const timelineExtent = useMemo(() => {
+    if (availableEras.length === 0) return [0, 100];
+    return getTimelineExtent(availableEras);
+  }, [availableEras]);
+
+  // Build cast markers from role assignments
+  const castMarkers = useMemo(() => {
+    if (!item.roleAssignments || item.roleAssignments.length === 0) return [];
+    const entryPointEntity = item.entrypointId ? entityMap.get(item.entrypointId) : null;
+    return prepareCastMarkers(item.roleAssignments, entityMap, entryPointEntity, null);
+  }, [item.roleAssignments, item.entrypointId, entityMap]);
+
+  const hasTimelineData = timelineEvents.length > 0 || castMarkers.length > 0;
+
   return (
     <div
+      ref={containerRef}
       style={{
         marginBottom: '16px',
         padding: '16px',
@@ -499,6 +668,25 @@ function TemporalContextEditor({ item, eras, onUpdateTemporalContext, isGenerati
               </div>
             )}
           </div>
+
+          {/* Timeline visualization of selected events */}
+          {hasTimelineData && (
+            <div style={{ marginTop: '16px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px' }}>
+                SELECTED EVENTS TIMELINE ({timelineEvents.length} events)
+              </div>
+              <NarrativeTimeline
+                events={timelineEvents}
+                eraRanges={eraRanges}
+                width={Math.max(containerWidth - 32, 300)}
+                height={castMarkers.length > 0 ? 180 : 150}
+                onToggleEvent={() => {}}
+                focalEraId={focalEra?.id || selectedEraId}
+                extent={timelineExtent}
+                castMarkers={castMarkers}
+              />
+            </div>
+          )}
         </>
       )}
     </div>
@@ -512,6 +700,8 @@ function TemporalContextEditor({ item, eras, onUpdateTemporalContext, isGenerati
 export default function ReferenceTab({
   item,
   eras,
+  events,
+  entities,
   isGenerating,
   onUpdateTemporalContext,
   seedData,
@@ -527,6 +717,8 @@ export default function ReferenceTab({
       <TemporalContextEditor
         item={item}
         eras={eras}
+        events={events}
+        entities={entities}
         onUpdateTemporalContext={onUpdateTemporalContext}
         isGenerating={isGenerating}
       />

@@ -27,6 +27,8 @@ export interface ImageMetadata {
   model: string;
   /** The revised prompt returned by the model (DALL-E) */
   revisedPrompt?: string;
+  /** Requested size string (e.g. "1024x1024") from generation settings */
+  requestedSize?: string;
   estimatedCost?: number;
   actualCost?: number;
   inputTokens?: number;

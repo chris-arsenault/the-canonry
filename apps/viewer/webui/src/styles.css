@@ -449,6 +449,137 @@ body {
   font-size: 12px;
 }
 
+/* Chronicler scope: re-assert Warm Library tokens inside viewer shell. */
+.chronicler-scope {
+  /* ===================
+     Colors - Warm Library Theme
+     =================== */
+  --color-bg-primary: #352a1e;
+  --color-bg-secondary: #41352a;
+  --color-bg-tertiary: #4d4036;
+  --color-bg-sidebar: #3f301f;
+  --color-bg-elevated: #574a3e;
+
+  --color-border: rgba(196, 164, 112, 0.2);
+  --color-border-light: rgba(196, 164, 112, 0.1);
+
+  --color-text-primary: #e8dcc8;
+  --color-text-secondary: #c4b99a;
+  --color-text-muted: #8a7d6b;
+
+  --color-accent: #c49a5c;
+  --color-accent-light: #d4aa6c;
+  --color-accent-hover: rgba(196, 154, 92, 0.15);
+  --color-accent-active: rgba(196, 154, 92, 0.25);
+
+  --color-frost: #8ab4c4;
+  --color-frost-light: #a8ccd8;
+  --color-frost-dim: rgba(138, 180, 196, 0.12);
+
+  --color-danger: #c0392b;
+  --color-warning: #d4a017;
+  --color-success: #5b7a5e;
+
+  --color-purple: #8b7355;
+  --color-info: #7d8a6b;
+
+  /* ===================
+     Typography
+     =================== */
+  --font-family: "Merriweather", Georgia, "Times New Roman", serif;
+  --font-family-display: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-family-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-base: 16px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 21px;
+  --font-size-2xl: 28px;
+  --font-size-3xl: 36px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.3;
+  --line-height-normal: 1.6;
+  --line-height-relaxed: 1.85;
+
+  /* ===================
+     Spacing
+     =================== */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+
+  /* ===================
+     Border Radius
+     =================== */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* ===================
+     Shadows
+     =================== */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.5);
+
+  /* ===================
+     Transitions
+     =================== */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.2s ease;
+  --transition-slow: 0.3s ease;
+
+  /* ===================
+     Layout
+     =================== */
+  --sidebar-width: 240px;
+  --sidebar-drawer-width: 280px;
+  --infobox-width: 260px;
+  --content-max-width: 740px;
+  --content-max-width-wide: 1000px;
+  --content-padding: 24px;
+  --content-padding-mobile: 16px;
+
+  /* ===================
+     Breakpoints (reference)
+     =================== */
+  --breakpoint-mobile: 640px;
+  --breakpoint-tablet: 1024px;
+
+  /* ===================
+     Z-Index Scale
+     =================== */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 900;
+  --z-modal-backdrop: 1000;
+  --z-modal: 1001;
+  --z-tooltip: 1100;
+
+  /* ===================
+     Ornamental SVGs (data URIs for CSS usage)
+     =================== */
+  --ornament-hr: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 24' fill='none'%3E%3Cline x1='20' y1='12' x2='220' y2='12' stroke='%23c49a5c' stroke-width='0.5' opacity='0.3'/%3E%3Cpath d='M120 6 L124 12 L120 18 L116 12 Z' fill='%23c49a5c' opacity='0.5'/%3E%3Ccircle cx='108' cy='12' r='1.2' fill='%238ab4c4' opacity='0.4'/%3E%3Ccircle cx='132' cy='12' r='1.2' fill='%238ab4c4' opacity='0.4'/%3E%3Cpath d='M108 12 C100 8 88 10 75 12' stroke='%23c49a5c' stroke-width='0.8' opacity='0.35' stroke-linecap='round'/%3E%3Cpath d='M132 12 C140 8 152 10 165 12' stroke='%23c49a5c' stroke-width='0.8' opacity='0.35' stroke-linecap='round'/%3E%3Ccircle cx='72' cy='12' r='1' fill='%238ab4c4' opacity='0.3'/%3E%3Ccircle cx='168' cy='12' r='1' fill='%238ab4c4' opacity='0.3'/%3E%3C/svg%3E");
+
+  font-family: var(--font-family);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-normal);
+}
+
 /* Mobile responsive styles */
 @media (width <= 640px) {
   .app-header {

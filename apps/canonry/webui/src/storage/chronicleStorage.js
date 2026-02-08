@@ -59,3 +59,73 @@ export async function getCompletedChroniclesForProject(projectId) {
     return [];
   }
 }
+
+/**
+ * Import chronicles into a project (overwrite-merge by chronicleId).
+ *
+ * @param {string} projectId
+ * @param {Array} chronicles
+ * @param {Object} options
+ * @param {string} options.simulationRunId - Optional run ID to apply when missing
+ */
+export async function importChronicles(projectId, chronicles, options = {}) {
+  if (!projectId || !Array.isArray(chronicles) || chronicles.length === 0) {
+    return { imported: 0, overwritten: 0, skipped: 0 };
+  }
+
+  const db = await openIlluminatorDb();
+  const { simulationRunId } = options;
+  let imported = 0;
+  let overwritten = 0;
+  let skipped = 0;
+
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(CHRONICLE_STORE_NAME, 'readwrite');
+      const store = tx.objectStore(CHRONICLE_STORE_NAME);
+
+      for (const chronicle of chronicles) {
+        if (!chronicle?.chronicleId) {
+          skipped += 1;
+          continue;
+        }
+        const record = {
+          ...chronicle,
+          projectId,
+          simulationRunId: chronicle.simulationRunId || simulationRunId || null,
+        };
+        const req = store.get(record.chronicleId);
+        req.onsuccess = () => {
+          if (req.result) overwritten += 1;
+          store.put(record);
+          imported += 1;
+        };
+        req.onerror = () => {
+          skipped += 1;
+        };
+      }
+
+      tx.oncomplete = () => resolve({ imported, overwritten, skipped });
+      tx.onerror = () => reject(tx.error || new Error('Failed to import chronicles'));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+export async function getChronicleCountForProject(projectId) {
+  if (!projectId) return 0;
+  const db = await openIlluminatorDb();
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(CHRONICLE_STORE_NAME, 'readonly');
+      const store = tx.objectStore(CHRONICLE_STORE_NAME);
+      const index = store.index('projectId');
+      const request = index.count(projectId);
+      request.onsuccess = () => resolve(request.result || 0);
+      request.onerror = () => reject(request.error || new Error('Failed to count chronicles'));
+    });
+  } finally {
+    db.close();
+  }
+}

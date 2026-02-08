@@ -382,14 +382,19 @@ export interface CanonFactWithMetadata {
 
   /** If true, this fact must be included in perspective facets. */
   required?: boolean;
+
+  /** If true, this fact is excluded from perspective synthesis and generation prompts. */
+  disabled?: boolean;
 }
 
 /**
  * Fact selection settings for perspective synthesis.
  */
 export interface FactSelectionConfig {
-  /** Target number of world-truth facts to facet (required facts count toward this). */
-  targetCount?: number;
+  /** Minimum number of world-truth facts to facet (required facts count toward this). */
+  minCount?: number;
+  /** Maximum number of world-truth facts to facet. */
+  maxCount?: number;
 }
 
 /**
@@ -419,6 +424,8 @@ export interface PerspectiveSynthesisRecord {
   narrativeVoice: Record<string, string>;
   /** Per-entity writing directives pre-applying cultural traits + prose hints */
   entityDirectives: Array<{ entityId: string; entityName: string; directive: string }>;
+  /** 2-4 sentences synthesizing era conditions and world dynamics into story-specific stakes */
+  temporalNarrative?: string;
 
   // === INPUT (what was sent to LLM) ===
   /** Constellation summary that drove the synthesis */
@@ -449,8 +456,8 @@ export interface PerspectiveSynthesisRecord {
     id: string;
     text: string;
   }>;
-  /** Target number of facts requested for faceting (if configured). */
-  factSelectionTarget?: number;
+  /** Range of facts requested for faceting (if configured). */
+  factSelectionRange?: { min?: number; max?: number };
   /** Cultural identities that were sent (culture -> trait -> value) */
   inputCulturalIdentities?: Record<string, Record<string, string>>;
   /** Entity summaries that were sent */
@@ -460,6 +467,12 @@ export interface PerspectiveSynthesisRecord {
     culture?: string;
     summary?: string;
   }>;
+  /** Focal era for this chronicle (used for era-specific dynamics overrides). */
+  focalEra?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
 
   /** Cost info */
   inputTokens: number;
@@ -557,6 +570,8 @@ export interface ChronicleGenerationContext {
    * Used to inject era-appropriate dynamics into generation prompts.
    */
   worldDynamicsResolved?: string[];
+  /** PS-synthesized temporal narrative — dynamics distilled into story-specific stakes. */
+  temporalNarrative?: string;
 }
 
 // =============================================================================

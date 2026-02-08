@@ -42,6 +42,51 @@ export async function seedEntities(
   await db.entities.bulkPut(records);
 }
 
+/**
+ * Patch entities from hard state without overwriting existing values.
+ * - Inserts missing entities
+ * - For existing entities, fills only undefined/null fields (keeps enrichment intact)
+ */
+export async function patchEntitiesFromHardState(
+  simulationRunId: string,
+  entities: WorldEntity[],
+): Promise<{ added: number; patched: number }> {
+  if (!entities?.length) return { added: 0, patched: 0 };
+
+  const existing = await db.entities.where('simulationRunId').equals(simulationRunId).toArray();
+  const existingById = new Map(existing.map((e) => [e.id, e]));
+  let added = 0;
+  let patched = 0;
+
+  await db.transaction('rw', db.entities, async () => {
+    for (const worldEntity of entities) {
+      const current = existingById.get(worldEntity.id);
+      if (!current) {
+        await db.entities.put({ ...worldEntity, simulationRunId });
+        added += 1;
+        continue;
+      }
+
+      const updates: Partial<PersistedEntity> = {};
+      for (const [key, value] of Object.entries(worldEntity)) {
+        if (key === 'enrichment') continue;
+        if (value === undefined || value === null) continue;
+        const currentValue = (current as any)[key];
+        if (currentValue === undefined || currentValue === null) {
+          (updates as any)[key] = value;
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await db.entities.update(current.id, updates);
+        patched += 1;
+      }
+    }
+  });
+
+  return { added, patched };
+}
+
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
@@ -52,6 +97,11 @@ export async function getEntity(entityId: string): Promise<PersistedEntity | und
 
 export async function getEntitiesForRun(simulationRunId: string): Promise<PersistedEntity[]> {
   return db.entities.where('simulationRunId').equals(simulationRunId).toArray();
+}
+
+export async function getEntityIdsForRun(simulationRunId: string): Promise<string[]> {
+  const ids = await db.entities.where('simulationRunId').equals(simulationRunId).primaryKeys();
+  return ids.map((id) => String(id));
 }
 
 export async function getEntitiesByKind(
@@ -468,6 +518,7 @@ export async function setHistorianNotes(
 
 /**
  * Reset entity descriptions to their pre-backport state.
+ * Optionally accepts an entity list to ensure reset covers entities not yet persisted in Dexie.
  * For each entity that has lore-backport entries in descriptionHistory:
  * - Find the first 'lore-backport' entry
  * - Restore the description from that entry (which is the pre-backport state)
@@ -477,12 +528,18 @@ export async function setHistorianNotes(
  * Returns count of entities that were reset.
  */
 export async function resetEntitiesToPreBackportState(
-  simulationRunId: string
+  simulationRunId: string,
+  entitiesOverride?: PersistedEntity[],
 ): Promise<{ resetCount: number; entityIds: string[] }> {
-  const entities = await getEntitiesForRun(simulationRunId);
+  const entities = entitiesOverride?.length
+    ? entitiesOverride
+    : await getEntitiesForRun(simulationRunId);
   const resetEntityIds: string[] = [];
 
   await db.transaction('rw', db.entities, async () => {
+    const existing = await db.entities.bulkGet(entities.map((entity) => entity.id));
+    const existingIds = new Set(existing.filter(Boolean).map((entity) => entity!.id));
+
     for (const entity of entities) {
       const history = entity.enrichment?.descriptionHistory || [];
       if (history.length === 0) continue;
@@ -504,10 +561,20 @@ export async function resetEntitiesToPreBackportState(
         chronicleBackrefs: [],
       };
 
-      await db.entities.update(entity.id, {
+      const updates = {
         description: preBackportDescription,
         enrichment: newEnrichment,
-      });
+      };
+
+      if (existingIds.has(entity.id)) {
+        await db.entities.update(entity.id, updates);
+      } else {
+        await db.entities.put({
+          ...entity,
+          simulationRunId: entity.simulationRunId || simulationRunId,
+          ...updates,
+        });
+      }
 
       resetEntityIds.push(entity.id);
     }

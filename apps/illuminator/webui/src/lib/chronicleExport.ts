@@ -55,6 +55,8 @@ interface ExportGenerationContext {
   narrativeVoice?: Record<string, string>;
   /** Per-entity writing directives from perspective synthesis */
   entityDirectives?: Array<{ entityId: string; entityName: string; directive: string }>;
+  /** PS-synthesized temporal narrative — dynamics distilled into story-specific stakes */
+  temporalNarrative?: string;
 }
 
 /**
@@ -133,9 +135,10 @@ export interface ChronicleExport {
         cultureBalance: string;
         dominantCulture?: string;
       };
-      facts?: Array<{ id: string; text: string; type?: string; required?: boolean }>;
+      facts?: Array<{ id: string; text: string; type?: string; required?: boolean; disabled?: boolean }>;
       worldDynamics?: Array<{ id: string; text: string }>;
-      factSelectionTarget?: number;
+      factSelectionRange?: { min?: number; max?: number };
+      focalEra?: { id: string; name: string; description?: string };
       culturalIdentities?: Record<string, Record<string, string>>;
       entities?: Array<{ name: string; kind: string; culture?: string }>;
     };
@@ -146,6 +149,7 @@ export interface ChronicleExport {
       suggestedMotifs: string[];
       narrativeVoice: Record<string, string>;
       entityDirectives: Array<{ entityId: string; entityName: string; directive: string }>;
+      temporalNarrative?: string;
     };
     // Metadata
     model: string;
@@ -226,7 +230,8 @@ function exportPerspectiveSynthesis(
       constellation: record.constellation,
       facts: record.inputFacts,
       worldDynamics: record.inputWorldDynamics,
-      factSelectionTarget: record.factSelectionTarget,
+      factSelectionRange: record.factSelectionRange,
+      focalEra: record.focalEra,
       culturalIdentities: record.inputCulturalIdentities,
       entities: record.inputEntities,
     },
@@ -236,6 +241,7 @@ function exportPerspectiveSynthesis(
       suggestedMotifs: record.suggestedMotifs,
       narrativeVoice: record.narrativeVoice,
       entityDirectives: record.entityDirectives,
+      temporalNarrative: record.temporalNarrative,
     },
     model: record.model,
     generatedAt: new Date(record.generatedAt).toISOString(),

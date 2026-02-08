@@ -176,26 +176,39 @@ function buildDataSection(selection: V2SelectionResult): string {
  * Build the temporal context section.
  * Provides era information and timeline context for the chronicle.
  */
-function buildTemporalSection(temporalContext: ChronicleTemporalContext | undefined): string {
-  if (!temporalContext) return '';
+function buildTemporalSection(
+  temporalContext: ChronicleTemporalContext | undefined,
+  temporalNarrative: string | undefined
+): string {
+  if (!temporalContext && !temporalNarrative) return '';
 
   const lines: string[] = ['# Historical Context'];
-  const focal = temporalContext.focalEra;
 
-  // Focal era name and summary
-  lines.push(`## Era: ${focal.name}`);
-  if (focal.summary) {
-    lines.push(focal.summary);
+  if (temporalContext) {
+    const focal = temporalContext.focalEra;
+
+    // Focal era name and summary
+    lines.push(`## Era: ${focal.name}`);
+    if (focal.summary) {
+      lines.push(focal.summary);
+    }
+
+    // World timeline (natural language) - always show
+    lines.push('');
+    lines.push(buildWorldTimeline(temporalContext.allEras, focal.id));
+
+    // Note about events from other eras
+    if (temporalContext.isMultiEra) {
+      lines.push('');
+      lines.push('Some events listed may be from earlier eras. Treat these as historical background that shaped the present, not as scenes to dramatize.');
+    }
   }
 
-  // World timeline (natural language) - always show
-  lines.push('');
-  lines.push(buildWorldTimeline(temporalContext.allEras, focal.id));
-
-  // Note about events from other eras
-  if (temporalContext.isMultiEra) {
+  // Synthesized dynamics (from perspective synthesis)
+  if (temporalNarrative) {
     lines.push('');
-    lines.push('Some events listed may be from earlier eras. Treat these as historical background that shaped the present, not as scenes to dramatize.');
+    lines.push('## Current Conditions');
+    lines.push(temporalNarrative);
   }
 
   return lines.join('\n');
@@ -557,7 +570,7 @@ Requirements:
   // 9. NAME BANK (practical data)
 
   // 10. HISTORICAL CONTEXT
-  const temporalSection = buildTemporalSection(context.temporalContext);
+  const temporalSection = buildTemporalSection(context.temporalContext, context.temporalNarrative);
 
   // 11 & 12. RELATIONSHIPS + EVENTS
   const dataSection = buildDataSection(selection);
@@ -712,6 +725,20 @@ ${instructions}`;
 }
 
 /**
+ * Build the perspective section for document format.
+ * Contains the PS-synthesized perspective brief and suggested motifs.
+ *
+ * NOTE: Documents do NOT receive coreTone (world style principles like SYNTACTIC POETRY,
+ * BITTER CAMARADERIE, etc.). Those are story-oriented prose guidance that competes with
+ * document format constraints, causing over-explanation and register breaks. The document
+ * instructions and PS-synthesized narrativeVoice/entityDirectives provide sufficient guidance.
+ */
+function buildDocumentStyleSection(tone: string | undefined): string {
+  if (!tone) return '';
+  return `# Perspective\n\n${tone}`;
+}
+
+/**
  * Build the unified cast section for document format.
  * Combines role expectations with character data so the LLM sees roles and characters together.
  */
@@ -777,13 +804,14 @@ function buildUnifiedDocumentCastSection(
  * 3. EVENT USAGE - How to incorporate world events
  * 4. NARRATIVE VOICE - Synthesized prose guidance
  * 5. ENTITY WRITING DIRECTIVES - Per-entity guidance
+ * 6. WRITING STYLE - World tone + perspective brief + motifs
  *
  * WORLD DATA (what to write about):
- * 6. CAST - Document roles + characters
- * 7. WORLD - Setting context
- * 8. NAME BANK - Culture-appropriate names
- * 9. HISTORICAL CONTEXT - Era, timeline
- * 10. RELATIONSHIPS + EVENTS - Data section
+ * 7. CAST - Document roles + characters
+ * 8. WORLD - Setting context
+ * 9. NAME BANK - Culture-appropriate names
+ * 10. HISTORICAL CONTEXT - Era, timeline
+ * 11. RELATIONSHIPS + EVENTS - Data section
  */
 function buildDocumentPrompt(
   context: ChronicleGenerationContext,
@@ -823,23 +851,26 @@ Requirements:
 
   // 5. ENTITY WRITING DIRECTIVES (synthesized)
 
+  // 6. WRITING STYLE (world tone + perspective brief + motifs)
+  const styleSection = buildDocumentStyleSection(context.tone);
+
   // === WORLD DATA ===
 
-  // 6. CAST (unified roles + characters)
+  // 7. CAST (unified roles + characters)
   const castSection = buildUnifiedDocumentCastSection(selection, primaryEntityIds, style, prominenceScale);
 
-  // 6b. NARRATIVE LENS (contextual frame entity)
+  // 7b. NARRATIVE LENS (contextual frame entity)
   const lensSection = buildNarrativeLensSection(context, prominenceScale);
 
-  // 7. WORLD (setting context)
+  // 8. WORLD (setting context)
   const worldSection = buildWorldSection(context);
 
-  // 8. NAME BANK (practical data)
+  // 9. NAME BANK (practical data)
 
-  // 9. HISTORICAL CONTEXT
-  const temporalSection = buildTemporalSection(context.temporalContext);
+  // 10. HISTORICAL CONTEXT
+  const temporalSection = buildTemporalSection(context.temporalContext, context.temporalNarrative);
 
-  // 10. RELATIONSHIPS + EVENTS
+  // 11. RELATIONSHIPS + EVENTS
   const dataSection = buildDataSection(selection);
 
   // Combine sections in order: TASK DATA then WORLD DATA
@@ -850,6 +881,7 @@ Requirements:
     eventSection,
     narrativeVoiceSection,
     entityDirectivesSection,
+    styleSection,
     // WORLD DATA
     castSection,
     lensSection,
@@ -945,6 +977,7 @@ WORLD DATA (what to write about):
 - Cast: Characters to bring alive — descriptions show their FINAL state, but you're writing PAST EVENTS when they were alive/active
 - Narrative Lens (optional): A contextual entity that shapes the story without being a character
 - World: Setting context and canon facts
+- Historical Context: Era, timeline, and current conditions that shape what's possible
 - Events: What happened — show these through character experience, don't document them
 
 CRITICAL: Entity descriptions reflect who characters BECAME. Write them as they WERE during the story's events. A character described as dead was alive when your story takes place.
@@ -955,6 +988,7 @@ Craft defines how to write; Story Bible is background reference. Show don't tell
 
 CRAFT (how to write):
 - Document Instructions: Structure, voice, tone - THIS DEFINES YOUR DOCUMENT
+- Perspective: This chronicle's thematic angle and suggested motifs
 
 STORY BIBLE (background reference):
 - Tone & Atmosphere: Notes on emotional texture
@@ -964,9 +998,12 @@ WORLD DATA (what to write about):
 - Cast: Characters referenced — descriptions show their FINAL state, but the document may depict PAST EVENTS when they were alive/active
 - Narrative Lens (optional): A contextual entity that shapes the document's assumptions
 - World: Setting context and canon facts
+- Historical Context: Era, timeline, and current conditions that shape what's possible
 - Events: What happened — reference naturally, don't list
 
-Entity descriptions reflect who characters BECAME. If depicting past events, write them as they WERE during those events.
+CRITICAL: Entity descriptions reflect who characters BECAME. If depicting past events, write them as they WERE during those events.
+
+Document Instructions define the document's structure and format — they are primary. The Perspective provides thematic focus, not prose style. Write as the document's author would write, not as a storyteller.
 
 Write authentically as if the document exists within the world. No meta-commentary.`;
   }

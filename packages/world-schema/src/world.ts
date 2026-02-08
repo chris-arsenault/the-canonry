@@ -324,7 +324,6 @@ export interface WorldMetadata {
     comment?: string;
   };
   reachability?: ReachabilityMetrics;
-  enrichmentTriggers?: Record<string, unknown>;
 }
 
 /**

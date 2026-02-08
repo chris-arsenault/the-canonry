@@ -118,7 +118,6 @@ export default function ActivityPanel({
   onRetry,
   onCancelAll,
   onClearCompleted,
-  enrichmentTriggers,
 }) {
   const [debugItem, setDebugItem] = useState(null);
   const mouseDownOnOverlay = useRef(false);
@@ -132,20 +131,6 @@ export default function ActivityPanel({
       setDebugItem(null);
     }
   }, []);
-
-  const triggerSummary = useMemo(() => {
-    if (!enrichmentTriggers || typeof enrichmentTriggers !== 'object') return null;
-    const total = typeof enrichmentTriggers.total === 'number' ? enrichmentTriggers.total : null;
-    const byKind = enrichmentTriggers.byKind && typeof enrichmentTriggers.byKind === 'object'
-      ? enrichmentTriggers.byKind
-      : null;
-    const entries = byKind
-      ? Object.entries(byKind).filter(([, value]) => typeof value === 'number')
-      : [];
-    const comment = typeof enrichmentTriggers.comment === 'string' ? enrichmentTriggers.comment : null;
-    if (total === null && entries.length === 0 && !comment) return null;
-    return { total, entries, comment };
-  }, [enrichmentTriggers]);
 
   // Split queue into categories
   const { running, queued, completed, errored } = useMemo(() => {
@@ -232,41 +217,6 @@ export default function ActivityPanel({
           </div>
         </div>
       </div>
-
-      {triggerSummary && (
-        <div className="illuminator-card">
-          <div className="illuminator-card-header">
-            <h2 className="illuminator-card-title">Enrichment Triggers</h2>
-            <span className="illuminator-card-subtitle">Lore Weave signals</span>
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-            {triggerSummary.comment || 'Detected enrichment triggers during simulation.'}
-          </div>
-          {triggerSummary.total !== null && (
-            <div style={{ fontSize: '20px', fontWeight: 600, marginBottom: '10px' }}>
-              {triggerSummary.total} total
-            </div>
-          )}
-          {triggerSummary.entries.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {triggerSummary.entries.map(([key, value]) => (
-                <span
-                  key={key}
-                  style={{
-                    padding: '4px 8px',
-                    background: 'var(--bg-tertiary)',
-                    borderRadius: '4px',
-                    fontSize: '11px',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  {key}: {value}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Currently Running */}
       {running.length > 0 && (

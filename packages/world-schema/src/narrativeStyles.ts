@@ -334,58 +334,74 @@ AVOID: Dramatic events. Conflict requiring resolution. Backstory dumps. Realizat
   },
 
   // ============================================================================
-  // 5. POLITICAL INTRIGUE - Mosaic/Multiple POV Structure
+  // 5. POLITICAL INTRIGUE - Sequential Machination Structure
   // ============================================================================
   {
     id: 'political-intrigue',
     name: 'Political Intrigue',
-    description: 'Same event from multiple players - the reader assembles truth from contradictory accounts',
-    tags: ['political', 'multi-POV', 'layered'],
+    description: 'Schemes unfold through sequential moves - each scene a chess move in a larger game',
+    tags: ['political', 'machination', 'layered'],
     format: 'story',
 
-    narrativeInstructions: `STRUCTURE: MOSAIC - SAME EVENT, MULTIPLE PERSPECTIVES
-One significant event shown through different eyes. Each player saw different things, concluded different things, plans different things. The reader must assemble the truth from fragments - and realize that "truth" may not exist.
+    narrativeInstructions: `STRUCTURE: SEQUENTIAL MACHINATION
+A political game told through moves and counter-moves. Each scene is a discrete encounter where power shifts, information changes hands, or positions are established. The protagonist navigates between factions, making calculated choices.
 
-=== SCENE 1: PLAYER-A'S VIEW ===
-The event as Player-A experienced it. What they saw. What they missed. What they concluded. What they plan now.
+=== SCENE 1: THE BOARD ===
+Establish the political landscape through a public moment - a ceremony, council session, or formal occasion. Multiple players are present. Show:
+- The protagonist observing, calculating, noting who speaks to whom
+- The surface ritual (what everyone pretends is happening)
+- The undercurrents (what's actually being negotiated)
+- A first contact - someone approaches with an offer, threat, or test
 
-Their account should feel complete and plausible. The reader should be tempted to believe this is the truth.
+End with the protagonist holding something (information, an offer, a suspicion) they must decide what to do with.
 
-=== SCENE 2: PLAYER-B'S VIEW ===
-The SAME EVENT as Player-B experienced it. Different position, different observations, different conclusions. Something Player-A was certain about should now be questionable. Something Player-A missed should be visible.
+=== SCENE 2: THE PRIVATE GAME ===
+A one-on-one encounter with a power figure. Behind closed doors, the masks come off - partially. Show:
+- What each party wants from the other
+- What each party is hiding
+- The negotiation beneath the conversation
+- A reveal that changes the protagonist's understanding
 
-The reader now holds two incompatible accounts.
+The protagonist learns something that reframes Scene 1.
 
-=== SCENE 3: THE PAWN'S VIEW (or PLAYER-C) ===
-Either a third player with their own agenda, OR the pawn - someone who was present but didn't know they were being used. Their view reveals something neither Player-A nor Player-B could see. Perhaps the "real" truth. Perhaps another layer of uncertainty.
+=== SCENE 3: THE COUNTER-MOVE ===
+The protagonist acts on what they've learned. Another private encounter, different player. Show:
+- The protagonist using information as leverage
+- An alliance forming or breaking
+- The cost of the move (what the protagonist trades away)
+- A commitment that cannot be undone
 
-=== SCENE 4: AFTERMATH - POSITIONS SHIFT ===
-After the event. Show the consequences rippling out. Each player acting on their (possibly wrong) understanding. New alliances. New enmities. The reader sees collisions coming that the characters don't.
+=== SCENE 4: THE NEW BOARD ===
+The consequences manifest. Brief. The political landscape has shifted. Show:
+- Who rose, who fell
+- What the protagonist gained and lost
+- The next game already beginning
+- The ice remembers (or equivalent) - actions have been recorded
 
-Do NOT resolve who was "right." Let the mosaic stand.`,
+The protagonist is now a player, not an observer. Whether that's victory depends on what comes next.`,
 
-    proseInstructions: `TONE: Calculated, watchful, layered. Different players have different "voices" - sentence rhythms, what they notice, what they ignore.
+    proseInstructions: `TONE: Calculated, observant, measured. Every gesture is potentially meaningful. Every word choice is deliberate.
 
-DIALOGUE: Every word chosen. What is NOT said. Implication. Courtesy that is threat. Agreement that is refusal. The reader must read between lines.
+DIALOGUE: Subtext-heavy. Characters rarely say what they mean directly. Courtesy as threat. Agreement as refusal. Questions that are really accusations. Listen for what's NOT said.
 
-DESCRIPTION: Each POV notices different things. Player-A might notice clothing and status markers. Player-B might notice exits and weapons. Player-C might notice who's nervous. These differences reveal character.
+DESCRIPTION: Status markers, power dynamics, who stands where. The protagonist notices leverage points - information, relationships, obligations. Rooms are described in terms of who controls them.
 
-TECHNIQUE - UNRELIABLE FRAGMENTS: Each account should feel true from inside. The reader must do the work of comparison. Do not tell the reader who is right.
+TECHNIQUE - THE OBSERVER: The protagonist watches before acting. They count allies, note exits, read body language. Their observations reveal character.
 
-TECHNIQUE - THE DETAIL THAT CHANGES: One specific detail should appear in multiple accounts but be interpreted differently. A glance. A phrase. A gesture. Each player read it differently.
+TECHNIQUE - THE OFFER: Every scene contains an offer - explicit or implicit. Taking it has costs. Refusing it has costs. The protagonist must choose.
 
-TECHNIQUE - INVISIBLE ASSUMPTIONS: Each player has blind spots - things so obvious to them they don't mention them, but the absence is telling.
+TECHNIQUE - THE RECORD: Actions leave traces. The ice remembers. Documents exist. Someone always knows. Political moves create evidence that can be used later.
 
-AVOID: Omniscient resolution. Clear villains. Players who state their true motives. Simple truth waiting to be uncovered.`,
+AVOID: Mustache-twirling villains. Characters who state their true motives. Easy moral clarity. Rushed conclusions. Politics is patient.`,
 
-    eventInstructions: 'Events have public interpretation and private meaning. The same event looks different to different players. Your job is to write that multiplicity.',
+    eventInstructions: 'Events are leverage. What happened creates obligations, grudges, and evidence. The protagonist must navigate history as much as present circumstances.',
 
     roles: [
-      { role: 'player-a', count: { min: 1, max: 1 }, description: 'First perspective on the event - their view should feel complete' },
-      { role: 'player-b', count: { min: 1, max: 1 }, description: 'Second perspective - contradicts or complicates Player-A' },
-      { role: 'player-c', count: { min: 0, max: 1 }, description: 'Third perspective or the pawn who reveals what others missed' },
-      { role: 'the-event', count: { min: 1, max: 1 }, description: 'The central occurrence everyone witnessed differently' },
-      { role: 'the-prize', count: { min: 0, max: 1 }, description: 'What is being contested - makes the stakes tangible' },
+      { role: 'player-a', count: { min: 1, max: 1 }, description: 'The protagonist - observant, calculating, making moves through the political landscape' },
+      { role: 'player-b', count: { min: 1, max: 1 }, description: 'Current authority figure or primary opposition - has something player-a needs or threatens' },
+      { role: 'player-c', count: { min: 0, max: 1 }, description: 'Representative of competing interest - offers alliance or opposition' },
+      { role: 'the-event', count: { min: 1, max: 1 }, description: 'The central occurrence that sets the machinations in motion' },
+      { role: 'the-prize', count: { min: 0, max: 1 }, description: 'What is being contested - position, resource, authentication, territory' },
     ],
 
     pacing: {
@@ -395,7 +411,67 @@ AVOID: Omniscient resolution. Clear villains. Players who state their true motiv
   },
 
   // ============================================================================
-  // 6. POETIC/LYRICAL - Circular Return Structure
+  // 6. RASHOMON - Same Event, Multiple Accounts
+  // ============================================================================
+  {
+    id: 'rashomon',
+    name: 'Rashomon',
+    description: 'One pivotal moment told three times - each account complete, each contradictory, truth assembled by the reader',
+    tags: ['multi-POV', 'unreliable', 'layered'],
+    format: 'story',
+
+    narrativeInstructions: `STRUCTURE: THREE ACCOUNTS OF ONE MOMENT
+This story retells the SAME pivotal event three times from three different positions. Not three sequential events - ONE event, THREE versions.
+
+The pivotal event is provided in your cast (the-moment). This is the ONLY event you dramatize in Scenes 1-3. Each scene tells this same moment from a different witness.
+
+=== SCENE 1: FIRST WITNESS ===
+Open with a header naming this witness. Tell the pivotal event from their position - first-person or close third, inside their head. Include what they physically observed from where they stood, what they concluded about others' motives, and one specific detail they emphasize.
+
+This account should feel COMPLETE. A reader stopping here would believe this is the truth.
+
+=== SCENE 2: SECOND WITNESS ===
+Header naming the second witness. Tell THE SAME EVENT from their position. The same observable facts, noticed differently. A different interpretation of the same actions. The emphasized detail from Scene 1 should be contradicted, ignored, or given opposite meaning. Include something Witness-A could not have seen from their position.
+
+The reader now holds two incompatible truths.
+
+=== SCENE 3: THIRD WITNESS ===
+Header naming the third witness - often someone marginal to the main players. Tell THE SAME EVENT from this third position. Include something BOTH previous witnesses missed. A detail that destabilizes both accounts. No resolution - this account adds uncertainty, not clarity.
+
+=== SCENE 4: AFTER ===
+Brief. No header. The moment is past. Show ONE of the witnesses alone, acting on their version of events. The reader knows their understanding is partial. The witness does not.
+
+End in that gap between what they believe and what we suspect.`,
+
+    proseInstructions: `TONE: Certain, observant, partial. Each witness speaks with complete confidence about their incomplete view. The prose carries no doubt even as the contradictions multiply. Three distinct voices - different rhythms, different concerns, different ways of seeing the same room.
+
+DIALOGUE: The same exchange appears in multiple accounts, quoted differently each time. The words shift slightly between tellings. Both versions feel accurate. The reader cannot know which is true.
+
+DESCRIPTION: Selective, character-driven. Each witness notices according to their nature. The same space rendered three ways, each rendering complete and confident.
+
+TECHNIQUE - THE PIVOT: One moment appears in all three accounts - a phrase, gesture, or glance. Each witness interprets it completely differently. This repeated-and-reframed moment is the heart of the story.
+
+TECHNIQUE - CONFIDENT INCOMPATIBILITY: No witness hedges. No "I think" or "perhaps." Each states their version as fact. The contradiction emerges from certainty meeting certainty.
+
+AVOID: Omniscient resolution. One account being obviously correct. Witnesses acknowledging their view is partial. Scene 4 revealing what really happened. Any voice outside the witnesses' perspectives.`,
+
+    eventInstructions: 'The event is given to you as the-moment in the cast. This is the ONLY thing you dramatize. Do not invent additional events. Tell this one moment three ways.',
+
+    roles: [
+      { role: 'witness-a', count: { min: 1, max: 1 }, description: 'First perspective - their account opens the story and establishes the baseline truth that subsequent accounts will complicate' },
+      { role: 'witness-b', count: { min: 1, max: 1 }, description: 'Second perspective - contradicts or complicates the first account through different position and interpretation' },
+      { role: 'witness-c', count: { min: 1, max: 1 }, description: 'Third perspective - often marginal to the main players, reveals what the principals missed or misread' },
+      { role: 'the-moment', count: { min: 1, max: 1 }, description: 'The pivotal event all three witnesses observed - must be specific and bounded, a single scene lasting minutes not hours' },
+    ],
+
+    pacing: {
+      totalWordCount: { min: 1400, max: 1800 },
+      sceneCount: { min: 4, max: 4 },
+    },
+  },
+
+  // ============================================================================
+  // 7. POETIC/LYRICAL - Circular Return Structure
   // ============================================================================
   {
     id: 'poetic-lyrical',
@@ -464,69 +540,75 @@ AVOID: Plot mechanics. Explaining what images mean. Rushing to conclusion. Gener
   },
 
   // ============================================================================
-  // 7. DARK COMEDY - Escalating Vignettes Structure
+  // 8. DARK COMEDY - Cascading Catastrophe Structure
   // ============================================================================
   {
     id: 'dark-comedy',
     name: 'Dark Comedy',
-    description: 'Multiple small disasters that echo - the pattern is the joke, the system is the punchline',
-    tags: ['comedy', 'vignettes', 'absurdist'],
+    description: 'One disaster escalating through reasonable responses - the gap between catastrophe and procedure is the comedy',
+    tags: ['comedy', 'escalation', 'deadpan'],
     format: 'story',
 
-    narrativeInstructions: `STRUCTURE: ESCALATING VIGNETTES
-Not one disaster but several, each complete, each echoing. The humor comes from pattern recognition - by the third disaster, the audience sees the shape and laughs at the inevitability. The system creates the absurdity; individuals just enact it.
+    narrativeInstructions: `STRUCTURE: CASCADING CATASTROPHE
+A single disaster that escalates because every reasonable response makes it worse. Not multiple funny situations - one serious situation met with inadequate tools. The comedy lives in the gap between what's happening and how it's being handled.
 
-=== VIGNETTE 1: THE FIRST DISASTER ===
-A complete small story. Beginning, middle, end. The fool encounters a small problem. Their reasonable response makes it worse. The system's rules create absurd constraints. It resolves - badly, but contained.
+Real stakes. Real consequences. Real damage. The fool does everything right and everything goes wrong anyway.
 
-This should feel like it could be a standalone anecdote.
+=== SCENE 1: THE SMALL PROBLEM ===
+A routine task. Standard procedure. The fool is competent, professional, following protocol. Something small goes wrong - not their fault, just circumstance. They respond reasonably.
 
-=== VIGNETTE 2: THE ECHO ===
-A DIFFERENT disaster, but with structural rhymes. Same fool facing new problem? Different fool, same system? Same location, years apart?
+Establish the system's rules and the fool's competence within them. The audience should trust that this person knows what they're doing.
 
-The reader begins to see the pattern. Each logical action, each sensible choice, somehow magnifies the disaster. The humor is in the inexorability.
+=== SCENE 2: THE ESCALATION ===
+The reasonable response has made things worse. The problem is no longer small. The fool consults procedure, finds the next appropriate step, implements it correctly.
 
-=== VIGNETTE 3: THE PATTERN COMPLETE ===
-A THIRD disaster. Now the pattern is undeniable. The audience is ahead of the characters - we see the trap before they walk into it. The comedy of anticipation.
+Things get worse. The system's tools are inadequate but they're the only tools available. The fool keeps documenting.
 
-This vignette may be shorter - the setup does less work because the pattern carries it.
+=== SCENE 3: THE CATASTROPHE ===
+Full disaster. Real consequences - people are hurt, things are permanently damaged, the situation is beyond recovery. The fool is still following procedure because what else can they do?
 
-=== EPILOGUE: THE SYSTEM CONTINUES ===
-Brief. The disasters are past but the system remains. A new fool approaches, confident. The pattern will repeat. We know it. They don't.
+The comedy peaks here: catastrophe unfolding while someone fills out the correct forms. "I followed procedure" spoken into the abyss.
 
-End with the system intact and another victim queuing up.`,
+=== SCENE 4: THE SYSTEM CONTINUES ===
+Aftermath. The disaster is contained or past. The damage is real and lasting. The system processes what happened through its inadequate categories.
 
-    proseInstructions: `TONE: Deadpan, ironic, precise. The narrator observes disaster with clinical detachment. Characters speak sincerely; the comedy comes from context, not jokes.
+The fool is rewarded - promoted, commended, given more responsibility. Their documentation was thorough. The system learned nothing. A new task awaits.
 
-DIALOGUE: Characters mean what they say. They're not being funny. They're being reasonable in unreasonable circumstances. "I followed procedure" is hilarious in context.
+End with the fool accepting the next assignment, or a new fool approaching the same trap.`,
 
-DESCRIPTION: Precise, specific observation of disaster. The comedy of small details - the exact form number, the specific policy that created this mess, the technical language for catastrophe.
+    proseInstructions: `TONE: Deadpan, clinical, precise. The narrator observes catastrophe with the detachment of an incident report. No one thinks they're in a comedy. Everyone is doing their best.
 
-TECHNIQUE - STRUCTURAL RHYME: Vignettes should echo. Same phrases in different contexts. Same gestures with different outcomes. The repetition is the comedy.
+DIALOGUE: Characters mean what they say. They're not being funny - they're being professional in unprofessional circumstances. Bureaucratic language applied to disaster. Technical terms for catastrophe.
 
-TECHNIQUE - THE REASONABLE RESPONSE: Every disaster starts with someone doing something sensible. The fool isn't stupid - they're trapped in a system that makes stupidity inevitable.
+DESCRIPTION: Specific observation of escalating disaster. The exact form number. The precise policy that doesn't cover this situation. The careful documentation of things going irreversibly wrong.
 
-TECHNIQUE - DEADPAN DELIVERY: Never wink at the audience. Never acknowledge the absurdity directly. The characters take everything seriously. The gap between their seriousness and the situation is the joke.
+TECHNIQUE - THE GAP: Comedy lives in the distance between what's happening and how it's being processed. Catastrophe described in bureaucratic language. Cosmic horror met with paperwork.
 
-AVOID: Jokes. Punchlines. Characters being funny on purpose. Cruelty without consequence. Unsympathetic fools. The fool must be us.`,
+TECHNIQUE - REAL STAKES: People get hurt. Things break permanently. The disaster has consequences that outlast the story. This is not slapstick - the collateral damage matters.
 
-    eventInstructions: 'Events are triggers for systemic failure. What reasonable action led to unreasonable results? Find the absurdity.',
+TECHNIQUE - THE COMPETENT FOOL: The protagonist isn't stupid. They're good at their job. They follow procedure correctly. The system is what fails, not the person. The fool must be sympathetic - we would do the same thing in their position.
+
+TECHNIQUE - DEADPAN ESCALATION: Each scene worse than the last, same tone throughout. Never acknowledge the absurdity. The characters take everything seriously. The gap between their seriousness and the situation is the joke.
+
+AVOID: Jokes. Punchlines. Winking at the audience. Characters being funny on purpose. Consequence-free disaster. Stupid protagonists. The tragedy must be real for the comedy to land.`,
+
+    eventInstructions: 'Events are triggers for systemic failure. The catalyst should be small, reasonable, forgettable - something anyone might do. The catastrophe emerges from the system, not the individual.',
 
     roles: [
-      { role: 'fool', count: { min: 1, max: 2 }, description: 'The reasonable person trapped in unreasonable circumstances - may be same fool across vignettes or different fools facing same system' },
-      { role: 'system', count: { min: 1, max: 1 }, description: 'The absurd structure - bureaucracy, tradition, protocol, or rule that creates the disasters' },
-      { role: 'catalyst', count: { min: 0, max: 1 }, description: 'What sets each disaster in motion - often something small, mundane, forgettable' },
-      { role: 'victim', count: { min: 0, max: 2 }, description: 'Collateral damage - those caught in the crossfire who did nothing wrong' },
+      { role: 'fool', count: { min: 1, max: 2 }, description: 'The reasonable person trapped in unreasonable circumstances - competent, professional, doing everything right' },
+      { role: 'system', count: { min: 1, max: 1 }, description: 'The inadequate structure - bureaucracy, protocol, or procedure that cannot handle what it encounters' },
+      { role: 'catalyst', count: { min: 0, max: 1 }, description: 'What sets the disaster in motion - small, routine, the kind of thing that happens every day' },
+      { role: 'victim', count: { min: 0, max: 2 }, description: 'Collateral damage - those permanently affected by the catastrophe through no fault of their own' },
     ],
 
     pacing: {
-      totalWordCount: { min: 1400, max: 1800 },
-      sceneCount: { min: 3, max: 4 },
+      totalWordCount: { min: 1600, max: 2200 },
+      sceneCount: { min: 4, max: 4 },
     },
   },
 
   // ============================================================================
-  // 8. HEROIC FANTASY - Classic Three-Act Structure
+  // 9. HEROIC FANTASY - Classic Three-Act Structure
   // ============================================================================
   {
     id: 'heroic-fantasy',
@@ -589,7 +671,7 @@ AVOID: Irony. Deconstruction. Moral ambiguity. Anticlimactic endings. This is no
   },
 
   // ============================================================================
-  // 9. TRAGEDY - In Medias Res Structure
+  // 10. TRAGEDY - In Medias Res Structure
   // ============================================================================
   {
     id: 'tragedy',
@@ -598,15 +680,17 @@ AVOID: Irony. Deconstruction. Moral ambiguity. Anticlimactic endings. This is no
     tags: ['tragic', 'non-linear', 'inevitable'],
     format: 'story',
 
-    narrativeInstructions: `STRUCTURE: IN MEDIAS RES - THE FALL FIRST
-We open at the moment of destruction. Then we go back to show how it came to this. The audience knows the ending; the doomed does not. Tragic irony pervades every scene.
+    narrativeInstructions: `STRUCTURE: ENDING FIRST - THEN FLASHBACK
+We open at the chronological END. Then we go back to show how it came to this. The audience knows the ending; the doomed does not. Tragic irony pervades every scene.
 
-=== SCENE 1: THE FALL (PRESENT) ===
-Open at the moment of destruction. The doomed is already falling - throne lost, battle turned, betrayal revealed. We see the cost before we understand it.
+=== SCENE 1: THE ENDING (PRESENT) ===
+CRITICAL: This is the CHRONOLOGICAL END of the story. Do NOT open with the doomed at their height. Do NOT start with things going well. Do NOT begin at the beginning.
 
-This scene should be disorienting. We don't know these people yet. We don't know what led here. We only know it's terrible.
+Open with destruction already underway - the throne already lost, the cascade already consuming, the resignation already being spoken, the betrayal already revealed. The reader sees devastation before they understand why.
 
-End the scene mid-fall. Do not resolve it.
+This scene should disorient. We don't know these people yet. We don't know what led here. We only know it's terrible. Show the cost before we understand it.
+
+End mid-fall. Do not resolve.
 
 === SCENE 2: THE HEIGHT (PAST) ===
 Flash back to before. The doomed at their peak. Their power, their glory, their certainty. Show why they mattered. Show why this fall will be devastating.
@@ -621,11 +705,13 @@ The audience knows where this leads. The doomed does not. Dramatic irony: every 
 End with the line crossed that cannot be uncrossed.
 
 === SCENE 4: THE RECOGNITION (PRESENT) ===
-Return to the present. We've caught up to Scene 1 and pass it. The fall completes.
+Return to the present. We've caught up to Scene 1 and pass it. The destruction completes.
 
 The moment of terrible clarity. The doomed finally sees what we have seen all along. They understand their flaw, their complicity, the shape of their own destruction.
 
-This recognition is devastating because it comes too late. End in that knowledge. Something has been lost that cannot be recovered.`,
+This recognition is devastating because it comes too late. End in that knowledge. Something has been lost that cannot be recovered.
+
+NOTE: Scenes 1 and 4 are the SAME timeframe (present). Scenes 2 and 3 are flashback (past). The story structure is: END → BEGINNING → MIDDLE → END.`,
 
     proseInstructions: `TONE: Inevitable, magnificent, terrible. The weight of fate. Words that sound like eulogy even as events unfold.
 
@@ -657,7 +743,7 @@ AVOID: Redemption arcs. Last-minute saves. Villains to blame. The tragedy is tha
   },
 
   // ============================================================================
-  // 10. MYSTERY/SUSPENSE - Revelation Reframe Structure
+  // 11. MYSTERY/SUSPENSE - Revelation Reframe Structure
   // ============================================================================
   {
     id: 'mystery-suspense',
@@ -724,7 +810,7 @@ AVOID: Cheating. Clues the reader couldn't have noticed. Revelations that come f
   },
 
   // ============================================================================
-  // 11. TREASURE HUNT - Extended Quest Structure
+  // 12. TREASURE HUNT - Extended Quest Structure
   // ============================================================================
   {
     id: 'treasure-hunt',
@@ -798,7 +884,7 @@ AVOID: Easy victories. Luck over virtue. Anticlimactic discovery. Treasure that'
   },
 
   // ============================================================================
-  // 12. HAUNTED RELIC - Dual Timeline Structure
+  // 13. HAUNTED RELIC - Dual Timeline Structure
   // ============================================================================
   {
     id: 'haunted-relic',
@@ -866,7 +952,7 @@ AVOID: Jump scares. Gore without meaning. Easy cures. Heroes who don't suffer. T
   },
 
   // ============================================================================
-  // 13. LOST LEGACY - Generational Mosaic Structure
+  // 14. LOST LEGACY - Generational Mosaic Structure
   // ============================================================================
   {
     id: 'lost-legacy',
@@ -931,7 +1017,7 @@ AVOID: Privileging one generation as "the real story." Sentimentality about ance
   },
 
   // ============================================================================
-  // 14. CONFESSION - Unreliable Monologue Structure
+  // 15. CONFESSION - Unreliable Monologue Structure
   // ============================================================================
   {
     id: 'confession',
@@ -994,7 +1080,7 @@ AVOID: Making the speaker obviously villainous. Making the "truth" explicitly st
   },
 
   // ============================================================================
-  // 15. FABLE - Allegorical Tale Structure
+  // 16. FABLE - Allegorical Tale Structure
   // ============================================================================
   {
     id: 'fable',
@@ -1056,7 +1142,7 @@ AVOID: Psychological complexity. Moral ambiguity (the fable has a clear lesson, 
   },
 
   // ============================================================================
-  // 16. TRIAL & JUDGMENT - Adversarial Structure
+  // 17. TRIAL & JUDGMENT - Adversarial Structure
   // ============================================================================
   {
     id: 'trial-judgment',
@@ -1127,7 +1213,7 @@ AVOID: Clear-cut guilt or innocence. Perry Mason revelations. Courtroom drama cl
   },
 
   // ============================================================================
-  // 17. DREAMSCAPE - Psychedelic/Surreal Structure
+  // 18. DREAMSCAPE - Psychedelic/Surreal Structure
   // ============================================================================
   {
     id: 'dreamscape',
@@ -1195,7 +1281,7 @@ AVOID: Plot. Causality. Rational explanations. Metaphors that are "explained" - 
   },
 
   // ============================================================================
-  // 18. APOCALYPTIC VISION - Prophetic Revelation Structure
+  // 19. APOCALYPTIC VISION - Prophetic Revelation Structure
   // ============================================================================
   {
     id: 'apocalyptic-vision',

@@ -237,7 +237,7 @@ function EventCard({ event, entityMap, expanded, onToggle }) {
   );
 }
 
-export default function EventsPanel({ worldData, entityMap }) {
+export default function EventsPanel({ narrativeEvents = [], simulationRunId, entityMap }) {
   const [significanceFilter, setSignificanceFilter] = useState(0);
   const [kindFilter, setKindFilter] = useState('all');
   const [eraFilter, setEraFilter] = useState('all');
@@ -245,8 +245,7 @@ export default function EventsPanel({ worldData, entityMap }) {
   const [expandedEvents, setExpandedEvents] = useState(new Set());
   const [displayLimit, setDisplayLimit] = useState(DEFAULT_DISPLAY_LIMIT);
 
-  const events = worldData?.narrativeHistory || [];
-  const simulationRunId = worldData?.metadata?.simulationRunId;
+  const events = narrativeEvents || [];
 
   // Get unique values for filters
   const { uniqueKinds, uniqueEras, uniqueTags } = useMemo(() => {

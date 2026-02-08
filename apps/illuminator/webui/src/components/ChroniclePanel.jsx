@@ -32,7 +32,7 @@ import {
   deleteChronicleVersion,
   applyImageRefSelections,
 } from '../lib/db/chronicleRepository';
-import { resetEntitiesToPreBackportState } from '../lib/db/entityRepository';
+import { resetEntitiesToPreBackportState, getEntitiesForRun } from '../lib/db/entityRepository';
 import { downloadChronicleExport } from '../lib/chronicleExport';
 import { getCallConfig } from '../lib/llmModelSettings';
 
@@ -286,6 +286,8 @@ function AssembledContentViewer({ content, wordCount, onCopy }) {
 export default function ChroniclePanel({
   worldData,
   entities,
+  relationships = [],
+  narrativeEvents = [],
   queue,
   onEnqueue,
   onCancel,
@@ -323,6 +325,11 @@ export default function ChroniclePanel({
   const [navVisibleCount, setNavVisibleCount] = useState(NAV_PAGE_SIZE);
   const navListRef = useRef(null);
   const navLoadMoreRef = useRef(null);
+  const chronicleWorldData = useMemo(() => ({
+    entities: entities || [],
+    relationships: relationships || [],
+    narrativeHistory: narrativeEvents || [],
+  }), [entities, relationships, narrativeEvents]);
 
   useEffect(() => {
     if (selectedItemId) {
@@ -384,8 +391,10 @@ export default function ChroniclePanel({
   const cancelChronicle = useChronicleStore((s) => s.cancelChronicle);
   const restartChronicle = useChronicleStore((s) => s.restartChronicle);
 
-  const isGenerating = queue.some(
+  // Scope the "generating" lock to the selected chronicle so other chronicles remain interactive.
+  const isGenerating = Boolean(selectedItemId) && queue.some(
     (item) => item.type === 'entityChronicle' &&
+              item.chronicleId === selectedItemId &&
               (item.status === 'queued' || item.status === 'running')
   );
 
@@ -427,7 +436,7 @@ export default function ChroniclePanel({
   }, [styleLibrary?.narrativeStyles]);
 
   // Helper to get status considering both IndexedDB and queue state
-  const getEffectiveStatus = useCallback((chronicleId, chronicle) => {
+  const getEffectiveStatus = useCallback((chronicleId, baseStatus) => {
     // First check queue for running/queued tasks for this chronicle
     const queueTask = queue.find(
       (item) => item.type === 'entityChronicle' &&
@@ -443,7 +452,7 @@ export default function ChroniclePanel({
           case 'edit': return 'editing';
           case 'generate_v2': return 'generating';
           case 'regenerate_temperature': return 'generating';
-          default: return deriveStatus(chronicle);
+          default: return baseStatus;
         }
       }
       if (queueTask.status === 'queued') {
@@ -452,13 +461,13 @@ export default function ChroniclePanel({
           case 'validate': return 'validating';
           case 'generate_v2': return 'generating';
           case 'regenerate_temperature': return 'generating';
-          default: return deriveStatus(chronicle);
+          default: return baseStatus;
         }
       }
     }
 
     // Fall back to IndexedDB-derived status
-    return deriveStatus(chronicle);
+    return baseStatus;
   }, [queue]);
 
   // Lightweight nav items from Zustand store (shallow-compared, only re-renders on nav-relevant changes)
@@ -627,7 +636,7 @@ export default function ChroniclePanel({
       id: record.chronicleId,
       type: 'chronicles',
       name: displayName,
-      status: getEffectiveStatus(record.chronicleId, record),
+      status: getEffectiveStatus(record.chronicleId, deriveStatus(record)),
       primaryCount: record.roleAssignments?.filter(r => r.isPrimary).length || 0,
       supportingCount: (record.roleAssignments?.length || 0) - (record.roleAssignments?.filter(r => r.isPrimary).length || 0),
       editVersion: record.editVersion ?? 0,
@@ -689,13 +698,13 @@ export default function ChroniclePanel({
 
   // Generate name bank when selected chronicle's entities change
   useEffect(() => {
-    if (!selectedItem?.roleAssignments || !worldData?.hardState || !worldData?.schema?.cultures) {
+    if (!selectedItem?.roleAssignments || !entities?.length || !worldData?.schema?.cultures) {
       return;
     }
 
     // Get entity IDs from role assignments
     const entityIds = selectedItem.roleAssignments.map(r => r.entityId);
-    const selectedEntities = worldData.hardState.filter(e => entityIds.includes(e.id));
+    const selectedEntities = entities.filter(e => entityIds.includes(e.id));
     const cultureIds = extractCultureIds(selectedEntities);
 
     if (cultureIds.length === 0) {
@@ -713,11 +722,11 @@ export default function ChroniclePanel({
         console.warn('[Chronicle] Failed to generate name bank:', e);
         setNameBank({});
       });
-  }, [selectedItem?.roleAssignments, worldData?.hardState, worldData?.schema?.cultures]);
+  }, [selectedItem?.roleAssignments, entities, worldData?.schema?.cultures]);
 
   // Build generation context for selected item
   const generationContext = useMemo(() => {
-    if (!selectedItem || !worldData || !selectedNarrativeStyle) return null;
+    if (!selectedItem || !selectedNarrativeStyle) return null;
 
     try {
       // Validate required world context for perspective synthesis
@@ -753,7 +762,7 @@ export default function ChroniclePanel({
             selectedRelationshipIds: selectedItem.selectedRelationshipIds || [],
             entrypointId: selectedItem.entrypointId,
           },
-          worldData,
+          chronicleWorldData,
           wc,
           selectedNarrativeStyle,
           nameBank,
@@ -765,7 +774,7 @@ export default function ChroniclePanel({
       console.error('Failed to build generation context:', e);
     }
     return null;
-  }, [selectedItem, worldData, worldContext, nameBank, entityGuidance, cultureIdentities, selectedNarrativeStyle]);
+  }, [selectedItem, chronicleWorldData, worldContext, nameBank, entityGuidance, cultureIdentities, selectedNarrativeStyle]);
 
   // Handle accept chronicle - saves to IndexedDB (wiki links applied at render time in Chronicler)
   const handleAcceptChronicle = useCallback(async () => {
@@ -951,8 +960,8 @@ export default function ChroniclePanel({
 
   // Full regeneration with new perspective synthesis
   const handleRegenerateFull = useCallback(async () => {
-    if (!selectedItem || !worldData || !worldContext) {
-      console.error('[Chronicle] Missing selectedItem, worldData, or worldContext for full regeneration');
+    if (!selectedItem || !worldContext) {
+      console.error('[Chronicle] Missing selectedItem or worldContext for full regeneration');
       return;
     }
 
@@ -992,10 +1001,10 @@ export default function ChroniclePanel({
 
     // Generate name bank for invented characters if needed
     const entityIds = (selectedItem.roleAssignments || []).map(r => r.entityId);
-    const selectedEntities = worldData.hardState?.filter(e => entityIds.includes(e.id)) || [];
+    const selectedEntities = entities?.filter(e => entityIds.includes(e.id)) || [];
     const cultureIds = extractCultureIds(selectedEntities);
     let regenNameBank = {};
-    if (cultureIds.length > 0 && worldData.schema?.cultures) {
+    if (cultureIds.length > 0 && worldData?.schema?.cultures) {
       try {
         regenNameBank = await generateNameBank(worldData.schema.cultures, cultureIds);
         console.log('[Chronicle] Generated name bank for full regen:', regenNameBank);
@@ -1007,18 +1016,18 @@ export default function ChroniclePanel({
     // Build chronicle context
     const context = buildChronicleContext(
       selections,
-      worldData,
+      chronicleWorldData,
       wc,
       narrativeStyle,
       regenNameBank,
       worldContext?.proseHints,
-      worldContext?.culturalIdentities,
+      cultureIdentities?.descriptive,
       selectedItem.temporalContext
     );
 
     // Call regenerateFull with the context (sampling derived from LLM config)
     regenerateFull(selectedItem.chronicleId, context);
-  }, [selectedItem, worldData, worldContext, styleLibrary?.narrativeStyles, regenerateFull]);
+  }, [selectedItem, chronicleWorldData, worldContext, styleLibrary?.narrativeStyles, regenerateFull, entities, worldData?.schema?.cultures, cultureIdentities]);
 
   const handleCompareVersions = useCallback(() => {
     if (!selectedItem) return;
@@ -1047,7 +1056,7 @@ export default function ChroniclePanel({
   const handleRestartConfirm = useCallback(async () => {
     if (pendingRestartChronicleId) {
       // Get the chronicle record to extract seed before deleting
-      const chronicle = useChronicleStore.getState().chronicles[pendingRestartChronicleId];
+      const chronicle = await useChronicleStore.getState().loadChronicle(pendingRestartChronicleId);
       if (chronicle) {
         // Extract seed from the chronicle record
         const seed = {
@@ -1077,6 +1086,59 @@ export default function ChroniclePanel({
     setPendingRestartChronicleId(null);
   }, []);
 
+  const logBackportHistorySources = useCallback(async () => {
+    if (!entities || entities.length === 0) {
+      console.log('[Backport Reset] No entities loaded to inspect history sources.');
+      return;
+    }
+    if (!simulationRunId) {
+      console.log('[Backport Reset] Missing simulationRunId; cannot verify Dexie presence.');
+      return;
+    }
+
+    try {
+      const dexieEntities = await getEntitiesForRun(simulationRunId);
+      const dexieIds = new Set(dexieEntities.map((entity) => entity.id));
+      console.log(
+        `[Backport Reset] Enumerating descriptionHistory sources for ${entities.length} entities (Dexie count: ${dexieEntities.length})`
+      );
+
+      let withHistoryCount = 0;
+      let missingInDexieCount = 0;
+      for (const entity of entities) {
+        const history = entity.enrichment?.descriptionHistory || [];
+        if (history.length === 0) continue;
+        withHistoryCount += 1;
+
+        const sourceCounts = history.reduce((acc, entry) => {
+          const source = entry.source || 'unknown';
+          acc[source] = (acc[source] || 0) + 1;
+          return acc;
+        }, {});
+
+        const inDexie = dexieIds.has(entity.id);
+        if (!inDexie) missingInDexieCount += 1;
+
+        console.log(
+          `[Backport Reset] Entity ${entity.id}${entity.name ? ` (${entity.name})` : ''} history sources:`,
+          sourceCounts,
+          `dexie=${inDexie ? 'present' : 'missing'}`
+        );
+      }
+
+      console.log(
+        `[Backport Reset] Entities with history: ${withHistoryCount}. Missing in Dexie: ${missingInDexieCount}.`
+      );
+    } catch (err) {
+      console.warn('[Backport Reset] Failed to inspect Dexie entities:', err);
+    }
+  }, [entities, simulationRunId]);
+
+  const handleOpenResetBackportModal = useCallback(() => {
+    logBackportHistorySources();
+    setShowResetBackportModal(true);
+  }, [logBackportHistorySources]);
+
   // Handle reset all backport flags AND entity descriptions
   const handleResetBackportConfirm = useCallback(async () => {
     if (!simulationRunId) return;
@@ -1085,7 +1147,7 @@ export default function ChroniclePanel({
       const chronicleCount = await resetAllBackportFlags(simulationRunId);
 
       // Reset entity descriptions to pre-backport state
-      const entityResult = await resetEntitiesToPreBackportState(simulationRunId);
+      const entityResult = await resetEntitiesToPreBackportState(simulationRunId, entities);
 
       setResetBackportResult({
         success: true,
@@ -1137,8 +1199,8 @@ export default function ChroniclePanel({
   }, [entities]);
 
   const wizardRelationships = useMemo(() => {
-    if (!worldData?.relationships) return [];
-    return worldData.relationships.map((r) => {
+    if (!relationships?.length) return [];
+    return relationships.map((r) => {
       const src = entityMap.get(r.src);
       const dst = entityMap.get(r.dst);
       return {
@@ -1152,11 +1214,11 @@ export default function ChroniclePanel({
         targetKind: dst?.kind || 'unknown',
       };
     });
-  }, [worldData, entityMap]);
+  }, [relationships, entityMap]);
 
   const wizardEvents = useMemo(() => {
-    if (!worldData?.narrativeHistory) return [];
-    const events = worldData.narrativeHistory.map((e) => ({
+    if (!narrativeEvents?.length) return [];
+    const events = narrativeEvents.map((e) => ({
       id: e.id,
       tick: e.tick,
       era: e.era,
@@ -1173,7 +1235,7 @@ export default function ChroniclePanel({
     }));
 
     return events;
-  }, [worldData]);
+  }, [narrativeEvents]);
 
   // Build era temporal info from era entities
   // NOTE: Era boundaries come directly from entity.temporal.startTick/endTick.
@@ -1212,8 +1274,8 @@ export default function ChroniclePanel({
 
   // Handle wizard completion
   const handleWizardGenerate = useCallback(async (wizardConfig) => {
-    if (!worldData || !worldContext) {
-      console.error('[Chronicle Wizard] Missing worldData or worldContext');
+    if (!worldContext) {
+      console.error('[Chronicle Wizard] Missing worldContext');
       return;
     }
 
@@ -1260,10 +1322,10 @@ export default function ChroniclePanel({
     // Generate name bank for invented characters
     // Must be done here (not in useEffect) because wizard creates new chronicles
     const entityIds = wizardConfig.roleAssignments.map(r => r.entityId);
-    const selectedEntities = worldData.hardState?.filter(e => entityIds.includes(e.id)) || [];
+    const selectedEntities = entities?.filter(e => entityIds.includes(e.id)) || [];
     const cultureIds = extractCultureIds(selectedEntities);
     let wizardNameBank = {};
-    if (cultureIds.length > 0 && worldData.schema?.cultures) {
+    if (cultureIds.length > 0 && worldData?.schema?.cultures) {
       try {
         wizardNameBank = await generateNameBank(worldData.schema.cultures, cultureIds);
         console.log('[Chronicle Wizard] Generated name bank:', wizardNameBank);
@@ -1283,7 +1345,7 @@ export default function ChroniclePanel({
     // Build the chronicle generation context (chronicle-first)
     const context = buildChronicleContext(
       selections,
-      worldData,
+      chronicleWorldData,
       wc,
       narrativeStyle,
       wizardNameBank,
@@ -1359,7 +1421,7 @@ export default function ChroniclePanel({
     setSelectedItemId(chronicleId);
     // Close the wizard
     setShowWizard(false);
-  }, [worldData, worldContext, styleLibrary, generateV2, simulationRunId, refresh, entityGuidance, cultureIdentities]);
+  }, [chronicleWorldData, worldContext, styleLibrary, generateV2, simulationRunId, refresh, entityGuidance, cultureIdentities, worldData?.schema?.cultures]);
 
   // Handle generating a chronicle image
   const handleGenerateChronicleImage = useCallback(
@@ -1456,6 +1518,19 @@ export default function ChroniclePanel({
       await updateChronicleImageRef(selectedItem.chronicleId, ref.refId, {
         generatedImageId: imageId,
         status: 'complete',
+        error: undefined,
+      });
+      await refreshChronicle(selectedItem.chronicleId);
+    },
+    [selectedItem, refreshChronicle]
+  );
+
+  const handleSelectExistingCoverImage = useCallback(
+    async (imageId) => {
+      if (!selectedItem?.chronicleId || !selectedItem?.coverImage) return;
+      await updateChronicleCoverImageStatus(selectedItem.chronicleId, {
+        status: 'complete',
+        generatedImageId: imageId,
         error: undefined,
       });
       await refreshChronicle(selectedItem.chronicleId);
@@ -1561,13 +1636,13 @@ export default function ChroniclePanel({
     }
 
     // Get the full chronicle record from storage
-    const chronicle = useChronicleStore.getState().chronicles[selectedItem.chronicleId];
-    if (!chronicle) {
-      console.error('[Chronicle] Cannot export: chronicle not found in storage');
-      return;
-    }
-
-    downloadChronicleExport(chronicle);
+    useChronicleStore.getState().loadChronicle(selectedItem.chronicleId).then((chronicle) => {
+      if (!chronicle) {
+        console.error('[Chronicle] Cannot export: chronicle not found in storage');
+        return;
+      }
+      downloadChronicleExport(chronicle);
+    });
   }, [selectedItem]);
 
   // Calculate stats
@@ -1614,7 +1689,7 @@ export default function ChroniclePanel({
               {stats.complete} / {chronicleItems.length} complete
             </span>
             <button
-              onClick={() => setShowResetBackportModal(true)}
+              onClick={handleOpenResetBackportModal}
               className="illuminator-button"
               style={{
                 padding: '6px 12px',
@@ -1983,6 +2058,7 @@ export default function ChroniclePanel({
                   onUpdateChronicleImageJustification={handleUpdateChronicleImageJustification}
                   onApplyImageRefSelections={handleApplyImageRefSelections}
                   onSelectExistingImage={handleSelectExistingImage}
+                  onSelectExistingCoverImage={handleSelectExistingCoverImage}
                   onUpdateChronicleTemporalContext={handleUpdateChronicleTemporalContext}
                   onUpdateChronicleActiveVersion={handleUpdateChronicleActiveVersion}
                   onDeleteVersion={handleDeleteVersion}
@@ -2004,6 +2080,7 @@ export default function ChroniclePanel({
                   cultureIdentities={cultureIdentities}
                   worldContext={worldContext}
                   eras={wizardEras}
+                  events={wizardEvents}
                 />
               )}
             </>

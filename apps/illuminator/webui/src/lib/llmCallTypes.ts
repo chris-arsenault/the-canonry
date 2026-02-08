@@ -102,14 +102,14 @@ export interface LLMCallConfig {
 
 // Available models
 export const AVAILABLE_MODELS = [
-  { value: 'claude-opus-4-5-20251101', label: 'Claude Opus 4.5', tier: 'premium' },
+  { value: 'claude-opus-4-6', label: 'Claude Opus 4.6', tier: 'premium' },
   { value: 'claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5', tier: 'standard' },
   { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5', tier: 'fast' },
 ] as const;
 
 // Models that support extended thinking
 export const THINKING_CAPABLE_MODELS = [
-  'claude-opus-4-5-20251101',
+  'claude-opus-4-6',
   'claude-sonnet-4-5-20250929',
 ];
 
@@ -154,7 +154,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 256,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'description.visualTraits': {
     label: 'Visual Traits',
@@ -198,7 +198,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 1024,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'chronicle.generation': {
     label: 'Generation',
@@ -211,7 +211,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       temperature: 1.0,
       topP: 1.0,  // 1.0 = normal, 0.95 = low sampling (controlled via checkbox)
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'chronicle.compare': {
     label: 'Compare Versions',
@@ -222,18 +222,18 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 4096,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'chronicle.combine': {
     label: 'Combine Versions',
     description: 'Synthesizes multiple chronicle drafts into one final version',
     category: 'chronicle',
     defaults: {
-      model: 'claude-opus-4-5-20251101',
+      model: 'claude-opus-4-6',
       thinkingBudget: 4096,
       maxTokens: 8192,
     },
-    recommendedModels: ['claude-opus-4-5-20251101', 'claude-sonnet-4-5-20250929'],
+    recommendedModels: ['claude-opus-4-6', 'claude-sonnet-4-5-20250929'],
   },
   'chronicle.summary': {
     label: 'Summary',
@@ -288,7 +288,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 8192,
       maxTokens: 4096,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'dynamics.generation': {
     label: 'Dynamics Generation',
@@ -299,18 +299,18 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 4096,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'revision.summary': {
     label: 'Summary Revision',
     description: 'Batch revision of entity summaries/descriptions using world dynamics',
     category: 'revision',
     defaults: {
-      model: 'claude-opus-4-5-20251101',
+      model: 'claude-opus-4-6',
       thinkingBudget: 4096,
       maxTokens: 8192,
     },
-    recommendedModels: ['claude-opus-4-5-20251101', 'claude-sonnet-4-5-20250929'],
+    recommendedModels: ['claude-opus-4-6', 'claude-sonnet-4-5-20250929'],
   },
   'revision.loreBackport': {
     label: 'Lore Backport',
@@ -321,7 +321,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 8192,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'description.copyEdit': {
     label: 'Copy Edit',
@@ -332,7 +332,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 4096,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'historian.entityReview': {
     label: 'Entity Review',
@@ -343,7 +343,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 4096,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'historian.chronicleReview': {
     label: 'Chronicle Review',
@@ -354,7 +354,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 8192,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
 };
 

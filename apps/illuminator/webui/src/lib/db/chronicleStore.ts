@@ -1,9 +1,8 @@
 /**
  * Zustand store for chronicle data.
  *
- * Holds all ChronicleRecords for the current simulation run as a plain object
- * keyed by chronicleId. Components subscribe via selectors in chronicleSelectors.ts
- * for granular re-renders.
+ * Holds a lightweight nav index plus a bounded cache of full ChronicleRecords.
+ * Components subscribe via selectors in chronicleSelectors.ts for granular re-renders.
  *
  * Queue-dependent actions (generate, enqueue) live in useChronicleActions hook,
  * not here — Zustand stores should not hold prop-dependent closures.
@@ -18,14 +17,20 @@ import {
   updateChronicleFailure,
   type ChronicleRecord,
 } from './chronicleRepository';
+import { buildNavItem, type ChronicleNavItem } from './chronicleNav';
+
+const CACHE_LIMIT = 20;
 
 export interface ChronicleStoreState {
   simulationRunId: string | null;
-  chronicles: Record<string, ChronicleRecord>;
+  navItems: Record<string, ChronicleNavItem>;
+  navOrder: string[];
+  cache: Map<string, ChronicleRecord>;
   initialized: boolean;
   loading: boolean;
 
   initialize: (simulationRunId: string) => Promise<void>;
+  loadChronicle: (chronicleId: string) => Promise<ChronicleRecord | undefined>;
   refreshChronicle: (chronicleId: string) => Promise<void>;
   refreshAll: () => Promise<void>;
   removeChronicle: (chronicleId: string) => void;
@@ -51,7 +56,9 @@ export interface ChronicleStoreState {
 
 export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
   simulationRunId: null,
-  chronicles: {},
+  navItems: {},
+  navOrder: [],
+  cache: new Map(),
   initialized: false,
   loading: false,
 
@@ -63,24 +70,81 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
 
     try {
       const records = await getChroniclesForSimulation(simulationRunId);
-      const chronicles: Record<string, ChronicleRecord> = {};
-      for (const r of records) {
-        chronicles[r.chronicleId] = r;
+      const navItems: Record<string, ChronicleNavItem> = {};
+      for (const record of records) {
+        navItems[record.chronicleId] = buildNavItem(record);
       }
-      set({ chronicles, initialized: true, loading: false });
+      const navOrder = Object.values(navItems)
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .map((item) => item.chronicleId);
+      set({
+        navItems,
+        navOrder,
+        cache: new Map(),
+        initialized: true,
+        loading: false,
+      });
     } catch (err) {
       console.error('[ChronicleStore] Failed to initialize:', err);
       set({ loading: false });
     }
   },
 
-  async refreshChronicle(chronicleId: string) {
+  async loadChronicle(chronicleId: string) {
+    const cached = get().cache.get(chronicleId);
+    if (cached) return cached;
+
     try {
       const record = await getChronicle(chronicleId);
-      if (!record) return;
-      set((state) => ({
-        chronicles: { ...state.chronicles, [chronicleId]: record },
-      }));
+      if (!record) return undefined;
+
+      set((state) => {
+        const nextCache = new Map(state.cache);
+        nextCache.set(chronicleId, record);
+        if (nextCache.size > CACHE_LIMIT) {
+          const firstKey = nextCache.keys().next().value;
+          if (firstKey) nextCache.delete(firstKey);
+        }
+        return { cache: nextCache };
+      });
+      return record;
+    } catch (err) {
+      console.error(`[ChronicleStore] Failed to load chronicle ${chronicleId}:`, err);
+      return undefined;
+    }
+  },
+
+  async refreshChronicle(chronicleId: string) {
+    console.log('[ChronicleStore] refreshChronicle called for:', chronicleId);
+    try {
+      const record = await getChronicle(chronicleId);
+      if (!record) {
+        console.log('[ChronicleStore] No record found for:', chronicleId);
+        return;
+      }
+      console.log('[ChronicleStore] Fetched record, updatedAt:', record.updatedAt, 'status:', record.status);
+
+      const navItem = buildNavItem(record);
+      set((state) => {
+        const nextNavItems = { ...state.navItems, [chronicleId]: navItem };
+        // Update cache with fresh record (bypass loadChronicle's cache check)
+        const nextCache = new Map(state.cache);
+        nextCache.set(chronicleId, record);
+        if (nextCache.size > CACHE_LIMIT) {
+          const firstKey = nextCache.keys().next().value;
+          if (firstKey && firstKey !== chronicleId) nextCache.delete(firstKey);
+        }
+        // If this is a new chronicle, add it to navOrder and re-sort
+        const isNew = !state.navOrder.includes(chronicleId);
+        if (isNew) {
+          const nextNavOrder = Object.values(nextNavItems)
+            .sort((a, b) => b.updatedAt - a.updatedAt)
+            .map((item) => item.chronicleId);
+          return { navItems: nextNavItems, navOrder: nextNavOrder, cache: nextCache };
+        }
+        return { navItems: nextNavItems, cache: nextCache };
+      });
+      console.log('[ChronicleStore] Store updated for chronicle:', chronicleId);
     } catch (err) {
       console.error(`[ChronicleStore] Failed to refresh chronicle ${chronicleId}:`, err);
     }
@@ -92,11 +156,14 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
 
     try {
       const records = await getChroniclesForSimulation(simulationRunId);
-      const chronicles: Record<string, ChronicleRecord> = {};
-      for (const r of records) {
-        chronicles[r.chronicleId] = r;
+      const navItems: Record<string, ChronicleNavItem> = {};
+      for (const record of records) {
+        navItems[record.chronicleId] = buildNavItem(record);
       }
-      set({ chronicles });
+      const navOrder = Object.values(navItems)
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .map((item) => item.chronicleId);
+      set({ navItems, navOrder });
     } catch (err) {
       console.error('[ChronicleStore] Failed to refresh all:', err);
     }
@@ -104,27 +171,31 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
 
   removeChronicle(chronicleId: string) {
     set((state) => {
-      const { [chronicleId]: _, ...rest } = state.chronicles;
-      return { chronicles: rest };
+      const { [chronicleId]: _, ...rest } = state.navItems;
+      const nextOrder = state.navOrder.filter((id) => id !== chronicleId);
+      const nextCache = new Map(state.cache);
+      nextCache.delete(chronicleId);
+      return { navItems: rest, navOrder: nextOrder, cache: nextCache };
     });
   },
 
   reset() {
     set({
       simulationRunId: null,
-      chronicles: {},
+      navItems: {},
+      navOrder: [],
+      cache: new Map(),
       initialized: false,
       loading: false,
     });
   },
 
   async acceptChronicle(chronicleId: string) {
-    const cached = get().chronicles[chronicleId];
-    if (!cached) {
+    const chronicle = (await get().loadChronicle(chronicleId)) || (await getChronicle(chronicleId));
+    if (!chronicle) {
       console.error('[ChronicleStore] No chronicle found for chronicleId', chronicleId);
       return null;
     }
-    const chronicle = (await getChronicle(chronicleId)) || cached;
     if (!chronicle.assembledContent) {
       console.error('[ChronicleStore] Cannot accept without assembled content');
       return null;
@@ -140,7 +211,7 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
         finalContent: activeContent,
         acceptedVersionId: activeVersionId,
       });
-      await get().refreshAll();
+      await get().refreshChronicle(chronicleId);
 
       return {
         chronicleId,

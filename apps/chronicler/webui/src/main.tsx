@@ -16,7 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         Chronicler is designed to run within The Canonry shell.
         Run <code>npm run canonry</code> from the repo root to use the full suite.
       </p>
-      <ChroniclerRemote worldData={null} loreData={null} />
+      <ChroniclerRemote />
     </div>
   </React.StrictMode>
 );

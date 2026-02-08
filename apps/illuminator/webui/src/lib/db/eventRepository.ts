@@ -34,6 +34,36 @@ export async function seedNarrativeEvents(
   console.log('[EventRepo] seedNarrativeEvents complete');
 }
 
+/**
+ * Patch narrative events without overwriting existing records.
+ * Inserts only missing event IDs.
+ */
+export async function patchNarrativeEvents(
+  simulationRunId: string,
+  events: NarrativeEvent[],
+): Promise<number> {
+  if (!events?.length) return 0;
+
+  const existing = await db.narrativeEvents
+    .where('simulationRunId')
+    .equals(simulationRunId)
+    .toArray();
+  const existingIds = new Set(existing.map((e) => e.id));
+
+  const toAdd: PersistedNarrativeEvent[] = [];
+  for (const event of events) {
+    if (!existingIds.has(event.id)) {
+      toAdd.push({ ...event, simulationRunId });
+    }
+  }
+
+  if (toAdd.length > 0) {
+    await db.narrativeEvents.bulkPut(toAdd);
+  }
+
+  return toAdd.length;
+}
+
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------

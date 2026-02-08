@@ -160,7 +160,7 @@ export const imageTask = {
       finalPrompt,
       generatedAt,
       model: imageModel,
-      size: imageSize,
+      requestedSize: imageSize,
       revisedPrompt: result.revisedPrompt,
       estimatedCost,
       actualCost,

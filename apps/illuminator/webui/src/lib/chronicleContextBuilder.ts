@@ -31,7 +31,7 @@ import type {
 } from './chronicleTypes';
 
 interface WorldData {
-  hardState: Array<{
+  entities: Array<{
     id: string;
     name: string;
     kind: string;
@@ -95,7 +95,7 @@ interface WorldContext {
 /**
  * Build entity context from raw entity data
  */
-function buildEntityContext(entity: WorldData['hardState'][0]): EntityContext {
+function buildEntityContext(entity: WorldData['entities'][0]): EntityContext {
   return {
     id: entity.id,
     name: entity.name,
@@ -120,7 +120,7 @@ function buildEntityContext(entity: WorldData['hardState'][0]): EntityContext {
  */
 function buildRelationshipContext(
   rel: WorldData['relationships'][0],
-  entityMap: Map<string, WorldData['hardState'][0]>
+  entityMap: Map<string, WorldData['entities'][0]>
 ): RelationshipContext {
   const src = entityMap.get(rel.src);
   const dst = entityMap.get(rel.dst);
@@ -139,16 +139,16 @@ function buildRelationshipContext(
   };
 }
 
-function resolveEntityEraId(entity: WorldData['hardState'][0] | undefined): string | undefined {
+function resolveEntityEraId(entity: WorldData['entities'][0] | undefined): string | undefined {
   if (!entity) return undefined;
   if (typeof entity.eraId === 'string' && entity.eraId) return entity.eraId;
   return undefined;
 }
 
 function buildEraLookup(
-  entities: WorldData['hardState']
-): Map<string, WorldData['hardState'][0]> {
-  const map = new Map<string, WorldData['hardState'][0]>();
+  entities: WorldData['entities']
+): Map<string, WorldData['entities'][0]> {
+  const map = new Map<string, WorldData['entities'][0]>();
   for (const entity of entities) {
     if (entity.kind !== 'era') continue;
     map.set(entity.id, entity);
@@ -162,7 +162,7 @@ function buildEraLookup(
 /**
  * Build era context from entity data
  */
-function buildEraContext(entity: WorldData['hardState'][0]): EraContext {
+function buildEraContext(entity: WorldData['entities'][0]): EraContext {
   return {
     id: entity.eraId || entity.id,
     name: entity.name,
@@ -299,7 +299,7 @@ export function buildChronicleContext(
   culturalIdentities?: Record<string, Record<string, string>>,
   temporalContext?: ChronicleTemporalContext | null
 ): ChronicleGenerationContext {
-  const entityMap = new Map(worldData.hardState.map((e) => [e.id, e]));
+  const entityMap = new Map(worldData.entities.map((e) => [e.id, e]));
 
   // Build focus from role assignments
   const focus = buildFocus(
@@ -310,7 +310,7 @@ export function buildChronicleContext(
   );
 
   // Get entities from role assignments
-  const entities = worldData.hardState
+  const entities = worldData.entities
     .filter((e) => focus.selectedEntityIds.includes(e.id))
     .map(buildEntityContext);
 
@@ -336,13 +336,24 @@ export function buildChronicleContext(
   const lensRaw = selections.lens ? entityMap.get(selections.lens.entityId) : undefined;
   const lensEntity = lensRaw ? buildEntityContext(lensRaw) : undefined;
 
-  const eraLookup = buildEraLookup(worldData.hardState);
-
-  // Find era from first primary entity (use entity eraId attribute directly)
-  const primaryEntityId = focus.primaryEntityIds[0];
-  const primaryEntity = primaryEntityId ? entityMap.get(primaryEntityId) : undefined;
-  const primaryEraId = resolveEntityEraId(primaryEntity);
-  const era = primaryEraId ? eraLookup.get(primaryEraId) : undefined;
+  // Resolve era: prefer temporalContext.focalEra (user-selected), fall back to primary entity's era
+  let eraContext: EraContext | undefined;
+  if (temporalContext?.focalEra) {
+    // Use the user-selected focal era from temporal context
+    eraContext = {
+      id: temporalContext.focalEra.id,
+      name: temporalContext.focalEra.name,
+      description: temporalContext.focalEra.summary,
+    };
+  } else {
+    // Fall back to deriving from primary entity's eraId
+    const eraLookup = buildEraLookup(worldData.entities);
+    const primaryEntityId = focus.primaryEntityIds[0];
+    const primaryEntity = primaryEntityId ? entityMap.get(primaryEntityId) : undefined;
+    const primaryEraId = resolveEntityEraId(primaryEntity);
+    const era = primaryEraId ? eraLookup.get(primaryEraId) : undefined;
+    eraContext = era ? buildEraContext(era) : undefined;
+  }
 
   return {
     worldName: worldContext.name || 'The World',
@@ -363,7 +374,7 @@ export function buildChronicleContext(
     // Narrative lens entity (contextual frame)
     lensEntity,
 
-    era: era ? buildEraContext(era) : undefined,
+    era: eraContext,
     // Full temporal context with all eras and chronicle timeline
     temporalContext: temporalContext || undefined,
     entities,

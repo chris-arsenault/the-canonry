@@ -58,6 +58,9 @@ export default function ChronicleWorkspace({
   // Select existing image for a ref
   onSelectExistingImage,
 
+  // Select existing image for cover
+  onSelectExistingCoverImage,
+
   // Export
   onExport,
 
@@ -80,6 +83,7 @@ export default function ChronicleWorkspace({
   cultureIdentities,
   worldContext,
   eras,
+  events,
 }) {
   const isComplete = item.status === 'complete';
 
@@ -398,6 +402,7 @@ export default function ChronicleWorkspace({
             activeVersionId={activeVersionId}
             onApplyImageRefSelections={onApplyImageRefSelections}
             onSelectExistingImage={onSelectExistingImage}
+            onSelectExistingCoverImage={onSelectExistingCoverImage}
           />
         )}
 
@@ -405,6 +410,8 @@ export default function ChronicleWorkspace({
           <ReferenceTab
             item={item}
             eras={eras}
+            events={events}
+            entities={entities}
             isGenerating={isGenerating}
             onUpdateTemporalContext={onUpdateChronicleTemporalContext}
             seedData={seedData}

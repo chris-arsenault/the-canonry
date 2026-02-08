@@ -52,8 +52,7 @@ export const useEntityStore = create<EntityStoreState>((set, get) => ({
 
     set({ loading: true, error: null });
     try {
-      const entities = await entityRepo.getEntitiesForRun(simulationRunId);
-      const ids = entities.map((e) => e.id);
+      const ids = await entityRepo.getEntityIdsForRun(simulationRunId);
       set({
         simulationRunId,
         entityIds: ids,

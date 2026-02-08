@@ -55,11 +55,16 @@ import ArchivistHost from './remotes/ArchivistHost';
 import ChroniclerHost from './remotes/ChroniclerHost';
 import { useImageStore, IndexedDBBackend } from '@penguin-tales/image-store';
 import { getImagesByProject, getImageBlob, getImageMetadata } from './lib/imageExportHelpers';
-import { getStaticPagesForProject } from './storage/staticPageStorage';
+import { getStaticPagesForProject, importStaticPages } from './storage/staticPageStorage';
 import {
   getCompletedChroniclesForSimulation,
   getCompletedChroniclesForProject,
+  importChronicles,
+  getChronicleCountForProject,
 } from './storage/chronicleStorage';
+import { importBundleImageReferences, getImageCountForProject } from './storage/imageStorage';
+import { importEntities, getEntityCountForRun } from './storage/entityStorage';
+import { importNarrativeEvents, getNarrativeEventCountForRun } from './storage/eventStorage';
 import { colors, typography, spacing } from './theme';
 import {
   loadAwsConfig,
@@ -83,6 +88,7 @@ import {
   createS3Client,
   buildImageStorageConfig,
   syncProjectImagesToS3,
+  getS3ImageUploadPlan,
   listS3Prefixes,
   buildStorageImageUrl,
 } from './aws/awsS3';
@@ -139,6 +145,99 @@ async function extractLoreDataWithCurrentImageRefs(worldData) {
   // Just delegate to the synchronous function
   // The async wrapper is kept for backwards compatibility with existing callers
   return extractLoreDataFromEntities(worldData);
+}
+
+function stripSimulationRunId(record) {
+  if (!record || typeof record !== 'object') return record;
+  const { simulationRunId: _omit, ...rest } = record;
+  return rest;
+}
+
+function mergeEntitiesWithDexie(baseEntities, dexieEntities) {
+  if (!Array.isArray(baseEntities) || baseEntities.length === 0) {
+    return Array.isArray(dexieEntities) ? dexieEntities.map(stripSimulationRunId) : [];
+  }
+
+  if (!Array.isArray(dexieEntities) || dexieEntities.length === 0) {
+    return baseEntities;
+  }
+
+  const dexieById = new Map(dexieEntities.map((entity) => [entity.id, entity]));
+  const merged = baseEntities.map((entity) => {
+    const updated = dexieById.get(entity.id);
+    if (!updated) return entity;
+    return { ...entity, ...stripSimulationRunId(updated) };
+  });
+
+  const baseIds = new Set(baseEntities.map((entity) => entity.id));
+  for (const entity of dexieEntities) {
+    if (entity?.id && !baseIds.has(entity.id)) {
+      merged.push(stripSimulationRunId(entity));
+    }
+  }
+
+  return merged;
+}
+
+async function hydrateWorldDataFromDexie({ worldData, projectId, simulationRunId }) {
+  if (!worldData || !simulationRunId || !projectId) return worldData;
+
+  try {
+    const [
+      { getEntitiesForRun },
+      { getNarrativeEventsForRun },
+      { getRelationshipsForRun },
+      { getCoordinateState },
+      { getSchema },
+    ] = await Promise.all([
+      import('illuminator/entityRepository'),
+      import('illuminator/eventRepository'),
+      import('illuminator/relationshipRepository'),
+      import('illuminator/coordinateStateRepository'),
+      import('illuminator/schemaRepository'),
+    ]);
+
+    const [
+      dexieEntities,
+      dexieEvents,
+      dexieRelationships,
+      coordinateRecord,
+      schemaRecord,
+    ] = await Promise.all([
+      getEntitiesForRun(simulationRunId),
+      getNarrativeEventsForRun(simulationRunId),
+      getRelationshipsForRun(simulationRunId),
+      getCoordinateState(simulationRunId),
+      getSchema(projectId),
+    ]);
+
+    const mergedEntities = mergeEntitiesWithDexie(worldData.hardState || [], dexieEntities);
+    const relationships = Array.isArray(dexieRelationships) && dexieRelationships.length > 0
+      ? dexieRelationships.map(stripSimulationRunId)
+      : worldData.relationships || [];
+    const narrativeHistory = Array.isArray(dexieEvents) && dexieEvents.length > 0
+      ? dexieEvents.map(stripSimulationRunId)
+      : worldData.narrativeHistory || [];
+    const coordinateState = coordinateRecord?.coordinateState || worldData.coordinateState;
+    const schema = schemaRecord?.schema || worldData.schema;
+
+    return {
+      ...worldData,
+      schema,
+      hardState: mergedEntities,
+      relationships,
+      narrativeHistory,
+      coordinateState,
+      metadata: {
+        ...worldData.metadata,
+        entityCount: mergedEntities.length,
+        relationshipCount: relationships.length,
+      },
+    };
+  } catch (err) {
+    console.warn('[Canonry] Failed to hydrate export from Dexie:', err);
+    return worldData;
+  }
 }
 
 
@@ -430,6 +529,8 @@ const VALID_TABS = [
 
 const SLOT_EXPORT_FORMAT = 'canonry-slot-export';
 const SLOT_EXPORT_VERSION = 1;
+const VIEWER_BUNDLE_FORMAT = 'canonry-viewer-bundle';
+const VIEWER_BUNDLE_VERSION = 1;
 const DEFAULT_AWS_CONFIG = {
   region: '',
   identityPoolId: '',
@@ -450,6 +551,10 @@ function isWorldOutput(candidate) {
     candidate.pressures &&
     typeof candidate.pressures === 'object'
   );
+}
+
+function mergeDefined(value, fallback) {
+  return value === undefined ? fallback : value;
 }
 
 function buildExportBase(value, fallback) {
@@ -514,6 +619,12 @@ export default function App() {
   const [awsPassword, setAwsPassword] = useState('');
   const [awsUserLabel, setAwsUserLabel] = useState('');
   const [awsSyncProgress, setAwsSyncProgress] = useState({ phase: 'idle', processed: 0, total: 0, uploaded: 0 });
+  const [awsUploadPlan, setAwsUploadPlan] = useState({
+    loading: false,
+    error: null,
+    summary: null,
+    json: '',
+  });
   const exportCancelRef = useRef(false);
   const exportModalMouseDown = useRef(false);
   const awsModalMouseDown = useRef(false);
@@ -631,18 +742,11 @@ export default function App() {
           getNarrativeEventsForRun(simulationRunId),
         ]);
 
-        setArchivistData((prev) => {
-          if (!prev?.worldData) return prev;
-          if (prev.worldData.metadata?.simulationRunId !== simulationRunId) return prev;
-          return {
-            ...prev,
-            worldData: {
-              ...prev.worldData,
-              hardState: entities,
-              ...(events.length > 0 ? { narrativeHistory: events } : {}),
-            },
-          };
-        });
+        // DISABLED: Automatic hardState updates removed due to data loss bug.
+        // The enrichment data lives in Dexie and is loaded by IlluminatorRemote.
+        // Do NOT modify worldData.hardState from this event handler.
+        void entities;
+        void events;
       } catch (err) {
         console.warn('[Canonry] Failed to load Illuminator world data from Dexie:', err);
       }
@@ -809,6 +913,54 @@ export default function App() {
     } catch (err) {
       console.error('Failed to sync images:', err);
       setAwsStatus({ state: 'error', detail: err.message || 'Image sync failed.' });
+    }
+  }, [s3Client, awsConfig]);
+
+  const handleAwsPreviewUploads = useCallback(async () => {
+    const projectId = currentProjectRef.current?.id;
+    if (!projectId) return;
+    if (!s3Client) {
+      setAwsUploadPlan({ loading: false, error: 'Missing S3 client. Check Cognito configuration and login.', summary: null, json: '' });
+      return;
+    }
+    if (!awsConfig?.imageBucket) {
+      setAwsUploadPlan({ loading: false, error: 'Missing image bucket.', summary: null, json: '' });
+      return;
+    }
+
+    setAwsUploadPlan({ loading: true, error: null, summary: null, json: '' });
+    try {
+      const plan = await getS3ImageUploadPlan({
+        projectId,
+        s3: s3Client,
+        config: awsConfig,
+        repairSizes: true,
+      });
+      const summary = {
+        total: plan.total,
+        uploadCount: plan.candidates.length,
+        manifestFound: plan.manifestFound,
+        basePrefix: plan.basePrefix,
+        repairs: plan.repairs,
+        manifestRepairs: plan.manifestRepairs,
+      };
+      const payload = { summary, images: plan.candidates };
+      setAwsUploadPlan({
+        loading: false,
+        error: null,
+        summary,
+        json: JSON.stringify(payload, null, 2),
+      });
+      setAwsStatus({ state: 'idle', detail: `Upload plan ready: ${summary.uploadCount}/${summary.total} images.` });
+    } catch (err) {
+      console.error('Failed to build upload plan:', err);
+      setAwsUploadPlan({
+        loading: false,
+        error: err.message || 'Failed to build upload plan.',
+        summary: null,
+        json: '',
+      });
+      setAwsStatus({ state: 'error', detail: err.message || 'Failed to build upload plan.' });
     }
   }, [s3Client, awsConfig]);
 
@@ -1433,6 +1585,30 @@ export default function App() {
       };
     }
 
+    if (payload?.format === VIEWER_BUNDLE_FORMAT && payload?.version === VIEWER_BUNDLE_VERSION) {
+      const worldData = payload.worldData;
+      if (!isWorldOutput(worldData)) {
+        throw new Error('Viewer bundle is missing a valid world output.');
+      }
+      if (!worldData?.metadata?.simulationRunId && payload?.metadata?.simulationRunId) {
+        worldData.metadata = {
+          ...worldData.metadata,
+          simulationRunId: payload.metadata.simulationRunId,
+        };
+      }
+      return {
+        worldData,
+        simulationResults: worldData,
+        simulationState: null,
+        slotTitle: payload.slot?.title || payload.metadata?.title,
+        slotCreatedAt: payload.slot?.createdAt,
+        chronicles: Array.isArray(payload.chronicles) ? payload.chronicles : [],
+        staticPages: Array.isArray(payload.staticPages) ? payload.staticPages : [],
+        imageData: payload.imageData ?? null,
+        images: payload.images ?? null,
+      };
+    }
+
     if (isWorldOutput(payload)) {
       return {
         worldData: payload,
@@ -1441,27 +1617,99 @@ export default function App() {
       };
     }
 
-    throw new Error('Unsupported import format. Expected a Canonry slot export or world output JSON.');
+    throw new Error('Unsupported import format. Expected a Canonry slot export, viewer bundle, or world output JSON.');
   }, []);
 
   const importSlotPayload = useCallback(async (slotIndex, payload, options = {}) => {
     if (!currentProject?.id) return;
     const parsed = parseSlotImportPayload(payload);
     const now = Date.now();
+    const existingSlot = await getSlot(currentProject.id, slotIndex) || {};
     const title = parsed.slotTitle
+      || existingSlot.title
       || options.defaultTitle
       || (slotIndex === 0 ? 'Scratch' : generateSlotTitle(slotIndex, now));
+    const createdAt = parsed.slotCreatedAt ?? existingSlot.createdAt ?? now;
+    const worldData = mergeDefined(parsed.worldData, existingSlot.worldData ?? null);
+    const simulationResults = mergeDefined(
+      parsed.simulationResults ?? parsed.worldData,
+      existingSlot.simulationResults ?? null,
+    );
+    const simulationState = mergeDefined(parsed.simulationState, existingSlot.simulationState ?? null);
+
+    if (worldData?.hardState) {
+      const incomingEntities = Array.isArray(worldData.hardState) ? worldData.hardState : [];
+      const existingEntities = Array.isArray(existingSlot.worldData?.hardState)
+        ? existingSlot.worldData.hardState
+        : [];
+      const existingIds = new Set(existingEntities.map((entity) => entity?.id).filter(Boolean));
+      let overwritten = 0;
+      for (const entity of incomingEntities) {
+        if (entity?.id && existingIds.has(entity.id)) overwritten += 1;
+      }
+      console.log('[Canonry] Import entities', {
+        processed: incomingEntities.length,
+        overwritten,
+        new: Math.max(0, incomingEntities.length - overwritten),
+      });
+    }
 
     const slotData = {
+      ...existingSlot,
       title,
-      createdAt: parsed.slotCreatedAt ?? now,
+      createdAt,
       savedAt: now,
-      simulationResults: parsed.simulationResults ?? parsed.worldData,
-      simulationState: parsed.simulationState ?? null,
-      worldData: parsed.worldData,
+      simulationResults,
+      simulationState,
+      worldData,
     };
 
     await saveSlot(currentProject.id, slotIndex, slotData);
+
+    const simulationRunId = worldData?.metadata?.simulationRunId;
+    if (!simulationRunId && worldData?.hardState?.length) {
+      console.warn('[Canonry] Import skipped Dexie entity merge: missing simulationRunId');
+    }
+    if (simulationRunId && Array.isArray(worldData?.hardState) && worldData.hardState.length > 0) {
+      const entityResult = await importEntities(simulationRunId, worldData.hardState);
+      console.log('[Canonry] Import entities (Dexie)', entityResult);
+    }
+    if (simulationRunId && Array.isArray(worldData?.narrativeHistory) && worldData.narrativeHistory.length > 0) {
+      const eventResult = await importNarrativeEvents(simulationRunId, worldData.narrativeHistory);
+      console.log('[Canonry] Import narrative events (Dexie)', eventResult);
+    }
+    if (Array.isArray(parsed.staticPages) && parsed.staticPages.length > 0) {
+      await importStaticPages(currentProject.id, parsed.staticPages, { preserveIds: true });
+    }
+    if (Array.isArray(parsed.chronicles) && parsed.chronicles.length > 0) {
+      const chronicleResult = await importChronicles(currentProject.id, parsed.chronicles, { simulationRunId });
+      console.log('[Canonry] Import chronicles', chronicleResult);
+    }
+    if (parsed.imageData) {
+      const imageResult = await importBundleImageReferences({
+        projectId: currentProject.id,
+        imageData: parsed.imageData,
+        images: parsed.images,
+      });
+      console.log('[Canonry] Import image references', imageResult);
+    }
+
+    if (parsed.staticPages?.length || parsed.chronicles?.length || parsed.imageData || worldData?.hardState?.length) {
+      const [staticPages, chronicleCount, imageCount, entityCount, eventCount] = await Promise.all([
+        getStaticPagesForProject(currentProject.id),
+        getChronicleCountForProject(currentProject.id),
+        getImageCountForProject(currentProject.id),
+        getEntityCountForRun(simulationRunId),
+        getNarrativeEventCountForRun(simulationRunId),
+      ]);
+      console.debug('[Canonry] Import store counts', {
+        staticPages: staticPages?.length || 0,
+        chronicles: chronicleCount,
+        images: imageCount,
+        entities: entityCount,
+        narrativeEvents: eventCount,
+      });
+    }
 
     if (parsed.worldContext !== undefined) {
       setWorldContext(parsed.worldContext);
@@ -1481,6 +1729,21 @@ export default function App() {
     currentProject?.id,
     parseSlotImportPayload,
     handleLoadSlot,
+    getSlot,
+    saveSlot,
+    saveWorldContext,
+    saveEntityGuidance,
+    saveCultureIdentities,
+    importStaticPages,
+    importChronicles,
+    importBundleImageReferences,
+    getStaticPagesForProject,
+    getChronicleCountForProject,
+    getImageCountForProject,
+    importEntities,
+    getEntityCountForRun,
+    importNarrativeEvents,
+    getNarrativeEventCountForRun,
   ]);
 
   const handleExportSlotDownload = useCallback((slotIndex) => {
@@ -1552,8 +1815,13 @@ export default function App() {
 
     try {
       const simulationRunId = worldData?.metadata?.simulationRunId;
+      const exportWorldData = await hydrateWorldDataFromDexie({
+        worldData,
+        projectId: currentProject.id,
+        simulationRunId,
+      });
       const [loreData, staticPagesRaw, chroniclesRaw] = await Promise.all([
-        extractLoreDataWithCurrentImageRefs(worldData),
+        extractLoreDataWithCurrentImageRefs(exportWorldData),
         getStaticPagesForProject(currentProject.id),
         simulationRunId
           ? getCompletedChroniclesForSimulation(simulationRunId)
@@ -1590,7 +1858,7 @@ export default function App() {
 
       const { imageData, images, imageFiles } = await buildBundleImageAssets({
         projectId: currentProject.id,
-        worldData,
+        worldData: exportWorldData,
         chronicles,
         staticPages,
         shouldCancel,
@@ -1632,7 +1900,7 @@ export default function App() {
           createdAt: slot.createdAt || null,
           savedAt: slot.savedAt || null,
         },
-        worldData,
+        worldData: exportWorldData,
         loreData,
         staticPages,
         chronicles,
@@ -1689,8 +1957,23 @@ export default function App() {
   const handleImportSlot = useCallback(async (slotIndex, file) => {
     if (!currentProject?.id || !file) return;
     try {
-      const text = await file.text();
-      const payload = JSON.parse(text);
+      const isZip = file.type === 'application/zip' || file.name?.toLowerCase().endsWith('.zip');
+      let payload;
+
+      if (isZip) {
+        const { default: JSZip } = await import('jszip');
+        const zip = await JSZip.loadAsync(file);
+        const bundleFile = zip.file('bundle.json');
+        if (!bundleFile) {
+          throw new Error('Bundle zip is missing bundle.json.');
+        }
+        const text = await bundleFile.async('string');
+        payload = JSON.parse(text);
+      } else {
+        const text = await file.text();
+        payload = JSON.parse(text);
+      }
+
       await importSlotPayload(slotIndex, payload, { defaultTitle: 'Imported Output' });
     } catch (err) {
       console.error('Failed to import slot:', err);
@@ -2054,15 +2337,14 @@ export default function App() {
             </div>
             <div style={{ display: activeTab === 'archivist' ? 'contents' : 'none' }}>
               <ArchivistHost
-                worldData={archivistData?.worldData}
-                loreData={archivistData?.loreData}
+                projectId={currentProject?.id}
+                activeSlotIndex={activeSlotIndex}
               />
             </div>
             <div style={{ display: activeTab === 'chronicler' ? 'contents' : 'none' }}>
               <ChroniclerHost
                 projectId={currentProject?.id}
-                worldData={archivistData?.worldData}
-                loreData={archivistData?.loreData}
+                activeSlotIndex={activeSlotIndex}
                 requestedPageId={chroniclerRequestedPage}
                 onRequestedPageConsumed={() => setChroniclerRequestedPage(null)}
               />
@@ -2375,6 +2657,13 @@ export default function App() {
                   <button className="btn-sm" onClick={handleAwsTestSetup}>
                     Test Setup
                   </button>
+                  <button
+                    className="btn-sm"
+                    disabled={!awsReady || awsUploadPlan.loading}
+                    onClick={handleAwsPreviewUploads}
+                  >
+                    Preview Uploads
+                  </button>
                 </div>
                 {awsBrowseState.loading && (
                   <div style={{ color: colors.textMuted, marginTop: spacing.sm }}>Loading prefixes...</div>
@@ -2407,6 +2696,55 @@ export default function App() {
                   />
                   <span>Use S3 images for viewer exports</span>
                 </label>
+              </div>
+
+              <div style={{ marginBottom: spacing.lg }}>
+                <div className="modal-title" style={{ fontSize: typography.sizeMd }}>Upload Plan</div>
+                <div style={{ color: colors.textSecondary, marginTop: spacing.xs }}>
+                  {awsUploadPlan.loading
+                    ? 'Calculating upload plan...'
+                    : awsUploadPlan.summary
+                      ? `Would upload ${awsUploadPlan.summary.uploadCount} of ${awsUploadPlan.summary.total} images.`
+                      : 'Click "Preview Uploads" to see which images would be uploaded.'}
+                </div>
+                {awsUploadPlan.summary && (
+                  <div style={{ color: colors.textMuted, marginTop: spacing.xs }}>
+                    Manifest: {awsUploadPlan.summary.manifestFound ? 'found' : 'missing'} · Prefix: {awsUploadPlan.summary.basePrefix || '(root)'}
+                  </div>
+                )}
+                {awsUploadPlan.summary?.repairs && (
+                  <div style={{ color: colors.textMuted, marginTop: spacing.xs }}>
+                    Repairs: {awsUploadPlan.summary.repairs.updated} updated, {awsUploadPlan.summary.repairs.skipped} skipped, {awsUploadPlan.summary.repairs.failed} failed.
+                  </div>
+                )}
+                {awsUploadPlan.summary?.manifestRepairs && (
+                  <div style={{ color: colors.textMuted, marginTop: spacing.xs }}>
+                    Manifest repairs: {awsUploadPlan.summary.manifestRepairs.updated} updated, {awsUploadPlan.summary.manifestRepairs.skipped} skipped, {awsUploadPlan.summary.manifestRepairs.failed} failed.
+                  </div>
+                )}
+                {awsUploadPlan.error && (
+                  <div style={{ color: colors.danger, marginTop: spacing.sm }}>{awsUploadPlan.error}</div>
+                )}
+                {awsUploadPlan.json && (
+                  <textarea
+                    readOnly
+                    value={awsUploadPlan.json}
+                    style={{
+                      marginTop: spacing.sm,
+                      width: '100%',
+                      height: '220px',
+                      background: colors.bgSecondary,
+                      color: colors.textPrimary,
+                      border: `1px solid ${colors.border}`,
+                      borderRadius: spacing.sm,
+                      padding: spacing.sm,
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                      fontSize: typography.sizeSm,
+                      lineHeight: 1.4,
+                      resize: 'vertical',
+                    }}
+                  />
+                )}
               </div>
             </div>
             <div className="modal-actions">

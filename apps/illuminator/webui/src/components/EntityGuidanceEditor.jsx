@@ -254,7 +254,8 @@ export default function EntityGuidanceEditor({
   entityGuidance: externalEntityGuidance,
   onEntityGuidanceChange,
   worldContext,
-  worldData,
+  entities = [],
+  relationships = [],
   worldSchema,
   simulationMetadata,
   prominenceScale,
@@ -285,7 +286,6 @@ export default function EntityGuidanceEditor({
     }
   }, [selectedKind, entityKinds]);
 
-  const entities = useMemo(() => worldData?.hardState || [], [worldData]);
   const effectiveProminenceScale = useMemo(() => {
     if (prominenceScale) return prominenceScale;
     const values = entities
@@ -303,8 +303,8 @@ export default function EntityGuidanceEditor({
   );
   const entityById = useMemo(() => buildEntityIndex(entities), [entities]);
   const relationshipsByEntity = useMemo(
-    () => buildRelationshipIndex(worldData?.relationships || []),
-    [worldData?.relationships]
+    () => buildRelationshipIndex(relationships),
+    [relationships]
   );
   const prominentByCulture = useMemo(() => {
     const map = new Map();

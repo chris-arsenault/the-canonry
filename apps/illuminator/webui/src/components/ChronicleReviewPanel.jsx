@@ -215,6 +215,9 @@ export default function ChronicleReviewPanel({
   // Select existing image for a ref
   onSelectExistingImage,
 
+  // Select existing image for cover
+  onSelectExistingCoverImage,
+
   // Export
   onExport,
 
@@ -238,6 +241,7 @@ export default function ChronicleReviewPanel({
   cultureIdentities,
   worldContext,
   eras,
+  events,
 }) {
   if (!item) return null;
 
@@ -284,6 +288,7 @@ export default function ChronicleReviewPanel({
         onUpdateChronicleImageJustification={onUpdateChronicleImageJustification}
         onApplyImageRefSelections={onApplyImageRefSelections}
         onSelectExistingImage={onSelectExistingImage}
+        onSelectExistingCoverImage={onSelectExistingCoverImage}
         onExport={onExport}
         onBackportLore={onBackportLore}
         onHistorianReview={onHistorianReview}
@@ -297,6 +302,7 @@ export default function ChronicleReviewPanel({
         cultureIdentities={cultureIdentities}
         worldContext={worldContext}
         eras={eras}
+        events={events}
       />
     );
   }

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import ChronicleImagePanel from '../ChronicleImagePanel';
+import ChronicleImagePicker from '../ChronicleImagePicker';
 import { useImageUrl } from '../../hooks/useImageUrl';
 import {
   analyzeImageRefCompatibility,
@@ -276,12 +277,16 @@ export default function ImagesTab({
   activeVersionId,
   onApplyImageRefSelections,
   onSelectExistingImage,
+  onSelectExistingCoverImage,
 }) {
   // Compatibility analysis state
   const [compatibilityAnalysis, setCompatibilityAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [imageRefSelections, setImageRefSelections] = useState([]);
+
+  // Cover image picker state
+  const [showCoverImagePicker, setShowCoverImagePicker] = useState(false);
 
   // Check if image refs are for a different version
   const hasVersionMismatch = useMemo(() => {
@@ -442,10 +447,45 @@ export default function ImagesTab({
                     {item.coverImage.status === 'complete' ? 'Regen Image' : 'Gen Image'}
                   </button>
                 )}
+                {onSelectExistingCoverImage && item.coverImage && !isGenerating && (
+                  <button
+                    onClick={() => setShowCoverImagePicker(true)}
+                    style={{
+                      padding: '8px 14px',
+                      background: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '6px',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      height: '32px',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Select Existing
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Cover Image Picker */}
+      {item.projectId && (
+        <ChronicleImagePicker
+          isOpen={showCoverImagePicker}
+          onClose={() => setShowCoverImagePicker(false)}
+          onSelect={(imageId) => {
+            if (onSelectExistingCoverImage) {
+              onSelectExistingCoverImage(imageId);
+            }
+            setShowCoverImagePicker(false);
+          }}
+          projectId={item.projectId}
+          chronicleId={item.chronicleId}
+          currentImageId={item.coverImage?.generatedImageId}
+        />
       )}
 
       {/* Version Mismatch Warning */}

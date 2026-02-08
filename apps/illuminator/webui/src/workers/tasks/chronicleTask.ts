@@ -377,6 +377,7 @@ async function executeFullRegenerationStep(
         suggestedMotifs: perspectiveResult.synthesis.suggestedMotifs,
         narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
         entityDirectives: perspectiveResult.synthesis.entityDirectives,
+        temporalNarrative: perspectiveResult.synthesis.temporalNarrative,
         constellationSummary: constellation.focusSummary,
         constellation: {
           cultures: constellation.cultures,
@@ -389,12 +390,14 @@ async function executeFullRegenerationStep(
         coreTone: chronicleContext.toneFragments?.core,
         narrativeStyleId: narrativeStyle.id,
         narrativeStyleName: narrativeStyle.name,
-        factSelectionTarget: (() => {
-          const requested = chronicleContext.factSelection?.targetCount;
-          const requiredCount = (chronicleContext.canonFactsWithMetadata || [])
-            .filter((f) => f.type !== 'generation_constraint' && f.required).length;
-          if (typeof requested === 'number' && requested > 0) {
-            return Math.max(requested, requiredCount);
+        factSelectionRange: (() => {
+          const requestedMin = chronicleContext.factSelection?.minCount;
+          const requestedMax = chronicleContext.factSelection?.maxCount;
+          if (
+            (typeof requestedMin === 'number' && requestedMin > 0) ||
+            (typeof requestedMax === 'number' && requestedMax > 0)
+          ) {
+            return { min: requestedMin, max: requestedMax };
           }
           return undefined;
         })(),
@@ -403,6 +406,7 @@ async function executeFullRegenerationStep(
           text: f.text,
           type: f.type,
           required: f.required,
+          disabled: f.disabled,
         })),
         inputWorldDynamics: perspectiveResult.resolvedWorldDynamics,
         inputCulturalIdentities: chronicleContext.culturalIdentities,
@@ -412,6 +416,11 @@ async function executeFullRegenerationStep(
           culture: e.culture,
           summary: e.summary,
         })),
+        focalEra: chronicleContext.era ? {
+          id: chronicleContext.era.id,
+          name: chronicleContext.era.name,
+          description: chronicleContext.era.description,
+        } : undefined,
         inputTokens: perspectiveResult.usage.inputTokens,
         outputTokens: perspectiveResult.usage.outputTokens,
         actualCost: perspectiveResult.usage.actualCost,
@@ -421,17 +430,29 @@ async function executeFullRegenerationStep(
         ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${perspectiveResult.synthesis.suggestedMotifs.map(m => `- "${m}"`).join('\n')}`
         : '';
 
-      chronicleContext = {
-        ...chronicleContext,
-        tone:
-          perspectiveResult.assembledTone +
+      // For documents, exclude coreTone (assembledTone) from the generation prompt.
+      // coreTone contains story-oriented prose guidance (SYNTACTIC POETRY, BITTER CAMARADERIE, etc.)
+      // that competes with document format constraints and causes over-explanation and register breaks.
+      // The PS-synthesized narrativeVoice and entityDirectives already provide format-appropriate guidance.
+      // Stories still get the full assembledTone + brief + motifs.
+      const isDocument = narrativeStyle.format === 'document';
+      const toneForGeneration = isDocument
+        ? 'PERSPECTIVE FOR THIS CHRONICLE:\n' +
+          perspectiveResult.synthesis.brief +
+          motifSection
+        : perspectiveResult.assembledTone +
           '\n\nPERSPECTIVE FOR THIS CHRONICLE:\n' +
           perspectiveResult.synthesis.brief +
-          motifSection,
+          motifSection;
+
+      chronicleContext = {
+        ...chronicleContext,
+        tone: toneForGeneration,
         canonFacts: perspectiveResult.facetedFacts,
         narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
         entityDirectives: perspectiveResult.synthesis.entityDirectives,
         worldDynamicsResolved: perspectiveResult.resolvedWorldDynamics.map((d) => d.text),
+        temporalNarrative: perspectiveResult.synthesis.temporalNarrative,
       };
 
       console.log(`[Worker] Perspective synthesis complete: ${perspectiveResult.facetedFacts.length} faceted facts, ${perspectiveResult.synthesis.suggestedMotifs.length} motifs`);
@@ -504,6 +525,7 @@ async function executeFullRegenerationStep(
         nameBank: chronicleContext.nameBank,
         narrativeVoice: chronicleContext.narrativeVoice,
         entityDirectives: chronicleContext.entityDirectives,
+        temporalNarrative: chronicleContext.temporalNarrative,
       };
       updatedChronicle.updatedAt = Date.now();
       await putChronicle(updatedChronicle);
@@ -655,6 +677,7 @@ async function executeV2GenerationStep(
         suggestedMotifs: perspectiveResult.synthesis.suggestedMotifs,
         narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
         entityDirectives: perspectiveResult.synthesis.entityDirectives,
+        temporalNarrative: perspectiveResult.synthesis.temporalNarrative,
 
         // INPUT (what was sent to LLM)
         constellationSummary: constellation.focusSummary,
@@ -669,12 +692,14 @@ async function executeV2GenerationStep(
         coreTone: chronicleContext.toneFragments?.core,
         narrativeStyleId: narrativeStyle.id,
         narrativeStyleName: narrativeStyle.name,
-        factSelectionTarget: (() => {
-          const requested = chronicleContext.factSelection?.targetCount;
-          const requiredCount = (chronicleContext.canonFactsWithMetadata || [])
-            .filter((f) => f.type !== 'generation_constraint' && f.required).length;
-          if (typeof requested === 'number' && requested > 0) {
-            return Math.max(requested, requiredCount);
+        factSelectionRange: (() => {
+          const requestedMin = chronicleContext.factSelection?.minCount;
+          const requestedMax = chronicleContext.factSelection?.maxCount;
+          if (
+            (typeof requestedMin === 'number' && requestedMin > 0) ||
+            (typeof requestedMax === 'number' && requestedMax > 0)
+          ) {
+            return { min: requestedMin, max: requestedMax };
           }
           return undefined;
         })(),
@@ -683,6 +708,7 @@ async function executeV2GenerationStep(
           text: f.text,
           type: f.type,
           required: f.required,
+          disabled: f.disabled,
         })),
         inputWorldDynamics: perspectiveResult.resolvedWorldDynamics,
         inputCulturalIdentities: chronicleContext.culturalIdentities,
@@ -692,6 +718,11 @@ async function executeV2GenerationStep(
           culture: e.culture,
           summary: e.summary,
         })),
+        focalEra: chronicleContext.era ? {
+          id: chronicleContext.era.id,
+          name: chronicleContext.era.name,
+          description: chronicleContext.era.description,
+        } : undefined,
 
         // Cost
         inputTokens: perspectiveResult.usage.inputTokens,
@@ -705,21 +736,25 @@ async function executeV2GenerationStep(
         : '';
 
       // Update context with synthesized perspective
-      chronicleContext = {
-        ...chronicleContext,
-        // Replace tone with assembled tone + perspective brief + motifs
-        tone:
-          perspectiveResult.assembledTone +
+      // For documents, exclude coreTone — see comment in full-regeneration path above.
+      const isDocument = narrativeStyle.format === 'document';
+      const toneForGeneration = isDocument
+        ? 'PERSPECTIVE FOR THIS CHRONICLE:\n' +
+          perspectiveResult.synthesis.brief +
+          motifSection
+        : perspectiveResult.assembledTone +
           '\n\nPERSPECTIVE FOR THIS CHRONICLE:\n' +
           perspectiveResult.synthesis.brief +
-          motifSection,
-        // Replace facts with faceted facts (core truths with interpretations + contextual)
+          motifSection;
+
+      chronicleContext = {
+        ...chronicleContext,
+        tone: toneForGeneration,
         canonFacts: perspectiveResult.facetedFacts,
-        // Add synthesized narrative voice and entity directives
         narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
         entityDirectives: perspectiveResult.synthesis.entityDirectives,
-        // Resolved world dynamics for this chronicle (post-filter/override)
         worldDynamicsResolved: perspectiveResult.resolvedWorldDynamics.map((d) => d.text),
+        temporalNarrative: perspectiveResult.synthesis.temporalNarrative,
       };
 
       console.log(`[Worker] Perspective synthesis complete: ${perspectiveResult.facetedFacts.length} faceted facts, ${perspectiveResult.synthesis.suggestedMotifs.length} motifs`);
@@ -818,6 +853,7 @@ async function executeV2GenerationStep(
         nameBank: chronicleContext.nameBank,
         narrativeVoice: chronicleContext.narrativeVoice,
         entityDirectives: chronicleContext.entityDirectives,
+        temporalNarrative: chronicleContext.temporalNarrative,
       },
       selectionSummary: {
         entityCount: selection.entities.length,
@@ -964,7 +1000,37 @@ async function executeCompareStep(
     ? `## World Facts (Faceted)\nThese are the world truths provided to the chronicle generator, already interpreted through the chronicle's perspective:\n${canonFacts.map((f, i) => `${i + 1}. ${f}`).join('\n')}\n`
     : '';
 
-  const comparePrompt = `You are comparing ${versions.length} versions of the same chronicle. Each was generated from the same prompt and narrative style (${narrativeStyleName}) but with different sampling modes (normal vs low).
+  const isDocumentFormat = chronicleRecord.narrativeStyle?.format === 'document';
+
+  const comparePrompt = isDocumentFormat
+    ? `You are comparing ${versions.length} versions of the same in-universe document. Each was generated from the same prompt and document format (${narrativeStyleName}) but with different sampling modes (normal vs low).
+${narrativeStyleBlock ? `\n## Document Format Reference\n${narrativeStyleBlock}\n` : ''}${worldFactsBlock ? `\n${worldFactsBlock}` : ''}
+Your output must have THREE sections in this exact order. Keep the total output under 800 words.
+
+## Comparative Analysis
+
+Cover each dimension in 2-3 sentences, naming the stronger version with one specific example:
+
+1. **In-Universe Believability**: Which reads more like a real ${narrativeStyleName} that exists within this world? Consider the whole artifact — does it feel like something a person in this setting would produce, handle, or encounter? Material texture (stamps, marginalia, wear) counts, but so does getting the tone and purpose right.
+2. **World Integration**: Review the World Facts above. Which version better absorbs the world's specifics — names, places, factions, customs, tensions — into the document's fabric? Which makes the world feel lived-in rather than referenced? Are any key facts missing or contradicted?
+3. **Voice & Purpose**: Does the document sound like its supposed author? A wanted notice written by a bureaucrat should sound bureaucratic; a folk song collected by a scholar should sound collected. Which version better inhabits its authorial perspective? Note: a document that maintains consistent voice throughout is doing its job — sustained register is a virtue.
+4. **Documentary Craft**: Which makes smarter choices about what to include, emphasize, bury, or omit? Documents communicate through structure and editorial choices — what's foregrounded, what's in footnotes, what's conspicuously absent. Which version shows better editorial intelligence?
+5. **Specificity & Invention**: Which grounds itself in concrete, plausible details (titles, dates, procedures, citations) rather than generic atmosphere or invented backstory? Which stays within what its author would know and record?
+
+## Recommendation
+
+State one of: **Keep Version [X]** (one version is clearly superior), or **Combine** (each version has distinct strengths worth merging). Explain why in 2-3 sentences.
+
+## Combine Instructions
+
+Write a SHORT paragraph (4-6 sentences) of revision guidance for a creative LLM that will combine these versions. This is not a merge spec — it is editorial direction for a skilled writer.
+
+Name the base version and its key strengths (document structure, register, information discipline). Name what the other version does better and should be drawn from (specific details, format touches, particular phrasings). Note any document-voice qualities from the base that must not be lost — especially register consistency and restraint. Trust the writer to make specific decisions — do not prescribe line-by-line changes.
+
+## Document Versions
+
+${versionsBlock}`
+    : `You are comparing ${versions.length} versions of the same chronicle. Each was generated from the same prompt and narrative style (${narrativeStyleName}) but with different sampling modes (normal vs low).
 ${narrativeStyleBlock ? `\n## Narrative Style Reference\n${narrativeStyleBlock}\n` : ''}${worldFactsBlock ? `\n${worldFactsBlock}` : ''}
 Your output must have THREE sections in this exact order. Keep the total output under 800 words.
 
@@ -994,11 +1060,15 @@ Name the base version and its key strengths (structure, tone, arc). Name what th
 
 ${versionsBlock}`;
 
+  const compareSystemPrompt = isDocumentFormat
+    ? 'You are an editorial reviewer evaluating drafts of an in-universe document. The core question is: which draft feels more like a real artifact from this world? Assess believability, world integration, and documentary craft. A document that maintains consistent voice is doing its job — sustained register is a strength.'
+    : 'You are a narrative editor providing a comparative analysis of chronicle drafts. Be specific and cite examples from the text.';
+
   const compareCall = await runTextCall({
     llmClient,
     callType: 'chronicle.compare',
     callConfig,
-    systemPrompt: 'You are a narrative editor providing a comparative analysis of chronicle drafts. Be specific and cite examples from the text.',
+    systemPrompt: compareSystemPrompt,
     prompt: comparePrompt,
     temperature: 0.3,
   });
@@ -1089,14 +1159,49 @@ async function executeCombineStep(
     `## ${v.label}\n\n${v.content}`
   ).join('\n\n---\n\n');
 
-  const systemPrompt = chronicleRecord.generationSystemPrompt || '';
+  const generationSystemPrompt = chronicleRecord.generationSystemPrompt || '';
   const narrativeStyle = chronicleRecord.narrativeStyle;
   const styleName = narrativeStyle ? `${narrativeStyle.name} (${narrativeStyle.format})` : 'unknown';
+  const isDocumentFormat = narrativeStyle?.format === 'document';
 
   // Check for combine instructions from a prior compare step
   const hasCombineInstructions = !!chronicleRecord.combineInstructions;
 
-  const combinePrompt = `You are a narrative editor combining ${versions.length} versions of the same chronicle into a single final version. All versions follow the same prompt and narrative style — they differ in sampling mode (normal vs low).
+  const combinePrompt = isDocumentFormat
+    ? `You are an editorial reviewer combining ${versions.length} versions of the same in-universe document into a single final version. All versions follow the same prompt and document format — they differ in sampling mode (normal vs low).
+
+Your job is NOT to merge or average. Your job is to CHOOSE and REWRITE: take the stronger elements from each version and produce one polished document that feels like a real artifact from its world.
+${hasCombineInstructions ? `
+## Revision Guidance from Comparative Analysis
+
+A prior analysis compared these versions and produced specific instructions for combining them. Follow this guidance closely — it identifies which version handles each section better and which specific elements to preserve:
+
+${chronicleRecord.combineInstructions}
+` : `
+## Selection Criteria
+
+Prefer whichever version:
+- **Feels more like a real ${styleName}** — could this artifact exist in this world? Does it read like something its supposed author would produce?
+- **Better integrates the world** — names, factions, customs, tensions woven into the document's fabric rather than referenced from outside
+- **Inhabits its author's voice** — consistent register that matches who wrote this and why
+- **Shows stronger editorial intelligence** — smart choices about what to foreground, bury, or omit
+- **Grounds itself in specifics** — concrete details (titles, dates, procedures) over generic atmosphere
+
+If one version has a better opening and another has better closing sections, use each. If versions handle the same section differently, pick the one that feels more like it belongs in this world.
+`}
+## Original System Prompt Context
+${generationSystemPrompt}
+
+Style: ${styleName}
+
+## Document Versions
+
+${versionsBlock}
+
+## YOUR TASK
+
+Produce the final document by selecting the strongest elements from each version. The result should feel like a real artifact from this world — something its author would actually produce. Maintain consistent voice throughout. Output ONLY the document text — no commentary, no labels, no preamble.`
+    : `You are a narrative editor combining ${versions.length} versions of the same chronicle into a single final version. All versions follow the same prompt and narrative style — they differ in sampling mode (normal vs low).
 
 Your job is NOT to merge or average. Your job is to CHOOSE and REWRITE: take the stronger elements from each version and produce one polished chronicle.
 ${hasCombineInstructions ? `
@@ -1118,7 +1223,7 @@ Prefer whichever version has:
 If one version has a better opening and another has a better middle, use each. If versions handle the same beat differently, pick the one that reads more naturally.
 `}
 ## Original System Prompt Context
-${systemPrompt}
+${generationSystemPrompt}
 
 Style: ${styleName}
 
@@ -1130,13 +1235,17 @@ ${versionsBlock}
 
 Produce the final chronicle by selecting the strongest elements from each version. Output ONLY the chronicle text — no commentary, no labels, no preamble.`;
 
+  const combineSystemPrompt = isDocumentFormat
+    ? 'You are an editorial reviewer producing the definitive version of an in-universe document from multiple drafts. The result should feel like a real artifact from this world. Maintain consistent voice. Output only the final document text.'
+    : 'You are a narrative editor producing the definitive version of a chronicle from multiple drafts. Output only the final chronicle text.';
+
   const samplingParams = resolveChronicleSamplingParams(callConfig);
   const combineSampling = deriveSamplingFromConfig(callConfig);
   const combineCall = await runTextCall({
     llmClient,
     callType: 'chronicle.combine',
     callConfig,
-    systemPrompt: 'You are a narrative editor producing the definitive version of a chronicle from multiple drafts. Output only the final chronicle text.',
+    systemPrompt: combineSystemPrompt,
     prompt: combinePrompt,
     ...samplingParams,
   });

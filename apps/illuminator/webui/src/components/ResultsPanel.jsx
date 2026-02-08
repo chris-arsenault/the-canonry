@@ -170,25 +170,25 @@ function ImagePreviewModal({ imageUrl, onClose }) {
 
 export default function ResultsPanel({
   tasks,
-  worldData,
+  entities = [],
   onRegenerateTask,
 }) {
   const [selectedEntities, setSelectedEntities] = useState(new Set());
   const [previewImage, setPreviewImage] = useState(null);
   const [filterType, setFilterType] = useState('all');
   const effectiveProminenceScale = useMemo(() => {
-    const values = (worldData?.hardState || [])
+    const values = (entities || [])
       .map((entity) => entity.prominence)
       .filter((value) => typeof value === 'number' && Number.isFinite(value));
     return buildProminenceScale(values, { distribution: DEFAULT_PROMINENCE_DISTRIBUTION });
-  }, [worldData]);
+  }, [entities]);
 
   // Get entities with completed tasks
   const enrichedEntities = useMemo(() => {
     const entityMap = new Map();
 
     // Build entity map from world data
-    for (const entity of worldData?.hardState || []) {
+    for (const entity of entities || []) {
       entityMap.set(entity.id, { ...entity, tasks: [] });
     }
 
@@ -201,7 +201,7 @@ export default function ResultsPanel({
 
     // Filter to only entities with completed tasks
     return Array.from(entityMap.values()).filter((e) => e.tasks.length > 0);
-  }, [worldData, tasks]);
+  }, [entities, tasks]);
 
   // Apply filter
   const filteredEntities = useMemo(() => {
