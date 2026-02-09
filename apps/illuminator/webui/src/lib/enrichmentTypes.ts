@@ -276,8 +276,10 @@ export type ChronicleStep =
   | 'generate_v2'  // Single-shot generation
   | 'regenerate_temperature' // Re-run chronicle generation with prior prompts (sampling mode)
   | 'regenerate_full' // Full regeneration with new perspective synthesis (creates new version)
+  | 'regenerate_creative' // Creative freedom generation — stripped prompt, no PS, more latitude
   | 'compare'  // Compare all versions (produces report, no new draft)
   | 'combine'  // Combine all versions into a new draft
+  | 'copy_edit' // Polish pass — trims, smooths voice, tightens prose without changing content
   | 'validate'
   | 'edit'
   | 'summary'

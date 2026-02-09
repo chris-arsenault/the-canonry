@@ -91,6 +91,9 @@ export interface WizardState {
   /** Manual override for focal era (null = auto-detect) */
   focalEraOverride: string | null;
 
+  // Step 5: Narrative direction (optional free text)
+  narrativeDirection: string;
+
   // Validation
   isValid: boolean;
   validationErrors: string[];
@@ -117,6 +120,7 @@ type WizardAction =
   | { type: 'SELECT_ALL_RELATIONSHIPS'; relationshipIds: string[] }
   | { type: 'DESELECT_ALL_RELATIONSHIPS' }
   | { type: 'SET_FOCAL_ERA_OVERRIDE'; eraId: string | null }
+  | { type: 'SET_NARRATIVE_DIRECTION'; direction: string }
   | { type: 'RESET' }
   | { type: 'INIT_FROM_SEED'; seed: ChronicleSeed; style: NarrativeStyle; entryPoint: EntityContext; candidates: EntityContext[]; relationships: RelationshipContext[]; events: NarrativeEventContext[] };
 
@@ -141,6 +145,7 @@ const initialState: WizardState = {
   selectedEventIds: new Set(),
   selectedRelationshipIds: new Set(),
   focalEraOverride: null,
+  narrativeDirection: '',
   isValid: false,
   validationErrors: [],
 };
@@ -318,6 +323,9 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
     case 'SET_FOCAL_ERA_OVERRIDE':
       return { ...state, focalEraOverride: action.eraId };
 
+    case 'SET_NARRATIVE_DIRECTION':
+      return { ...state, narrativeDirection: action.direction };
+
     case 'RESET':
       return initialState;
 
@@ -406,6 +414,9 @@ interface WizardContextValue {
   deselectAllEvents: () => void;
   selectAllRelationships: (relationshipIds: string[]) => void;
   deselectAllRelationships: () => void;
+
+  // Step 5: Narrative direction
+  setNarrativeDirection: (direction: string) => void;
 
   // Reset / Initialize
   reset: () => void;
@@ -713,6 +724,11 @@ export function WizardProvider({ children, entityKinds, eras = [], simulationRun
     dispatch({ type: 'SET_FOCAL_ERA_OVERRIDE', eraId });
   }, []);
 
+  // Narrative direction
+  const setNarrativeDirection = useCallback((direction: string) => {
+    dispatch({ type: 'SET_NARRATIVE_DIRECTION', direction });
+  }, []);
+
   // Reset
   const reset = useCallback(() => {
     dispatch({ type: 'RESET' });
@@ -780,6 +796,7 @@ export function WizardProvider({ children, entityKinds, eras = [], simulationRun
     deselectAllEvents,
     selectAllRelationships,
     deselectAllRelationships,
+    setNarrativeDirection,
     reset,
     initFromSeed,
   }), [
@@ -814,6 +831,7 @@ export function WizardProvider({ children, entityKinds, eras = [], simulationRun
     deselectAllEvents,
     selectAllRelationships,
     deselectAllRelationships,
+    setNarrativeDirection,
     reset,
     initFromSeed,
   ]);

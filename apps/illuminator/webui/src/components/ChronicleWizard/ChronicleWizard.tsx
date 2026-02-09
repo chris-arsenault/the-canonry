@@ -62,6 +62,8 @@ export interface WizardGenerateConfig {
   lens?: NarrativeLens;
   /** Temporal context computed from selected events and eras */
   temporalContext: ChronicleTemporalContext | null;
+  /** Optional free-text narrative direction */
+  narrativeDirection?: string;
 }
 
 // =============================================================================
@@ -190,6 +192,7 @@ function InnerWizard({
       selectedRelationshipIds: Array.from(state.selectedRelationshipIds),
       lens: state.lens || undefined,
       temporalContext,
+      narrativeDirection: state.narrativeDirection.trim() || undefined,
     };
 
     onGenerate(config);

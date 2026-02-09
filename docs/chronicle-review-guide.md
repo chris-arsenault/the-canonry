@@ -9,9 +9,19 @@ This document provides a structured approach for reviewing chronicle generation 
 |-----------|----------|
 | Chronicle Types | `apps/illuminator/webui/src/lib/chronicleTypes.ts` |
 | Prompt Builder | `apps/illuminator/webui/src/lib/chronicle/v2/promptBuilder.ts` |
+| Copy-Edit Prompt | `apps/illuminator/webui/src/lib/chronicle/v2/copyEditPrompt.ts` |
 | Worker Tasks | `apps/illuminator/webui/src/workers/tasks/chronicleTask.ts` |
 | LLM Client | `apps/illuminator/webui/src/lib/llmClient.browser.ts` |
 | Perspective Synthesizer | `apps/illuminator/webui/src/lib/perspectiveSynthesizer.ts` |
+
+### Pipeline Steps (Story Format)
+
+| Step | Version | What It Does |
+|------|---------|-------------|
+| Structured generation | V0 | Full PS-synthesized prompt: beat sheet, voice textures, entity directives, craft posture |
+| Creative freedom | V1 | Stripped-down prompt: world data only, no prescribed structure/voice/style. Skips PS. |
+| Combine | V2 | Editor merges best elements of V0 and V1 based on editorial direction |
+| Copy-edit | V3 | Final polish pass with voice texture and motif preservation context |
 
 ### Narrative Styles
 | Style Type | Location |
@@ -29,36 +39,27 @@ This document provides a structured approach for reviewing chronicle generation 
 ### Documentation
 | Topic | Location |
 |-------|----------|
-| Sameness Analysis | `docs/chronicle-sameness-analysis.md` |
-| Perspective Synthesis Design | `docs/perspective-synthesis-design.md` |
+| Corpus Review Guide | `docs/chronicle-corpus-review-guide.md` |
+| Backport Review Guide | `docs/backport-review-guide.md` |
 | Wizard UX Redesign | `apps/illuminator/docs/chronicle-wizard-ux-redesign.md` |
 
 ---
 
 ## Review Checklist
 
-### 1. Sampling Comparison (low vs normal top_p)
+### 1. Version Comparison (V0 Structured vs V1 Creative Freedom)
 
 **What to check:**
-- How does `top_p=0.95` (low) differ from `top_p=1.0` (normal)?
-- Does low sampling produce more "safe" or formulaic output?
-- Does normal sampling introduce creative risks that pay off?
-
-**Where to find sampling config:**
-```typescript
-// chronicleTypes.ts
-export type ChronicleSampling = 'normal' | 'low';
-export const CHRONICLE_SAMPLING_TOP_P: Record<ChronicleSampling, number> = {
-  normal: 1,
-  low: 0.95,
-};
-```
+- Does V0 (structured, full PS guidance) produce reliable format adherence?
+- Does V1 (creative freedom, stripped-down prompt) find angles the structured version missed?
+- Which version has stronger prose, more creative risk, better use of the material?
+- Does the combine (V2) successfully take the best of both?
 
 **Questions to answer:**
-- [ ] Which version has more natural rhythm/flow?
-- [ ] Which takes more creative risks?
-- [ ] Which follows the style instructions more literally?
-- [ ] Do the versions have meaningfully different character?
+- [ ] What does V0 do well that V1 misses (format adherence, voice texture realization)?
+- [ ] What does V1 do well that V0 misses (structural surprise, invented details, fresh angles)?
+- [ ] Does V2 successfully merge both, or does it lose character from either?
+- [ ] Does V3 (copy-edit) improve V2 without damaging texture?
 
 ### 2. Lore Fit
 
@@ -318,11 +319,11 @@ Yet V2-V5 of "Ice Remembers" completely ignore this. The model prioritizes integ
 ## Common Issues to Watch For
 
 ### Sameness Patterns
-See `docs/chronicle-sameness-analysis.md` for documented patterns:
-- Same closing phrases ("the ice remembers")
+Watch for cross-chronicle sameness (use `docs/chronicle-corpus-review-guide.md` for batch review):
+- Same closing phrases across chronicles
 - Same emotional arc across different styles
-- Artifacts always having "cracks" or "agency"
-- Identical 4-5 scene structures
+- Identical structural shapes regardless of narrative style
+- Repeated motifs appearing in every chronicle rather than being chronicle-specific
 
 **Note**: Sameness is a problem *between* different chronicles, not between versions of the same chronicle. Some consistency across versions is expected and acceptable.
 
@@ -363,12 +364,7 @@ After reviewing the chronicle, assess the PS/cultural identity pipeline's contri
 - Genres that rely on plot mechanics over cultural mechanics
 
 ### Context Overload Pattern
-When perspective synthesis produces rich output (detailed entity directives, many facets, long narrative voice guidance), the generation pass may:
-- Treat style guidance as lower priority than lore integration
-- Produce "box-checking" prose that includes all required elements without soul
-- Drift into world-building explanation mode, especially in later sections
-
-**Proposed mitigation (not yet implemented)**: "Seeds not outlines" — Phase 2 produces 4-6 evocative fragments rather than detailed directives. The creative pass receives anchors to weave in, not requirements to satisfy.
+When perspective synthesis produces rich output (detailed entity directives, many facets, long narrative voice guidance), the structured generation (V0) may prioritize lore integration over style guidance. The creative freedom generation (V1) mitigates this by stripping PS guidance entirely, giving the LLM latitude to find its own angle. The combine step (V2) then merges V1's creative risks with V0's structural reliability.
 
 ### Event Handling
 Events in the export may have undefined headlines:
@@ -501,6 +497,7 @@ Every chronicle review MUST conclude with a summary table scoring each dimension
 | **Style Adherence** | Does output follow the style's structure, voice, word count guidance, and required sections? |
 | **Story vs Document** | Where does the output sit on the axis, and is that position appropriate for the format? |
 | **Pipeline Impact** | Use the existing 6-level scale (Transformative → Incremental) with a comment on what the pipeline contributed |
+| **Copy-Edit** | Did the copy-edit improve the piece? Cuts defensible, motifs preserved, voice textures respected, no lore errors? |
 | **Version Comparison** | One-sentence characterization of each version's strengths/weaknesses relative to the others |
 | **Recommended Version** | Which version to use (or "Combined" if the combine succeeded), with brief justification |
 
@@ -559,6 +556,59 @@ For any chronicle:
 - Are cultural traits operationalized for the genre, or just described?
 - Does temporalNarrative create felt constraints, not explained conditions?
 - What is the pipeline impact level (transformative → incremental)?
+
+## Copy-Edit Review
+
+### What the Copy-Edit Receives
+
+The copy-edit step receives **minimal context** — the text plus:
+- **Format**: story or document (selects format-specific system prompt)
+- **Style name**: e.g., "Confession", "Rashomon"
+- **Craft posture**: density and restraint constraints from the narrative style
+- **Word count context**: current word count and natural range, framed as context not target
+- **Voice textures**: PS-synthesized `narrativeVoice` dimensions (e.g., JUSTIFICATION_ARCHITECTURE, THREE_REGISTERS)
+- **Recurring motifs**: PS `suggestedMotifs` marked "do not cut or collapse"
+
+No world facts, entity data, or generation prompts. The editor works on the prose as written, not the prose as intended.
+
+### What to Check
+
+**Cuts should be genuine dead weight:**
+- Filter words creating false distance ("she noticed," "he felt")
+- Redundant modifiers, stage directions that reveal nothing about character
+- Duplicate-purpose material: two sections doing the same narrative work (not same-event-different-perspective, which is format-intentional)
+
+**Texture must survive:**
+- Voice-establishing passages where a narrator reveals themselves through what they notice, how they frame what they see
+- Characterizing observation that isn't plot, isn't dialogue register, but is doing real narrative work
+- Structural rhetoric (tricolons, callbacks, deliberate repetition)
+
+**Motifs must be preserved:**
+- All motif phrases should survive in the copy-edit output
+- Count instances before and after — motif frequency should not decrease
+
+**Voice textures must be respected:**
+- PS narrativeVoice dimensions describe intentional prose choices
+- The copy-edit should not cut material that a voice texture explicitly describes as intentional
+- Watch for conflicts between craft posture and voice textures — craft posture says "cut X" but a voice texture says "X is intentional." The voice texture should win.
+
+**Lore names must not be "corrected":**
+- World names that look like typos (e.g., "Scared~ Shroud") will sometimes be "fixed" by the LLM despite the system prompt saying "leave world details exactly as they are"
+- Check all unusual proper nouns in V3 against V2
+
+### Established Principles
+
+1. **Single responsibility:** Combine = ambitious assembly (grab everything good). Copy-edit = pare down. Don't put structural work back onto combine.
+2. **Narrative purpose > same beat:** Deduplication should target narrative purpose, not event identity. Two scenes covering the same event from different perspectives serve different purposes and must both stay.
+3. **Texture is not fat.** Characterizing observation, voice-establishing passages, and structural rhetoric are doing narrative work even when they don't advance plot.
+4. **Word count is not a copy-edit metric.** The copy-edit's job is to make the piece better — not shorter, not longer. The neutral framing ("use this as context for what length feels natural") prevents reduction-hunting.
+5. **User prompt must reinforce, not contradict, system prompt.** The system prompt's merge permission and the user prompt's preservation guidance must align.
+
+### Model Note
+
+Opus is significantly better at copy-edit than Sonnet. Opus makes real editorial decisions; Sonnet tends toward surface-level word swaps. The voice texture and motif preservation guidance matters more with Opus because Opus actually follows the directives.
+
+---
 
 ## Document Format Review Notes
 

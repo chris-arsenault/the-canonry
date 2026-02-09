@@ -11,7 +11,7 @@ interface GenerateStepProps {
 }
 
 export default function GenerateStep({ onGenerate }: GenerateStepProps) {
-  const { state } = useWizard();
+  const { state, setNarrativeDirection } = useWizard();
 
   // Count primary vs supporting roles
   const primaryCount = state.roleAssignments.filter(a => a.isPrimary).length;
@@ -144,6 +144,35 @@ export default function GenerateStep({ onGenerate }: GenerateStepProps) {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Narrative Direction */}
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+          Narrative Direction
+          <span style={{ textTransform: 'none', marginLeft: '6px', fontStyle: 'italic' }}>optional</span>
+        </div>
+        <p style={{ margin: '0 0 8px 0', color: 'var(--text-muted)', fontSize: '12px' }}>
+          Concrete story purpose that shapes perspective and generation. Leave empty for open-ended chronicles.
+        </p>
+        <textarea
+          value={state.narrativeDirection}
+          onChange={(e) => setNarrativeDirection(e.target.value)}
+          placeholder='e.g. "This is the treaty document that ended the Faction Wars" or "An eyewitness account of the apocalyptic magic that ended the Orca Invasion"'
+          style={{
+            width: '100%',
+            minHeight: '64px',
+            padding: '10px 12px',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            color: 'inherit',
+            fontSize: '13px',
+            fontFamily: 'inherit',
+            resize: 'vertical',
+            boxSizing: 'border-box',
+          }}
+        />
       </div>
 
       {/* Info Box */}

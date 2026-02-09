@@ -122,6 +122,8 @@ export interface PerspectiveSynthesisInput {
   }>;
   /** Fact selection settings for perspective synthesis. */
   factSelection?: FactSelectionConfig;
+  /** Optional free-text narrative direction — primary constraint when present */
+  narrativeDirection?: string;
 }
 
 /**
@@ -220,6 +222,7 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
     narrativeStyle,
     proseHints,
     factSelection,
+    narrativeDirection,
   } = input;
   const prominenceScale = buildProminenceScale(
     entities
@@ -290,6 +293,7 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
       narrativeStyle.description ? `Description: ${narrativeStyle.description}` : null,
       narrativeStyle.tags?.length ? `Tags: ${narrativeStyle.tags.join(', ')}` : null,
       narrativeStyle.proseInstructions ? `\nProse guidance:\n${narrativeStyle.proseInstructions}` : null,
+      narrativeStyle.craftPosture ? `\nCraft posture (density and restraint):\n${narrativeStyle.craftPosture}` : null,
     ].filter(Boolean);
     narrativeStyleDisplay = styleParts.join('\n');
   }
@@ -341,11 +345,20 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
     facetSelectionInstruction = 'Select 4-6';
   }
 
+  // Narrative direction block (only when provided)
+  const narrativeDirectionBlock = narrativeDirection
+    ? `\n=== NARRATIVE DIRECTION (PRIMARY CONSTRAINT) ===
+The author has specified this concrete direction for the chronicle:
+"${narrativeDirection}"
+
+Your perspective brief, entity directives, motifs, and fact facets must all serve this specific narrative. Treat this as the organizing thesis — every synthesis decision should support it.\n`
+    : '';
+
   return {
     resolvedWorldDynamics,
     prompt: `=== NARRATIVE STYLE ===
 ${narrativeStyleDisplay}
-
+${narrativeDirectionBlock}
 === BASELINE MATERIAL ===
 
 CORE TONE (applies to all chronicles):

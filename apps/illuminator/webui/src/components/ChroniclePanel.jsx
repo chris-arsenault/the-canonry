@@ -382,8 +382,10 @@ export default function ChroniclePanel({
     generateImageRefs: _generateImageRefs,
     regenerateWithSampling,
     regenerateFull,
+    regenerateCreative,
     compareVersions,
     combineVersions,
+    copyEdit,
   } = useChronicleActions(onEnqueue);
 
   // Lifecycle actions from store (no queue dependency)
@@ -681,6 +683,9 @@ export default function ChroniclePanel({
       },
       combine: {
         running: isRunning('combine'),
+      },
+      copyEdit: {
+        running: isRunning('copy_edit'),
       },
       coverImageScene: {
         running: isRunning('cover_image_scene'),
@@ -1029,6 +1034,67 @@ export default function ChroniclePanel({
     regenerateFull(selectedItem.chronicleId, context);
   }, [selectedItem, chronicleWorldData, worldContext, styleLibrary?.narrativeStyles, regenerateFull, entities, worldData?.schema?.cultures, cultureIdentities]);
 
+  // Creative freedom regeneration — same context building as full, but dispatches to creative step
+  const handleRegenerateCreative = useCallback(async () => {
+    if (!selectedItem || !worldContext) {
+      console.error('[Chronicle] Missing selectedItem or worldContext for creative regeneration');
+      return;
+    }
+
+    const narrativeStyle = selectedItem.narrativeStyle || styleLibrary?.narrativeStyles?.find(
+      (s) => s.id === selectedItem.narrativeStyleId
+    );
+    if (!narrativeStyle) {
+      console.error('[Chronicle] Narrative style not found:', selectedItem.narrativeStyleId);
+      return;
+    }
+    if (narrativeStyle.format !== 'story') {
+      console.error('[Chronicle] Creative freedom mode is only available for story format');
+      return;
+    }
+    const selections = {
+      roleAssignments: selectedItem.roleAssignments || [],
+      lens: selectedItem.lens,
+      selectedEventIds: selectedItem.selectedEventIds || [],
+      selectedRelationshipIds: selectedItem.selectedRelationshipIds || [],
+      entrypointId: selectedItem.entrypointId,
+    };
+
+    const wc = {
+      name: worldContext?.name || 'The World',
+      description: worldContext?.description || '',
+      toneFragments: worldContext.toneFragments,
+      canonFactsWithMetadata: worldContext.canonFactsWithMetadata,
+      factSelection: worldContext.factSelection,
+      worldDynamics: worldContext.worldDynamics,
+    };
+
+    const entityIds = (selectedItem.roleAssignments || []).map(r => r.entityId);
+    const selectedEntities = entities?.filter(e => entityIds.includes(e.id)) || [];
+    const cultureIds = extractCultureIds(selectedEntities);
+    let regenNameBank = {};
+    if (cultureIds.length > 0 && worldData?.schema?.cultures) {
+      try {
+        regenNameBank = await generateNameBank(worldData.schema.cultures, cultureIds);
+      } catch (e) {
+        console.warn('[Chronicle] Failed to generate name bank:', e);
+      }
+    }
+
+    const context = buildChronicleContext(
+      selections,
+      chronicleWorldData,
+      wc,
+      narrativeStyle,
+      regenNameBank,
+      worldContext?.proseHints,
+      cultureIdentities?.descriptive,
+      selectedItem.temporalContext
+    );
+
+    regenerateCreative(selectedItem.chronicleId, context);
+  }, [selectedItem, chronicleWorldData, worldContext, styleLibrary?.narrativeStyles, regenerateCreative, entities, worldData?.schema?.cultures, cultureIdentities]);
+
   const handleCompareVersions = useCallback(() => {
     if (!selectedItem) return;
     compareVersions(selectedItem.chronicleId);
@@ -1038,6 +1104,11 @@ export default function ChroniclePanel({
     if (!selectedItem) return;
     combineVersions(selectedItem.chronicleId);
   }, [selectedItem, combineVersions]);
+
+  const handleCopyEdit = useCallback(() => {
+    if (!selectedItem) return;
+    copyEdit(selectedItem.chronicleId);
+  }, [selectedItem, copyEdit]);
 
   // Handle regenerate (delete and go back to start screen) - uses restart modal
   const handleRegenerate = useCallback(() => {
@@ -1351,7 +1422,8 @@ export default function ChroniclePanel({
       wizardNameBank,
       proseHints,
       cultureIdentities?.descriptive,
-      wizardConfig.temporalContext
+      wizardConfig.temporalContext,
+      wizardConfig.narrativeDirection
     );
 
     // Derive chronicle metadata from role assignments
@@ -1378,6 +1450,7 @@ export default function ChroniclePanel({
       entrypointId: wizardConfig.entryPointId,
       temporalContext: wizardConfig.temporalContext,
       generationSampling: isLowSampling ? 'low' : 'normal',
+      narrativeDirection: wizardConfig.narrativeDirection,
     };
 
     console.log('[Chronicle Wizard] Generated chronicle:', {
@@ -1407,6 +1480,7 @@ export default function ChroniclePanel({
         entrypointId: wizardConfig.entryPointId,
         temporalContext: wizardConfig.temporalContext,
         generationSampling: isLowSampling ? 'low' : 'normal',
+        narrativeDirection: wizardConfig.narrativeDirection,
       });
       // Refresh to show the new shell record
       await refresh();
@@ -2048,8 +2122,10 @@ export default function ChroniclePanel({
                   onOpenImageSettings={onOpenImageSettings}
                   onRegenerateWithSampling={handleRegenerateWithSampling}
                   onRegenerateFull={handleRegenerateFull}
+                  onRegenerateCreative={selectedItem?.narrativeStyle?.format === 'story' ? handleRegenerateCreative : undefined}
                   onCompareVersions={handleCompareVersions}
                   onCombineVersions={handleCombineVersions}
+                  onCopyEdit={handleCopyEdit}
                   onGenerateChronicleImage={handleGenerateChronicleImage}
                   onResetChronicleImage={handleResetChronicleImage}
                   onRegenerateDescription={handleRegenerateDescription}

@@ -57,6 +57,8 @@ interface ExportGenerationContext {
   entityDirectives?: Array<{ entityId: string; entityName: string; directive: string }>;
   /** PS-synthesized temporal narrative — dynamics distilled into story-specific stakes */
   temporalNarrative?: string;
+  /** Optional narrative direction from wizard */
+  narrativeDirection?: string;
 }
 
 /**
@@ -72,6 +74,7 @@ interface ExportChronicleVersion {
   versionId: string;
   generatedAt: string;
   sampling?: 'normal' | 'low';
+  step?: string;
   model: string;
   wordCount: number;
   content: string;
@@ -97,8 +100,12 @@ export interface ChronicleExport {
     focusType: string;
     narrativeStyleId: string;
     narrativeStyleName?: string;
+    /** Craft posture constraints for this narrative style */
+    craftPosture?: string;
     /** Narrative lens entity providing contextual framing (rule, occurrence, ability) */
     lens?: { entityId: string; entityName: string; entityKind: string };
+    /** Optional narrative direction from wizard */
+    narrativeDirection?: string;
     createdAt: string;
     acceptedAt?: string;
     model: string;
@@ -312,7 +319,9 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
       focusType: chronicle.focusType,
       narrativeStyleId: chronicle.narrativeStyleId,
       narrativeStyleName: chronicle.narrativeStyle?.name,
+      craftPosture: chronicle.narrativeStyle?.craftPosture,
       lens: chronicle.lens ? { entityId: chronicle.lens.entityId, entityName: chronicle.lens.entityName, entityKind: chronicle.lens.entityKind } : undefined,
+      narrativeDirection: chronicle.narrativeDirection,
       createdAt: new Date(chronicle.createdAt).toISOString(),
       acceptedAt: chronicle.acceptedAt
         ? new Date(chronicle.acceptedAt).toISOString()
@@ -337,6 +346,7 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
         versionId: version.versionId,
         generatedAt: new Date(version.generatedAt).toISOString(),
         sampling: version.sampling,
+        step: version.step,
         model: version.model,
         wordCount: version.wordCount,
         content: version.content,
@@ -351,6 +361,7 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
     versionId: `current_${chronicle.assembledAt ?? chronicle.createdAt}`,
     generatedAt: new Date(chronicle.assembledAt ?? chronicle.createdAt).toISOString(),
     sampling: chronicle.generationSampling,
+    step: chronicle.generationStep,
     model: chronicle.model,
     wordCount: currentWordCount,
     content: currentContent,

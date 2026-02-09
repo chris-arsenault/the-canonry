@@ -13,6 +13,7 @@ import type {
   ChronicleMetadata,
   EntityUsageStats,
   NarrativeStyleUsageStats,
+  VersionStep,
 } from '../chronicleTypes';
 import type { ChronicleTemporalContext, CohesionReport, ChronicleImageRefs, ChronicleCoverImage } from '../chronicleTypes';
 import type { ChronicleStep } from '../enrichmentTypes';
@@ -30,6 +31,7 @@ export type {
   ChronicleMetadata,
   EntityUsageStats,
   NarrativeStyleUsageStats,
+  VersionStep,
 };
 
 // ============================================================================
@@ -96,6 +98,7 @@ function buildGenerationVersion(record: ChronicleRecord): ChronicleGenerationVer
     userPrompt:
       record.generationUserPrompt ||
       '(prompt not stored - chronicle generated before prompt storage was implemented)',
+    step: record.generationStep,
   };
 }
 
@@ -134,6 +137,7 @@ export async function createChronicleShell(
     selectedRelationshipIds: metadata.selectedRelationshipIds,
     temporalContext: metadata.temporalContext,
     generationSampling: metadata.generationSampling,
+    narrativeDirection: metadata.narrativeDirection,
 
     // Mechanical
     entrypointId: metadata.entrypointId,
@@ -186,6 +190,7 @@ export async function createChronicle(
     selectedEventIds: metadata.selectedEventIds,
     selectedRelationshipIds: metadata.selectedRelationshipIds,
     temporalContext: metadata.temporalContext,
+    narrativeDirection: metadata.narrativeDirection,
 
     // Mechanical
     entrypointId: metadata.entrypointId,
@@ -196,6 +201,7 @@ export async function createChronicle(
     generationSystemPrompt: metadata.generationSystemPrompt,
     generationUserPrompt: metadata.generationUserPrompt,
     generationSampling: metadata.generationSampling,
+    generationStep: 'generate',
     activeVersionId,
     status: 'assembly_ready',
     assembledContent: metadata.assembledContent,
@@ -259,6 +265,7 @@ export async function regenerateChronicleAssembly(
     model: string;
     sampling?: ChronicleRecord['generationSampling'];
     cost: { estimated: number; actual: number; inputTokens: number; outputTokens: number };
+    step?: VersionStep;
   }
 ): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
@@ -281,6 +288,7 @@ export async function regenerateChronicleAssembly(
   record.generationSystemPrompt = updates.systemPrompt;
   record.generationUserPrompt = updates.userPrompt;
   record.generationSampling = updates.sampling;
+  record.generationStep = updates.step;
   record.activeVersionId = `current_${record.assembledAt}`;
 
   record.failureStep = undefined;

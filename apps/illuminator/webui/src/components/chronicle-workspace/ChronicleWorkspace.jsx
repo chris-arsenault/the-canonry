@@ -20,8 +20,10 @@ export default function ChronicleWorkspace({
   onRegenerate,
   onRegenerateWithSampling,
   onRegenerateFull,
+  onRegenerateCreative,
   onCompareVersions,
   onCombineVersions,
+  onCopyEdit,
   onValidate,
   onGenerateSummary,
   onGenerateTitle,
@@ -102,18 +104,26 @@ export default function ChronicleWorkspace({
   const activeVersionId = item.activeVersionId || currentVersionId;
 
   const versions = useMemo(() => {
+    const stepLabel = (step) => {
+      if (!step) return null;
+      const labels = { generate: 'initial', regenerate: 'regenerate', creative: 'creative', combine: 'combine', copy_edit: 'copy-edit' };
+      return labels[step] || step;
+    };
+
     const history = (item.generationHistory || []).map((version, index) => {
       const samplingLabel = version.sampling ?? 'unspecified';
+      const step = stepLabel(version.step);
       return {
         id: version.versionId,
         content: version.content,
         wordCount: version.wordCount,
         shortLabel: `V${index + 1}`,
-        label: `Version ${index + 1} \u2022 ${new Date(version.generatedAt).toLocaleString()} \u2022 sampling ${samplingLabel}`,
+        label: `Version ${index + 1} \u2022 ${new Date(version.generatedAt).toLocaleString()} \u2022 ${step ? step : `sampling ${samplingLabel}`}`,
       };
     });
 
     const currentSamplingLabel = item.generationSampling ?? 'unspecified';
+    const currentStep = stepLabel(item.generationStep);
     const currentVersionNumber = history.length + 1;
 
     history.push({
@@ -121,7 +131,7 @@ export default function ChronicleWorkspace({
       content: item.assembledContent,
       wordCount: wordCount(item.assembledContent),
       shortLabel: `V${currentVersionNumber}`,
-      label: `Version ${currentVersionNumber} \u2022 ${new Date(item.assembledAt ?? item.createdAt).toLocaleString()} \u2022 sampling ${currentSamplingLabel}`,
+      label: `Version ${currentVersionNumber} \u2022 ${new Date(item.assembledAt ?? item.createdAt).toLocaleString()} \u2022 ${currentStep ? currentStep : `sampling ${currentSamplingLabel}`}`,
     });
 
     return history;
@@ -131,6 +141,7 @@ export default function ChronicleWorkspace({
     item.assembledAt,
     item.createdAt,
     item.generationSampling,
+    item.generationStep,
     currentVersionId,
   ]);
 
@@ -180,6 +191,7 @@ export default function ChronicleWorkspace({
 
   const compareRunning = refinements?.compare?.running || false;
   const combineRunning = refinements?.combine?.running || false;
+  const copyEditRunning = refinements?.copyEdit?.running || false;
 
   // ---------------------------------------------------------------------------
   // Seed data
@@ -366,10 +378,13 @@ export default function ChronicleWorkspace({
             onCompareVersions={onCompareVersions}
             onCombineVersions={onCombineVersions}
             onRegenerateFull={onRegenerateFull}
+            onRegenerateCreative={onRegenerateCreative}
             onRegenerateWithSampling={onRegenerateWithSampling}
             onUpdateCombineInstructions={onUpdateCombineInstructions}
+            onCopyEdit={onCopyEdit}
             compareRunning={compareRunning}
             combineRunning={combineRunning}
+            copyEditRunning={copyEditRunning}
           />
         )}
 

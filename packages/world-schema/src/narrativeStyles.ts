@@ -76,6 +76,15 @@ export interface StoryNarrativeStyle {
    */
   eventInstructions?: string;
 
+  /**
+   * Craft posture - how the author should relate to the material.
+   * Controls density, withholding, elaboration mode, emotional signaling.
+   * Orthogonal to prose instructions (which say what the writing should feel like)
+   * and word count (which controls quantity). This controls density within
+   * whatever word count is specified.
+   */
+  craftPosture?: string;
+
   // === Structured Data (genuinely useful as structured) ===
 
   /** Cast roles - what positions exist in this narrative */
@@ -136,6 +145,10 @@ TECHNIQUE - BITTER CAMARADERIE: Even in grief, characters have relationships. Da
 AVOID: The chronicler explaining what events "meant." Losses described at a distance rather than felt in the moment. Ending with thematic summary. Commentary on the act of chronicling itself. Conceptual descriptions where physical ones would serve.`,
 
     eventInstructions: 'Events are what the chronicler dramatizes. Significant moments should play out, not be summarized. The chronicle is a story, not a historical summary with narrative framing.',
+
+    craftPosture: `- Sustain elaboration. Accumulated detail is the method — let scenes breathe and dramatize rather than compress.
+- Institutional texture earns its place when it reveals how power operates through people.
+- Withhold commentary. The gap between what is recorded and what happened does the work.`,
 
     roles: [
       { role: 'chronicler', count: { min: 1, max: 1 }, description: 'The witness who survived to tell this - they frame everything, but tell the story rather than comment on telling it' },
@@ -199,6 +212,10 @@ TECHNIQUE - COST ON THE BODY: Show exhaustion accumulating. Hands shaking. Visio
 AVOID: Scenes where people stand and talk. Internal monologue. Reflection. Any sentence that starts with "He realized..."`,
 
     eventInstructions: 'Events are obstacles that cost time. Each one forces a choice: deal with it (lose time) or bypass it (face consequences later).',
+
+    craftPosture: `- Compress. Every sentence advances motion or raises stakes. Cut anything static.
+- Description is functional — what can be used, reached, or broken. No atmosphere for its own sake.
+- Show physical cost accumulating. Exhaustion and injury in detail, not emotion in summary.`,
 
     roles: [
       { role: 'hero', count: { min: 1, max: 2 }, description: 'Racing the clock - defined by what they do, not what they think' },
@@ -266,6 +283,10 @@ AVOID: Love at first sight without complication. External plot overwhelming the 
 
     eventInstructions: 'Events are pretexts for emotional revelation. The plot exists to put pressure on hearts, not to resolve through action.',
 
+    craftPosture: `- Precise physical detail over emotional exposition. One specific gesture outweighs a paragraph of feeling.
+- Withhold declarations. The approach is the story, not the arrival.
+- Differentiate density between characters. Each perspective earns its own texture.`,
+
     roles: [
       { role: 'lover-a', count: { min: 1, max: 1 }, description: 'First perspective - we live in their world before the meeting' },
       { role: 'lover-b', count: { min: 1, max: 1 }, description: 'Second perspective - different world, different lack' },
@@ -320,6 +341,10 @@ TECHNIQUE - EARNED SILENCE: Silence is not empty. When dialogue stops, we stay w
 AVOID: Dramatic events. Conflict requiring resolution. Backstory dumps. Realizations. Character arcs. The story does not need to "go somewhere."`,
 
     eventInstructions: 'Events are texture, not drivers. They happen in the background or memory. The moment being lived is not about events.',
+
+    craftPosture: `- Dwell. Duration is the method. Let process and presence take the space that plot would.
+- Sensory precision over emotional labeling. Depth, not breadth.
+- Stillness is not a gap. Resist filling quiet moments with significance.`,
 
     roles: [
       { role: 'focal-point', count: { min: 1, max: 1 }, description: 'The consciousness we inhabit - person, place, or moment' },
@@ -396,6 +421,10 @@ AVOID: Mustache-twirling villains. Characters who state their true motives. Easy
 
     eventInstructions: 'Events are leverage. What happened creates obligations, grudges, and evidence. The protagonist must navigate history as much as present circumstances.',
 
+    craftPosture: `- Layer surface and undercurrent simultaneously. Every exchange carries two meanings.
+- Patience. Let each position establish before shifting it. Do not rush to the endgame.
+- Detail earns its place when it reveals power dynamics. Restrain revelation — suspicion before knowledge.`,
+
     roles: [
       { role: 'player-a', count: { min: 1, max: 1 }, description: 'The protagonist - observant, calculating, making moves through the political landscape' },
       { role: 'player-b', count: { min: 1, max: 1 }, description: 'Current authority figure or primary opposition - has something player-a needs or threatens' },
@@ -456,6 +485,10 @@ TECHNIQUE - CONFIDENT INCOMPATIBILITY: No witness hedges. No "I think" or "perha
 AVOID: Omniscient resolution. One account being obviously correct. Witnesses acknowledging their view is partial. Scene 4 revealing what really happened. Any voice outside the witnesses' perspectives.`,
 
     eventInstructions: 'The event is given to you as the-moment in the cast. This is the ONLY thing you dramatize. Do not invent additional events. Tell this one moment three ways.',
+
+    craftPosture: `- Each account fully elaborated and confident. Certainty is the technique — no hedging.
+- Contradiction emerges from selective attention, not from altering facts.
+- Restraint in the closing. Brief, concrete, unresolved. Do not adjudicate.`,
 
     roles: [
       { role: 'witness-a', count: { min: 1, max: 1 }, description: 'First perspective - their account opens the story and establishes the baseline truth that subsequent accounts will complicate' },
@@ -524,6 +557,10 @@ TECHNIQUE - THE RETURN: The final scene should quote or closely echo the opening
 AVOID: Plot mechanics. Explaining what images mean. Rushing to conclusion. Generic "beautiful" language - find the strange, specific beauty.`,
 
     eventInstructions: 'Events are prompts for meditation, not drivers. They exist to be contemplated, not resolved.',
+
+    craftPosture: `- Trust the image. If it needs explanation, replace the explanation with a better image.
+- White space is compositional. Short paragraphs. Let the poem breathe in gaps.
+- Sound and meaning carry equal weight. Rhythm is a structural element.`,
 
     roles: [
       { role: 'consciousness', count: { min: 1, max: 1 }, description: 'The perceiving presence - we see through them, feel with them' },
@@ -594,6 +631,10 @@ AVOID: Jokes. Punchlines. Winking at the audience. Characters being funny on pur
 
     eventInstructions: 'Events are triggers for systemic failure. The catalyst should be small, reasonable, forgettable - something anyone might do. The catastrophe emerges from the system, not the individual.',
 
+    craftPosture: `- Never acknowledge the absurdity. The gap between prose register and content does the work.
+- Escalation is procedural, not dramatic. Each step follows logically from the last.
+- Linger on consequences. The comedy requires that the damage is real and specific.`,
+
     roles: [
       { role: 'fool', count: { min: 1, max: 2 }, description: 'The reasonable person trapped in unreasonable circumstances - competent, professional, doing everything right' },
       { role: 'system', count: { min: 1, max: 1 }, description: 'The inadequate structure - bureaucracy, protocol, or procedure that cannot handle what it encounters' },
@@ -654,6 +695,10 @@ TECHNIQUE - THE TRANSFORMATION: By Act III, the hero should be visibly different
 AVOID: Irony. Deconstruction. Moral ambiguity. Anticlimactic endings. This is not the place to subvert the genre - play it straight.`,
 
     eventInstructions: 'Events are trials and victories. Each is a step in the hero\'s transformation. Treat them as legendary deeds.',
+
+    craftPosture: `- Mythic simplicity. Clean, powerful strokes over elaborate texture. When in doubt, cut.
+- Let sacrifice and transformation speak for themselves. Do not narrativize internal process.
+- The world exists through what characters touch and see, not through explanation.`,
 
     roles: [
       { role: 'hero', count: { min: 1, max: 1 }, description: 'The chosen one - starts ordinary, becomes extraordinary' },
@@ -729,6 +774,10 @@ AVOID: Redemption arcs. Last-minute saves. Villains to blame. The tragedy is tha
 
     eventInstructions: 'Events are steps toward doom. Each should feel inevitable in retrospect. The audience should see them coming before the characters do.',
 
+    craftPosture: `- Dramatic irony sustains elaboration. Every detail carries double weight when the ending is known. Lean into that richness.
+- Show the flaw, don't name it. Invest density in establishing what will be lost.
+- Give the moment of recognition room. Cut anything that makes the doom feel accidental.`,
+
     roles: [
       { role: 'doomed', count: { min: 1, max: 1 }, description: 'The great figure who will fall - their greatness and their flaw must both be real' },
       { role: 'flaw', count: { min: 0, max: 1 }, description: 'The fatal weakness - hubris, rigidity, blind spot. May be embodied in a choice, belief, or relationship' },
@@ -795,6 +844,10 @@ TECHNIQUE - THE INNOCENT DETAIL: The most damning clue should seem most innocent
 AVOID: Cheating. Clues the reader couldn't have noticed. Revelations that come from nowhere. Detectives who explain rather than demonstrate.`,
 
     eventInstructions: 'Events are clues with surface meaning and hidden meaning. Write knowing both.',
+
+    craftPosture: `- Front-load density. The opening requires the most craft — it must work innocently and reward re-reading.
+- Invest equally in false leads. Wrong theories deserve real evidence.
+- The revelation reframes, it doesn't explain. Show the new shape, don't narrate it.`,
 
     roles: [
       { role: 'investigator', count: { min: 1, max: 1 }, description: 'The seeker of truth - we follow their attention, share their mistakes' },
@@ -868,6 +921,10 @@ AVOID: Easy victories. Luck over virtue. Anticlimactic discovery. Treasure that'
 
     eventInstructions: 'Events are trials and revelations. Each advances the journey and tests the seeker.',
 
+    craftPosture: `- Each trial earns its space by testing something distinct. Redundant challenges should be cut.
+- Invest density in the moment of discovery. The reader should feel the accumulated weight of the journey.
+- Establish what will be sacrificed before it's lost. Cost requires prior investment.`,
+
     roles: [
       { role: 'treasure', count: { min: 1, max: 1 }, description: 'The artifact sought - not just valuable but meaningful, with history and power' },
       { role: 'seeker', count: { min: 1, max: 2 }, description: 'Those who pursue - defined by why they seek and what they\'ll sacrifice' },
@@ -937,6 +994,10 @@ AVOID: Jump scares. Gore without meaning. Easy cures. Heroes who don't suffer. T
 
     eventInstructions: 'Events are manifestations of the curse across time. Past events foreshadow; present events echo.',
 
+    craftPosture: `- Accumulate dread through small details, not dramatic reveals. Wrongness creeps.
+- Both timelines at equal density. Neither is backstory for the other.
+- Invest as much detail in the artifact's appeal as in its horror.`,
+
     roles: [
       { role: 'artifact', count: { min: 1, max: 1 }, description: 'The cursed object - beautiful and terrible, its appeal is part of the trap' },
       { role: 'victim', count: { min: 1, max: 1 }, description: 'Present-day possessor - we watch them enter the pattern' },
@@ -1002,6 +1063,10 @@ AVOID: Privileging one generation as "the real story." Sentimentality about ance
 
     eventInstructions: 'Events span generations. What happened to the artifact? How did it pass? What moments changed its meaning?',
 
+    craftPosture: `- Gesture over catalog. Compress institutional detail to the single telling moment.
+- Deaths and departures in half-sentences. Don't linger.
+- Each generation gets exactly what it needs, no more. Silence is content, not a gap.`,
+
     roles: [
       { role: 'artifact', count: { min: 1, max: 1 }, description: 'The object that passes through time - the true protagonist, carrying accumulated meaning' },
       { role: 'first-generation', count: { min: 1, max: 1 }, description: 'Origin point - who made it, found it, first held it' },
@@ -1065,6 +1130,10 @@ AVOID: Making the speaker obviously villainous. Making the "truth" explicitly st
 
     eventInstructions: 'Events are what the speaker is trying to explain or justify. Their version of events is the story. The true version is what the reader infers.',
 
+    craftPosture: `- Invest in making the speaker's version compelling. The self-deception only works if their account is persuasive.
+- Calibrate crack visibility — catchable on re-read, not on first pass.
+- The unraveling is self-generated. Excess justification, not external contradiction, does the revealing.`,
+
     roles: [
       { role: 'confessor', count: { min: 1, max: 1 }, description: 'The speaker - articulate, self-deceiving, sympathetic despite everything' },
       { role: 'audience', count: { min: 1, max: 1 }, description: 'Who the confession is addressed to - judge, lover, deity, self. May never speak but shapes the confession' },
@@ -1127,6 +1196,10 @@ TECHNIQUE - THE FORMULA: Use repetitive structures. Things happen in threes. Cha
 AVOID: Psychological complexity. Moral ambiguity (the fable has a clear lesson, even if the lesson is debatable). Modern irony. Realistic dialogue. The fable is not trying to be true - it is trying to be memorable.`,
 
     eventInstructions: 'Events are the raw material that the fable exaggerates. A real battle becomes a legendary clash. A real betrayal becomes an eternal cautionary tale. The fable does not respect facts - it respects meaning.',
+
+    craftPosture: `- Bold strokes. Simplify to archetype. Do not complicate characters beyond their defining trait.
+- Embrace formulaic patterns. Repetition and escalation are structural tools, not flaws.
+- Exaggerate without apology. Inflate scale deliberately. State the moral directly.`,
 
     roles: [
       { role: 'archetype', count: { min: 1, max: 1 }, description: 'The central figure - defined by one trait, simplified from a real entity into a folk character' },
@@ -1198,6 +1271,10 @@ AVOID: Clear-cut guilt or innocence. Perry Mason revelations. Courtroom drama cl
 
     eventInstructions: 'Events are evidence. They appear as testified facts, challenged interpretations, and contested narratives. The same event looks different from the witness stand than it did when it happened.',
 
+    craftPosture: `- Clinical precision. Procedural formality carries emotional weight through contrast.
+- Evidence accumulates. Don't rush the verdict. Let testimony build its own pressure.
+- Contested facts earn the most space. Give both interpretations room to be compelling.`,
+
     roles: [
       { role: 'accused', count: { min: 1, max: 1 }, description: 'The one on trial - their guilt or innocence genuinely uncertain' },
       { role: 'accuser', count: { min: 1, max: 1 }, description: 'The prosecution - may be wronged party, state authority, or political rival' },
@@ -1266,6 +1343,10 @@ TECHNIQUE - DREAM ACCEPTANCE: The dreamer never questions the impossible. They w
 AVOID: Plot. Causality. Rational explanations. Metaphors that are "explained" - the images ARE the meaning. Waking up as a resolution. Treating the dream as allegory to be decoded.`,
 
     eventInstructions: 'Events dissolve into imagery. A battle becomes a color. A betrayal becomes a smell. The dream transforms events into their emotional essence.',
+
+    craftPosture: `- Inhabit, don't describe. The prose is the experience, not a report of it.
+- Every sentence transforms something. If nothing changes within it, it doesn't earn its place.
+- Cross sensory boundaries without announcing it. Synesthesia is native here.`,
 
     roles: [
       { role: 'dreamer', count: { min: 1, max: 1 }, description: 'The consciousness moving through the dream - may split, transform, or dissolve' },
@@ -1338,6 +1419,10 @@ TECHNIQUE - SYMBOLIC PRECISION: Unlike the Dreamscape's fluid associations, prop
 AVOID: Nihilism. Destruction without meaning. Modern apocalyptic cliches (zombies, nuclear). Vague mysticism. The vision should feel ancient, specific, and earned.`,
 
     eventInstructions: 'Events are transformed into cosmic signs. A real war becomes the opening of a seal. A real famine becomes the withering of the world-tree. History becomes prophecy.',
+
+    craftPosture: `- Enumerate, don't summarize. Accumulation of named specifics creates cosmic scale.
+- Precision at enormous scope. Render destruction through what is concretely lost.
+- Witnessing, not narrating. The overwhelm should be felt in the prose, not described.`,
 
     roles: [
       { role: 'prophet', count: { min: 1, max: 1 }, description: 'The one who sees - unwilling, overwhelmed, transformed by the vision' },

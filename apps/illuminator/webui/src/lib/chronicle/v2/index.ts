@@ -10,6 +10,8 @@ export {
   buildV2Prompt,
   getMaxTokensFromStyle,
   getV2SystemPrompt,
+  buildCreativeStoryPrompt,
+  getCreativeSystemPrompt,
 } from './promptBuilder';
 export {
   DEFAULT_V2_CONFIG,

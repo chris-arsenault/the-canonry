@@ -176,8 +176,10 @@ export default function ChronicleReviewPanel({
   onRegenerate,
   onRegenerateWithSampling,
   onRegenerateFull,
+  onRegenerateCreative,
   onCompareVersions,
   onCombineVersions,
+  onCopyEdit,
   onCorrectSuggestions,
   onGenerateSummary,
   onGenerateTitle,
@@ -259,8 +261,10 @@ export default function ChronicleReviewPanel({
         onRegenerate={onRegenerate}
         onRegenerateWithSampling={onRegenerateWithSampling}
         onRegenerateFull={onRegenerateFull}
+        onRegenerateCreative={onRegenerateCreative}
         onCompareVersions={onCompareVersions}
         onCombineVersions={onCombineVersions}
+        onCopyEdit={onCopyEdit}
         onValidate={onValidate}
         onGenerateSummary={onGenerateSummary}
         onGenerateTitle={onGenerateTitle}

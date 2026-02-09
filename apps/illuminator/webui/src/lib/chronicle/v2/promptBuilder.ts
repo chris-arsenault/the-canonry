@@ -305,7 +305,7 @@ function buildNarrativeVoiceSection(
   }
 
   const lines: string[] = ['# Story Bible: Tone & Atmosphere'];
-  lines.push('Reference notes on emotional texture — draw on these, but show don\'t tell:');
+  lines.push('Reference notes on emotional texture — draw on these:');
   lines.push('');
 
   for (const [key, value] of Object.entries(narrativeVoice)) {
@@ -368,6 +368,26 @@ function buildNarrativeLensSection(
   lines.push('Lens Guidance: This entity is NOT a character in the story. It is the context — the constraint, the backdrop, the thing everyone knows but no one can change. It should be felt in characters\' choices, in what is possible and impossible, in what goes unsaid. Reference it naturally, never explain it to the reader as if they don\'t know it.');
 
   return lines.join('\n');
+}
+
+// =============================================================================
+// Narrative Direction (optional, from wizard)
+// =============================================================================
+
+/**
+ * Build the narrative direction section.
+ * Only emits content when narrativeDirection is present.
+ * When empty/undefined, returns empty string — no prompt change.
+ */
+function buildNarrativeDirectionSection(
+  narrativeDirection: string | undefined
+): string {
+  if (!narrativeDirection) return '';
+
+  return `# Narrative Direction
+This chronicle has a specific narrative purpose:
+"${narrativeDirection}"
+Write to fulfill this direction. Every structural and tonal choice should serve it.`;
 }
 
 // =============================================================================
@@ -488,6 +508,15 @@ function buildUnifiedStyleSection(
     hasContent = true;
   }
 
+  // Craft posture - authorial density and restraint constraints
+  if (style.craftPosture) {
+    if (hasContent) lines.push('');
+    lines.push(`## Craft Posture`);
+    lines.push('How to relate to the material — density, withholding, and elaboration:');
+    lines.push(style.craftPosture);
+    hasContent = true;
+  }
+
   return hasContent ? lines.join('\n') : '';
 }
 
@@ -575,10 +604,14 @@ Requirements:
   // 11 & 12. RELATIONSHIPS + EVENTS
   const dataSection = buildDataSection(selection);
 
+  // NARRATIVE DIRECTION (optional, between task and structure)
+  const narrativeDirectionSection = buildNarrativeDirectionSection(context.narrativeDirection);
+
   // Combine sections in order: TASK DATA then WORLD DATA
   const sections = [
     // TASK DATA
     taskSection,
+    narrativeDirectionSection,
     structureSection,
     eventSection,
     narrativeVoiceSection,
@@ -670,11 +703,19 @@ function getDocumentInstructions(style: DocumentNarrativeStyle): string {
 function buildDocumentInstructionsSection(style: DocumentNarrativeStyle): string {
   const instructions = getDocumentInstructions(style);
   if (!instructions) {
-    return '';
+    return style.craftPosture ? `# Document Instructions\n\n## Craft Posture\nHow to relate to the material — density, withholding, and elaboration:\n${style.craftPosture}` : '';
   }
 
-  return `# Document Instructions
-${instructions}`;
+  const lines = [`# Document Instructions`, instructions];
+
+  if (style.craftPosture) {
+    lines.push('');
+    lines.push(`## Craft Posture`);
+    lines.push('How to relate to the material — density, withholding, and elaboration:');
+    lines.push(style.craftPosture);
+  }
+
+  return lines.join('\n');
 }
 
 /**
@@ -873,10 +914,14 @@ Requirements:
   // 11. RELATIONSHIPS + EVENTS
   const dataSection = buildDataSection(selection);
 
+  // NARRATIVE DIRECTION (optional, between task and instructions)
+  const narrativeDirectionSection = buildNarrativeDirectionSection(context.narrativeDirection);
+
   // Combine sections in order: TASK DATA then WORLD DATA
   const sections = [
     // TASK DATA
     taskSection,
+    narrativeDirectionSection,
     instructionsSection,
     eventSection,
     narrativeVoiceSection,
@@ -967,10 +1012,10 @@ Your prompt contains:
 
 CRAFT (how to write):
 - Narrative Structure: Your beat sheet — scene progression and emotional shape
-- Writing Style: Prose craft specific to this story type
+- Writing Style: Prose craft specific to this story type, including craft posture (density and restraint constraints)
 
 STORY BIBLE (background reference, not requirements):
-- Tone & Atmosphere: Notes on emotional texture — show don't tell
+- Tone & Atmosphere: Notes on emotional texture
 - Character Notes: Relationships and history — bring alive through specificity
 
 WORLD DATA (what to write about):
@@ -982,7 +1027,7 @@ WORLD DATA (what to write about):
 
 CRITICAL: Entity descriptions reflect who characters BECAME. Write them as they WERE during the story's events. A character described as dead was alive when your story takes place.
 
-Craft defines how to write; Story Bible is background reference. Show don't tell — the world exists through what characters notice, do, and feel.`;
+Craft defines how to write; Story Bible is background reference. The world exists through what characters notice, do, and feel.`;
   } else {
     return `You are crafting an in-universe document that feels authentic and alive. Your prompt contains:
 
@@ -1007,4 +1052,222 @@ Document Instructions define the document's structure and format — they are pr
 
 Write authentically as if the document exists within the world. No meta-commentary.`;
   }
+}
+
+// =============================================================================
+// Creative Freedom Mode
+// =============================================================================
+
+/**
+ * System prompt for creative freedom generation.
+ *
+ * Key differences from structured (getV2SystemPrompt):
+ * - Fiction writer identity with competitive frame ("structured version already exists")
+ * - Pushes toward risk: "find what it missed — the angle, the voice, the structure it didn't try"
+ * - Anti-AI-tells: "the measure is whether a reader would say 'this is a story'"
+ * - Same PS, same data — only the generation prompt framing differs.
+ */
+export function getCreativeSystemPrompt(): string {
+  return `You are a fiction writer. A structured version of this story already exists. Your job is to find what it missed — the angle, the voice, the structure it didn't try. Take risks. The measure is whether a reader would say "this is a story" — not "this is AI output." Avoid the patterns, rhythms, and hedging that mark machine-generated text.
+
+Your prompt contains:
+
+TASK DATA (how to write it):
+- Task: Word count, permissions
+- Narrative Structure: What the structured version follows — you can follow it, subvert it, or ignore it
+- Event Usage: How to incorporate world events
+- Writing Style: World tone sets the backdrop; Prose instructions are specific to this story type
+
+GUIDANCE (pre-synthesized — follow their intent closely, but express them in your own voice):
+- Tone & Atmosphere: Synthesized prose guidance blending cultural and stylistic elements
+- Character Notes: Per-entity guidance for speech, behavior, and portrayal
+
+WORLD DATA (what to write about):
+- Cast: Narrative roles to fill, then characters to fill them
+- Narrative Lens (optional): A contextual entity that shapes the story without being a character
+- World: Setting name, description, canon facts
+- Historical Context: Current era and world timeline
+- Events: What happened in the world
+
+Entity descriptions reflect who characters BECAME. Write them as they WERE during the story's events.
+
+Tone & Atmosphere and Character Notes are pre-synthesized guidance — follow their intent closely, but express them in your own voice. Writing Style provides the ambient tone everything sits within.`;
+}
+
+/**
+ * Build the creative freedom prompt for story format.
+ *
+ * This is a FULLY SEPARATE prompt from buildStoryPrompt — intentional duplication.
+ * Same PS outputs, same world data, same entity selection. The differences from
+ * the structured prompt are:
+ *
+ * 1. Fiction writer identity with competitive frame against structured version
+ * 2. Permissions not requirements — may reassign roles, invent characters, ignore structure
+ * 3. Structure presented as "what the structured version follows" — subversion encouraged
+ * 4. No craft posture — removed from writing style
+ *
+ * The creative mode runs the same PS as the structured prompt, so it receives
+ * the same narrative voice, entity directives, faceted facts, and motifs.
+ * The difference is purely in how the generation prompt frames and presents
+ * this material to the LLM.
+ */
+export function buildCreativeStoryPrompt(
+  context: ChronicleGenerationContext,
+  selection: V2SelectionResult,
+): string {
+  const style = context.narrativeStyle as StoryNarrativeStyle;
+  const pacing = style.pacing;
+  const wordRange = `${pacing.totalWordCount.min}-${pacing.totalWordCount.max}`;
+  const sceneRange = pacing.sceneCount
+    ? `${pacing.sceneCount.min}-${pacing.sceneCount.max}`
+    : '4-5';
+
+  const primaryEntityIds = new Set(context.focus?.primaryEntityIds || []);
+  const prominenceScale = buildProminenceScaleForEntities([
+    ...selection.entities,
+    context.lensEntity,
+  ]);
+
+  // === TASK DATA ===
+
+  // 1. TASK — permissions, not requirements
+  const taskSection = `# Task
+Write a ${wordRange} word narrative.
+
+- You may reassign characters to different narrative roles than those suggested below
+- You may invent minor characters, framing devices, or structural choices not in the prompt
+- Draw on the Character Notes but don't feel bound by them — find your own read on these people
+- Write directly with no section headers or meta-commentary`;
+
+  // 2. NARRATIVE STRUCTURE — softened: presented as suggestion
+  const structureSection = buildCreativeStructureSection(style);
+
+  // 3. EVENT USAGE
+  const eventSection = buildEventUsageSection(style);
+
+  // 4. NARRATIVE VOICE — V0-style header (not "Story Bible")
+  let narrativeVoiceSection = '';
+  if (context.narrativeVoice && Object.keys(context.narrativeVoice).length > 0) {
+    const voiceLines: string[] = ['# Tone & Atmosphere'];
+    voiceLines.push('Synthesized prose guidance for this chronicle:');
+    voiceLines.push('');
+    for (const [key, value] of Object.entries(context.narrativeVoice)) {
+      voiceLines.push(`**${key}**: ${value}`);
+    }
+    narrativeVoiceSection = voiceLines.join('\n');
+  }
+
+  // 5. ENTITY WRITING DIRECTIVES — V0-style header (not "Story Bible")
+  let entityDirectivesSection = '';
+  if (context.entityDirectives && context.entityDirectives.length > 0) {
+    const directiveLines: string[] = ['# Character Notes'];
+    directiveLines.push('Specific guidance for writing each entity — interpret creatively, don\'t reproduce this language directly:');
+    directiveLines.push('');
+    for (const directive of context.entityDirectives) {
+      directiveLines.push(`**${directive.entityName}**: ${directive.directive}`);
+    }
+    entityDirectivesSection = directiveLines.join('\n');
+  }
+
+  // 6. WRITING STYLE — same as structured but without craft posture
+  const styleSection = buildCreativeStyleSection(context.tone, style);
+
+  // === WORLD DATA ===
+
+  // 7. CAST (unified roles + characters — same as structured)
+  const castSection = buildUnifiedCastSection(selection, primaryEntityIds, style, prominenceScale);
+
+  // 7b. NARRATIVE LENS (contextual frame entity)
+  const lensSection = buildNarrativeLensSection(context, prominenceScale);
+
+  // 8. WORLD (setting context only, no style)
+  const worldSection = buildWorldSection(context);
+
+  // 9. NAME BANK (practical data)
+  const nameBankSection = buildNameBankSection(context.nameBank, selection.entities);
+
+  // 10. HISTORICAL CONTEXT
+  const temporalSection = buildTemporalSection(context.temporalContext, context.temporalNarrative);
+
+  // 11 & 12. RELATIONSHIPS + EVENTS
+  const dataSection = buildDataSection(selection);
+
+  // NARRATIVE DIRECTION (optional, between task and structure)
+  const narrativeDirectionSection = buildNarrativeDirectionSection(context.narrativeDirection);
+
+  // Combine sections in order: TASK DATA then WORLD DATA
+  const sections = [
+    // TASK DATA
+    taskSection,
+    narrativeDirectionSection,
+    structureSection,
+    eventSection,
+    narrativeVoiceSection,
+    entityDirectivesSection,
+    styleSection,
+    // WORLD DATA
+    castSection,
+    lensSection,
+    worldSection,
+    nameBankSection,
+    temporalSection,
+    dataSection,
+  ].filter(Boolean);
+
+  return sections.join('\n\n');
+}
+
+/**
+ * Build softened narrative structure section for creative mode.
+ * Same beat sheet content but framed as suggestion rather than prescription.
+ */
+function buildCreativeStructureSection(style: StoryNarrativeStyle): string {
+  const lines: string[] = ['# Narrative Structure (for reference)'];
+  lines.push('The structured version follows this shape. You can follow it too, subvert it, or ignore it entirely. The world data and characters are your material — what you build with them is yours.');
+
+  // Scene count guidance
+  if (style.pacing?.sceneCount) {
+    lines.push('');
+    lines.push(`Structured version target: ${style.pacing.sceneCount.min}-${style.pacing.sceneCount.max} scenes`);
+  }
+
+  // Narrative instructions (plot structure, scenes, beats, emotional arcs)
+  if (style.narrativeInstructions) {
+    lines.push('');
+    lines.push(style.narrativeInstructions);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Build writing style section for creative mode.
+ * Same as structured but omits craft posture — density/restraint constraints
+ * are the kind of prescriptive guidance creative mode loosens.
+ */
+function buildCreativeStyleSection(
+  tone: ChronicleGenerationContext['tone'],
+  style: StoryNarrativeStyle,
+): string {
+  const lines: string[] = [`# Writing Style`];
+  let hasContent = false;
+
+  // World tone/voice guidance (may contain detailed style instructions)
+  if (tone) {
+    lines.push('');
+    lines.push(tone);
+    hasContent = true;
+  }
+
+  // Prose instructions from narrative style (tone, dialogue, description, world elements, avoid)
+  if (style.proseInstructions) {
+    if (hasContent) lines.push('');
+    lines.push(`## Prose: ${style.name}`);
+    lines.push(style.proseInstructions);
+    hasContent = true;
+  }
+
+  // Craft posture intentionally omitted for creative mode
+
+  return hasContent ? lines.join('\n') : '';
 }

@@ -45,6 +45,13 @@ export interface DocumentNarrativeStyle {
    */
   eventInstructions?: string;
 
+  /**
+   * Craft posture - how the author should relate to the material.
+   * Controls density, withholding, elaboration mode, emotional signaling.
+   * Orthogonal to document instructions and word count.
+   */
+  craftPosture?: string;
+
   // === Structured Data (genuinely useful as structured) ===
 
   /** Cast roles - what positions exist in this document */

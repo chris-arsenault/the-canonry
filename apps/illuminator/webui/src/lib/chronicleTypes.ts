@@ -572,6 +572,13 @@ export interface ChronicleGenerationContext {
   worldDynamicsResolved?: string[];
   /** PS-synthesized temporal narrative — dynamics distilled into story-specific stakes. */
   temporalNarrative?: string;
+
+  /**
+   * Optional free-text narrative direction from the wizard.
+   * When present, acts as a primary constraint on perspective synthesis and generation.
+   * E.g., "This is the treaty document that ended the Faction Wars."
+   */
+  narrativeDirection?: string;
 }
 
 // =============================================================================
@@ -835,6 +842,8 @@ export interface ChronicleRecord {
   generationUserPrompt?: string;
   /** Sampling mode used for the most recent generation */
   generationSampling?: ChronicleSampling;
+  /** Which pipeline step produced the current version */
+  generationStep?: VersionStep;
   /** Prior generation versions (chronicle regeneration history) */
   generationHistory?: ChronicleGenerationVersion[];
   /** Version id that should be published on accept */
@@ -855,6 +864,8 @@ export interface ChronicleRecord {
     narrativeVoice?: Record<string, string>;
     /** Per-entity writing directives from perspective synthesis */
     entityDirectives?: Array<{ entityId: string; entityName: string; directive: string }>;
+    /** Optional narrative direction from wizard */
+    narrativeDirection?: string;
   };
 
   // Perspective synthesis (required for all new chronicles)
@@ -898,6 +909,12 @@ export interface ChronicleRecord {
   /** Version id that was accepted/published */
   acceptedVersionId?: string;
 
+  /**
+   * Optional free-text narrative direction from the wizard.
+   * When present, acts as a primary constraint on perspective synthesis and generation.
+   */
+  narrativeDirection?: string;
+
   /** Whether lore from this chronicle has been backported to cast entity descriptions */
   loreBackported?: boolean;
 
@@ -917,6 +934,11 @@ export interface ChronicleRecord {
 }
 
 /**
+ * Which pipeline step produced this version.
+ */
+export type VersionStep = 'generate' | 'regenerate' | 'creative' | 'combine' | 'copy_edit';
+
+/**
  * Stored snapshot of a chronicle generation version.
  */
 export interface ChronicleGenerationVersion {
@@ -929,6 +951,7 @@ export interface ChronicleGenerationVersion {
   systemPrompt: string;
   userPrompt: string;
   cost?: { estimated: number; actual: number; inputTokens: number; outputTokens: number };
+  step?: VersionStep;
 }
 
 /**
@@ -952,6 +975,8 @@ export interface ChronicleShellMetadata {
   temporalContext?: ChronicleTemporalContext;
   /** Requested sampling mode for initial generation */
   generationSampling: ChronicleSampling;
+  /** Optional narrative direction from wizard */
+  narrativeDirection?: string;
 
   // Mechanical (optional)
   entrypointId?: string;
@@ -981,6 +1006,8 @@ export interface ChronicleMetadata {
   selectedEventIds: string[];
   selectedRelationshipIds: string[];
   temporalContext?: ChronicleTemporalContext;
+  /** Optional narrative direction from wizard */
+  narrativeDirection?: string;
 
   // Mechanical (optional)
   entrypointId?: string;

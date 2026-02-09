@@ -41,9 +41,12 @@ import {
   buildV2Prompt,
   getMaxTokensFromStyle,
   getV2SystemPrompt,
+  buildCreativeStoryPrompt,
+  getCreativeSystemPrompt,
   DEFAULT_V2_CONFIG,
 } from '../../lib/chronicle/v2';
 import type { NarrativeStyle } from '@canonry/world-schema';
+import { buildCopyEditSystemPrompt, buildCopyEditUserPrompt } from '../../lib/chronicle/v2/copyEditPrompt';
 import { runTextCall } from '../../lib/llmTextCall';
 import { getCallConfig } from './llmCallConfig';
 import { stripLeadingWrapper, parseJsonObject } from './textParsing';
@@ -105,12 +108,20 @@ async function executeEntityChronicleTask(
     return executeFullRegenerationStep(task, chronicleRecord, context);
   }
 
+  if (step === 'regenerate_creative') {
+    return executeCreativeRegenerationStep(task, chronicleRecord, context);
+  }
+
   if (step === 'compare') {
     return executeCompareStep(task, chronicleRecord, context);
   }
 
   if (step === 'combine') {
     return executeCombineStep(task, chronicleRecord, context);
+  }
+
+  if (step === 'copy_edit') {
+    return executeCopyEditStep(task, chronicleRecord, context);
   }
 
   if (step === 'summary') {
@@ -254,6 +265,7 @@ async function executeSamplingRegenerationStep(
       userPrompt,
       model: callConfig.model,
       sampling,
+      step: 'regenerate',
       cost: {
         estimated: generationCall.estimate.estimatedCost,
         actual: generationCall.usage.actualCost,
@@ -364,6 +376,7 @@ async function executeFullRegenerationStep(
           proseHints: chronicleContext.proseHints,
           worldDynamics: chronicleContext.worldDynamics,
           factSelection: chronicleContext.factSelection,
+          narrativeDirection: chronicleContext.narrativeDirection,
         },
         llmClient,
         perspectiveConfig
@@ -505,6 +518,7 @@ async function executeFullRegenerationStep(
       userPrompt: prompt,
       model: callConfig.model,
       sampling,
+      step: 'regenerate',
       cost: {
         estimated: generationCall.estimate.estimatedCost + perspectiveResult.usage.actualCost,
         actual: generationCall.usage.actualCost + perspectiveResult.usage.actualCost,
@@ -592,6 +606,158 @@ async function executeFullRegenerationStep(
 }
 
 /**
+ * Creative freedom regeneration.
+ * Reuses the EXISTING PS outputs already stored on the chronicle record.
+ * Only the generation prompt framing differs: neutral identity, no performance
+ * anxiety, softened structure, no craft posture. No new PS call.
+ */
+async function executeCreativeRegenerationStep(
+  task: WorkerTask,
+  chronicleRecord: ChronicleRecord,
+  context: TaskContext
+): Promise<TaskResult> {
+  const { config, llmClient, isAborted } = context;
+
+  if (!task.chronicleContext) {
+    return { success: false, error: 'Chronicle context required for creative regeneration' };
+  }
+
+  const narrativeStyle = task.chronicleContext.narrativeStyle;
+
+  if (!narrativeStyle) {
+    return { success: false, error: 'Narrative style is required for creative regeneration' };
+  }
+
+  if (narrativeStyle.format !== 'story') {
+    return { success: false, error: 'Creative freedom mode is only available for story format chronicles' };
+  }
+
+  if (chronicleRecord.status === 'complete' || chronicleRecord.finalContent) {
+    return { success: false, error: 'Creative regeneration requires unpublishing first' };
+  }
+
+  // Read stored PS outputs from the chronicle's perspective synthesis record
+  const ps = chronicleRecord.perspectiveSynthesis;
+  if (!ps) {
+    return { success: false, error: 'Creative regeneration requires existing perspective synthesis. Generate a structured version first.' };
+  }
+
+  const callConfig = getCallConfig(config, 'chronicle.generation');
+  const chronicleId = chronicleRecord.chronicleId;
+  console.log(`[Worker] Creative freedom regeneration for chronicle=${chronicleId}, style="${narrativeStyle.name}", model=${callConfig.model}`);
+
+  // Reconstruct tone from PS outputs (same pattern as regenerate_full)
+  const motifSection = ps.suggestedMotifs.length > 0
+    ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${ps.suggestedMotifs.map(m => `- "${m}"`).join('\n')}`
+    : '';
+  const assembledTone = task.chronicleContext.toneFragments?.core || '';
+  const toneForGeneration = assembledTone +
+    '\n\nPERSPECTIVE FOR THIS CHRONICLE:\n' +
+    ps.brief +
+    motifSection;
+
+  // Build faceted facts from PS facets
+  const facetedFacts = ps.facets.map((f) => `${f.interpretation}`);
+
+  // Build chronicleContext with stored PS outputs injected
+  const chronicleContext = {
+    ...task.chronicleContext,
+    tone: toneForGeneration,
+    canonFacts: facetedFacts,
+    narrativeVoice: ps.narrativeVoice,
+    entityDirectives: ps.entityDirectives,
+    temporalNarrative: ps.temporalNarrative,
+  };
+
+  // Entity/event selection
+  const selection = selectEntitiesV2(chronicleContext, DEFAULT_V2_CONFIG);
+  console.log(`[Worker] Creative selected ${selection.entities.length} entities, ${selection.events.length} events, ${selection.relationships.length} relationships`);
+
+  // Build creative prompt (same PS data, different framing)
+  const prompt = buildCreativeStoryPrompt(chronicleContext, selection);
+  const styleMaxTokens = getMaxTokensFromStyle(narrativeStyle);
+  const systemPrompt = getCreativeSystemPrompt();
+  const samplingParams = resolveChronicleSamplingParams(callConfig);
+  const sampling = deriveSamplingFromConfig(callConfig);
+
+  const generationCall = await runTextCall({
+    llmClient,
+    callType: 'chronicle.generation',
+    callConfig,
+    systemPrompt,
+    prompt,
+    ...samplingParams,
+    autoMaxTokens: styleMaxTokens,
+  });
+  const result = generationCall.result;
+
+  console.log(`[Worker] Creative prompt length: ${prompt.length} chars, maxTokens: ${generationCall.budget.totalMaxTokens}`);
+
+  if (isAborted()) {
+    return { success: false, error: 'Task aborted', debug: result.debug };
+  }
+
+  if (result.error || !result.text) {
+    return {
+      success: false,
+      error: `Creative regeneration failed: ${result.error || 'No text returned'}`,
+      debug: result.debug,
+    };
+  }
+
+  // Save as new version (snapshots current to history)
+  try {
+    await regenerateChronicleAssembly(chronicleId, {
+      assembledContent: result.text,
+      systemPrompt,
+      userPrompt: prompt,
+      model: callConfig.model,
+      sampling,
+      step: 'creative',
+      cost: {
+        estimated: generationCall.estimate.estimatedCost,
+        actual: generationCall.usage.actualCost,
+        inputTokens: generationCall.usage.inputTokens,
+        outputTokens: generationCall.usage.outputTokens,
+      },
+    });
+
+    console.log(`[Worker] Creative regeneration saved for chronicle ${chronicleId}`);
+  } catch (err) {
+    return { success: false, error: `Failed to save creative regeneration: ${err}` };
+  }
+
+  await saveCostRecordWithDefaults({
+    projectId: task.projectId,
+    simulationRunId: task.simulationRunId,
+    entityId: task.entityId,
+    entityName: task.entityName,
+    entityKind: task.entityKind,
+    chronicleId,
+    type: 'chronicleV2' as CostType,
+    model: callConfig.model,
+    estimatedCost: generationCall.estimate.estimatedCost,
+    actualCost: generationCall.usage.actualCost,
+    inputTokens: generationCall.usage.inputTokens,
+    outputTokens: generationCall.usage.outputTokens,
+  });
+
+  return {
+    success: true,
+    result: {
+      chronicleId,
+      generatedAt: Date.now(),
+      model: callConfig.model,
+      estimatedCost: generationCall.estimate.estimatedCost,
+      actualCost: generationCall.usage.actualCost,
+      inputTokens: generationCall.usage.inputTokens,
+      outputTokens: generationCall.usage.outputTokens,
+    },
+    debug: result.debug,
+  };
+}
+
+/**
  * V2 Single-Shot Generation
  * One LLM call to generate the complete narrative, with deterministic post-processing.
  */
@@ -661,6 +827,7 @@ async function executeV2GenerationStep(
           proseHints: chronicleContext.proseHints, // Pass prose hints for entity directives
           worldDynamics: chronicleContext.worldDynamics, // Higher-level narrative context
           factSelection: chronicleContext.factSelection, // Fact selection target + required
+          narrativeDirection: chronicleContext.narrativeDirection,
         },
         llmClient,
         perspectiveConfig
@@ -854,6 +1021,7 @@ async function executeV2GenerationStep(
         narrativeVoice: chronicleContext.narrativeVoice,
         entityDirectives: chronicleContext.entityDirectives,
         temporalNarrative: chronicleContext.temporalNarrative,
+        narrativeDirection: chronicleContext.narrativeDirection,
       },
       selectionSummary: {
         entityCount: selection.entities.length,
@@ -987,6 +1155,9 @@ async function executeCompareStep(
     if ('documentInstructions' in narrativeStyle && narrativeStyle.documentInstructions) {
       parts.push(`Document: ${(narrativeStyle.documentInstructions as string).slice(0, 500)}`);
     }
+    if ('craftPosture' in narrativeStyle && narrativeStyle.craftPosture) {
+      parts.push(`Craft Posture: ${(narrativeStyle.craftPosture as string).slice(0, 300)}`);
+    }
     narrativeStyleBlock = parts.join('\n');
   }
 
@@ -1000,11 +1171,17 @@ async function executeCompareStep(
     ? `## World Facts (Faceted)\nThese are the world truths provided to the chronicle generator, already interpreted through the chronicle's perspective:\n${canonFacts.map((f, i) => `${i + 1}. ${f}`).join('\n')}\n`
     : '';
 
+  // Narrative direction (optional, from wizard)
+  const narrativeDirection = chronicleRecord.narrativeDirection;
+  const narrativeDirectionBlock = narrativeDirection
+    ? `\n## Narrative Direction\nThe author specified this narrative purpose: "${narrativeDirection}"\nEvaluate how well each version fulfills this specific intent.\n`
+    : '';
+
   const isDocumentFormat = chronicleRecord.narrativeStyle?.format === 'document';
 
   const comparePrompt = isDocumentFormat
     ? `You are comparing ${versions.length} versions of the same in-universe document. Each was generated from the same prompt and document format (${narrativeStyleName}) but with different sampling modes (normal vs low).
-${narrativeStyleBlock ? `\n## Document Format Reference\n${narrativeStyleBlock}\n` : ''}${worldFactsBlock ? `\n${worldFactsBlock}` : ''}
+${narrativeStyleBlock ? `\n## Document Format Reference\n${narrativeStyleBlock}\n` : ''}${worldFactsBlock ? `\n${worldFactsBlock}` : ''}${narrativeDirectionBlock}
 Your output must have THREE sections in this exact order. Keep the total output under 800 words.
 
 ## Comparative Analysis
@@ -1023,15 +1200,15 @@ State one of: **Keep Version [X]** (one version is clearly superior), or **Combi
 
 ## Combine Instructions
 
-Write a SHORT paragraph (4-6 sentences) of revision guidance for a creative LLM that will combine these versions. This is not a merge spec — it is editorial direction for a skilled writer.
+Write a SHORT paragraph (4-6 sentences) of editorial direction for a writer who will combine these versions. This paragraph will be the ONLY guidance they receive — they will not see your analysis above — so it must carry enough context to stand alone. Ground your instructions in the specific findings from your analysis.
 
-Name the base version and its key strengths (document structure, register, information discipline). Name what the other version does better and should be drawn from (specific details, format touches, particular phrasings). Note any document-voice qualities from the base that must not be lost — especially register consistency and restraint. Trust the writer to make specific decisions — do not prescribe line-by-line changes.
+Name which version should serve as the foundation and why — its structure, its information arc, its strongest sections. Then name what the other version does that the foundation draft doesn't: sections it handled better, details it included, structural choices that strengthen the piece. These are the things the combined version shouldn't lose. Don't recommend swapping names or terminology between versions. Trust the writer to make specific decisions — do not prescribe line-by-line changes.
 
 ## Document Versions
 
 ${versionsBlock}`
     : `You are comparing ${versions.length} versions of the same chronicle. Each was generated from the same prompt and narrative style (${narrativeStyleName}) but with different sampling modes (normal vs low).
-${narrativeStyleBlock ? `\n## Narrative Style Reference\n${narrativeStyleBlock}\n` : ''}${worldFactsBlock ? `\n${worldFactsBlock}` : ''}
+${narrativeStyleBlock ? `\n## Narrative Style Reference\n${narrativeStyleBlock}\n` : ''}${worldFactsBlock ? `\n${worldFactsBlock}` : ''}${narrativeDirectionBlock}
 Your output must have THREE sections in this exact order. Keep the total output under 800 words.
 
 ## Comparative Analysis
@@ -1052,9 +1229,9 @@ State one of: **Keep Version [X]** (one version is clearly superior), or **Combi
 
 ## Combine Instructions
 
-Write a SHORT paragraph (4-6 sentences) of revision guidance for a creative LLM that will combine these versions. This is not a merge spec — it is editorial direction for a skilled writer.
+Write a SHORT paragraph (4-6 sentences) of editorial direction for a writer who will combine these versions. This paragraph will be the ONLY guidance they receive — they will not see your analysis above — so it must carry enough context to stand alone. Ground your instructions in the specific findings from your analysis.
 
-Name the base version and its key strengths (structure, tone, arc). Name what the other version does better and should be drawn from (details, names, world-building, specific scenes). Note any tonal qualities from the base that should not be lost. Trust the writer to make specific decisions — do not prescribe line-by-line changes or integration points.
+Name which version should serve as the foundation and why — its arc, its scenes, its strongest moments. Then name what the other version does that the foundation draft doesn't: scenes it invented, character beats it handled better, details that enrich the world. These are the things the combined version shouldn't lose. Don't recommend swapping names or terminology between versions. Trust the writer to make specific decisions — do not prescribe line-by-line changes or integration points.
 
 ## Chronicle Versions
 
@@ -1162,7 +1339,14 @@ async function executeCombineStep(
   const generationSystemPrompt = chronicleRecord.generationSystemPrompt || '';
   const narrativeStyle = chronicleRecord.narrativeStyle;
   const styleName = narrativeStyle ? `${narrativeStyle.name} (${narrativeStyle.format})` : 'unknown';
+  const craftPosture = narrativeStyle && 'craftPosture' in narrativeStyle ? (narrativeStyle.craftPosture as string | undefined) : undefined;
   const isDocumentFormat = narrativeStyle?.format === 'document';
+
+  // Narrative direction (optional, from wizard)
+  const combineNarrativeDirection = chronicleRecord.narrativeDirection;
+  const combineNarrativeDirectionBlock = combineNarrativeDirection
+    ? `\n## Narrative Direction\nThe author specified this narrative purpose: "${combineNarrativeDirection}"\nThe combined version must fulfill this intent.\n`
+    : '';
 
   // Check for combine instructions from a prior compare step
   const hasCombineInstructions = !!chronicleRecord.combineInstructions;
@@ -1170,11 +1354,11 @@ async function executeCombineStep(
   const combinePrompt = isDocumentFormat
     ? `You are an editorial reviewer combining ${versions.length} versions of the same in-universe document into a single final version. All versions follow the same prompt and document format — they differ in sampling mode (normal vs low).
 
-Your job is NOT to merge or average. Your job is to CHOOSE and REWRITE: take the stronger elements from each version and produce one polished document that feels like a real artifact from its world.
-${hasCombineInstructions ? `
-## Revision Guidance from Comparative Analysis
+You have two drafts of the same in-universe document. Read both. Build your revision from the ground up: which version has the stronger opening? Which handles each section better? Which included details, structure, or framing the other missed? Take the best from each. Where they cover the same ground differently, go with whichever makes the document feel more like a real artifact from its world. Where one draft has something the other lacks entirely, bring it in.
 
-A prior analysis compared these versions and produced specific instructions for combining them. Follow this guidance closely — it identifies which version handles each section better and which specific elements to preserve:
+Do not swap names or terminology between versions — keep each draft's choices consistent within the sections you draw from. A polish pass will follow to smooth voice and register; your job is to produce the best possible version of this document.
+${hasCombineInstructions ? `
+## Editorial Direction
 
 ${chronicleRecord.combineInstructions}
 ` : `
@@ -1188,11 +1372,11 @@ Prefer whichever version:
 - **Grounds itself in specifics** — concrete details (titles, dates, procedures) over generic atmosphere
 
 If one version has a better opening and another has better closing sections, use each. If versions handle the same section differently, pick the one that feels more like it belongs in this world.
-`}
+`}${combineNarrativeDirectionBlock}
 ## Original System Prompt Context
 ${generationSystemPrompt}
 
-Style: ${styleName}
+Style: ${styleName}${craftPosture ? `\n\n## Craft Posture\nDensity and restraint constraints for this format:\n${craftPosture}` : ''}
 
 ## Document Versions
 
@@ -1200,14 +1384,14 @@ ${versionsBlock}
 
 ## YOUR TASK
 
-Produce the final document by selecting the strongest elements from each version. The result should feel like a real artifact from this world — something its author would actually produce. Maintain consistent voice throughout. Output ONLY the document text — no commentary, no labels, no preamble.`
+Produce the final document by selecting the strongest elements from each version. The result should feel like a real artifact from this world. Output ONLY the document text — no commentary, no labels, no preamble.`
     : `You are a narrative editor combining ${versions.length} versions of the same chronicle into a single final version. All versions follow the same prompt and narrative style — they differ in sampling mode (normal vs low).
 
-Your job is NOT to merge or average. Your job is to CHOOSE and REWRITE: take the stronger elements from each version and produce one polished chronicle.
-${hasCombineInstructions ? `
-## Revision Guidance from Comparative Analysis
+You have two drafts of the same story. Read both. Build your revision from the ground up: which version has the stronger opening? Which handles the climax better? Which invented scenes, character beats, or details the other missed? Take the best from each. Where they cover the same ground differently, go with whichever makes the better story. Where one draft has something the other lacks entirely, bring it in.
 
-A prior analysis compared these versions and produced specific instructions for combining them. Follow this guidance closely — it identifies which version handles each section better and which specific elements to preserve:
+Do not swap names or terminology between versions — keep each draft's choices consistent within the sections you draw from. A polish pass will follow to smooth voice and tone; your job is to produce the best possible version of this story.
+${hasCombineInstructions ? `
+## Editorial Direction
 
 ${chronicleRecord.combineInstructions}
 ` : `
@@ -1221,11 +1405,11 @@ Prefer whichever version has:
 - **Stronger emotional range** — not every beat should feel the same
 
 If one version has a better opening and another has a better middle, use each. If versions handle the same beat differently, pick the one that reads more naturally.
-`}
+`}${combineNarrativeDirectionBlock}
 ## Original System Prompt Context
 ${generationSystemPrompt}
 
-Style: ${styleName}
+Style: ${styleName}${craftPosture ? `\n\n## Craft Posture\nDensity and restraint constraints for this format:\n${craftPosture}` : ''}
 
 ## Chronicle Versions
 
@@ -1265,10 +1449,11 @@ Produce the final chronicle by selecting the strongest elements from each versio
   // Save as a new version (snapshots current into history)
   await regenerateChronicleAssembly(chronicleId, {
     assembledContent: combineCall.result.text,
-    systemPrompt: chronicleRecord.generationSystemPrompt || '',
-    userPrompt: chronicleRecord.generationUserPrompt || '',
+    systemPrompt: combineSystemPrompt,
+    userPrompt: combinePrompt,
     model: callConfig.model,
     sampling: combineSampling,
+    step: 'combine',
     cost: {
       estimated: combineCall.estimate.estimatedCost,
       actual: combineCall.usage.actualCost,
@@ -1304,6 +1489,114 @@ Produce the final chronicle by selecting the strongest elements from each versio
       outputTokens: combineCall.usage.outputTokens,
     },
     debug: combineCall.result.debug,
+  };
+}
+
+// ============================================================================
+// Copy-Edit Step (user-triggered, polishes active version)
+// ============================================================================
+
+async function executeCopyEditStep(
+  task: WorkerTask,
+  chronicleRecord: NonNullable<Awaited<ReturnType<typeof getChronicle>>>,
+  context: TaskContext
+): Promise<TaskResult> {
+  const { config, llmClient, isAborted } = context;
+
+  const chronicleId = chronicleRecord.chronicleId;
+  const { content } = resolveTargetVersionContent(chronicleRecord);
+
+  if (!content) {
+    return { success: false, error: 'Chronicle has no content to copy-edit' };
+  }
+
+  const narrativeStyle = chronicleRecord.narrativeStyle;
+  if (!narrativeStyle) {
+    return { success: false, error: 'Chronicle has no narrative style — cannot determine word count target' };
+  }
+
+  const callConfig = getCallConfig(config, 'chronicle.copyEdit');
+  console.log(`[Worker] Copy-editing chronicle ${chronicleId}, model=${callConfig.model}...`);
+
+  const format = chronicleRecord.format === 'document' ? 'document' : 'story';
+  const systemPrompt = buildCopyEditSystemPrompt(format);
+
+  // Pass PS voice textures and motifs so the editor can recognize intentional prose choices
+  const ps = chronicleRecord.perspectiveSynthesis;
+  const voiceContext = ps ? {
+    narrativeVoice: ps.narrativeVoice,
+    motifs: ps.suggestedMotifs,
+  } : undefined;
+
+  const userPrompt = buildCopyEditUserPrompt(content, narrativeStyle, voiceContext);
+
+  const samplingParams = resolveChronicleSamplingParams(callConfig);
+  const sampling = deriveSamplingFromConfig(callConfig);
+  const copyEditCall = await runTextCall({
+    llmClient,
+    callType: 'chronicle.copyEdit',
+    callConfig,
+    systemPrompt,
+    prompt: userPrompt,
+    ...samplingParams,
+  });
+
+  if (isAborted()) {
+    return { success: false, error: 'Task aborted', debug: copyEditCall.result.debug };
+  }
+
+  if (copyEditCall.result.error || !copyEditCall.result.text) {
+    return {
+      success: false,
+      error: `Copy-edit failed: ${copyEditCall.result.error || 'No text returned'}`,
+      debug: copyEditCall.result.debug,
+    };
+  }
+
+  // Save as a new version (snapshots current into history)
+  // Store the actual copy-edit prompts, not the original generation prompts
+  await regenerateChronicleAssembly(chronicleId, {
+    assembledContent: copyEditCall.result.text,
+    systemPrompt: systemPrompt,
+    userPrompt: userPrompt,
+    model: callConfig.model,
+    sampling,
+    step: 'copy_edit',
+    cost: {
+      estimated: copyEditCall.estimate.estimatedCost,
+      actual: copyEditCall.usage.actualCost,
+      inputTokens: copyEditCall.usage.inputTokens,
+      outputTokens: copyEditCall.usage.outputTokens,
+    },
+  });
+
+  await saveCostRecordWithDefaults({
+    projectId: task.projectId,
+    simulationRunId: task.simulationRunId,
+    entityId: task.entityId,
+    entityName: task.entityName,
+    entityKind: task.entityKind,
+    chronicleId,
+    type: 'chronicleV2',
+    model: callConfig.model,
+    estimatedCost: copyEditCall.estimate.estimatedCost,
+    actualCost: copyEditCall.usage.actualCost,
+    inputTokens: copyEditCall.usage.inputTokens,
+    outputTokens: copyEditCall.usage.outputTokens,
+  });
+
+  return {
+    success: true,
+    result: {
+      chronicleId,
+      generatedAt: Date.now(),
+      model: callConfig.model,
+      estimatedCost: copyEditCall.estimate.estimatedCost,
+      actualCost: copyEditCall.usage.actualCost,
+      inputTokens: copyEditCall.usage.inputTokens,
+      outputTokens: copyEditCall.usage.outputTokens,
+    },
+    debug: copyEditCall.result.debug,
   };
 }
 

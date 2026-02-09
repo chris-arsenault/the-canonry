@@ -1364,6 +1364,7 @@ export default function IlluminatorRemote({
         entityDirectives: ps.entityDirectives || [],
         suggestedMotifs: ps.suggestedMotifs || [],
         chronicleFormat: chronicle.format || '',
+        ...(chronicle.narrativeDirection ? { narrativeDirection: chronicle.narrativeDirection } : {}),
       });
     }
 

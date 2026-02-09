@@ -288,6 +288,7 @@ function buildFocus(
  * @param proseHints - Optional per-kind prose hints for narrative guidance
  * @param culturalIdentities - Optional cultural identity data (VALUES, SPEECH, FEARS, TABOOS etc.)
  * @param temporalContext - Optional temporal context computed from selected events and eras
+ * @param narrativeDirection - Optional free-text narrative direction from wizard
  */
 export function buildChronicleContext(
   selections: ChronicleSelections,
@@ -297,7 +298,8 @@ export function buildChronicleContext(
   nameBank?: Record<string, string[]>,
   proseHints?: Record<string, string>,
   culturalIdentities?: Record<string, Record<string, string>>,
-  temporalContext?: ChronicleTemporalContext | null
+  temporalContext?: ChronicleTemporalContext | null,
+  narrativeDirection?: string
 ): ChronicleGenerationContext {
   const entityMap = new Map(worldData.entities.map((e) => [e.id, e]));
 
@@ -392,6 +394,9 @@ export function buildChronicleContext(
 
     // World dynamics (narrative context statements)
     worldDynamics: worldContext.worldDynamics,
+
+    // Narrative direction (optional, from wizard)
+    narrativeDirection: narrativeDirection || undefined,
   };
 }
 

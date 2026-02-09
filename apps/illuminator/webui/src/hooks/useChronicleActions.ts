@@ -355,6 +355,31 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
     [onEnqueue, getChronicle],
   );
 
+  const copyEdit = useCallback(
+    (chronicleId: string) => {
+      const chronicle = getChronicle(chronicleId);
+      if (!chronicle) {
+        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        return;
+      }
+      if (!chronicle.assembledContent) {
+        console.error('[Chronicle] No assembled content to copy-edit');
+        return;
+      }
+
+      onEnqueue([
+        {
+          entity: buildEntityRefFromRecord(chronicleId, chronicle),
+          type: 'entityChronicle' as EnrichmentType,
+          prompt: '',
+          chronicleStep: 'copy_edit',
+          chronicleId,
+        },
+      ]);
+    },
+    [onEnqueue, getChronicle],
+  );
+
   /**
    * Full regeneration with new perspective synthesis.
    * Creates a new version by running the complete generation pipeline.
@@ -394,6 +419,45 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
     [onEnqueue, getChronicle],
   );
 
+  /**
+   * Creative freedom regeneration.
+   * Stripped-down prompt — no PS, no prescribed structure/voice/style.
+   * Same world data, more creative latitude. Story format only.
+   */
+  const regenerateCreative = useCallback(
+    (chronicleId: string, context: ChronicleGenerationContext) => {
+      const chronicle = getChronicle(chronicleId);
+      if (!chronicle) {
+        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        return;
+      }
+      if (chronicle.finalContent || chronicle.status === 'complete') {
+        console.error('[Chronicle] Creative regeneration requires unpublishing first');
+        return;
+      }
+      if (!context.narrativeStyle) {
+        console.error('[Chronicle] Narrative style required for creative regeneration');
+        return;
+      }
+      if (context.narrativeStyle.format !== 'story') {
+        console.error('[Chronicle] Creative freedom mode is only available for story format');
+        return;
+      }
+
+      onEnqueue([
+        {
+          entity: buildEntityRefFromRecord(chronicleId, chronicle),
+          type: 'entityChronicle' as EnrichmentType,
+          prompt: '',
+          chronicleContext: context,
+          chronicleStep: 'regenerate_creative',
+          chronicleId,
+        },
+      ]);
+    },
+    [onEnqueue, getChronicle],
+  );
+
   return {
     generateV2,
     generateSummary,
@@ -401,7 +465,9 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
     generateImageRefs,
     regenerateWithSampling,
     regenerateFull,
+    regenerateCreative,
     compareVersions,
     combineVersions,
+    copyEdit,
   };
 }

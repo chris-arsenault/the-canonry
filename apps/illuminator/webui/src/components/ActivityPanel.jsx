@@ -18,6 +18,43 @@ function formatTime(timestamp) {
   return new Date(timestamp).toLocaleTimeString();
 }
 
+function extractAnthropicErrorMessage(debug) {
+  if (!debug?.response) return null;
+  if (debug?.meta?.provider && debug.meta.provider !== 'anthropic') return null;
+
+  try {
+    const data = JSON.parse(debug.response);
+    const error = data?.error;
+    const message = typeof error?.message === 'string' ? error.message.trim() : '';
+    const type = typeof error?.type === 'string' ? error.type.trim() : '';
+    const topLevelMessage = typeof data?.message === 'string' ? data.message.trim() : '';
+
+    if (message && type) return `${type}: ${message}`;
+    return message || topLevelMessage || type || null;
+  } catch {
+    return null;
+  }
+}
+
+function formatActivityError(item) {
+  const baseError = item.error || '';
+  const providerError = extractAnthropicErrorMessage(item.debug);
+
+  if (!providerError) {
+    return baseError;
+  }
+
+  if (!baseError) {
+    return providerError;
+  }
+
+  if (baseError.includes(providerError)) {
+    return baseError;
+  }
+
+  return `${baseError} (Anthropic: ${providerError})`;
+}
+
 function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
   const duration = item.startedAt
     ? item.completedAt
@@ -278,23 +315,26 @@ export default function ActivityPanel({
           >
             Errors ({errored.length})
           </div>
-          {errored.map((item) => (
-            <div key={item.id}>
-              <TaskRow item={item} onRetry={onRetry} onViewDebug={setDebugItem} />
-              {item.error && (
-                <div
-                  style={{
-                    padding: '8px 12px 12px 40px',
-                    fontSize: '11px',
-                    color: '#ef4444',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                  }}
-                >
-                  {item.error}
-                </div>
-              )}
-            </div>
-          ))}
+          {errored.map((item) => {
+            const activityError = formatActivityError(item);
+            return (
+              <div key={item.id}>
+                <TaskRow item={item} onRetry={onRetry} onViewDebug={setDebugItem} />
+                {activityError && (
+                  <div
+                    style={{
+                      padding: '8px 12px 12px 40px',
+                      fontSize: '11px',
+                      color: '#ef4444',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                    }}
+                  >
+                    {activityError}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

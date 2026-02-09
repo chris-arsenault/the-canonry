@@ -241,6 +241,11 @@ function buildUserPrompt(
       if (synthParts.length > 0) {
         sections.push(`=== PERSPECTIVE SYNTHESIS ===\n${synthParts.join('\n\n')}`);
       }
+
+      // Narrative direction (optional) — helps distinguish direction-specific framing from durable lore
+      if (synthesis.narrativeDirection) {
+        sections.push(`=== NARRATIVE DIRECTION ===\nThis chronicle was written with a specific narrative direction: "${synthesis.narrativeDirection}"\nConsider this when evaluating which details are chronicle-specific framing vs. durable lore worth backporting.`);
+      }
     } catch {
       // If JSON parsing fails, include as raw text
       sections.push(`=== PERSPECTIVE SYNTHESIS ===\n${perspectiveSynthesisJson}`);
