@@ -183,6 +183,9 @@ export interface ChronicleExport {
   comparisonReport?: string;
   combineInstructions?: string;
 
+  // Temporal alignment check (if temporal check was run)
+  temporalCheckReport?: string;
+
   // Historian annotations
   historianNotes?: HistorianNote[];
 }
@@ -392,6 +395,9 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
   }
   if (chronicle.combineInstructions) {
     exportData.combineInstructions = chronicle.combineInstructions;
+  }
+  if (chronicle.temporalCheckReport) {
+    exportData.temporalCheckReport = chronicle.temporalCheckReport;
   }
 
   if (chronicle.historianNotes && chronicle.historianNotes.length > 0) {
