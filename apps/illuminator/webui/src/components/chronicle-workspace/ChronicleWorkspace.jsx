@@ -411,11 +411,9 @@ export default function ChronicleWorkspace({
             onRegenerateWithSampling={onRegenerateWithSampling}
             onUpdateCombineInstructions={onUpdateCombineInstructions}
             onCopyEdit={onCopyEdit}
-            onTemporalCheck={onTemporalCheck}
             compareRunning={compareRunning}
             combineRunning={combineRunning}
             copyEditRunning={copyEditRunning}
-            temporalCheckRunning={temporalCheckRunning}
           />
         )}
 
@@ -460,6 +458,8 @@ export default function ChronicleWorkspace({
             entities={entities}
             isGenerating={isGenerating}
             onUpdateTemporalContext={onUpdateChronicleTemporalContext}
+            onTemporalCheck={onTemporalCheck}
+            temporalCheckRunning={temporalCheckRunning}
             seedData={seedData}
           />
         )}

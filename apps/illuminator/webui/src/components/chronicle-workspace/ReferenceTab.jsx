@@ -500,7 +500,7 @@ function PerspectiveSynthesisViewer({ synthesis }) {
 // Temporal Context Editor (local)
 // ============================================================================
 
-function TemporalContextEditor({ item, eras, events, entities, onUpdateTemporalContext, isGenerating }) {
+function TemporalContextEditor({ item, eras, events, entities, onUpdateTemporalContext, onTemporalCheck, temporalCheckRunning, isGenerating }) {
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(600);
 
@@ -687,6 +687,114 @@ function TemporalContextEditor({ item, eras, events, entities, onUpdateTemporalC
               />
             </div>
           )}
+
+          {/* Temporal Alignment Check */}
+          {item.perspectiveSynthesis?.temporalNarrative && (
+            <div style={{ marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                  TEMPORAL NARRATIVE
+                </div>
+                <button
+                  onClick={onTemporalCheck}
+                  disabled={isGenerating || temporalCheckRunning || !item.assembledContent}
+                  title="Check if focal era / temporal narrative misalignment affected the chronicle output"
+                  style={{
+                    marginLeft: 'auto',
+                    padding: '4px 10px',
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '6px',
+                    color: 'var(--text-secondary)',
+                    cursor: isGenerating || temporalCheckRunning || !item.assembledContent ? 'not-allowed' : 'pointer',
+                    opacity: isGenerating || temporalCheckRunning || !item.assembledContent ? 0.6 : 1,
+                    fontSize: '11px',
+                  }}
+                >
+                  {temporalCheckRunning ? 'Checking...' : 'Temporal Check'}
+                </button>
+              </div>
+              <div style={{
+                fontSize: '12px',
+                lineHeight: 1.6,
+                color: 'var(--text-secondary)',
+                padding: '10px 12px',
+                background: 'var(--bg-tertiary)',
+                borderRadius: '6px',
+                borderLeft: '3px solid #06b6d4',
+                whiteSpace: 'pre-wrap',
+              }}>
+                {item.perspectiveSynthesis.temporalNarrative}
+              </div>
+
+              {/* Temporal Check Report */}
+              {item.temporalCheckReport && (
+                <div
+                  style={{
+                    marginTop: '12px',
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: '10px 12px',
+                      borderBottom: '1px solid var(--border-color)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <span style={{ fontSize: '12px', fontWeight: 500 }}>Alignment Check Report</span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {item.temporalCheckReportGeneratedAt && (
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                          {new Date(item.temporalCheckReportGeneratedAt).toLocaleString()}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => {
+                          const blob = new Blob([item.temporalCheckReport], { type: 'text/markdown' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `temporal-check-${item.chronicleId.slice(0, 20)}-${Date.now()}.md`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        style={{
+                          padding: '2px 6px',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '4px',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          fontSize: '10px',
+                        }}
+                      >
+                        Export
+                      </button>
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      padding: '12px',
+                      maxHeight: '300px',
+                      overflowY: 'auto',
+                      fontSize: '12px',
+                      lineHeight: 1.7,
+                      whiteSpace: 'pre-wrap',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    {item.temporalCheckReport}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
@@ -704,6 +812,8 @@ export default function ReferenceTab({
   entities,
   isGenerating,
   onUpdateTemporalContext,
+  onTemporalCheck,
+  temporalCheckRunning,
   seedData,
 }) {
   return (
@@ -720,6 +830,8 @@ export default function ReferenceTab({
         events={events}
         entities={entities}
         onUpdateTemporalContext={onUpdateTemporalContext}
+        onTemporalCheck={onTemporalCheck}
+        temporalCheckRunning={temporalCheckRunning}
         isGenerating={isGenerating}
       />
     </div>
