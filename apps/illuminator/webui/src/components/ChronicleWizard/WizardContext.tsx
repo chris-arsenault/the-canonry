@@ -467,11 +467,16 @@ export function WizardProvider({ children, entityKinds, eras = [], simulationRun
     return events;
   }, [state.roleAssignments, state.candidateEvents, state.narrativeStyle?.eventRules]);
 
-  // Compute detected focal era from ALL relevant events (not just top 20)
+  // Compute detected focal era from selected events (if any), otherwise all relevant events.
+  // This ensures that when the user narrows the event selection, the focal era updates to match.
   const detectedFocalEra = useMemo<EraTemporalInfo | null>(() => {
     if (eras.length === 0) return null;
-    return computeFocalEra(allRelevantEvents, eras) || null;
-  }, [eras, allRelevantEvents]);
+    // Prefer selected events when user has made a selection
+    const eventsForDetection = state.selectedEventIds.size > 0
+      ? allRelevantEvents.filter(e => state.selectedEventIds.has(e.id))
+      : allRelevantEvents;
+    return computeFocalEra(eventsForDetection, eras) || null;
+  }, [eras, allRelevantEvents, state.selectedEventIds]);
 
   // Compute effective focal era (respecting override)
   const effectiveFocalEraId = useMemo(() => {

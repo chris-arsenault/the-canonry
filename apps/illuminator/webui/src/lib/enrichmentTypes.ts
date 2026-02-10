@@ -280,6 +280,7 @@ export type ChronicleStep =
   | 'compare'  // Compare all versions (produces report, no new draft)
   | 'combine'  // Combine all versions into a new draft
   | 'copy_edit' // Polish pass — trims, smooths voice, tightens prose without changing content
+  | 'temporal_check' // Check if focal era / temporal narrative misalignment affected the output
   | 'validate'
   | 'edit'
   | 'summary'

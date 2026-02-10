@@ -880,6 +880,10 @@ export interface ChronicleRecord {
   comparisonReportGeneratedAt?: number;
   combineInstructions?: string;
 
+  // Temporal alignment check report (user-triggered, checks focal era / temporal narrative vs text)
+  temporalCheckReport?: string;
+  temporalCheckReportGeneratedAt?: number;
+
   // Refinements
   summary?: string;
   summaryGeneratedAt?: number;

@@ -716,6 +716,20 @@ export async function updateChronicleComparisonReport(
   await db.chronicles.put(record);
 }
 
+export async function updateChronicleTemporalCheckReport(
+  chronicleId: string,
+  report: string
+): Promise<void> {
+  const record = await db.chronicles.get(chronicleId);
+  if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
+
+  record.temporalCheckReport = report;
+  record.temporalCheckReportGeneratedAt = Date.now();
+  record.updatedAt = Date.now();
+
+  await db.chronicles.put(record);
+}
+
 /**
  * Update chronicle with summary and title refinement
  */

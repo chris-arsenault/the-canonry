@@ -38,9 +38,11 @@ export default function VersionsTab({
   onRegenerateWithSampling,
   onUpdateCombineInstructions,
   onCopyEdit,
+  onTemporalCheck,
   compareRunning,
   combineRunning,
   copyEditRunning,
+  temporalCheckRunning,
 }) {
   const [editingCombineInstructions, setEditingCombineInstructions] = useState(false);
   const [combineInstructionsDraft, setCombineInstructionsDraft] = useState('');
@@ -184,6 +186,25 @@ export default function VersionsTab({
             }}
           >
             Dump Versions
+          </button>
+          <button
+            onClick={onTemporalCheck}
+            disabled={isGenerating || temporalCheckRunning || compareRunning || combineRunning || !item.assembledContent || !item.perspectiveSynthesis?.temporalNarrative}
+            title={!item.perspectiveSynthesis?.temporalNarrative
+              ? 'Requires temporal narrative from perspective synthesis (needs world dynamics)'
+              : 'Check if focal era / temporal narrative misalignment affected the chronicle output'}
+            style={{
+              padding: '8px 14px',
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '6px',
+              color: 'var(--text-secondary)',
+              cursor: isGenerating || temporalCheckRunning || compareRunning || combineRunning || !item.assembledContent || !item.perspectiveSynthesis?.temporalNarrative ? 'not-allowed' : 'pointer',
+              opacity: isGenerating || temporalCheckRunning || compareRunning || combineRunning || !item.assembledContent || !item.perspectiveSynthesis?.temporalNarrative ? 0.6 : 1,
+              fontSize: '12px',
+            }}
+          >
+            {temporalCheckRunning ? 'Checking...' : 'Temporal Check'}
           </button>
         </div>
         <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>
@@ -505,6 +526,74 @@ export default function VersionsTab({
             }}
           >
             {item.comparisonReport}
+          </div>
+        </div>
+      )}
+
+      {/* Temporal Check Report */}
+      {item.temporalCheckReport && (
+        <div
+          style={{
+            marginBottom: '16px',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              padding: '12px 16px',
+              background: 'var(--bg-tertiary)',
+              borderBottom: '1px solid var(--border-color)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <span style={{ fontSize: '13px', fontWeight: 500 }}>Temporal Alignment Check</span>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {item.temporalCheckReportGeneratedAt && (
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  {new Date(item.temporalCheckReportGeneratedAt).toLocaleString()}
+                </span>
+              )}
+              <button
+                onClick={() => {
+                  const blob = new Blob([item.temporalCheckReport], { type: 'text/markdown' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `temporal-check-${item.chronicleId.slice(0, 20)}-${Date.now()}.md`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                style={{
+                  padding: '2px 8px',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '4px',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                }}
+              >
+                Export
+              </button>
+            </div>
+          </div>
+          <div
+            style={{
+              padding: '16px',
+              maxHeight: '400px',
+              overflowY: 'auto',
+              fontSize: '13px',
+              lineHeight: 1.7,
+              whiteSpace: 'pre-wrap',
+              color: 'var(--text-primary)',
+            }}
+          >
+            {item.temporalCheckReport}
           </div>
         </div>
       )}

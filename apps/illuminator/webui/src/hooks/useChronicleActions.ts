@@ -380,6 +380,35 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
     [onEnqueue, getChronicle],
   );
 
+  const temporalCheck = useCallback(
+    (chronicleId: string) => {
+      const chronicle = getChronicle(chronicleId);
+      if (!chronicle) {
+        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        return;
+      }
+      if (!chronicle.assembledContent) {
+        console.error('[Chronicle] No assembled content for temporal check');
+        return;
+      }
+      if (!chronicle.perspectiveSynthesis?.temporalNarrative) {
+        console.error('[Chronicle] No temporal narrative available for temporal check');
+        return;
+      }
+
+      onEnqueue([
+        {
+          entity: buildEntityRefFromRecord(chronicleId, chronicle),
+          type: 'entityChronicle' as EnrichmentType,
+          prompt: '',
+          chronicleStep: 'temporal_check',
+          chronicleId,
+        },
+      ]);
+    },
+    [onEnqueue, getChronicle],
+  );
+
   /**
    * Full regeneration with new perspective synthesis.
    * Creates a new version by running the complete generation pipeline.
@@ -469,5 +498,6 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
     compareVersions,
     combineVersions,
     copyEdit,
+    temporalCheck,
   };
 }

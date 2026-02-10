@@ -24,6 +24,7 @@ export default function ChronicleWorkspace({
   onCompareVersions,
   onCombineVersions,
   onCopyEdit,
+  onTemporalCheck,
   onValidate,
   onGenerateSummary,
   onGenerateTitle,
@@ -196,6 +197,7 @@ export default function ChronicleWorkspace({
   const compareRunning = refinements?.compare?.running || false;
   const combineRunning = refinements?.combine?.running || false;
   const copyEditRunning = refinements?.copyEdit?.running || false;
+  const temporalCheckRunning = refinements?.temporalCheck?.running || false;
 
   // ---------------------------------------------------------------------------
   // Seed data
@@ -409,9 +411,11 @@ export default function ChronicleWorkspace({
             onRegenerateWithSampling={onRegenerateWithSampling}
             onUpdateCombineInstructions={onUpdateCombineInstructions}
             onCopyEdit={onCopyEdit}
+            onTemporalCheck={onTemporalCheck}
             compareRunning={compareRunning}
             combineRunning={combineRunning}
             copyEditRunning={copyEditRunning}
+            temporalCheckRunning={temporalCheckRunning}
           />
         )}
 

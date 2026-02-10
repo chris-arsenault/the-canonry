@@ -180,6 +180,7 @@ export default function ChronicleReviewPanel({
   onCompareVersions,
   onCombineVersions,
   onCopyEdit,
+  onTemporalCheck,
   onCorrectSuggestions,
   onGenerateSummary,
   onGenerateTitle,
@@ -265,6 +266,7 @@ export default function ChronicleReviewPanel({
         onCompareVersions={onCompareVersions}
         onCombineVersions={onCombineVersions}
         onCopyEdit={onCopyEdit}
+        onTemporalCheck={onTemporalCheck}
         onValidate={onValidate}
         onGenerateSummary={onGenerateSummary}
         onGenerateTitle={onGenerateTitle}

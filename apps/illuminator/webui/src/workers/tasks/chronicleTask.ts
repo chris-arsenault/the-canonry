@@ -24,6 +24,7 @@ import {
   type ChronicleRecord,
   regenerateChronicleAssembly,
   updateChronicleComparisonReport,
+  updateChronicleTemporalCheckReport,
   updateChronicleSummary,
   updateChronicleTitle,
   updateChronicleImageRefs,
@@ -123,6 +124,10 @@ async function executeEntityChronicleTask(
 
   if (step === 'copy_edit') {
     return executeCopyEditStep(task, chronicleRecord, context);
+  }
+
+  if (step === 'temporal_check') {
+    return executeTemporalCheckStep(task, chronicleRecord, context);
   }
 
   if (step === 'summary') {
@@ -1589,6 +1594,158 @@ async function executeCopyEditStep(
       outputTokens: copyEditCall.usage.outputTokens,
     },
     debug: copyEditCall.result.debug,
+  };
+}
+
+// ============================================================================
+// Temporal Alignment Check Step (user-triggered, produces report)
+// ============================================================================
+
+async function executeTemporalCheckStep(
+  task: WorkerTask,
+  chronicleRecord: NonNullable<Awaited<ReturnType<typeof getChronicle>>>,
+  context: TaskContext
+): Promise<TaskResult> {
+  const { config, llmClient, isAborted } = context;
+
+  const chronicleId = chronicleRecord.chronicleId;
+
+  // Get the active version content
+  const { content } = resolveTargetVersionContent(chronicleRecord);
+  if (!content) {
+    return { success: false, error: 'No chronicle content available for temporal check' };
+  }
+
+  // Get temporal narrative from perspective synthesis
+  const temporalNarrative = chronicleRecord.perspectiveSynthesis?.temporalNarrative;
+  if (!temporalNarrative) {
+    return { success: false, error: 'No temporal narrative available — requires perspective synthesis with world dynamics' };
+  }
+
+  // Get focal era info
+  const focalEra = chronicleRecord.temporalContext?.focalEra;
+  const touchedEraIds = chronicleRecord.temporalContext?.touchedEraIds || [];
+  const allEras = chronicleRecord.temporalContext?.allEras || [];
+  const temporalScope = chronicleRecord.temporalContext?.temporalScope;
+  const temporalDescription = chronicleRecord.temporalContext?.temporalDescription;
+
+  // Build era context block
+  const eraContextBlock = allEras.length > 0
+    ? allEras.map(era => {
+        const isFocal = focalEra?.id === era.id ? ' ← FOCAL ERA' : '';
+        const isTouched = touchedEraIds.includes(era.id) ? ' (touched)' : '';
+        return `- **${era.name}** (ticks ${era.startTick}–${era.endTick})${isFocal}${isTouched}${era.summary ? `: ${era.summary}` : ''}`;
+      }).join('\n')
+    : 'No era information available.';
+
+  // Get world dynamics if available
+  const worldDynamicsResolved = (chronicleRecord as any).generationContext?.worldDynamicsResolved;
+  const dynamicsBlock = worldDynamicsResolved && worldDynamicsResolved.length > 0
+    ? `## World Dynamics (as provided to generation)\n${worldDynamicsResolved.map((d: string, i: number) => `${i + 1}. ${d}`).join('\n')}\n`
+    : '';
+
+  const callConfig = getCallConfig(config, 'chronicle.compare');
+  console.log(`[Worker] Temporal alignment check for chronicle=${chronicleId}, model=${callConfig.model}...`);
+
+  const systemPrompt = `You are an editorial analyst checking whether a chronicle's narrative is temporally grounded in the correct era. You have access to the focal era, the temporal narrative (synthesized stakes), and the chronicle text. Your job is to identify passages where the chronicle's narrative contradicts, ignores, or is misaligned with the temporal context it was supposed to be grounded in.`;
+
+  const userPrompt = `## Temporal Context
+
+**Focal Era:** ${focalEra?.name || 'unknown'}${temporalScope ? ` (scope: ${temporalScope})` : ''}
+${temporalDescription ? `**Temporal Description:** ${temporalDescription}` : ''}
+
+**Era Timeline:**
+${eraContextBlock}
+
+## Temporal Narrative (from Perspective Synthesis)
+This is the synthesized narrative grounding — the story-specific stakes derived from world dynamics and era conditions. The chronicle should reflect these conditions:
+
+> ${temporalNarrative}
+
+${dynamicsBlock}
+## Chronicle Text
+
+${content}
+
+---
+
+## Task
+
+Analyze the chronicle text against the temporal context above. Look for:
+
+1. **Era Misalignment** — Does the chronicle reference conditions, events, or tensions from a DIFFERENT era than the focal era? Does it describe circumstances that belong to an earlier or later period?
+
+2. **Temporal Narrative Contradictions** — Does the chronicle contradict the synthesized stakes? Are the pressures, conditions, or world dynamics described in the temporal narrative absent, inverted, or replaced with incompatible ones?
+
+3. **Anachronistic Details** — Are there references to entities, places, factions, or customs that wouldn't exist or wouldn't apply during the focal era?
+
+4. **Missing Temporal Grounding** — Does the chronicle feel temporally unanchored — like it could happen in any era? Does it fail to use the specific conditions the temporal narrative establishes?
+
+## Output Format
+
+For each issue found, cite the specific passage and explain the misalignment. If no issues are found, say so explicitly.
+
+Rate the overall temporal alignment: **Strong**, **Adequate**, **Weak**, or **Misaligned**.
+
+Keep the total output under 600 words.`;
+
+  const checkCall = await runTextCall({
+    llmClient,
+    callType: 'chronicle.compare',
+    callConfig,
+    systemPrompt,
+    prompt: userPrompt,
+    temperature: 0.3,
+  });
+
+  if (isAborted()) {
+    return { success: false, error: 'Task aborted', debug: checkCall.result.debug };
+  }
+
+  if (checkCall.result.error || !checkCall.result.text) {
+    return {
+      success: false,
+      error: `Temporal check failed: ${checkCall.result.error || 'No text returned'}`,
+      debug: checkCall.result.debug,
+    };
+  }
+
+  await updateChronicleTemporalCheckReport(chronicleId, checkCall.result.text);
+
+  const checkCost = {
+    estimated: checkCall.estimate.estimatedCost,
+    actual: checkCall.usage.actualCost,
+    inputTokens: checkCall.usage.inputTokens,
+    outputTokens: checkCall.usage.outputTokens,
+  };
+
+  await saveCostRecordWithDefaults({
+    projectId: task.projectId,
+    simulationRunId: task.simulationRunId,
+    entityId: task.entityId,
+    entityName: task.entityName,
+    entityKind: task.entityKind,
+    chronicleId,
+    type: 'chronicleV2',
+    model: callConfig.model,
+    estimatedCost: checkCost.estimated,
+    actualCost: checkCost.actual,
+    inputTokens: checkCost.inputTokens,
+    outputTokens: checkCost.outputTokens,
+  });
+
+  return {
+    success: true,
+    result: {
+      chronicleId,
+      generatedAt: Date.now(),
+      model: callConfig.model,
+      estimatedCost: checkCost.estimated,
+      actualCost: checkCost.actual,
+      inputTokens: checkCost.inputTokens,
+      outputTokens: checkCost.outputTokens,
+    },
+    debug: checkCall.result.debug,
   };
 }
 
