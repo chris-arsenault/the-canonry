@@ -7,7 +7,7 @@
  */
 
 import type { LLMClient } from './llmClient';
-import type { EntityContext, EraContext } from './chronicleTypes';
+import type { EntityContext, EraContext, ChronicleRoleAssignment } from './chronicleTypes';
 import type { EntityConstellation } from './constellationAnalyzer';
 import type { ResolvedLLMCallConfig } from './llmModelSettings';
 import {
@@ -124,6 +124,8 @@ export interface PerspectiveSynthesisInput {
   factSelection?: FactSelectionConfig;
   /** Optional free-text narrative direction — primary constraint when present */
   narrativeDirection?: string;
+  /** Role assignments from wizard — which entity fills which narrative role */
+  roleAssignments?: ChronicleRoleAssignment[];
 }
 
 /**
@@ -223,6 +225,7 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
     proseHints,
     factSelection,
     narrativeDirection,
+    roleAssignments,
   } = input;
   const prominenceScale = buildProminenceScale(
     entities
@@ -245,6 +248,14 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
     return trimmed;
   };
 
+  // Build role lookup from assignments
+  const roleByEntityId = new Map<string, { role: string; isPrimary: boolean }>();
+  if (roleAssignments) {
+    for (const ra of roleAssignments) {
+      roleByEntityId.set(ra.entityId, { role: ra.role, isPrimary: ra.isPrimary });
+    }
+  }
+
   // Entity summaries
   const entitySummaries = entities
     .slice(0, 10)
@@ -253,7 +264,11 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
         ? ` [${Object.entries(e.tags).map(([k, v]) => `${k}=${v}`).join(', ')}]`
         : '';
       const prominenceLabel = resolveProminenceLabel(e.prominence, prominenceScale);
-      return `- ${e.name} (${e.kind}, ${e.culture || 'unknown'}, ${prominenceLabel})${tags}: ${e.summary || '(no summary)'}`;
+      const assignment = roleByEntityId.get(e.id);
+      const roleLabel = assignment
+        ? `, role: ${assignment.role}${assignment.isPrimary ? ' (primary)' : ''}`
+        : '';
+      return `- ${e.name} (${e.kind}, ${e.culture || 'unknown'}, ${prominenceLabel}${roleLabel})${tags}: ${e.summary || '(no summary)'}`;
     })
     .join('\n');
 

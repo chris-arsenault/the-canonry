@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function ChronicleVersionSelector({
   versions,
@@ -13,14 +13,23 @@ export default function ChronicleVersionSelector({
 }) {
   const isActive = selectedVersionId === activeVersionId;
   const canDelete = versions.length > 1 && onDeleteVersion;
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
+  const confirmingDelete = confirmingDeleteId === selectedVersionId;
+
+  useEffect(() => {
+    if (!confirmingDeleteId) return;
+    const stillExists = versions.some((v) => v.id === confirmingDeleteId);
+    if (!stillExists || confirmingDeleteId !== selectedVersionId || disabled) {
+      setConfirmingDeleteId(null);
+    }
+  }, [confirmingDeleteId, selectedVersionId, versions, disabled]);
 
   const handleDeleteClick = () => {
     if (confirmingDelete) {
       onDeleteVersion(selectedVersionId);
-      setConfirmingDelete(false);
+      setConfirmingDeleteId(null);
     } else {
-      setConfirmingDelete(true);
+      setConfirmingDeleteId(selectedVersionId);
     }
   };
 
@@ -30,7 +39,7 @@ export default function ChronicleVersionSelector({
         value={selectedVersionId}
         onChange={(e) => {
           onSelectVersion(e.target.value);
-          setConfirmingDelete(false);
+          setConfirmingDeleteId(null);
         }}
         disabled={disabled}
         className="illuminator-select"
@@ -87,7 +96,7 @@ export default function ChronicleVersionSelector({
       {canDelete && (
         <button
           onClick={handleDeleteClick}
-          onBlur={() => setConfirmingDelete(false)}
+          onBlur={() => setConfirmingDeleteId(null)}
           disabled={disabled}
           title={confirmingDelete ? 'Click again to confirm deletion' : 'Delete this version'}
           style={{

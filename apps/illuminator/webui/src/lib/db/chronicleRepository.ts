@@ -81,13 +81,111 @@ function countWords(text: string | undefined): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
+function normalizeVersionId(versionId: string | undefined): string | undefined {
+  if (!versionId) return versionId;
+  if (versionId.startsWith('current_')) {
+    return `version_${versionId.slice('current_'.length)}`;
+  }
+  return versionId;
+}
+
+function parseVersionTimestamp(versionId: string | undefined): number | null {
+  if (!versionId) return null;
+  if (!versionId.startsWith('version_')) return null;
+  const suffix = versionId.slice('version_'.length);
+  const raw = suffix.split('_')[0];
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function resolveVersionId(
+  versions: ChronicleGenerationVersion[],
+  versionId: string | undefined
+): string | undefined {
+  if (!versionId) return undefined;
+  const normalized = normalizeVersionId(versionId);
+  if (!normalized) return normalized;
+  if (versions.some((v) => v.versionId === normalized)) return normalized;
+
+  const ts = parseVersionTimestamp(normalized);
+  if (ts === null) return normalized;
+  const match = versions.find((v) => v.generatedAt === ts);
+  return match?.versionId || normalized;
+}
+
+function getLatestVersion(
+  versions: ChronicleGenerationVersion[]
+): ChronicleGenerationVersion | undefined {
+  if (versions.length === 0) return undefined;
+  return versions.reduce(
+    (latest, version) => (version.generatedAt > latest.generatedAt ? version : latest),
+    versions[0]
+  );
+}
+
+function getVersionIdForTimestamp(
+  versions: ChronicleGenerationVersion[],
+  generatedAt: number
+): string | undefined {
+  return versions.find((v) => v.generatedAt === generatedAt)?.versionId;
+}
+
+function createUniqueVersionId(
+  existingIds: Set<string>,
+  generatedAt: number
+): string {
+  const base = `version_${generatedAt}`;
+  if (!existingIds.has(base)) return base;
+  let counter = 1;
+  while (existingIds.has(`${base}_${counter}`)) {
+    counter += 1;
+  }
+  return `${base}_${counter}`;
+}
+
+function dedupeVersions(
+  versions: ChronicleGenerationVersion[]
+): { versions: ChronicleGenerationVersion[]; changed: boolean } {
+  let changed = false;
+  const byId = new Map<string, ChronicleGenerationVersion>();
+
+  for (const version of versions) {
+    const existing = byId.get(version.versionId);
+    if (!existing) {
+      byId.set(version.versionId, version);
+      continue;
+    }
+    changed = true;
+    if (version.generatedAt > existing.generatedAt) {
+      byId.set(version.versionId, version);
+      continue;
+    }
+    if (version.generatedAt === existing.generatedAt) {
+      const existingScore = (existing.content?.length || 0) + (existing.step ? 1 : 0);
+      const versionScore = (version.content?.length || 0) + (version.step ? 1 : 0);
+      if (versionScore > existingScore) {
+        byId.set(version.versionId, version);
+      }
+    }
+  }
+
+  const deduped = Array.from(byId.values()).sort((a, b) => a.generatedAt - b.generatedAt);
+  if (deduped.length !== versions.length) {
+    changed = true;
+  }
+  return { versions: deduped, changed };
+}
+
 function buildGenerationVersion(record: ChronicleRecord): ChronicleGenerationVersion | null {
   const content = record.finalContent || record.assembledContent || '';
   if (!content) return null;
 
+  const generatedAt = record.assembledAt ?? record.createdAt;
+
   return {
-    versionId: `version_${record.assembledAt || record.createdAt}`,
-    generatedAt: record.assembledAt || record.createdAt,
+    versionId: `version_${generatedAt}`,
+    generatedAt,
     content,
     wordCount: countWords(content),
     model: record.model || 'unknown',
@@ -100,6 +198,132 @@ function buildGenerationVersion(record: ChronicleRecord): ChronicleGenerationVer
       '(prompt not stored - chronicle generated before prompt storage was implemented)',
     step: record.generationStep,
   };
+}
+
+function ensureChronicleVersions(record: ChronicleRecord): boolean {
+  let changed = false;
+  const deduped = dedupeVersions(record.generationHistory || []);
+  let versions = deduped.versions;
+  if (deduped.changed) changed = true;
+
+  const resolvedActive = resolveVersionId(versions, record.activeVersionId);
+  if (resolvedActive !== record.activeVersionId) {
+    record.activeVersionId = resolvedActive;
+    changed = true;
+  }
+  const resolvedAccepted = resolveVersionId(versions, record.acceptedVersionId);
+  if (resolvedAccepted !== record.acceptedVersionId) {
+    record.acceptedVersionId = resolvedAccepted;
+    changed = true;
+  }
+  const resolvedSummaryTarget = resolveVersionId(versions, record.summaryTargetVersionId);
+  if (resolvedSummaryTarget !== record.summaryTargetVersionId) {
+    record.summaryTargetVersionId = resolvedSummaryTarget;
+    changed = true;
+  }
+  const resolvedImageRefsTarget = resolveVersionId(versions, record.imageRefsTargetVersionId);
+  if (resolvedImageRefsTarget !== record.imageRefsTargetVersionId) {
+    record.imageRefsTargetVersionId = resolvedImageRefsTarget;
+    changed = true;
+  }
+
+  const hasAssembled = Boolean(record.assembledContent);
+  if (hasAssembled) {
+    const generatedAt = record.assembledAt ?? record.createdAt;
+    const existingId = getVersionIdForTimestamp(versions, generatedAt);
+    const currentVersionId = existingId
+      || createUniqueVersionId(new Set(versions.map((v) => v.versionId)), generatedAt);
+    const existingIndex = versions.findIndex((v) => v.versionId === currentVersionId);
+    const systemPrompt =
+      record.generationSystemPrompt ||
+      '(prompt not stored - chronicle generated before prompt storage was implemented)';
+    const userPrompt =
+      record.generationUserPrompt ||
+      '(prompt not stored - chronicle generated before prompt storage was implemented)';
+    if (existingIndex === -1) {
+      versions.push({
+        versionId: currentVersionId,
+        generatedAt,
+        content: record.assembledContent || '',
+        wordCount: countWords(record.assembledContent),
+        model: record.model || 'unknown',
+        sampling: record.generationSampling,
+        systemPrompt,
+        userPrompt,
+        step: record.generationStep,
+      });
+      changed = true;
+    } else {
+      const existing = versions[existingIndex];
+      const next = {
+        ...existing,
+        generatedAt,
+        content: record.assembledContent || '',
+        wordCount: countWords(record.assembledContent),
+        model: record.model || existing.model,
+        sampling: record.generationSampling ?? existing.sampling,
+        systemPrompt: record.generationSystemPrompt || existing.systemPrompt || systemPrompt,
+        userPrompt: record.generationUserPrompt || existing.userPrompt || userPrompt,
+        step: record.generationStep ?? existing.step,
+      };
+      const changedEntry =
+        next.generatedAt !== existing.generatedAt ||
+        next.content !== existing.content ||
+        next.wordCount !== existing.wordCount ||
+        next.model !== existing.model ||
+        next.sampling !== existing.sampling ||
+        next.systemPrompt !== existing.systemPrompt ||
+        next.userPrompt !== existing.userPrompt ||
+        next.step !== existing.step;
+      if (changedEntry) {
+        versions[existingIndex] = next;
+        changed = true;
+      }
+    }
+  } else if (versions.length > 0) {
+    const latest = getLatestVersion(versions);
+    if (latest) {
+      record.assembledContent = latest.content;
+      record.assembledAt = latest.generatedAt;
+      record.generationSampling = latest.sampling;
+      record.generationStep = latest.step;
+      record.model = latest.model || record.model;
+      record.generationSystemPrompt = latest.systemPrompt;
+      record.generationUserPrompt = latest.userPrompt;
+      changed = true;
+    }
+  }
+
+  if (versions.length > 0) {
+    const latest = getLatestVersion(versions);
+    if (!record.activeVersionId || !versions.some((v) => v.versionId === record.activeVersionId)) {
+      record.activeVersionId = latest?.versionId;
+      changed = true;
+    }
+    if (record.acceptedVersionId && !versions.some((v) => v.versionId === record.acceptedVersionId)) {
+      record.acceptedVersionId = record.activeVersionId;
+      changed = true;
+    }
+    if (record.summaryTargetVersionId && !versions.some((v) => v.versionId === record.summaryTargetVersionId)) {
+      record.summaryTargetVersionId = record.activeVersionId;
+      changed = true;
+    }
+    if (record.imageRefsTargetVersionId && !versions.some((v) => v.versionId === record.imageRefsTargetVersionId)) {
+      record.imageRefsTargetVersionId = record.activeVersionId;
+      changed = true;
+    }
+  }
+
+  const finalDeduped = dedupeVersions(versions);
+  versions = finalDeduped.versions;
+  if (finalDeduped.changed) changed = true;
+
+  if (!record.generationHistory || versions.length !== record.generationHistory.length || changed) {
+    record.generationHistory = versions;
+    changed = true;
+  }
+
+  return changed;
 }
 
 // ============================================================================
@@ -172,7 +396,18 @@ export async function createChronicle(
   const focusType = deriveFocusType(metadata.roleAssignments);
   const title = metadata.title || deriveTitleFromRoles(metadata.roleAssignments);
   const assembledAt = Date.now();
-  const activeVersionId = `current_${assembledAt}`;
+  const activeVersionId = createUniqueVersionId(new Set(), assembledAt);
+  const initialVersion: ChronicleGenerationVersion = {
+    versionId: activeVersionId,
+    generatedAt: assembledAt,
+    content: metadata.assembledContent,
+    wordCount: countWords(metadata.assembledContent),
+    model: metadata.model,
+    sampling: metadata.generationSampling,
+    systemPrompt: metadata.generationSystemPrompt,
+    userPrompt: metadata.generationUserPrompt,
+    step: 'generate',
+  };
   const record: ChronicleRecord = {
     chronicleId,
     projectId: metadata.projectId,
@@ -202,6 +437,7 @@ export async function createChronicle(
     generationUserPrompt: metadata.generationUserPrompt,
     generationSampling: metadata.generationSampling,
     generationStep: 'generate',
+    generationHistory: [initialVersion],
     activeVersionId,
     status: 'assembly_ready',
     assembledContent: metadata.assembledContent,
@@ -235,8 +471,31 @@ export async function updateChronicleAssembly(
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
 
+  ensureChronicleVersions(record);
+  const generatedAt = Date.now();
+  const existingIds = new Set((record.generationHistory || []).map((v) => v.versionId));
+  const versionId = createUniqueVersionId(existingIds, generatedAt);
+  const systemPrompt =
+    record.generationSystemPrompt ||
+    '(prompt not stored - chronicle generated before prompt storage was implemented)';
+  const userPrompt =
+    record.generationUserPrompt ||
+    '(prompt not stored - chronicle generated before prompt storage was implemented)';
+  const nextVersion: ChronicleGenerationVersion = {
+    versionId,
+    generatedAt,
+    content: assembledContent,
+    wordCount: countWords(assembledContent),
+    model: record.model || 'unknown',
+    sampling: record.generationSampling,
+    systemPrompt,
+    userPrompt,
+    step: record.generationStep,
+  };
+  record.generationHistory = [...(record.generationHistory || []), nextVersion];
+
   record.assembledContent = assembledContent;
-  record.assembledAt = Date.now();
+  record.assembledAt = generatedAt;
   record.status = 'assembly_ready';
   record.failureStep = undefined;
   record.failureReason = undefined;
@@ -248,13 +507,14 @@ export async function updateChronicleAssembly(
   // Preserve imageRefs and coverImage - user decides via keep/regenerate UI
   record.validationStale = false;
   record.updatedAt = Date.now();
+  record.activeVersionId = nextVersion.versionId;
 
   await db.chronicles.put(record);
 }
 
 /**
  * Replace chronicle assembled content via sampling regeneration.
- * Preserves prior version in generationHistory and clears refinements.
+ * Appends a new version to generationHistory and clears refinements.
  */
 export async function regenerateChronicleAssembly(
   chronicleId: string,
@@ -277,19 +537,31 @@ export async function regenerateChronicleAssembly(
     throw new Error(`Chronicle ${chronicleId} missing sampling for regeneration`);
   }
 
-  const historyVersion = buildGenerationVersion(record);
-  if (historyVersion) {
-    record.generationHistory = [...(record.generationHistory || []), historyVersion];
-  }
+  ensureChronicleVersions(record);
+  const generatedAt = Date.now();
+  const existingIds = new Set((record.generationHistory || []).map((v) => v.versionId));
+  const versionId = createUniqueVersionId(existingIds, generatedAt);
+  const nextVersion: ChronicleGenerationVersion = {
+    versionId,
+    generatedAt,
+    content: updates.assembledContent,
+    wordCount: countWords(updates.assembledContent),
+    model: updates.model,
+    sampling: updates.sampling,
+    systemPrompt: updates.systemPrompt,
+    userPrompt: updates.userPrompt,
+    step: updates.step,
+  };
+  record.generationHistory = [...(record.generationHistory || []), nextVersion];
 
   record.assembledContent = updates.assembledContent;
-  record.assembledAt = Date.now();
+  record.assembledAt = generatedAt;
   record.status = 'assembly_ready';
   record.generationSystemPrompt = updates.systemPrompt;
   record.generationUserPrompt = updates.userPrompt;
   record.generationSampling = updates.sampling;
   record.generationStep = updates.step;
-  record.activeVersionId = `current_${record.assembledAt}`;
+  record.activeVersionId = nextVersion.versionId;
 
   record.failureStep = undefined;
   record.failureReason = undefined;
@@ -326,9 +598,32 @@ export async function updateChronicleEdit(
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
 
+  ensureChronicleVersions(record);
+  const generatedAt = Date.now();
+  const existingIds = new Set((record.generationHistory || []).map((v) => v.versionId));
+  const versionId = createUniqueVersionId(existingIds, generatedAt);
+  const systemPrompt =
+    record.generationSystemPrompt ||
+    '(prompt not stored - chronicle generated before prompt storage was implemented)';
+  const userPrompt =
+    record.generationUserPrompt ||
+    '(prompt not stored - chronicle generated before prompt storage was implemented)';
+  const nextVersion: ChronicleGenerationVersion = {
+    versionId,
+    generatedAt,
+    content: assembledContent,
+    wordCount: countWords(assembledContent),
+    model: record.model || 'unknown',
+    sampling: record.generationSampling,
+    systemPrompt,
+    userPrompt,
+    step: record.generationStep,
+  };
+  record.generationHistory = [...(record.generationHistory || []), nextVersion];
+
   record.assembledContent = assembledContent;
-  record.assembledAt = Date.now();
-  record.editedAt = Date.now();
+  record.assembledAt = generatedAt;
+  record.editedAt = generatedAt;
   record.editVersion = (record.editVersion || 0) + 1;
   record.cohesionReport = undefined;
   record.validatedAt = undefined;
@@ -347,6 +642,7 @@ export async function updateChronicleEdit(
     record.totalInputTokens += cost.inputTokens;
     record.totalOutputTokens += cost.outputTokens;
   }
+  record.activeVersionId = nextVersion.versionId;
   record.updatedAt = Date.now();
 
   await db.chronicles.put(record);
@@ -454,6 +750,7 @@ export async function updateChronicleTitle(
   chronicleId: string,
   title: string,
   candidates: string[],
+  fragments: string[],
   cost: { estimated: number; actual: number; inputTokens: number; outputTokens: number },
   model: string,
 ): Promise<void> {
@@ -462,6 +759,8 @@ export async function updateChronicleTitle(
 
   record.pendingTitle = title;
   record.pendingTitleCandidates = candidates;
+  record.pendingTitleFragments = fragments;
+  record.titleFragments = fragments;
   record.titleGeneratedAt = Date.now();
   record.titleModel = model;
   record.totalEstimatedCost += cost.estimated;
@@ -485,6 +784,7 @@ export async function acceptPendingTitle(chronicleId: string, chosenTitle?: stri
   record.titleCandidates = record.pendingTitleCandidates;
   record.pendingTitle = undefined;
   record.pendingTitleCandidates = undefined;
+  record.pendingTitleFragments = undefined;
   record.updatedAt = Date.now();
 
   await db.chronicles.put(record);
@@ -499,6 +799,7 @@ export async function rejectPendingTitle(chronicleId: string): Promise<void> {
 
   record.pendingTitle = undefined;
   record.pendingTitleCandidates = undefined;
+  record.pendingTitleFragments = undefined;
   record.updatedAt = Date.now();
 
   await db.chronicles.put(record);
@@ -739,11 +1040,14 @@ export async function acceptChronicle(
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
 
-  const currentVersionId = `current_${record.assembledAt ?? record.createdAt}`;
-  const activeVersionId = record.activeVersionId || currentVersionId;
-  const acceptedVersionId = options?.acceptedVersionId || activeVersionId;
+  ensureChronicleVersions(record);
+  const versions = record.generationHistory || [];
+  const fallbackActive = getLatestVersion(versions)?.versionId;
+  const activeVersionId = options?.acceptedVersionId || record.activeVersionId || fallbackActive;
+  const activeVersion = versions.find((v) => v.versionId === activeVersionId);
+  const acceptedVersionId = activeVersionId || record.acceptedVersionId;
 
-  record.finalContent = options?.finalContent ?? record.assembledContent;
+  record.finalContent = options?.finalContent ?? activeVersion?.content ?? record.assembledContent;
   record.acceptedVersionId = acceptedVersionId;
   record.activeVersionId = acceptedVersionId;
   record.acceptedAt = Date.now();
@@ -783,6 +1087,10 @@ export async function updateChronicleActiveVersion(
     throw new Error(`Chronicle ${chronicleId} is accepted; unpublish before changing versions`);
   }
 
+  ensureChronicleVersions(record);
+  if (!record.generationHistory?.some((v) => v.versionId === versionId)) {
+    throw new Error(`Version ${versionId} not found in chronicle ${chronicleId}`);
+  }
   record.activeVersionId = versionId;
   record.updatedAt = Date.now();
 
@@ -811,8 +1119,7 @@ export async function updateChronicleCombineInstructions(
 
 /**
  * Delete a specific version from a chronicle's generation history.
- * Cannot delete the current (active) version - only historical versions.
- * If the deleted version was the active version, switches to the most recent remaining version.
+ * If the deleted version was the current or active version, switches to the most recent remaining version.
  */
 export async function deleteChronicleVersion(
   chronicleId: string,
@@ -825,48 +1132,44 @@ export async function deleteChronicleVersion(
     throw new Error(`Chronicle ${chronicleId} is accepted; unpublish before deleting versions`);
   }
 
-  // Current version ID
-  const currentVersionId = `current_${record.assembledAt || record.createdAt}`;
-  const isCurrentVersion = versionId === currentVersionId;
-
-  // Find version in history
-  const historyIndex = (record.generationHistory || []).findIndex(
-    (v) => v.versionId === versionId
-  );
-
-  if (!isCurrentVersion && historyIndex === -1) {
+  ensureChronicleVersions(record);
+  const versions = record.generationHistory || [];
+  const matchIndex = versions.findIndex((v) => v.versionId === versionId);
+  if (matchIndex === -1) {
     throw new Error(`Version ${versionId} not found in chronicle ${chronicleId}`);
   }
-
-  // Count total versions (history + current)
-  const totalVersions = (record.generationHistory?.length || 0) + (record.assembledContent ? 1 : 0);
-  if (totalVersions <= 1) {
+  if (versions.length <= 1) {
     throw new Error(`Cannot delete the only version of chronicle ${chronicleId}`);
   }
 
+  const latest = getLatestVersion(versions);
+  const isCurrentVersion = latest?.versionId === versionId;
+  const remaining = versions.filter((v) => v.versionId !== versionId);
+
   if (isCurrentVersion) {
-    // Deleting current version: restore most recent history version as current
-    const history = record.generationHistory || [];
-    if (history.length === 0) {
+    const nextLatest = getLatestVersion(remaining);
+    if (!nextLatest) {
       throw new Error(`Cannot delete current version with no history to restore`);
     }
-    const restored = history[history.length - 1];
-    record.assembledContent = restored.content;
-    record.assembledAt = restored.generatedAt;
-    record.generationSystemPrompt = restored.systemPrompt;
-    record.generationUserPrompt = restored.userPrompt;
-    record.generationSampling = restored.sampling;
-    record.generationHistory = history.slice(0, -1);
-    record.activeVersionId = `current_${restored.generatedAt}`;
-  } else {
-    // Deleting a history version
-    record.generationHistory = (record.generationHistory || []).filter(
-      (v) => v.versionId !== versionId
-    );
-    // If deleted version was active, switch to current
-    if (record.activeVersionId === versionId) {
-      record.activeVersionId = currentVersionId;
-    }
+    record.assembledContent = nextLatest.content;
+    record.assembledAt = nextLatest.generatedAt;
+    record.model = nextLatest.model || record.model;
+    record.generationSystemPrompt = nextLatest.systemPrompt;
+    record.generationUserPrompt = nextLatest.userPrompt;
+    record.generationSampling = nextLatest.sampling;
+    record.generationStep = nextLatest.step;
+  }
+
+  record.generationHistory = remaining;
+
+  if (record.activeVersionId === versionId) {
+    record.activeVersionId = getLatestVersion(remaining)?.versionId;
+  }
+  if (record.summaryTargetVersionId === versionId) {
+    record.summaryTargetVersionId = record.activeVersionId;
+  }
+  if (record.imageRefsTargetVersionId === versionId) {
+    record.imageRefsTargetVersionId = record.activeVersionId;
   }
 
   record.updatedAt = Date.now();
@@ -926,14 +1229,28 @@ export async function startChronicleValidation(chronicleId: string): Promise<voi
  * Get a chronicle record
  */
 export async function getChronicle(chronicleId: string): Promise<ChronicleRecord | undefined> {
-  return db.chronicles.get(chronicleId);
+  const record = await db.chronicles.get(chronicleId);
+  if (record && ensureChronicleVersions(record)) {
+    await db.chronicles.put(record);
+  }
+  return record;
 }
 
 /**
  * Get all chronicles for a specific simulation run
  */
 export async function getChroniclesForSimulation(simulationRunId: string): Promise<ChronicleRecord[]> {
-  return db.chronicles.where('simulationRunId').equals(simulationRunId).toArray();
+  const records = await db.chronicles.where('simulationRunId').equals(simulationRunId).toArray();
+  const updates: ChronicleRecord[] = [];
+  for (const record of records) {
+    if (ensureChronicleVersions(record)) {
+      updates.push(record);
+    }
+  }
+  if (updates.length > 0) {
+    await db.chronicles.bulkPut(updates);
+  }
+  return records;
 }
 
 /**

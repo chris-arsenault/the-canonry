@@ -769,10 +769,10 @@ ${instructions}`;
  * Build the perspective section for document format.
  * Contains the PS-synthesized perspective brief and suggested motifs.
  *
- * NOTE: Documents do NOT receive coreTone (world style principles like SYNTACTIC POETRY,
- * BITTER CAMARADERIE, etc.). Those are story-oriented prose guidance that competes with
- * document format constraints, causing over-explanation and register breaks. The document
- * instructions and PS-synthesized narrativeVoice/entityDirectives provide sufficient guidance.
+ * NOTE: No format receives coreTone directly — it conflicts with narrative style proseInstructions
+ * (e.g. "dark, war-weary" fights Dreamscape's "hallucinatory, fluid"). PS already receives
+ * coreTone as input and incorporates it into its synthesis. The generation prompt gets only
+ * PS brief + motifs + narrative style proseInstructions.
  */
 function buildDocumentStyleSection(tone: string | undefined): string {
   if (!tone) return '';
@@ -1068,30 +1068,21 @@ Write authentically as if the document exists within the world. No meta-commenta
  * - Same PS, same data — only the generation prompt framing differs.
  */
 export function getCreativeSystemPrompt(): string {
-  return `You are a fiction writer. A structured version of this story already exists. Your job is to find what it missed — the angle, the voice, the structure it didn't try. Take risks. The measure is whether a reader would say "this is a story" — not "this is AI output." Avoid the patterns, rhythms, and hedging that mark machine-generated text.
+  return `You are a fiction writer. Find the one detail that makes this story specific — the gesture, the object, the sensory moment no other story contains. Build outward from there. The measure is whether a reader finishes this and sits with it. Avoid the patterns, rhythms, and hedging that mark machine-generated text.
 
 Your prompt contains:
 
-TASK DATA (how to write it):
-- Task: Word count, permissions
-- Narrative Structure: What the structured version follows — you can follow it, subvert it, or ignore it
-- Event Usage: How to incorporate world events
-- Writing Style: World tone sets the backdrop; Prose instructions are specific to this story type
-
-GUIDANCE (pre-synthesized — follow their intent closely, but express them in your own voice):
-- Tone & Atmosphere: Synthesized prose guidance blending cultural and stylistic elements
-- Character Notes: Per-entity guidance for speech, behavior, and portrayal
+GUIDANCE (pre-synthesized — follow their intent, find your own voice):
+- Tone & Atmosphere: Synthesized prose guidance for this chronicle
+- Character Notes: Per-entity guidance for portrayal
 
 WORLD DATA (what to write about):
-- Cast: Narrative roles to fill, then characters to fill them
-- Narrative Lens (optional): A contextual entity that shapes the story without being a character
-- World: Setting name, description, canon facts
-- Historical Context: Current era and world timeline
-- Events: What happened in the world
+- Cast: Characters and narrative roles
+- World: Setting, canon facts, events, relationships
 
 Entity descriptions reflect who characters BECAME. Write them as they WERE during the story's events.
 
-Tone & Atmosphere and Character Notes are pre-synthesized guidance — follow their intent closely, but express them in your own voice. Writing Style provides the ambient tone everything sits within.`;
+Tone & Atmosphere and Character Notes are pre-synthesized guidance — follow their intent closely, but express them in your own voice.`;
 }
 
 /**
@@ -1101,10 +1092,10 @@ Tone & Atmosphere and Character Notes are pre-synthesized guidance — follow th
  * Same PS outputs, same world data, same entity selection. The differences from
  * the structured prompt are:
  *
- * 1. Fiction writer identity with competitive frame against structured version
- * 2. Permissions not requirements — may reassign roles, invent characters, ignore structure
- * 3. Structure presented as "what the structured version follows" — subversion encouraged
- * 4. No craft posture — removed from writing style
+ * 1. Fiction writer identity focused on finding the specific, haunting detail
+ * 2. Creative target ("one image the reader won't forget") instead of requirements list
+ * 3. Structure presented as a starting shape, not a prescription
+ * 4. Same craft posture as structured — constraints fuel creativity, not freedom
  *
  * The creative mode runs the same PS as the structured prompt, so it receives
  * the same narrative voice, entity directives, faceted facts, and motifs.
@@ -1130,13 +1121,14 @@ export function buildCreativeStoryPrompt(
 
   // === TASK DATA ===
 
-  // 1. TASK — permissions, not requirements
+  // 1. TASK — creative target, not permissions list
   const taskSection = `# Task
-Write a ${wordRange} word narrative.
+Write a ${wordRange} word story.
 
-- You may reassign characters to different narrative roles than those suggested below
-- You may invent minor characters, framing devices, or structural choices not in the prompt
-- Draw on the Character Notes but don't feel bound by them — find your own read on these people
+Find the one image the reader won't forget. Build outward from there.
+
+- You may reassign characters to different roles or invent minor characters
+- The narrative structure below is a starting shape, not a requirement
 - Write directly with no section headers or meta-commentary`;
 
   // 2. NARRATIVE STRUCTURE — softened: presented as suggestion
@@ -1169,7 +1161,7 @@ Write a ${wordRange} word narrative.
     entityDirectivesSection = directiveLines.join('\n');
   }
 
-  // 6. WRITING STYLE — same as structured but without craft posture
+  // 6. WRITING STYLE — same as structured, including craft posture
   const styleSection = buildCreativeStyleSection(context.tone, style);
 
   // === WORLD DATA ===
@@ -1218,17 +1210,17 @@ Write a ${wordRange} word narrative.
 }
 
 /**
- * Build softened narrative structure section for creative mode.
- * Same beat sheet content but framed as suggestion rather than prescription.
+ * Build narrative structure section for creative mode.
+ * Same beat sheet content but framed as a starting shape rather than prescription.
  */
 function buildCreativeStructureSection(style: StoryNarrativeStyle): string {
-  const lines: string[] = ['# Narrative Structure (for reference)'];
-  lines.push('The structured version follows this shape. You can follow it too, subvert it, or ignore it entirely. The world data and characters are your material — what you build with them is yours.');
+  const lines: string[] = ['# Narrative Structure'];
+  lines.push('One possible shape for this story. Use it, adapt it, or find a better one.');
 
   // Scene count guidance
   if (style.pacing?.sceneCount) {
     lines.push('');
-    lines.push(`Structured version target: ${style.pacing.sceneCount.min}-${style.pacing.sceneCount.max} scenes`);
+    lines.push(`Target: ${style.pacing.sceneCount.min}-${style.pacing.sceneCount.max} scenes`);
   }
 
   // Narrative instructions (plot structure, scenes, beats, emotional arcs)
@@ -1242,8 +1234,8 @@ function buildCreativeStructureSection(style: StoryNarrativeStyle): string {
 
 /**
  * Build writing style section for creative mode.
- * Same as structured but omits craft posture — density/restraint constraints
- * are the kind of prescriptive guidance creative mode loosens.
+ * Same as structured — craft posture included. Constraints fuel creativity;
+ * removing them produces safer, more median output, not wilder output.
  */
 function buildCreativeStyleSection(
   tone: ChronicleGenerationContext['tone'],
@@ -1267,7 +1259,15 @@ function buildCreativeStyleSection(
     hasContent = true;
   }
 
-  // Craft posture intentionally omitted for creative mode
+  // Craft posture - same as structured. Research shows craft constraints
+  // produce more creative output than open freedom.
+  if (style.craftPosture) {
+    if (hasContent) lines.push('');
+    lines.push(`## Craft Posture`);
+    lines.push('How to relate to the material — density, withholding, and elaboration:');
+    lines.push(style.craftPosture);
+    hasContent = true;
+  }
 
   return hasContent ? lines.join('\n') : '';
 }

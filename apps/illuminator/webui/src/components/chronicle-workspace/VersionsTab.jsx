@@ -138,6 +138,53 @@ export default function VersionsTab({
           >
             {copyEditRunning ? 'Copy-editing...' : 'Copy-edit'}
           </button>
+          <button
+            onClick={() => {
+              const list = item.generationHistory || [];
+              const byId = new Map();
+              for (const v of list) {
+                const arr = byId.get(v.versionId) || [];
+                arr.push(v);
+                byId.set(v.versionId, arr);
+              }
+              const duplicates = Array.from(byId.entries())
+                .filter(([, arr]) => arr.length > 1)
+                .map(([id, arr]) => ({ id, count: arr.length }));
+              console.warn('[Chronicle][Debug] Version dump', {
+                chronicleId: item.chronicleId,
+                activeVersionId: item.activeVersionId,
+                acceptedVersionId: item.acceptedVersionId,
+                assembledAt: item.assembledAt,
+                assembledContentLength: item.assembledContent?.length || 0,
+                versionCount: list.length,
+                duplicates,
+                versions: list.map((v, i) => ({
+                  index: i,
+                  versionId: v.versionId,
+                  generatedAt: v.generatedAt,
+                  step: v.step,
+                  sampling: v.sampling,
+                  model: v.model,
+                  wordCount: v.wordCount,
+                  contentLength: v.content?.length || 0,
+                })),
+              });
+            }}
+            disabled={isGenerating}
+            title="Dump generationHistory to console"
+            style={{
+              padding: '8px 14px',
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '6px',
+              color: 'var(--text-secondary)',
+              cursor: isGenerating ? 'not-allowed' : 'pointer',
+              opacity: isGenerating ? 0.6 : 1,
+              fontSize: '12px',
+            }}
+          >
+            Dump Versions
+          </button>
         </div>
         <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>
           {versions.length < 2

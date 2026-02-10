@@ -1,6 +1,17 @@
 # Chronicle Review Guide
 
-This document provides a structured approach for reviewing chronicle generation outputs. It identifies what to examine, where to find relevant source code and lore, and what questions to ask.
+## What Actually Matters
+
+Four questions determine whether a chronicle succeeds. Everything else in this guide is diagnostic — tools for identifying *why* something failed, not *what* success looks like.
+
+1. **Is the accepted story good standalone fiction?** Does it work as a piece of writing a reader would want to finish? Does it have momentum, texture, and emotional weight?
+2. **Does it read like machine-generated content?** Are there tells — hedging, balance words, samey rhythms, safe emotional choices, conceptual language where physical language should be?
+3. **Does it exercise world lore well?** Are world facts, cultural values, and entity details woven into the story as lived experience, not exposition?
+4. **Does it avoid repeating tropes from other stories?** Across the corpus, do chronicles feel like different windows into the same world, or template variations with swapped nouns?
+
+The detailed review dimensions below (PS quality, Story Bible delivery, version comparison, copy-edit assessment, etc.) exist to track common failure modes. When a chronicle fails one of the four core questions, these dimensions help diagnose where in the pipeline the failure originated. They are not the quality bar themselves.
+
+---
 
 ## Quick Reference: Key Files
 
@@ -18,10 +29,12 @@ This document provides a structured approach for reviewing chronicle generation 
 
 | Step | Version | What It Does |
 |------|---------|-------------|
-| Structured generation | V0 | Full PS-synthesized prompt: beat sheet, voice textures, entity directives, craft posture |
-| Creative freedom | V1 | Stripped-down prompt: world data only, no prescribed structure/voice/style. Skips PS. |
+| Structured generation | V0 | Full prompt with Story Bible framing: beat sheet as requirements, voice textures, entity directives, craft posture |
+| Creative freedom | V1 | Same PS guidance reframed as optional: structure "for reference," permission to reassign roles, invent characters, deviate from Character Notes |
 | Combine | V2 | Editor merges best elements of V0 and V1 based on editorial direction |
 | Copy-edit | V3 | Final polish pass with voice texture and motif preservation context |
+
+**Important:** V0 and V1 receive identical PS content (Tone & Atmosphere, Character Notes, faceted facts, motifs, temporal narrative, perspective brief). The difference is framing, not content. V0 presents the narrative structure as requirements and PS guidance as Story Bible reference. V1 presents structure as optional reference and PS guidance as "pre-synthesized — follow their intent closely, but express them in your own voice." V1 adds permission to reassign narrative roles, invent minor characters, and use framing devices not in the prompt.
 
 ### Narrative Styles
 | Style Type | Location |
@@ -45,18 +58,94 @@ This document provides a structured approach for reviewing chronicle generation 
 
 ---
 
+## Prompt Architecture
+
+The generation prompt has a three-part structure. Understanding this architecture is essential for reviewing how PS output reaches the LLM and shapes the prose.
+
+### V0 (Structured Generation)
+
+```
+CRAFT (how to write):
+├── Narrative Structure       ← style's beat sheet (from narrativeStyles.ts), framed as requirements
+├── Writing Style             ← coreTone + "PERSPECTIVE FOR THIS CHRONICLE" (PS brief)
+│                               + SUGGESTED MOTIFS (PS suggestedMotifs)
+│                               + Prose instructions (from narrativeStyles.ts)
+└── Craft Posture             ← density/restraint constraints (from narrativeStyles.ts)
+
+STORY BIBLE (background reference, not requirements):
+├── Tone & Atmosphere         ← PS narrativeVoice dimensions (e.g., SHARD_THREADING, PRESSURE_AS_GRAMMAR)
+└── Character Notes           ← PS entityDirectives (per-entity writing instructions)
+
+WORLD DATA (what to write about):
+├── Cast                      ← entity descriptions + narrative role assignments
+├── Narrative Lens            ← lens entity description + "NOT a character" guidance
+├── World                     ← worldDescription + Canon Facts with [FACET: ...] annotations (PS facets)
+├── Name Bank                 ← culture-appropriate names for invented characters
+├── Historical Context        ← era definition + "Current Conditions" (PS temporalNarrative)
+└── Timeline / Events         ← what happened, to be shown through character experience
+```
+
+### V1 (Creative Freedom)
+
+Identical PS content, reframed:
+
+```
+TASK DATA (how to write it):
+├── Narrative Structure       ← same beat sheet, but "for reference — you can follow, subvert, or ignore"
+├── Writing Style             ← same (coreTone, PS brief, motifs, prose instructions)
+└── Craft Posture             ← same
+
+GUIDANCE (pre-synthesized — follow intent closely, express in your own voice):
+├── Tone & Atmosphere         ← same PS narrativeVoice dimensions
+└── Character Notes           ← same PS entityDirectives, but "interpret creatively, don't reproduce"
+
+WORLD DATA (what to write about):
+├── Cast                      ← same, but "you may reassign characters to different roles"
+├── Narrative Lens            ← same
+├── World                     ← same Canon Facts with same [FACET: ...] annotations
+├── Name Bank                 ← same
+├── Historical Context        ← same (including PS temporalNarrative as Current Conditions)
+└── Timeline / Events         ← same
+```
+
+### Where Each PS Field Lands
+
+| PS Output Field | V0 Prompt Location | V1 Prompt Location |
+|---|---|---|
+| `brief` | Writing Style → "PERSPECTIVE FOR THIS CHRONICLE" | Same |
+| `narrativeVoice` | Story Bible: Tone & Atmosphere | Tone & Atmosphere |
+| `entityDirectives` | Story Bible: Character Notes | Character Notes |
+| `facets` | Canon Facts → `[FACET: ...]` annotations | Same |
+| `temporalNarrative` | Historical Context → "Current Conditions" | Same |
+| `suggestedMotifs` | Writing Style → "SUGGESTED MOTIFS" | Same |
+
+### Review Implication
+
+When reviewing, evaluate these as delivered prompt sections, not as standalone PS artifacts:
+- **Story Bible: Tone & Atmosphere** — Do the narrativeVoice dimensions shape the prose's sensory register, rhythm, and emotional texture?
+- **Story Bible: Character Notes** — Do the entityDirectives produce distinct portrayals that feel different from each other?
+- **Canon Fact Faceting** — Do the [FACET:] interpretations focus the world facts through this chronicle's specific lens?
+- **Perspective Brief** — Does the "PERSPECTIVE FOR THIS CHRONICLE" give the output a thesis or organizing principle?
+- **Current Conditions** — Does the temporalNarrative create felt constraints in the story, not exposited conditions?
+- **Suggested Motifs** — Do the motif phrases echo through the prose, and do they survive the copy-edit?
+
+---
+
 ## Review Checklist
 
 ### 1. Version Comparison (V0 Structured vs V1 Creative Freedom)
 
 **What to check:**
-- Does V0 (structured, full PS guidance) produce reliable format adherence?
-- Does V1 (creative freedom, stripped-down prompt) find angles the structured version missed?
-- Which version has stronger prose, more creative risk, better use of the material?
+V0 and V1 receive identical Story Bible content (Tone & Atmosphere, Character Notes, faceted facts, motifs, temporal narrative). The difference is authority: V0 frames structure as requirements and Story Bible as reference; V1 frames structure as optional and grants permission to reassign roles, invent characters, and deviate from Character Notes.
+
+- Does V0's stricter framing produce more reliable format adherence?
+- Does V1's latitude produce genuinely different structural choices (role reassignment, framing devices, subverted beat sheet)?
+- Which version's prose is stronger — and is the difference attributable to the framing or to sampling variation?
 - Does the combine (V2) successfully take the best of both?
 
 **Questions to answer:**
-- [ ] What does V0 do well that V1 misses (format adherence, voice texture realization)?
+- [ ] Did V1 actually exercise its freedoms (different role assignments, structural deviation, invented characters)?
+- [ ] What does V0 do well that V1 misses (format adherence, closer Story Bible realization)?
 - [ ] What does V1 do well that V0 misses (structural surprise, invented details, fresh angles)?
 - [ ] Does V2 successfully merge both, or does it lose character from either?
 - [ ] Does V3 (copy-edit) improve V2 without damaging texture?
@@ -100,15 +189,11 @@ This document provides a structured approach for reviewing chronicle generation 
 - [ ] Is the recommendation well-justified?
 - [ ] Can the combine instructions actually be followed?
 
-### 4. Perspective Synthesis Validity
+### 4. Perspective Synthesis
 
-**What to check:**
-- Is the constellation analysis accurate (culture balance, entity kinds)?
-- Are narrative voice directives actionable and specific?
-- Are entity directives distinct from each other?
-- Do faceted facts add chronicle-specific context?
-- Does temporalNarrative synthesize dynamics into story-specific stakes?
-- Do cultural identities reach PS input with full trait keys (not 0)?
+PS is a separate pipeline step that runs before generation. It takes the constellation, style, entities, cultural identities, and world dynamics as input and produces a structured output (`perspectiveSynthesis.output` in the export JSON). That output is then distributed across the generation prompt as Story Bible sections (see Prompt Architecture above).
+
+Review has two parts: (a) is the PS output itself well-formed, and (b) does it shape the prose when delivered through the prompt?
 
 **Where perspective synthesis happens:**
 ```typescript
@@ -117,35 +202,36 @@ This document provides a structured approach for reviewing chronicle generation 
 // Output: brief, facets, narrativeVoice, entityDirectives, temporalNarrative, suggestedMotifs
 ```
 
-**Export fields to examine:**
-```json
-{
-  "perspectiveSynthesis": {
-    "input": {
-      "constellation": { /* culture/kind distribution */ },
-      "culturalIdentities": { /* per-culture traits: VALUES, SPEECH, FEARS, TABOOS, PROSE_STYLE, etc. */ },
-      "worldDynamics": [ /* era-specific political/resource conditions */ ],
-      "entities": [ /* summaries for synthesis */ ]
-    },
-    "output": {
-      "brief": "Chronicle framing in 100-200 words",
-      "facets": [ /* per-fact chronicle interpretations */ ],
-      "narrativeVoice": { /* synthesized prose guidance — 4-5 named dimensions */ },
-      "entityDirectives": [ /* per-entity writing instructions */ ],
-      "temporalNarrative": "2-4 sentences: dynamics distilled into story-specific stakes",
-      "suggestedMotifs": [ /* 2-4 phrases that might echo through the chronicle */ ]
-    }
-  }
-}
-```
+**PS output quality** (is the artifact well-formed?):
+- Is the constellation analysis accurate (culture balance, entity kinds)?
+- Are `narrativeVoice` dimensions actionable and specific — sentence-level guidance ("sentences that compress under weight") rather than thematic ("this is a story about loss")?
+- Are `entityDirectives` distinct from each other, or could they be swapped without changing anything?
+- Do `facets` add chronicle-specific context that the base canon facts don't have?
+- Does `temporalNarrative` synthesize dynamics into story-specific stakes, not a generic era summary?
+- Is the `brief` specific enough to constrain? (A brief that could apply to any chronicle with this cast is too generic)
+- Do cultural identities reach PS input with full trait keys (not 0)?
+
+**Story Bible delivery** (does it shape the prose?):
+
+Each PS field reaches the prompt under a specific heading. Evaluate whether the prompt section does its job:
+
+| PS Field | Prompt Section | What to Check |
+|---|---|---|
+| `narrativeVoice` | Story Bible: Tone & Atmosphere | Does the prose *enact* the named dimensions, or just describe the world they point at? |
+| `entityDirectives` | Story Bible: Character Notes | Does each entity feel different — different sensory register, behavior, relationship to space/time? |
+| `facets` | Canon Facts → `[FACET:]` annotations | Are facets integrated organically, or do they appear as exposition? |
+| `brief` | Writing Style → "PERSPECTIVE FOR THIS CHRONICLE" | Can you identify the brief's thesis in the output's structure? |
+| `temporalNarrative` | Historical Context → "Current Conditions" | Are conditions shown through what characters can/can't do, not explained? |
+| `suggestedMotifs` | Writing Style → "SUGGESTED MOTIFS" | Do motifs appear, evolve across appearances, and survive the copy-edit? |
 
 **Questions to answer:**
-- [ ] Does the brief capture the chronicle's essence?
-- [ ] Do facets add useful specificity to canon facts?
-- [ ] Can you see narrative voice directives reflected in the output?
-- [ ] Are entity directives distinguishable from each other?
-- [ ] Does temporalNarrative feel specific to THIS story (not a generic era summary)?
-- [ ] Do suggestedMotifs appear in the generated content?
+- [ ] Is the PS output internally coherent — do dimensions, directives, and facets work together?
+- [ ] Do Tone & Atmosphere dimensions shape prose rhythm, sensory register, or sentence structure?
+- [ ] Do Character Notes produce distinct entity portrayals?
+- [ ] Do faceted facts focus world truths through this chronicle's lens?
+- [ ] Does the Perspective Brief provide an organizing thesis visible in the output?
+- [ ] Does temporalNarrative create felt constraints, not exposited conditions?
+- [ ] Do suggestedMotifs appear, evolve, and survive the copy-edit?
 
 ### 4a. Cultural Identity Integration
 
@@ -327,17 +413,17 @@ Watch for cross-chronicle sameness (use `docs/chronicle-corpus-review-guide.md` 
 
 **Note**: Sameness is a problem *between* different chronicles, not between versions of the same chronicle. Some consistency across versions is expected and acceptable.
 
-### World Dynamics and Temporal Narrative
-World dynamics now reach PS input (check `perspectiveSynthesis.input.worldDynamics`). PS synthesizes them into a `temporalNarrative` field — 2-4 sentences distilling era-specific conditions into story-specific stakes. This appears in the generation prompt as "## Current Conditions" under Historical Context.
+### World Dynamics and Current Conditions
+World dynamics reach PS input (check `perspectiveSynthesis.input.worldDynamics`). PS synthesizes them into a `temporalNarrative` field — 2-4 sentences distilling era-specific conditions into story-specific stakes. This appears in the generation prompt as "## Current Conditions" under Historical Context (see Prompt Architecture above).
 
 **What to check:**
 - `worldDynamics` array present in PS input (should have 5-8 dynamics depending on constellation cultures/kinds)
-- `temporalNarrative` present in PS output and `generationContext`
+- `temporalNarrative` present in PS output
 - "## Current Conditions" subsection visible in the generation prompt's Historical Context
 - Era overrides are correct (no anachronistic text — a Frozen Peace chronicle should not describe Orca Incursion-era conditions)
 - The synthesized stakes feel specific to THIS story, not a generic era summary
 
-**Impact when working well:** Characters are constrained by dynamics (supply shortages, political instability, territorial disputes) without expositing them. The temporalNarrative bridges world-level dynamics and character-level stakes.
+**Impact when working well:** Characters are constrained by dynamics (supply shortages, political instability, territorial disputes) without expositing them. Current Conditions bridges world-level dynamics and character-level stakes.
 
 ### Pipeline Impact Assessment
 
@@ -364,7 +450,7 @@ After reviewing the chronicle, assess the PS/cultural identity pipeline's contri
 - Genres that rely on plot mechanics over cultural mechanics
 
 ### Context Overload Pattern
-When perspective synthesis produces rich output (detailed entity directives, many facets, long narrative voice guidance), the structured generation (V0) may prioritize lore integration over style guidance. The creative freedom generation (V1) mitigates this by stripping PS guidance entirely, giving the LLM latitude to find its own angle. The combine step (V2) then merges V1's creative risks with V0's structural reliability.
+When perspective synthesis produces rich output (detailed entity directives, many facets, long narrative voice guidance), V0 may prioritize lore integration over style guidance — the model spends its creative budget weaving in all the Story Bible and World Data rather than following Craft instructions. V1 receives the same PS content but with permissive framing ("follow their intent closely, but express them in your own voice"), which can give the LLM latitude to prioritize differently. However, V1 does NOT strip PS guidance — both versions receive identical Tone & Atmosphere dimensions, Character Notes, faceted facts, and motifs. The creative freedom lies in structural permission (reassign roles, deviate from beat sheet, invent characters), not in reduced context.
 
 ### Event Handling
 Events in the export may have undefined headlines:
@@ -456,7 +542,7 @@ Very large casts or many relationships can bloat the prompt. Check if important 
 
 3. **Compare versions**—read both, form your own opinion before reading comparisonReport
 
-4. **Evaluate perspective synthesis**—does the brief accurately frame the chronicle?
+4. **Evaluate perspective synthesis**—is PS output well-formed, and does it shape the prose through the Story Bible sections?
 
 5. **Read historian notes**—do they add depth or just noise?
 
@@ -483,23 +569,33 @@ Every chronicle review MUST conclude with a summary table scoring each dimension
 | ★☆☆☆☆ | Failed — fundamental issues; dimension not achieved |
 | N/A | Dimension does not apply to this format (e.g., historian notes for documents) |
 
-### Required Dimensions
+### Core Dimensions
+
+These are the actual quality bar. A chronicle that scores well here succeeds regardless of pipeline details.
 
 | Dimension | What It Measures |
 |-----------|-----------------|
-| **Standalone Quality** | Does the content work as a piece of writing without reference to prompts or pipeline? |
-| **Lore Fit** | Are world facts, cultural values, canon constraints, and entity details honored? |
-| **Comparison Report** | Does the auto-generated comparison identify real differences, and are combine instructions executable? |
-| **Perspective Synthesis** | Are PS brief, narrative voice dimensions, entity directives, facets, and temporal narrative visible in the output? |
-| **Cultural Identity** | Are cultural traits (VALUES, SPEECH, FEARS, TABOOS, PROSE_STYLE) operationalized as genre mechanics, not just described? |
+| **Standalone Quality** | Is this good fiction? Does it have momentum, texture, emotional weight? Would a reader want to finish it? |
+| **Machine-Generation Tells** | Does it read like AI output? Hedging, balance words, samey rhythms, safe choices, conceptual language where physical language should be? |
+| **Lore Integration** | Are world facts, cultural values, and entity details exercised as lived experience, not exposition? |
+| **Corpus Distinctiveness** | Does this chronicle feel like its own thing, or does it repeat tropes, structures, and phrases from other chronicles? |
+
+### Diagnostic Dimensions
+
+These track common failure modes. When a core dimension fails, these help identify where in the pipeline the problem originated.
+
+| Dimension | What It Measures |
+|-----------|-----------------|
+| **Perspective Synthesis** | Is PS output well-formed? Do its fields shape the prose when delivered as Story Bible sections? |
+| **Cultural Identity** | Are cultural traits operationalized as genre mechanics, not just described? |
 | **Lens Integration** | Does the lens entity function as ambient context — felt, not explained? |
-| **Historian Notes** | Do notes add depth with consistent scholarly personality? (N/A for document formats) |
-| **Style Adherence** | Does output follow the style's structure, voice, word count guidance, and required sections? |
+| **Style Adherence** | Does output follow the style's structure, voice, and required sections? |
 | **Story vs Document** | Where does the output sit on the axis, and is that position appropriate for the format? |
-| **Pipeline Impact** | Use the existing 6-level scale (Transformative → Incremental) with a comment on what the pipeline contributed |
-| **Copy-Edit** | Did the copy-edit improve the piece? Cuts defensible, motifs preserved, voice textures respected, no lore errors? |
+| **Comparison Report** | Does the auto-generated comparison identify real differences, and are combine instructions executable? |
+| **Copy-Edit** | Did the copy-edit improve the piece? Cuts defensible, motifs preserved, voice textures respected? |
 | **Version Comparison** | One-sentence characterization of each version's strengths/weaknesses relative to the others |
-| **Recommended Version** | Which version to use (or "Combined" if the combine succeeded), with brief justification |
+| **Historian Notes** | Do notes add depth with consistent scholarly personality? (N/A for document formats) |
+| **Pipeline Impact** | Use the existing 6-level scale (Transformative → Incremental) with a comment on what the pipeline contributed |
 
 Comments should be specific — not "good" or "bad" but what worked or what broke. Reference specific lines, phrases, or structural choices where possible.
 
@@ -566,8 +662,8 @@ The copy-edit step receives **minimal context** — the text plus:
 - **Style name**: e.g., "Confession", "Rashomon"
 - **Craft posture**: density and restraint constraints from the narrative style
 - **Word count context**: current word count and natural range, framed as context not target
-- **Voice textures**: PS-synthesized `narrativeVoice` dimensions (e.g., JUSTIFICATION_ARCHITECTURE, THREE_REGISTERS)
-- **Recurring motifs**: PS `suggestedMotifs` marked "do not cut or collapse"
+- **Voice textures**: Tone & Atmosphere dimensions from the Story Bible (e.g., JUSTIFICATION_ARCHITECTURE, THREE_REGISTERS)
+- **Recurring motifs**: Suggested motifs from the Story Bible marked "do not cut or collapse"
 
 No world facts, entity data, or generation prompts. The editor works on the prose as written, not the prose as intended.
 
@@ -588,7 +684,7 @@ No world facts, entity data, or generation prompts. The editor works on the pros
 - Count instances before and after — motif frequency should not decrease
 
 **Voice textures must be respected:**
-- PS narrativeVoice dimensions describe intentional prose choices
+- Tone & Atmosphere dimensions describe intentional prose choices
 - The copy-edit should not cut material that a voice texture explicitly describes as intentional
 - Watch for conflicts between craft posture and voice textures — craft posture says "cut X" but a voice texture says "X is intentional." The voice texture should win.
 

@@ -365,6 +365,28 @@ export async function updateBackrefs(
 }
 
 // ---------------------------------------------------------------------------
+// Aliases
+// ---------------------------------------------------------------------------
+
+/**
+ * Update the text aliases on an entity.
+ */
+export async function updateAliases(
+  entityId: string,
+  aliases: string[],
+): Promise<void> {
+  await db.transaction('rw', db.entities, async () => {
+    const entity = await db.entities.get(entityId);
+    if (!entity) return;
+    const text = entity.enrichment?.text;
+    if (!text) return;
+    await db.entities.update(entityId, {
+      enrichment: { ...entity.enrichment, text: { ...text, aliases } },
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Revision flows (summary revision, backport, copy-edit)
 // ---------------------------------------------------------------------------
 

@@ -53,6 +53,8 @@ Smooth the seams. This text was stitched together from different drafts. Where t
 
 Tighten. Every word should earn its place. Look for redundant framing ("it should be noted that"), bureaucratic padding that doesn't serve the document's voice, repeated information that appears in multiple sections for the same purpose, and explanations that duplicate what the document already establishes.
 
+Cut what doesn't work. If a section catalogs information without purpose, repeats the same content in template form, or pads the document without adding substance, you have permission to compress or remove it. Machine-generation patterns — template repetition, list-like sequences, prompt content surfacing as document text — should be broken or cut.
+
 Read for consistency. Formatting conventions (headers, dates, citations, marginalia) should be uniform throughout. Where a convention appears in one section but not another, extend it.
 
 What you must not do:
@@ -78,6 +80,8 @@ What you are here to do:
 Smooth the seams. This text was stitched together from different drafts. Where the prose rhythm changes abruptly — a shift in sentence length, descriptive density, or level of ornateness — ease the transition. The reader should never feel a bump between sections.
 
 Tighten. Every word should earn its place. Look for filter words that create distance ("she noticed," "he felt"), redundant modifiers, stage directions that reveal nothing about character, and emotional explanations that duplicate what the prose already shows. Where the same detail appears twice because it was imported from two different drafts, keep whichever instance lands harder and cut the other.
+
+Cut what doesn't work. If a passage catalogs names or events in sequence, repeats the same dramatic beat in parallel structure (e.g., three characters experiencing the same effect in the same paragraph shape), or reads as a report of what happened rather than lived experience, you have permission to compress or remove it. Machine-generation patterns — template repetition, list-like sequences, prompt content surfacing as narrative — should be broken or cut.
 
 Read for rhythm. Where a sentence fights you or the prose stumbles, recast it — but preserve its content and intent. If a passage is deliberately languid or dense, that may be the style working as intended. Only intervene where the prose works against the effect it is trying to achieve.
 

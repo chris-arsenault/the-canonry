@@ -100,9 +100,6 @@ export default function ChronicleWorkspace({
   // ---------------------------------------------------------------------------
   // Version state & memos
   // ---------------------------------------------------------------------------
-  const currentVersionId = `current_${item.assembledAt ?? item.createdAt}`;
-  const activeVersionId = item.activeVersionId || currentVersionId;
-
   const versions = useMemo(() => {
     const stepLabel = (step) => {
       if (!step) return null;
@@ -110,40 +107,28 @@ export default function ChronicleWorkspace({
       return labels[step] || step;
     };
 
-    const history = (item.generationHistory || []).map((version, index) => {
-      const samplingLabel = version.sampling ?? 'unspecified';
-      const step = stepLabel(version.step);
-      return {
-        id: version.versionId,
-        content: version.content,
-        wordCount: version.wordCount,
-        shortLabel: `V${index + 1}`,
-        label: `Version ${index + 1} \u2022 ${new Date(version.generatedAt).toLocaleString()} \u2022 ${step ? step : `sampling ${samplingLabel}`}`,
-      };
-    });
+    const sorted = [...(item.generationHistory || [])].sort((a, b) => a.generatedAt - b.generatedAt);
+    const seen = new Set();
+    const unique = [];
+    for (const version of sorted) {
+      if (seen.has(version.versionId)) continue;
+      seen.add(version.versionId);
+      unique.push(version);
+    }
+    return unique.map((version, index) => {
+        const samplingLabel = version.sampling ?? 'unspecified';
+        const step = stepLabel(version.step);
+        return {
+          id: version.versionId,
+          content: version.content,
+          wordCount: version.wordCount,
+          shortLabel: `V${index + 1}`,
+          label: `Version ${index + 1} \u2022 ${new Date(version.generatedAt).toLocaleString()} \u2022 ${step ? step : `sampling ${samplingLabel}`}`,
+        };
+      });
+  }, [item.generationHistory]);
 
-    const currentSamplingLabel = item.generationSampling ?? 'unspecified';
-    const currentStep = stepLabel(item.generationStep);
-    const currentVersionNumber = history.length + 1;
-
-    history.push({
-      id: currentVersionId,
-      content: item.assembledContent,
-      wordCount: wordCount(item.assembledContent),
-      shortLabel: `V${currentVersionNumber}`,
-      label: `Version ${currentVersionNumber} \u2022 ${new Date(item.assembledAt ?? item.createdAt).toLocaleString()} \u2022 ${currentStep ? currentStep : `sampling ${currentSamplingLabel}`}`,
-    });
-
-    return history;
-  }, [
-    item.generationHistory,
-    item.assembledContent,
-    item.assembledAt,
-    item.createdAt,
-    item.generationSampling,
-    item.generationStep,
-    currentVersionId,
-  ]);
+  const activeVersionId = item.activeVersionId || versions[versions.length - 1]?.id;
 
   const [selectedVersionId, setSelectedVersionId] = useState(activeVersionId);
   const [compareToVersionId, setCompareToVersionId] = useState('');
@@ -152,6 +137,25 @@ export default function ChronicleWorkspace({
     setSelectedVersionId(activeVersionId);
     setCompareToVersionId('');
   }, [activeVersionId, item.chronicleId]);
+
+  useEffect(() => {
+    if (versions.length === 0) return;
+
+    const hasSelected = versions.some((v) => v.id === selectedVersionId);
+    let nextSelected = selectedVersionId;
+    if (!hasSelected) {
+      const hasActive = versions.some((v) => v.id === activeVersionId);
+      nextSelected = hasActive ? activeVersionId : versions[versions.length - 1].id;
+      setSelectedVersionId(nextSelected);
+    }
+
+    if (compareToVersionId) {
+      const hasCompare = versions.some((v) => v.id === compareToVersionId);
+      if (!hasCompare || compareToVersionId === nextSelected) {
+        setCompareToVersionId('');
+      }
+    }
+  }, [versions, selectedVersionId, compareToVersionId, activeVersionId]);
 
   const selectedVersion = useMemo(
     () => versions.find((v) => v.id === selectedVersionId) || versions[versions.length - 1],
@@ -304,6 +308,29 @@ export default function ChronicleWorkspace({
     if (id === compareToVersionId) setCompareToVersionId('');
   }, [compareToVersionId]);
 
+  const handleDeleteVersion = useCallback((versionId) => {
+    if (!versionId || versions.length === 0) return;
+
+    const index = versions.findIndex((v) => v.id === versionId);
+    let nextSelected = selectedVersionId;
+    if (index !== -1) {
+      nextSelected = versions[index + 1]?.id || versions[index - 1]?.id || selectedVersionId;
+    }
+    if (nextSelected === versionId) {
+      const hasActive = versions.some((v) => v.id === activeVersionId);
+      nextSelected = hasActive ? activeVersionId : versions[versions.length - 1].id;
+    }
+
+    if (nextSelected && nextSelected !== selectedVersionId) {
+      setSelectedVersionId(nextSelected);
+    }
+    if (compareToVersionId === versionId || compareToVersionId === nextSelected) {
+      setCompareToVersionId('');
+    }
+
+    onDeleteVersion?.(versionId);
+  }, [versions, selectedVersionId, activeVersionId, compareToVersionId, onDeleteVersion]);
+
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
@@ -374,7 +401,7 @@ export default function ChronicleWorkspace({
             onSelectVersion={handleSelectVersion}
             onSelectCompareVersion={setCompareToVersionId}
             onSetActiveVersion={isComplete ? undefined : onUpdateChronicleActiveVersion}
-            onDeleteVersion={isComplete ? undefined : onDeleteVersion}
+            onDeleteVersion={isComplete ? undefined : handleDeleteVersion}
             onCompareVersions={onCompareVersions}
             onCombineVersions={onCombineVersions}
             onRegenerateFull={onRegenerateFull}
@@ -446,7 +473,7 @@ export default function ChronicleWorkspace({
             onSelectVersion={handleSelectVersion}
             onSelectCompareVersion={setCompareToVersionId}
             onSetActiveVersion={isComplete ? undefined : onUpdateChronicleActiveVersion}
-            onDeleteVersion={isComplete ? undefined : onDeleteVersion}
+            onDeleteVersion={isComplete ? undefined : handleDeleteVersion}
             isGenerating={isGenerating}
           />
         )}
@@ -527,6 +554,20 @@ export default function ChronicleWorkspace({
                   <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>
                     Choose Title
                   </h3>
+                  {item.pendingTitleFragments?.length > 0 && (
+                    <div style={{ marginBottom: '14px', padding: '10px 12px', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Extracted Fragments
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.6, fontStyle: 'italic' }}>
+                        {item.pendingTitleFragments.map((f, i) => (
+                          <span key={i}>
+                            {f}{i < item.pendingTitleFragments.length - 1 ? <span style={{ color: 'var(--text-muted)', margin: '0 6px' }}>&middot;</span> : ''}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
                     <button
                       onClick={() => handleAcceptTitle(item.pendingTitle)}

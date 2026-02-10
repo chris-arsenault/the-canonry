@@ -85,6 +85,13 @@ export interface StoryNarrativeStyle {
    */
   craftPosture?: string;
 
+  /**
+   * Title guidance - how titles for this style should feel.
+   * Freeform description of the title's shape, register, and energy.
+   * Injected into the title generation prompt as the primary style constraint.
+   */
+  titleGuidance?: string;
+
   // === Structured Data (genuinely useful as structured) ===
 
   /** Cast roles - what positions exist in this narrative */
@@ -149,6 +156,8 @@ AVOID: The chronicler explaining what events "meant." Losses described at a dist
     craftPosture: `- Sustain elaboration. Accumulated detail is the method — let scenes breathe and dramatize rather than compress.
 - Institutional texture earns its place when it reveals how power operates through people.
 - Withhold commentary. The gap between what is recorded and what happened does the work.`,
+
+    titleGuidance: 'Retrospective and weighted. The title names the event as history — something already concluded, already grieved. It should sound like what survivors call this era when they speak of it years later. Concrete over abstract: a place, a name, a cost.',
 
     roles: [
       { role: 'chronicler', count: { min: 1, max: 1 }, description: 'The witness who survived to tell this - they frame everything, but tell the story rather than comment on telling it' },
@@ -216,6 +225,8 @@ AVOID: Scenes where people stand and talk. Internal monologue. Reflection. Any s
     craftPosture: `- Compress. Every sentence advances motion or raises stakes. Cut anything static.
 - Description is functional — what can be used, reached, or broken. No atmosphere for its own sake.
 - Show physical cost accumulating. Exhaustion and injury in detail, not emotion in summary.`,
+
+    titleGuidance: 'Short and physical. Name something you can see or feel — a place, a distance, a weapon, a threshold. Momentum lives in concrete nouns and active verbs. The register is immediate, not reflective. If the title could be shouted across a room, it fits.',
 
     roles: [
       { role: 'hero', count: { min: 1, max: 2 }, description: 'Racing the clock - defined by what they do, not what they think' },
@@ -287,6 +298,8 @@ AVOID: Love at first sight without complication. External plot overwhelming the 
 - Withhold declarations. The approach is the story, not the arrival.
 - Differentiate density between characters. Each perspective earns its own texture.`,
 
+    titleGuidance: 'The title lives in the space between two people. Name the thing that connects or separates them — a shared place, a private gesture, the quality of their particular distance. Intimate register: the voice of someone remembering. Sonic warmth matters; the title should be pleasant to say quietly.',
+
     roles: [
       { role: 'lover-a', count: { min: 1, max: 1 }, description: 'First perspective - we live in their world before the meeting' },
       { role: 'lover-b', count: { min: 1, max: 1 }, description: 'Second perspective - different world, different lack' },
@@ -345,6 +358,8 @@ AVOID: Dramatic events. Conflict requiring resolution. Backstory dumps. Realizat
     craftPosture: `- Dwell. Duration is the method. Let process and presence take the space that plot would.
 - Sensory precision over emotional labeling. Depth, not breadth.
 - Stillness is not a gap. Resist filling quiet moments with significance.`,
+
+    titleGuidance: 'Particular and unhurried. The title names the ordinary thing — a place, a time of day, a task, a season. Specific enough to be someone\'s real life, quiet enough to almost miss. One to four words. No drama, no significance announced; the title trusts the reader to find what matters.',
 
     roles: [
       { role: 'focal-point', count: { min: 1, max: 1 }, description: 'The consciousness we inhabit - person, place, or moment' },
@@ -425,6 +440,8 @@ AVOID: Mustache-twirling villains. Characters who state their true motives. Easy
 - Patience. Let each position establish before shifting it. Do not rush to the endgame.
 - Detail earns its place when it reveals power dynamics. Restrain revelation — suspicion before knowledge.`,
 
+    titleGuidance: 'The title should operate the way its characters do — saying one thing while meaning another. Institutional language that carries threat. Positions, courtesies, and formalities that are really weapons. The register is controlled and public-facing, with pressure underneath.',
+
     roles: [
       { role: 'player-a', count: { min: 1, max: 1 }, description: 'The protagonist - observant, calculating, making moves through the political landscape' },
       { role: 'player-b', count: { min: 1, max: 1 }, description: 'Current authority figure or primary opposition - has something player-a needs or threatens' },
@@ -489,6 +506,8 @@ AVOID: Omniscient resolution. One account being obviously correct. Witnesses ack
     craftPosture: `- Each account fully elaborated and confident. Certainty is the technique — no hedging.
 - Contradiction emerges from selective attention, not from altering facts.
 - Restraint in the closing. Brief, concrete, unresolved. Do not adjudicate.`,
+
+    titleGuidance: 'The title names the event or object at the center — the thing all witnesses agree exists but disagree about entirely. It should feel stable, even factual, while the story beneath it fractures. A concrete noun phrase carrying the weight of contested truth. The title is the one thing everyone recognizes; everything else is disputed.',
 
     roles: [
       { role: 'witness-a', count: { min: 1, max: 1 }, description: 'First perspective - their account opens the story and establishes the baseline truth that subsequent accounts will complicate' },
@@ -561,6 +580,8 @@ AVOID: Plot mechanics. Explaining what images mean. Rushing to conclusion. Gener
     craftPosture: `- Trust the image. If it needs explanation, replace the explanation with a better image.
 - White space is compositional. Short paragraphs. Let the poem breathe in gaps.
 - Sound and meaning carry equal weight. Rhythm is a structural element.`,
+
+    titleGuidance: 'The title is an image, not a description of one. One to four words. Concrete and sensory — a color, a texture, a quality of light, a natural element. It should carry the emotional weight of the whole piece in a single phrase the reader returns to after finishing. Sound matters as much as meaning; say it aloud.',
 
     roles: [
       { role: 'consciousness', count: { min: 1, max: 1 }, description: 'The perceiving presence - we see through them, feel with them' },
@@ -635,6 +656,8 @@ AVOID: Jokes. Punchlines. Winking at the audience. Characters being funny on pur
 - Escalation is procedural, not dramatic. Each step follows logically from the last.
 - Linger on consequences. The comedy requires that the damage is real and specific.`,
 
+    titleGuidance: 'The title should sound like a bureaucratic label, an incident report heading, or a perfectly reasonable description of something that is not reasonable at all. Flat register, no winking. The gap between the title\'s composure and the story\'s catastrophe is where the comedy lives. The more procedural and precise, the funnier.',
+
     roles: [
       { role: 'fool', count: { min: 1, max: 2 }, description: 'The reasonable person trapped in unreasonable circumstances - competent, professional, doing everything right' },
       { role: 'system', count: { min: 1, max: 1 }, description: 'The inadequate structure - bureaucracy, protocol, or procedure that cannot handle what it encounters' },
@@ -699,6 +722,8 @@ AVOID: Irony. Deconstruction. Moral ambiguity. Anticlimactic endings. This is no
     craftPosture: `- Mythic simplicity. Clean, powerful strokes over elaborate texture. When in doubt, cut.
 - Let sacrifice and transformation speak for themselves. Do not narrativize internal process.
 - The world exists through what characters touch and see, not through explanation.`,
+
+    titleGuidance: 'Common words arranged with mythic weight. The title should sound ancient even if every word is simple — the kind of name that survives oral retelling across generations. It names the hero, the quest, or the legendary thing in a way that feels inevitable. Short, rhythmic, spoken-aloud quality. Simple monosyllables over Latinate abstractions.',
 
     roles: [
       { role: 'hero', count: { min: 1, max: 1 }, description: 'The chosen one - starts ordinary, becomes extraordinary' },
@@ -778,6 +803,8 @@ AVOID: Redemption arcs. Last-minute saves. Villains to blame. The tragedy is tha
 - Show the flaw, don't name it. Invest density in establishing what will be lost.
 - Give the moment of recognition room. Cut anything that makes the doom feel accidental.`,
 
+    titleGuidance: 'The title carries the weight of a thing already decided. It names the fall, the figure, or the flaw — often compressed into a single phrase. Elegiac register: the sound of aftermath, not anticipation. Tragedy is not about surprise; the title is the spoiler the reader accepts because watching the inevitable arrive is the point.',
+
     roles: [
       { role: 'doomed', count: { min: 1, max: 1 }, description: 'The great figure who will fall - their greatness and their flaw must both be real' },
       { role: 'flaw', count: { min: 0, max: 1 }, description: 'The fatal weakness - hubris, rigidity, blind spot. May be embodied in a choice, belief, or relationship' },
@@ -848,6 +875,8 @@ AVOID: Cheating. Clues the reader couldn't have noticed. Revelations that come f
     craftPosture: `- Front-load density. The opening requires the most craft — it must work innocently and reward re-reading.
 - Invest equally in false leads. Wrong theories deserve real evidence.
 - The revelation reframes, it doesn't explain. Show the new shape, don't narrate it.`,
+
+    titleGuidance: 'The title should function twice: innocently on first encounter, devastatingly on re-read. Name the clue hidden in plain sight, the detail that seemed ordinary, the phrase that turns out to mean something else. Simple surface, specific enough to be the key. After the revelation, the reader should look at the title and feel it click.',
 
     roles: [
       { role: 'investigator', count: { min: 1, max: 1 }, description: 'The seeker of truth - we follow their attention, share their mistakes' },
@@ -925,6 +954,8 @@ AVOID: Easy victories. Luck over virtue. Anticlimactic discovery. Treasure that'
 - Invest density in the moment of discovery. The reader should feel the accumulated weight of the journey.
 - Establish what will be sacrificed before it's lost. Cost requires prior investment.`,
 
+    titleGuidance: 'The title should carry the pull of the thing sought — name the treasure, the legendary place, or the threshold that must be crossed. The register is reverent and hungry: the way seekers speak about what they have spent their lives pursuing. A named object is more compelling than a category; specificity creates desire.',
+
     roles: [
       { role: 'treasure', count: { min: 1, max: 1 }, description: 'The artifact sought - not just valuable but meaningful, with history and power' },
       { role: 'seeker', count: { min: 1, max: 2 }, description: 'Those who pursue - defined by why they seek and what they\'ll sacrifice' },
@@ -998,6 +1029,8 @@ AVOID: Jump scares. Gore without meaning. Easy cures. Heroes who don't suffer. T
 - Both timelines at equal density. Neither is backstory for the other.
 - Invest as much detail in the artifact's appeal as in its horror.`,
 
+    titleGuidance: 'Name the specific thing that carries the curse — the object, the place, or the sensation of wrongness. Concrete nouns are more unsettling than abstract ones. The title should feel inert on the surface, the way a cursed object looks harmless on a shelf. The dread is in what the reader brings back to it after reading.',
+
     roles: [
       { role: 'artifact', count: { min: 1, max: 1 }, description: 'The cursed object - beautiful and terrible, its appeal is part of the trap' },
       { role: 'victim', count: { min: 1, max: 1 }, description: 'Present-day possessor - we watch them enter the pattern' },
@@ -1067,6 +1100,8 @@ AVOID: Privileging one generation as "the real story." Sentimentality about ance
 - Deaths and departures in half-sentences. Don't linger.
 - Each generation gets exactly what it needs, no more. Silence is content, not a gap.`,
 
+    titleGuidance: 'The title names what endured across generations — a place, a family name, an object, a tradition. It should carry the particular melancholy of things that outlast the people who made them. Retrospective and institutional register, like a plaque on a building or the name of an estate. Time should be felt in the title even if no time word appears.',
+
     roles: [
       { role: 'artifact', count: { min: 1, max: 1 }, description: 'The object that passes through time - the true protagonist, carrying accumulated meaning' },
       { role: 'first-generation', count: { min: 1, max: 1 }, description: 'Origin point - who made it, found it, first held it' },
@@ -1134,6 +1169,8 @@ AVOID: Making the speaker obviously villainous. Making the "truth" explicitly st
 - Calibrate crack visibility — catchable on re-read, not on first pass.
 - The unraveling is self-generated. Excess justification, not external contradiction, does the revealing.`,
 
+    titleGuidance: 'The title belongs to the speaker — it is what they would call their own account. It should carry their particular self-deception: a justification framed as a title, a euphemism for what they did, or a claim about themselves the reader will learn to doubt. Intimate register. The title is the first unreliable thing the speaker says.',
+
     roles: [
       { role: 'confessor', count: { min: 1, max: 1 }, description: 'The speaker - articulate, self-deceiving, sympathetic despite everything' },
       { role: 'audience', count: { min: 1, max: 1 }, description: 'Who the confession is addressed to - judge, lover, deity, self. May never speak but shapes the confession' },
@@ -1200,6 +1237,8 @@ AVOID: Psychological complexity. Moral ambiguity (the fable has a clear lesson, 
     craftPosture: `- Bold strokes. Simplify to archetype. Do not complicate characters beyond their defining trait.
 - Embrace formulaic patterns. Repetition and escalation are structural tools, not flaws.
 - Exaggerate without apology. Inflate scale deliberately. State the moral directly.`,
+
+    titleGuidance: 'Name the creature, the object, or the choice at the center. Fable titles are the simplest of all forms — they work as labels spoken by a storyteller to a listening audience. Oral and declarative register. No subtlety, no double meaning. The title announces what the story is about with the directness of someone who has told it a hundred times.',
 
     roles: [
       { role: 'archetype', count: { min: 1, max: 1 }, description: 'The central figure - defined by one trait, simplified from a real entity into a folk character' },
@@ -1275,6 +1314,8 @@ AVOID: Clear-cut guilt or innocence. Perry Mason revelations. Courtroom drama cl
 - Evidence accumulates. Don't rush the verdict. Let testimony build its own pressure.
 - Contested facts earn the most space. Give both interpretations room to be compelling.`,
 
+    titleGuidance: 'The title should carry the weight of formal proceedings — a case name, a charge, a verdict, or the principle being tested. Legal register: precise, impersonal, procedural. The gravity comes from the system, not from emotion. The best trial titles sound like documents that decide fates.',
+
     roles: [
       { role: 'accused', count: { min: 1, max: 1 }, description: 'The one on trial - their guilt or innocence genuinely uncertain' },
       { role: 'accuser', count: { min: 1, max: 1 }, description: 'The prosecution - may be wronged party, state authority, or political rival' },
@@ -1347,6 +1388,8 @@ AVOID: Plot. Causality. Rational explanations. Metaphors that are "explained" - 
     craftPosture: `- Inhabit, don't describe. The prose is the experience, not a report of it.
 - Every sentence transforms something. If nothing changes within it, it doesn't earn its place.
 - Cross sensory boundaries without announcing it. Synesthesia is native here.`,
+
+    titleGuidance: 'The title should feel like something remembered from a dream — specific and vivid, but the logic is slightly wrong. Sensory words in unexpected combinations. A color that shouldn\'t modify that noun. A texture where a sound should be. The title doesn\'t need to make sense; it needs to make the reader feel the way dreams feel just before they dissolve.',
 
     roles: [
       { role: 'dreamer', count: { min: 1, max: 1 }, description: 'The consciousness moving through the dream - may split, transform, or dissolve' },
@@ -1423,6 +1466,8 @@ AVOID: Nihilism. Destruction without meaning. Modern apocalyptic cliches (zombie
     craftPosture: `- Enumerate, don't summarize. Accumulation of named specifics creates cosmic scale.
 - Precision at enormous scope. Render destruction through what is concretely lost.
 - Witnessing, not narrating. The overwhelm should be felt in the prose, not described.`,
+
+    titleGuidance: 'The title should sound like scripture naming an event that has been foretold. Prophetic register: absolute, vast, carrying the weight of cosmic certainty. It names the transformation, the judgment, or the era ending. Short — prophetic titles compress enormity into two or three words that feel like they were always the name of this reckoning.',
 
     roles: [
       { role: 'prophet', count: { min: 1, max: 1 }, description: 'The one who sees - unwilling, overwhelmed, transformed by the vision' },

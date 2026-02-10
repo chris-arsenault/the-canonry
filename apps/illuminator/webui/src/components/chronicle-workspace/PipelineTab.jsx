@@ -318,6 +318,11 @@ export default function PipelineTab({
                   ))}
                 </div>
               )}
+              {item.titleFragments?.length > 0 && (
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', marginLeft: '24px', fontStyle: 'italic' }}>
+                  ~ {item.titleFragments.join(' \u00b7 ')}
+                </div>
+              )}
               {!titleState.generatedAt && !titleState.running && (
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', marginLeft: '24px' }}>
                   Not run yet

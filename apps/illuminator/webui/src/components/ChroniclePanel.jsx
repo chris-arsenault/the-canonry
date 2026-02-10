@@ -970,10 +970,20 @@ export default function ChroniclePanel({
       return;
     }
 
-    // Get the narrative style from library
-    const narrativeStyle = selectedItem.narrativeStyle || styleLibrary?.narrativeStyles?.find(
+    // Get narrative style from live library (picks up edits), fall back to stored snapshot
+    const liveStyle = styleLibrary?.narrativeStyles?.find(
       (s) => s.id === selectedItem.narrativeStyleId
     );
+    const snapshotStyle = selectedItem.narrativeStyle;
+    const narrativeStyle = liveStyle || snapshotStyle;
+    console.log('[Chronicle] Full regen style resolution:', {
+      styleId: selectedItem.narrativeStyleId,
+      liveFound: !!liveStyle,
+      snapshotFound: !!snapshotStyle,
+      usingSource: liveStyle ? 'library' : 'snapshot',
+      libraryStyleCount: styleLibrary?.narrativeStyles?.length,
+      docInstructionsPreview: narrativeStyle?.documentInstructions?.substring(0, 120),
+    });
     if (!narrativeStyle) {
       console.error('[Chronicle] Narrative style not found:', selectedItem.narrativeStyleId);
       return;
@@ -1129,10 +1139,14 @@ export default function ChroniclePanel({
       // Get the chronicle record to extract seed before deleting
       const chronicle = await useChronicleStore.getState().loadChronicle(pendingRestartChronicleId);
       if (chronicle) {
+        // Resolve narrative style from live library (picks up edits), fall back to snapshot
+        const liveStyle = styleLibrary?.narrativeStyles?.find(
+          (s) => s.id === chronicle.narrativeStyleId
+        );
         // Extract seed from the chronicle record
         const seed = {
           narrativeStyleId: chronicle.narrativeStyleId,
-          narrativeStyle: chronicle.narrativeStyle,
+          narrativeStyle: liveStyle || chronicle.narrativeStyle,
           entrypointId: chronicle.entrypointId,
           roleAssignments: chronicle.roleAssignments || [],
           lens: chronicle.lens,
@@ -1150,7 +1164,7 @@ export default function ChroniclePanel({
     }
     setShowRestartModal(false);
     setPendingRestartChronicleId(null);
-  }, [pendingRestartChronicleId, restartChronicle]);
+  }, [pendingRestartChronicleId, restartChronicle, styleLibrary]);
 
   const handleRestartCancel = useCallback(() => {
     setShowRestartModal(false);

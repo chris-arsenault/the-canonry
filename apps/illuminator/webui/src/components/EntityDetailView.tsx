@@ -75,6 +75,7 @@ interface EntityDetailViewProps {
   onUpdateHistorianNote?: (targetType: string, targetId: string, noteId: string, updates: Record<string, unknown>) => void;
   onRename?: (entityId: string) => void;
   onPatchEvents?: (entityId: string) => void;
+  onUpdateAliases?: (entityId: string, aliases: string[]) => void;
 }
 
 function formatDate(timestamp: number | undefined): string {
@@ -189,29 +190,174 @@ function VisualTraitsList({ traits }: { traits: string[] }) {
   );
 }
 
-function AliasesList({ aliases }: { aliases: string[] }) {
-  if (!aliases || aliases.length === 0) return null;
+function AliasesList({ aliases, onUpdate }: { aliases: string[]; onUpdate?: (aliases: string[]) => void }) {
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [addValue, setAddValue] = useState('');
+
+  const editable = !!onUpdate;
+
+  const handleStartEdit = (i: number) => {
+    if (!editable) return;
+    setEditingIndex(i);
+    setEditValue(aliases[i]);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingIndex === null || !onUpdate) return;
+    const trimmed = editValue.trim();
+    if (!trimmed) {
+      // Empty = delete
+      onUpdate(aliases.filter((_, i) => i !== editingIndex));
+    } else {
+      const updated = [...aliases];
+      updated[editingIndex] = trimmed;
+      onUpdate(updated);
+    }
+    setEditingIndex(null);
+    setEditValue('');
+  };
+
+  const handleRemove = (i: number) => {
+    if (!onUpdate) return;
+    onUpdate(aliases.filter((_, idx) => idx !== i));
+  };
+
+  const handleAdd = () => {
+    const trimmed = addValue.trim();
+    if (!trimmed || !onUpdate) return;
+    onUpdate([...aliases, trimmed]);
+    setAddValue('');
+    setAdding(false);
+  };
+
+  if ((!aliases || aliases.length === 0) && !editable) return null;
+
   return (
     <div style={{ marginBottom: '16px' }}>
-      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+      <div style={{
+        fontSize: '11px',
+        color: 'var(--text-muted)',
+        marginBottom: '8px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+      }}>
         Aliases
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-        {aliases.map((alias, i) => (
-          <span
-            key={i}
+        {editable && !adding && (
+          <button
+            onClick={() => setAdding(true)}
             style={{
-              padding: '4px 10px',
               background: 'var(--bg-tertiary)',
-              borderRadius: '12px',
-              fontSize: '12px',
+              border: '1px solid var(--border-color)',
               color: 'var(--text-secondary)',
+              fontSize: '10px',
+              padding: '1px 6px',
+              borderRadius: '3px',
+              cursor: 'pointer',
+              textTransform: 'none',
+              letterSpacing: 'normal',
             }}
           >
-            {alias}
-          </span>
-        ))}
+            + Add
+          </button>
+        )}
       </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+        {aliases.map((alias, i) => (
+          editingIndex === i ? (
+            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+              <input
+                autoFocus
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveEdit();
+                  if (e.key === 'Escape') { setEditingIndex(null); setEditValue(''); }
+                }}
+                onBlur={handleSaveEdit}
+                style={{
+                  padding: '3px 8px',
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--accent-color)',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  width: `${Math.max(editValue.length, 4) * 7.5 + 20}px`,
+                }}
+              />
+            </span>
+          ) : (
+            <span
+              key={i}
+              style={{
+                padding: '4px 10px',
+                background: 'var(--bg-tertiary)',
+                borderRadius: '12px',
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                cursor: editable ? 'pointer' : 'default',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+              onClick={() => handleStartEdit(i)}
+              title={editable ? 'Click to edit' : undefined}
+            >
+              {alias}
+              {editable && (
+                <span
+                  onClick={(e) => { e.stopPropagation(); handleRemove(i); }}
+                  style={{
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    fontSize: '10px',
+                    marginLeft: '2px',
+                    lineHeight: 1,
+                  }}
+                  title="Remove alias"
+                >
+                  ×
+                </span>
+              )}
+            </span>
+          )
+        ))}
+        {adding && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+            <input
+              autoFocus
+              value={addValue}
+              onChange={(e) => setAddValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAdd();
+                if (e.key === 'Escape') { setAdding(false); setAddValue(''); }
+              }}
+              onBlur={() => { if (addValue.trim()) handleAdd(); else setAdding(false); }}
+              placeholder="New alias"
+              style={{
+                padding: '3px 8px',
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--accent-color)',
+                borderRadius: '12px',
+                fontSize: '12px',
+                color: 'var(--text-primary)',
+                outline: 'none',
+                width: `${Math.max(addValue.length, 8) * 7.5 + 20}px`,
+              }}
+            />
+          </span>
+        )}
+      </div>
+      {aliases.length === 0 && !adding && editable && (
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+          No aliases
+        </div>
+      )}
     </div>
   );
 }
@@ -236,6 +382,7 @@ export default function EntityDetailView({
   onUpdateHistorianNote,
   onRename,
   onPatchEvents,
+  onUpdateAliases,
 }: EntityDetailViewProps) {
   const effectiveProminenceScale = useMemo(() => {
     if (prominenceScale) return prominenceScale;
@@ -488,7 +635,10 @@ export default function EntityDetailView({
           <VisualTraitsList traits={textEnrichment?.visualTraits || []} />
 
           {/* Aliases */}
-          <AliasesList aliases={textEnrichment?.aliases || []} />
+          <AliasesList
+            aliases={textEnrichment?.aliases || []}
+            onUpdate={onUpdateAliases && textEnrichment ? (aliases) => onUpdateAliases(entity.id, aliases) : undefined}
+          />
 
           {/* Chronicle Images */}
           {onUpdateBackrefs && enrichment?.chronicleBackrefs && enrichment.chronicleBackrefs.length > 0 && (

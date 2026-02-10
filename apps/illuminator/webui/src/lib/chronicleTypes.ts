@@ -844,7 +844,7 @@ export interface ChronicleRecord {
   generationSampling?: ChronicleSampling;
   /** Which pipeline step produced the current version */
   generationStep?: VersionStep;
-  /** Prior generation versions (chronicle regeneration history) */
+  /** Generation versions (includes current + history) */
   generationHistory?: ChronicleGenerationVersion[];
   /** Version id that should be published on accept */
   activeVersionId?: string;
@@ -886,10 +886,12 @@ export interface ChronicleRecord {
   summaryModel?: string;
   summaryTargetVersionId?: string;
   titleCandidates?: string[];
+  titleFragments?: string[];
   titleGeneratedAt?: number;
   titleModel?: string;
   pendingTitle?: string;
   pendingTitleCandidates?: string[];
+  pendingTitleFragments?: string[];
   imageRefs?: ChronicleImageRefs;
   imageRefsGeneratedAt?: number;
   imageRefsModel?: string;

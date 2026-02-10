@@ -202,9 +202,13 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
     }
 
     try {
-      const currentVersionId = `current_${chronicle.assembledAt ?? chronicle.createdAt}`;
-      const activeVersionId = chronicle.activeVersionId || currentVersionId;
-      const historyMatch = chronicle.generationHistory?.find((v) => v.versionId === activeVersionId);
+      const versions = chronicle.generationHistory || [];
+      const latest = versions.reduce(
+        (acc, v) => (acc && acc.generatedAt > v.generatedAt ? acc : v),
+        versions[0]
+      );
+      const activeVersionId = chronicle.activeVersionId || latest?.versionId;
+      const historyMatch = versions.find((v) => v.versionId === activeVersionId);
       const activeContent = historyMatch?.content || chronicle.assembledContent;
 
       await acceptChronicleInDb(chronicleId, {

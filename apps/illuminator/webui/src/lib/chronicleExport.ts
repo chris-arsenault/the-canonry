@@ -264,27 +264,20 @@ function exportPerspectiveSynthesis(
  * No reconstruction, no parameter passing of generation context.
  */
 export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExport {
-  const currentVersionId = `current_${chronicle.assembledAt ?? chronicle.createdAt}`;
-  const activeVersionId = chronicle.activeVersionId || currentVersionId;
+  const versions = [...(chronicle.generationHistory || [])].sort(
+    (a, b) => a.generatedAt - b.generatedAt
+  );
+  const latestVersion = versions.reduce(
+    (acc, v) => (acc && acc.generatedAt > v.generatedAt ? acc : v),
+    versions[0]
+  );
+  const activeVersionId = chronicle.activeVersionId || latestVersion?.versionId;
   const isAccepted = Boolean(chronicle.acceptedAt && chronicle.finalContent);
   const acceptedVersionId = chronicle.acceptedVersionId || (isAccepted ? activeVersionId : undefined);
   const effectiveVersionId = isAccepted ? (acceptedVersionId || activeVersionId) : activeVersionId;
 
   const currentContent = chronicle.assembledContent || chronicle.finalContent || '';
-  const currentVersion = {
-    id: currentVersionId,
-    content: currentContent,
-    wordCount: currentContent.split(/\s+/).filter(Boolean).length,
-    systemPrompt:
-      chronicle.generationSystemPrompt ||
-      '(prompt not stored - chronicle generated before prompt storage was implemented)',
-    userPrompt:
-      chronicle.generationUserPrompt ||
-      '(prompt not stored - chronicle generated before prompt storage was implemented)',
-    model: chronicle.model,
-  };
-
-  const historyMatch = chronicle.generationHistory?.find((version) => version.versionId === effectiveVersionId);
+  const historyMatch = versions.find((version) => version.versionId === effectiveVersionId);
   const effectiveVersion = historyMatch
     ? {
         id: historyMatch.versionId,
@@ -294,7 +287,18 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
         userPrompt: historyMatch.userPrompt,
         model: historyMatch.model,
       }
-    : currentVersion;
+    : {
+        id: effectiveVersionId || 'unknown',
+        content: currentContent,
+        wordCount: currentContent.split(/\s+/).filter(Boolean).length,
+        systemPrompt:
+          chronicle.generationSystemPrompt ||
+          '(prompt not stored - chronicle generated before prompt storage was implemented)',
+        userPrompt:
+          chronicle.generationUserPrompt ||
+          '(prompt not stored - chronicle generated before prompt storage was implemented)',
+        model: chronicle.model,
+      };
 
   const content = isAccepted && chronicle.finalContent
     ? chronicle.finalContent
@@ -304,8 +308,6 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
     : effectiveVersion.wordCount;
   const systemPrompt = effectiveVersion.systemPrompt;
   const userPrompt = effectiveVersion.userPrompt;
-  const currentWordCount = currentContent.split(/\s+/).filter(Boolean).length;
-
   const exportData: ChronicleExport = {
     exportVersion: '1.3',
     exportedAt: new Date().toISOString(),
@@ -339,37 +341,18 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
     },
   };
 
-  const versions: ExportChronicleVersion[] = [];
-  if (chronicle.generationHistory && chronicle.generationHistory.length > 0) {
-    for (const version of chronicle.generationHistory) {
-      versions.push({
-        versionId: version.versionId,
-        generatedAt: new Date(version.generatedAt).toISOString(),
-        sampling: version.sampling,
-        step: version.step,
-        model: version.model,
-        wordCount: version.wordCount,
-        content: version.content,
-        systemPrompt: version.systemPrompt,
-        userPrompt: version.userPrompt,
-        cost: version.cost,
-      });
-    }
-  }
-
-  versions.push({
-    versionId: `current_${chronicle.assembledAt ?? chronicle.createdAt}`,
-    generatedAt: new Date(chronicle.assembledAt ?? chronicle.createdAt).toISOString(),
-    sampling: chronicle.generationSampling,
-    step: chronicle.generationStep,
-    model: chronicle.model,
-    wordCount: currentWordCount,
-    content: currentContent,
-    systemPrompt: currentVersion.systemPrompt,
-    userPrompt: currentVersion.userPrompt,
-  });
-
-  exportData.versions = versions;
+  exportData.versions = versions.map((version) => ({
+    versionId: version.versionId,
+    generatedAt: new Date(version.generatedAt).toISOString(),
+    sampling: version.sampling,
+    step: version.step,
+    model: version.model,
+    wordCount: version.wordCount,
+    content: version.content,
+    systemPrompt: version.systemPrompt,
+    userPrompt: version.userPrompt,
+    cost: version.cost,
+  }));
 
   // Add generation context if stored (new chronicles have this)
   if (chronicle.generationContext) {

@@ -126,8 +126,12 @@ export default function WikiExplorer({
   const shouldLoadConflux = currentPageId === 'confluxes' || currentPageId?.startsWith('conflux:');
   const simulationRunId = (worldData as { metadata?: { simulationRunId?: string } }).metadata?.simulationRunId;
   const ensureAllEventsLoaded = useNarrativeStore((state) => state.ensureAllEventsLoaded);
-  const narrativeEvents = useNarrativeStore(
-    (state) => (shouldLoadConflux ? Array.from(state.eventsById.values()) : EMPTY_EVENTS)
+  // Select the Map reference directly — stable between store updates.
+  // Array conversion happens in useMemo below to avoid creating a new array on every subscription check.
+  const eventsById = useNarrativeStore((state) => state.eventsById);
+  const narrativeEvents = useMemo(
+    () => (shouldLoadConflux && eventsById.size > 0 ? Array.from(eventsById.values()) : EMPTY_EVENTS),
+    [shouldLoadConflux, eventsById]
   );
   const allEventsLoaded = useNarrativeStore((state) => (shouldLoadConflux ? state.allEventsLoaded : false));
   const allEventsLoading = useNarrativeStore((state) => (shouldLoadConflux ? state.allEventsLoading : false));
@@ -450,7 +454,7 @@ export default function WikiExplorer({
     } else {
       document.title = 'The Ice Remembers';
     }
-  }, [currentPage, isChronicleIndex, isPagesIndex, isConfluxesIndex, isHuddlesIndex, isPageCategory, pageCategoryNamespace]);
+  }, [documentTitle, isChronicleIndex, isPagesIndex, isConfluxesIndex, isHuddlesIndex, isPageCategory, pageCategoryNamespace]);
 
   // Handle navigation - updates hash which triggers state update via hashchange
   // Uses slug for entity/chronicle/static page URLs (prettier, rename-friendly)

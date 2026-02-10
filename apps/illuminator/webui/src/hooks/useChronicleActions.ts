@@ -306,7 +306,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         console.error('[Chronicle] No assembled content to compare');
         return;
       }
-      const historyCount = (chronicle.generationHistory?.length || 0) + 1;
+      const historyCount = chronicle.generationHistory?.length || 0;
       if (historyCount < 2) {
         console.error('[Chronicle] Need at least 2 versions to compare');
         return;
@@ -336,7 +336,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         console.error('[Chronicle] No assembled content to combine');
         return;
       }
-      const historyCount = (chronicle.generationHistory?.length || 0) + 1;
+      const historyCount = chronicle.generationHistory?.length || 0;
       if (historyCount < 2) {
         console.error('[Chronicle] Need at least 2 versions to combine');
         return;

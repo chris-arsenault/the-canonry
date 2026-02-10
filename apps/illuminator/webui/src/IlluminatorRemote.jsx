@@ -769,6 +769,12 @@ export default function IlluminatorRemote({
     await reloadAndNotify([entityId]);
   }, [reloadAndNotify]);
 
+  // Handle alias update
+  const handleUpdateAliases = useCallback(async (entityId, aliases) => {
+    await entityRepo.updateAliases(entityId, aliases);
+    await reloadAndNotify([entityId]);
+  }, [reloadAndNotify]);
+
   // Load from Dexie only (explicit import required to seed).
   const entityStore = useEntityStore;
 
@@ -2133,6 +2139,7 @@ export default function IlluminatorRemote({
               onUpdateHistorianNote={handleUpdateHistorianNote}
               onRename={handleStartRename}
               onPatchEvents={handleStartPatchEvents}
+              onUpdateAliases={handleUpdateAliases}
             />
           </div>
         )}

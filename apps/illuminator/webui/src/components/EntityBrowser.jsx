@@ -429,6 +429,7 @@ export default function EntityBrowser({
   onUpdateHistorianNote,
   onRename,
   onPatchEvents,
+  onUpdateAliases,
 }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [filters, setFilters] = useState({
@@ -1207,6 +1208,7 @@ export default function EntityBrowser({
           onUpdateHistorianNote={onUpdateHistorianNote}
           onRename={onRename}
           onPatchEvents={onPatchEvents}
+          onUpdateAliases={onUpdateAliases}
         />
       ) : (
         <div className="illuminator-card" style={{ padding: 0, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
