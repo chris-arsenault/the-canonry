@@ -160,8 +160,17 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
       syms.push({ symbol: '\u25C8', title: `Lens: ${item.lens.entityName}`, color: '#8b5cf6' });
     }
 
+    // Temporal alignment check
+    if (item.hasTemporalNarrative) {
+      syms.push({
+        symbol: '\u29D6',
+        title: item.hasTemporalCheck ? 'Temporal alignment checked' : 'Temporal narrative (no alignment check)',
+        color: item.hasTemporalCheck ? '#f59e0b' : 'var(--text-muted)',
+      });
+    }
+
     return syms;
-  }, [item.focusType, item.primaryCount, item.perspectiveSynthesis, item.combineInstructions, item.coverImageComplete, item.loreBackported, item.historianNoteCount, item.lens]);
+  }, [item.focusType, item.primaryCount, item.perspectiveSynthesis, item.combineInstructions, item.coverImageComplete, item.loreBackported, item.historianNoteCount, item.lens, item.hasTemporalNarrative, item.hasTemporalCheck]);
 
   // Compact numeric badge: cast count + scene image count
   const castCount = (item.primaryCount || 0) + (item.supportingCount || 0);
@@ -310,6 +319,7 @@ export default function ChroniclePanel({
   isHistorianActive,
   historianConfigured,
   onUpdateHistorianNote,
+  onRefreshEraSummaries,
 }) {
   const [selectedItemId, setSelectedItemId] = useState(() => {
     const saved = localStorage.getItem('illuminator:chronicle:selectedItemId');
@@ -346,6 +356,15 @@ export default function ChroniclePanel({
   // State for reset backport flags modal
   const [showResetBackportModal, setShowResetBackportModal] = useState(false);
   const [resetBackportResult, setResetBackportResult] = useState(null);
+
+  // State for era summary refresh
+  const [eraSummaryRefreshResult, setEraSummaryRefreshResult] = useState(null);
+
+  // State for bulk temporal check
+  const [temporalCheckResult, setTemporalCheckResult] = useState(null);
+
+  // Collapsible bulk actions panel
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
   // State for wizard modal
   const [showWizard, setShowWizard] = useState(false);
@@ -1781,22 +1800,11 @@ export default function ChroniclePanel({
               Generate long-form narrative content
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
               {stats.complete} / {chronicleItems.length} complete
             </span>
-            <button
-              onClick={handleOpenResetBackportModal}
-              className="illuminator-button"
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-              }}
-              title="Reset loreBackported flag on all chronicles (for re-running backport)"
-            >
-              Reset Backports
-            </button>
-            {autoBackportQueue ? (
+            {autoBackportQueue && (
               <button
                 onClick={onCancelAutoBackport}
                 className="illuminator-button"
@@ -1813,18 +1821,6 @@ export default function ChroniclePanel({
                   ({autoBackportQueue.ids.length - 1} left)
                 </span>
                 <span style={{ fontSize: '11px', color: 'var(--accent-color)' }}>cancel</span>
-              </button>
-            ) : (
-              <button
-                onClick={onStartAutoBackport}
-                className="illuminator-button"
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '12px',
-                }}
-                title="Backport lore from all published chronicles to cast entities (auto-accept)"
-              >
-                Backport All
               </button>
             )}
             <button
@@ -1964,6 +1960,116 @@ export default function ChroniclePanel({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Collapsible Bulk Actions */}
+      <div
+        style={{
+          borderBottom: '1px solid var(--border-color)',
+          background: 'var(--bg-primary)',
+        }}
+      >
+        <button
+          onClick={() => setShowBulkActions(!showBulkActions)}
+          style={{
+            width: '100%',
+            padding: '6px 16px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '11px',
+            color: 'var(--text-muted)',
+            letterSpacing: '0.03em',
+          }}
+        >
+          <span style={{ fontSize: '9px', transition: 'transform 0.15s', transform: showBulkActions ? 'rotate(90deg)' : 'none' }}>&#9654;</span>
+          Bulk Actions
+        </button>
+        {showBulkActions && (
+          <div
+            style={{
+              padding: '4px 16px 12px',
+              display: 'flex',
+              gap: '32px',
+            }}
+          >
+            {/* Data Repair */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Data Repair
+              </span>
+              {onRefreshEraSummaries && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const count = await onRefreshEraSummaries();
+                      setEraSummaryRefreshResult({ success: true, count });
+                      setTimeout(() => setEraSummaryRefreshResult(null), 4000);
+                    } catch (err) {
+                      setEraSummaryRefreshResult({ success: false, error: err.message });
+                      setTimeout(() => setEraSummaryRefreshResult(null), 6000);
+                    }
+                  }}
+                  className="illuminator-button"
+                  title="Refresh era summaries in all chronicle temporal contexts from current entity data"
+                >
+                  Refresh Era Summaries
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  const eligible = chronicleItems.filter(
+                    (c) => c.hasTemporalNarrative && (c.status === 'complete' || c.status === 'assembly_ready'),
+                  );
+                  if (eligible.length === 0) {
+                    setTemporalCheckResult({ success: true, count: 0 });
+                    setTimeout(() => setTemporalCheckResult(null), 4000);
+                    return;
+                  }
+                  const items = eligible.map((c) => {
+                    const primaryRole = c.roleAssignments?.find((r) => r.isPrimary) || c.roleAssignments?.[0];
+                    const entity = primaryRole
+                      ? { id: primaryRole.entityId, name: primaryRole.entityName, kind: primaryRole.entityKind, subtype: '', prominence: 'recognized', culture: '', status: 'active', description: '', tags: {} }
+                      : { id: c.chronicleId, name: c.title || 'Chronicle', kind: 'chronicle', subtype: '', prominence: 'recognized', culture: '', status: 'active', description: '', tags: {} };
+                    return { entity, type: 'entityChronicle', prompt: '', chronicleStep: 'temporal_check', chronicleId: c.chronicleId };
+                  });
+                  onEnqueue(items);
+                  setTemporalCheckResult({ success: true, count: eligible.length });
+                  setTimeout(() => setTemporalCheckResult(null), 4000);
+                }}
+                className="illuminator-button"
+                title="Re-run temporal alignment check on all chronicles that have a temporal narrative"
+              >
+                Rerun Temporal Checks
+              </button>
+            </div>
+            {/* Batch Processing */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Batch Processing
+              </span>
+              {!autoBackportQueue && (
+                <button
+                  onClick={onStartAutoBackport}
+                  className="illuminator-button"
+                  title="Backport lore from all published chronicles to cast entities (auto-accept)"
+                >
+                  Backport All
+                </button>
+              )}
+              <button
+                onClick={handleOpenResetBackportModal}
+                className="illuminator-button"
+                title="Reset loreBackported flag on all chronicles (for re-running backport)"
+              >
+                Reset Backports
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main content area */}
@@ -2325,6 +2431,84 @@ export default function ChroniclePanel({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Era Summary Refresh notification */}
+      {eraSummaryRefreshResult && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            background: eraSummaryRefreshResult.success ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)',
+            color: 'white',
+            padding: '16px 24px',
+            borderRadius: '8px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+            zIndex: 1001,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+          onClick={() => setEraSummaryRefreshResult(null)}
+        >
+          <span>
+            {eraSummaryRefreshResult.success
+              ? eraSummaryRefreshResult.count > 0
+                ? `Updated era summaries in ${eraSummaryRefreshResult.count} chronicle${eraSummaryRefreshResult.count !== 1 ? 's' : ''}`
+                : 'All chronicle era summaries are already up to date'
+              : `Error: ${eraSummaryRefreshResult.error}`}
+          </span>
+          <button
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '16px',
+            }}
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
+      {/* Temporal Check notification */}
+      {temporalCheckResult && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            background: 'rgba(16, 185, 129, 0.95)',
+            color: 'white',
+            padding: '16px 24px',
+            borderRadius: '8px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+            zIndex: 1001,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+          onClick={() => setTemporalCheckResult(null)}
+        >
+          <span>
+            {temporalCheckResult.count > 0
+              ? `Enqueued temporal checks for ${temporalCheckResult.count} chronicle${temporalCheckResult.count !== 1 ? 's' : ''}`
+              : 'No eligible chronicles (need temporal narrative + assembled content)'}
+          </span>
+          <button
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '16px',
+            }}
+          >
+            &times;
+          </button>
         </div>
       )}
 

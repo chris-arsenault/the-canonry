@@ -17,6 +17,7 @@ import {
   type EntitySelectionMetrics,
 } from '../../../lib/chronicle/selectionWizard';
 import { getEntityUsageStats } from '../../../lib/db/chronicleRepository';
+import { getEraRanges } from '../../../lib/chronicle/timelineUtils';
 import {
   EnsembleConstellation,
   RoleSlot,
@@ -58,6 +59,7 @@ export default function RoleAssignmentStep() {
   const [usageStats, setUsageStats] = useState<Map<string, { usageCount: number }>>(new Map());
   const [metricsMap, setMetricsMap] = useState<Map<string, EntitySelectionMetrics>>(new Map());
   const [selectedKinds, setSelectedKinds] = useState<Set<string>>(new Set());
+  const [selectedEras, setSelectedEras] = useState<Set<string>>(new Set());
   const [connectionFilter, setConnectionFilter] = useState<string | null>(null);
 
   const style = state.narrativeStyle;
@@ -106,13 +108,14 @@ export default function RoleAssignmentStep() {
     return metricsMap.get(selectedEntityId);
   }, [selectedEntityId, metricsMap]);
 
-  // Get era name for selected entity
+  // Get era name and color for selected entity
   const selectedEntityEra = useMemo(() => {
     if (!selectedEntity || eras.length === 0) return undefined;
     const entityEraId = resolveEntityEraId(selectedEntity);
     const era = entityEraId ? eras.find(e => e.id === entityEraId) : undefined;
-    return era?.name;
-  }, [selectedEntity, eras]);
+    if (!era) return undefined;
+    return { name: era.name, color: eraColorMap.get(era.id) };
+  }, [selectedEntity, eras, eraColorMap]);
 
   // Handle role assignment
   const handleAssignToRole = useCallback((roleId: string) => {
@@ -165,6 +168,25 @@ export default function RoleAssignmentStep() {
     return Array.from(kinds).sort();
   }, [state.candidates]);
 
+  // Era color map: eraId -> hex color (same palette as timeline)
+  const eraColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const range of getEraRanges(eras)) {
+      map.set(range.id, range.color);
+    }
+    return map;
+  }, [eras]);
+
+  // Available eras from candidates (in era order, only eras with entities)
+  const availableEras = useMemo(() => {
+    const eraIds = new Set<string>();
+    for (const c of state.candidates) {
+      const eraId = resolveEntityEraId(c);
+      if (eraId) eraIds.add(eraId);
+    }
+    return eras.filter(e => eraIds.has(e.id)).map(e => e.id);
+  }, [state.candidates, eras]);
+
   // Build connection maps for filtering
   const connectionMaps = useMemo(() => {
     // Map entity ID -> set of assigned entity IDs it connects to
@@ -198,6 +220,14 @@ export default function RoleAssignmentStep() {
       );
     }
 
+    // Apply era filter
+    if (selectedEras.size > 0) {
+      candidates = candidates.filter(c => {
+        const eraId = resolveEntityEraId(c);
+        return (eraId !== undefined && selectedEras.has(eraId)) || assignedEntityIds.has(c.id);
+      });
+    }
+
     // Apply connection filter
     if (connectionFilter && assignedEntityIds.size > 0) {
       candidates = candidates.filter(c => {
@@ -221,7 +251,7 @@ export default function RoleAssignmentStep() {
     }
 
     return candidates;
-  }, [state.candidates, selectedKinds, assignedEntityIds, connectionFilter, connectionMaps]);
+  }, [state.candidates, selectedKinds, selectedEras, assignedEntityIds, connectionFilter, connectionMaps]);
 
   // Filter relationships to only include those between filtered candidates
   const filteredRelationships = useMemo(() => {
@@ -281,6 +311,19 @@ export default function RoleAssignmentStep() {
               label="Filter by Kind"
             />
           </div>
+          {/* Era filter chips */}
+          {availableEras.length > 1 && (
+            <div style={{ marginBottom: '6px' }}>
+              <FilterChips
+                options={availableEras}
+                selected={selectedEras}
+                onSelectionChange={setSelectedEras}
+                label="Filter by Era"
+                formatLabel={(eraId) => eras.find(e => e.id === eraId)?.name ?? eraId}
+                getColor={(eraId) => eraColorMap.get(eraId) ?? 'var(--text-muted)'}
+              />
+            </div>
+          )}
           {/* Connection filter */}
           <div style={{
             display: 'flex',
@@ -321,6 +364,7 @@ export default function RoleAssignmentStep() {
             metricsMap={metricsMap}
             selectedEntityId={selectedEntityId}
             onSelectEntity={setSelectedEntityId}
+            eraColorMap={eraColorMap}
             width={400}
             height={300}
           />
@@ -412,7 +456,8 @@ export default function RoleAssignmentStep() {
             <EntityDetailCard
               entity={selectedEntity}
               metrics={selectedMetrics}
-              eraName={selectedEntityEra}
+              eraName={selectedEntityEra?.name}
+              eraColor={selectedEntityEra?.color}
               isEntryPoint={selectedEntity?.id === state.entryPointId}
               isAssigned={selectedEntity ? assignedEntityIds.has(selectedEntity.id) : false}
             />

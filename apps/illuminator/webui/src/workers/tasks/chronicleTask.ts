@@ -1638,6 +1638,55 @@ async function executeTemporalCheckStep(
       }).join('\n')
     : 'No era information available.';
 
+  // Build era boundary context
+  const isMultiEra = chronicleRecord.temporalContext?.isMultiEra || false;
+  const tickRange = chronicleRecord.temporalContext?.chronicleTickRange;
+  let boundaryBlock = '';
+
+  if (focalEra && allEras.length > 1 && tickRange) {
+    const sortedEras = [...allEras].sort((a, b) => a.startTick - b.startTick);
+    const focalIdx = sortedEras.findIndex(e => e.id === focalEra.id);
+    const adjacentEras: Array<{ era: typeof focalEra; boundary: number; direction: string }> = [];
+
+    // Check previous era
+    if (focalIdx > 0) {
+      const prev = sortedEras[focalIdx - 1];
+      const boundary = focalEra.startTick;
+      const distToBoundary = tickRange[0] - boundary;
+      if (distToBoundary < focalEra.duration * 0.25 || touchedEraIds.includes(prev.id)) {
+        adjacentEras.push({ era: prev, boundary, direction: 'preceding' });
+      }
+    }
+
+    // Check next era
+    if (focalIdx < sortedEras.length - 1) {
+      const next = sortedEras[focalIdx + 1];
+      const boundary = focalEra.endTick;
+      const distToBoundary = boundary - tickRange[1];
+      if (distToBoundary < focalEra.duration * 0.25 || touchedEraIds.includes(next.id)) {
+        adjacentEras.push({ era: next, boundary, direction: 'following' });
+      }
+    }
+
+    if (adjacentEras.length > 0 || isMultiEra) {
+      const touchedNames = touchedEraIds
+        .map(id => allEras.find(e => e.id === id)?.name)
+        .filter(Boolean);
+      const lines = [`## Era Boundary Analysis`];
+      if (isMultiEra) {
+        lines.push(`This chronicle touches ${touchedEraIds.length} eras: ${touchedNames.join(', ')}. Focal era: ${focalEra.name}.`);
+      }
+      for (const { era, boundary, direction } of adjacentEras) {
+        lines.push(`The chronicle's tick range [${tickRange[0]}–${tickRange[1]}] is near the boundary at tick ${boundary} (between ${direction === 'preceding' ? era.name + ' and ' + focalEra.name : focalEra.name + ' and ' + era.name}).`);
+        if (era.summary) {
+          lines.push(`**${era.name}:** ${era.summary}`);
+        }
+      }
+      lines.push(`\nThis may be a **transition/boundary chronicle** depicting the shift between eras. Elements from adjacent eras may be narratively appropriate if they serve the transition.`);
+      boundaryBlock = lines.join('\n') + '\n\n';
+    }
+  }
+
   // Get world dynamics if available
   const worldDynamicsResolved = (chronicleRecord as any).generationContext?.worldDynamicsResolved;
   const dynamicsBlock = worldDynamicsResolved && worldDynamicsResolved.length > 0
@@ -1647,7 +1696,7 @@ async function executeTemporalCheckStep(
   const callConfig = getCallConfig(config, 'chronicle.compare');
   console.log(`[Worker] Temporal alignment check for chronicle=${chronicleId}, model=${callConfig.model}...`);
 
-  const systemPrompt = `You are an editorial analyst checking whether a chronicle's narrative is temporally grounded in the correct era. You have access to the focal era, the temporal narrative (synthesized stakes), and the chronicle text. Your job is to identify passages where the chronicle's narrative contradicts, ignores, or is misaligned with the temporal context it was supposed to be grounded in.`;
+  const systemPrompt = `You are an editorial analyst checking whether a chronicle's narrative is temporally grounded in the correct era. You have access to the focal era, the temporal narrative (synthesized stakes), and the chronicle text. Your job is to identify passages where the chronicle's narrative contradicts, ignores, or is misaligned with the temporal context it was supposed to be grounded in. Some chronicles intentionally depict transitions between eras — these should be evaluated for how well they portray the shift, not penalized for containing elements of both eras.`;
 
   const userPrompt = `## Temporal Context
 
@@ -1657,7 +1706,7 @@ ${temporalDescription ? `**Temporal Description:** ${temporalDescription}` : ''}
 **Era Timeline:**
 ${eraContextBlock}
 
-## Temporal Narrative (from Perspective Synthesis)
+${boundaryBlock}## Temporal Narrative (from Perspective Synthesis)
 This is the synthesized narrative grounding — the story-specific stakes derived from world dynamics and era conditions. The chronicle should reflect these conditions:
 
 > ${temporalNarrative}
@@ -1681,13 +1730,17 @@ Analyze the chronicle text against the temporal context above. Look for:
 
 4. **Missing Temporal Grounding** — Does the chronicle feel temporally unanchored — like it could happen in any era? Does it fail to use the specific conditions the temporal narrative establishes?
 
+5. **Era Boundary / Transition Assessment** — If this chronicle touches multiple eras or sits near an era boundary: Does it function as a transition narrative? Does it meaningfully depict the *shift* from one era's conditions to another? Are elements from adjacent eras serving the transition narrative, or do they appear as temporal errors? A chronicle depicting the collapse of one era's certainties into the next era's tensions is doing legitimate narrative work.
+
 ## Output Format
 
 For each issue found, cite the specific passage and explain the misalignment. If no issues are found, say so explicitly.
 
 Rate the overall temporal alignment: **Strong**, **Adequate**, **Weak**, or **Misaligned**.
 
-Keep the total output under 600 words.`;
+If the chronicle is a boundary/transition chronicle, also rate: **Transition: Strong / Adequate / Weak** — how well does it portray the era shift?
+
+Keep the total output under 800 words.`;
 
   const checkCall = await runTextCall({
     llmClient,

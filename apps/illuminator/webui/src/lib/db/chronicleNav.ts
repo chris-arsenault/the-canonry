@@ -30,6 +30,8 @@ export interface ChronicleNavItem {
   wordCount: number;
   focalEraName?: string;
   focalEraOrder?: number;
+  hasTemporalNarrative: boolean;
+  hasTemporalCheck: boolean;
 }
 
 export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
@@ -80,5 +82,7 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
       : (typeof record.temporalContext?.focalEra?.startTick === 'number'
         ? record.temporalContext.focalEra.startTick
         : undefined),
+    hasTemporalNarrative: !!record.perspectiveSynthesis?.temporalNarrative,
+    hasTemporalCheck: !!record.temporalCheckReport,
   };
 }

@@ -4,6 +4,8 @@
 
 **NEVER run `git reset` in any form.** Not `git reset HEAD`, not `git reset --soft`, not `git reset --hard`, not `git reset` with any arguments. This command destroys work. If you need to unstage a file, use `git restore --staged <file>` instead. Violations of this rule are unacceptable.
 
+**NEVER run `git checkout` to discard changes.** Not `git checkout -- <file>`, not `git checkout .`, not any form that overwrites working tree files. Multiple agents work in this repository concurrently — uncommitted changes in the working tree may belong to another agent, and discarding them destroys their work irreversibly. If you made an unwanted edit, reverse it with a targeted `Edit` tool call. Violations of this rule are unacceptable.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview

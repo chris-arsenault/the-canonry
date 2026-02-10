@@ -20,6 +20,7 @@ const NOTE_TYPE_META = {
   tangent: { icon: '~', color: '#7d6b91', label: 'Tangent' },
   skepticism: { icon: '?', color: '#d4a017', label: 'Skepticism' },
   pedantic: { icon: '#', color: '#5b7a5e', label: 'Pedantic' },
+  temporal: { icon: '\u27F3', color: '#4a8b9e', label: 'Temporal' },
 };
 
 const DISPLAY_MODES = ['full', 'popout', 'disabled'];

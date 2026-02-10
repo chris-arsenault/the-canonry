@@ -4,7 +4,7 @@
  * Displays candidates as nodes with the entry point at center.
  * Nodes can be clicked to select, then assigned to roles.
  * Visual encoding: node color = kind, line thickness = strength,
- * opacity = era alignment, red glow = overused.
+ * ring color = era, red glow = overused.
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
@@ -20,6 +20,7 @@ interface ConstellationNode {
   isEntryPoint: boolean;
   isAssigned: boolean;
   metrics?: EntitySelectionMetrics;
+  eraColor: string;
 }
 
 interface ConstellationEdge {
@@ -41,6 +42,8 @@ interface EnsembleConstellationProps {
   onSelectEntity: (entityId: string | null) => void;
   width?: number;
   height?: number;
+  /** Era ID -> color mapping for era rings on nodes */
+  eraColorMap?: Map<string, string>;
 }
 
 // Color mapping for entity kinds
@@ -58,16 +61,18 @@ const KIND_COLORS: Record<string, string> = {
 /**
  * Simple force simulation - positions nodes in concentric circles by distance
  */
+type LayoutNode = Omit<ConstellationNode, 'isAssigned' | 'eraColor'>;
+
 function computeLayout(
   entryPointId: string,
   candidates: EntityContext[],
   metricsMap: Map<string, EntitySelectionMetrics>,
   width: number,
   height: number
-): ConstellationNode[] {
+): LayoutNode[] {
   const cx = width / 2;
   const cy = height / 2;
-  const nodes: ConstellationNode[] = [];
+  const nodes: LayoutNode[] = [];
 
   // Group candidates by distance
   const byDistance = new Map<number, EntityContext[]>();
@@ -117,7 +122,6 @@ function computeLayout(
         x: cx + (radius + jitter) * Math.cos(angle),
         y: cy + (radius + jitter) * Math.sin(angle),
         isEntryPoint: entity.id === entryPointId,
-        isAssigned: false, // Will be set by parent
         metrics: metricsMap.get(entity.id),
       });
     });
@@ -166,6 +170,7 @@ export default function EnsembleConstellation({
   onSelectEntity,
   width = 400,
   height = 350,
+  eraColorMap,
 }: EnsembleConstellationProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -173,12 +178,17 @@ export default function EnsembleConstellation({
   // Compute layout
   const nodes = useMemo(() => {
     const layout = computeLayout(entryPointId, candidates, metricsMap, width, height);
-    // Mark assigned nodes
-    return layout.map(node => ({
-      ...node,
-      isAssigned: assignedEntityIds.has(node.id),
-    }));
-  }, [entryPointId, candidates, metricsMap, width, height, assignedEntityIds]);
+    const candidateMap = new Map(candidates.map(c => [c.id, c]));
+    return layout.map(node => {
+      const candidate = candidateMap.get(node.id);
+      const eraId = candidate?.eraId && candidate.eraId.length > 0 ? candidate.eraId : undefined;
+      return {
+        ...node,
+        isAssigned: assignedEntityIds.has(node.id),
+        eraColor: eraId ? (eraColorMap?.get(eraId) ?? '#6b7280') : '#6b7280',
+      };
+    });
+  }, [entryPointId, candidates, metricsMap, width, height, assignedEntityIds, eraColorMap]);
 
   const nodeMap = useMemo(() => {
     return new Map(nodes.map(n => [n.id, n]));
@@ -238,16 +248,10 @@ export default function EnsembleConstellation({
     let radius = node.isEntryPoint ? 18 : 12;
     if (isSelected || isHovered) radius += 2;
 
-    // Opacity based on era alignment
-    let opacity = 1;
-    if (metrics && !metrics.eraAligned && !node.isEntryPoint) {
-      opacity = 0.5;
-    }
-
     // Overused indicator
     const isOverused = metrics && metrics.usageCount >= 5;
 
-    return { radius, opacity, isOverused, isSelected, isHovered };
+    return { radius, isOverused, isSelected, isHovered };
   };
 
   return (
@@ -399,14 +403,13 @@ export default function EnsembleConstellation({
               />
             )}
 
-            {/* Node circle */}
+            {/* Node circle with era-colored ring */}
             <circle
               cx={node.x}
               cy={node.y}
               r={style.radius}
               fill={node.isEntryPoint ? 'var(--accent-color)' : color}
-              opacity={style.opacity}
-              stroke={style.isHovered ? 'white' : 'transparent'}
+              stroke={style.isHovered ? 'white' : node.eraColor}
               strokeWidth={2}
             />
 

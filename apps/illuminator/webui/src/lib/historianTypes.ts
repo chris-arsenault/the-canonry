@@ -27,7 +27,8 @@ export type HistorianNoteType =
   | 'correction'    // Factual inconsistency or inaccuracy callout
   | 'tangent'       // Personal digression, aside, memory
   | 'skepticism'    // Disputes or questions the account
-  | 'pedantic';     // Scholarly pedantic correction (names, dates, terminology)
+  | 'pedantic'      // Scholarly pedantic correction (names, dates, terminology)
+  | 'temporal';     // Temporal displacement, anachronism, ice-echo observation
 
 /** Display mode for a historian note */
 export type HistorianNoteDisplay = 'disabled' | 'popout' | 'full';

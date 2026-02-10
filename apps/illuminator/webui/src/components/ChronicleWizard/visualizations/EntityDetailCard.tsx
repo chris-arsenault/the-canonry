@@ -16,6 +16,7 @@ interface EntityDetailCardProps {
   entity: EntityContext | null;
   metrics?: EntitySelectionMetrics;
   eraName?: string;
+  eraColor?: string;
   isEntryPoint?: boolean;
   isAssigned?: boolean;
 }
@@ -24,6 +25,7 @@ export default function EntityDetailCard({
   entity,
   metrics,
   eraName,
+  eraColor,
   isEntryPoint = false,
   isAssigned = false,
 }: EntityDetailCardProps) {
@@ -116,7 +118,7 @@ export default function EntityDetailCard({
               </>
             )}
             {eraName && (
-              <MetricChip label={eraName} />
+              <MetricChip label={eraName} customColor={eraColor} />
             )}
           </div>
           {/* Row 2: Story effects (always separate line) */}
@@ -139,9 +141,10 @@ export default function EntityDetailCard({
 interface MetricChipProps {
   label: string;
   variant?: 'default' | 'success' | 'warning' | 'error' | 'accent';
+  customColor?: string;
 }
 
-function MetricChip({ label, variant = 'default' }: MetricChipProps) {
+function MetricChip({ label, variant = 'default', customColor }: MetricChipProps) {
   const colors = {
     default: { bg: 'var(--bg-tertiary)', text: 'var(--text-muted)' },
     success: { bg: 'rgba(16, 185, 129, 0.15)', text: 'var(--success)' },
@@ -150,11 +153,14 @@ function MetricChip({ label, variant = 'default' }: MetricChipProps) {
     accent: { bg: 'rgba(99, 102, 241, 0.15)', text: 'var(--accent-color)' },
   };
 
+  const bg = customColor ? `${customColor}26` : colors[variant].bg;
+  const text = customColor ?? colors[variant].text;
+
   return (
     <span style={{
       padding: '2px 6px',
-      background: colors[variant].bg,
-      color: colors[variant].text,
+      background: bg,
+      color: text,
       borderRadius: '3px',
       fontSize: '9px',
       fontWeight: 500,

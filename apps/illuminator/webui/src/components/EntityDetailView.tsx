@@ -76,6 +76,8 @@ interface EntityDetailViewProps {
   onRename?: (entityId: string) => void;
   onPatchEvents?: (entityId: string) => void;
   onUpdateAliases?: (entityId: string, aliases: string[]) => void;
+  onUpdateDescription?: (entityId: string, description: string) => void;
+  onUpdateSummary?: (entityId: string, summary: string) => void;
 }
 
 function formatDate(timestamp: number | undefined): string {
@@ -383,6 +385,8 @@ export default function EntityDetailView({
   onRename,
   onPatchEvents,
   onUpdateAliases,
+  onUpdateDescription,
+  onUpdateSummary,
 }: EntityDetailViewProps) {
   const effectiveProminenceScale = useMemo(() => {
     if (prominenceScale) return prominenceScale;
@@ -391,6 +395,50 @@ export default function EntityDetailView({
 
   const enrichment = entity.enrichment;
   const textEnrichment = enrichment?.text;
+
+  // Inline editing state
+  const [editingSummary, setEditingSummary] = useState(false);
+  const [summaryDraft, setSummaryDraft] = useState('');
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState('');
+
+  const startEditSummary = useCallback(() => {
+    setSummaryDraft(entity.summary || '');
+    setEditingSummary(true);
+  }, [entity.summary]);
+
+  const saveSummary = useCallback(() => {
+    if (!onUpdateSummary) return;
+    const trimmed = summaryDraft.trim();
+    if (trimmed && trimmed !== entity.summary) {
+      onUpdateSummary(entity.id, trimmed);
+    }
+    setEditingSummary(false);
+  }, [onUpdateSummary, summaryDraft, entity.summary, entity.id]);
+
+  const cancelSummary = useCallback(() => {
+    setEditingSummary(false);
+    setSummaryDraft('');
+  }, []);
+
+  const startEditDescription = useCallback(() => {
+    setDescriptionDraft(entity.description || '');
+    setEditingDescription(true);
+  }, [entity.description]);
+
+  const saveDescription = useCallback(() => {
+    if (!onUpdateDescription) return;
+    const trimmed = descriptionDraft.trim();
+    if (trimmed && trimmed !== entity.description) {
+      onUpdateDescription(entity.id, trimmed);
+    }
+    setEditingDescription(false);
+  }, [onUpdateDescription, descriptionDraft, entity.description, entity.id]);
+
+  const cancelDescription = useCallback(() => {
+    setEditingDescription(false);
+    setDescriptionDraft('');
+  }, []);
 
   // Chain debug (narrative -> thesis -> traits)
   const chainDebug: DescriptionChainDebug | undefined = textEnrichment?.chainDebug;
@@ -404,12 +452,12 @@ export default function EntityDetailView({
     legacyDebug = descriptionQueueItem?.debug;
   }
 
-  // Escape key goes back
+  // Escape key goes back (unless editing inline)
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onBack();
+      if (e.key === 'Escape' && !editingSummary && !editingDescription) onBack();
     },
-    [onBack]
+    [onBack, editingSummary, editingDescription]
   );
 
   useEffect(() => {
@@ -471,14 +519,71 @@ export default function EntityDetailView({
         {/* Main content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', minWidth: 0 }}>
           {/* Summary */}
-          {entity.summary && (
+          {(entity.summary || onUpdateSummary) && (
             <div style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{
+                fontSize: '11px',
+                color: 'var(--text-muted)',
+                marginBottom: '6px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}>
                 Summary
+                {onUpdateSummary && !editingSummary && (
+                  <button
+                    onClick={startEditSummary}
+                    title="Edit summary"
+                    style={{
+                      background: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-secondary)',
+                      fontSize: '10px',
+                      padding: '1px 6px',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      textTransform: 'none',
+                      letterSpacing: 'normal',
+                    }}
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
-              <p style={{ fontSize: '15px', color: 'var(--text-primary)', lineHeight: '1.6', margin: 0 }}>
-                {entity.summary}
-              </p>
+              {editingSummary ? (
+                <textarea
+                  autoFocus
+                  value={summaryDraft}
+                  onChange={(e) => setSummaryDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveSummary(); }
+                    if (e.key === 'Escape') { e.stopPropagation(); cancelSummary(); }
+                  }}
+                  onBlur={saveSummary}
+                  style={{
+                    width: '100%',
+                    minHeight: '80px',
+                    fontSize: '15px',
+                    color: 'var(--text-primary)',
+                    lineHeight: '1.6',
+                    margin: 0,
+                    padding: '8px',
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--accent-color)',
+                    borderRadius: '4px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              ) : (
+                <p style={{ fontSize: '15px', color: 'var(--text-primary)', lineHeight: '1.6', margin: 0 }}>
+                  {entity.summary || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>No summary</span>}
+                </p>
+              )}
             </div>
           )}
 
@@ -505,7 +610,7 @@ export default function EntityDetailView({
           )}
 
           {/* Full Description */}
-          {entity.description && (
+          {(entity.description || onUpdateDescription) && (
             <div style={{ marginBottom: '20px' }}>
               <div style={{
                 fontSize: '11px',
@@ -516,6 +621,7 @@ export default function EntityDetailView({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
+                flexWrap: 'wrap',
               }}>
                 Full Description
                 {historyLen > 0 && (
@@ -540,6 +646,25 @@ export default function EntityDetailView({
                     }}
                   >
                     ↩ Undo
+                  </button>
+                )}
+                {onUpdateDescription && !editingDescription && (
+                  <button
+                    onClick={startEditDescription}
+                    title="Edit description"
+                    style={{
+                      background: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-secondary)',
+                      fontSize: '10px',
+                      padding: '1px 6px',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      textTransform: 'none',
+                      letterSpacing: 'normal',
+                    }}
+                  >
+                    Edit
                   </button>
                 )}
                 {onCopyEdit && (
@@ -609,24 +734,56 @@ export default function EntityDetailView({
                   />
                 )}
               </div>
-              <p style={{
-                fontSize: '14px',
-                color: 'var(--text-secondary)',
-                lineHeight: '1.7',
-                margin: 0,
-                whiteSpace: 'pre-wrap',
-              }}>
-                {entity.description}
-              </p>
-              {enrichment?.historianNotes && enrichment.historianNotes.length > 0 && (
-                <HistorianMarginNotes
-                  notes={enrichment.historianNotes}
-                  sourceText={entity.description}
-                  style={{ marginTop: '12px' }}
-                  onUpdateNote={onUpdateHistorianNote
-                    ? (noteId: string, updates: Record<string, unknown>) => onUpdateHistorianNote('entity', entity.id, noteId, updates)
-                    : undefined}
+              {editingDescription ? (
+                <textarea
+                  autoFocus
+                  value={descriptionDraft}
+                  onChange={(e) => setDescriptionDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveDescription(); }
+                    if (e.key === 'Escape') { e.stopPropagation(); cancelDescription(); }
+                  }}
+                  onBlur={saveDescription}
+                  style={{
+                    width: '100%',
+                    minHeight: '200px',
+                    fontSize: '14px',
+                    color: 'var(--text-secondary)',
+                    lineHeight: '1.7',
+                    margin: 0,
+                    padding: '8px',
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--accent-color)',
+                    borderRadius: '4px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    whiteSpace: 'pre-wrap',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
                 />
+              ) : (
+                <>
+                  <p style={{
+                    fontSize: '14px',
+                    color: 'var(--text-secondary)',
+                    lineHeight: '1.7',
+                    margin: 0,
+                    whiteSpace: 'pre-wrap',
+                  }}>
+                    {entity.description || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>No description</span>}
+                  </p>
+                  {enrichment?.historianNotes && enrichment.historianNotes.length > 0 && (
+                    <HistorianMarginNotes
+                      notes={enrichment.historianNotes}
+                      sourceText={entity.description}
+                      style={{ marginTop: '12px' }}
+                      onUpdateNote={onUpdateHistorianNote
+                        ? (noteId: string, updates: Record<string, unknown>) => onUpdateHistorianNote('entity', entity.id, noteId, updates)
+                        : undefined}
+                    />
+                  )}
+                </>
               )}
             </div>
           )}

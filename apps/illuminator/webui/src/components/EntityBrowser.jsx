@@ -430,6 +430,8 @@ export default function EntityBrowser({
   onRename,
   onPatchEvents,
   onUpdateAliases,
+  onUpdateDescription,
+  onUpdateSummary,
 }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [filters, setFilters] = useState({
@@ -1209,6 +1211,8 @@ export default function EntityBrowser({
           onRename={onRename}
           onPatchEvents={onPatchEvents}
           onUpdateAliases={onUpdateAliases}
+          onUpdateDescription={onUpdateDescription}
+          onUpdateSummary={onUpdateSummary}
         />
       ) : (
         <div className="illuminator-card" style={{ padding: 0, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>

@@ -332,6 +332,54 @@ export async function assignImage(
 }
 
 /**
+ * Manually update an entity's description. Pushes current description to history
+ * with source 'manual', bumps text.generatedAt to prevent enrichment overwrites.
+ */
+export async function updateDescriptionManual(
+  entityId: string,
+  description: string,
+): Promise<void> {
+  await db.transaction('rw', db.entities, async () => {
+    const entity = await db.entities.get(entityId);
+    if (!entity) return;
+
+    let enrichment = entity.enrichment || {};
+
+    // Push current description to history
+    if (entity.description) {
+      const history = [...(enrichment.descriptionHistory || [])];
+      history.push({
+        description: entity.description,
+        replacedAt: Date.now(),
+        source: 'manual',
+      });
+      enrichment = { ...enrichment, descriptionHistory: history };
+    }
+
+    // Bump text.generatedAt so enrichment workers won't overwrite
+    if (enrichment.text) {
+      enrichment = { ...enrichment, text: { ...enrichment.text, generatedAt: Date.now() } };
+    }
+
+    await db.entities.update(entityId, { description, enrichment });
+  });
+}
+
+/**
+ * Manually update an entity's summary. Sets lockedSummary to prevent enrichment overwrites.
+ */
+export async function updateSummaryManual(
+  entityId: string,
+  summary: string,
+): Promise<void> {
+  await db.transaction('rw', db.entities, async () => {
+    const entity = await db.entities.get(entityId);
+    if (!entity) return;
+    await db.entities.update(entityId, { summary, lockedSummary: true });
+  });
+}
+
+/**
  * Undo the last description change by popping from descriptionHistory.
  */
 export async function undoDescription(entityId: string): Promise<void> {

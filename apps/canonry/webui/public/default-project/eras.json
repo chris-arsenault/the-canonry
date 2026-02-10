@@ -2,7 +2,7 @@
   {
     "id": "the-great-thaw",
     "name": "The Great Thaw",
-    "summary": "The great ice sheets retreat, revealing new waters rich with krill and ancient secrets frozen beneath. Bold explorers from the Aurora Stack and Abyssal Trench venture forth to claim territory, founding colonies that will shape penguin civilization for generations. Guild halls rise in every settlement, their charters written on sheets of pressed ice. It is an age of optimism, where even the most marginal rookery dreams of becoming a great berg.",
+    "summary": "The great ice sheets retreat, revealing new waters rich with krill and ancient secrets frozen beneath. Bold explorers from the Aurora Stack and the Nightfall Shelf venture forth to claim territory, founding colonies that will shape penguin civilization for generations. Guild halls rise in every settlement, their charters written on sheets of pressed ice. Far beyond the colony waters, orca pods patrol the deep currents — distant shapes glimpsed by scouts, stories traded in hushed tones at the ice-edge. It is an age of optimism, where even the most marginal rookery dreams of becoming a great berg.",
     "templateWeights": {
       "colony_founding": 1,
       "krill_bloom_discovery": 1.4,
@@ -117,7 +117,7 @@
   {
     "id": "the-faction-wars",
     "name": "The Faction Wars",
-    "summary": "The bounty of the Thaw dwindles as colonies multiply beyond what the waters can sustain. Trade routes become battle lines; old alliances fracture along cultural fault lines between the pragmatic Abyssal Trench and the mystical Aurora Stack. Factions emerge within colonies, each claiming the true path to survival. Heroes rise not from exploration but from war, their names etched in the ice memorials that dot every berg.",
+    "summary": "The bounty of the Thaw dwindles as colonies multiply beyond what the waters can sustain. Trade routes become battle lines; old alliances fracture along cultural fault lines between the shadow-brokers of the Nightfall Shelf and the mystics of the Aurora Stack. Factions emerge within colonies, each claiming the true path to survival. Heroes rise not from exploration but from war, their names etched in the ice memorials that dot every berg. Along the outer currents, orca raiding parties grow bolder — isolated fishing crews vanish, and border colonies report strange songs echoing from the deep.",
     "templateWeights": {
       "colony_founding": 0.2,
       "krill_bloom_discovery": 0.3,
@@ -243,7 +243,7 @@
   {
     "id": "the-clever-ice-age",
     "name": "The Clever Ice Age",
-    "summary": "War-weary but unbowed, penguin-kind turns inward to solve problems through cleverness rather than conflict. The great guilds establish schools of magic and workshops of invention, competing to unlock the secrets of fire-core crystals and spectralum lenses. Aurora Stack mystics codify the old ice-memory rituals while Abyssal Trench engineers devise machines to harvest krill at unprecedented scales. It is an age of wonders, though some whisper that not all discoveries should be made.",
+    "summary": "War-weary but unbowed, penguin-kind turns inward to solve problems through cleverness rather than conflict. The great guilds establish schools of magic and workshops of invention, competing to unlock the secrets of fire-core crystals and spectralum lenses. Aurora Stack mystics codify the old ice-memory rituals while Nightfall Shelf engineers devise machines to harvest krill at unprecedented scales. It is an age of wonders, though some whisper that not all discoveries should be made. And from the outer waters come darker whispers still — the orca war-pods are massing, their scouts circling ever closer, testing the defences that penguin-kind has yet to build.",
     "templateWeights": {
       "krill_bloom_discovery": 0.8,
       "orca_raider_arrival": 0,
@@ -360,7 +360,7 @@
   {
     "id": "the-orca-incursion",
     "name": "The Orca Incursion",
-    "summary": "The orcas come not as raiders but as conquerors, their war-pods striking with coordination that speaks of dark intelligence. Old feuds between Aurora Stack and Abyssal Trench fade as colonies band together against extinction. The innovations of the previous age become weapons; the heroes of this era are defenders who hold the line at impossible odds. Every culture contributes what it knows best: Trench tactical discipline, Stack mystical barriers, and the desperate courage of those with nowhere left to retreat.",
+    "summary": "The orcas come not as raiders but as conquerors, their war-pods striking with coordination that speaks of dark intelligence. Old feuds between the Aurora Stack and the Nightfall Shelf fade as colonies band together against extinction. The innovations of the previous age become weapons; the heroes of this era are defenders who hold the line at impossible odds. Every culture contributes what it knows best: Shelf shadow-craft and espionage, Stack mystical barriers, and the desperate courage of those with nowhere left to retreat.",
     "templateWeights": {
       "krill_bloom_discovery": 0.4,
       "hero_emergence": 1.8,
@@ -496,7 +496,7 @@
   {
     "id": "the-frozen-peace",
     "name": "The Frozen Peace",
-    "summary": "The orca threat recedes, leaving scars that will take generations to heal. Survivors rebuild not just colonies but the bonds between cultures, forging new traditions that blend Aurora Stack mysticism with Abyssal Trench pragmatism. The great festivals return, now tinged with remembrance for the fallen. Guilds that once competed now cooperate, their combined knowledge preserving what was nearly lost. It is an age of quiet determination, where every new chick represents a victory against oblivion.",
+    "summary": "The orca threat recedes, leaving scars that will take generations to heal. Survivors rebuild not just colonies but the bonds between cultures, forging new traditions that blend Aurora Stack mysticism with Nightfall Shelf shadow-craft. The great festivals return, now tinged with remembrance for the fallen. Guilds that once competed now cooperate, their combined knowledge preserving what was nearly lost. It is an age of quiet determination, where every new chick represents a victory against oblivion.",
     "templateWeights": {
       "krill_bloom_discovery": 1.4,
       "leadership_succession": 0.8,

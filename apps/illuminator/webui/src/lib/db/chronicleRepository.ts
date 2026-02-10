@@ -15,7 +15,7 @@ import type {
   NarrativeStyleUsageStats,
   VersionStep,
 } from '../chronicleTypes';
-import type { ChronicleTemporalContext, CohesionReport, ChronicleImageRefs, ChronicleCoverImage } from '../chronicleTypes';
+import type { ChronicleTemporalContext, CohesionReport, ChronicleImageRefs, ChronicleCoverImage, EraTemporalInfo } from '../chronicleTypes';
 import type { ChronicleStep } from '../enrichmentTypes';
 import type { HistorianNote } from '../historianTypes';
 import type { ChronicleRoleAssignment, ChronicleFocusType } from '../chronicleTypes';
@@ -1042,6 +1042,81 @@ export async function updateChronicleTemporalContext(
   record.updatedAt = Date.now();
 
   await db.chronicles.put(record);
+}
+
+/**
+ * Refresh era summaries in all chronicles for a simulation run.
+ * Patches three snapshot locations where era summaries are stored:
+ *   1. temporalContext.allEras[].summary
+ *   2. temporalContext.focalEra.summary
+ *   3. perspectiveSynthesis.focalEra.description
+ * Returns count of chronicles that were actually updated.
+ */
+export async function refreshEraSummariesInChronicles(
+  simulationRunId: string,
+  currentEras: EraTemporalInfo[],
+): Promise<number> {
+  const summaryMap = new Map(currentEras.map(e => [e.id, e.summary || '']));
+  const records = await db.chronicles.where('simulationRunId').equals(simulationRunId).toArray();
+
+  const toUpdate: ChronicleRecord[] = [];
+
+  for (const record of records) {
+    let changed = false;
+
+    // Patch temporalContext.allEras + focalEra
+    if (record.temporalContext) {
+      const patchedAllEras = record.temporalContext.allEras.map(era => {
+        const newSummary = summaryMap.get(era.id);
+        if (newSummary !== undefined && newSummary !== era.summary) {
+          changed = true;
+          return { ...era, summary: newSummary };
+        }
+        return era;
+      });
+
+      let patchedFocalEra = record.temporalContext.focalEra;
+      const focalSummary = summaryMap.get(patchedFocalEra.id);
+      if (focalSummary !== undefined && focalSummary !== patchedFocalEra.summary) {
+        changed = true;
+        patchedFocalEra = { ...patchedFocalEra, summary: focalSummary };
+      }
+
+      if (changed) {
+        record.temporalContext = {
+          ...record.temporalContext,
+          allEras: patchedAllEras,
+          focalEra: patchedFocalEra,
+        };
+      }
+    }
+
+    // Patch perspectiveSynthesis.focalEra.description
+    if (record.perspectiveSynthesis?.focalEra?.id) {
+      const newSummary = summaryMap.get(record.perspectiveSynthesis.focalEra.id);
+      if (newSummary !== undefined && newSummary !== record.perspectiveSynthesis.focalEra.description) {
+        changed = true;
+        record.perspectiveSynthesis = {
+          ...record.perspectiveSynthesis,
+          focalEra: {
+            ...record.perspectiveSynthesis.focalEra,
+            description: newSummary,
+          },
+        };
+      }
+    }
+
+    if (changed) {
+      record.updatedAt = Date.now();
+      toUpdate.push(record);
+    }
+  }
+
+  if (toUpdate.length > 0) {
+    await db.chronicles.bulkPut(toUpdate);
+  }
+
+  return toUpdate.length;
 }
 
 /**

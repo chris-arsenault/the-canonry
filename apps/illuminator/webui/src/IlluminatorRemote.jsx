@@ -46,7 +46,7 @@ import HistorianConfigEditor from './components/HistorianConfigEditor';
 import PrePrintPanel from './components/PrePrintPanel';
 import { DEFAULT_HISTORIAN_CONFIG, isHistorianConfigured, isNoteActive } from './lib/historianTypes';
 import { getPublishedStaticPagesForProject } from './lib/db/staticPageRepository';
-import { getEntityUsageStats, getChronicle, getChroniclesForSimulation, updateChronicleLoreBackported, updateChronicleHistorianNotes } from './lib/db/chronicleRepository';
+import { getEntityUsageStats, getChronicle, getChroniclesForSimulation, updateChronicleLoreBackported, updateChronicleHistorianNotes, refreshEraSummariesInChronicles } from './lib/db/chronicleRepository';
 import { useChronicleStore } from './lib/db/chronicleStore';
 import { useStyleLibrary } from './hooks/useStyleLibrary';
 import { useImageGenSettings } from './hooks/useImageGenSettings';
@@ -774,6 +774,28 @@ export default function IlluminatorRemote({
     await entityRepo.updateAliases(entityId, aliases);
     await reloadAndNotify([entityId]);
   }, [reloadAndNotify]);
+
+  // Handle manual description edit
+  const handleUpdateDescription = useCallback(async (entityId, description) => {
+    await entityRepo.updateDescriptionManual(entityId, description);
+    await reloadAndNotify([entityId]);
+  }, [reloadAndNotify]);
+
+  // Handle manual summary edit
+  const handleUpdateSummary = useCallback(async (entityId, summary) => {
+    await entityRepo.updateSummaryManual(entityId, summary);
+    await reloadAndNotify([entityId]);
+  }, [reloadAndNotify]);
+
+  // Refresh era summaries in all chronicle temporal contexts
+  const handleRefreshEraSummaries = useCallback(async () => {
+    if (!simulationRunId || !eraTemporalInfo.length) return 0;
+    const count = await refreshEraSummariesInChronicles(simulationRunId, eraTemporalInfo);
+    if (count > 0) {
+      await useChronicleStore.getState().refreshAll();
+    }
+    return count;
+  }, [simulationRunId, eraTemporalInfo]);
 
   // Load from Dexie only (explicit import required to seed).
   const entityStore = useEntityStore;
@@ -1790,6 +1812,11 @@ export default function IlluminatorRemote({
       castSummaries,
       canonFacts: (worldContext.canonFactsWithMetadata || []).map((f) => f.text),
       worldDynamics: (worldContext.worldDynamics || []).map((d) => d.text),
+      temporalNarrative: chronicle.perspectiveSynthesis?.temporalNarrative || undefined,
+      focalEra: chronicle.temporalContext?.focalEra
+        ? { name: chronicle.temporalContext.focalEra.name, description: chronicle.temporalContext.focalEra.description }
+        : undefined,
+      temporalCheckReport: chronicle.temporalCheckReport || undefined,
     });
 
     const relatedEntityIds = new Set(
@@ -2140,6 +2167,8 @@ export default function IlluminatorRemote({
               onRename={handleStartRename}
               onPatchEvents={handleStartPatchEvents}
               onUpdateAliases={handleUpdateAliases}
+              onUpdateDescription={handleUpdateDescription}
+              onUpdateSummary={handleUpdateSummary}
             />
           </div>
         )}
@@ -2173,6 +2202,7 @@ export default function IlluminatorRemote({
               isHistorianActive={isHistorianActive}
               historianConfigured={isHistorianConfigured(historianConfig)}
               onUpdateHistorianNote={handleUpdateHistorianNote}
+              onRefreshEraSummaries={handleRefreshEraSummaries}
             />
           </div>
         )}
