@@ -13,6 +13,21 @@ The detailed review dimensions below (PS quality, Story Bible delivery, version 
 
 ---
 
+## Reviewer Objectivity
+
+Context windows are finite. A reviewer typically holds 3-5 chronicles at a time. This creates a recency and anchoring bias — each new batch feels like it should be ranked against "the corpus," but the corpus isn't in memory.
+
+**Rules:**
+
+1. **No superlative corpus claims.** "Strongest in this batch" is the ceiling for comparative statements. "Best in corpus" or "best piece reviewed" requires a full corpus in context, which you don't have.
+2. **Rank within the batch, not across batches.** You can compare the 3-5 pieces you're currently reviewing. You cannot reliably compare them to pieces from previous sessions.
+3. **Assess against the style's own goals.** Did the piece do what its narrative style, perspective, and tone guidance asked for? That's measurable. "Outstanding" without reference to specific goals is enthusiasm, not assessment.
+4. **Cite evidence, not adjectives.** "The struck clause technique works because it performs grief without breaking legal register" is a review. "This is exceptional" is not.
+5. **Acknowledge what you can't see.** If this is the first piece in a given format or style you've reviewed, say so — you have no baseline for comparison within that category.
+6. **Praise and criticism are both subject to these rules.** Don't inflate either direction. A piece with no detected issues is "clean," not "flawless." A piece with problems is "has specific issues," not "failed."
+
+---
+
 ## Quick Reference: Key Files
 
 ### Generation Pipeline
