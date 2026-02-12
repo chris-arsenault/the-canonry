@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Fuse from 'fuse.js';
 import { useImageStore, CDNBackend } from '@penguin-tales/image-store';
 import { useNarrativeStore } from '@penguin-tales/narrative-store';
+import { getChronicles, getEntities, getSlotRecord, getStaticPages } from '@penguin-tales/world-store';
+import { overwriteWorldDataInDexie, appendNarrativeEventsToDexie } from './lib/illuminatorDbWriter.js';
 import ArchivistHost from './remotes/ArchivistHost.jsx';
 import ChroniclerHost from './remotes/ChroniclerHost.jsx';
 
@@ -9,20 +11,47 @@ import ChroniclerHost from './remotes/ChroniclerHost.jsx';
  * HeaderSearch - Independent search component for the header bar
  * Has its own state and dropdown, navigates to Chronicler on selection
  */
-function HeaderSearch({ worldData, chronicles, staticPages, onNavigate }) {
+function HeaderSearch({ projectId, slotIndex, dexieSeededAt, onNavigate }) {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const containerRef = useRef(null);
+  const [pages, setPages] = useState([]);
+  const [isIndexLoading, setIsIndexLoading] = useState(false);
 
-  // Build searchable pages from world data
-  const pages = useMemo(() => {
-    const result = [];
+  useEffect(() => {
+    let cancelled = false;
 
-    // Add static pages (use pageId as the page ID)
-    if (staticPages) {
-      for (const page of staticPages) {
-        if (page.pageId) {
+    async function loadPageIndex() {
+      if (!projectId || typeof slotIndex !== 'number') {
+        setPages([]);
+        setIsIndexLoading(false);
+        return;
+      }
+
+      setIsIndexLoading(true);
+      try {
+        const slot = await getSlotRecord(projectId, slotIndex);
+        const simulationRunId = slot?.simulationRunId || null;
+        if (!simulationRunId) {
+          setPages([]);
+          return;
+        }
+
+        const [entities, chronicles, staticPages] = await Promise.all([
+          getEntities(simulationRunId),
+          getChronicles(simulationRunId),
+          getStaticPages(projectId),
+        ]);
+
+        if (cancelled) return;
+
+        const result = [];
+
+        for (const page of staticPages) {
+          if (!page?.pageId) continue;
+          const status = page.status || 'published';
+          if (status !== 'published') continue;
           result.push({
             id: page.pageId,
             title: page.title || page.pageId,
@@ -30,13 +59,12 @@ function HeaderSearch({ worldData, chronicles, staticPages, onNavigate }) {
             content: { summary: page.summary || '' },
           });
         }
-      }
-    }
 
-    // Add chronicles (use chronicleId as the page ID)
-    if (chronicles) {
-      for (const chronicle of chronicles) {
-        if (chronicle.chronicleId) {
+        const completedChronicles = chronicles.filter(
+          (chronicle) => chronicle?.status === 'complete' && Boolean(chronicle.acceptedAt)
+        );
+        for (const chronicle of completedChronicles) {
+          if (!chronicle?.chronicleId) continue;
           result.push({
             id: chronicle.chronicleId,
             title: chronicle.title || chronicle.chronicleId,
@@ -44,25 +72,37 @@ function HeaderSearch({ worldData, chronicles, staticPages, onNavigate }) {
             content: { summary: chronicle.summary || '' },
           });
         }
-      }
-    }
 
-    // Add entities from hardState (use entity.id directly)
-    if (worldData?.hardState) {
-      for (const entity of worldData.hardState) {
-        if (entity && entity.id && entity.name && entity.kind !== 'era') {
-          result.push({
-            id: entity.id,
-            title: entity.name,
-            type: entity.kind || 'entity',
-            content: { summary: entity.description || entity.summary || '' },
-          });
+        for (const entity of entities) {
+          if (entity && entity.id && entity.name && entity.kind !== 'era') {
+            result.push({
+              id: entity.id,
+              title: entity.name,
+              type: entity.kind || 'entity',
+              content: { summary: entity.description || entity.summary || '' },
+            });
+          }
+        }
+
+        setPages(result);
+      } catch (err) {
+        console.error('[viewer] Failed to build header search index:', err);
+        if (!cancelled) {
+          setPages([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsIndexLoading(false);
         }
       }
     }
 
-    return result;
-  }, [worldData, chronicles, staticPages]);
+    loadPageIndex();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, slotIndex, dexieSeededAt]);
 
   // Build Fuse.js search index
   const fuse = useMemo(() => {
@@ -160,7 +200,9 @@ function HeaderSearch({ worldData, chronicles, staticPages, onNavigate }) {
               </button>
             ))
           ) : (
-            <div className="header-search-no-results">No results found</div>
+            <div className="header-search-no-results">
+              {isIndexLoading ? 'Indexing pages...' : 'No results found'}
+            </div>
           )}
         </div>
       )}
@@ -346,22 +388,16 @@ export default function App() {
   const [error, setError] = useState(null);
   const [bundleRequestUrl, setBundleRequestUrl] = useState(() => resolveBundleUrl());
   const [chunkPlan, setChunkPlan] = useState(null);
+  const [dexieSeededAt, setDexieSeededAt] = useState(0);
   const loadSequence = useRef(0);
   const chunkLoadStarted = useRef(false);
+  const lastDexieIngestRef = useRef(null);
   const lastChroniclerHashRef = useRef(
     window.location.hash.startsWith(CHRONICLER_HASH_PREFIX) ? window.location.hash : null
   );
 
   // Requested page for Chronicler (set by cross-MFE navigation, cleared after use)
   const [chroniclerRequestedPage, setChroniclerRequestedPage] = useState(null);
-
-  // Track narrative history chunk loading status for features that depend on complete data
-  const [narrativeHistoryStatus, setNarrativeHistoryStatus] = useState({
-    loading: false,
-    totalExpected: 0,
-    chunksLoaded: 0,
-    chunksTotal: 0,
-  });
 
   // Listen for cross-MFE navigation events (e.g., Archivist -> Chronicler)
   useEffect(() => {
@@ -390,12 +426,6 @@ export default function App() {
     setStatus('loading');
     setError(null);
     useNarrativeStore.getState().reset();
-    setNarrativeHistoryStatus({
-      loading: false,
-      totalExpected: 0,
-      chunksLoaded: 0,
-      chunksTotal: 0,
-    });
 
     try {
       setBundleRequestUrl(bundleManifestUrl);
@@ -433,12 +463,6 @@ export default function App() {
         setChunkPlan({ baseUrl: manifestBaseUrl, files: chunkFiles });
         // Initialize loading status for features that depend on complete narrative history
         const totalExpected = manifest?.chunks?.narrativeHistory?.totalEvents ?? 0;
-        setNarrativeHistoryStatus({
-          loading: true,
-          totalExpected,
-          chunksLoaded: 0,
-          chunksTotal: chunkFiles.length,
-        });
         useNarrativeStore.getState().setStatus({
           loading: true,
           totalExpected,
@@ -481,12 +505,6 @@ export default function App() {
         chunksLoaded: totalEvents ? 1 : 0,
         chunksTotal: totalEvents ? 1 : 0,
       });
-      setNarrativeHistoryStatus({
-        loading: false,
-        totalExpected: totalEvents,
-        chunksLoaded: totalEvents ? 1 : 0,
-        chunksTotal: totalEvents ? 1 : 0,
-      });
     } catch (err) {
       if (sequence !== loadSequence.current) return;
       setStatus('error');
@@ -508,6 +526,31 @@ export default function App() {
     };
   }, [loadBundle]);
 
+  // Persist bundle data to Dexie so Chronicler reads from IndexedDB
+  useEffect(() => {
+    if (!bundle?.worldData || !bundle?.projectId) return;
+    const simulationRunId = bundle.worldData?.metadata?.simulationRunId;
+    if (!simulationRunId) return;
+
+    const ingestKey = `${bundle.projectId}:${simulationRunId}`;
+    if (lastDexieIngestRef.current === ingestKey) return;
+    lastDexieIngestRef.current = ingestKey;
+
+    overwriteWorldDataInDexie({
+      projectId: bundle.projectId,
+      slotIndex: typeof bundle.slot?.index === 'number' ? bundle.slot.index : 0,
+      worldData: bundle.worldData,
+      chronicles: bundle.chronicles,
+      staticPages: bundle.staticPages,
+    })
+      .then(() => {
+        setDexieSeededAt(Date.now());
+      })
+      .catch((err) => {
+        console.warn('[Viewer] Failed to persist bundle to Dexie:', err);
+      });
+  }, [bundle]);
+
   // Load narrative history chunks after initial bundle is ready
   // Note: bundle is intentionally NOT in the dependency array - we only want to start
   // chunk loading once when chunkPlan becomes available, not restart when bundle updates
@@ -523,6 +566,7 @@ export default function App() {
     const loadChunks = async () => {
       let chunksLoaded = 0;
       const chunksTotal = chunkPlan.files.length;
+      const simulationRunId = bundle?.worldData?.metadata?.simulationRunId;
 
       for (const file of chunkPlan.files) {
         // Only check sequence (not cancelled) - we want to complete loading even across re-renders
@@ -544,49 +588,27 @@ export default function App() {
           if (!items.length) continue;
           if (sequence !== loadSequence.current) return;
           useNarrativeStore.getState().ingestChunk(items);
+          if (simulationRunId) {
+            appendNarrativeEventsToDexie(simulationRunId, items).catch((err) => {
+              console.warn('[Viewer] Failed to persist narrative chunk:', err);
+            });
+          }
 
-          // Update loading progress
-          setNarrativeHistoryStatus((prev) => ({
-            ...prev,
-            chunksLoaded,
-          }));
           useNarrativeStore.getState().setStatus({ chunksLoaded });
         } catch (chunkError) {
           console.warn('Viewer: failed to load narrativeHistory chunk.', chunkError);
           chunksLoaded++;
-          setNarrativeHistoryStatus((prev) => ({
-            ...prev,
-            chunksLoaded,
-          }));
           useNarrativeStore.getState().setStatus({ chunksLoaded });
         }
       }
 
       // Mark loading complete
-      setNarrativeHistoryStatus((prev) => ({
-        ...prev,
-        loading: false,
-        chunksLoaded: chunksTotal,
-      }));
       useNarrativeStore.getState().setStatus({
         loading: false,
         chunksLoaded: chunksTotal,
         chunksTotal,
       });
 
-      const allEvents = useNarrativeStore.getState().getAllEvents();
-      if (allEvents.length > 0) {
-        setBundle((prev) => {
-          if (!prev?.worldData) return prev;
-          return {
-            ...prev,
-            worldData: {
-              ...prev.worldData,
-              narrativeHistory: allEvents,
-            },
-          };
-        });
-      }
     };
 
     const scheduleIdle = window.requestIdleCallback
@@ -721,9 +743,9 @@ export default function App() {
           <span className="brand-title">The Ice Remembers</span>
         </button>
         <HeaderSearch
-          worldData={bundle.worldData}
-          chronicles={bundle.chronicles}
-          staticPages={bundle.staticPages}
+          projectId={bundle.projectId}
+          slotIndex={bundle.slot?.index ?? 0}
+          dexieSeededAt={dexieSeededAt}
           onNavigate={(pageId) => {
             setChroniclerRequestedPage(pageId);
             setActiveView('chronicler');
@@ -734,20 +756,21 @@ export default function App() {
       <main className="app-main">
         <div className="panel" style={{ display: activeView === 'archivist' ? 'block' : 'none' }}>
           <ArchivistHost
-            worldData={bundle.worldData}
-            loreData={bundle.loreData || null}
+            projectId={bundle.projectId}
+            slotIndex={bundle.slot?.index ?? 0}
+            dexieSeededAt={dexieSeededAt}
           />
         </div>
-        <div className="panel" style={{ display: activeView === 'chronicler' ? 'block' : 'none' }}>
+        <div
+          className="panel chronicler-scope"
+          style={{ display: activeView === 'chronicler' ? 'block' : 'none' }}
+        >
           <ChroniclerHost
             projectId={bundle.projectId}
-            worldData={bundle.worldData}
-            loreData={bundle.loreData || null}
-            chronicles={bundle.chronicles}
-            staticPages={bundle.staticPages}
+            slotIndex={bundle.slot?.index ?? 0}
             requestedPageId={chroniclerRequestedPage}
             onRequestedPageConsumed={() => setChroniclerRequestedPage(null)}
-            narrativeHistoryLoading={narrativeHistoryStatus.loading}
+            dexieSeededAt={dexieSeededAt}
           />
         </div>
       </main>

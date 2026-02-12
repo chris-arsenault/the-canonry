@@ -45,6 +45,20 @@ export interface DocumentNarrativeStyle {
    */
   eventInstructions?: string;
 
+  /**
+   * Craft posture - how the author should relate to the material.
+   * Controls density, withholding, elaboration mode, emotional signaling.
+   * Orthogonal to document instructions and word count.
+   */
+  craftPosture?: string;
+
+  /**
+   * Title guidance - how titles for this style should feel.
+   * Freeform description of the title's shape, register, and energy.
+   * Injected into the title generation prompt as the primary style constraint.
+   */
+  titleGuidance?: string;
+
   // === Structured Data (genuinely useful as structured) ===
 
   /** Cast roles - what positions exist in this document */
@@ -86,6 +100,8 @@ Avoid modern journalism terms, passive voice in headlines, speculation presented
 
     eventInstructions: 'Events are the news. Present them as recent occurrences with immediate relevance.',
 
+    titleGuidance: 'The title is an announcement — what the crier shouts to gather a crowd. It leads with the event, the decree, or the name that commands attention. Declarative register, present tense energy, urgency. Short enough to shout across a square. The title is news, not analysis.',
+
     roles: [
       { role: 'newsworthy-subject', count: { min: 1, max: 2 }, description: 'The occurrence or entity being announced' },
       { role: 'affected-territory', count: { min: 0, max: 2 }, description: 'Locations impacted by the news' },
@@ -124,6 +140,8 @@ Avoid casual language, unsubstantiated claims, sensationalism, first person sing
 
     eventInstructions: 'Events serve as case studies or evidence. Cite specific instances where powers manifested.',
 
+    titleGuidance: 'Academic and classificatory. The title names the subject under study with the precision of a scholar establishing scope. Formal and descriptive register — what would appear on a leather-bound spine in a university library. Prepositions carry institutional weight: "On," "Of," "Concerning." The title claims territory rather than making an argument.',
+
     roles: [
       { role: 'studied-power', count: { min: 1, max: 2 }, description: 'The ability, magic, or phenomenon being analyzed' },
       { role: 'documented-practitioner', count: { min: 0, max: 2 }, description: 'Those who wield or manifest the power' },
@@ -161,6 +179,8 @@ Avoid modern marketing jargon, obvious lies, threatening language, desperation.`
 
     eventInstructions: 'Recent events create opportunities. "After the siege, rebuilding supplies in high demand!"',
 
+    titleGuidance: 'The title sells. It is what a merchant would paint on a sign or shout at passersby — a boast, a promise, a name that sticks. Commercial register: confident, specific, slightly louder than necessary. Name the goods, the shop, or the deal. The title should make someone curious enough to read further.',
+
     roles: [
       { role: 'merchant', count: { min: 1, max: 1 }, description: 'The seller with personality and credibility' },
       { role: 'featured-goods', count: { min: 1, max: 3 }, description: 'Products or services being advertised' },
@@ -183,10 +203,11 @@ Avoid modern marketing jargon, obvious lies, threatening language, desperation.`
     documentInstructions: `This is a collection of authentic personal letters between entities.
 
 STRUCTURE:
-- Editor's Note (~60 words): Why these letters were preserved. Who the correspondents were.
-- First Letter (~200 words): Initial communication. Raises questions, shares news, makes a request.
+- First Letter (~200 words): Opens with date, location, salutation. Raises questions, shares news, makes a request. The letter itself provides all context — who they are to each other is evident from how they write.
 - Reply (~200 words): Addresses the first letter. Reveals the other perspective. Deepens the situation.
 - Final Letter (~180 words, optional): Concludes the exchange or leaves tantalizing loose ends.
+
+No editor's note, no collector's frame. The letters present themselves. Postmarks, dates, and salutations do the anchoring.
 
 VOICE & TONE: First person from each writer. Each letter has distinct voice matching the entity. Personal, intimate, revealing, period-appropriate, distinctive-voices.
 
@@ -195,6 +216,8 @@ Include personal details, emotional subtext, period greetings/closings, referenc
 Avoid identical voices, exposition dumps, modern idioms, perfect information.`,
 
     eventInstructions: 'Events are what they write about. News, reactions, consequences discussed in personal terms.',
+
+    titleGuidance: 'The title names the correspondence as a found document — who wrote to whom, or the matter that prompted the exchange. Archival register: the voice of a collector or editor presenting private letters to the public. The intimacy is in the content, not the title. The title is a catalog label for something personal.',
 
     roles: [
       { role: 'correspondent-a', count: { min: 1, max: 1 }, description: 'First letter writer' },
@@ -231,6 +254,8 @@ Include specific dates, full titles, source attribution, cross-references. Use f
 Avoid emotional language, speculation as fact, modern historical terms, bias without acknowledgment.`,
 
     eventInstructions: 'Events are the primary content. Document them with precision and context.',
+
+    titleGuidance: 'The title is a record heading — what an archivist would write on the folder. It names the event, the period, or the territory documented. Archival register: neutral, factual, locating the record rather than interpreting it. No judgment, no drama. The title places the entry in time and subject.',
 
     roles: [
       { role: 'era-documented', count: { min: 0, max: 1 }, description: 'The age or period being recorded' },
@@ -270,6 +295,8 @@ Avoid ambiguity, lengthy prose, humor, speculation.`,
 
     eventInstructions: 'Events are the crimes or incidents. Reference specific acts.',
 
+    titleGuidance: 'The title is what gets painted at the top of a posted notice — blunt, authoritative, designed to be read at a glance. Name the fugitive, the crime, or the bounty. Official and terse register: commands, not sentences. No ambiguity. The title identifies and accuses in the same breath.',
+
     roles: [
       { role: 'wanted-subject', count: { min: 1, max: 1 }, description: 'The person or entity being sought' },
       { role: 'issuing-authority', count: { min: 0, max: 1 }, description: 'Who posted the notice' },
@@ -305,6 +332,8 @@ Include specific obligations, mutual commitments, enforcement mechanisms, formal
 Avoid ambiguous terms, one-sided benefits, informal language, unenforceable clauses.`,
 
     eventInstructions: 'Events may be what led to the treaty - referenced in preamble as context.',
+
+    titleGuidance: 'The title is a treaty name — formal, bilateral, naming the parties or the matter resolved. Diplomatic register: precise and ceremonial. Real treaties name locations, dates, or the subject of agreement. The title should sound like what both sides agreed to call the document. Neutrality is a design feature.',
 
     roles: [
       { role: 'signatory-faction', count: { min: 2, max: 4 }, description: 'Party to the accord' },
@@ -344,6 +373,8 @@ Avoid modern references, all notices sounding the same, only dramatic content.`,
 
     eventInstructions: 'Events become rumors and gossip. Different takes on the same events add texture.',
 
+    titleGuidance: 'The title names the establishment or the board itself — what a regular would call the collection of notices pinned to the wall. Informal register: local, specific, the voice of a community that doesn\'t explain itself to outsiders. Grounded in a place name or a location people know by reputation.',
+
     roles: [
       { role: 'establishment', count: { min: 0, max: 1 }, description: 'The tavern or public house hosting the board' },
       { role: 'job-poster', count: { min: 0, max: 1 }, description: 'Someone seeking help' },
@@ -381,6 +412,8 @@ Include numbers and quantities, directions and distances, time references, unit 
 Avoid emotional language, speculation without marking it, irrelevant details, casual tone.`,
 
     eventInstructions: 'Events are mission-relevant occurrences. Report with tactical implications.',
+
+    titleGuidance: 'The title is a file designation — what gets stamped on the cover before it is sent up the chain. Name the location, the operation, or the tactical subject. Military register: functional, abbreviated, stripped of personality. The title is for filing, not for reading aloud.',
 
     roles: [
       { role: 'enemy-force', count: { min: 0, max: 2 }, description: 'Hostile faction or army being observed' },
@@ -420,6 +453,8 @@ Avoid generic descriptions, identical formats for each item, excessive jargon.`,
 
     eventInstructions: 'Events give items history - "used in the Battle of X" or "created during the Y crisis."',
 
+    titleGuidance: 'The title names the collection, the workshop, or the artisan — what would appear on the catalog\'s cover page in a confident hand. Trade register: proud but practical, establishing credibility through specificity. It should sound like something an artisan would hand to a patron, naming what they make and where to find them.',
+
     roles: [
       { role: 'catalogued-item', count: { min: 1, max: 3 }, description: 'Artifact, creation, or treasure being documented' },
       { role: 'creator-or-owner', count: { min: 0, max: 2 }, description: 'Artisan who made it or notable previous owners' },
@@ -457,6 +492,8 @@ Avoid casual language, modern idioms, uncertainty or hedging, irony.`,
 
     eventInstructions: 'Mythic events, creation stories, or prophesied future events. Frame as eternal truths.',
 
+    titleGuidance: 'The title is a name, not a description — spoken the way believers speak the name of their scripture. It should feel like it has always existed: not chosen but revealed, not composed but received. Sacred register: elevated, set apart from common speech, carrying the weight of doctrine in as few words as possible. One to three words.',
+
     roles: [
       { role: 'divine-teaching', count: { min: 1, max: 2 }, description: 'Doctrine, law, or spiritual truth being revealed' },
       { role: 'sacred-power', count: { min: 0, max: 1 }, description: 'Divine ability, blessing, or cosmic force' },
@@ -481,7 +518,7 @@ Avoid casual language, modern idioms, uncertainty or hedging, irony.`,
     documentInstructions: `This is a collection of authentic-feeling folk wisdom and proverbs.
 
 STRUCTURE:
-- Introduction (~60 words): Who uses these sayings. What they reveal about the culture.
+- Introduction (~60 words): Where you hear these sayings — which markets, which trades, which firesides. Present tense, positioning, not interpretation.
 - Common Sayings (~120 words): 4-6 proverbs about daily life, work, family. Practical wisdom.
 - Cautionary Sayings (~100 words): 3-4 proverbs warning against folly, danger, or moral failure.
 - Virtue Sayings (~100 words): 3-4 proverbs praising positive qualities valued by the culture.
@@ -494,6 +531,8 @@ Include local imagery, rhythm and rhyme where natural, concrete metaphors, occas
 Avoid modern concepts, abstract language, lengthy explanations within proverbs, forced rhymes.`,
 
     eventInstructions: 'Historical events become cautionary tales. "Remember the [disaster]" type sayings.',
+
+    titleGuidance: 'The title names the source — the people, the place, or the tradition from which the sayings come. Communal and referential register: what a culture calls its own collected wisdom when speaking about it. It should feel inherited rather than authored, oral rather than written. If a standout proverb serves as the title, it should be the one everyone already knows.',
 
     roles: [
       { role: 'cultural-value', count: { min: 1, max: 3 }, description: 'Tradition, belief, or principle expressed in the sayings' },
@@ -532,6 +571,8 @@ Avoid identical voices, all positive or all negative, generic praise, modern rev
 
     eventInstructions: 'Reviews reference occasions. "Bought for the festival" or "Needed after the flood."',
 
+    titleGuidance: 'Name the thing being reviewed — the product, the shop, or the vendor. Informal and opinionated register: what an unsatisfied or delighted customer would scrawl as a heading. Specific and grounded in the commercial world of the setting. The title should sound like ordinary people talking about ordinary transactions.',
+
     roles: [
       { role: 'reviewed-subject', count: { min: 1, max: 1 }, description: 'Product, service, or establishment being reviewed' },
       { role: 'vendor', count: { min: 0, max: 1 }, description: 'The seller or provider' },
@@ -567,6 +608,8 @@ Include private opinions about known entities (harsher or kinder than public fac
 Avoid consistent tone, literary polish, awareness of audience, complete narratives, exposition for the reader's benefit. The diary is NOT trying to communicate.`,
 
     eventInstructions: 'Events are experienced personally, not reported. "That thing at the market today" not "The merchant guild trade dispute." The writer assumes they remember context.',
+
+    titleGuidance: 'The title is what the diarist or someone who found the diary later would write on the cover — a place name, a date range, or a simple identifying label. Not literary, not clever. Private and functional register: a notebook marked for the writer\'s own use, never meant to be a title at all. The less composed it sounds, the more authentic it feels.',
 
     roles: [
       { role: 'diarist', count: { min: 1, max: 1 }, description: 'The private voice - their unguarded self, messier than their public persona' },
@@ -604,6 +647,8 @@ Include timestamps at key moments, [REDACTED] for sensitive information, stage d
 Avoid casual language, long speeches, the subject volunteering information freely, clear resolution. The transcript raises as many questions as it answers.`,
 
     eventInstructions: 'Events are what the interrogation is about. They appear as contested facts - the interrogator\'s version versus the subject\'s version, with the truth somewhere between.',
+
+    titleGuidance: 'The title is a case file heading — subject name, case number, or incident description. Bureaucratic register: the voice of an institution processing a person. Clinical, impersonal, reducing a human situation to an administrative category. The colder the title sounds, the more the reader feels what is being done to the person inside it.',
 
     roles: [
       { role: 'subject', count: { min: 1, max: 1 }, description: 'The one being questioned - their evasions reveal as much as their answers' },
@@ -646,6 +691,8 @@ Avoid prose disguised as verse, forced rhymes that sacrifice meaning, modern idi
 
     eventInstructions: 'Events become imagery. A war becomes "the red year." A leader becomes "the one who wore the crown of thorns." The song remembers events as feelings and images, not facts.',
 
+    titleGuidance: 'The title is what the singer says before they begin — the name everyone in the room already knows. It comes from the song itself: a character\'s name, the opening phrase, the refrain\'s key words, or the place where events happened. Oral register: worn smooth by many mouths, easy to say, easy to remember. It belongs to a community, not an author.',
+
     roles: [
       { role: 'song-subject', count: { min: 1, max: 2 }, description: 'What or whom the song is about - may be a person, place, event, or feeling, transformed into imagery' },
       { role: 'cultural-origin', count: { min: 0, max: 1 }, description: 'The community that sings this - their concerns and values shape the song' },
@@ -668,13 +715,13 @@ Avoid prose disguised as verse, forced rhymes that sacrifice meaning, modern idi
     documentInstructions: `This is a collection of nursery rhymes - the songs and chants children use for games, skipping, counting, or bedtime. Each rhyme is independent, touching a different subject. Together they form a mosaic of a culture's anxieties, values, and history filtered through children's mouths.
 
 STRUCTURE:
-- Collector's Introduction (~50 words): Who collected these, from where. "Gathered from the schoolyards and hearths of [place]" or similar. Note that children's rhymes often preserve history adults have forgotten.
+- Collector's Introduction (~50 words): Where you gathered these — which schoolyards, which hearths, which streets. Present tense. You are a folklorist with a notebook, not a historian with a thesis. "The children of [place] sing these" not "these rhymes preserve history."
 - Rhyme 1 (~40 words, 4-6 lines): A counting or game rhyme. Bouncy meter. Used for choosing who's "it" or counting steps. References a historical figure or event obliquely. Children don't know the origin.
 - Rhyme 2 (~40 words, 4-6 lines): A cautionary rhyme. Warning dressed as play. "Don't go past the old wall / when the moon is thin" - real danger made into singsong.
 - Rhyme 3 (~40 words, 4-6 lines): A nonsense rhyme. Sounds like gibberish but may preserve corrupted names, places, or events. The meaning is lost; the rhythm survives.
 - Rhyme 4 (~40 words, 4-6 lines): A lullaby or bedtime rhyme. Gentler. May contain an undertone of sadness or threat ("and if the wind should take you away...").
 - Rhyme 5 (~40 words, 4-6 lines, optional): A clapping or taunting rhyme. Used between children. May reference a real person or group in mocking terms.
-- Collector's Note (~40 words, optional): Brief scholarly footnote connecting one or two rhymes to their probable historical origins.
+- Collector's Note (~40 words, optional): A present-tense observation — what the children do with these rhymes, where the words change between neighborhoods, which ones the adults flinch at. Not historical analysis.
 
 VOICE & TONE: Children's voices. Simple words, strong rhythm, perfect or near-perfect rhyme. The rhymes should be genuinely singable and clappable. The darkness is accidental - children repeat what they've heard without understanding. Innocent, rhythmic, catchy, ancient, dark-underneath.
 
@@ -685,6 +732,8 @@ Include corrupted versions of real names from the world, references to real even
 Avoid adult vocabulary, complex syntax, obvious allegory, rhymes that sound composed rather than inherited. These should feel like they've been chanted by a thousand children who have no idea what the words originally meant.`,
 
     eventInstructions: 'Historical events become unrecognizable in children\'s mouths. A plague becomes "Ring around the rosie." A tyrant becomes "Old King Grumblethorn." The rhyme preserves the emotional residue, not the facts.',
+
+    titleGuidance: 'The title names the collection the way a community names its children\'s songs — by the most memorable character, the place where children sing them, or the figure who supposedly gathered them. Simple enough for a child to repeat: concrete nouns, strong rhythm, words that are fun in the mouth. It should feel like it has been shouted across playgrounds for longer than anyone remembers.',
 
     roles: [
       { role: 'rhyme-subjects', count: { min: 2, max: 4 }, description: 'Diverse subjects across the rhymes - historical figures, places, events, all transformed into children\'s chant material' },
@@ -726,6 +775,8 @@ Include imagery specific to the world - its flora, fauna, weather, landscapes. T
 Avoid sentimentality, abstraction, commentary, narrative, metaphor spelled out, anything that explains rather than shows. The haiku trusts the reader completely.`,
 
     eventInstructions: 'Events are absent. The haiku exists outside history, in the eternal present of perception. If a war raged yesterday, the haiku notices the frost on a blade of grass this morning.',
+
+    titleGuidance: 'The title grounds the collection in a concrete particular — a place, a season, a natural element, or the circumstance of composition. One to three words. Precise and sensory register, carrying more than it says. No abstraction, no metaliterary framing. The title should feel like the first perception — the one that opened the poet\'s attention.',
 
     roles: [
       { role: 'observed-moment', count: { min: 1, max: 2 }, description: 'The subject of perception - a season, a place, a fleeting natural event' },

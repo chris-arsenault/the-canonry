@@ -26,6 +26,7 @@ export type LLMCallType =
   | 'chronicle.title'            // Single-pass title generation (candidate list)
   | 'chronicle.imageRefs'        // Image reference extraction
   | 'chronicle.coverImageScene'  // Cover image scene/montage description
+  | 'chronicle.copyEdit'        // Polish pass — voice smoothing, trimming, prose tightening
 
   // Palette
   | 'palette.expansion'          // Trait palette curation
@@ -39,12 +40,13 @@ export type LLMCallType =
   // Chronicle Lore Backport
   | 'revision.loreBackport'      // Extract lore from chronicle and backport to cast entities
 
-  // Description Copy Edit
-  | 'description.copyEdit'       // Readability copy edit for a single entity description
-
-  // Historian Review
+  // Historian Review & Edition
   | 'historian.entityReview'     // Historian annotations for entity description
-  | 'historian.chronicleReview'; // Historian annotations for chronicle narrative
+  | 'historian.chronicleReview'  // Historian annotations for chronicle narrative
+  | 'historian.edition'          // Historian-voiced description synthesis from full archive
+  | 'historian.chronology'      // Historian assigns years to chronicles within an era
+  | 'historian.prep'            // Historian reading notes for a chronicle
+  | 'historian.eraNarrative';   // Era narrative chapter/thread generation
 
 export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   'description.narrative',
@@ -60,13 +62,17 @@ export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   'chronicle.title',
   'chronicle.imageRefs',
   'chronicle.coverImageScene',
+  'chronicle.copyEdit',
   'palette.expansion',
   'dynamics.generation',
   'revision.summary',
   'revision.loreBackport',
-  'description.copyEdit',
   'historian.entityReview',
   'historian.chronicleReview',
+  'historian.edition',
+  'historian.chronology',
+  'historian.prep',
+  'historian.eraNarrative',
 ];
 
 export type LLMCallCategory = 'description' | 'image' | 'perspective' | 'chronicle' | 'palette' | 'dynamics' | 'revision' | 'historian';
@@ -102,14 +108,14 @@ export interface LLMCallConfig {
 
 // Available models
 export const AVAILABLE_MODELS = [
-  { value: 'claude-opus-4-5-20251101', label: 'Claude Opus 4.5', tier: 'premium' },
+  { value: 'claude-opus-4-6', label: 'Claude Opus 4.6', tier: 'premium' },
   { value: 'claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5', tier: 'standard' },
   { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5', tier: 'fast' },
 ] as const;
 
 // Models that support extended thinking
 export const THINKING_CAPABLE_MODELS = [
-  'claude-opus-4-5-20251101',
+  'claude-opus-4-6',
   'claude-sonnet-4-5-20250929',
 ];
 
@@ -154,7 +160,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 256,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'description.visualTraits': {
     label: 'Visual Traits',
@@ -198,7 +204,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 1024,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'chronicle.generation': {
     label: 'Generation',
@@ -211,7 +217,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       temperature: 1.0,
       topP: 1.0,  // 1.0 = normal, 0.95 = low sampling (controlled via checkbox)
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'chronicle.compare': {
     label: 'Compare Versions',
@@ -222,18 +228,18 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 4096,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'chronicle.combine': {
     label: 'Combine Versions',
     description: 'Synthesizes multiple chronicle drafts into one final version',
     category: 'chronicle',
     defaults: {
-      model: 'claude-opus-4-5-20251101',
+      model: 'claude-opus-4-6',
       thinkingBudget: 4096,
       maxTokens: 8192,
     },
-    recommendedModels: ['claude-opus-4-5-20251101', 'claude-sonnet-4-5-20250929'],
+    recommendedModels: ['claude-opus-4-6', 'claude-sonnet-4-5-20250929'],
   },
   'chronicle.summary': {
     label: 'Summary',
@@ -279,6 +285,17 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
     },
     recommendedModels: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-5-20250929'],
   },
+  'chronicle.copyEdit': {
+    label: 'Copy-Edit',
+    description: 'Polish pass — smooths voice, trims to word count, tightens prose without changing content',
+    category: 'chronicle',
+    defaults: {
+      model: 'claude-sonnet-4-5-20250929',
+      thinkingBudget: 0,
+      maxTokens: 8192,
+    },
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
+  },
   'palette.expansion': {
     label: 'Palette Expansion',
     description: 'Curates visual trait categories with extended reasoning',
@@ -288,7 +305,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 8192,
       maxTokens: 4096,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'dynamics.generation': {
     label: 'Dynamics Generation',
@@ -299,18 +316,18 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 4096,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'revision.summary': {
     label: 'Summary Revision',
     description: 'Batch revision of entity summaries/descriptions using world dynamics',
     category: 'revision',
     defaults: {
-      model: 'claude-opus-4-5-20251101',
+      model: 'claude-opus-4-6',
       thinkingBudget: 4096,
       maxTokens: 8192,
     },
-    recommendedModels: ['claude-opus-4-5-20251101', 'claude-sonnet-4-5-20250929'],
+    recommendedModels: ['claude-opus-4-6', 'claude-sonnet-4-5-20250929'],
   },
   'revision.loreBackport': {
     label: 'Lore Backport',
@@ -321,18 +338,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 8192,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
-  },
-  'description.copyEdit': {
-    label: 'Copy Edit',
-    description: 'Readability copy edit for a single entity description — fixes pronoun ambiguity, unexplained references, dense prose',
-    category: 'description',
-    defaults: {
-      model: 'claude-sonnet-4-5-20250929',
-      thinkingBudget: 4096,
-      maxTokens: 4096,
-    },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'historian.entityReview': {
     label: 'Entity Review',
@@ -343,7 +349,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 4096,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
   'historian.chronicleReview': {
     label: 'Chronicle Review',
@@ -354,7 +360,51 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       thinkingBudget: 4096,
       maxTokens: 8192,
     },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'],
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
+  },
+  'historian.edition': {
+    label: 'Historian Edition',
+    description: 'Historian-voiced synthesis of entity description from full description archive — scholarly rewrite with editorial discretion',
+    category: 'historian',
+    defaults: {
+      model: 'claude-sonnet-4-5-20250929',
+      thinkingBudget: 4096,
+      maxTokens: 4096,
+    },
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
+  },
+  'historian.chronology': {
+    label: 'Chronology',
+    description: 'Historian assigns year numbers to chronicles within an era, establishing chronological ordering',
+    category: 'historian',
+    defaults: {
+      model: 'claude-sonnet-4-5-20250929',
+      thinkingBudget: 8192,
+      maxTokens: 4096,
+    },
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
+  },
+  'historian.prep': {
+    label: 'Prep Brief',
+    description: 'Historian reading notes for a chronicle — private observations, thematic threads, cast dynamics',
+    category: 'historian',
+    defaults: {
+      model: 'claude-sonnet-4-5-20250929',
+      thinkingBudget: 4096,
+      maxTokens: 1024,
+    },
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
+  },
+  'historian.eraNarrative': {
+    label: 'Era Narrative',
+    description: 'Multi-chapter era narrative — thread synthesis, chapter generation, editing, and title',
+    category: 'historian',
+    defaults: {
+      model: 'claude-opus-4-6',
+      thinkingBudget: 16384,
+      maxTokens: 16384,
+    },
+    recommendedModels: ['claude-opus-4-6', 'claude-sonnet-4-5-20250929'],
   },
 };
 
@@ -383,13 +433,13 @@ export const CATEGORY_DESCRIPTIONS: Record<LLMCallCategory, string> = {
 // Group call types by category
 export function getCallTypesByCategory(): Record<LLMCallCategory, LLMCallType[]> {
   return {
-    description: ['description.narrative', 'description.visualThesis', 'description.visualTraits', 'description.copyEdit'],
+    description: ['description.narrative', 'description.visualThesis', 'description.visualTraits'],
     image: ['image.promptFormatting', 'image.chronicleFormatting'],
     perspective: ['perspective.synthesis'],
-    chronicle: ['chronicle.generation', 'chronicle.compare', 'chronicle.combine', 'chronicle.summary', 'chronicle.title', 'chronicle.imageRefs', 'chronicle.coverImageScene'],
+    chronicle: ['chronicle.generation', 'chronicle.compare', 'chronicle.combine', 'chronicle.copyEdit', 'chronicle.summary', 'chronicle.title', 'chronicle.imageRefs', 'chronicle.coverImageScene'],
     palette: ['palette.expansion'],
     dynamics: ['dynamics.generation'],
     revision: ['revision.summary', 'revision.loreBackport'],
-    historian: ['historian.entityReview', 'historian.chronicleReview'],
+    historian: ['historian.entityReview', 'historian.chronicleReview', 'historian.edition', 'historian.chronology', 'historian.prep', 'historian.eraNarrative'],
   };
 }

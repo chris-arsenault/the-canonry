@@ -28,6 +28,7 @@ import StoragePanel from './components/StoragePanel';
 import TraitPaletteSection from './components/TraitPaletteSection';
 import StyleLibraryEditor from './components/StyleLibraryEditor';
 import StaticPagesPanel from './components/StaticPagesPanel';
+import CoveragePanel from './components/CoveragePanel';
 import DynamicsGenerationModal from './components/DynamicsGenerationModal';
 import SummaryRevisionModal from './components/SummaryRevisionModal';
 import EntityRenameModal from './components/EntityRenameModal';
@@ -38,14 +39,14 @@ import { useChronicleQueueWatcher } from './hooks/useChronicleQueueWatcher';
 import { useDynamicsGeneration } from './hooks/useDynamicsGeneration';
 import { useSummaryRevision } from './hooks/useSummaryRevision';
 import { useChronicleLoreBackport } from './hooks/useChronicleLoreBackport';
-import { useCopyEdit } from './hooks/useCopyEdit';
+import { useHistorianEdition } from './hooks/useHistorianEdition';
 import { useHistorianReview } from './hooks/useHistorianReview';
 import HistorianReviewModal from './components/HistorianReviewModal';
 import HistorianConfigEditor from './components/HistorianConfigEditor';
 import PrePrintPanel from './components/PrePrintPanel';
 import { DEFAULT_HISTORIAN_CONFIG, isHistorianConfigured, isNoteActive } from './lib/historianTypes';
 import { getPublishedStaticPagesForProject } from './lib/db/staticPageRepository';
-import { getEntityUsageStats, getChronicle, getChroniclesForSimulation, updateChronicleLoreBackported, updateChronicleHistorianNotes } from './lib/db/chronicleRepository';
+import { getEntityUsageStats, getChronicle, getChroniclesForSimulation, updateChronicleLoreBackported, updateChronicleHistorianNotes, refreshEraSummariesInChronicles } from './lib/db/chronicleRepository';
 import { useChronicleStore } from './lib/db/chronicleStore';
 import { useStyleLibrary } from './hooks/useStyleLibrary';
 import { useImageGenSettings } from './hooks/useImageGenSettings';
@@ -58,13 +59,16 @@ import {
   createDefaultCultureIdentities,
   buildProseHints,
 } from './lib/promptBuilders';
-import { buildEntityIndex, buildRelationshipIndex, resolveEraInfo } from './lib/worldData';
+import { buildEntityIndex, buildRelationshipIndex } from './lib/worldData';
 import { resolveStyleSelection } from './components/StyleSelector';
 import { exportImagePrompts, downloadImagePromptExport } from './lib/db/imageRepository';
 import { getResolvedLLMCallSettings } from './lib/llmModelSettings';
 import * as entityRepo from './lib/db/entityRepository';
 import * as eventRepo from './lib/db/eventRepository';
-import { migrateFromLegacyDbs } from './lib/db/migrateFromLegacyDbs';
+import * as relationshipRepo from './lib/db/relationshipRepository';
+import * as slotRepo from './lib/db/slotRepository';
+import * as schemaRepo from './lib/db/schemaRepository';
+import * as coordinateStateRepo from './lib/db/coordinateStateRepository';
 import { useEntityStore } from './lib/db/entityStore';
 import {
   buildProminenceScale,
@@ -94,13 +98,14 @@ const TABS = [
   { id: 'styles', label: 'Styles' },         // 5. Manage style library
   { id: 'entities', label: 'Entities' },     // 6. Main enrichment work
   { id: 'chronicle', label: 'Chronicle' },   // 7. Wiki-ready long-form content
-  { id: 'pages', label: 'Pages' },           // 8. Static pages (user-authored)
-  { id: 'activity', label: 'Activity' },     // 9. Monitor queue
-  { id: 'costs', label: 'Costs' },           // 10. Track spending
-  { id: 'storage', label: 'Storage' },       // 11. Manage images
-  { id: 'traits', label: 'Traits' },         // 12. Visual trait palettes
-  { id: 'historian', label: 'Historian' },   // 13. Historian persona config
-  { id: 'preprint', label: 'Pre-Print' },   // 14. Print preparation
+  { id: 'coverage', label: 'Coverage' },     // 8. Fact usage tracking
+  { id: 'pages', label: 'Pages' },           // 9. Static pages (user-authored)
+  { id: 'activity', label: 'Activity' },     // 10. Monitor queue
+  { id: 'costs', label: 'Costs' },           // 11. Track spending
+  { id: 'storage', label: 'Storage' },       // 12. Manage images
+  { id: 'traits', label: 'Traits' },         // 13. Visual trait palettes
+  { id: 'historian', label: 'Historian' },   // 14. Historian persona config
+  { id: 'preprint', label: 'Pre-Print' },   // 15. Print preparation
 ];
 
 // Default image prompt template for Claude formatting
@@ -173,6 +178,17 @@ const resolveEntityEraId = (entity) => {
   return undefined;
 };
 
+const resolveFinalEraIdFromHardState = (hardState, eraValue) => {
+  if (!eraValue) return null;
+  const eraEntity = (hardState || []).find(
+    (entity) =>
+      entity.kind === 'era' &&
+      (entity.id === eraValue || entity.eraId === eraValue || entity.name === eraValue)
+  );
+  if (eraEntity) return eraEntity.eraId || eraEntity.id || eraValue;
+  return eraValue;
+};
+
 // Default world context
 const DEFAULT_WORLD_CONTEXT = {
   name: '',
@@ -205,9 +221,6 @@ export default function IlluminatorRemote({
   onSectionChange,
   activeSlotIndex = 0,
 }) {
-  // Show warning when enriching data in temporary slot
-  const isTemporarySlot = activeSlotIndex === 0;
-
   // Use passed-in section or default to 'entities'
   const activeTab = activeSection || 'entities';
   const setActiveTab = onSectionChange || (() => {});
@@ -457,29 +470,32 @@ export default function IlluminatorRemote({
   // Entities with enrichment state
   const [entities, setEntities] = useState([]);
   const [narrativeEvents, setNarrativeEvents] = useState([]);
-  // Track which simulation run we've initialized — after init, local state is authoritative
-  const initializedRunIdRef = useRef(null);
+  const [relationships, setRelationships] = useState([]);
+  const [slotRecord, setSlotRecord] = useState(null);
+  const [dataSyncStatus, setDataSyncStatus] = useState(null);
+  const [isDataSyncing, setIsDataSyncing] = useState(false);
+  const isTemporarySlot = slotRecord?.isTemporary ?? activeSlotIndex === 0;
 
-  // Initialize entities from worldData on first load. Dexie seed effect will overwrite
-  // with canonical data if already seeded. We only set from worldData when there's a
-  // new simulationRunId we haven't seen yet.
+  // Load slot metadata explicitly from Dexie (no auto-migration on load)
   useEffect(() => {
-    if (!worldData?.hardState) {
-      setEntities([]);
-      initializedRunIdRef.current = null;
+    if (!projectId) {
+      setSlotRecord(null);
       return;
     }
+    let cancelled = false;
 
-    const runId = worldData.metadata?.simulationRunId || null;
+    (async () => {
+      const slot = await slotRepo.getSlot(projectId, activeSlotIndex);
+      if (cancelled) return;
+      setSlotRecord(slot || null);
+      setEntities([]);
+      setNarrativeEvents([]);
+      setRelationships([]);
+      useEntityStore.getState().reset();
+    })();
 
-    // Already initialized for this run — skip (local state is authoritative)
-    if (runId && initializedRunIdRef.current === runId) return;
-
-    initializedRunIdRef.current = runId;
-
-    // Fresh initialization from worldData (Dexie seed effect will overwrite with canonical data)
-    setEntities(worldData.hardState);
-  }, [worldData]);
+    return () => { cancelled = true; };
+  }, [projectId, activeSlotIndex]);
 
   const entityById = useMemo(() => buildEntityIndex(entities), [entities]);
   const prominenceScale = useMemo(() => {
@@ -493,13 +509,25 @@ export default function IlluminatorRemote({
     [prominenceScale]
   );
   const relationshipsByEntity = useMemo(
-    () => buildRelationshipIndex(worldData?.relationships || []),
-    [worldData?.relationships]
+    () => buildRelationshipIndex(relationships),
+    [relationships]
   );
-  const currentEra = useMemo(
-    () => resolveEraInfo(worldData?.metadata, entities),
-    [worldData?.metadata, entities]
-  );
+  const currentEra = useMemo(() => {
+    const eraId = slotRecord?.finalEraId;
+    if (!eraId) return null;
+    const eraEntity = entities.find(
+      (entity) =>
+        entity.kind === 'era' &&
+        (entity.id === eraId || entity.eraId === eraId || entity.name === eraId)
+    );
+    if (eraEntity) {
+      return {
+        name: eraEntity.name,
+        description: eraEntity.description,
+      };
+    }
+    return { name: eraId };
+  }, [slotRecord?.finalEraId, entities]);
 
   // Build era temporal info for description prompts (same format as chronicle wizard)
   // NOTE: Use era entity temporal data directly - do not compute ranges from history or ticks.
@@ -570,14 +598,20 @@ export default function IlluminatorRemote({
     return map;
   }, [entities, renownedThreshold]);
 
-  // Extract simulationRunId from worldData for content association
-  const simulationRunId = worldData?.metadata?.simulationRunId;
+  // Extract simulationRunId from slot metadata for content association
+  const simulationRunId = slotRecord?.simulationRunId || undefined;
+  const hasHardState = Boolean(worldData?.hardState?.length);
+  const hasHardRelationships = Boolean(worldData?.relationships?.length);
+  const hasHardEvents = Boolean(worldData?.narrativeHistory?.length);
 
   // Shared helper: write to Dexie → reload local state → notify host
-  const reloadAndNotify = useCallback(async (invalidateIds) => {
-    const [freshEntities, freshEvents] = await Promise.all([
-      entityRepo.getEntitiesForRun(simulationRunId),
-      eventRepo.getNarrativeEventsForRun(simulationRunId),
+  const reloadAndNotify = useCallback(async (invalidateIds, overrideRunId) => {
+    const runId = overrideRunId ?? simulationRunId;
+    if (!runId) return;
+    const [freshEntities, freshEvents, freshRelationships] = await Promise.all([
+      entityRepo.getEntitiesForRun(runId),
+      eventRepo.getNarrativeEventsForRun(runId),
+      relationshipRepo.getRelationshipsForRun(runId),
     ]);
     if (invalidateIds?.length) {
       const store = useEntityStore.getState();
@@ -585,10 +619,122 @@ export default function IlluminatorRemote({
     }
     setEntities(freshEntities);
     setNarrativeEvents(freshEvents);
+    setRelationships(freshRelationships);
     window.dispatchEvent(new CustomEvent('illuminator:worlddata-changed', {
-      detail: { simulationRunId },
+      detail: { simulationRunId: runId },
     }));
   }, [simulationRunId]);
+
+  const handleDataSync = useCallback(async (mode) => {
+    const hardRunId = worldData?.metadata?.simulationRunId;
+    if (!hardRunId) {
+      setDataSyncStatus({ type: 'error', message: 'Missing simulation run ID in hard state.' });
+      return;
+    }
+    if (!hasHardState || !worldData?.hardState?.length) {
+      setDataSyncStatus({ type: 'error', message: 'No hard state available to import.' });
+      return;
+    }
+    if (slotRecord?.simulationRunId && slotRecord.simulationRunId !== hardRunId) {
+      const ok = window.confirm(
+        `Hard state run ID (${hardRunId}) does not match this slot's run (${slotRecord.simulationRunId}). Importing will switch this slot to the hard state run. Continue?`
+      );
+      if (!ok) return;
+    }
+    if (mode === 'overwrite') {
+      const ok = window.confirm(
+        'Overwrite will replace ALL Dexie entities, events, and relationships for this run with hard state. This can delete local enrichment. Continue?'
+      );
+      if (!ok) return;
+    }
+
+    setIsDataSyncing(true);
+    setDataSyncStatus(null);
+
+    try {
+      if (mode === 'overwrite') {
+        await Promise.all([
+          entityRepo.deleteEntitiesForRun(hardRunId),
+          eventRepo.deleteEventsForRun(hardRunId),
+          relationshipRepo.deleteRelationshipsForRun(hardRunId),
+        ]);
+
+        await entityRepo.seedEntities(hardRunId, worldData.hardState);
+        if (worldData.narrativeHistory?.length) {
+          await eventRepo.seedNarrativeEvents(hardRunId, worldData.narrativeHistory);
+        }
+        if (worldData.relationships?.length) {
+          await relationshipRepo.seedRelationships(hardRunId, worldData.relationships);
+        }
+
+        setDataSyncStatus({
+          type: 'success',
+          message: 'Overwrite complete. Dexie now matches hard state for this run.',
+        });
+      } else {
+        const { added, patched } = await entityRepo.patchEntitiesFromHardState(
+          hardRunId,
+          worldData.hardState
+        );
+        const eventsAdded = await eventRepo.patchNarrativeEvents(
+          hardRunId,
+          worldData.narrativeHistory || []
+        );
+        const relationshipsAdded = await relationshipRepo.patchRelationships(
+          hardRunId,
+          worldData.relationships || []
+        );
+
+        setDataSyncStatus({
+          type: 'success',
+          message: `Patch complete. Entities added: ${added}, patched: ${patched}. Events added: ${eventsAdded}. Relationships added: ${relationshipsAdded}.`,
+        });
+      }
+
+      if (projectId && worldData?.schema) {
+        await schemaRepo.upsertSchema(projectId, worldData.schema);
+      }
+      if (worldData?.coordinateState) {
+        await coordinateStateRepo.upsertCoordinateState(hardRunId, worldData.coordinateState);
+      }
+
+      const nextSlotRecord = {
+        projectId,
+        slotIndex: activeSlotIndex,
+        simulationRunId: hardRunId,
+        finalTick: Number.isFinite(worldData?.metadata?.tick) ? worldData.metadata.tick : null,
+        finalEraId: resolveFinalEraIdFromHardState(worldData.hardState, worldData?.metadata?.era),
+        label: slotRecord?.label ?? (activeSlotIndex === 0 ? 'Scratch' : `Slot ${activeSlotIndex}`),
+        isTemporary: slotRecord?.isTemporary ?? (activeSlotIndex === 0),
+        updatedAt: Date.now(),
+      };
+      await slotRepo.upsertSlot(nextSlotRecord);
+      setSlotRecord(nextSlotRecord);
+
+      const store = useEntityStore.getState();
+      store.reset();
+      await store.initialize(hardRunId);
+      await reloadAndNotify(undefined, hardRunId);
+    } catch (err) {
+      setDataSyncStatus({
+        type: 'error',
+        message: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setIsDataSyncing(false);
+    }
+  }, [activeSlotIndex, hasHardState, projectId, reloadAndNotify, slotRecord, worldData]);
+
+  useEffect(() => {
+    const handleEntitiesUpdated = (event) => {
+      if (!simulationRunId) return;
+      const ids = event?.detail?.entityIds;
+      reloadAndNotify(ids);
+    };
+
+    window.addEventListener('entities-updated', handleEntitiesUpdated);
+    return () => window.removeEventListener('entities-updated', handleEntitiesUpdated);
+  }, [reloadAndNotify, simulationRunId]);
 
   // Handle assigning an existing image from the library to an entity
   const handleAssignImage = useCallback(async (entityId, imageId, imageMetadata) => {
@@ -623,60 +769,65 @@ export default function IlluminatorRemote({
     await reloadAndNotify([entityId]);
   }, [reloadAndNotify]);
 
-  // Seed Dexie from worldData and load canonical entities from the DAL.
-  // Runs once per simulationRunId.
+  // Handle alias update
+  const handleUpdateAliases = useCallback(async (entityId, aliases) => {
+    await entityRepo.updateAliases(entityId, aliases);
+    await reloadAndNotify([entityId]);
+  }, [reloadAndNotify]);
+
+  // Handle manual description edit
+  const handleUpdateDescription = useCallback(async (entityId, description) => {
+    await entityRepo.updateDescriptionManual(entityId, description);
+    await reloadAndNotify([entityId]);
+  }, [reloadAndNotify]);
+
+  // Handle manual summary edit
+  const handleUpdateSummary = useCallback(async (entityId, summary) => {
+    await entityRepo.updateSummaryManual(entityId, summary);
+    await reloadAndNotify([entityId]);
+  }, [reloadAndNotify]);
+
+  // Refresh era summaries in all chronicle temporal contexts
+  const handleRefreshEraSummaries = useCallback(async () => {
+    if (!simulationRunId || !eraTemporalInfo.length) return 0;
+    const count = await refreshEraSummariesInChronicles(simulationRunId, eraTemporalInfo);
+    if (count > 0) {
+      await useChronicleStore.getState().refreshAll();
+    }
+    return count;
+  }, [simulationRunId, eraTemporalInfo]);
+
+  // Load from Dexie only (explicit import required to seed).
   const entityStore = useEntityStore;
-  const seedWorldDataRef = useRef(worldData);
-  seedWorldDataRef.current = worldData;
 
   useEffect(() => {
-    if (!simulationRunId || !seedWorldDataRef.current?.hardState?.length) return;
+    if (!simulationRunId) return;
     let cancelled = false;
-    const wd = seedWorldDataRef.current;
 
     (async () => {
       try {
-        console.log('[Illuminator] Seed effect running', { simulationRunId, hasNarrativeHistory: !!wd.narrativeHistory?.length });
-
-        // Migrate legacy IndexedDB databases into Dexie (no-op after first run)
-        await migrateFromLegacyDbs();
-
-        // Seed Dexie from worldData if not already done for this run
-        const entitySeeded = await entityRepo.isSeeded(simulationRunId);
-        console.log('[Illuminator] Entity seed check', { entitySeeded });
-        if (!entitySeeded) {
-          await entityRepo.seedEntities(simulationRunId, wd.hardState);
-          console.log('[Illuminator] Entities seeded', { count: wd.hardState.length });
-        }
-
-        const eventSeeded = wd.narrativeHistory?.length
-          ? await eventRepo.isNarrativeEventsSeeded(simulationRunId)
-          : true;
-        console.log('[Illuminator] Event seed check', { eventSeeded, narrativeHistoryLength: wd.narrativeHistory?.length });
-        if (wd.narrativeHistory?.length && !eventSeeded) {
-          await eventRepo.seedNarrativeEvents(simulationRunId, wd.narrativeHistory);
-        }
-
-        if (cancelled) return;
-
         // Initialize zustand coordinator (loads entity ID list)
         await entityStore.getState().initialize(simulationRunId);
 
-        // Load canonical data from Dexie into local state (backward compat)
-        const dexieEntities = await entityRepo.getEntitiesForRun(simulationRunId);
-        const dexieEvents = await eventRepo.getNarrativeEventsForRun(simulationRunId);
+        const [dexieEntities, dexieEvents, dexieRelationships] = await Promise.all([
+          entityRepo.getEntitiesForRun(simulationRunId),
+          eventRepo.getNarrativeEventsForRun(simulationRunId),
+          relationshipRepo.getRelationshipsForRun(simulationRunId),
+        ]);
+
         console.log('[Illuminator] Loaded from Dexie', {
           entityCount: dexieEntities.length,
           eventCount: dexieEvents.length,
+          relationshipCount: dexieRelationships.length,
         });
-        if (!cancelled && dexieEntities.length > 0) {
+
+        if (!cancelled) {
           setEntities(dexieEntities);
-        }
-        if (!cancelled && dexieEvents.length > 0) {
           setNarrativeEvents(dexieEvents);
+          setRelationships(dexieRelationships);
         }
       } catch (err) {
-        console.warn('[Illuminator] DAL seed/load failed:', err);
+        console.warn('[Illuminator] DAL load failed:', err);
       }
     })();
 
@@ -725,12 +876,12 @@ export default function IlluminatorRemote({
   }, [worldData?.schema, schema]);
 
   const simulationMetadata = useMemo(() => {
-    if (!worldData?.metadata) return undefined;
+    if (!slotRecord) return undefined;
     return {
-      currentTick: worldData.metadata.tick,
+      currentTick: typeof slotRecord.finalTick === 'number' ? slotRecord.finalTick : undefined,
       currentEra: currentEra || undefined,
     };
-  }, [worldData?.metadata, currentEra]);
+  }, [slotRecord, currentEra]);
 
   // Extract era entities for palette generation
   const eraEntities = useMemo(() => {
@@ -755,8 +906,9 @@ export default function IlluminatorRemote({
     return map;
   }, [worldSchema?.entityKinds]);
 
-  // Check if we have world data
-  const hasWorldData = worldData?.hardState?.length > 0;
+  // Check if we have world data (from Dexie)
+  const hasWorldData = entities.length > 0;
+  const canImport = hasHardState;
 
   // Check if API keys are set
   const hasAnthropicKey = anthropicApiKey.length > 0;
@@ -816,7 +968,7 @@ export default function IlluminatorRemote({
         },
         relationships,
         era: {
-          name: currentEra?.name || worldData?.metadata?.era || '',
+          name: currentEra?.name || '',
           description: currentEra?.description,
         },
         entityAge: 'established',
@@ -895,7 +1047,6 @@ export default function IlluminatorRemote({
       relationshipsByEntity,
       entityById,
       currentEra,
-      worldData?.metadata?.era,
       narrativeEvents,
       prominentByCulture,
       styleSelection,
@@ -1241,6 +1392,7 @@ export default function IlluminatorRemote({
         entityDirectives: ps.entityDirectives || [],
         suggestedMotifs: ps.suggestedMotifs || [],
         chronicleFormat: chronicle.format || '',
+        ...(chronicle.narrativeDirection ? { narrativeDirection: chronicle.narrativeDirection } : {}),
       });
     }
 
@@ -1347,64 +1499,15 @@ export default function IlluminatorRemote({
     }, 1000);
   }, [backportRun?.status, autoBackportQueue, handleAcceptBackport, handleBackportLore]);
 
-  // Description copy edit (single-entity readability pass)
+  // Historian edition (historian-voiced description synthesis from full archive)
   const {
-    run: copyEditRun,
-    isActive: isCopyEditActive,
-    startCopyEdit,
-    togglePatchDecision: toggleCopyEditPatchDecision,
-    applyAccepted: applyAcceptedCopyEditPatches,
-    cancelCopyEdit,
-  } = useCopyEdit(enqueue);
-
-  const handleCopyEdit = useCallback((entityId) => {
-    if (!projectId || !simulationRunId || !entityId) return;
-
-    const entity = entityById.get(entityId);
-    if (!entity?.description) {
-      console.warn('[CopyEdit] Entity not found or has no description:', entityId);
-      return;
-    }
-
-    // Build relationships
-    const rels = (relationshipsByEntity.get(entity.id) || []).slice(0, 12).map((rel) => {
-      const targetId = rel.src === entity.id ? rel.dst : rel.src;
-      const target = entityById.get(targetId);
-      return {
-        kind: rel.kind,
-        targetName: target?.name || targetId,
-        targetKind: target?.kind || 'unknown',
-      };
-    });
-
-    const kindFocus = entityGuidance[entity.kind]?.focus || '';
-    const visualThesis = entity.enrichment?.text?.visualThesis || '';
-
-    startCopyEdit({
-      projectId,
-      simulationRunId,
-      entityId: entity.id,
-      entityName: entity.name,
-      entityKind: entity.kind,
-      entitySubtype: entity.subtype || '',
-      entityCulture: entity.culture || '',
-      entityProminence: prominenceLabelFromScale(entity.prominence, prominenceScale),
-      description: entity.description,
-      summary: entity.summary || '',
-      kindFocus,
-      visualThesis,
-      relationships: rels,
-    });
-  }, [projectId, simulationRunId, entityById, relationshipsByEntity, entityGuidance, prominenceScale, startCopyEdit]);
-
-  const handleAcceptCopyEdit = useCallback(async () => {
-    const patches = applyAcceptedCopyEditPatches();
-    await handleRevisionApplied(patches, 'copy-edit');
-
-    // Revalidate existing backrefs against updated descriptions (with fuzzy fallback)
-    await entityRepo.revalidateBackrefs(patches, { fuzzyFallback: true });
-    await reloadAndNotify(patches.map((p) => p.entityId));
-  }, [applyAcceptedCopyEditPatches, handleRevisionApplied, reloadAndNotify]);
+    run: historianEditionRun,
+    isActive: isHistorianEditionActive,
+    startHistorianEdition,
+    togglePatchDecision: toggleHistorianEditionPatchDecision,
+    applyAccepted: applyAcceptedHistorianEditionPatches,
+    cancelHistorianEdition,
+  } = useHistorianEdition(enqueue);
 
   // Entity rename / patch events
   const handleStartRename = useCallback((entityId) => {
@@ -1453,7 +1556,7 @@ export default function IlluminatorRemote({
   }), []);
 
   // Collect previous historian notes for memory/continuity (sample from entities + chronicles)
-  const collectPreviousNotes = useCallback((options = {}) => {
+  const collectPreviousNotes = useCallback(async (options = {}) => {
     const { maxTotal, maxPerTarget, relatedRatio } = HISTORIAN_SAMPLING;
     const relatedEntityIds = new Set(options.relatedEntityIds || []);
     const relatedChronicleIds = new Set(options.relatedChronicleIds || []);
@@ -1502,14 +1605,16 @@ export default function IlluminatorRemote({
     }
 
     // Chronicle notes
-    const chronicleRecords = useChronicleStore.getState().chronicles;
-    for (const chronicle of Object.values(chronicleRecords)) {
-      const notes = (chronicle.historianNotes || []).filter(isNoteActive);
-      addNotesForTarget(`chronicle:${chronicle.chronicleId}`, {
-        type: 'chronicle',
-        id: chronicle.chronicleId,
-        name: chronicle.title || chronicle.chronicleId,
-      }, notes);
+    if (simulationRunId) {
+      const chronicleRecords = await getChroniclesForSimulation(simulationRunId);
+      for (const chronicle of chronicleRecords) {
+        const notes = (chronicle.historianNotes || []).filter(isNoteActive);
+        addNotesForTarget(`chronicle:${chronicle.chronicleId}`, {
+          type: 'chronicle',
+          id: chronicle.chronicleId,
+          name: chronicle.title || chronicle.chronicleId,
+        }, notes);
+      }
     }
 
     // Cap each target at maxPerTarget (randomized to avoid bias)
@@ -1549,9 +1654,111 @@ export default function IlluminatorRemote({
       text: note.text,
       type: note.type,
     }));
-  }, [entities, HISTORIAN_SAMPLING]);
+  }, [entities, HISTORIAN_SAMPLING, simulationRunId]);
 
-  const handleHistorianReview = useCallback((entityId, tone) => {
+  // Historian edition — start a historian-voiced description synthesis
+  const handleHistorianEdition = useCallback(async (entityId, tone) => {
+    if (!projectId || !simulationRunId || !entityId) return;
+    if (!isHistorianConfigured(historianConfig)) return;
+
+    const entity = entityById.get(entityId);
+    if (!entity?.description) return;
+
+    // Build relationships (up to 12)
+    const rels = (relationshipsByEntity.get(entity.id) || []).slice(0, 12).map((rel) => {
+      const targetId = rel.src === entity.id ? rel.dst : rel.src;
+      const target = entityById.get(targetId);
+      return {
+        kind: rel.kind,
+        targetName: target?.name || targetId,
+        targetKind: target?.kind || 'unknown',
+      };
+    });
+
+    // Get neighbor summaries (up to 5)
+    const neighborSummaries = (relationshipsByEntity.get(entity.id) || []).slice(0, 5).map((rel) => {
+      const targetId = rel.src === entity.id ? rel.dst : rel.src;
+      const target = entityById.get(targetId);
+      if (!target) return null;
+      return {
+        name: target.name,
+        kind: target.kind,
+        summary: target.summary || target.description?.slice(0, 200) || '',
+      };
+    }).filter(Boolean);
+
+    // Gather chronicle summaries from backrefs
+    const chronicleSummaries = [];
+    const backrefs = entity.enrichment?.chronicleBackrefs || [];
+    for (const ref of backrefs) {
+      if (!ref.chronicleId) continue;
+      try {
+        const chronicle = await getChronicle(ref.chronicleId);
+        if (chronicle && chronicle.title) {
+          chronicleSummaries.push({
+            chronicleId: chronicle.chronicleId,
+            title: chronicle.title,
+            format: chronicle.format || '',
+            summary: chronicle.finalContent?.slice(0, 500) || '',
+          });
+        }
+      } catch (err) {
+        // Skip if chronicle not found
+      }
+    }
+
+    // Previous notes for voice continuity
+    const relatedEntityIds = new Set([entity.id]);
+    for (const rel of (relationshipsByEntity.get(entity.id) || [])) {
+      const targetId = rel.src === entity.id ? rel.dst : rel.src;
+      if (targetId) relatedEntityIds.add(targetId);
+    }
+    const previousNotes = await collectPreviousNotes({
+      relatedEntityIds: Array.from(relatedEntityIds),
+    });
+
+    startHistorianEdition({
+      projectId,
+      simulationRunId,
+      entityId: entity.id,
+      entityName: entity.name,
+      entityKind: entity.kind,
+      entitySubtype: entity.subtype || '',
+      entityCulture: entity.culture || '',
+      entityProminence: prominenceLabelFromScale(entity.prominence, prominenceScale),
+      description: entity.description,
+      summary: entity.summary || '',
+      descriptionHistory: entity.enrichment?.descriptionHistory || [],
+      chronicleSummaries,
+      relationships: rels,
+      neighborSummaries,
+      canonFacts: (worldContext.canonFactsWithMetadata || []).map((f) => f.text),
+      worldDynamics: (worldContext.worldDynamics || []).map((d) => d.text),
+      previousNotes,
+      historianConfig,
+      tone: tone || 'scholarly',
+    });
+  }, [projectId, simulationRunId, entityById, relationshipsByEntity, worldContext, historianConfig, prominenceScale, collectPreviousNotes, startHistorianEdition]);
+
+  // Accept historian edition — apply the rewritten description
+  const handleAcceptHistorianEdition = useCallback(async () => {
+    const patches = applyAcceptedHistorianEditionPatches();
+    if (!patches?.length) return;
+
+    await handleRevisionApplied(patches, 'historian-edition');
+
+    // Clear historian notes for the edited entity (edition subsumes them)
+    for (const patch of patches) {
+      if (patch.entityId) {
+        await entityRepo.setHistorianNotes(patch.entityId, []);
+      }
+    }
+
+    // Reload to reflect cleared notes
+    await reloadAndNotify(patches.map((p) => p.entityId));
+  }, [applyAcceptedHistorianEditionPatches, handleRevisionApplied, reloadAndNotify]);
+
+  const handleHistorianReview = useCallback(async (entityId, tone) => {
     if (!projectId || !simulationRunId || !entityId) return;
     if (!isHistorianConfigured(historianConfig)) return;
 
@@ -1601,7 +1808,7 @@ export default function IlluminatorRemote({
       const targetId = rel.src === entity.id ? rel.dst : rel.src;
       if (targetId) relatedEntityIds.add(targetId);
     }
-    const previousNotes = collectPreviousNotes({
+    const previousNotes = await collectPreviousNotes({
       relatedEntityIds: Array.from(relatedEntityIds),
     });
 
@@ -1658,6 +1865,11 @@ export default function IlluminatorRemote({
       castSummaries,
       canonFacts: (worldContext.canonFactsWithMetadata || []).map((f) => f.text),
       worldDynamics: (worldContext.worldDynamics || []).map((d) => d.text),
+      temporalNarrative: chronicle.perspectiveSynthesis?.temporalNarrative || undefined,
+      focalEra: chronicle.temporalContext?.focalEra
+        ? { name: chronicle.temporalContext.focalEra.name, description: chronicle.temporalContext.focalEra.description }
+        : undefined,
+      temporalCheckReport: chronicle.temporalCheckReport || undefined,
     });
 
     const relatedEntityIds = new Set(
@@ -1665,7 +1877,7 @@ export default function IlluminatorRemote({
         .map((ra) => ra.entityId)
         .filter(Boolean)
     );
-    const previousNotes = collectPreviousNotes({
+    const previousNotes = await collectPreviousNotes({
       relatedEntityIds: Array.from(relatedEntityIds),
     });
 
@@ -1771,11 +1983,11 @@ export default function IlluminatorRemote({
       eraId: e.eraId,
     }));
 
-    const relationships = (worldData?.relationships || []).map((r) => ({
+    const relationshipsPayload = relationships.map((r) => ({
       src: r.src,
       dst: r.dst,
       kind: r.kind,
-      weight: r.weight,
+      weight: r.weight ?? r.strength,
       srcName: entityById.get(r.src)?.name || r.src,
       dstName: entityById.get(r.dst)?.name || r.dst,
     }));
@@ -1786,19 +1998,52 @@ export default function IlluminatorRemote({
       staticPagesContext,
       schemaContext,
       entities: entityContexts,
-      relationships,
+      relationships: relationshipsPayload,
     });
-  }, [projectId, simulationRunId, worldSchema, entities, worldData, entityById, startDynamicsGeneration]);
+  }, [projectId, simulationRunId, worldSchema, entities, relationships, entityById, startDynamicsGeneration]);
 
   if (!hasWorldData) {
     return (
       <div className="illuminator-empty-state">
         <div className="illuminator-empty-state-icon">&#x2728;</div>
-        <div className="illuminator-empty-state-title">No World Data</div>
-        <div className="illuminator-empty-state-desc">
-          Run a simulation in <strong>Lore Weave</strong> first, then return here to enrich your
-          world with LLM-generated descriptions and images.
+        <div className="illuminator-empty-state-title">
+          {canImport ? 'No Local Data Loaded' : 'No World Data'}
         </div>
+        <div className="illuminator-empty-state-desc">
+          {canImport
+            ? 'Dexie is empty for this slot. Import from hard state to begin.'
+            : (
+              <>
+                Run a simulation in <strong>Lore Weave</strong> first, then return here to enrich your
+                world with LLM-generated descriptions and images.
+              </>
+            )}
+        </div>
+        {canImport && (
+          <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="illuminator-btn illuminator-btn-primary"
+              disabled={isDataSyncing}
+              onClick={() => handleDataSync('patch')}
+            >
+              {isDataSyncing ? 'Importing...' : 'Patch from Hard State'}
+            </button>
+            <button
+              type="button"
+              className="illuminator-btn illuminator-btn-danger"
+              disabled={isDataSyncing}
+              onClick={() => handleDataSync('overwrite')}
+            >
+              Overwrite from Hard State
+            </button>
+          </div>
+        )}
+        {dataSyncStatus && (
+          <div style={{ marginTop: '12px', fontSize: '12px', color: dataSyncStatus.type === 'error' ? '#ef4444' : '#10b981' }}>
+            {dataSyncStatus.message}
+          </div>
+        )}
       </div>
     );
   }
@@ -1966,14 +2211,17 @@ export default function IlluminatorRemote({
               isRevising={isRevisionActive}
               onUpdateBackrefs={handleUpdateBackrefs}
               onUndoDescription={handleUndoDescription}
-              onCopyEdit={handleCopyEdit}
-              isCopyEditActive={isCopyEditActive}
+              onHistorianEdition={handleHistorianEdition}
+              isHistorianEditionActive={isHistorianEditionActive}
               onHistorianReview={handleHistorianReview}
               isHistorianActive={isHistorianActive}
               historianConfigured={isHistorianConfigured(historianConfig)}
               onUpdateHistorianNote={handleUpdateHistorianNote}
               onRename={handleStartRename}
               onPatchEvents={handleStartPatchEvents}
+              onUpdateAliases={handleUpdateAliases}
+              onUpdateDescription={handleUpdateDescription}
+              onUpdateSummary={handleUpdateSummary}
             />
           </div>
         )}
@@ -1983,6 +2231,8 @@ export default function IlluminatorRemote({
             <ChroniclePanel
               worldData={worldData}
               entities={entities}
+              relationships={relationships}
+              narrativeEvents={narrativeEvents}
               queue={queue}
               onEnqueue={enqueue}
               onCancel={cancel}
@@ -2004,7 +2254,19 @@ export default function IlluminatorRemote({
               onHistorianReview={handleChronicleHistorianReview}
               isHistorianActive={isHistorianActive}
               historianConfigured={isHistorianConfigured(historianConfig)}
+              historianConfig={historianConfig}
               onUpdateHistorianNote={handleUpdateHistorianNote}
+              onRefreshEraSummaries={handleRefreshEraSummaries}
+            />
+          </div>
+        )}
+
+        {activeTab === 'coverage' && (
+          <div className="illuminator-content">
+            <CoveragePanel
+              worldContext={worldContext}
+              simulationRunId={simulationRunId}
+              onWorldContextChange={updateWorldContext}
             />
           </div>
         )}
@@ -2036,7 +2298,8 @@ export default function IlluminatorRemote({
               entityGuidance={entityGuidance}
               onEntityGuidanceChange={updateEntityGuidance}
               worldContext={worldContext}
-              worldData={worldData}
+              entities={entities}
+              relationships={relationships}
               worldSchema={worldSchema}
               simulationMetadata={simulationMetadata}
               prominenceScale={prominenceScale}
@@ -2085,7 +2348,6 @@ export default function IlluminatorRemote({
               onRetry={retry}
               onCancelAll={cancelAll}
               onClearCompleted={clearCompleted}
-              enrichmentTriggers={worldData?.metadata?.enrichmentTriggers}
             />
           </div>
         )}
@@ -2126,6 +2388,42 @@ export default function IlluminatorRemote({
         {activeTab === 'configure' && (
           <div className="illuminator-content">
             <ConfigPanel config={config} onConfigChange={updateConfig} worldSchema={worldSchema} />
+            <div className="illuminator-card">
+              <div className="illuminator-card-header">
+                <h2 className="illuminator-card-title">Data Sync</h2>
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                Import simulation output into Dexie. This is manual by design.
+              </p>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="illuminator-btn illuminator-btn-primary"
+                  disabled={isDataSyncing || !hasHardState}
+                  onClick={() => handleDataSync('patch')}
+                >
+                  {isDataSyncing ? 'Importing...' : 'Patch from Hard State'}
+                </button>
+                <button
+                  type="button"
+                  className="illuminator-btn illuminator-btn-danger"
+                  disabled={isDataSyncing || !hasHardState}
+                  onClick={() => handleDataSync('overwrite')}
+                >
+                  Overwrite from Hard State
+                </button>
+              </div>
+              <div style={{ marginTop: '10px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                {hasHardState
+                  ? `Hard state: ${worldData?.hardState?.length || 0} entities, ${hasHardEvents ? worldData?.narrativeHistory?.length || 0 : 0} events, ${hasHardRelationships ? worldData?.relationships?.length || 0 : 0} relationships.`
+                  : 'No hard state available for import.'}
+              </div>
+              {dataSyncStatus && (
+                <div style={{ marginTop: '10px', fontSize: '12px', color: dataSyncStatus.type === 'error' ? '#ef4444' : '#10b981' }}>
+                  {dataSyncStatus.message}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -2210,13 +2508,13 @@ export default function IlluminatorRemote({
         onUpdateAnchorPhrase={updateBackportAnchorPhrase}
       />
 
-      {/* Description Copy Edit Modal */}
+      {/* Historian Edition Modal */}
       <SummaryRevisionModal
-        run={copyEditRun}
-        isActive={isCopyEditActive}
-        onTogglePatch={toggleCopyEditPatchDecision}
-        onAccept={handleAcceptCopyEdit}
-        onCancel={cancelCopyEdit}
+        run={historianEditionRun}
+        isActive={isHistorianEditionActive}
+        onTogglePatch={toggleHistorianEditionPatchDecision}
+        onAccept={handleAcceptHistorianEdition}
+        onCancel={cancelHistorianEdition}
         getEntityContexts={getEntityContextsForRevision}
       />
 
@@ -2237,7 +2535,7 @@ export default function IlluminatorRemote({
           entities={entities}
           cultures={worldSchema?.cultures || []}
           simulationRunId={simulationRunId || ''}
-          relationships={worldData?.relationships || []}
+          relationships={relationships}
           narrativeEvents={narrativeEvents}
           mode={renameModal.mode}
           onApply={handleRenameApplied}

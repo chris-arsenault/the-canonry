@@ -18,6 +18,8 @@ import { buildChronicleScenePrompt } from '../lib/promptBuilders';
 import { resolveStyleSelection } from './StyleSelector';
 import { getCoverImageConfig } from '../lib/coverImageStyles';
 import { computeTemporalContext } from '../lib/chronicle/selectionWizard';
+import ChronologyModal from './ChronologyModal';
+import EraNarrativeModal from './EraNarrativeModal';
 import {
   updateChronicleImageRef,
   updateChronicleTemporalContext,
@@ -32,7 +34,7 @@ import {
   deleteChronicleVersion,
   applyImageRefSelections,
 } from '../lib/db/chronicleRepository';
-import { resetEntitiesToPreBackportState } from '../lib/db/entityRepository';
+import { resetEntitiesToPreBackportState, getEntitiesForRun } from '../lib/db/entityRepository';
 import { downloadChronicleExport } from '../lib/chronicleExport';
 import { getCallConfig } from '../lib/llmModelSettings';
 
@@ -160,8 +162,22 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
       syms.push({ symbol: '\u25C8', title: `Lens: ${item.lens.entityName}`, color: '#8b5cf6' });
     }
 
+    // Temporal alignment check
+    if (item.hasTemporalNarrative) {
+      syms.push({
+        symbol: '\u29D6',
+        title: item.hasTemporalCheck ? 'Temporal alignment checked' : 'Temporal narrative (no alignment check)',
+        color: item.hasTemporalCheck ? '#f59e0b' : 'var(--text-muted)',
+      });
+    }
+
+    // Historian prep
+    if (item.hasHistorianPrep) {
+      syms.push({ symbol: '\u270E', title: 'Historian prep brief', color: '#8b7355' });
+    }
+
     return syms;
-  }, [item.focusType, item.primaryCount, item.perspectiveSynthesis, item.combineInstructions, item.coverImageComplete, item.loreBackported, item.historianNoteCount, item.lens]);
+  }, [item.focusType, item.primaryCount, item.perspectiveSynthesis, item.combineInstructions, item.coverImageComplete, item.loreBackported, item.historianNoteCount, item.lens, item.hasTemporalNarrative, item.hasTemporalCheck, item.hasHistorianPrep]);
 
   // Compact numeric badge: cast count + scene image count
   const castCount = (item.primaryCount || 0) + (item.supportingCount || 0);
@@ -204,15 +220,19 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
         </span>
       </div>
 
-      {/* Subtitle: narrative style + numeric counts */}
+      {/* Subtitle: era year + narrative style + numeric counts */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-        {styleName ? (
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-            {styleName}
-          </span>
-        ) : (
-          <span />
-        )}
+        <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {item.eraYear != null && (
+            <span
+              style={{ color: '#8b7355', fontWeight: 500, fontStyle: 'normal' }}
+              title={`Year ${item.eraYear}${item.focalEraStartTick != null ? ` (era-relative: Y${item.eraYear - item.focalEraStartTick + 1})` : ''}`}
+            >
+              {'\u231B'} Y{item.focalEraStartTick != null ? item.eraYear - item.focalEraStartTick + 1 : item.eraYear}
+            </span>
+          )}
+          {styleName && <span style={{ fontStyle: 'italic' }}>{styleName}</span>}
+        </span>
         {(castCount > 0 || imageCount > 0) && (
           <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', gap: '8px', whiteSpace: 'nowrap' }}>
             {castCount > 0 && (
@@ -286,6 +306,8 @@ function AssembledContentViewer({ content, wordCount, onCopy }) {
 export default function ChroniclePanel({
   worldData,
   entities,
+  relationships = [],
+  narrativeEvents = [],
   queue,
   onEnqueue,
   onCancel,
@@ -307,7 +329,9 @@ export default function ChroniclePanel({
   onHistorianReview,
   isHistorianActive,
   historianConfigured,
+  historianConfig,
   onUpdateHistorianNote,
+  onRefreshEraSummaries,
 }) {
   const [selectedItemId, setSelectedItemId] = useState(() => {
     const saved = localStorage.getItem('illuminator:chronicle:selectedItemId');
@@ -323,6 +347,11 @@ export default function ChroniclePanel({
   const [navVisibleCount, setNavVisibleCount] = useState(NAV_PAGE_SIZE);
   const navListRef = useRef(null);
   const navLoadMoreRef = useRef(null);
+  const chronicleWorldData = useMemo(() => ({
+    entities: entities || [],
+    relationships: relationships || [],
+    narrativeHistory: narrativeEvents || [],
+  }), [entities, relationships, narrativeEvents]);
 
   useEffect(() => {
     if (selectedItemId) {
@@ -339,6 +368,21 @@ export default function ChroniclePanel({
   // State for reset backport flags modal
   const [showResetBackportModal, setShowResetBackportModal] = useState(false);
   const [resetBackportResult, setResetBackportResult] = useState(null);
+
+  // State for era summary refresh
+  const [eraSummaryRefreshResult, setEraSummaryRefreshResult] = useState(null);
+
+  // State for bulk temporal check
+  const [temporalCheckResult, setTemporalCheckResult] = useState(null);
+
+  // Collapsible bulk actions panel
+  const [showBulkActions, setShowBulkActions] = useState(false);
+
+  // State for chronology modal
+  const [showChronologyModal, setShowChronologyModal] = useState(false);
+
+  // State for era narrative modal
+  const [showEraNarrativeModal, setShowEraNarrativeModal] = useState(false);
 
   // State for wizard modal
   const [showWizard, setShowWizard] = useState(false);
@@ -375,8 +419,11 @@ export default function ChroniclePanel({
     generateImageRefs: _generateImageRefs,
     regenerateWithSampling,
     regenerateFull,
+    regenerateCreative,
     compareVersions,
     combineVersions,
+    copyEdit,
+    temporalCheck,
   } = useChronicleActions(onEnqueue);
 
   // Lifecycle actions from store (no queue dependency)
@@ -384,8 +431,10 @@ export default function ChroniclePanel({
   const cancelChronicle = useChronicleStore((s) => s.cancelChronicle);
   const restartChronicle = useChronicleStore((s) => s.restartChronicle);
 
-  const isGenerating = queue.some(
+  // Scope the "generating" lock to the selected chronicle so other chronicles remain interactive.
+  const isGenerating = Boolean(selectedItemId) && queue.some(
     (item) => item.type === 'entityChronicle' &&
+              item.chronicleId === selectedItemId &&
               (item.status === 'queued' || item.status === 'running')
   );
 
@@ -427,7 +476,7 @@ export default function ChroniclePanel({
   }, [styleLibrary?.narrativeStyles]);
 
   // Helper to get status considering both IndexedDB and queue state
-  const getEffectiveStatus = useCallback((chronicleId, chronicle) => {
+  const getEffectiveStatus = useCallback((chronicleId, baseStatus) => {
     // First check queue for running/queued tasks for this chronicle
     const queueTask = queue.find(
       (item) => item.type === 'entityChronicle' &&
@@ -443,7 +492,7 @@ export default function ChroniclePanel({
           case 'edit': return 'editing';
           case 'generate_v2': return 'generating';
           case 'regenerate_temperature': return 'generating';
-          default: return deriveStatus(chronicle);
+          default: return baseStatus;
         }
       }
       if (queueTask.status === 'queued') {
@@ -452,13 +501,13 @@ export default function ChroniclePanel({
           case 'validate': return 'validating';
           case 'generate_v2': return 'generating';
           case 'regenerate_temperature': return 'generating';
-          default: return deriveStatus(chronicle);
+          default: return baseStatus;
         }
       }
     }
 
     // Fall back to IndexedDB-derived status
-    return deriveStatus(chronicle);
+    return baseStatus;
   }, [queue]);
 
   // Lightweight nav items from Zustand store (shallow-compared, only re-renders on nav-relevant changes)
@@ -516,12 +565,18 @@ export default function ChroniclePanel({
           const orderA = getEraOrder(a);
           const orderB = getEraOrder(b);
           if (orderA !== orderB) return orderA - orderB;
+          const yearA = a.eraYear ?? Number.MAX_SAFE_INTEGER;
+          const yearB = b.eraYear ?? Number.MAX_SAFE_INTEGER;
+          if (yearA !== yearB) return yearA - yearB;
           return getEraName(a).localeCompare(getEraName(b));
         }
         case 'era_desc': {
           const orderA = getEraOrder(a);
           const orderB = getEraOrder(b);
           if (orderA !== orderB) return orderB - orderA;
+          const yearA = a.eraYear ?? -1;
+          const yearB = b.eraYear ?? -1;
+          if (yearA !== yearB) return yearB - yearA;
           return getEraName(b).localeCompare(getEraName(a));
         }
         case 'type_asc':
@@ -627,7 +682,7 @@ export default function ChroniclePanel({
       id: record.chronicleId,
       type: 'chronicles',
       name: displayName,
-      status: getEffectiveStatus(record.chronicleId, record),
+      status: getEffectiveStatus(record.chronicleId, deriveStatus(record)),
       primaryCount: record.roleAssignments?.filter(r => r.isPrimary).length || 0,
       supportingCount: (record.roleAssignments?.length || 0) - (record.roleAssignments?.filter(r => r.isPrimary).length || 0),
       editVersion: record.editVersion ?? 0,
@@ -673,6 +728,12 @@ export default function ChroniclePanel({
       combine: {
         running: isRunning('combine'),
       },
+      copyEdit: {
+        running: isRunning('copy_edit'),
+      },
+      temporalCheck: {
+        running: isRunning('temporal_check'),
+      },
       coverImageScene: {
         running: isRunning('cover_image_scene'),
       },
@@ -689,13 +750,13 @@ export default function ChroniclePanel({
 
   // Generate name bank when selected chronicle's entities change
   useEffect(() => {
-    if (!selectedItem?.roleAssignments || !worldData?.hardState || !worldData?.schema?.cultures) {
+    if (!selectedItem?.roleAssignments || !entities?.length || !worldData?.schema?.cultures) {
       return;
     }
 
     // Get entity IDs from role assignments
     const entityIds = selectedItem.roleAssignments.map(r => r.entityId);
-    const selectedEntities = worldData.hardState.filter(e => entityIds.includes(e.id));
+    const selectedEntities = entities.filter(e => entityIds.includes(e.id));
     const cultureIds = extractCultureIds(selectedEntities);
 
     if (cultureIds.length === 0) {
@@ -713,11 +774,11 @@ export default function ChroniclePanel({
         console.warn('[Chronicle] Failed to generate name bank:', e);
         setNameBank({});
       });
-  }, [selectedItem?.roleAssignments, worldData?.hardState, worldData?.schema?.cultures]);
+  }, [selectedItem?.roleAssignments, entities, worldData?.schema?.cultures]);
 
   // Build generation context for selected item
   const generationContext = useMemo(() => {
-    if (!selectedItem || !worldData || !selectedNarrativeStyle) return null;
+    if (!selectedItem || !selectedNarrativeStyle) return null;
 
     try {
       // Validate required world context for perspective synthesis
@@ -753,7 +814,7 @@ export default function ChroniclePanel({
             selectedRelationshipIds: selectedItem.selectedRelationshipIds || [],
             entrypointId: selectedItem.entrypointId,
           },
-          worldData,
+          chronicleWorldData,
           wc,
           selectedNarrativeStyle,
           nameBank,
@@ -765,7 +826,7 @@ export default function ChroniclePanel({
       console.error('Failed to build generation context:', e);
     }
     return null;
-  }, [selectedItem, worldData, worldContext, nameBank, entityGuidance, cultureIdentities, selectedNarrativeStyle]);
+  }, [selectedItem, chronicleWorldData, worldContext, nameBank, entityGuidance, cultureIdentities, selectedNarrativeStyle]);
 
   // Handle accept chronicle - saves to IndexedDB (wiki links applied at render time in Chronicler)
   const handleAcceptChronicle = useCallback(async () => {
@@ -951,15 +1012,25 @@ export default function ChroniclePanel({
 
   // Full regeneration with new perspective synthesis
   const handleRegenerateFull = useCallback(async () => {
-    if (!selectedItem || !worldData || !worldContext) {
-      console.error('[Chronicle] Missing selectedItem, worldData, or worldContext for full regeneration');
+    if (!selectedItem || !worldContext) {
+      console.error('[Chronicle] Missing selectedItem or worldContext for full regeneration');
       return;
     }
 
-    // Get the narrative style from library
-    const narrativeStyle = selectedItem.narrativeStyle || styleLibrary?.narrativeStyles?.find(
+    // Get narrative style from live library (picks up edits), fall back to stored snapshot
+    const liveStyle = styleLibrary?.narrativeStyles?.find(
       (s) => s.id === selectedItem.narrativeStyleId
     );
+    const snapshotStyle = selectedItem.narrativeStyle;
+    const narrativeStyle = liveStyle || snapshotStyle;
+    console.log('[Chronicle] Full regen style resolution:', {
+      styleId: selectedItem.narrativeStyleId,
+      liveFound: !!liveStyle,
+      snapshotFound: !!snapshotStyle,
+      usingSource: liveStyle ? 'library' : 'snapshot',
+      libraryStyleCount: styleLibrary?.narrativeStyles?.length,
+      docInstructionsPreview: narrativeStyle?.documentInstructions?.substring(0, 120),
+    });
     if (!narrativeStyle) {
       console.error('[Chronicle] Narrative style not found:', selectedItem.narrativeStyleId);
       return;
@@ -992,10 +1063,10 @@ export default function ChroniclePanel({
 
     // Generate name bank for invented characters if needed
     const entityIds = (selectedItem.roleAssignments || []).map(r => r.entityId);
-    const selectedEntities = worldData.hardState?.filter(e => entityIds.includes(e.id)) || [];
+    const selectedEntities = entities?.filter(e => entityIds.includes(e.id)) || [];
     const cultureIds = extractCultureIds(selectedEntities);
     let regenNameBank = {};
-    if (cultureIds.length > 0 && worldData.schema?.cultures) {
+    if (cultureIds.length > 0 && worldData?.schema?.cultures) {
       try {
         regenNameBank = await generateNameBank(worldData.schema.cultures, cultureIds);
         console.log('[Chronicle] Generated name bank for full regen:', regenNameBank);
@@ -1007,18 +1078,79 @@ export default function ChroniclePanel({
     // Build chronicle context
     const context = buildChronicleContext(
       selections,
-      worldData,
+      chronicleWorldData,
       wc,
       narrativeStyle,
       regenNameBank,
       worldContext?.proseHints,
-      worldContext?.culturalIdentities,
+      cultureIdentities?.descriptive,
       selectedItem.temporalContext
     );
 
     // Call regenerateFull with the context (sampling derived from LLM config)
     regenerateFull(selectedItem.chronicleId, context);
-  }, [selectedItem, worldData, worldContext, styleLibrary?.narrativeStyles, regenerateFull]);
+  }, [selectedItem, chronicleWorldData, worldContext, styleLibrary?.narrativeStyles, regenerateFull, entities, worldData?.schema?.cultures, cultureIdentities]);
+
+  // Creative freedom regeneration — same context building as full, but dispatches to creative step
+  const handleRegenerateCreative = useCallback(async () => {
+    if (!selectedItem || !worldContext) {
+      console.error('[Chronicle] Missing selectedItem or worldContext for creative regeneration');
+      return;
+    }
+
+    const narrativeStyle = selectedItem.narrativeStyle || styleLibrary?.narrativeStyles?.find(
+      (s) => s.id === selectedItem.narrativeStyleId
+    );
+    if (!narrativeStyle) {
+      console.error('[Chronicle] Narrative style not found:', selectedItem.narrativeStyleId);
+      return;
+    }
+    if (narrativeStyle.format !== 'story') {
+      console.error('[Chronicle] Creative freedom mode is only available for story format');
+      return;
+    }
+    const selections = {
+      roleAssignments: selectedItem.roleAssignments || [],
+      lens: selectedItem.lens,
+      selectedEventIds: selectedItem.selectedEventIds || [],
+      selectedRelationshipIds: selectedItem.selectedRelationshipIds || [],
+      entrypointId: selectedItem.entrypointId,
+    };
+
+    const wc = {
+      name: worldContext?.name || 'The World',
+      description: worldContext?.description || '',
+      toneFragments: worldContext.toneFragments,
+      canonFactsWithMetadata: worldContext.canonFactsWithMetadata,
+      factSelection: worldContext.factSelection,
+      worldDynamics: worldContext.worldDynamics,
+    };
+
+    const entityIds = (selectedItem.roleAssignments || []).map(r => r.entityId);
+    const selectedEntities = entities?.filter(e => entityIds.includes(e.id)) || [];
+    const cultureIds = extractCultureIds(selectedEntities);
+    let regenNameBank = {};
+    if (cultureIds.length > 0 && worldData?.schema?.cultures) {
+      try {
+        regenNameBank = await generateNameBank(worldData.schema.cultures, cultureIds);
+      } catch (e) {
+        console.warn('[Chronicle] Failed to generate name bank:', e);
+      }
+    }
+
+    const context = buildChronicleContext(
+      selections,
+      chronicleWorldData,
+      wc,
+      narrativeStyle,
+      regenNameBank,
+      worldContext?.proseHints,
+      cultureIdentities?.descriptive,
+      selectedItem.temporalContext
+    );
+
+    regenerateCreative(selectedItem.chronicleId, context);
+  }, [selectedItem, chronicleWorldData, worldContext, styleLibrary?.narrativeStyles, regenerateCreative, entities, worldData?.schema?.cultures, cultureIdentities]);
 
   const handleCompareVersions = useCallback(() => {
     if (!selectedItem) return;
@@ -1029,6 +1161,16 @@ export default function ChroniclePanel({
     if (!selectedItem) return;
     combineVersions(selectedItem.chronicleId);
   }, [selectedItem, combineVersions]);
+
+  const handleCopyEdit = useCallback(() => {
+    if (!selectedItem) return;
+    copyEdit(selectedItem.chronicleId);
+  }, [selectedItem, copyEdit]);
+
+  const handleTemporalCheck = useCallback(() => {
+    if (!selectedItem) return;
+    temporalCheck(selectedItem.chronicleId);
+  }, [selectedItem, temporalCheck]);
 
   // Handle regenerate (delete and go back to start screen) - uses restart modal
   const handleRegenerate = useCallback(() => {
@@ -1047,12 +1189,16 @@ export default function ChroniclePanel({
   const handleRestartConfirm = useCallback(async () => {
     if (pendingRestartChronicleId) {
       // Get the chronicle record to extract seed before deleting
-      const chronicle = useChronicleStore.getState().chronicles[pendingRestartChronicleId];
+      const chronicle = await useChronicleStore.getState().loadChronicle(pendingRestartChronicleId);
       if (chronicle) {
+        // Resolve narrative style from live library (picks up edits), fall back to snapshot
+        const liveStyle = styleLibrary?.narrativeStyles?.find(
+          (s) => s.id === chronicle.narrativeStyleId
+        );
         // Extract seed from the chronicle record
         const seed = {
           narrativeStyleId: chronicle.narrativeStyleId,
-          narrativeStyle: chronicle.narrativeStyle,
+          narrativeStyle: liveStyle || chronicle.narrativeStyle,
           entrypointId: chronicle.entrypointId,
           roleAssignments: chronicle.roleAssignments || [],
           lens: chronicle.lens,
@@ -1070,12 +1216,65 @@ export default function ChroniclePanel({
     }
     setShowRestartModal(false);
     setPendingRestartChronicleId(null);
-  }, [pendingRestartChronicleId, restartChronicle]);
+  }, [pendingRestartChronicleId, restartChronicle, styleLibrary]);
 
   const handleRestartCancel = useCallback(() => {
     setShowRestartModal(false);
     setPendingRestartChronicleId(null);
   }, []);
+
+  const logBackportHistorySources = useCallback(async () => {
+    if (!entities || entities.length === 0) {
+      console.log('[Backport Reset] No entities loaded to inspect history sources.');
+      return;
+    }
+    if (!simulationRunId) {
+      console.log('[Backport Reset] Missing simulationRunId; cannot verify Dexie presence.');
+      return;
+    }
+
+    try {
+      const dexieEntities = await getEntitiesForRun(simulationRunId);
+      const dexieIds = new Set(dexieEntities.map((entity) => entity.id));
+      console.log(
+        `[Backport Reset] Enumerating descriptionHistory sources for ${entities.length} entities (Dexie count: ${dexieEntities.length})`
+      );
+
+      let withHistoryCount = 0;
+      let missingInDexieCount = 0;
+      for (const entity of entities) {
+        const history = entity.enrichment?.descriptionHistory || [];
+        if (history.length === 0) continue;
+        withHistoryCount += 1;
+
+        const sourceCounts = history.reduce((acc, entry) => {
+          const source = entry.source || 'unknown';
+          acc[source] = (acc[source] || 0) + 1;
+          return acc;
+        }, {});
+
+        const inDexie = dexieIds.has(entity.id);
+        if (!inDexie) missingInDexieCount += 1;
+
+        console.log(
+          `[Backport Reset] Entity ${entity.id}${entity.name ? ` (${entity.name})` : ''} history sources:`,
+          sourceCounts,
+          `dexie=${inDexie ? 'present' : 'missing'}`
+        );
+      }
+
+      console.log(
+        `[Backport Reset] Entities with history: ${withHistoryCount}. Missing in Dexie: ${missingInDexieCount}.`
+      );
+    } catch (err) {
+      console.warn('[Backport Reset] Failed to inspect Dexie entities:', err);
+    }
+  }, [entities, simulationRunId]);
+
+  const handleOpenResetBackportModal = useCallback(() => {
+    logBackportHistorySources();
+    setShowResetBackportModal(true);
+  }, [logBackportHistorySources]);
 
   // Handle reset all backport flags AND entity descriptions
   const handleResetBackportConfirm = useCallback(async () => {
@@ -1085,7 +1284,7 @@ export default function ChroniclePanel({
       const chronicleCount = await resetAllBackportFlags(simulationRunId);
 
       // Reset entity descriptions to pre-backport state
-      const entityResult = await resetEntitiesToPreBackportState(simulationRunId);
+      const entityResult = await resetEntitiesToPreBackportState(simulationRunId, entities);
 
       setResetBackportResult({
         success: true,
@@ -1137,8 +1336,8 @@ export default function ChroniclePanel({
   }, [entities]);
 
   const wizardRelationships = useMemo(() => {
-    if (!worldData?.relationships) return [];
-    return worldData.relationships.map((r) => {
+    if (!relationships?.length) return [];
+    return relationships.map((r) => {
       const src = entityMap.get(r.src);
       const dst = entityMap.get(r.dst);
       return {
@@ -1152,11 +1351,11 @@ export default function ChroniclePanel({
         targetKind: dst?.kind || 'unknown',
       };
     });
-  }, [worldData, entityMap]);
+  }, [relationships, entityMap]);
 
   const wizardEvents = useMemo(() => {
-    if (!worldData?.narrativeHistory) return [];
-    const events = worldData.narrativeHistory.map((e) => ({
+    if (!narrativeEvents?.length) return [];
+    const events = narrativeEvents.map((e) => ({
       id: e.id,
       tick: e.tick,
       era: e.era,
@@ -1173,7 +1372,7 @@ export default function ChroniclePanel({
     }));
 
     return events;
-  }, [worldData]);
+  }, [narrativeEvents]);
 
   // Build era temporal info from era entities
   // NOTE: Era boundaries come directly from entity.temporal.startTick/endTick.
@@ -1212,8 +1411,8 @@ export default function ChroniclePanel({
 
   // Handle wizard completion
   const handleWizardGenerate = useCallback(async (wizardConfig) => {
-    if (!worldData || !worldContext) {
-      console.error('[Chronicle Wizard] Missing worldData or worldContext');
+    if (!worldContext) {
+      console.error('[Chronicle Wizard] Missing worldContext');
       return;
     }
 
@@ -1260,10 +1459,10 @@ export default function ChroniclePanel({
     // Generate name bank for invented characters
     // Must be done here (not in useEffect) because wizard creates new chronicles
     const entityIds = wizardConfig.roleAssignments.map(r => r.entityId);
-    const selectedEntities = worldData.hardState?.filter(e => entityIds.includes(e.id)) || [];
+    const selectedEntities = entities?.filter(e => entityIds.includes(e.id)) || [];
     const cultureIds = extractCultureIds(selectedEntities);
     let wizardNameBank = {};
-    if (cultureIds.length > 0 && worldData.schema?.cultures) {
+    if (cultureIds.length > 0 && worldData?.schema?.cultures) {
       try {
         wizardNameBank = await generateNameBank(worldData.schema.cultures, cultureIds);
         console.log('[Chronicle Wizard] Generated name bank:', wizardNameBank);
@@ -1283,13 +1482,14 @@ export default function ChroniclePanel({
     // Build the chronicle generation context (chronicle-first)
     const context = buildChronicleContext(
       selections,
-      worldData,
+      chronicleWorldData,
       wc,
       narrativeStyle,
       wizardNameBank,
       proseHints,
       cultureIdentities?.descriptive,
-      wizardConfig.temporalContext
+      wizardConfig.temporalContext,
+      wizardConfig.narrativeDirection
     );
 
     // Derive chronicle metadata from role assignments
@@ -1316,6 +1516,7 @@ export default function ChroniclePanel({
       entrypointId: wizardConfig.entryPointId,
       temporalContext: wizardConfig.temporalContext,
       generationSampling: isLowSampling ? 'low' : 'normal',
+      narrativeDirection: wizardConfig.narrativeDirection,
     };
 
     console.log('[Chronicle Wizard] Generated chronicle:', {
@@ -1345,6 +1546,7 @@ export default function ChroniclePanel({
         entrypointId: wizardConfig.entryPointId,
         temporalContext: wizardConfig.temporalContext,
         generationSampling: isLowSampling ? 'low' : 'normal',
+        narrativeDirection: wizardConfig.narrativeDirection,
       });
       // Refresh to show the new shell record
       await refresh();
@@ -1359,7 +1561,7 @@ export default function ChroniclePanel({
     setSelectedItemId(chronicleId);
     // Close the wizard
     setShowWizard(false);
-  }, [worldData, worldContext, styleLibrary, generateV2, simulationRunId, refresh, entityGuidance, cultureIdentities]);
+  }, [chronicleWorldData, worldContext, styleLibrary, generateV2, simulationRunId, refresh, entityGuidance, cultureIdentities, worldData?.schema?.cultures]);
 
   // Handle generating a chronicle image
   const handleGenerateChronicleImage = useCallback(
@@ -1456,6 +1658,19 @@ export default function ChroniclePanel({
       await updateChronicleImageRef(selectedItem.chronicleId, ref.refId, {
         generatedImageId: imageId,
         status: 'complete',
+        error: undefined,
+      });
+      await refreshChronicle(selectedItem.chronicleId);
+    },
+    [selectedItem, refreshChronicle]
+  );
+
+  const handleSelectExistingCoverImage = useCallback(
+    async (imageId) => {
+      if (!selectedItem?.chronicleId || !selectedItem?.coverImage) return;
+      await updateChronicleCoverImageStatus(selectedItem.chronicleId, {
+        status: 'complete',
+        generatedImageId: imageId,
         error: undefined,
       });
       await refreshChronicle(selectedItem.chronicleId);
@@ -1561,13 +1776,13 @@ export default function ChroniclePanel({
     }
 
     // Get the full chronicle record from storage
-    const chronicle = useChronicleStore.getState().chronicles[selectedItem.chronicleId];
-    if (!chronicle) {
-      console.error('[Chronicle] Cannot export: chronicle not found in storage');
-      return;
-    }
-
-    downloadChronicleExport(chronicle);
+    useChronicleStore.getState().loadChronicle(selectedItem.chronicleId).then((chronicle) => {
+      if (!chronicle) {
+        console.error('[Chronicle] Cannot export: chronicle not found in storage');
+        return;
+      }
+      downloadChronicleExport(chronicle);
+    });
   }, [selectedItem]);
 
   // Calculate stats
@@ -1609,22 +1824,11 @@ export default function ChroniclePanel({
               Generate long-form narrative content
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
               {stats.complete} / {chronicleItems.length} complete
             </span>
-            <button
-              onClick={() => setShowResetBackportModal(true)}
-              className="illuminator-button"
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-              }}
-              title="Reset loreBackported flag on all chronicles (for re-running backport)"
-            >
-              Reset Backports
-            </button>
-            {autoBackportQueue ? (
+            {autoBackportQueue && (
               <button
                 onClick={onCancelAutoBackport}
                 className="illuminator-button"
@@ -1641,18 +1845,6 @@ export default function ChroniclePanel({
                   ({autoBackportQueue.ids.length - 1} left)
                 </span>
                 <span style={{ fontSize: '11px', color: 'var(--accent-color)' }}>cancel</span>
-              </button>
-            ) : (
-              <button
-                onClick={onStartAutoBackport}
-                className="illuminator-button"
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '12px',
-                }}
-                title="Backport lore from all published chronicles to cast entities (auto-accept)"
-              >
-                Backport All
               </button>
             )}
             <button
@@ -1792,6 +1984,159 @@ export default function ChroniclePanel({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Collapsible Bulk Actions */}
+      <div
+        style={{
+          borderBottom: '1px solid var(--border-color)',
+          background: 'var(--bg-primary)',
+        }}
+      >
+        <button
+          onClick={() => setShowBulkActions(!showBulkActions)}
+          style={{
+            width: '100%',
+            padding: '6px 16px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '11px',
+            color: 'var(--text-muted)',
+            letterSpacing: '0.03em',
+          }}
+        >
+          <span style={{ fontSize: '9px', transition: 'transform 0.15s', transform: showBulkActions ? 'rotate(90deg)' : 'none' }}>&#9654;</span>
+          Bulk Actions
+        </button>
+        {showBulkActions && (
+          <div
+            style={{
+              padding: '4px 16px 12px',
+              display: 'flex',
+              gap: '32px',
+            }}
+          >
+            {/* Data Repair */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Data Repair
+              </span>
+              {onRefreshEraSummaries && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const count = await onRefreshEraSummaries();
+                      setEraSummaryRefreshResult({ success: true, count });
+                      setTimeout(() => setEraSummaryRefreshResult(null), 4000);
+                    } catch (err) {
+                      setEraSummaryRefreshResult({ success: false, error: err.message });
+                      setTimeout(() => setEraSummaryRefreshResult(null), 6000);
+                    }
+                  }}
+                  className="illuminator-button"
+                  title="Refresh era summaries in all chronicle temporal contexts from current entity data"
+                >
+                  Refresh Era Summaries
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  const eligible = chronicleItems.filter(
+                    (c) => c.hasTemporalNarrative && (c.status === 'complete' || c.status === 'assembly_ready'),
+                  );
+                  if (eligible.length === 0) {
+                    setTemporalCheckResult({ success: true, count: 0 });
+                    setTimeout(() => setTemporalCheckResult(null), 4000);
+                    return;
+                  }
+                  const items = eligible.map((c) => {
+                    const primaryRole = c.roleAssignments?.find((r) => r.isPrimary) || c.roleAssignments?.[0];
+                    const entity = primaryRole
+                      ? { id: primaryRole.entityId, name: primaryRole.entityName, kind: primaryRole.entityKind, subtype: '', prominence: 'recognized', culture: '', status: 'active', description: '', tags: {} }
+                      : { id: c.chronicleId, name: c.title || 'Chronicle', kind: 'chronicle', subtype: '', prominence: 'recognized', culture: '', status: 'active', description: '', tags: {} };
+                    return { entity, type: 'entityChronicle', prompt: '', chronicleStep: 'temporal_check', chronicleId: c.chronicleId };
+                  });
+                  onEnqueue(items);
+                  setTemporalCheckResult({ success: true, count: eligible.length });
+                  setTimeout(() => setTemporalCheckResult(null), 4000);
+                }}
+                className="illuminator-button"
+                title="Re-run temporal alignment check on all chronicles that have a temporal narrative"
+              >
+                Rerun Temporal Checks
+              </button>
+            </div>
+            {/* Batch Processing */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Batch Processing
+              </span>
+              {!autoBackportQueue && (
+                <button
+                  onClick={onStartAutoBackport}
+                  className="illuminator-button"
+                  title="Backport lore from all published chronicles to cast entities (auto-accept)"
+                >
+                  Backport All
+                </button>
+              )}
+              <button
+                onClick={handleOpenResetBackportModal}
+                className="illuminator-button"
+                title="Reset loreBackported flag on all chronicles (for re-running backport)"
+              >
+                Reset Backports
+              </button>
+              <button
+                onClick={() => setShowChronologyModal(true)}
+                className="illuminator-button"
+                disabled={!historianConfigured}
+                title={historianConfigured
+                  ? "Historian assigns chronological years to chronicles within each era"
+                  : "Configure historian persona first"}
+              >
+                Chronology
+              </button>
+              <button
+                onClick={() => {
+                  const eligible = chronicleItems.filter(
+                    (c) => (c.status === 'complete' || c.status === 'assembly_ready') && historianConfigured,
+                  );
+                  if (eligible.length === 0) return;
+                  const items = eligible.map((c) => {
+                    const primaryRole = c.roleAssignments?.find((r) => r.isPrimary) || c.roleAssignments?.[0];
+                    const entity = primaryRole
+                      ? { id: primaryRole.entityId, name: primaryRole.entityName, kind: primaryRole.entityKind, subtype: '', prominence: 'recognized', culture: '', status: 'active', description: '', tags: {} }
+                      : { id: c.chronicleId, name: c.name || 'Chronicle', kind: 'chronicle', subtype: '', prominence: 'recognized', culture: '', status: 'active', description: '', tags: {} };
+                    return { entity, type: 'historianPrep', prompt: JSON.stringify({ historianConfig, tone: 'weary' }), chronicleId: c.chronicleId };
+                  });
+                  onEnqueue(items);
+                }}
+                className="illuminator-button"
+                disabled={!historianConfigured}
+                title={historianConfigured
+                  ? "Generate historian reading notes for all chronicles (input for era narratives)"
+                  : "Configure historian persona first"}
+              >
+                Historian Prep
+              </button>
+              <button
+                onClick={() => setShowEraNarrativeModal(true)}
+                className="illuminator-button"
+                disabled={!historianConfigured}
+                title={historianConfigured
+                  ? "Generate a multi-chapter era narrative from historian prep briefs"
+                  : "Configure historian persona first"}
+              >
+                Era Narrative
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main content area */}
@@ -1973,8 +2318,11 @@ export default function ChroniclePanel({
                   onOpenImageSettings={onOpenImageSettings}
                   onRegenerateWithSampling={handleRegenerateWithSampling}
                   onRegenerateFull={handleRegenerateFull}
+                  onRegenerateCreative={selectedItem?.narrativeStyle?.format === 'story' ? handleRegenerateCreative : undefined}
                   onCompareVersions={handleCompareVersions}
                   onCombineVersions={handleCombineVersions}
+                  onCopyEdit={handleCopyEdit}
+                  onTemporalCheck={handleTemporalCheck}
                   onGenerateChronicleImage={handleGenerateChronicleImage}
                   onResetChronicleImage={handleResetChronicleImage}
                   onRegenerateDescription={handleRegenerateDescription}
@@ -1983,6 +2331,7 @@ export default function ChroniclePanel({
                   onUpdateChronicleImageJustification={handleUpdateChronicleImageJustification}
                   onApplyImageRefSelections={handleApplyImageRefSelections}
                   onSelectExistingImage={handleSelectExistingImage}
+                  onSelectExistingCoverImage={handleSelectExistingCoverImage}
                   onUpdateChronicleTemporalContext={handleUpdateChronicleTemporalContext}
                   onUpdateChronicleActiveVersion={handleUpdateChronicleActiveVersion}
                   onDeleteVersion={handleDeleteVersion}
@@ -1995,6 +2344,15 @@ export default function ChroniclePanel({
                     : undefined}
                   isHistorianActive={isHistorianActive}
                   onUpdateHistorianNote={onUpdateHistorianNote}
+                  onGeneratePrep={historianConfigured && (selectedItem.status === 'complete' || selectedItem.status === 'assembly_ready')
+                    ? () => {
+                        const primaryRole = selectedItem.roleAssignments?.find((r) => r.isPrimary) || selectedItem.roleAssignments?.[0];
+                        const entity = primaryRole
+                          ? { id: primaryRole.entityId, name: primaryRole.entityName, kind: primaryRole.entityKind, subtype: '', prominence: 'recognized', culture: '', status: 'active', description: '', tags: {} }
+                          : { id: selectedItem.chronicleId, name: selectedItem.name || 'Chronicle', kind: 'chronicle', subtype: '', prominence: 'recognized', culture: '', status: 'active', description: '', tags: {} };
+                        onEnqueue([{ entity, type: 'historianPrep', prompt: JSON.stringify({ historianConfig, tone: 'weary' }), chronicleId: selectedItem.chronicleId }]);
+                      }
+                    : undefined}
                   isGenerating={isGenerating}
                   refinements={refinementState}
                   entities={entities}
@@ -2004,6 +2362,7 @@ export default function ChroniclePanel({
                   cultureIdentities={cultureIdentities}
                   worldContext={worldContext}
                   eras={wizardEras}
+                  events={wizardEvents}
                 />
               )}
             </>
@@ -2151,6 +2510,84 @@ export default function ChroniclePanel({
         </div>
       )}
 
+      {/* Era Summary Refresh notification */}
+      {eraSummaryRefreshResult && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            background: eraSummaryRefreshResult.success ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)',
+            color: 'white',
+            padding: '16px 24px',
+            borderRadius: '8px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+            zIndex: 1001,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+          onClick={() => setEraSummaryRefreshResult(null)}
+        >
+          <span>
+            {eraSummaryRefreshResult.success
+              ? eraSummaryRefreshResult.count > 0
+                ? `Updated era summaries in ${eraSummaryRefreshResult.count} chronicle${eraSummaryRefreshResult.count !== 1 ? 's' : ''}`
+                : 'All chronicle era summaries are already up to date'
+              : `Error: ${eraSummaryRefreshResult.error}`}
+          </span>
+          <button
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '16px',
+            }}
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
+      {/* Temporal Check notification */}
+      {temporalCheckResult && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            background: 'rgba(16, 185, 129, 0.95)',
+            color: 'white',
+            padding: '16px 24px',
+            borderRadius: '8px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+            zIndex: 1001,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+          onClick={() => setTemporalCheckResult(null)}
+        >
+          <span>
+            {temporalCheckResult.count > 0
+              ? `Enqueued temporal checks for ${temporalCheckResult.count} chronicle${temporalCheckResult.count !== 1 ? 's' : ''}`
+              : 'No eligible chronicles (need temporal narrative + assembled content)'}
+          </span>
+          <button
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '16px',
+            }}
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       {/* Reset Backport Result notification */}
       {resetBackportResult && (
         <div
@@ -2190,6 +2627,33 @@ export default function ChroniclePanel({
       )}
 
       {/* Chronicle Wizard Modal */}
+      <ChronologyModal
+        isOpen={showChronologyModal}
+        onClose={() => setShowChronologyModal(false)}
+        chronicleItems={chronicleItems}
+        wizardEras={wizardEras}
+        wizardEvents={wizardEvents}
+        projectId={projectId}
+        simulationRunId={simulationRunId}
+        historianConfig={historianConfig}
+        onEnqueue={onEnqueue}
+        onApplied={() => {
+          useChronicleStore.getState().refreshAll();
+          setShowChronologyModal(false);
+        }}
+      />
+
+      <EraNarrativeModal
+        isOpen={showEraNarrativeModal}
+        onClose={() => setShowEraNarrativeModal(false)}
+        chronicleItems={chronicleItems}
+        wizardEras={wizardEras}
+        projectId={projectId}
+        simulationRunId={simulationRunId}
+        historianConfig={historianConfig}
+        onEnqueue={onEnqueue}
+      />
+
       <ChronicleWizard
         isOpen={showWizard}
         onClose={() => {

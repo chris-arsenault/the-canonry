@@ -11,7 +11,8 @@ interface ChronicleIndexProps {
   filter:
     | { kind: 'all' }
     | { kind: 'format'; format: 'story' | 'document' }
-    | { kind: 'type'; typeId: string };
+    | { kind: 'type'; typeId: string }
+    | { kind: 'era'; eraId: string; format?: 'story' | 'document' };
   onNavigate: (pageId: string) => void;
 }
 
@@ -43,6 +44,12 @@ export default function ChronicleIndex({
         if (filter.kind === 'all') return true;
         if (filter.kind === 'format') return page.chronicle?.format === filter.format;
         if (filter.kind === 'type') return page.chronicle?.narrativeStyleId === filter.typeId;
+        if (filter.kind === 'era') {
+          const focalEraId = page.chronicle?.temporalContext?.focalEra?.id;
+          if (focalEraId !== filter.eraId) return false;
+          if (filter.format && page.chronicle?.format !== filter.format) return false;
+          return true;
+        }
         return true;
       });
   }, [chronicles, filter]);
@@ -123,18 +130,37 @@ export default function ChronicleIndex({
     return entries;
   }, [sorted, sortMode]);
 
+  // Get era name for era-based filters
+  const eraName = useMemo(() => {
+    if (filter.kind !== 'era') return null;
+    const chronicle = chronicles.find(
+      (c) => c.chronicle?.temporalContext?.focalEra?.id === filter.eraId
+    );
+    return chronicle?.chronicle?.temporalContext?.focalEra?.name || 'Unknown Era';
+  }, [chronicles, filter]);
+
   const heading = filter.kind === 'format'
     ? filter.format === 'story'
       ? 'Stories'
       : 'Documents'
     : filter.kind === 'type'
     ? `${formatChronicleSubtype(filter.typeId)} Chronicles`
+    : filter.kind === 'era'
+    ? filter.format === 'story'
+      ? `Stories: ${eraName}`
+      : filter.format === 'document'
+      ? `Documents: ${eraName}`
+      : `Chronicles: ${eraName}`
     : 'Chronicles';
 
   const description = filter.kind === 'all'
     ? 'Accepted chronicles from Illuminator.'
     : filter.kind === 'format'
     ? `Accepted ${filter.format === 'story' ? 'stories' : 'documents'} from Illuminator.`
+    : filter.kind === 'era'
+    ? filter.format
+      ? `${filter.format === 'story' ? 'Stories' : 'Documents'} set during the ${eraName}.`
+      : `Chronicles set during the ${eraName}.`
     : `Accepted chronicles of type ${formatChronicleSubtype(filter.typeId)}.`;
 
   if (sorted.length === 0) {

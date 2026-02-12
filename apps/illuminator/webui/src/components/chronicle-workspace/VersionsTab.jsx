@@ -34,10 +34,13 @@ export default function VersionsTab({
   onCompareVersions,
   onCombineVersions,
   onRegenerateFull,
+  onRegenerateCreative,
   onRegenerateWithSampling,
   onUpdateCombineInstructions,
+  onCopyEdit,
   compareRunning,
   combineRunning,
+  copyEditRunning,
 }) {
   const [editingCombineInstructions, setEditingCombineInstructions] = useState(false);
   const [combineInstructionsDraft, setCombineInstructionsDraft] = useState('');
@@ -104,25 +107,89 @@ export default function VersionsTab({
           </button>
           <button
             onClick={onCombineVersions}
-            disabled={isGenerating || compareRunning || combineRunning || versions.length < 2}
+            disabled={isGenerating || compareRunning || combineRunning || copyEditRunning || versions.length < 2}
             style={{
               padding: '8px 14px',
               background: 'var(--bg-tertiary)',
               border: '1px solid var(--border-color)',
               borderRadius: '6px',
               color: 'var(--text-secondary)',
-              cursor: isGenerating || compareRunning || combineRunning || versions.length < 2 ? 'not-allowed' : 'pointer',
-              opacity: isGenerating || compareRunning || combineRunning || versions.length < 2 ? 0.6 : 1,
+              cursor: isGenerating || compareRunning || combineRunning || copyEditRunning || versions.length < 2 ? 'not-allowed' : 'pointer',
+              opacity: isGenerating || compareRunning || combineRunning || copyEditRunning || versions.length < 2 ? 0.6 : 1,
               fontSize: '12px',
             }}
           >
             {combineRunning ? 'Combining...' : 'Combine Versions'}
           </button>
+          <button
+            onClick={onCopyEdit}
+            disabled={isGenerating || compareRunning || combineRunning || copyEditRunning || !item.assembledContent}
+            title="Polish pass — smooths voice, trims to word count target, tightens prose. Produces a new version."
+            style={{
+              padding: '8px 14px',
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '6px',
+              color: 'var(--text-secondary)',
+              cursor: isGenerating || compareRunning || combineRunning || copyEditRunning || !item.assembledContent ? 'not-allowed' : 'pointer',
+              opacity: isGenerating || compareRunning || combineRunning || copyEditRunning || !item.assembledContent ? 0.6 : 1,
+              fontSize: '12px',
+            }}
+          >
+            {copyEditRunning ? 'Copy-editing...' : 'Copy-edit'}
+          </button>
+          <button
+            onClick={() => {
+              const list = item.generationHistory || [];
+              const byId = new Map();
+              for (const v of list) {
+                const arr = byId.get(v.versionId) || [];
+                arr.push(v);
+                byId.set(v.versionId, arr);
+              }
+              const duplicates = Array.from(byId.entries())
+                .filter(([, arr]) => arr.length > 1)
+                .map(([id, arr]) => ({ id, count: arr.length }));
+              console.warn('[Chronicle][Debug] Version dump', {
+                chronicleId: item.chronicleId,
+                activeVersionId: item.activeVersionId,
+                acceptedVersionId: item.acceptedVersionId,
+                assembledAt: item.assembledAt,
+                assembledContentLength: item.assembledContent?.length || 0,
+                versionCount: list.length,
+                duplicates,
+                versions: list.map((v, i) => ({
+                  index: i,
+                  versionId: v.versionId,
+                  generatedAt: v.generatedAt,
+                  step: v.step,
+                  sampling: v.sampling,
+                  model: v.model,
+                  wordCount: v.wordCount,
+                  contentLength: v.content?.length || 0,
+                })),
+              });
+            }}
+            disabled={isGenerating}
+            title="Dump generationHistory to console"
+            style={{
+              padding: '8px 14px',
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '6px',
+              color: 'var(--text-secondary)',
+              cursor: isGenerating ? 'not-allowed' : 'pointer',
+              opacity: isGenerating ? 0.6 : 1,
+              fontSize: '12px',
+            }}
+          >
+            Dump Versions
+          </button>
         </div>
         <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>
           {versions.length < 2
             ? 'Create a new version first to enable comparison and combination.'
-            : 'Compare produces an analysis report. Combine synthesizes all drafts into a new version.'}
+            : 'Compare produces an analysis report. Combine synthesizes all drafts into a new version. Copy-edit polishes the active version.'}
           {item.comparisonReport && !item.combineInstructions && (
             <span style={{ color: 'var(--warning-color, #e6a700)' }}>
               {' '}Combine instructions missing — combine will use generic criteria.
@@ -329,6 +396,31 @@ export default function VersionsTab({
           >
             {isGenerating ? 'Generating...' : 'Regenerate with new perspective'}
           </button>
+
+          {/* Regenerate with creative freedom (story format only) */}
+          {onRegenerateCreative && (
+            <button
+              onClick={() => onRegenerateCreative?.()}
+              disabled={isGenerating || compareRunning || combineRunning}
+              title="Same PS, different generation prompt — neutral framing, softened structure, no craft posture. Reuses existing perspective synthesis."
+              style={{
+                padding: '8px 16px',
+                background: '#b45309',
+                border: 'none',
+                borderRadius: '6px',
+                color: 'white',
+                cursor:
+                  isGenerating || compareRunning || combineRunning
+                    ? 'not-allowed'
+                    : 'pointer',
+                opacity:
+                  isGenerating || compareRunning || combineRunning ? 0.6 : 1,
+                fontSize: '12px',
+              }}
+            >
+              {isGenerating ? 'Generating...' : 'Creative freedom'}
+            </button>
+          )}
         </div>
 
         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -416,6 +508,7 @@ export default function VersionsTab({
           </div>
         </div>
       )}
+
     </div>
   );
 }

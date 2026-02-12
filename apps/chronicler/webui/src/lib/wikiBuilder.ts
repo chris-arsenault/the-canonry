@@ -324,7 +324,8 @@ export function buildPageIndex(
   _loreData: LoreData | null, // Not used here - kept for API compatibility
   chronicles: ChronicleRecord[] = [],
   staticPages: StaticPage[] = [],
-  prominenceScale?: ProminenceScale
+  prominenceScale?: ProminenceScale,
+  confluxIndexOverride?: Map<string, ConfluxSummary>
 ): WikiPageIndex {
   const resolvedProminenceScale = resolveProminenceScale(worldData, prominenceScale);
   const entries: PageIndexEntry[] = [];
@@ -607,7 +608,7 @@ export function buildPageIndex(
   }
 
   // Build conflux index entries from narrative history
-  const confluxIndex = buildConfluxIndex(worldData.narrativeHistory ?? []);
+  const confluxIndex = confluxIndexOverride ?? buildConfluxIndex(worldData.narrativeHistory ?? []);
   for (const [confluxId, summary] of confluxIndex) {
     const confluxPageId = `conflux:${confluxId}`;
     const entry: PageIndexEntry = {

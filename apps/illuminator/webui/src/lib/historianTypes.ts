@@ -12,6 +12,7 @@
 // =============================================================================
 
 export type HistorianTone =
+  | 'scholarly'       // Professional, measured, striving for objectivity. Biases surface in emphasis.
   | 'witty'          // Tongue-in-cheek, sarcastic, playful
   | 'weary'          // Resigned satire, black humor, aloof compassion
   | 'forensic'       // Cold, clinical, methodical — the historian as detective
@@ -27,7 +28,8 @@ export type HistorianNoteType =
   | 'correction'    // Factual inconsistency or inaccuracy callout
   | 'tangent'       // Personal digression, aside, memory
   | 'skepticism'    // Disputes or questions the account
-  | 'pedantic';     // Scholarly pedantic correction (names, dates, terminology)
+  | 'pedantic'      // Scholarly pedantic correction (names, dates, terminology)
+  | 'temporal';     // Temporal displacement, anachronism, ice-echo observation
 
 /** Display mode for a historian note */
 export type HistorianNoteDisplay = 'disabled' | 'popout' | 'full';
@@ -107,7 +109,7 @@ export function isHistorianConfigured(config: HistorianConfig): boolean {
 // Historian Run (IndexedDB record for review workflow)
 // =============================================================================
 
-export type HistorianTargetType = 'entity' | 'chronicle';
+export type HistorianTargetType = 'entity' | 'chronicle' | 'chronology';
 
 export type HistorianRunStatus =
   | 'pending'
@@ -140,6 +142,8 @@ export interface HistorianRun {
   notes: HistorianNote[];
   /** Per-note accept/reject decisions (noteId → boolean) */
   noteDecisions: Record<string, boolean>;
+  /** Chronology assignments (populated by worker for targetType='chronology') */
+  chronologyAssignments?: ChronologyAssignment[];
 
   /** Serialized context: entity/chronicle metadata + neighbor summaries */
   contextJson: string;
@@ -167,4 +171,18 @@ export interface HistorianLLMResponse {
     text: string;
     type: HistorianNoteType;
   }>;
+}
+
+// =============================================================================
+// Chronology Assignment Types
+// =============================================================================
+
+export interface ChronologyAssignment {
+  chronicleId: string;
+  year: number;
+  reasoning: string;
+}
+
+export interface ChronologyLLMResponse {
+  chronology: ChronologyAssignment[];
 }

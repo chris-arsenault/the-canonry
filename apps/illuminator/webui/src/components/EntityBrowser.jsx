@@ -372,7 +372,7 @@ function EntityRow({
 }
 
 // Helper to get cost display for an entity
-function getEntityCostDisplay(entity, type, status, config, enrichment, buildPrompt) {
+function getEntityCostDisplay(entity, type, status, config, enrichment, buildPrompt, imageGenSettings) {
   // If complete, show actual cost
   if (status === 'complete') {
     if (type === 'description' && enrichment?.text?.actualCost) {
@@ -391,6 +391,9 @@ function getEntityCostDisplay(entity, type, status, config, enrichment, buildPro
       return formatEstimatedCost(estimate.estimatedCost);
     }
     if (type === 'image') {
+      if (!config?.imageModel || !imageGenSettings?.imageSize || !imageGenSettings?.imageQuality) {
+        return undefined;
+      }
       const cost = estimateImageCost(config.imageModel, imageGenSettings.imageSize, imageGenSettings.imageQuality);
       return formatEstimatedCost(cost);
     }
@@ -418,14 +421,17 @@ export default function EntityBrowser({
   isRevising,
   onUpdateBackrefs,
   onUndoDescription,
-  onCopyEdit,
-  isCopyEditActive,
+  onHistorianEdition,
+  isHistorianEditionActive,
   onHistorianReview,
   isHistorianActive,
   historianConfigured,
   onUpdateHistorianNote,
   onRename,
   onPatchEvents,
+  onUpdateAliases,
+  onUpdateDescription,
+  onUpdateSummary,
 }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [filters, setFilters] = useState({
@@ -1196,14 +1202,17 @@ export default function EntityBrowser({
           prominenceScale={effectiveProminenceScale}
           onUpdateBackrefs={onUpdateBackrefs}
           onUndoDescription={onUndoDescription}
-          onCopyEdit={onCopyEdit}
-          isCopyEditActive={isCopyEditActive}
+          onHistorianEdition={onHistorianEdition}
+          isHistorianEditionActive={isHistorianEditionActive}
           onHistorianReview={onHistorianReview}
           isHistorianActive={isHistorianActive}
           historianConfigured={historianConfigured}
           onUpdateHistorianNote={onUpdateHistorianNote}
           onRename={onRename}
           onPatchEvents={onPatchEvents}
+          onUpdateAliases={onUpdateAliases}
+          onUpdateDescription={onUpdateDescription}
+          onUpdateSummary={onUpdateSummary}
         />
       ) : (
         <div className="illuminator-card" style={{ padding: 0, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -1266,8 +1275,24 @@ export default function EntityBrowser({
                     }
                     onImageClick={openImageModal}
                     onEntityClick={() => openEntityModal(entity)}
-                    descCost={getEntityCostDisplay(entity, 'description', descStatus, config, enrichment, buildPrompt)}
-                    imgCost={getEntityCostDisplay(entity, 'image', imgStatus, config, enrichment, buildPrompt)}
+                    descCost={getEntityCostDisplay(
+                      entity,
+                      'description',
+                      descStatus,
+                      config,
+                      enrichment,
+                      buildPrompt,
+                      imageGenSettings,
+                    )}
+                    imgCost={getEntityCostDisplay(
+                      entity,
+                      'image',
+                      imgStatus,
+                      config,
+                      enrichment,
+                      buildPrompt,
+                      imageGenSettings,
+                    )}
                     prominenceScale={effectiveProminenceScale}
                   />
                 );

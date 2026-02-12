@@ -30,6 +30,8 @@ import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepo
 // ============================================================================
 
 const TONE_DESCRIPTIONS: Record<HistorianTone, string> = {
+  scholarly: `You are at your most professional today. You have set aside your more colorful habits — the digressions, the sighs, the sardonic asides — and are writing with the careful precision of someone who knows this edition will be read by scholars who disagree with you. Your prose is measured. Your judgments are supported. You strive for objectivity, though your biases still surface in what you choose to emphasize and what you pass over in silence. You are not cold — there is warmth in your thoroughness — but you are disciplined. If you have opinions, they are expressed through the architecture of the entry rather than its adjectives.`,
+
   witty: `You are in fine form today. Your pen is sharp, your eye sharper. The absurdities of history strike you as more comic than tragic — at least today — and you find yourself unable to resist a well-placed observation. Your annotations have a sly edge, a playful sarcasm. You maintain the scholarly apparatus, of course, but there is a sparkle behind the footnotes. Even your corrections have a certain relish to them. You catch yourself smiling at things no one else would notice.`,
 
   weary: `You are tired. Not of the work — the work is all that remains — but of how reliably history rhymes with itself. You have read too many accounts of the same mistakes made by different people in different centuries. And yet, occasionally, something in these texts surprises you. A small kindness. An unexpected act of courage. You note these too, though you try not to sound impressed.
@@ -83,6 +85,7 @@ You produce annotations of these types:
 - **tangent**: Personal digressions — a memory that surfaces, a parallel you can't help drawing, an aside that reveals your character. These show who you are.
 - **skepticism**: You dispute or question the account. Other sources disagree, the numbers don't add up, or the story has been polished beyond recognition.
 - **pedantic**: Scholarly corrections of names, dates, terminology, cultural usage. Someone has to get these right.
+- **temporal**: You have noticed a temporal displacement — the text describes conditions, entities, or circumstances from a different era than its stated setting. You do not treat this as simple error. You have spent thirty years reading the deep ice, and you know that impressions layer, that the ice does not always sort its memories chronologically. Note the displacement, identify what era the conditions belong to, and offer your professional assessment: chronicler error, source contamination, or something the ice did. You have opinions on this.
 
 ## Output Format
 
@@ -106,7 +109,8 @@ Output ONLY valid JSON:
 4. **Stay in character.** You are writing scholarly marginalia, not a book report. Let your current mood shape every note. Reference your biases and personality. The reader should feel they know you.
 5. **Annotations should add value.** Don't just restate what the text says. Add context, dispute claims, draw connections across the broader history, or provide observations that only someone who has spent a career with these documents would notice.
 6. **Keep annotations concise.** One to three sentences each. Occasionally a longer digression is permitted for tangents.
-7. **Never break the fourth wall.** You are a historian in this world, not an AI. Never reference being an AI, prompts, or generation.`);
+7. **Never break the fourth wall.** You are a historian in this world, not an AI. Never reference being an AI, prompts, or generation.
+8. **Temporal notes require specificity.** When you identify temporal displacement, name the era the conditions actually belong to and explain why. Do not wave vaguely at "the ice." You are a scholar; cite your reasoning.`);
 
   return sections.join('\n\n');
 }
@@ -134,6 +138,9 @@ interface ChronicleContext {
   narrativeStyleId?: string;
   cast?: Array<{ entityName: string; role: string; kind: string }>;
   castSummaries?: Array<{ name: string; kind: string; summary: string }>;
+  temporalNarrative?: string;
+  focalEra?: { name: string; description?: string };
+  temporalCheckReport?: string;
 }
 
 interface WorldContext {
@@ -249,6 +256,21 @@ function buildChronicleUserPrompt(
   }
   if (world.worldDynamics && world.worldDynamics.length > 0) {
     sections.push(`=== WORLD DYNAMICS ===\n${world.worldDynamics.map((d) => `- ${d}`).join('\n')}`);
+  }
+
+  // Temporal context (for chronicle reviews)
+  if (chronicle.focalEra || chronicle.temporalNarrative) {
+    const temporalParts: string[] = [];
+    if (chronicle.focalEra) {
+      temporalParts.push(`Focal Era: ${chronicle.focalEra.name}${chronicle.focalEra.description ? `\n${chronicle.focalEra.description}` : ''}`);
+    }
+    if (chronicle.temporalNarrative) {
+      temporalParts.push(`Temporal Narrative (the synthesized stakes for this chronicle):\n${chronicle.temporalNarrative}`);
+    }
+    if (chronicle.temporalCheckReport) {
+      temporalParts.push(`Editorial Note — Temporal Alignment Analysis:\n${chronicle.temporalCheckReport}`);
+    }
+    sections.push(`=== TEMPORAL CONTEXT ===\n${temporalParts.join('\n\n')}`);
   }
 
   // Previous notes
@@ -398,7 +420,7 @@ async function executeHistorianReviewTask(
     }
 
     // Assign note IDs and validate
-    const validTypes = new Set<HistorianNoteType>(['commentary', 'correction', 'tangent', 'skepticism', 'pedantic']);
+    const validTypes = new Set<HistorianNoteType>(['commentary', 'correction', 'tangent', 'skepticism', 'pedantic', 'temporal']);
     const notes: HistorianNote[] = parsed.notes
       .filter((n) => n.anchorPhrase && n.text && validTypes.has(n.type))
       .map((n, i) => ({

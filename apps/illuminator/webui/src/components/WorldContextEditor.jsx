@@ -27,10 +27,14 @@ function FactCard({ fact, onUpdate, onRemove }) {
     if (field === 'type' && value === 'generation_constraint') {
       next.required = false;
     }
+    if (field === 'disabled' && value) {
+      next.required = false;
+    }
     onUpdate(next);
   };
 
   const isConstraint = fact.type === 'generation_constraint';
+  const isDisabled = Boolean(fact.disabled);
 
   return (
     <div
@@ -40,6 +44,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
         border: '1px solid var(--border-color)',
         marginBottom: '8px',
         overflow: 'hidden',
+        opacity: isDisabled ? 0.5 : 1,
       }}
     >
       {/* Header */}
@@ -90,7 +95,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
         >
           {isConstraint ? 'constraint' : 'truth'}
         </span>
-        {fact.required && !isConstraint && (
+        {fact.required && !isConstraint && !isDisabled && (
           <span
             style={{
               fontSize: '10px',
@@ -102,6 +107,20 @@ function FactCard({ fact, onUpdate, onRemove }) {
             title="Required fact (must be included in perspective facets)"
           >
             required
+          </span>
+        )}
+        {isDisabled && (
+          <span
+            style={{
+              fontSize: '10px',
+              padding: '2px 6px',
+              background: 'var(--bg-secondary)',
+              borderRadius: '4px',
+              color: 'var(--text-muted)',
+            }}
+            title="Disabled — excluded from perspective synthesis and generation"
+          >
+            disabled
           </span>
         )}
         <button
@@ -145,7 +164,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
             <div>
               <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
                 Fact Type
@@ -167,12 +186,31 @@ function FactCard({ fact, onUpdate, onRemove }) {
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
                 <input
                   type="checkbox"
-                  checked={Boolean(fact.required) && !isConstraint}
+                  checked={Boolean(fact.required) && !isConstraint && !isDisabled}
                   onChange={(e) => updateField('required', e.target.checked)}
-                  disabled={isConstraint}
+                  disabled={isConstraint || isDisabled}
                 />
                 <span style={{ color: 'var(--text-secondary)' }}>
-                  Always include in perspective facets
+                  Always include in facets
+                </span>
+              </label>
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Disabled
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                <input
+                  type="checkbox"
+                  checked={isDisabled}
+                  onChange={(e) => {
+                    const next = { ...fact, disabled: e.target.checked };
+                    if (e.target.checked) next.required = false;
+                    onUpdate(next);
+                  }}
+                />
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  Exclude from prompts
                 </span>
               </label>
             </div>
@@ -190,7 +228,8 @@ function FactsEditor({ facts, onChange }) {
     id: fact.id,
     text: fact.text || '',
     type: fact.type || 'world_truth',
-    required: fact.type === 'generation_constraint' ? false : Boolean(fact.required),
+    required: fact.type === 'generation_constraint' || fact.disabled ? false : Boolean(fact.required),
+    disabled: Boolean(fact.disabled),
   });
 
   const handleAddFact = () => {
@@ -799,30 +838,53 @@ export default function WorldContextEditor({ worldContext, onWorldContextChange,
             facets. Generation constraints are always included verbatim and never faceted.
           </p>
           <div className="illuminator-form-group" style={{ marginBottom: '16px' }}>
-            <label className="illuminator-label">Facet Target (optional)</label>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={worldContext.factSelection?.targetCount ?? ''}
-              onChange={(e) => {
-                const raw = e.target.value;
-                const num = Number(raw);
-                const parsed =
-                  raw === ''
-                    ? undefined
-                    : Number.isFinite(num)
-                      ? Math.max(1, Math.floor(num))
-                      : undefined;
-                updateField('factSelection', { ...(worldContext.factSelection || {}), targetCount: parsed });
-              }}
-              placeholder="default (4-6)"
-              className="illuminator-input"
-              style={{ maxWidth: '160px' }}
-            />
+            <label className="illuminator-label">Facet Range (optional)</label>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={worldContext.factSelection?.minCount ?? ''}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const num = Number(raw);
+                  const parsed =
+                    raw === ''
+                      ? undefined
+                      : Number.isFinite(num)
+                        ? Math.max(1, Math.floor(num))
+                        : undefined;
+                  updateField('factSelection', { ...(worldContext.factSelection || {}), minCount: parsed });
+                }}
+                placeholder="min (4)"
+                className="illuminator-input"
+                style={{ maxWidth: '100px' }}
+              />
+              <span style={{ color: 'var(--text-muted)' }}>to</span>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={worldContext.factSelection?.maxCount ?? ''}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const num = Number(raw);
+                  const parsed =
+                    raw === ''
+                      ? undefined
+                      : Number.isFinite(num)
+                        ? Math.max(1, Math.floor(num))
+                        : undefined;
+                  updateField('factSelection', { ...(worldContext.factSelection || {}), maxCount: parsed });
+                }}
+                placeholder="max (6)"
+                className="illuminator-input"
+                style={{ maxWidth: '100px' }}
+              />
+            </div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
-              Target number of world-truth facts to facet. Required facts count toward this; if required
-              exceeds the target, the target is raised to match.
+              Range of world-truth facts to facet. Required facts count toward this; min is raised
+              to match required count if needed.
             </div>
           </div>
           <FactsEditor
@@ -836,6 +898,41 @@ export default function WorldContextEditor({ worldContext, onWorldContextChange,
           <div className="illuminator-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 className="illuminator-card-title">World Dynamics</h2>
             <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = '.json';
+                  input.onchange = (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      try {
+                        const parsed = JSON.parse(ev.target.result);
+                        if (!Array.isArray(parsed)) {
+                          alert('Invalid dynamics file: expected a JSON array.');
+                          return;
+                        }
+                        const valid = parsed.every((d) => d && typeof d.id === 'string' && typeof d.text === 'string');
+                        if (!valid) {
+                          alert('Invalid dynamics file: each entry must have id and text strings.');
+                          return;
+                        }
+                        updateField('worldDynamics', parsed);
+                      } catch (err) {
+                        alert(`Failed to parse dynamics JSON: ${err.message}`);
+                      }
+                    };
+                    reader.readAsText(file);
+                  };
+                  input.click();
+                }}
+                className="illuminator-button illuminator-button-secondary"
+                style={{ padding: '4px 12px', fontSize: '11px' }}
+              >
+                Import JSON
+              </button>
               {(worldContext.worldDynamics?.length > 0) && (
                 <button
                   onClick={() => {

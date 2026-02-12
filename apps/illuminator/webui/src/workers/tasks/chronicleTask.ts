@@ -24,6 +24,7 @@ import {
   type ChronicleRecord,
   regenerateChronicleAssembly,
   updateChronicleComparisonReport,
+  updateChronicleTemporalCheckReport,
   updateChronicleSummary,
   updateChronicleTitle,
   updateChronicleImageRefs,
@@ -41,9 +42,13 @@ import {
   buildV2Prompt,
   getMaxTokensFromStyle,
   getV2SystemPrompt,
+  buildCreativeStoryPrompt,
+  getCreativeSystemPrompt,
   DEFAULT_V2_CONFIG,
 } from '../../lib/chronicle/v2';
 import type { NarrativeStyle } from '@canonry/world-schema';
+import { getStyleLibrary } from '../../lib/db/styleRepository';
+import { buildCopyEditSystemPrompt, buildCopyEditUserPrompt } from '../../lib/chronicle/v2/copyEditPrompt';
 import { runTextCall } from '../../lib/llmTextCall';
 import { getCallConfig } from './llmCallConfig';
 import { stripLeadingWrapper, parseJsonObject } from './textParsing';
@@ -105,12 +110,24 @@ async function executeEntityChronicleTask(
     return executeFullRegenerationStep(task, chronicleRecord, context);
   }
 
+  if (step === 'regenerate_creative') {
+    return executeCreativeRegenerationStep(task, chronicleRecord, context);
+  }
+
   if (step === 'compare') {
     return executeCompareStep(task, chronicleRecord, context);
   }
 
   if (step === 'combine') {
     return executeCombineStep(task, chronicleRecord, context);
+  }
+
+  if (step === 'copy_edit') {
+    return executeCopyEditStep(task, chronicleRecord, context);
+  }
+
+  if (step === 'temporal_check') {
+    return executeTemporalCheckStep(task, chronicleRecord, context);
   }
 
   if (step === 'summary') {
@@ -147,19 +164,20 @@ async function executeEntityChronicleTask(
 }
 
 function resolveTargetVersionContent(record: ChronicleRecord): { versionId: string; content: string } {
-  const currentVersionId = `current_${record.assembledAt ?? record.createdAt}`;
-  const activeVersionId = record.activeVersionId || currentVersionId;
-
-  if (activeVersionId === currentVersionId) {
-    return { versionId: activeVersionId, content: record.assembledContent || '' };
-  }
-
-  const match = record.generationHistory?.find((version) => version.versionId === activeVersionId);
+  const versions = record.generationHistory || [];
+  const latest = versions.reduce(
+    (acc, v) => (acc && acc.generatedAt > v.generatedAt ? acc : v),
+    versions[0]
+  );
+  const activeVersionId = record.activeVersionId || latest?.versionId;
+  const match = versions.find((version) => version.versionId === activeVersionId);
   if (match) {
     return { versionId: match.versionId, content: match.content };
   }
-
-  return { versionId: currentVersionId, content: record.assembledContent || '' };
+  if (latest) {
+    return { versionId: latest.versionId, content: latest.content };
+  }
+  return { versionId: activeVersionId || 'unknown', content: record.assembledContent || '' };
 }
 
 /**
@@ -254,6 +272,7 @@ async function executeSamplingRegenerationStep(
       userPrompt,
       model: callConfig.model,
       sampling,
+      step: 'regenerate',
       cost: {
         estimated: generationCall.estimate.estimatedCost,
         actual: generationCall.usage.actualCost,
@@ -364,6 +383,8 @@ async function executeFullRegenerationStep(
           proseHints: chronicleContext.proseHints,
           worldDynamics: chronicleContext.worldDynamics,
           factSelection: chronicleContext.factSelection,
+          narrativeDirection: chronicleContext.narrativeDirection,
+          roleAssignments: chronicleContext.focus?.roleAssignments,
         },
         llmClient,
         perspectiveConfig
@@ -377,6 +398,7 @@ async function executeFullRegenerationStep(
         suggestedMotifs: perspectiveResult.synthesis.suggestedMotifs,
         narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
         entityDirectives: perspectiveResult.synthesis.entityDirectives,
+        temporalNarrative: perspectiveResult.synthesis.temporalNarrative,
         constellationSummary: constellation.focusSummary,
         constellation: {
           cultures: constellation.cultures,
@@ -389,12 +411,14 @@ async function executeFullRegenerationStep(
         coreTone: chronicleContext.toneFragments?.core,
         narrativeStyleId: narrativeStyle.id,
         narrativeStyleName: narrativeStyle.name,
-        factSelectionTarget: (() => {
-          const requested = chronicleContext.factSelection?.targetCount;
-          const requiredCount = (chronicleContext.canonFactsWithMetadata || [])
-            .filter((f) => f.type !== 'generation_constraint' && f.required).length;
-          if (typeof requested === 'number' && requested > 0) {
-            return Math.max(requested, requiredCount);
+        factSelectionRange: (() => {
+          const requestedMin = chronicleContext.factSelection?.minCount;
+          const requestedMax = chronicleContext.factSelection?.maxCount;
+          if (
+            (typeof requestedMin === 'number' && requestedMin > 0) ||
+            (typeof requestedMax === 'number' && requestedMax > 0)
+          ) {
+            return { min: requestedMin, max: requestedMax };
           }
           return undefined;
         })(),
@@ -403,6 +427,7 @@ async function executeFullRegenerationStep(
           text: f.text,
           type: f.type,
           required: f.required,
+          disabled: f.disabled,
         })),
         inputWorldDynamics: perspectiveResult.resolvedWorldDynamics,
         inputCulturalIdentities: chronicleContext.culturalIdentities,
@@ -412,6 +437,11 @@ async function executeFullRegenerationStep(
           culture: e.culture,
           summary: e.summary,
         })),
+        focalEra: chronicleContext.era ? {
+          id: chronicleContext.era.id,
+          name: chronicleContext.era.name,
+          description: chronicleContext.era.description,
+        } : undefined,
         inputTokens: perspectiveResult.usage.inputTokens,
         outputTokens: perspectiveResult.usage.outputTokens,
         actualCost: perspectiveResult.usage.actualCost,
@@ -421,17 +451,24 @@ async function executeFullRegenerationStep(
         ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${perspectiveResult.synthesis.suggestedMotifs.map(m => `- "${m}"`).join('\n')}`
         : '';
 
+      // coreTone is excluded from the generation prompt for all formats.
+      // It contains world-level prose guidance (SYNTACTIC POETRY, BITTER CAMARADERIE, CLOSING VARIETY, etc.)
+      // that conflicts with narrative style proseInstructions — e.g. "dark, war-weary" fights Dreamscape's
+      // "hallucinatory, fluid" and introduces competing closing line guidance.
+      // PS already receives coreTone as input and incorporates it into its synthesis.
+      // The generation prompt gets only: PS brief + motifs + narrative style proseInstructions.
+      const toneForGeneration = 'PERSPECTIVE FOR THIS CHRONICLE:\n' +
+          perspectiveResult.synthesis.brief +
+          motifSection;
+
       chronicleContext = {
         ...chronicleContext,
-        tone:
-          perspectiveResult.assembledTone +
-          '\n\nPERSPECTIVE FOR THIS CHRONICLE:\n' +
-          perspectiveResult.synthesis.brief +
-          motifSection,
+        tone: toneForGeneration,
         canonFacts: perspectiveResult.facetedFacts,
         narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
         entityDirectives: perspectiveResult.synthesis.entityDirectives,
         worldDynamicsResolved: perspectiveResult.resolvedWorldDynamics.map((d) => d.text),
+        temporalNarrative: perspectiveResult.synthesis.temporalNarrative,
       };
 
       console.log(`[Worker] Perspective synthesis complete: ${perspectiveResult.facetedFacts.length} faceted facts, ${perspectiveResult.synthesis.suggestedMotifs.length} motifs`);
@@ -484,6 +521,7 @@ async function executeFullRegenerationStep(
       userPrompt: prompt,
       model: callConfig.model,
       sampling,
+      step: 'regenerate',
       cost: {
         estimated: generationCall.estimate.estimatedCost + perspectiveResult.usage.actualCost,
         actual: generationCall.usage.actualCost + perspectiveResult.usage.actualCost,
@@ -504,6 +542,7 @@ async function executeFullRegenerationStep(
         nameBank: chronicleContext.nameBank,
         narrativeVoice: chronicleContext.narrativeVoice,
         entityDirectives: chronicleContext.entityDirectives,
+        temporalNarrative: chronicleContext.temporalNarrative,
       };
       updatedChronicle.updatedAt = Date.now();
       await putChronicle(updatedChronicle);
@@ -564,6 +603,158 @@ async function executeFullRegenerationStep(
       actualCost: totalCost.actual,
       inputTokens: totalCost.inputTokens,
       outputTokens: totalCost.outputTokens,
+    },
+    debug: result.debug,
+  };
+}
+
+/**
+ * Creative freedom regeneration.
+ * Reuses the EXISTING PS outputs already stored on the chronicle record.
+ * Only the generation prompt framing differs: neutral identity, no performance
+ * anxiety, softened structure, no craft posture. No new PS call.
+ */
+async function executeCreativeRegenerationStep(
+  task: WorkerTask,
+  chronicleRecord: ChronicleRecord,
+  context: TaskContext
+): Promise<TaskResult> {
+  const { config, llmClient, isAborted } = context;
+
+  if (!task.chronicleContext) {
+    return { success: false, error: 'Chronicle context required for creative regeneration' };
+  }
+
+  const narrativeStyle = task.chronicleContext.narrativeStyle;
+
+  if (!narrativeStyle) {
+    return { success: false, error: 'Narrative style is required for creative regeneration' };
+  }
+
+  if (narrativeStyle.format !== 'story') {
+    return { success: false, error: 'Creative freedom mode is only available for story format chronicles' };
+  }
+
+  if (chronicleRecord.status === 'complete' || chronicleRecord.finalContent) {
+    return { success: false, error: 'Creative regeneration requires unpublishing first' };
+  }
+
+  // Read stored PS outputs from the chronicle's perspective synthesis record
+  const ps = chronicleRecord.perspectiveSynthesis;
+  if (!ps) {
+    return { success: false, error: 'Creative regeneration requires existing perspective synthesis. Generate a structured version first.' };
+  }
+
+  const callConfig = getCallConfig(config, 'chronicle.generation');
+  const chronicleId = chronicleRecord.chronicleId;
+  console.log(`[Worker] Creative freedom regeneration for chronicle=${chronicleId}, style="${narrativeStyle.name}", model=${callConfig.model}`);
+
+  // Reconstruct tone from PS outputs (same pattern as regenerate_full)
+  // coreTone excluded — PS already received it and incorporated it into synthesis.
+  // Generation prompt gets only PS brief + motifs + narrative style proseInstructions.
+  const motifSection = ps.suggestedMotifs.length > 0
+    ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${ps.suggestedMotifs.map(m => `- "${m}"`).join('\n')}`
+    : '';
+  const toneForGeneration = 'PERSPECTIVE FOR THIS CHRONICLE:\n' +
+    ps.brief +
+    motifSection;
+
+  // Build faceted facts from PS facets
+  const facetedFacts = ps.facets.map((f) => `${f.interpretation}`);
+
+  // Build chronicleContext with stored PS outputs injected
+  const chronicleContext = {
+    ...task.chronicleContext,
+    tone: toneForGeneration,
+    canonFacts: facetedFacts,
+    narrativeVoice: ps.narrativeVoice,
+    entityDirectives: ps.entityDirectives,
+    temporalNarrative: ps.temporalNarrative,
+  };
+
+  // Entity/event selection
+  const selection = selectEntitiesV2(chronicleContext, DEFAULT_V2_CONFIG);
+  console.log(`[Worker] Creative selected ${selection.entities.length} entities, ${selection.events.length} events, ${selection.relationships.length} relationships`);
+
+  // Build creative prompt (same PS data, different framing)
+  const prompt = buildCreativeStoryPrompt(chronicleContext, selection);
+  const styleMaxTokens = getMaxTokensFromStyle(narrativeStyle);
+  const systemPrompt = getCreativeSystemPrompt();
+  const samplingParams = resolveChronicleSamplingParams(callConfig);
+  const sampling = deriveSamplingFromConfig(callConfig);
+
+  const generationCall = await runTextCall({
+    llmClient,
+    callType: 'chronicle.generation',
+    callConfig,
+    systemPrompt,
+    prompt,
+    ...samplingParams,
+    autoMaxTokens: styleMaxTokens,
+  });
+  const result = generationCall.result;
+
+  console.log(`[Worker] Creative prompt length: ${prompt.length} chars, maxTokens: ${generationCall.budget.totalMaxTokens}`);
+
+  if (isAborted()) {
+    return { success: false, error: 'Task aborted', debug: result.debug };
+  }
+
+  if (result.error || !result.text) {
+    return {
+      success: false,
+      error: `Creative regeneration failed: ${result.error || 'No text returned'}`,
+      debug: result.debug,
+    };
+  }
+
+  // Save as new version (snapshots current to history)
+  try {
+    await regenerateChronicleAssembly(chronicleId, {
+      assembledContent: result.text,
+      systemPrompt,
+      userPrompt: prompt,
+      model: callConfig.model,
+      sampling,
+      step: 'creative',
+      cost: {
+        estimated: generationCall.estimate.estimatedCost,
+        actual: generationCall.usage.actualCost,
+        inputTokens: generationCall.usage.inputTokens,
+        outputTokens: generationCall.usage.outputTokens,
+      },
+    });
+
+    console.log(`[Worker] Creative regeneration saved for chronicle ${chronicleId}`);
+  } catch (err) {
+    return { success: false, error: `Failed to save creative regeneration: ${err}` };
+  }
+
+  await saveCostRecordWithDefaults({
+    projectId: task.projectId,
+    simulationRunId: task.simulationRunId,
+    entityId: task.entityId,
+    entityName: task.entityName,
+    entityKind: task.entityKind,
+    chronicleId,
+    type: 'chronicleV2' as CostType,
+    model: callConfig.model,
+    estimatedCost: generationCall.estimate.estimatedCost,
+    actualCost: generationCall.usage.actualCost,
+    inputTokens: generationCall.usage.inputTokens,
+    outputTokens: generationCall.usage.outputTokens,
+  });
+
+  return {
+    success: true,
+    result: {
+      chronicleId,
+      generatedAt: Date.now(),
+      model: callConfig.model,
+      estimatedCost: generationCall.estimate.estimatedCost,
+      actualCost: generationCall.usage.actualCost,
+      inputTokens: generationCall.usage.inputTokens,
+      outputTokens: generationCall.usage.outputTokens,
     },
     debug: result.debug,
   };
@@ -639,6 +830,8 @@ async function executeV2GenerationStep(
           proseHints: chronicleContext.proseHints, // Pass prose hints for entity directives
           worldDynamics: chronicleContext.worldDynamics, // Higher-level narrative context
           factSelection: chronicleContext.factSelection, // Fact selection target + required
+          narrativeDirection: chronicleContext.narrativeDirection,
+          roleAssignments: chronicleContext.focus?.roleAssignments,
         },
         llmClient,
         perspectiveConfig
@@ -655,6 +848,7 @@ async function executeV2GenerationStep(
         suggestedMotifs: perspectiveResult.synthesis.suggestedMotifs,
         narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
         entityDirectives: perspectiveResult.synthesis.entityDirectives,
+        temporalNarrative: perspectiveResult.synthesis.temporalNarrative,
 
         // INPUT (what was sent to LLM)
         constellationSummary: constellation.focusSummary,
@@ -669,12 +863,14 @@ async function executeV2GenerationStep(
         coreTone: chronicleContext.toneFragments?.core,
         narrativeStyleId: narrativeStyle.id,
         narrativeStyleName: narrativeStyle.name,
-        factSelectionTarget: (() => {
-          const requested = chronicleContext.factSelection?.targetCount;
-          const requiredCount = (chronicleContext.canonFactsWithMetadata || [])
-            .filter((f) => f.type !== 'generation_constraint' && f.required).length;
-          if (typeof requested === 'number' && requested > 0) {
-            return Math.max(requested, requiredCount);
+        factSelectionRange: (() => {
+          const requestedMin = chronicleContext.factSelection?.minCount;
+          const requestedMax = chronicleContext.factSelection?.maxCount;
+          if (
+            (typeof requestedMin === 'number' && requestedMin > 0) ||
+            (typeof requestedMax === 'number' && requestedMax > 0)
+          ) {
+            return { min: requestedMin, max: requestedMax };
           }
           return undefined;
         })(),
@@ -683,6 +879,7 @@ async function executeV2GenerationStep(
           text: f.text,
           type: f.type,
           required: f.required,
+          disabled: f.disabled,
         })),
         inputWorldDynamics: perspectiveResult.resolvedWorldDynamics,
         inputCulturalIdentities: chronicleContext.culturalIdentities,
@@ -692,6 +889,11 @@ async function executeV2GenerationStep(
           culture: e.culture,
           summary: e.summary,
         })),
+        focalEra: chronicleContext.era ? {
+          id: chronicleContext.era.id,
+          name: chronicleContext.era.name,
+          description: chronicleContext.era.description,
+        } : undefined,
 
         // Cost
         inputTokens: perspectiveResult.usage.inputTokens,
@@ -705,21 +907,20 @@ async function executeV2GenerationStep(
         : '';
 
       // Update context with synthesized perspective
+      // coreTone excluded — PS already received it and incorporated it into synthesis.
+      // See comment in full-regeneration path above.
+      const toneForGeneration = 'PERSPECTIVE FOR THIS CHRONICLE:\n' +
+          perspectiveResult.synthesis.brief +
+          motifSection;
+
       chronicleContext = {
         ...chronicleContext,
-        // Replace tone with assembled tone + perspective brief + motifs
-        tone:
-          perspectiveResult.assembledTone +
-          '\n\nPERSPECTIVE FOR THIS CHRONICLE:\n' +
-          perspectiveResult.synthesis.brief +
-          motifSection,
-        // Replace facts with faceted facts (core truths with interpretations + contextual)
+        tone: toneForGeneration,
         canonFacts: perspectiveResult.facetedFacts,
-        // Add synthesized narrative voice and entity directives
         narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
         entityDirectives: perspectiveResult.synthesis.entityDirectives,
-        // Resolved world dynamics for this chronicle (post-filter/override)
         worldDynamicsResolved: perspectiveResult.resolvedWorldDynamics.map((d) => d.text),
+        temporalNarrative: perspectiveResult.synthesis.temporalNarrative,
       };
 
       console.log(`[Worker] Perspective synthesis complete: ${perspectiveResult.facetedFacts.length} faceted facts, ${perspectiveResult.synthesis.suggestedMotifs.length} motifs`);
@@ -818,6 +1019,8 @@ async function executeV2GenerationStep(
         nameBank: chronicleContext.nameBank,
         narrativeVoice: chronicleContext.narrativeVoice,
         entityDirectives: chronicleContext.entityDirectives,
+        temporalNarrative: chronicleContext.temporalNarrative,
+        narrativeDirection: chronicleContext.narrativeDirection,
       },
       selectionSummary: {
         entityCount: selection.entities.length,
@@ -890,27 +1093,17 @@ function collectAllVersionTexts(
 ): Array<{ label: string; content: string; sampling?: ChronicleSampling; wordCount: number }> {
   const versions: Array<{ label: string; content: string; sampling?: ChronicleSampling; wordCount: number }> = [];
 
-  // History versions
-  const history = chronicleRecord.generationHistory || [];
+  const history = [...(chronicleRecord.generationHistory || [])].sort(
+    (a, b) => a.generatedAt - b.generatedAt
+  );
   for (let i = 0; i < history.length; i++) {
     const samplingLabel = history[i].sampling ?? 'unspecified';
+    const stepLabel = history[i].step ? `, step=${history[i].step}` : '';
     versions.push({
-      label: `Version ${i + 1} (sampling=${samplingLabel})`,
+      label: `Version ${i + 1} (sampling=${samplingLabel}${stepLabel})`,
       content: history[i].content,
       sampling: history[i].sampling,
       wordCount: history[i].wordCount,
-    });
-  }
-
-  // Current assembled content
-  if (chronicleRecord.assembledContent) {
-    const samplingLabel = chronicleRecord.generationSampling ?? 'unspecified';
-    const versionNumber = history.length + 1;
-    versions.push({
-      label: `Version ${versionNumber} (sampling=${samplingLabel})`,
-      content: chronicleRecord.assembledContent,
-      sampling: chronicleRecord.generationSampling,
-      wordCount: chronicleRecord.assembledContent.split(/\s+/).length,
     });
   }
 
@@ -951,6 +1144,9 @@ async function executeCompareStep(
     if ('documentInstructions' in narrativeStyle && narrativeStyle.documentInstructions) {
       parts.push(`Document: ${(narrativeStyle.documentInstructions as string).slice(0, 500)}`);
     }
+    if ('craftPosture' in narrativeStyle && narrativeStyle.craftPosture) {
+      parts.push(`Craft Posture: ${(narrativeStyle.craftPosture as string).slice(0, 300)}`);
+    }
     narrativeStyleBlock = parts.join('\n');
   }
 
@@ -964,8 +1160,48 @@ async function executeCompareStep(
     ? `## World Facts (Faceted)\nThese are the world truths provided to the chronicle generator, already interpreted through the chronicle's perspective:\n${canonFacts.map((f, i) => `${i + 1}. ${f}`).join('\n')}\n`
     : '';
 
-  const comparePrompt = `You are comparing ${versions.length} versions of the same chronicle. Each was generated from the same prompt and narrative style (${narrativeStyleName}) but with different sampling modes (normal vs low).
-${narrativeStyleBlock ? `\n## Narrative Style Reference\n${narrativeStyleBlock}\n` : ''}${worldFactsBlock ? `\n${worldFactsBlock}` : ''}
+  // Narrative direction (optional, from wizard)
+  const narrativeDirection = chronicleRecord.narrativeDirection;
+  const narrativeDirectionBlock = narrativeDirection
+    ? `\n## Narrative Direction\nThe author specified this narrative purpose: "${narrativeDirection}"\nEvaluate how well each version fulfills this specific intent.\n`
+    : '';
+
+  const isDocumentFormat = chronicleRecord.narrativeStyle?.format === 'document';
+
+  const comparePrompt = isDocumentFormat
+    ? `You are comparing ${versions.length} versions of the same in-universe document. Each was generated from the same prompt and document format (${narrativeStyleName}) but with different sampling modes (normal vs low).
+${narrativeStyleBlock ? `\n## Document Format Reference\n${narrativeStyleBlock}\n` : ''}${worldFactsBlock ? `\n${worldFactsBlock}` : ''}${narrativeDirectionBlock}
+Your output must have THREE sections in this exact order. Keep the total output under 800 words.
+
+## Comparative Analysis
+
+Cover each dimension in 2-3 sentences, naming the stronger version with one specific example:
+
+1. **In-Universe Believability**: Which reads more like a real ${narrativeStyleName} that exists within this world? Consider the whole artifact — does it feel like something a person in this setting would produce, handle, or encounter? Material texture (stamps, marginalia, wear) counts, but so does getting the tone and purpose right.
+2. **World Integration**: Review the World Facts above. Which version better absorbs the world's specifics — names, places, factions, customs, tensions — into the document's fabric? Which makes the world feel lived-in rather than referenced? Are any key facts missing or contradicted?
+3. **Voice & Purpose**: Does the document sound like its supposed author? A wanted notice written by a bureaucrat should sound bureaucratic; a folk song collected by a scholar should sound collected. Which version better inhabits its authorial perspective? Note: a document that maintains consistent voice throughout is doing its job — sustained register is a virtue.
+4. **Documentary Craft**: Which makes smarter choices about what to include, emphasize, bury, or omit? Documents communicate through structure and editorial choices — what's foregrounded, what's in footnotes, what's conspicuously absent. Which version shows better editorial intelligence?
+5. **Specificity & Invention**: Which grounds itself in concrete, plausible details (titles, dates, procedures, citations) rather than generic atmosphere or invented backstory? Which stays within what its author would know and record?
+
+## Recommendation
+
+State one of: **Keep Version [X]** (one version is clearly superior), or **Combine** (each version has distinct strengths worth merging). Explain why in 2-3 sentences.
+
+## Combine Instructions
+
+Write a SHORT paragraph (4-6 sentences) of editorial direction for a writer who will combine these versions. This paragraph will be the ONLY guidance they receive — they will not see your analysis above — so it must carry enough context to stand alone. Ground your instructions in the specific findings from your analysis.
+
+Name which version should serve as the foundation and why — its structure, its information arc, its strongest sections. Then name what the other version does that the foundation draft doesn't: sections it handled better, details it included, structural choices that strengthen the piece. These are the things the combined version shouldn't lose.
+
+Equally important: name what to CUT from the foundation to make room. Every import should displace something weaker, not stack on top. Flag any passages in either version that catalog or list without purpose, repeat the same information in template form, or pad the document without adding substance — these should not survive the combine.
+
+Don't recommend swapping names or terminology between versions. Trust the writer to make specific decisions — do not prescribe line-by-line changes.
+
+## Document Versions
+
+${versionsBlock}`
+    : `You are comparing ${versions.length} versions of the same chronicle. Each was generated from the same prompt and narrative style (${narrativeStyleName}) but with different sampling modes (normal vs low).
+${narrativeStyleBlock ? `\n## Narrative Style Reference\n${narrativeStyleBlock}\n` : ''}${worldFactsBlock ? `\n${worldFactsBlock}` : ''}${narrativeDirectionBlock}
 Your output must have THREE sections in this exact order. Keep the total output under 800 words.
 
 ## Comparative Analysis
@@ -986,19 +1222,27 @@ State one of: **Keep Version [X]** (one version is clearly superior), or **Combi
 
 ## Combine Instructions
 
-Write a SHORT paragraph (4-6 sentences) of revision guidance for a creative LLM that will combine these versions. This is not a merge spec — it is editorial direction for a skilled writer.
+Write a SHORT paragraph (4-6 sentences) of editorial direction for a writer who will combine these versions. This paragraph will be the ONLY guidance they receive — they will not see your analysis above — so it must carry enough context to stand alone. Ground your instructions in the specific findings from your analysis.
 
-Name the base version and its key strengths (structure, tone, arc). Name what the other version does better and should be drawn from (details, names, world-building, specific scenes). Note any tonal qualities from the base that should not be lost. Trust the writer to make specific decisions — do not prescribe line-by-line changes or integration points.
+Name which version should serve as the foundation and why — its arc, its scenes, its strongest moments. Then name what the other version does that the foundation draft doesn't: scenes it invented, character beats it handled better, details that enrich the world. These are the things the combined version shouldn't lose.
+
+Equally important: name what to CUT from the foundation to make room. Every import should displace something weaker, not stack on top. Flag any passages in either version that catalog or list (names, events, effects in sequence), repeat the same dramatic beat in parallel structure, or read as a report of what happened rather than lived experience — these should not survive the combine.
+
+Don't recommend swapping names or terminology between versions. Trust the writer to make specific decisions — do not prescribe line-by-line changes or integration points.
 
 ## Chronicle Versions
 
 ${versionsBlock}`;
 
+  const compareSystemPrompt = isDocumentFormat
+    ? 'You are an editorial reviewer evaluating drafts of an in-universe document. The core question is: which draft feels more like a real artifact from this world? Assess believability, world integration, and documentary craft. A document that maintains consistent voice is doing its job — sustained register is a strength.'
+    : 'You are a narrative editor providing a comparative analysis of chronicle drafts. Be specific and cite examples from the text.';
+
   const compareCall = await runTextCall({
     llmClient,
     callType: 'chronicle.compare',
     callConfig,
-    systemPrompt: 'You are a narrative editor providing a comparative analysis of chronicle drafts. Be specific and cite examples from the text.',
+    systemPrompt: compareSystemPrompt,
     prompt: comparePrompt,
     temperature: 0.3,
   });
@@ -1089,20 +1333,62 @@ async function executeCombineStep(
     `## ${v.label}\n\n${v.content}`
   ).join('\n\n---\n\n');
 
-  const systemPrompt = chronicleRecord.generationSystemPrompt || '';
+  const generationSystemPrompt = chronicleRecord.generationSystemPrompt || '';
   const narrativeStyle = chronicleRecord.narrativeStyle;
   const styleName = narrativeStyle ? `${narrativeStyle.name} (${narrativeStyle.format})` : 'unknown';
+  const craftPosture = narrativeStyle && 'craftPosture' in narrativeStyle ? (narrativeStyle.craftPosture as string | undefined) : undefined;
+  const isDocumentFormat = narrativeStyle?.format === 'document';
+
+  // Narrative direction (optional, from wizard)
+  const combineNarrativeDirection = chronicleRecord.narrativeDirection;
+  const combineNarrativeDirectionBlock = combineNarrativeDirection
+    ? `\n## Narrative Direction\nThe author specified this narrative purpose: "${combineNarrativeDirection}"\nThe combined version must fulfill this intent.\n`
+    : '';
 
   // Check for combine instructions from a prior compare step
   const hasCombineInstructions = !!chronicleRecord.combineInstructions;
 
-  const combinePrompt = `You are a narrative editor combining ${versions.length} versions of the same chronicle into a single final version. All versions follow the same prompt and narrative style — they differ in sampling mode (normal vs low).
+  const combinePrompt = isDocumentFormat
+    ? `You are an editorial reviewer combining ${versions.length} versions of the same in-universe document into a single final version. All versions follow the same prompt and document format — they differ in sampling mode (normal vs low).
 
-Your job is NOT to merge or average. Your job is to CHOOSE and REWRITE: take the stronger elements from each version and produce one polished chronicle.
+You have two drafts of the same in-universe document. Read both. Build your revision from the ground up: which version has the stronger opening? Which handles each section better? Which included details, structure, or framing the other missed? Take the best from each. Where they cover the same ground differently, go with whichever makes the document feel more like a real artifact from its world. Where one draft has something the other lacks entirely, bring it in.
+
+Do not swap names or terminology between versions — keep each draft's choices consistent within the sections you draw from. A polish pass will follow to smooth voice and register; your job is to produce the best possible version of this document.
 ${hasCombineInstructions ? `
-## Revision Guidance from Comparative Analysis
+## Editorial Direction
 
-A prior analysis compared these versions and produced specific instructions for combining them. Follow this guidance closely — it identifies which version handles each section better and which specific elements to preserve:
+${chronicleRecord.combineInstructions}
+` : `
+## Selection Criteria
+
+Prefer whichever version:
+- **Feels more like a real ${styleName}** — could this artifact exist in this world? Does it read like something its supposed author would produce?
+- **Better integrates the world** — names, factions, customs, tensions woven into the document's fabric rather than referenced from outside
+- **Inhabits its author's voice** — consistent register that matches who wrote this and why
+- **Shows stronger editorial intelligence** — smart choices about what to foreground, bury, or omit
+- **Grounds itself in specifics** — concrete details (titles, dates, procedures) over generic atmosphere
+
+If one version has a better opening and another has better closing sections, use each. If versions handle the same section differently, pick the one that feels more like it belongs in this world.
+`}${combineNarrativeDirectionBlock}
+## Original System Prompt Context
+${generationSystemPrompt}
+
+Style: ${styleName}${craftPosture ? `\n\n## Craft Posture\nDensity and restraint constraints for this format:\n${craftPosture}` : ''}
+
+## Document Versions
+
+${versionsBlock}
+
+## YOUR TASK
+
+Produce the final document by selecting the strongest elements from each version. The result should feel like a real artifact from this world. Output ONLY the document text — no commentary, no labels, no preamble.`
+    : `You are a narrative editor combining ${versions.length} versions of the same chronicle into a single final version. All versions follow the same prompt and narrative style — they differ in sampling mode (normal vs low).
+
+You have two drafts of the same story. Read both. Build your revision from the ground up: which version has the stronger opening? Which handles the climax better? Which invented scenes, character beats, or details the other missed? Take the best from each. Where they cover the same ground differently, go with whichever makes the better story. Where one draft has something the other lacks entirely, bring it in.
+
+Do not swap names or terminology between versions — keep each draft's choices consistent within the sections you draw from. A polish pass will follow to smooth voice and tone; your job is to produce the best possible version of this story.
+${hasCombineInstructions ? `
+## Editorial Direction
 
 ${chronicleRecord.combineInstructions}
 ` : `
@@ -1116,11 +1402,11 @@ Prefer whichever version has:
 - **Stronger emotional range** — not every beat should feel the same
 
 If one version has a better opening and another has a better middle, use each. If versions handle the same beat differently, pick the one that reads more naturally.
-`}
+`}${combineNarrativeDirectionBlock}
 ## Original System Prompt Context
-${systemPrompt}
+${generationSystemPrompt}
 
-Style: ${styleName}
+Style: ${styleName}${craftPosture ? `\n\n## Craft Posture\nDensity and restraint constraints for this format:\n${craftPosture}` : ''}
 
 ## Chronicle Versions
 
@@ -1130,13 +1416,17 @@ ${versionsBlock}
 
 Produce the final chronicle by selecting the strongest elements from each version. Output ONLY the chronicle text — no commentary, no labels, no preamble.`;
 
+  const combineSystemPrompt = isDocumentFormat
+    ? 'You are an editorial reviewer producing the definitive version of an in-universe document from multiple drafts. The result should feel like a real artifact from this world. Maintain consistent voice. Output only the final document text.'
+    : 'You are a narrative editor producing the definitive version of a chronicle from multiple drafts. Output only the final chronicle text.';
+
   const samplingParams = resolveChronicleSamplingParams(callConfig);
   const combineSampling = deriveSamplingFromConfig(callConfig);
   const combineCall = await runTextCall({
     llmClient,
     callType: 'chronicle.combine',
     callConfig,
-    systemPrompt: 'You are a narrative editor producing the definitive version of a chronicle from multiple drafts. Output only the final chronicle text.',
+    systemPrompt: combineSystemPrompt,
     prompt: combinePrompt,
     ...samplingParams,
   });
@@ -1156,10 +1446,11 @@ Produce the final chronicle by selecting the strongest elements from each versio
   // Save as a new version (snapshots current into history)
   await regenerateChronicleAssembly(chronicleId, {
     assembledContent: combineCall.result.text,
-    systemPrompt: chronicleRecord.generationSystemPrompt || '',
-    userPrompt: chronicleRecord.generationUserPrompt || '',
+    systemPrompt: combineSystemPrompt,
+    userPrompt: combinePrompt,
     model: callConfig.model,
     sampling: combineSampling,
+    step: 'combine',
     cost: {
       estimated: combineCall.estimate.estimatedCost,
       actual: combineCall.usage.actualCost,
@@ -1195,6 +1486,319 @@ Produce the final chronicle by selecting the strongest elements from each versio
       outputTokens: combineCall.usage.outputTokens,
     },
     debug: combineCall.result.debug,
+  };
+}
+
+// ============================================================================
+// Copy-Edit Step (user-triggered, polishes active version)
+// ============================================================================
+
+async function executeCopyEditStep(
+  task: WorkerTask,
+  chronicleRecord: NonNullable<Awaited<ReturnType<typeof getChronicle>>>,
+  context: TaskContext
+): Promise<TaskResult> {
+  const { config, llmClient, isAborted } = context;
+
+  const chronicleId = chronicleRecord.chronicleId;
+  const { content } = resolveTargetVersionContent(chronicleRecord);
+
+  if (!content) {
+    return { success: false, error: 'Chronicle has no content to copy-edit' };
+  }
+
+  const narrativeStyle = chronicleRecord.narrativeStyle;
+  if (!narrativeStyle) {
+    return { success: false, error: 'Chronicle has no narrative style — cannot determine word count target' };
+  }
+
+  const callConfig = getCallConfig(config, 'chronicle.copyEdit');
+  console.log(`[Worker] Copy-editing chronicle ${chronicleId}, model=${callConfig.model}...`);
+
+  const format = chronicleRecord.format === 'document' ? 'document' : 'story';
+  const systemPrompt = buildCopyEditSystemPrompt(format);
+
+  // Pass PS voice textures and motifs so the editor can recognize intentional prose choices
+  const ps = chronicleRecord.perspectiveSynthesis;
+  const voiceContext = ps ? {
+    narrativeVoice: ps.narrativeVoice,
+    motifs: ps.suggestedMotifs,
+  } : undefined;
+
+  const userPrompt = buildCopyEditUserPrompt(content, narrativeStyle, voiceContext);
+
+  const samplingParams = resolveChronicleSamplingParams(callConfig);
+  const sampling = deriveSamplingFromConfig(callConfig);
+  const copyEditCall = await runTextCall({
+    llmClient,
+    callType: 'chronicle.copyEdit',
+    callConfig,
+    systemPrompt,
+    prompt: userPrompt,
+    ...samplingParams,
+  });
+
+  if (isAborted()) {
+    return { success: false, error: 'Task aborted', debug: copyEditCall.result.debug };
+  }
+
+  if (copyEditCall.result.error || !copyEditCall.result.text) {
+    return {
+      success: false,
+      error: `Copy-edit failed: ${copyEditCall.result.error || 'No text returned'}`,
+      debug: copyEditCall.result.debug,
+    };
+  }
+
+  // Save as a new version (snapshots current into history)
+  // Store the actual copy-edit prompts, not the original generation prompts
+  await regenerateChronicleAssembly(chronicleId, {
+    assembledContent: copyEditCall.result.text,
+    systemPrompt: systemPrompt,
+    userPrompt: userPrompt,
+    model: callConfig.model,
+    sampling,
+    step: 'copy_edit',
+    cost: {
+      estimated: copyEditCall.estimate.estimatedCost,
+      actual: copyEditCall.usage.actualCost,
+      inputTokens: copyEditCall.usage.inputTokens,
+      outputTokens: copyEditCall.usage.outputTokens,
+    },
+  });
+
+  await saveCostRecordWithDefaults({
+    projectId: task.projectId,
+    simulationRunId: task.simulationRunId,
+    entityId: task.entityId,
+    entityName: task.entityName,
+    entityKind: task.entityKind,
+    chronicleId,
+    type: 'chronicleV2',
+    model: callConfig.model,
+    estimatedCost: copyEditCall.estimate.estimatedCost,
+    actualCost: copyEditCall.usage.actualCost,
+    inputTokens: copyEditCall.usage.inputTokens,
+    outputTokens: copyEditCall.usage.outputTokens,
+  });
+
+  return {
+    success: true,
+    result: {
+      chronicleId,
+      generatedAt: Date.now(),
+      model: callConfig.model,
+      estimatedCost: copyEditCall.estimate.estimatedCost,
+      actualCost: copyEditCall.usage.actualCost,
+      inputTokens: copyEditCall.usage.inputTokens,
+      outputTokens: copyEditCall.usage.outputTokens,
+    },
+    debug: copyEditCall.result.debug,
+  };
+}
+
+// ============================================================================
+// Temporal Alignment Check Step (user-triggered, produces report)
+// ============================================================================
+
+async function executeTemporalCheckStep(
+  task: WorkerTask,
+  chronicleRecord: NonNullable<Awaited<ReturnType<typeof getChronicle>>>,
+  context: TaskContext
+): Promise<TaskResult> {
+  const { config, llmClient, isAborted } = context;
+
+  const chronicleId = chronicleRecord.chronicleId;
+
+  // Get the active version content
+  const { content } = resolveTargetVersionContent(chronicleRecord);
+  if (!content) {
+    return { success: false, error: 'No chronicle content available for temporal check' };
+  }
+
+  // Get temporal narrative from perspective synthesis
+  const temporalNarrative = chronicleRecord.perspectiveSynthesis?.temporalNarrative;
+  if (!temporalNarrative) {
+    return { success: false, error: 'No temporal narrative available — requires perspective synthesis with world dynamics' };
+  }
+
+  // Get focal era info
+  const focalEra = chronicleRecord.temporalContext?.focalEra;
+  const touchedEraIds = chronicleRecord.temporalContext?.touchedEraIds || [];
+  const allEras = chronicleRecord.temporalContext?.allEras || [];
+  const temporalScope = chronicleRecord.temporalContext?.temporalScope;
+  const temporalDescription = chronicleRecord.temporalContext?.temporalDescription;
+
+  // Build era context block
+  const eraContextBlock = allEras.length > 0
+    ? allEras.map(era => {
+        const isFocal = focalEra?.id === era.id ? ' ← FOCAL ERA' : '';
+        const isTouched = touchedEraIds.includes(era.id) ? ' (touched)' : '';
+        return `- **${era.name}** (ticks ${era.startTick}–${era.endTick})${isFocal}${isTouched}${era.summary ? `: ${era.summary}` : ''}`;
+      }).join('\n')
+    : 'No era information available.';
+
+  // Build era boundary context
+  const isMultiEra = chronicleRecord.temporalContext?.isMultiEra || false;
+  const tickRange = chronicleRecord.temporalContext?.chronicleTickRange;
+  let boundaryBlock = '';
+
+  if (focalEra && allEras.length > 1 && tickRange) {
+    const sortedEras = [...allEras].sort((a, b) => a.startTick - b.startTick);
+    const focalIdx = sortedEras.findIndex(e => e.id === focalEra.id);
+    const adjacentEras: Array<{ era: typeof focalEra; boundary: number; direction: string }> = [];
+
+    // Check previous era
+    if (focalIdx > 0) {
+      const prev = sortedEras[focalIdx - 1];
+      const boundary = focalEra.startTick;
+      const distToBoundary = tickRange[0] - boundary;
+      if (distToBoundary < focalEra.duration * 0.25 || touchedEraIds.includes(prev.id)) {
+        adjacentEras.push({ era: prev, boundary, direction: 'preceding' });
+      }
+    }
+
+    // Check next era
+    if (focalIdx < sortedEras.length - 1) {
+      const next = sortedEras[focalIdx + 1];
+      const boundary = focalEra.endTick;
+      const distToBoundary = boundary - tickRange[1];
+      if (distToBoundary < focalEra.duration * 0.25 || touchedEraIds.includes(next.id)) {
+        adjacentEras.push({ era: next, boundary, direction: 'following' });
+      }
+    }
+
+    if (adjacentEras.length > 0 || isMultiEra) {
+      const touchedNames = touchedEraIds
+        .map(id => allEras.find(e => e.id === id)?.name)
+        .filter(Boolean);
+      const lines = [`## Era Boundary Analysis`];
+      if (isMultiEra) {
+        lines.push(`This chronicle touches ${touchedEraIds.length} eras: ${touchedNames.join(', ')}. Focal era: ${focalEra.name}.`);
+      }
+      for (const { era, boundary, direction } of adjacentEras) {
+        lines.push(`The chronicle's tick range [${tickRange[0]}–${tickRange[1]}] is near the boundary at tick ${boundary} (between ${direction === 'preceding' ? era.name + ' and ' + focalEra.name : focalEra.name + ' and ' + era.name}).`);
+        if (era.summary) {
+          lines.push(`**${era.name}:** ${era.summary}`);
+        }
+      }
+      lines.push(`\nThis may be a **transition/boundary chronicle** depicting the shift between eras. Elements from adjacent eras may be narratively appropriate if they serve the transition.`);
+      boundaryBlock = lines.join('\n') + '\n\n';
+    }
+  }
+
+  // Get world dynamics if available
+  const worldDynamicsResolved = (chronicleRecord as any).generationContext?.worldDynamicsResolved;
+  const dynamicsBlock = worldDynamicsResolved && worldDynamicsResolved.length > 0
+    ? `## World Dynamics (as provided to generation)\n${worldDynamicsResolved.map((d: string, i: number) => `${i + 1}. ${d}`).join('\n')}\n`
+    : '';
+
+  const callConfig = getCallConfig(config, 'chronicle.compare');
+  console.log(`[Worker] Temporal alignment check for chronicle=${chronicleId}, model=${callConfig.model}...`);
+
+  const systemPrompt = `You are an editorial analyst checking whether a chronicle's narrative is temporally grounded in the correct era. You have access to the focal era, the temporal narrative (synthesized stakes), and the chronicle text. Your job is to identify passages where the chronicle's narrative contradicts, ignores, or is misaligned with the temporal context it was supposed to be grounded in. Some chronicles intentionally depict transitions between eras — these should be evaluated for how well they portray the shift, not penalized for containing elements of both eras.`;
+
+  const userPrompt = `## Temporal Context
+
+**Focal Era:** ${focalEra?.name || 'unknown'}${temporalScope ? ` (scope: ${temporalScope})` : ''}
+${temporalDescription ? `**Temporal Description:** ${temporalDescription}` : ''}
+
+**Era Timeline:**
+${eraContextBlock}
+
+${boundaryBlock}## Temporal Narrative (from Perspective Synthesis)
+This is the synthesized narrative grounding — the story-specific stakes derived from world dynamics and era conditions. The chronicle should reflect these conditions:
+
+> ${temporalNarrative}
+
+${dynamicsBlock}
+## Chronicle Text
+
+${content}
+
+---
+
+## Task
+
+Analyze the chronicle text against the temporal context above. Look for:
+
+1. **Era Misalignment** — Does the chronicle reference conditions, events, or tensions from a DIFFERENT era than the focal era? Does it describe circumstances that belong to an earlier or later period?
+
+2. **Temporal Narrative Contradictions** — Does the chronicle contradict the synthesized stakes? Are the pressures, conditions, or world dynamics described in the temporal narrative absent, inverted, or replaced with incompatible ones?
+
+3. **Anachronistic Details** — Are there references to entities, places, factions, or customs that wouldn't exist or wouldn't apply during the focal era?
+
+4. **Missing Temporal Grounding** — Does the chronicle feel temporally unanchored — like it could happen in any era? Does it fail to use the specific conditions the temporal narrative establishes?
+
+5. **Era Boundary / Transition Assessment** — If this chronicle touches multiple eras or sits near an era boundary: Does it function as a transition narrative? Does it meaningfully depict the *shift* from one era's conditions to another? Are elements from adjacent eras serving the transition narrative, or do they appear as temporal errors? A chronicle depicting the collapse of one era's certainties into the next era's tensions is doing legitimate narrative work.
+
+## Output Format
+
+For each issue found, cite the specific passage and explain the misalignment. If no issues are found, say so explicitly.
+
+Rate the overall temporal alignment: **Strong**, **Adequate**, **Weak**, or **Misaligned**.
+
+If the chronicle is a boundary/transition chronicle, also rate: **Transition: Strong / Adequate / Weak** — how well does it portray the era shift?
+
+Keep the total output under 800 words.`;
+
+  const checkCall = await runTextCall({
+    llmClient,
+    callType: 'chronicle.compare',
+    callConfig,
+    systemPrompt,
+    prompt: userPrompt,
+    temperature: 0.3,
+  });
+
+  if (isAborted()) {
+    return { success: false, error: 'Task aborted', debug: checkCall.result.debug };
+  }
+
+  if (checkCall.result.error || !checkCall.result.text) {
+    return {
+      success: false,
+      error: `Temporal check failed: ${checkCall.result.error || 'No text returned'}`,
+      debug: checkCall.result.debug,
+    };
+  }
+
+  await updateChronicleTemporalCheckReport(chronicleId, checkCall.result.text);
+
+  const checkCost = {
+    estimated: checkCall.estimate.estimatedCost,
+    actual: checkCall.usage.actualCost,
+    inputTokens: checkCall.usage.inputTokens,
+    outputTokens: checkCall.usage.outputTokens,
+  };
+
+  await saveCostRecordWithDefaults({
+    projectId: task.projectId,
+    simulationRunId: task.simulationRunId,
+    entityId: task.entityId,
+    entityName: task.entityName,
+    entityKind: task.entityKind,
+    chronicleId,
+    type: 'chronicleV2',
+    model: callConfig.model,
+    estimatedCost: checkCost.estimated,
+    actualCost: checkCost.actual,
+    inputTokens: checkCost.inputTokens,
+    outputTokens: checkCost.outputTokens,
+  });
+
+  return {
+    success: true,
+    result: {
+      chronicleId,
+      generatedAt: Date.now(),
+      model: callConfig.model,
+      estimatedCost: checkCost.estimated,
+      actualCost: checkCost.actual,
+      inputTokens: checkCost.inputTokens,
+      outputTokens: checkCost.outputTokens,
+    },
+    debug: checkCall.result.debug,
   };
 }
 
@@ -1240,66 +1844,29 @@ function toTitleCase(title: string): string {
     .join('');
 }
 
-const STORY_TITLE_NUDGES = [
-  'One candidate should reference a key place or landmark from the chronicle.',
-  'One candidate should use a thematic tension or contrast (like "Pride and Prejudice", "War and Peace").',
-  'One candidate should reference a pivotal event or turning point from the chronicle.',
-  'One candidate should evoke the tone or mood of the story (like "A Farewell to Arms", "The Sound and the Fury").',
-  'One candidate should reference a symbolic object, title, or role from the chronicle.',
-  'One candidate should frame the central relationship or conflict.',
-  'One candidate should capture what changed or what was lost.',
-];
+// =============================================================================
+// Title Generation — Two-Phase Pipeline
+// Phase 1: Extract evocative fragments from the chronicle text (divergent)
+// Phase 2: Shape those fragments into title candidates (convergent)
+// =============================================================================
 
-const DOCUMENT_TITLE_NUDGES = [
-  'One candidate should use a formal document heading style (like "A Treatise on...", "Concerning...").',
-  'One candidate should name the subject matter directly (like "The Art of War", "Poetics").',
-  'One candidate should reference the document\'s origin or author context.',
-  'One candidate should use a declarative or topical style (like "On Liberty", "Common Sense").',
-  'One candidate should reference the key institution, place, or authority involved.',
-  'One candidate should capture the document\'s purpose or occasion.',
-  'One candidate should use a formal chronicle or record style.',
-];
-
-function pickNudge(format: 'story' | 'document'): string {
-  const nudges = format === 'document' ? DOCUMENT_TITLE_NUDGES : STORY_TITLE_NUDGES;
-  return nudges[Math.floor(Math.random() * nudges.length)];
+/** Fallback: look up titleGuidance from the style library when the cached record lacks it */
+async function lookupTitleGuidance(styleId: string | undefined): Promise<string | undefined> {
+  if (!styleId) return undefined;
+  const library = await getStyleLibrary();
+  const style = library.narrativeStyles.find(s => s.id === styleId);
+  return (style as any)?.titleGuidance;
 }
 
-function buildStyleContext(
-  format: 'story' | 'document',
-  narrativeStyleName?: string,
-  narrativeStyleDescription?: string,
-  narrativeInstructions?: string,
-  proseInstructions?: string,
-  documentInstructions?: string,
-): string {
-  if (!narrativeStyleName) return '';
+function buildTitleStyleContext(ctx: TitlePromptContext): string {
+  if (!ctx.narrativeStyleName) return '';
 
-  let ctx = `\nNarrative style: "${narrativeStyleName}"`;
-  if (narrativeStyleDescription) ctx += ` — ${narrativeStyleDescription}`;
+  const parts: string[] = [];
+  parts.push(`Style: "${ctx.narrativeStyleName}"`);
+  if (ctx.narrativeStyleDescription) parts.push(ctx.narrativeStyleDescription);
+  parts.push(`\n${ctx.titleGuidance}`);
 
-  if (format === 'story') {
-    if (proseInstructions) {
-      // Prose instructions give the best sense of tone/register for titling
-      ctx += `\n\nProse style guidance (for tone reference):\n${proseInstructions}`;
-    }
-    if (narrativeInstructions) {
-      // First ~300 chars of narrative instructions give structural context
-      const truncated = narrativeInstructions.length > 400
-        ? narrativeInstructions.slice(0, 400) + '...'
-        : narrativeInstructions;
-      ctx += `\n\nNarrative structure (for context):\n${truncated}`;
-    }
-  } else {
-    if (documentInstructions) {
-      const truncated = documentInstructions.length > 500
-        ? documentInstructions.slice(0, 500) + '...'
-        : documentInstructions;
-      ctx += `\n\nDocument style guidance:\n${truncated}`;
-    }
-  }
-
-  return ctx + '\n';
+  return parts.join('\n');
 }
 
 interface TitlePromptContext {
@@ -1309,79 +1876,103 @@ interface TitlePromptContext {
   narrativeInstructions?: string;
   proseInstructions?: string;
   documentInstructions?: string;
+  titleGuidance?: string;
+  perspectiveBrief?: string;
+  motifs?: string[];
 }
 
-function buildTitleSystemPrompt(ctx: TitlePromptContext): string {
+// --- Phase 1: Fragment Extraction ---
+
+function buildFragmentExtractionSystemPrompt(ctx: TitlePromptContext): string {
   const formatLabel = ctx.format === 'document' ? 'document' : 'story';
-  const styleContext = buildStyleContext(
-    ctx.format,
-    ctx.narrativeStyleName,
-    ctx.narrativeStyleDescription,
-    ctx.narrativeInstructions,
-    ctx.proseInstructions,
-    ctx.documentInstructions,
-  ).trim();
-
-  const approachList = ctx.format === 'document'
-    ? [
-        'Subject-focused (e.g., "The Art of War")',
-        'Formal heading (e.g., "A Treatise on...")',
-        'Topical or declarative (e.g., "On Liberty")',
-        'Named reference (e.g., "The Prince")',
-        'Chronicle/record framing (e.g., "The Annals of...")',
-      ]
-    : [
-        'Thematic tension (e.g., "Pride and Prejudice")',
-        'Place or setting (e.g., "Wuthering Heights")',
-        'Character + context (e.g., "The Great Gatsby")',
-        'Event or image (e.g., "The Fall of Gondolin")',
-        'Symbolic object or motif (e.g., "The Bell Jar")',
-      ];
-
-  const lengthRule = ctx.format === 'document'
-    ? 'Include varied lengths: at least one 2-3 words, two 4-6 words, and two 7-10 words.'
-    : 'Include varied lengths: at least one 2-3 words, two 4-6 words, and two 7-9 words.';
+  const styleContext = buildTitleStyleContext(ctx);
 
   return [
-    `You are a creative title writer for an in-universe ${formatLabel}.`,
-    'Base diction, imagery, and formality on the narrative style context below (if absent, infer from the chronicle).',
-    'Generate exactly 5 candidate titles, ordered best to worst.',
-    'Rules:',
-    '- Output ONLY valid JSON.',
-    '- JSON format: {"titles": ["...", "...", "...", "...", "..."]}',
-    '- Title Case capitalization.',
-    `- ${lengthRule}`,
-    '- Each title must use a DIFFERENT structural approach from this list:',
-    ...approachList.map((entry) => `  - ${entry}`),
-    '- Titles must be specific, evocative, and meaningful even to someone unfamiliar with the chronicle.',
-    '- Do NOT use bare entity names alone; names need context to work as titles.',
-    ...(ctx.format === 'story' ? ['- At most ONE title may start with "The".'] : []),
+    `You are reading an in-universe ${formatLabel} and mining it for title material.`,
     '',
-    styleContext ? 'Narrative style context:' : 'Narrative style context: (none provided)',
-    styleContext || '',
-  ].filter(Boolean).join('\n');
+    'THE FORM:',
+    styleContext,
+    '',
+    'The title guidance above tells you what the title needs to be made of. Extract the raw material that guidance calls for. If it says to name correspondents, extract the names. If it says to name a product, extract product and vendor names. If it says to name an image, extract images. Let the guidance shape what you notice.',
+    '',
+    'Also extract:',
+    '- Names of people, places, objects, or institutions that carry weight in the text',
+    '- Phrases with sonic quality or compression',
+    '- The subject or matter at the center of the text',
+    '',
+    'Extract 8-12 fragments. Each should be 1-6 words. Draw from the actual text — quote, compress, or distill.',
+    '',
+    'Output ONLY valid JSON: {"fragments": ["...", "...", ...]}',
+  ].join('\n');
 }
 
-function buildTitleCandidatesPrompt(content: string, ctx: TitlePromptContext): string {
-  if (ctx.format === 'document') {
-    return `Generate 5 candidate titles for the in-universe document below.
-Additional focus: ${pickNudge('document')}
+function buildFragmentExtractionUserPrompt(content: string, ctx: TitlePromptContext): string {
+  const label = ctx.format === 'document' ? 'document' : 'story';
+  const parts: string[] = [];
 
-Document:
-${content}
+  parts.push(`Extract 8-12 evocative fragments from this ${label} that could seed a title.`);
+  parts.push('Return ONLY valid JSON: {"fragments": ["...", "...", ...]}');
 
-Return ONLY valid JSON in this exact format:
-{"titles": ["...", "...", "...", "...", "..."]}`;
+  if (ctx.perspectiveBrief) {
+    parts.push(`Thematic context:\n${ctx.perspectiveBrief}`);
+  }
+  if (ctx.motifs && ctx.motifs.length > 0) {
+    parts.push(`Recurring motifs:\n${ctx.motifs.map(m => `- "${m}"`).join('\n')}`);
   }
 
-  return `Generate 5 candidate titles for the story below.
-Additional focus: ${pickNudge('story')}
+  parts.push(content);
 
-Story:
-${content}
+  return parts.join('\n\n');
+}
 
-Return ONLY valid JSON in this exact format:
-{"titles": ["...", "...", "...", "...", "..."]}`;
+// --- Phase 2: Title Shaping ---
+
+function buildTitleShapingSystemPrompt(ctx: TitlePromptContext): string {
+  const formatLabel = ctx.format === 'document' ? 'document' : 'story';
+  const styleContext = buildTitleStyleContext(ctx);
+
+  return [
+    `You are the author of an in-universe ${formatLabel}, choosing the title this work will be known by.`,
+    '',
+    'THE FORM:',
+    styleContext,
+    '',
+    'The title guidance above is your primary creative constraint. It defines the register, the shape, and what the title should feel like. Follow it closely. Titles should be short — most great titles are 2-6 words.',
+    '',
+    'You have fragments extracted from the text and the full text itself. The fragments are starting points — thematic material, not finished titles. Do not reproduce or truncate any fragment as a title. Combine ideas across fragments, compress, or find something in the text the fragments point toward but don\'t say directly.',
+    '',
+    'Craft exactly 5 titles. Each should feel distinct from the others. Order best to worst.',
+    '',
+    'Output ONLY valid JSON: {"titles": ["...", "...", "...", "...", "..."]}',
+    'Use Title Case capitalization.',
+  ].join('\n');
+}
+
+function buildTitleShapingUserPrompt(fragments: string[], content: string, ctx: TitlePromptContext): string {
+  const parts: string[] = [];
+
+  parts.push('Return ONLY valid JSON: {"titles": ["...", "...", "...", "...", "..."]}');
+
+  if (fragments.length > 0) {
+    parts.push('Fragments (thematic material, not titles — do not reproduce these):\n' + fragments.map(f => `- ${f}`).join('\n'));
+  }
+
+  if (ctx.perspectiveBrief) {
+    parts.push(`Thematic context:\n${ctx.perspectiveBrief}`);
+  }
+
+  // Deduplicate: only include motifs that aren't already in the fragments list
+  if (ctx.motifs && ctx.motifs.length > 0) {
+    const fragmentLower = new Set(fragments.map(f => f.toLowerCase()));
+    const uniqueMotifs = ctx.motifs.filter(m => !fragmentLower.has(m.toLowerCase()));
+    if (uniqueMotifs.length > 0) {
+      parts.push(`Recurring motifs:\n${uniqueMotifs.map(m => `- "${m}"`).join('\n')}`);
+    }
+  }
+
+  parts.push(content);
+
+  return parts.join('\n\n');
 }
 
 function formatImageRefEntities(
@@ -1717,6 +2308,7 @@ async function executeTitleStep(
   const narrativeStyle = chronicleRecord.narrativeStyle;
   const format = chronicleRecord.format || 'story';
 
+  const ps = chronicleRecord.perspectiveSynthesis;
   const titleCtx: TitlePromptContext = {
     format,
     narrativeStyleName: narrativeStyle?.name,
@@ -1724,38 +2316,78 @@ async function executeTitleStep(
     narrativeInstructions: narrativeStyle?.format === 'story' ? (narrativeStyle as any).narrativeInstructions : undefined,
     proseInstructions: narrativeStyle?.format === 'story' ? (narrativeStyle as any).proseInstructions : undefined,
     documentInstructions: narrativeStyle?.format === 'document' ? (narrativeStyle as any).documentInstructions : undefined,
+    titleGuidance: (narrativeStyle as any)?.titleGuidance
+      || await lookupTitleGuidance(chronicleRecord.narrativeStyleId || narrativeStyle?.id),
+    perspectiveBrief: ps?.brief,
+    motifs: ps?.suggestedMotifs,
   };
 
-  // --- Generate candidates (single pass) ---
-  const candidatesPrompt = buildTitleCandidatesPrompt(content, titleCtx);
-  const titleSystemPrompt = buildTitleSystemPrompt(titleCtx);
-  const candidatesCall = await runTextCall({
+  const debugParts: string[] = [];
+
+  // --- Phase 1: Fragment Extraction (divergent, high temperature) ---
+  const fragmentSystemPrompt = buildFragmentExtractionSystemPrompt(titleCtx);
+  const fragmentUserPrompt = buildFragmentExtractionUserPrompt(content, titleCtx);
+  const fragmentCall = await runTextCall({
     llmClient,
     callType: 'chronicle.title',
     callConfig,
-    systemPrompt: titleSystemPrompt,
-    prompt: candidatesPrompt,
-    temperature: 0.75,
+    systemPrompt: fragmentSystemPrompt,
+    prompt: fragmentUserPrompt,
+    temperature: 0.85,
   });
 
-  const debugParts: string[] = [];
-  if (candidatesCall.result.debug) debugParts.push(candidatesCall.result.debug);
+  if (fragmentCall.result.debug) debugParts.push(fragmentCall.result.debug);
+
+  if (isAborted()) {
+    return { success: false, error: 'Task aborted', debug: debugParts.join('\n---\n') || undefined };
+  }
+
+  // Parse fragments — graceful fallback to empty if extraction fails
+  let fragments: string[] = [];
+  if (!fragmentCall.result.error && fragmentCall.result.text) {
+    try {
+      const parsed = parseJsonObject<Record<string, unknown>>(fragmentCall.result.text, 'fragment extraction response');
+      if (Array.isArray(parsed.fragments)) {
+        fragments = parsed.fragments
+          .filter((f): f is string => typeof f === 'string' && f.trim().length > 0)
+          .map(f => f.trim());
+      }
+    } catch {
+      // Fragment parse failed — Phase 2 will work with motifs/brief alone
+    }
+  }
+
+  // --- Phase 2: Title Shaping (convergent, lower temperature) ---
+  const shapingSystemPrompt = buildTitleShapingSystemPrompt(titleCtx);
+  const shapingUserPrompt = buildTitleShapingUserPrompt(fragments, content, titleCtx);
+
+
+  const shapingCall = await runTextCall({
+    llmClient,
+    callType: 'chronicle.title',
+    callConfig,
+    systemPrompt: shapingSystemPrompt,
+    prompt: shapingUserPrompt,
+    temperature: 0.7,
+  });
+
+  if (shapingCall.result.debug) debugParts.push(shapingCall.result.debug);
 
   if (isAborted()) {
     return { success: false, error: 'Task aborted', debug: debugParts.join('\n---\n') || undefined };
   }
 
   let candidates: string[] = [];
-  if (!candidatesCall.result.error && candidatesCall.result.text) {
+  if (!shapingCall.result.error && shapingCall.result.text) {
     try {
-      const parsed = parseJsonObject<Record<string, unknown>>(candidatesCall.result.text, 'title candidates response');
+      const parsed = parseJsonObject<Record<string, unknown>>(shapingCall.result.text, 'title shaping response');
       if (Array.isArray(parsed.titles)) {
         candidates = parsed.titles
           .filter((t): t is string => typeof t === 'string' && t.trim().length > 0)
           .map(t => t.trim());
       }
     } catch {
-      // Candidates parse failed
+      // Title parse failed
     }
   }
 
@@ -1777,16 +2409,17 @@ async function executeTitleStep(
 
   const title = candidates[0];
 
+  // Aggregate costs from both phases
   const totalCost = {
-    estimated: candidatesCall.estimate.estimatedCost,
-    actual: candidatesCall.usage.actualCost,
-    inputTokens: candidatesCall.usage.inputTokens,
-    outputTokens: candidatesCall.usage.outputTokens,
+    estimated: fragmentCall.estimate.estimatedCost + shapingCall.estimate.estimatedCost,
+    actual: fragmentCall.usage.actualCost + shapingCall.usage.actualCost,
+    inputTokens: fragmentCall.usage.inputTokens + shapingCall.usage.inputTokens,
+    outputTokens: fragmentCall.usage.outputTokens + shapingCall.usage.outputTokens,
   };
 
   const debug = debugParts.length > 0 ? debugParts.join('\n---\n') : undefined;
 
-  await updateChronicleTitle(chronicleId, title, candidates, totalCost, callConfig.model);
+  await updateChronicleTitle(chronicleId, title, candidates, fragments, totalCost, callConfig.model);
 
   await saveCostRecordWithDefaults({
     projectId: task.projectId,
@@ -1809,6 +2442,7 @@ async function executeTitleStep(
       chronicleId,
       title,
       candidates,
+      fragments,
       generatedAt: Date.now(),
       model: callConfig.model,
       estimatedCost: totalCost.estimated,

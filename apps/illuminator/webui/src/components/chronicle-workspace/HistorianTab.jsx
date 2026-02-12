@@ -8,6 +8,7 @@ export default function HistorianTab({
   onHistorianReview,
   onUpdateHistorianNote,
   onBackportLore,
+  onGeneratePrep,
 }) {
   return (
     <div>
@@ -47,6 +48,72 @@ export default function HistorianTab({
               ? (noteId, updates) => onUpdateHistorianNote('chronicle', item.chronicleId, noteId, updates)
               : undefined}
           />
+        </div>
+      )}
+
+      {/* Historian Prep */}
+      {onGeneratePrep && (
+        <div
+          style={{
+            marginBottom: '20px',
+            padding: '16px',
+            background: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+          }}
+        >
+          <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>Historian Prep</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+            Private reading notes in the historian's voice — observations and thematic threads for era narrative input.
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              onClick={onGeneratePrep}
+              disabled={isGenerating}
+              style={{
+                padding: '8px 16px',
+                fontSize: '12px',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '6px',
+                cursor: isGenerating ? 'not-allowed' : 'pointer',
+                color: 'var(--text-secondary)',
+                opacity: isGenerating ? 0.6 : 1,
+              }}
+              title={item.historianPrep
+                ? "Regenerate historian reading notes for this chronicle"
+                : "Generate historian reading notes for this chronicle"}
+            >
+              {item.historianPrep ? 'Regenerate Prep Brief' : 'Generate Prep Brief'}
+            </button>
+            {item.historianPrepGeneratedAt && (
+              <span
+                style={{ fontSize: '11px', color: 'var(--text-muted)' }}
+                title={`Generated ${new Date(item.historianPrepGeneratedAt).toLocaleString()}`}
+              >
+                Generated {new Date(item.historianPrepGeneratedAt).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          {item.historianPrep && (
+            <div
+              style={{
+                marginTop: '12px',
+                padding: '12px',
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '6px',
+                fontSize: '13px',
+                lineHeight: '1.6',
+                color: 'var(--text-secondary)',
+                whiteSpace: 'pre-wrap',
+                maxHeight: '300px',
+                overflow: 'auto',
+              }}
+            >
+              {item.historianPrep}
+            </div>
+          )}
         </div>
       )}
 
@@ -100,7 +167,7 @@ export default function HistorianTab({
         </div>
       )}
 
-      {!onHistorianReview && !onBackportLore && !(item.historianNotes?.length > 0) && (
+      {!onHistorianReview && !onBackportLore && !onGeneratePrep && !(item.historianNotes?.length > 0) && (
         <div style={{ fontSize: '13px', color: 'var(--text-muted)', padding: '24px', textAlign: 'center' }}>
           No historian tools available for this chronicle.
         </div>

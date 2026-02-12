@@ -22,7 +22,8 @@
     "packages/canonry-dsl-v2",
     "packages/shared-components",
     "packages/image-store",
-    "packages/narrative-store"
+    "packages/narrative-store",
+    "packages/world-store"
   ],
   "scripts": {
     "build": "npm run -ws --if-present build",

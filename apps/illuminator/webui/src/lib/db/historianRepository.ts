@@ -27,6 +27,7 @@ export async function updateHistorianRun(
     | 'error'
     | 'notes'
     | 'noteDecisions'
+    | 'chronologyAssignments'
     | 'inputTokens'
     | 'outputTokens'
     | 'actualCost'
@@ -39,6 +40,7 @@ export async function updateHistorianRun(
   if (updates.error !== undefined) run.error = updates.error;
   if (updates.notes !== undefined) run.notes = updates.notes;
   if (updates.noteDecisions !== undefined) run.noteDecisions = updates.noteDecisions;
+  if (updates.chronologyAssignments !== undefined) run.chronologyAssignments = updates.chronologyAssignments;
   if (updates.inputTokens !== undefined) run.inputTokens = updates.inputTokens;
   if (updates.outputTokens !== undefined) run.outputTokens = updates.outputTokens;
   if (updates.actualCost !== undefined) run.actualCost = updates.actualCost;

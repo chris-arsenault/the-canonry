@@ -45,12 +45,23 @@ const GraphView = lazy(() => import('./GraphView.tsx'));
 const GraphView3D = lazy(() => import('./GraphView3D.tsx'));
 const TimelineView3D = lazy(() => import('./TimelineView3D.tsx'));
 
+function detectWebGL(): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    return !!(canvas.getContext('webgl2') || canvas.getContext('webgl'));
+  } catch {
+    return false;
+  }
+}
+
+const webglAvailable = detectWebGL();
+
 export default function WorldExplorer({ worldData, loreData }: WorldExplorerProps) {
   // Initialize from hash on mount
   const [selectedEntityId, setSelectedEntityId] = useState<string | undefined>(() => parseHashEntityId());
   const [currentTick, setCurrentTick] = useState<number>(worldData.metadata.tick);
   const [isStatsPanelOpen, setIsStatsPanelOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('graph3d');
+  const [viewMode, setViewMode] = useState<ViewMode>(webglAvailable ? 'graph3d' : 'graph2d');
   const [edgeMetric, setEdgeMetric] = useState<EdgeMetric>('strength');
   const recalculateLayoutRef = useRef<(() => void) | null>(null);
 

@@ -19,7 +19,8 @@
     "react-dom": "^19.0.0",
     "zustand": "^5.0.2",
     "@penguin-tales/image-store": "file:../../../packages/image-store",
-    "@penguin-tales/narrative-store": "file:../../../packages/narrative-store"
+    "@penguin-tales/narrative-store": "file:../../../packages/narrative-store",
+    "@penguin-tales/world-store": "file:../../../packages/world-store"
   },
   "devDependencies": {
     "@module-federation/vite": "^1.1.0",

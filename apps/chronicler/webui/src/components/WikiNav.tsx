@@ -380,46 +380,46 @@ export default function WikiNav({
               <span className={currentPageId === 'all-categories' ? styles.badgeActive : styles.badge}>({categories.length})</span>
             </button>
 
-            {/* Confluxes - nested collapsible */}
-            {confluxPages.length > 0 && (
+            {/* Confluxes - nested collapsible (always shown; data loads on navigation) */}
+            <button
+              className={styles.sectionTitleCollapsible}
+              onClick={() => setConfluxesExpanded(!confluxesExpanded)}
+              aria-expanded={confluxesExpanded}
+              style={{ paddingLeft: '8px' }}
+            >
+              <span className={styles.collapseIcon}>{confluxesExpanded ? '▼' : '▶'}</span>
+              Confluxes
+              {confluxPages.length > 0 && (
+                <span className={styles.badge}>({confluxPages.length})</span>
+              )}
+            </button>
+            {confluxesExpanded && (
               <>
                 <button
-                  className={styles.sectionTitleCollapsible}
-                  onClick={() => setConfluxesExpanded(!confluxesExpanded)}
-                  aria-expanded={confluxesExpanded}
-                  style={{ paddingLeft: '8px' }}
+                  className={currentPageId === 'confluxes' ? styles.navItemActive : styles.navItem}
+                  onClick={() => onNavigate('confluxes')}
                 >
-                  <span className={styles.collapseIcon}>{confluxesExpanded ? '▼' : '▶'}</span>
-                  Confluxes
-                  <span className={styles.badge}>({confluxPages.length})</span>
+                  All Confluxes
+                  {confluxPages.length > 0 && (
+                    <span className={currentPageId === 'confluxes' ? styles.badgeActive : styles.badge}>({confluxPages.length})</span>
+                  )}
                 </button>
-                {confluxesExpanded && (
-                  <>
-                    <button
-                      className={currentPageId === 'confluxes' ? styles.navItemActive : styles.navItem}
-                      onClick={() => onNavigate('confluxes')}
-                    >
-                      All Confluxes
-                      <span className={currentPageId === 'confluxes' ? styles.badgeActive : styles.badge}>({confluxPages.length})</span>
-                    </button>
-                    {confluxPages
-                      .sort((a, b) => (a.conflux?.manifestations ?? 0) - (b.conflux?.manifestations ?? 0))
-                      .slice(0, 5)
-                      .map(page => {
-                        const isActive = currentPageId === page.id;
-                        return (
-                          <button
-                            key={page.id}
-                            className={isActive ? styles.navItemActive : styles.navItem}
-                            onClick={() => onNavigate(page.id)}
-                          >
-                            {page.title}
-                            <span className={isActive ? styles.badgeActive : styles.badge}>({page.conflux?.manifestations ?? 0})</span>
-                          </button>
-                        );
-                      })}
-                  </>
-                )}
+                {confluxPages
+                  .sort((a, b) => (a.conflux?.manifestations ?? 0) - (b.conflux?.manifestations ?? 0))
+                  .slice(0, 5)
+                  .map(page => {
+                    const isActive = currentPageId === page.id;
+                    return (
+                      <button
+                        key={page.id}
+                        className={isActive ? styles.navItemActive : styles.navItem}
+                        onClick={() => onNavigate(page.id)}
+                      >
+                        {page.title}
+                        <span className={isActive ? styles.badgeActive : styles.badge}>({page.conflux?.manifestations ?? 0})</span>
+                      </button>
+                    );
+                  })}
               </>
             )}
 

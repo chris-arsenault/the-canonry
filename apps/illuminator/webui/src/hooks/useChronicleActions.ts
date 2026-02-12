@@ -135,7 +135,7 @@ function buildEntityRefFromRecord(chronicleId: string, chronicle: ChronicleRecor
 export function useChronicleActions(onEnqueue: OnEnqueue) {
   const getChronicle = useCallback(
     (chronicleId: string): ChronicleRecord | undefined =>
-      useChronicleStore.getState().chronicles[chronicleId],
+      useChronicleStore.getState().cache.get(chronicleId),
     [],
   );
 
@@ -306,7 +306,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         console.error('[Chronicle] No assembled content to compare');
         return;
       }
-      const historyCount = (chronicle.generationHistory?.length || 0) + 1;
+      const historyCount = chronicle.generationHistory?.length || 0;
       if (historyCount < 2) {
         console.error('[Chronicle] Need at least 2 versions to compare');
         return;
@@ -336,7 +336,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         console.error('[Chronicle] No assembled content to combine');
         return;
       }
-      const historyCount = (chronicle.generationHistory?.length || 0) + 1;
+      const historyCount = chronicle.generationHistory?.length || 0;
       if (historyCount < 2) {
         console.error('[Chronicle] Need at least 2 versions to combine');
         return;
@@ -348,6 +348,60 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
           type: 'entityChronicle' as EnrichmentType,
           prompt: '',
           chronicleStep: 'combine',
+          chronicleId,
+        },
+      ]);
+    },
+    [onEnqueue, getChronicle],
+  );
+
+  const copyEdit = useCallback(
+    (chronicleId: string) => {
+      const chronicle = getChronicle(chronicleId);
+      if (!chronicle) {
+        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        return;
+      }
+      if (!chronicle.assembledContent) {
+        console.error('[Chronicle] No assembled content to copy-edit');
+        return;
+      }
+
+      onEnqueue([
+        {
+          entity: buildEntityRefFromRecord(chronicleId, chronicle),
+          type: 'entityChronicle' as EnrichmentType,
+          prompt: '',
+          chronicleStep: 'copy_edit',
+          chronicleId,
+        },
+      ]);
+    },
+    [onEnqueue, getChronicle],
+  );
+
+  const temporalCheck = useCallback(
+    (chronicleId: string) => {
+      const chronicle = getChronicle(chronicleId);
+      if (!chronicle) {
+        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        return;
+      }
+      if (!chronicle.assembledContent) {
+        console.error('[Chronicle] No assembled content for temporal check');
+        return;
+      }
+      if (!chronicle.perspectiveSynthesis?.temporalNarrative) {
+        console.error('[Chronicle] No temporal narrative available for temporal check');
+        return;
+      }
+
+      onEnqueue([
+        {
+          entity: buildEntityRefFromRecord(chronicleId, chronicle),
+          type: 'entityChronicle' as EnrichmentType,
+          prompt: '',
+          chronicleStep: 'temporal_check',
           chronicleId,
         },
       ]);
@@ -394,6 +448,45 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
     [onEnqueue, getChronicle],
   );
 
+  /**
+   * Creative freedom regeneration.
+   * Stripped-down prompt — no PS, no prescribed structure/voice/style.
+   * Same world data, more creative latitude. Story format only.
+   */
+  const regenerateCreative = useCallback(
+    (chronicleId: string, context: ChronicleGenerationContext) => {
+      const chronicle = getChronicle(chronicleId);
+      if (!chronicle) {
+        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        return;
+      }
+      if (chronicle.finalContent || chronicle.status === 'complete') {
+        console.error('[Chronicle] Creative regeneration requires unpublishing first');
+        return;
+      }
+      if (!context.narrativeStyle) {
+        console.error('[Chronicle] Narrative style required for creative regeneration');
+        return;
+      }
+      if (context.narrativeStyle.format !== 'story') {
+        console.error('[Chronicle] Creative freedom mode is only available for story format');
+        return;
+      }
+
+      onEnqueue([
+        {
+          entity: buildEntityRefFromRecord(chronicleId, chronicle),
+          type: 'entityChronicle' as EnrichmentType,
+          prompt: '',
+          chronicleContext: context,
+          chronicleStep: 'regenerate_creative',
+          chronicleId,
+        },
+      ]);
+    },
+    [onEnqueue, getChronicle],
+  );
+
   return {
     generateV2,
     generateSummary,
@@ -401,7 +494,10 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
     generateImageRefs,
     regenerateWithSampling,
     regenerateFull,
+    regenerateCreative,
     compareVersions,
     combineVersions,
+    copyEdit,
+    temporalCheck,
   };
 }

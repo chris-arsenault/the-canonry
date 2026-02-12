@@ -175,10 +175,9 @@ Some entities may be marked as **[NARRATIVE LENS]** — these are not cast membe
 - Most lens entities should have NO changes. When changes do occur, they should be brief and factual.
 
 Rules:
-- Include EVERY cast and lens entity in the patches array.
-- Output the COMPLETE text for each field — not a diff. Every original fact must be present.
-- If no change is needed for a field, output the current text unchanged (description as a single-element array).
-- Omit anchorPhrase if the description is unchanged.`;
+- Only include entities that have changes. Omit unchanged entities from the patches array entirely.
+- For changed entities, output the COMPLETE text for each field — not a diff. Every original fact must be present.
+- Include anchorPhrase for every entity in the array (all of them have changes).`;
 
 // ============================================================================
 // Context Assembly
@@ -241,6 +240,11 @@ function buildUserPrompt(
 
       if (synthParts.length > 0) {
         sections.push(`=== PERSPECTIVE SYNTHESIS ===\n${synthParts.join('\n\n')}`);
+      }
+
+      // Narrative direction (optional) — helps distinguish direction-specific framing from durable lore
+      if (synthesis.narrativeDirection) {
+        sections.push(`=== NARRATIVE DIRECTION ===\nThis chronicle was written with a specific narrative direction: "${synthesis.narrativeDirection}"\nConsider this when evaluating which details are chronicle-specific framing vs. durable lore worth backporting.`);
       }
     } catch {
       // If JSON parsing fails, include as raw text

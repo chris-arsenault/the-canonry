@@ -1,11 +1,53 @@
 import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { fromCognitoIdentityPool } from '@aws-sdk/credential-provider-cognito-identity';
 import { getImageBlob, getImagesByProject } from '../lib/imageExportHelpers';
+import { openIlluminatorDb } from '../lib/illuminatorDbReader';
 
 const DEFAULT_RAW_PREFIX = 'raw';
 const DEFAULT_WEBP_PREFIX = 'webp';
 const DEFAULT_THUMB_PREFIX = 'thumb';
 const MANIFEST_NAME = 'image-manifest.json';
+
+function normalizeImageSize(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function normalizeManifestSize(value) {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (/^\d+$/.test(trimmed)) {
+      const parsed = Number(trimmed);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    }
+  }
+  return null;
+}
+
+function updateImageSize(db, imageId, size) {
+  if (!db || !db.objectStoreNames.contains('images')) {
+    return Promise.resolve(false);
+  }
+  return new Promise((resolve) => {
+    const tx = db.transaction('images', 'readwrite');
+    const store = tx.objectStore('images');
+    let updated = false;
+    const request = store.get(imageId);
+
+    request.onsuccess = () => {
+      const record = request.result;
+      if (!record) return;
+      if (record.size === size) return;
+      record.size = size;
+      store.put(record);
+      updated = true;
+    };
+    request.onerror = () => {};
+
+    tx.oncomplete = () => resolve(updated);
+    tx.onerror = () => resolve(false);
+  });
+}
 
 function toS3Key(...parts) {
   return parts
@@ -146,6 +188,147 @@ export async function listS3Prefixes(s3, { bucket, prefix }) {
   return (response.CommonPrefixes || []).map((item) => item.Prefix).filter(Boolean);
 }
 
+export async function getS3ImageUploadPlan({
+  projectId,
+  s3,
+  config,
+  repairSizes = false,
+}) {
+  if (!projectId) throw new Error('Missing projectId for image sync');
+  if (!s3) throw new Error('Missing S3 client');
+  const bucket = config?.imageBucket?.trim();
+  if (!bucket) throw new Error('Missing image bucket');
+
+  const basePrefix = config?.imagePrefix?.trim() || '';
+  const manifestFromS3 = await loadImageManifest(s3, { bucket, basePrefix });
+  const manifest = manifestFromS3 || {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    bucket,
+    basePrefix,
+    rawPrefix: DEFAULT_RAW_PREFIX,
+    webpPrefix: DEFAULT_WEBP_PREFIX,
+    thumbPrefix: DEFAULT_THUMB_PREFIX,
+    images: {},
+  };
+
+  const existing = manifest.images || {};
+  const images = await getImagesByProject(projectId);
+  const candidates = [];
+  const repairs = { attempted: 0, updated: 0, skipped: 0, failed: 0 };
+  const manifestRepairs = { updated: 0, skipped: 0, failed: 0 };
+  const canRepairManifest = Boolean(repairSizes && manifestFromS3);
+  let manifestChanged = false;
+  let db = null;
+
+  try {
+    if (repairSizes) {
+      db = await openIlluminatorDb();
+    }
+
+    for (const image of images) {
+      if (!image?.imageId) continue;
+      const updatedAt = image.savedAt || image.generatedAt || 0;
+      const entry = existing[image.imageId];
+      const rawSize = image.size;
+      const normalizedSize = normalizeImageSize(rawSize);
+      let effectiveSize = normalizedSize;
+      let sizeSource = normalizedSize != null ? 'metadata' : 'unknown';
+      const reasons = [];
+
+      const needsBlobForPlan = entry
+        && entry.updatedAt >= updatedAt
+        && (normalizedSize == null || entry.size !== normalizedSize);
+      const needsBlobForRepair = repairSizes && normalizedSize == null;
+      let blob = null;
+
+      if (needsBlobForPlan || needsBlobForRepair) {
+        blob = await getImageBlob(image.imageId);
+        if (blob) {
+          effectiveSize = blob.size;
+          sizeSource = 'blob';
+        } else {
+          sizeSource = 'missing_blob';
+        }
+      }
+
+      if (canRepairManifest && entry && entry.updatedAt >= updatedAt) {
+        const normalizedEntrySize = normalizeManifestSize(entry.size);
+        if (normalizedEntrySize == null) {
+          if (effectiveSize != null) {
+            entry.size = effectiveSize;
+            manifestRepairs.updated += 1;
+            manifestChanged = true;
+          } else {
+            manifestRepairs.skipped += 1;
+          }
+        } else if (normalizedEntrySize !== entry.size) {
+          entry.size = normalizedEntrySize;
+          manifestRepairs.updated += 1;
+          manifestChanged = true;
+        }
+      }
+
+      if (repairSizes && blob && effectiveSize != null && effectiveSize !== normalizedSize) {
+        repairs.attempted += 1;
+        try {
+          const updated = await updateImageSize(db, image.imageId, effectiveSize);
+          if (updated) {
+            repairs.updated += 1;
+          } else {
+            repairs.skipped += 1;
+          }
+        } catch (err) {
+          repairs.failed += 1;
+        }
+      }
+
+      if (!entry) {
+        reasons.push('missing_manifest');
+      } else {
+        if (entry.updatedAt < updatedAt) reasons.push('updated_at');
+        if (effectiveSize != null && entry.size !== effectiveSize) reasons.push('size_mismatch');
+        if (effectiveSize == null) reasons.push('size_unknown');
+      }
+
+      if (!reasons.length) continue;
+
+      candidates.push({
+        imageId: image.imageId,
+        entityId: image.entityId || null,
+        entityName: image.entityName || null,
+        imageType: image.imageType || 'entity',
+        updatedAt,
+        size: rawSize ?? null,
+        effectiveSize,
+        sizeSource,
+        manifestUpdatedAt: entry?.updatedAt ?? null,
+        manifestSize: entry?.size ?? null,
+        reason: reasons.join('+'),
+      });
+    }
+  } finally {
+    if (db) {
+      db.close();
+    }
+  }
+
+  if (canRepairManifest && manifestChanged) {
+    manifest.generatedAt = new Date().toISOString();
+    manifest.count = Object.keys(existing).length;
+    await saveImageManifest(s3, { bucket, basePrefix }, manifest);
+  }
+
+  return {
+    total: images.length,
+    candidates,
+    manifestFound: Boolean(manifestFromS3),
+    basePrefix,
+    repairs: repairSizes ? repairs : null,
+    manifestRepairs: canRepairManifest ? manifestRepairs : null,
+  };
+}
+
 export async function syncProjectImagesToS3({
   projectId,
   s3,
@@ -185,15 +368,36 @@ export async function syncProjectImagesToS3({
 
     const updatedAt = image.savedAt || image.generatedAt || 0;
     const entry = existing[image.imageId];
-    if (entry && entry.updatedAt >= updatedAt && entry.size === image.size) {
-      continue;
+    const normalizedSize = normalizeImageSize(image.size);
+
+    let blob = null;
+    let contentLength = null;
+
+    if (entry && entry.updatedAt >= updatedAt) {
+      if (normalizedSize != null) {
+        if (entry.size === normalizedSize) {
+          continue;
+        }
+      } else {
+        blob = await getImageBlob(image.imageId);
+        if (!blob) continue;
+        contentLength = blob.size;
+        if (entry.size === contentLength) {
+          continue;
+        }
+      }
     }
 
-    const blob = await getImageBlob(image.imageId);
-    if (!blob) continue;
+    if (!blob) {
+      blob = await getImageBlob(image.imageId);
+      if (!blob) continue;
+      contentLength = blob.size;
+    }
+
     const buffer = await blob.arrayBuffer();
     const body = new Uint8Array(buffer);
-    const contentLength = body.byteLength;
+    const bodyLength = body.byteLength;
+    contentLength = bodyLength;
 
     const rawKey = toS3Key(basePrefix, rawPrefix, projectId, image.imageId);
     const tagging = buildTagging({ ...image, projectId, savedAt: updatedAt });
@@ -213,7 +417,7 @@ export async function syncProjectImagesToS3({
       projectId,
       rawKey,
       mimeType: image.mimeType || blob.type || 'application/octet-stream',
-      size: image.size || contentLength || null,
+      size: normalizedSize ?? contentLength ?? null,
       updatedAt,
       entityId: image.entityId || null,
       entityKind: image.entityKind || null,

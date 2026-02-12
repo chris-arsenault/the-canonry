@@ -19,6 +19,8 @@
     "jszip": "^3.10.1",
     "name-forge": "file:../../name-forge",
     "react": "^19.0.0",
+    "react-markdown": "^9.0.0",
+    "remark-gfm": "^4.0.0",
     "react-arborist": "^3.4.3",
     "react-dom": "^19.0.0",
     "zustand": "^5.0.11"

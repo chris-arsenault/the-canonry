@@ -1797,8 +1797,7 @@ export class WorldEngine {
         entityCount: entities.length,
         relationshipCount: relationships.length,
         durationMs,
-        reachability: this.getReachabilityMetrics(),
-        enrichmentTriggers: {}
+        reachability: this.getReachabilityMetrics()
       },
       hardState: entities,
       relationships,
@@ -2636,8 +2635,7 @@ export class WorldEngine {
           formations: this.metaEntitiesFormed,
           comment: 'Meta-entities are ability/rule entities that emerged from clustering, marked with meta-entity tag'
         },
-        reachability: this.getReachabilityMetrics(),
-        enrichmentTriggers: {}
+        reachability: this.getReachabilityMetrics()
       },
       hardState: entities,
       relationships,

@@ -6,6 +6,9 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+// Exception to the "UI never talks to IndexedDB directly" rule:
+// Image blobs are read directly from Dexie here for performance (avoid
+// extra abstraction overhead on hot image-loading paths).
 import { db } from '../lib/db/illuminatorDb';
 
 interface UseImageUrlResult {

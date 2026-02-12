@@ -1,6 +1,7 @@
 import { defineConfig, type PluginOption } from 'vite';
 import react from '@vitejs/plugin-react';
 import { federation } from '@module-federation/vite';
+import path from 'node:path';
 
 // Chronicler is an MFE remote for The Canonry shell.
 // To use Chronicler, run The Canonry (apps/canonry/webui).
@@ -21,9 +22,18 @@ export default defineConfig({
         zustand: { singleton: true },
         '@penguin-tales/image-store': { singleton: true },
         '@penguin-tales/narrative-store': { singleton: true },
+        '@penguin-tales/world-store': { singleton: true },
       },
     }) as PluginOption,
   ],
+  resolve: {
+    alias: {
+      '@penguin-tales/world-store': path.resolve(
+        __dirname,
+        '../../../packages/world-store/src/index.ts'
+      ),
+    },
+  },
   // Base path - use /chronicler/ in dev (via proxy) and production
   base: '/chronicler/',
   build: {

@@ -7,7 +7,7 @@
  */
 
 import type { LLMClient } from './llmClient';
-import type { EntityContext, EraContext } from './chronicleTypes';
+import type { EntityContext, EraContext, ChronicleRoleAssignment } from './chronicleTypes';
 import type { EntityConstellation } from './constellationAnalyzer';
 import type { ResolvedLLMCallConfig } from './llmModelSettings';
 import {
@@ -56,8 +56,10 @@ export interface ToneFragments {
  * Fact selection settings for perspective synthesis.
  */
 export interface FactSelectionConfig {
-  /** Target number of world-truth facts to facet (required facts count toward this). */
-  targetCount?: number;
+  /** Minimum number of world-truth facts to facet (required facts count toward this). */
+  minCount?: number;
+  /** Maximum number of world-truth facts to facet. */
+  maxCount?: number;
 }
 
 /**
@@ -91,6 +93,8 @@ export interface PerspectiveSynthesis {
   narrativeVoice: Record<string, string>;
   /** Per-entity writing directives pre-applying cultural traits + prose hints */
   entityDirectives: EntityDirective[];
+  /** 2-4 sentences synthesizing era conditions and world dynamics into story-specific stakes. */
+  temporalNarrative?: string;
 }
 
 /**
@@ -118,6 +122,10 @@ export interface PerspectiveSynthesisInput {
   }>;
   /** Fact selection settings for perspective synthesis. */
   factSelection?: FactSelectionConfig;
+  /** Optional free-text narrative direction — primary constraint when present */
+  narrativeDirection?: string;
+  /** Role assignments from wizard — which entity fills which narrative role */
+  roleAssignments?: ChronicleRoleAssignment[];
 }
 
 /**
@@ -216,6 +224,8 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
     narrativeStyle,
     proseHints,
     factSelection,
+    narrativeDirection,
+    roleAssignments,
   } = input;
   const prominenceScale = buildProminenceScale(
     entities
@@ -238,6 +248,14 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
     return trimmed;
   };
 
+  // Build role lookup from assignments
+  const roleByEntityId = new Map<string, { role: string; isPrimary: boolean }>();
+  if (roleAssignments) {
+    for (const ra of roleAssignments) {
+      roleByEntityId.set(ra.entityId, { role: ra.role, isPrimary: ra.isPrimary });
+    }
+  }
+
   // Entity summaries
   const entitySummaries = entities
     .slice(0, 10)
@@ -246,13 +264,17 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
         ? ` [${Object.entries(e.tags).map(([k, v]) => `${k}=${v}`).join(', ')}]`
         : '';
       const prominenceLabel = resolveProminenceLabel(e.prominence, prominenceScale);
-      return `- ${e.name} (${e.kind}, ${e.culture || 'unknown'}, ${prominenceLabel})${tags}: ${e.summary || '(no summary)'}`;
+      const assignment = roleByEntityId.get(e.id);
+      const roleLabel = assignment
+        ? `, role: ${assignment.role}${assignment.isPrimary ? ' (primary)' : ''}`
+        : '';
+      return `- ${e.name} (${e.kind}, ${e.culture || 'unknown'}, ${prominenceLabel}${roleLabel})${tags}: ${e.summary || '(no summary)'}`;
     })
     .join('\n');
 
-  // All world truth facts (not generation constraints)
+  // All world truth facts (not generation constraints, not disabled)
   const worldTruthFacts = (factsWithMetadata || []).filter(
-    (f) => f.type !== 'generation_constraint'
+    (f) => f.type !== 'generation_constraint' && !f.disabled
   );
   const requiredFacts = worldTruthFacts.filter((f) => f.required);
   const worldTruthFactsDisplay = worldTruthFacts
@@ -286,6 +308,7 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
       narrativeStyle.description ? `Description: ${narrativeStyle.description}` : null,
       narrativeStyle.tags?.length ? `Tags: ${narrativeStyle.tags.join(', ')}` : null,
       narrativeStyle.proseInstructions ? `\nProse guidance:\n${narrativeStyle.proseInstructions}` : null,
+      narrativeStyle.craftPosture ? `\nCraft posture (density and restraint):\n${narrativeStyle.craftPosture}` : null,
     ].filter(Boolean);
     narrativeStyleDisplay = styleParts.join('\n');
   }
@@ -308,23 +331,49 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
     ? resolvedWorldDynamics.map((d) => `- ${d.text}`).join('\n')
     : 'No world dynamics declared.';
 
-  const requestedTarget = factSelection?.targetCount;
-  const effectiveTarget =
-    typeof requestedTarget === 'number' && requestedTarget > 0
-      ? Math.max(requestedTarget, requiredFacts.length)
-      : undefined;
-  const factSelectionLine = effectiveTarget
-    ? `Fact selection target: ${effectiveTarget} (required facts count toward this).`
-    : 'Fact selection target: default (4-6). Required facts must still be included.';
-  const facetSelectionInstruction = effectiveTarget
-    ? `Select exactly ${effectiveTarget}`
-    : 'Select 4-6';
+  const requestedMin = factSelection?.minCount;
+  const requestedMax = factSelection?.maxCount;
+  const hasCustomRange =
+    (typeof requestedMin === 'number' && requestedMin > 0) ||
+    (typeof requestedMax === 'number' && requestedMax > 0);
+
+  // Compute effective min/max, respecting required facts floor
+  const effectiveMin = hasCustomRange
+    ? Math.max(requestedMin ?? 4, requiredFacts.length)
+    : undefined;
+  const effectiveMax = hasCustomRange
+    ? Math.max(requestedMax ?? effectiveMin ?? 6, effectiveMin ?? requiredFacts.length)
+    : undefined;
+
+  let factSelectionLine: string;
+  let facetSelectionInstruction: string;
+  if (effectiveMin !== undefined && effectiveMax !== undefined) {
+    if (effectiveMin === effectiveMax) {
+      factSelectionLine = `Fact selection target: exactly ${effectiveMin} (required facts count toward this).`;
+      facetSelectionInstruction = `Select exactly ${effectiveMin}`;
+    } else {
+      factSelectionLine = `Fact selection target: ${effectiveMin}-${effectiveMax} (required facts count toward this).`;
+      facetSelectionInstruction = `Select ${effectiveMin}-${effectiveMax}`;
+    }
+  } else {
+    factSelectionLine = 'Fact selection target: default (4-6). Required facts must still be included.';
+    facetSelectionInstruction = 'Select 4-6';
+  }
+
+  // Narrative direction block (only when provided)
+  const narrativeDirectionBlock = narrativeDirection
+    ? `\n=== NARRATIVE DIRECTION (PRIMARY CONSTRAINT) ===
+The author has specified this concrete direction for the chronicle:
+"${narrativeDirection}"
+
+Your perspective brief, entity directives, motifs, and fact facets must all serve this specific narrative. Treat this as the organizing thesis — every synthesis decision should support it.\n`
+    : '';
 
   return {
     resolvedWorldDynamics,
     prompt: `=== NARRATIVE STYLE ===
 ${narrativeStyleDisplay}
-
+${narrativeDirectionBlock}
 === BASELINE MATERIAL ===
 
 CORE TONE (applies to all chronicles):
@@ -377,6 +426,8 @@ Provide a JSON object with:
 
 5. "entityDirectives": For each entity, 1-2 sentences on what matters about them for THIS story. Let the style guide what to focus on. Include entityId, entityName, and directive.
 
+6. "temporalNarrative" (optional): If WORLD DYNAMICS were provided above, synthesize them into 2-4 sentences of story-specific stakes for THIS chronicle. What conditions shape what's possible? What pressures bear on these characters? If no world dynamics are provided, omit this field entirely.
+
 Output format:
 {
   "brief": "...",
@@ -389,7 +440,8 @@ Output format:
   },
   "entityDirectives": [
     {"entityId": "id", "entityName": "Name", "directive": "1-3 sentences"}
-  ]
+  ],
+  "temporalNarrative": "2-4 sentences (optional, only if world dynamics provided)"
 }`,
   };
 }
@@ -406,7 +458,7 @@ export async function synthesizePerspective(
 
   // Separate generation constraints (always included verbatim, not sent to LLM)
   const generationConstraints = (factsWithMetadata || []).filter(
-    (f) => f.type === 'generation_constraint'
+    (f) => f.type === 'generation_constraint' && !f.disabled
   );
 
   // Build prompt with ALL baseline material - let LLM do the refinement
@@ -473,12 +525,17 @@ export async function synthesizePerspective(
           }))
       : [];
 
+    const temporalNarrative = typeof parsed.temporalNarrative === 'string'
+      ? parsed.temporalNarrative
+      : undefined;
+
     synthesis = {
       brief: parsed.brief,
       facets,
       suggestedMotifs,
       narrativeVoice,
       entityDirectives,
+      temporalNarrative,
     };
   } catch (err) {
     throw new Error(
@@ -486,18 +543,19 @@ export async function synthesizePerspective(
     );
   }
 
-  // Enforce required facts and target count (if configured)
+  // Enforce required facts and max count (if configured)
   const worldTruthFacts = (factsWithMetadata || []).filter(
-    (f) => f.type !== 'generation_constraint'
+    (f) => f.type !== 'generation_constraint' && !f.disabled
   );
   const requiredFacts = worldTruthFacts.filter((f) => f.required);
   const requiredIds = requiredFacts.map((f) => f.id).filter(Boolean);
-  const requestedTarget = input.factSelection?.targetCount;
-  const targetCount =
-    typeof requestedTarget === 'number' && requestedTarget > 0
-      ? Math.max(requestedTarget, requiredIds.length)
-      : undefined;
-  const enforcedTarget = targetCount ?? (requiredIds.length > 6 ? requiredIds.length : undefined);
+  const requestedMax = input.factSelection?.maxCount;
+  const enforcedMax =
+    typeof requestedMax === 'number' && requestedMax > 0
+      ? Math.max(requestedMax, requiredIds.length)
+      : requiredIds.length > 6
+        ? requiredIds.length
+        : undefined;
   const factMap = new Map(factsWithMetadata.map((f) => [f.id, f]));
 
   const facetsById = new Map<string, string>();
@@ -535,8 +593,8 @@ export async function synthesizePerspective(
     addedIds.add(facetId);
   }
 
-  if (enforcedTarget && finalFacets.length > enforcedTarget) {
-    finalFacets.length = enforcedTarget;
+  if (enforcedMax && finalFacets.length > enforcedMax) {
+    finalFacets.length = enforcedMax;
   }
 
   synthesis = {

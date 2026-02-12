@@ -26,7 +26,7 @@ import {
 
 // Compact model labels for table display
 const MODEL_SHORT_LABELS = {
-  'claude-opus-4-5-20251101': 'Opus',
+  'claude-opus-4-6': 'Opus',
   'claude-sonnet-4-5-20250929': 'Sonnet',
   'claude-haiku-4-5-20251001': 'Haiku',
 };

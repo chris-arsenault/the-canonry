@@ -66,11 +66,16 @@ export async function saveImage(
   blob: Blob,
   metadata: ImageMetadata
 ): Promise<string> {
+  const { size: sizeOverride, ...rest } = metadata as ImageMetadata & { size?: unknown };
+  const requestedSize = typeof sizeOverride === 'string' && sizeOverride.trim()
+    ? sizeOverride
+    : rest.requestedSize;
   const metadataRecord = {
     imageId,
     mimeType: blob.type || 'image/png',
     size: blob.size,
-    ...metadata,
+    ...rest,
+    requestedSize,
     savedAt: Date.now(),
   };
 

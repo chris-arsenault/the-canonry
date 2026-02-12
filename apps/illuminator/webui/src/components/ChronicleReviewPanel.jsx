@@ -5,7 +5,7 @@
  * validation_ready keeps its own inline layout since it's a different workflow.
  */
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { diffWords } from 'diff';
 import CohesionReportViewer from './CohesionReportViewer';
 import ImageModal from './ImageModal';
@@ -176,8 +176,11 @@ export default function ChronicleReviewPanel({
   onRegenerate,
   onRegenerateWithSampling,
   onRegenerateFull,
+  onRegenerateCreative,
   onCompareVersions,
   onCombineVersions,
+  onCopyEdit,
+  onTemporalCheck,
   onCorrectSuggestions,
   onGenerateSummary,
   onGenerateTitle,
@@ -215,6 +218,9 @@ export default function ChronicleReviewPanel({
   // Select existing image for a ref
   onSelectExistingImage,
 
+  // Select existing image for cover
+  onSelectExistingCoverImage,
+
   // Export
   onExport,
 
@@ -238,6 +244,7 @@ export default function ChronicleReviewPanel({
   cultureIdentities,
   worldContext,
   eras,
+  events,
 }) {
   if (!item) return null;
 
@@ -255,8 +262,11 @@ export default function ChronicleReviewPanel({
         onRegenerate={onRegenerate}
         onRegenerateWithSampling={onRegenerateWithSampling}
         onRegenerateFull={onRegenerateFull}
+        onRegenerateCreative={onRegenerateCreative}
         onCompareVersions={onCompareVersions}
         onCombineVersions={onCombineVersions}
+        onCopyEdit={onCopyEdit}
+        onTemporalCheck={onTemporalCheck}
         onValidate={onValidate}
         onGenerateSummary={onGenerateSummary}
         onGenerateTitle={onGenerateTitle}
@@ -284,6 +294,7 @@ export default function ChronicleReviewPanel({
         onUpdateChronicleImageJustification={onUpdateChronicleImageJustification}
         onApplyImageRefSelections={onApplyImageRefSelections}
         onSelectExistingImage={onSelectExistingImage}
+        onSelectExistingCoverImage={onSelectExistingCoverImage}
         onExport={onExport}
         onBackportLore={onBackportLore}
         onHistorianReview={onHistorianReview}
@@ -297,6 +308,7 @@ export default function ChronicleReviewPanel({
         cultureIdentities={cultureIdentities}
         worldContext={worldContext}
         eras={eras}
+        events={events}
       />
     );
   }
@@ -376,11 +388,16 @@ function ValidationReadyView({
   const wordCountFn = (content) => content?.split(/\s+/).filter(Boolean).length || 0;
   const copyToClipboard = (content) => navigator.clipboard.writeText(content);
 
-  const currentVersionId = `current_${item.assembledAt ?? item.createdAt}`;
-  const activeVersionId = item.activeVersionId || currentVersionId;
-
   const versions = useMemo(() => {
-    const history = (item.generationHistory || []).map((version, index) => {
+    const sorted = [...(item.generationHistory || [])].sort((a, b) => a.generatedAt - b.generatedAt);
+    const seen = new Set();
+    const unique = [];
+    for (const version of sorted) {
+      if (seen.has(version.versionId)) continue;
+      seen.add(version.versionId);
+      unique.push(version);
+    }
+    return unique.map((version, index) => {
       const samplingLabel = version.sampling ?? 'unspecified';
       return {
         id: version.versionId,
@@ -390,17 +407,9 @@ function ValidationReadyView({
         label: `Version ${index + 1} \u2022 ${new Date(version.generatedAt).toLocaleString()} \u2022 sampling ${samplingLabel}`,
       };
     });
-    const currentSamplingLabel = item.generationSampling ?? 'unspecified';
-    const currentVersionNumber = history.length + 1;
-    history.push({
-      id: currentVersionId,
-      content: item.assembledContent,
-      wordCount: wordCountFn(item.assembledContent),
-      shortLabel: `V${currentVersionNumber}`,
-      label: `Version ${currentVersionNumber} \u2022 ${new Date(item.assembledAt ?? item.createdAt).toLocaleString()} \u2022 sampling ${currentSamplingLabel}`,
-    });
-    return history;
-  }, [item.generationHistory, item.assembledContent, item.assembledAt, item.createdAt, item.generationSampling, currentVersionId]);
+  }, [item.generationHistory]);
+
+  const activeVersionId = item.activeVersionId || versions[versions.length - 1]?.id;
 
   const [selectedVersionId, setSelectedVersionId] = useState(activeVersionId);
   const [compareToVersionId, setCompareToVersionId] = useState('');
@@ -410,6 +419,25 @@ function ValidationReadyView({
     setCompareToVersionId('');
   }, [activeVersionId, item.chronicleId]);
 
+  useEffect(() => {
+    if (versions.length === 0) return;
+
+    const hasSelected = versions.some((v) => v.id === selectedVersionId);
+    let nextSelected = selectedVersionId;
+    if (!hasSelected) {
+      const hasActive = versions.some((v) => v.id === activeVersionId);
+      nextSelected = hasActive ? activeVersionId : versions[versions.length - 1].id;
+      setSelectedVersionId(nextSelected);
+    }
+
+    if (compareToVersionId) {
+      const hasCompare = versions.some((v) => v.id === compareToVersionId);
+      if (!hasCompare || compareToVersionId === nextSelected) {
+        setCompareToVersionId('');
+      }
+    }
+  }, [versions, selectedVersionId, compareToVersionId, activeVersionId]);
+
   const selectedVersion = useMemo(
     () => versions.find((v) => v.id === selectedVersionId) || versions[versions.length - 1],
     [versions, selectedVersionId]
@@ -418,6 +446,29 @@ function ValidationReadyView({
     () => compareToVersionId ? versions.find((v) => v.id === compareToVersionId) : null,
     [versions, compareToVersionId]
   );
+
+  const handleDeleteVersion = useCallback((versionId) => {
+    if (!versionId || versions.length === 0) return;
+
+    const index = versions.findIndex((v) => v.id === versionId);
+    let nextSelected = selectedVersionId;
+    if (index !== -1) {
+      nextSelected = versions[index + 1]?.id || versions[index - 1]?.id || selectedVersionId;
+    }
+    if (nextSelected === versionId) {
+      const hasActive = versions.some((v) => v.id === activeVersionId);
+      nextSelected = hasActive ? activeVersionId : versions[versions.length - 1].id;
+    }
+
+    if (nextSelected && nextSelected !== selectedVersionId) {
+      setSelectedVersionId(nextSelected);
+    }
+    if (compareToVersionId === versionId || compareToVersionId === nextSelected) {
+      setCompareToVersionId('');
+    }
+
+    onDeleteVersion?.(versionId);
+  }, [versions, selectedVersionId, activeVersionId, compareToVersionId, onDeleteVersion]);
 
   const versionContentMap = useMemo(() => {
     const map = new Map();
@@ -514,7 +565,7 @@ function ValidationReadyView({
               }}
               onSelectCompareVersion={setCompareToVersionId}
               onSetActiveVersion={onUpdateChronicleActiveVersion}
-              onDeleteVersion={onDeleteVersion}
+              onDeleteVersion={handleDeleteVersion}
               disabled={isGenerating}
             />
           </div>

@@ -1,25 +1,96 @@
 /**
  * ArchivistRemote - MFE entry point for Archivist
  *
- * Accepts world data as props from the canonry shell.
- * Persistence is handled by canonry's worldStore (per-project IndexedDB).
+ * Loads world data from the shared Dexie store.
  */
 
+import { useEffect, useMemo, useState } from 'react';
 import './index.css';
 import WorldExplorer from './components/WorldExplorer.tsx';
-import type { WorldState, LoreData } from './types/world.ts';
+import type { WorldState } from './types/world.ts';
 import { validateWorldData } from './utils/schemaValidation.ts';
+import { buildWorldStateForSlot } from '@penguin-tales/world-store';
 
 export interface ArchivistRemoteProps {
-  worldData?: WorldState | null;
-  loreData?: LoreData | null;
+  projectId?: string;
+  activeSlotIndex?: number;
+  /** Timestamp updated when Dexie ingestion completes (viewer). */
+  dexieSeededAt?: number;
 }
 
 export default function ArchivistRemote({
-  worldData = null,
-  loreData = null,
+  projectId,
+  activeSlotIndex = 0,
+  dexieSeededAt,
 }: ArchivistRemoteProps) {
-  if (!worldData) {
+  const [worldDataState, setWorldDataState] = useState<WorldState | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const effectiveWorldData = projectId ? worldDataState : null;
+  const effectiveLoading = projectId ? loading : false;
+  const effectiveLoadError = projectId ? loadError : null;
+  const schemaIssues = useMemo(
+    () => (effectiveWorldData ? validateWorldData(effectiveWorldData) : []),
+    [effectiveWorldData],
+  );
+
+  useEffect(() => {
+    if (!projectId) return;
+
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setLoadError(null);
+    });
+
+    buildWorldStateForSlot(projectId, activeSlotIndex)
+      .then((loaded) => {
+        if (cancelled) return;
+        setWorldDataState(loaded);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error('[ArchivistRemote] Failed to load world data:', err);
+        setWorldDataState(null);
+        setLoadError(err?.message || 'Failed to load world data from Dexie.');
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSlotIndex, dexieSeededAt, projectId]);
+
+  if (effectiveLoading) {
+    return (
+      <div className="archivist-empty-state">
+        <div className="archivist-state-content">
+          <div className="archivist-state-icon">⏳</div>
+          <div className="archivist-state-title">Loading World Data</div>
+          <div className="archivist-state-message">Reading from local storage…</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (effectiveLoadError) {
+    return (
+      <div className="archivist-error-state">
+        <div className="archivist-state-content">
+          <div className="archivist-state-icon">❌</div>
+          <div className="archivist-state-title">World data unavailable</div>
+          <div className="archivist-state-message">{effectiveLoadError}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!effectiveWorldData) {
     return (
       <div className="archivist-empty-state">
         <div className="archivist-state-content">
@@ -33,7 +104,6 @@ export default function ArchivistRemote({
     );
   }
 
-  const schemaIssues = validateWorldData(worldData);
   if (schemaIssues.length > 0) {
     return (
       <div className="archivist-error-state">
@@ -54,8 +124,8 @@ export default function ArchivistRemote({
 
   return (
     <WorldExplorer
-      worldData={worldData}
-      loreData={loreData}
+      worldData={effectiveWorldData}
+      loreData={null}
     />
   );
 }

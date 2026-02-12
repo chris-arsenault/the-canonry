@@ -27,6 +27,7 @@ export default defineConfig({
         zustand: { singleton: true },
         '@penguin-tales/image-store': { singleton: true },
         '@penguin-tales/narrative-store': { singleton: true },
+        '@penguin-tales/world-store': { singleton: true },
       },
     }),
   ],

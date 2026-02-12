@@ -11,7 +11,7 @@
 import { useState, useMemo, useEffect, useLayoutEffect, useCallback } from 'react';
 import type { WorldState, LoreData, WikiPage, HardState, NarrativeEvent } from '../types/world.ts';
 import { useImageUrl } from '@penguin-tales/image-store';
-import { buildPageIndex, buildPageById } from '../lib/wikiBuilder.ts';
+import { buildPageIndex, buildPageById, buildConfluxIndex } from '../lib/wikiBuilder.ts';
 import { getCompletedChroniclesForSimulation, type ChronicleRecord } from '../lib/chronicleStorage.ts';
 import { getPublishedStaticPagesForProject, type StaticPage } from '../lib/staticPageStorage.ts';
 import { useBreakpoint } from '../hooks/useBreakpoint.ts';
@@ -27,8 +27,8 @@ import {
   prominenceLabelFromScale,
   type ProminenceScale,
 } from '@canonry/world-schema';
+import { ParchmentTexture, PageFrame, DEFAULT_PARCHMENT_CONFIG, type ParchmentConfig } from './Ornaments.tsx';
 import { useNarrativeStore } from '@penguin-tales/narrative-store';
-import { ParchmentTexture, PageFrame, ParchmentDebugPanel, DEFAULT_PARCHMENT_CONFIG, type ParchmentConfig } from './Ornaments.tsx';
 import styles from './WikiExplorer.module.css';
 
 /**
@@ -88,31 +88,26 @@ function normalizeStaticPages(pages?: StaticPage[]): StaticPage[] {
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
+const EMPTY_EVENTS: NarrativeEvent[] = [];
+
 
 interface WikiExplorerProps {
   /** Project ID - used to load static pages (project-scoped, not simulation-scoped) */
   projectId?: string;
   worldData: WorldState;
   loreData: LoreData | null;
-  chronicles?: ChronicleRecord[];
-  staticPages?: StaticPage[];
   /** Page ID requested by external navigation (e.g., from Archivist) */
   requestedPageId?: string | null;
   /** Callback to signal that the requested page has been consumed */
   onRequestedPageConsumed?: () => void;
-  /** Whether narrative history chunks are still loading (affects confluxes, timelines) */
-  narrativeHistoryLoading?: boolean;
 }
 
 export default function WikiExplorer({
   projectId,
   worldData,
   loreData,
-  chronicles: chroniclesOverride,
-  staticPages: staticPagesOverride,
   requestedPageId,
   onRequestedPageConsumed,
-  narrativeHistoryLoading = false,
 }: WikiExplorerProps) {
   // Initialize from hash on mount
   const [currentPageId, setCurrentPageId] = useState<string | null>(() => parseHashPageId());
@@ -124,20 +119,26 @@ export default function WikiExplorer({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Chronicles and static pages loaded from IndexedDB
-  const [chronicles, setChronicles] = useState<ChronicleRecord[]>(() => normalizeChronicles(chroniclesOverride));
-  const [staticPages, setStaticPages] = useState<StaticPage[]>(() => normalizeStaticPages(staticPagesOverride));
+  const [chronicles, setChronicles] = useState<ChronicleRecord[]>([]);
+  const [staticPages, setStaticPages] = useState<StaticPage[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [parchmentConfig, setParchmentConfig] = useState<ParchmentConfig>(() => ({ ...DEFAULT_PARCHMENT_CONFIG }));
+  const [parchmentConfig] = useState<ParchmentConfig>(() => ({ ...DEFAULT_PARCHMENT_CONFIG }));
+  const shouldLoadConflux = currentPageId === 'confluxes' || currentPageId?.startsWith('conflux:');
   const simulationRunId = (worldData as { metadata?: { simulationRunId?: string } }).metadata?.simulationRunId;
-  const hasChroniclesOverride = chroniclesOverride !== undefined;
-  const hasStaticPagesOverride = staticPagesOverride !== undefined;
+  const ensureAllEventsLoaded = useNarrativeStore((state) => state.ensureAllEventsLoaded);
+  // Select the Map reference directly — stable between store updates.
+  // Array conversion happens in useMemo below to avoid creating a new array on every subscription check.
+  const eventsById = useNarrativeStore((state) => state.eventsById);
+  const narrativeEvents = useMemo(
+    () => (shouldLoadConflux && eventsById.size > 0 ? Array.from(eventsById.values()) : EMPTY_EVENTS),
+    [shouldLoadConflux, eventsById]
+  );
+  const allEventsLoaded = useNarrativeStore((state) => (shouldLoadConflux ? state.allEventsLoaded : false));
+  const allEventsLoading = useNarrativeStore((state) => (shouldLoadConflux ? state.allEventsLoading : false));
+  const narrativeChunksLoading = useNarrativeStore((state) => (shouldLoadConflux ? state.status.loading : false));
 
   // Load chronicles from IndexedDB when simulationRunId changes
   useEffect(() => {
-    if (hasChroniclesOverride) {
-      setChronicles(normalizeChronicles(chroniclesOverride));
-      return;
-    }
     if (!simulationRunId) {
       setChronicles([]);
       return;
@@ -149,7 +150,7 @@ export default function WikiExplorer({
       try {
         const loadedChronicles = await getCompletedChroniclesForSimulation(simulationRunId!);
         if (!cancelled) {
-          setChronicles(loadedChronicles);
+          setChronicles(normalizeChronicles(loadedChronicles));
         }
       } catch (err) {
         console.error('[WikiExplorer] Failed to load chronicles:', err);
@@ -164,14 +165,10 @@ export default function WikiExplorer({
     return () => {
       cancelled = true;
     };
-  }, [chroniclesOverride, hasChroniclesOverride, simulationRunId]);
+  }, [simulationRunId]);
 
   // Load static pages from IndexedDB when projectId changes
   useEffect(() => {
-    if (hasStaticPagesOverride) {
-      setStaticPages(normalizeStaticPages(staticPagesOverride));
-      return;
-    }
     if (!projectId) {
       setStaticPages([]);
       return;
@@ -183,7 +180,7 @@ export default function WikiExplorer({
       try {
         const loadedPages = await getPublishedStaticPagesForProject(projectId!);
         if (!cancelled) {
-          setStaticPages(loadedPages);
+          setStaticPages(normalizeStaticPages(loadedPages));
         }
       } catch (err) {
         console.error('[WikiExplorer] Failed to load static pages:', err);
@@ -198,21 +195,7 @@ export default function WikiExplorer({
     return () => {
       cancelled = true;
     };
-  }, [projectId, staticPagesOverride, hasStaticPagesOverride]);
-
-  // Bridge worldData.narrativeHistory → narrative-store zustand store
-  // The canonry shell puts narrative events in worldData props but doesn't
-  // call ingestChunk (the viewer app does). We bridge the gap here so that
-  // entity timelines (which read from the store) get their data.
-  useEffect(() => {
-    const events = (worldData as { narrativeHistory?: unknown[] }).narrativeHistory;
-    if (!events || events.length === 0) return;
-
-    const store = useNarrativeStore.getState();
-    store.reset();
-    store.ingestChunk(events as NarrativeEvent[]);
-    store.setStatus({ loading: false, chunksTotal: 1, chunksLoaded: 1 });
-  }, [worldData]);
+  }, [projectId]);
 
   // Validate world data before building index
   // Returns first validation error found, or null if valid
@@ -240,6 +223,21 @@ export default function WikiExplorer({
     return buildProminenceScale(values, { distribution: DEFAULT_PROMINENCE_DISTRIBUTION });
   }, [worldData, dataError]);
 
+  useEffect(() => {
+    if (!simulationRunId || !shouldLoadConflux || narrativeChunksLoading) return;
+    void ensureAllEventsLoaded();
+  }, [ensureAllEventsLoaded, narrativeChunksLoading, shouldLoadConflux, simulationRunId]);
+
+  const confluxIndex = useMemo(() => {
+    if (!allEventsLoaded || narrativeEvents.length === 0) return new Map();
+    return buildConfluxIndex(narrativeEvents);
+  }, [allEventsLoaded, narrativeEvents]);
+
+  const worldDataForPages = useMemo(() => {
+    if (!allEventsLoaded || narrativeEvents.length === 0) return worldData;
+    return { ...worldData, narrativeHistory: narrativeEvents };
+  }, [allEventsLoaded, narrativeEvents, worldData]);
+
   // Build lightweight page index (fast) - only if data is valid
   const { pageIndex, entityIndex } = useMemo(() => {
     if (dataError) {
@@ -249,13 +247,13 @@ export default function WikiExplorer({
         entityIndex: new Map<string, HardState>(),
       };
     }
-    const pageIndex = buildPageIndex(worldData, loreData, chronicles, staticPages, prominenceScale);
+    const pageIndex = buildPageIndex(worldDataForPages, loreData, chronicles, staticPages, prominenceScale, confluxIndex);
     const entityIndex = new Map<string, HardState>();
     for (const entity of worldData.hardState) {
       entityIndex.set(entity.id, entity);
     }
     return { pageIndex, entityIndex };
-  }, [worldData, loreData, chronicles, staticPages, dataError, prominenceScale]);
+  }, [worldDataForPages, worldData, loreData, chronicles, staticPages, dataError, prominenceScale, confluxIndex]);
 
   const resolvePageId = useCallback((pageId: string | null): string | null => {
     if (!pageId) return null;
@@ -321,7 +319,7 @@ export default function WikiExplorer({
   // Page cache - stores fully built pages by ID
   // Use useMemo to create a NEW cache when data changes, ensuring synchronous invalidation
   // (useEffect runs after render, which causes stale cache reads when chunks load)
-  const pageCache = useMemo(() => new Map<string, WikiPage>(), [worldData, loreData, chronicles, staticPages]);
+  const pageCache = useMemo(() => new Map<string, WikiPage>(), [worldDataForPages, loreData, chronicles, staticPages]);
 
   // Get a page from cache or build it on-demand
   const getPage = useCallback((pageId: string): WikiPage | null => {
@@ -336,7 +334,7 @@ export default function WikiExplorer({
 
     const page = buildPageById(
       canonicalId,
-      worldData,
+      worldDataForPages,
       loreData,
       null,
       pageIndex,
@@ -348,7 +346,7 @@ export default function WikiExplorer({
       pageCache.set(canonicalId, page);
     }
     return page;
-  }, [worldData, loreData, pageIndex, chronicles, staticPages, prominenceScale, pageCache]);
+  }, [worldDataForPages, loreData, pageIndex, chronicles, staticPages, prominenceScale, pageCache]);
 
   // Convert index entries to minimal WikiPage objects for navigation components
   const indexAsPages = useMemo(() => {
@@ -393,13 +391,17 @@ export default function WikiExplorer({
   const isChronicleIndex = currentPageId === 'chronicles'
     || currentPageId === 'chronicles-story'
     || currentPageId === 'chronicles-document'
-    || currentPageId?.startsWith('chronicles-type-');
+    || currentPageId?.startsWith('chronicles-type-')
+    || currentPageId?.startsWith('chronicles-era-');
 
   const isPagesIndex = currentPageId === 'pages';
 
   const isConfluxesIndex = currentPageId === 'confluxes';
 
   const isHuddlesIndex = currentPageId === 'huddles';
+
+  const isConfluxPage = currentPageId?.startsWith('conflux:') ?? false;
+  const confluxPending = isConfluxPage && !allEventsLoaded;
 
   // Check if it's a page category (e.g., "page-category-System")
   const isPageCategory = currentPageId?.startsWith('page-category-');
@@ -408,7 +410,7 @@ export default function WikiExplorer({
     : null;
 
   // Build current page on-demand
-  const currentPage = !isChronicleIndex && !isPagesIndex && !isConfluxesIndex && !isHuddlesIndex && !isPageCategory && currentPageId
+  const currentPage = !confluxPending && !isChronicleIndex && !isPagesIndex && !isConfluxesIndex && !isHuddlesIndex && !isPageCategory && currentPageId
     ? getPage(currentPageId)
     : null;
 
@@ -438,21 +440,21 @@ export default function WikiExplorer({
   // Update page/tab title based on current page
   useEffect(() => {
     if (documentTitle) {
-      document.title = `${documentTitle} | The Canonry`;
+      document.title = `${documentTitle} | The Ice Remembers`;
     } else if (isChronicleIndex) {
-      document.title = 'Chronicles | The Canonry';
+      document.title = 'Chronicles | The Ice Remembers';
     } else if (isPagesIndex) {
-      document.title = 'Pages | The Canonry';
+      document.title = 'Pages | The Ice Remembers';
     } else if (isConfluxesIndex) {
-      document.title = 'Confluxes | The Canonry';
+      document.title = 'Confluxes | The Ice Remembers';
     } else if (isHuddlesIndex) {
-      document.title = 'Huddles | The Canonry';
+      document.title = 'Huddles | The Ice Remembers';
     } else if (isPageCategory && pageCategoryNamespace) {
-      document.title = `${pageCategoryNamespace} | The Canonry`;
+      document.title = `${pageCategoryNamespace} | The Ice Remembers`;
     } else {
-      document.title = 'The Canonry';
+      document.title = 'The Ice Remembers';
     }
-  }, [currentPage, isChronicleIndex, isPagesIndex, isConfluxesIndex, isHuddlesIndex, isPageCategory, pageCategoryNamespace]);
+  }, [documentTitle, isChronicleIndex, isPagesIndex, isConfluxesIndex, isHuddlesIndex, isPageCategory, pageCategoryNamespace]);
 
   // Handle navigation - updates hash which triggers state update via hashchange
   // Uses slug for entity/chronicle/static page URLs (prettier, rename-friendly)
@@ -493,21 +495,12 @@ export default function WikiExplorer({
 
     setIsRefreshing(true);
     try {
-      if (hasChroniclesOverride || hasStaticPagesOverride) {
-        if (hasChroniclesOverride) {
-          setChronicles(normalizeChronicles(chroniclesOverride));
-        }
-        if (hasStaticPagesOverride) {
-          setStaticPages(normalizeStaticPages(staticPagesOverride));
-        }
-      } else {
-        const [loadedChronicles, loadedStaticPages] = await Promise.all([
-          simulationRunId ? getCompletedChroniclesForSimulation(simulationRunId) : Promise.resolve([]),
-          projectId ? getPublishedStaticPagesForProject(projectId) : Promise.resolve([]),
-        ]);
-        setChronicles(loadedChronicles);
-        setStaticPages(loadedStaticPages);
-      }
+      const [loadedChronicles, loadedStaticPages] = await Promise.all([
+        simulationRunId ? getCompletedChroniclesForSimulation(simulationRunId) : Promise.resolve([]),
+        projectId ? getPublishedStaticPagesForProject(projectId) : Promise.resolve([]),
+      ]);
+      setChronicles(normalizeChronicles(loadedChronicles));
+      setStaticPages(normalizeStaticPages(loadedStaticPages));
       // Note: Page cache automatically invalidates via useMemo when data changes
     } catch (err) {
       console.error('[WikiExplorer] Failed to refresh index:', err);
@@ -515,12 +508,8 @@ export default function WikiExplorer({
       setIsRefreshing(false);
     }
   }, [
-    chroniclesOverride,
-    hasChroniclesOverride,
-    hasStaticPagesOverride,
     projectId,
     simulationRunId,
-    staticPagesOverride,
     isRefreshing,
   ]);
 
@@ -604,10 +593,9 @@ export default function WikiExplorer({
       )}
 
       {/* Main Content */}
-      <div className={styles.main}>
+        <div className={styles.main}>
         <ParchmentTexture className={styles.parchmentOverlay} config={parchmentConfig} />
         <PageFrame className={styles.pageFrame} />
-        <ParchmentDebugPanel config={parchmentConfig} onChange={setParchmentConfig} />
         <div className={isMobile ? styles.contentMobile : styles.content}>
           {isChronicleIndex ? (
             <ChronicleIndex
@@ -619,6 +607,18 @@ export default function WikiExplorer({
                   ? { kind: 'format', format: 'document' }
                   : currentPageId?.startsWith('chronicles-type-')
                   ? { kind: 'type', typeId: currentPageId.replace('chronicles-type-', '') }
+                  : currentPageId?.startsWith('chronicles-era-')
+                  ? (() => {
+                      // Parse: chronicles-era-{eraId} or chronicles-era-{eraId}-story or chronicles-era-{eraId}-document
+                      const suffix = currentPageId!.replace('chronicles-era-', '');
+                      if (suffix.endsWith('-story')) {
+                        return { kind: 'era' as const, eraId: suffix.replace(/-story$/, ''), format: 'story' as const };
+                      }
+                      if (suffix.endsWith('-document')) {
+                        return { kind: 'era' as const, eraId: suffix.replace(/-document$/, ''), format: 'document' as const };
+                      }
+                      return { kind: 'era' as const, eraId: suffix };
+                    })()
                   : { kind: 'all' }
               }
               onNavigate={handleNavigate}
@@ -632,7 +632,11 @@ export default function WikiExplorer({
             <ConfluxesIndex
               confluxPages={confluxPages}
               onNavigate={handleNavigate}
-              narrativeHistoryLoading={narrativeHistoryLoading}
+              narrativeHistoryLoading={
+                allEventsLoading ||
+                narrativeChunksLoading ||
+                (shouldLoadConflux && !allEventsLoaded)
+              }
             />
           ) : isHuddlesIndex ? (
             <HuddlesIndex
@@ -645,6 +649,11 @@ export default function WikiExplorer({
               pages={staticPagesAsWikiPages}
               onNavigate={handleNavigate}
             />
+          ) : confluxPending ? (
+            <div style={{ padding: '24px' }}>
+              <h1 style={{ marginBottom: '12px' }}>Loading Conflux Data</h1>
+              <div style={{ opacity: 0.7 }}>Reading narrative history for this conflux...</div>
+            </div>
           ) : currentPage ? (
             <WikiPageView
               page={currentPage}

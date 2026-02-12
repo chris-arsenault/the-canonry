@@ -382,14 +382,19 @@ export interface CanonFactWithMetadata {
 
   /** If true, this fact must be included in perspective facets. */
   required?: boolean;
+
+  /** If true, this fact is excluded from perspective synthesis and generation prompts. */
+  disabled?: boolean;
 }
 
 /**
  * Fact selection settings for perspective synthesis.
  */
 export interface FactSelectionConfig {
-  /** Target number of world-truth facts to facet (required facts count toward this). */
-  targetCount?: number;
+  /** Minimum number of world-truth facts to facet (required facts count toward this). */
+  minCount?: number;
+  /** Maximum number of world-truth facts to facet. */
+  maxCount?: number;
 }
 
 /**
@@ -419,6 +424,8 @@ export interface PerspectiveSynthesisRecord {
   narrativeVoice: Record<string, string>;
   /** Per-entity writing directives pre-applying cultural traits + prose hints */
   entityDirectives: Array<{ entityId: string; entityName: string; directive: string }>;
+  /** 2-4 sentences synthesizing era conditions and world dynamics into story-specific stakes */
+  temporalNarrative?: string;
 
   // === INPUT (what was sent to LLM) ===
   /** Constellation summary that drove the synthesis */
@@ -449,8 +456,8 @@ export interface PerspectiveSynthesisRecord {
     id: string;
     text: string;
   }>;
-  /** Target number of facts requested for faceting (if configured). */
-  factSelectionTarget?: number;
+  /** Range of facts requested for faceting (if configured). */
+  factSelectionRange?: { min?: number; max?: number };
   /** Cultural identities that were sent (culture -> trait -> value) */
   inputCulturalIdentities?: Record<string, Record<string, string>>;
   /** Entity summaries that were sent */
@@ -460,6 +467,12 @@ export interface PerspectiveSynthesisRecord {
     culture?: string;
     summary?: string;
   }>;
+  /** Focal era for this chronicle (used for era-specific dynamics overrides). */
+  focalEra?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
 
   /** Cost info */
   inputTokens: number;
@@ -557,6 +570,15 @@ export interface ChronicleGenerationContext {
    * Used to inject era-appropriate dynamics into generation prompts.
    */
   worldDynamicsResolved?: string[];
+  /** PS-synthesized temporal narrative — dynamics distilled into story-specific stakes. */
+  temporalNarrative?: string;
+
+  /**
+   * Optional free-text narrative direction from the wizard.
+   * When present, acts as a primary constraint on perspective synthesis and generation.
+   * E.g., "This is the treaty document that ended the Faction Wars."
+   */
+  narrativeDirection?: string;
 }
 
 // =============================================================================
@@ -787,6 +809,11 @@ export interface ChronicleRecord {
   /** Temporal context including focal era */
   temporalContext?: ChronicleTemporalContext;
 
+  /** Historian-assigned chronological year within the focal era */
+  eraYear?: number;
+  /** Historian's reasoning for the year placement */
+  eraYearReasoning?: string;
+
   // ========================================================================
   // Mechanical metadata (used for graph traversal, not identity)
   // ========================================================================
@@ -820,7 +847,9 @@ export interface ChronicleRecord {
   generationUserPrompt?: string;
   /** Sampling mode used for the most recent generation */
   generationSampling?: ChronicleSampling;
-  /** Prior generation versions (chronicle regeneration history) */
+  /** Which pipeline step produced the current version */
+  generationStep?: VersionStep;
+  /** Generation versions (includes current + history) */
   generationHistory?: ChronicleGenerationVersion[];
   /** Version id that should be published on accept */
   activeVersionId?: string;
@@ -840,6 +869,8 @@ export interface ChronicleRecord {
     narrativeVoice?: Record<string, string>;
     /** Per-entity writing directives from perspective synthesis */
     entityDirectives?: Array<{ entityId: string; entityName: string; directive: string }>;
+    /** Optional narrative direction from wizard */
+    narrativeDirection?: string;
   };
 
   // Perspective synthesis (required for all new chronicles)
@@ -854,16 +885,22 @@ export interface ChronicleRecord {
   comparisonReportGeneratedAt?: number;
   combineInstructions?: string;
 
+  // Temporal alignment check report (user-triggered, checks focal era / temporal narrative vs text)
+  temporalCheckReport?: string;
+  temporalCheckReportGeneratedAt?: number;
+
   // Refinements
   summary?: string;
   summaryGeneratedAt?: number;
   summaryModel?: string;
   summaryTargetVersionId?: string;
   titleCandidates?: string[];
+  titleFragments?: string[];
   titleGeneratedAt?: number;
   titleModel?: string;
   pendingTitle?: string;
   pendingTitleCandidates?: string[];
+  pendingTitleFragments?: string[];
   imageRefs?: ChronicleImageRefs;
   imageRefsGeneratedAt?: number;
   imageRefsModel?: string;
@@ -883,11 +920,21 @@ export interface ChronicleRecord {
   /** Version id that was accepted/published */
   acceptedVersionId?: string;
 
+  /**
+   * Optional free-text narrative direction from the wizard.
+   * When present, acts as a primary constraint on perspective synthesis and generation.
+   */
+  narrativeDirection?: string;
+
   /** Whether lore from this chronicle has been backported to cast entity descriptions */
   loreBackported?: boolean;
 
   /** Historian annotations — scholarly margin notes anchored to chronicle text */
   historianNotes?: HistorianNote[];
+
+  /** Historian's private reading notes — prep brief for era narrative input */
+  historianPrep?: string;
+  historianPrepGeneratedAt?: number;
 
   // Cost tracking (aggregated across all LLM calls)
   totalEstimatedCost: number;
@@ -902,6 +949,11 @@ export interface ChronicleRecord {
 }
 
 /**
+ * Which pipeline step produced this version.
+ */
+export type VersionStep = 'generate' | 'regenerate' | 'creative' | 'combine' | 'copy_edit';
+
+/**
  * Stored snapshot of a chronicle generation version.
  */
 export interface ChronicleGenerationVersion {
@@ -914,6 +966,7 @@ export interface ChronicleGenerationVersion {
   systemPrompt: string;
   userPrompt: string;
   cost?: { estimated: number; actual: number; inputTokens: number; outputTokens: number };
+  step?: VersionStep;
 }
 
 /**
@@ -937,6 +990,8 @@ export interface ChronicleShellMetadata {
   temporalContext?: ChronicleTemporalContext;
   /** Requested sampling mode for initial generation */
   generationSampling: ChronicleSampling;
+  /** Optional narrative direction from wizard */
+  narrativeDirection?: string;
 
   // Mechanical (optional)
   entrypointId?: string;
@@ -966,6 +1021,8 @@ export interface ChronicleMetadata {
   selectedEventIds: string[];
   selectedRelationshipIds: string[];
   temporalContext?: ChronicleTemporalContext;
+  /** Optional narrative direction from wizard */
+  narrativeDirection?: string;
 
   // Mechanical (optional)
   entrypointId?: string;

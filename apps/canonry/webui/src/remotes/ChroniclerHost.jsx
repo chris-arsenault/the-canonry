@@ -45,8 +45,7 @@ const loadingFallback = React.createElement(
 
 export default function ChroniclerHost({
   projectId,
-  worldData,
-  loreData,
+  activeSlotIndex,
   requestedPageId,
   onRequestedPageConsumed,
 }) {
@@ -55,8 +54,7 @@ export default function ChroniclerHost({
       <Suspense fallback={loadingFallback}>
         <ChroniclerRemote
           projectId={projectId}
-          worldData={worldData}
-          loreData={loreData}
+          activeSlotIndex={activeSlotIndex}
           requestedPageId={requestedPageId}
           onRequestedPageConsumed={onRequestedPageConsumed}
         />

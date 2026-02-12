@@ -43,13 +43,13 @@ const loadingFallback = React.createElement(
   'Loading Archivist...'
 );
 
-export default function ArchivistHost({ worldData, loreData }) {
+export default function ArchivistHost({ projectId, activeSlotIndex }) {
   return (
     <div style={styles.container}>
       <Suspense fallback={loadingFallback}>
         <ArchivistRemote
-          worldData={worldData}
-          loreData={loreData}
+          projectId={projectId}
+          activeSlotIndex={activeSlotIndex}
         />
       </Suspense>
     </div>

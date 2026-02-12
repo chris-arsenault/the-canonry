@@ -34,6 +34,17 @@ interface GraphLink {
   catalyzed?: boolean;
 }
 
+function detectWebGL(): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    return !!(canvas.getContext('webgl2') || canvas.getContext('webgl'));
+  } catch {
+    return false;
+  }
+}
+
+const webglAvailable = detectWebGL();
+
 export default function GraphView3D({
   data,
   selectedNodeId,
@@ -49,6 +60,20 @@ export default function GraphView3D({
   const [isReady, setIsReady] = useState(false);
   // Unique ID per mount to ensure ForceGraph gets a fresh instance
   const [mountId] = useState(() => Date.now());
+
+  if (!webglAvailable) {
+    return (
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a1929', color: '#93c5fd' }}>
+        <div style={{ textAlign: 'center', maxWidth: 400 }}>
+          <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>&#x1F4A0;</div>
+          <div style={{ fontSize: 16, fontWeight: 500, color: '#fff', marginBottom: 8 }}>WebGL not available</div>
+          <div style={{ fontSize: 13 }}>
+            3D graph view requires WebGL. Switch to the <strong>2D Graph</strong> or <strong>Map</strong> view instead.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const frameId = requestAnimationFrame(() => {

@@ -1,6 +1,7 @@
 import { defineConfig, type PluginOption } from 'vite';
 import react from '@vitejs/plugin-react';
 import { federation } from '@module-federation/vite';
+import path from 'node:path';
 
 // Archivist is an MFE remote for The Canonry shell.
 // To use Archivist, run The Canonry (apps/canonry/webui).
@@ -20,9 +21,18 @@ export default defineConfig({
         'react-dom': { singleton: true, requiredVersion: '^19.0.0' },
         zustand: { singleton: true },
         '@penguin-tales/image-store': { singleton: true },
+        '@penguin-tales/world-store': { singleton: true },
       },
     }) as PluginOption,
   ],
+  resolve: {
+    alias: {
+      '@penguin-tales/world-store': path.resolve(
+        __dirname,
+        '../../../packages/world-store/src/index.ts'
+      ),
+    },
+  },
   // Base path - use /archivist/ in dev (via proxy) and production
   base: '/archivist/',
   build: {
