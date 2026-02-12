@@ -1482,4 +1482,101 @@ AVOID: Nihilism. Destruction without meaning. Modern apocalyptic cliches (zombie
     },
 
   },
+
+  // ============================================================================
+  // 20. LAST STAND - Ground-Level War Narrative
+  // ============================================================================
+  {
+    id: 'last-stand',
+    name: 'Last Stand',
+    description: 'War from the inside — a unit holding the line, the bonds between soldiers, the arithmetic of sacrifice. No heroes, no villains. Just duty and its cost.',
+    tags: ['war', 'ensemble', 'visceral', 'sacrifice', 'ground-level'],
+    format: 'story',
+
+    narrativeInstructions: `STRUCTURE: THE LINE HOLDS (OR BREAKS)
+This story is told from inside a unit. Not from above, not in retrospect — from the ground, in the noise, in the dark. The unit is the protagonist. Individual members are facets of a collective will that emerges from shared exhaustion, shared jokes, shared fear. The enemy is not evil — they have their own bonds, their own duties, their own reasons for being here. Both sides are paying the same price in different currency.
+
+The narrative is linear. Time moves forward because in combat, time only moves forward. No flashbacks. No retrospective framing. What happened before is carried in how people talk to each other, what they carry, what they don't say. History lives in the scars, the nicknames, the debts mentioned in half-sentences.
+
+=== SCENE 1: THE LINE ===
+The unit in position. Not a briefing — a breath. Soldiers doing what soldiers do before the fight: checking gear, complaining about something petty, sharing what's left of the rations. These small moments ARE the story. Every relationship in the unit should be visible in how people stand near each other, who finishes whose sentences, what names they use and what names they avoid.
+
+Dark humor is the register. The worse things get, the funnier the jokes. Someone's boots are ruined. Someone owes someone a drink they'll never collect. Someone starts a story they'll finish later — and "later" is a promise no one believes but everyone makes. This is not warmth. This is armor. The banter is how units survive the waiting.
+
+Establish what they're holding and why it matters — not in strategic terms but in gut terms. This is where their people sleep. This is what falls if the line breaks. The arithmetic is already visible: not enough bodies, not enough supplies, not enough of whatever they need.
+
+End Scene 1 still in the quiet. The last joke before the noise.
+
+=== SCENE 2: CONTACT ===
+The fight arrives. Not cinematically — chaotically. The plan, if there was one, lasts thirty seconds. Communication breaks. Visibility drops. People are shouting things that matter and no one can hear them.
+
+Time compresses and stretches. A moment of terror lasts forever; an hour of fighting vanishes into a sentence. Dialog becomes functional: commands, warnings, names called out. "Left!" "Down!" "Where's —?" Someone who was talking in Scene 1 stops talking. Don't eulogize them. Don't pause. The unit registers the absence in half-seconds — a gap in the line, a voice missing from the call-and-response — and keeps fighting because that's what units do. Grief is a luxury for people who aren't currently dying.
+
+The enemy must be visible as people. An opposing commander directing forces with the same desperate competence as the unit's leader. A warrior who hesitates at the wrong moment. A formation that shows training, discipline, someone else's version of the same bonds the unit has. Give the enemy at least one moment of specificity — a detail that makes clear there are soldiers on that side too, not monsters.
+
+If magic or special abilities are involved, render them physically. Not as spectacle but as bodily experience — the way the air changes, what it does to the ears, the taste it leaves. Magic in combat is another weapon, and weapons are described by what they do to flesh.
+
+=== SCENE 3: THE ARITHMETIC ===
+The moment when someone does the math. Not enough fire. Not enough bodies. Not enough time. The line will break unless someone pays a price that can't be refunded.
+
+This is not a heroic volunteer scene. No one steps into a shaft of light and makes a speech. This is people looking at each other and knowing. Maybe someone says "I'll go" and it's quiet — not dramatic, just tired and certain. Maybe no one says anything because the person who has the ability is already moving. Maybe they argue about it — briefly, viciously, because there's no time — and the argument reveals what each person values more than their own survival.
+
+The sacrifice is physical, specific, ugly. Not a clean death. Not a noble gesture. Someone doing something terrible to themselves or to the world because it's the only option left on the table. Show what it costs the person doing it: the pain, the fear they're hiding badly, the moment their hands shake before they stop shaking. Show what it costs the people watching: the ones who look away, the one who doesn't, the one who tries to stop it and gets pulled back.
+
+The enemy feels it too. If the sacrifice is a weapon, show what it does to the other side — not as victory but as violence done to people who were also just doing their duty. The orca commander whose pod-bonds snap. The warrior who was singing and then wasn't. No triumph in this. Just the cost.
+
+=== SCENE 4: AFTER ===
+Brief. The quiet after noise is louder than the noise was.
+
+Someone standing where someone else was standing. A weapon on the ground with no one holding it. The sound that won't stop — a frequency, a drip, a crack in something structural. The surviving members of the unit doing whatever comes next because that's all there is to do.
+
+No reflection. No meaning-making. No one says "it was worth it" or "they died for something." A concrete moment: picking up someone's gear. Saying a name into empty air. Starting to walk in a direction that is "away" rather than "toward." The unit is smaller now. The jokes will be different. Someone will take the dead soldier's watch position tonight because the watch still needs keeping.
+
+End mid-motion. Not a conclusion — a continuation. The war isn't over. The line held or it didn't, and either way, tomorrow they do it again.`,
+
+    proseInstructions: `TONE: Ground-level, compressed, physical. The prose should carry exhaustion in its bones — short sentences when action peaks, longer ones in the quiet moments when bodies catch up to what's been happening. Not pretty. Accurate. The difference between "the aurora shimmered" and "the light made his eyes ache."
+
+DIALOGUE: This style is dialog-heavy. People talk the way soldiers talk: gallows humor, understatement, insults as endearments, incomplete sentences finished by someone who's heard this a hundred times. No speeches. No declarations of principle. "You good?" "No." "Same. Move." — that register. The worse the situation gets, the more deadpan the delivery. Someone cracks a joke while bleeding. Someone complains about the cold while the world is ending. This isn't comic relief. It's how people survive proximity to death — by refusing to give it the gravity it demands.
+
+Dialog reveals relationship. How a veteran talks to a new member. How the unit leader talks when there's time versus when there isn't. The word someone uses for the person they're about to lose — a nickname that compresses years of shared misery into two syllables. When dialog stops, something has changed. Silence in a unit that never shuts up is the loudest sound in the story.
+
+Erikson's principle applies: dialog is "cagey." Characters speak for their own needs, not the reader's. They reference shared history without explaining it. They use in-group shorthand. The reader assembles context from fragments, the way a new recruit would.
+
+DESCRIPTION: Physical and sensory. Not beautiful — functional. The way exhaustion makes hands shake and decisions slow. The sound that pressure-magic makes when it hits crystalline architecture. The weight of gear after the fourth hour. Wounds described by what they do to capability, not how they look: "her left flipper wouldn't close anymore" not "blood streamed from the wound."
+
+The environment is tactical and lived-in. Sight lines, cover, footing. The cold — always the cold. Darkness and noise as disorientation. Smells that soldiers notice because bodies notice before minds do.
+
+TECHNIQUE - THE UNIT VOICE: The ensemble develops a collective identity through accumulated dialog — running jokes, shared complaints, a particular way of handling fear that belongs to this unit and no other. By Scene 3, losing a member should feel like losing part of a private language. A joke that won't land anymore because the person who always responded is gone.
+
+TECHNIQUE - THE ENEMY AS MIRROR: The opposing force is rendered with the same specificity as the unit. A commander who cares about his people. A warrior who fights well because someone taught her. A formation that shows bonds as deep as the defenders'. The reader should be able to imagine the same story told from the other side, and it would be just as true.
+
+TECHNIQUE - DEATH WITHOUT CEREMONY: People die mid-sentence. Mid-action. Mid-joke. The narrative does not pause to honor them because the battle doesn't pause. Their absence is registered in the gaps — who stops responding, whose position goes silent, whose name gets called and called and called with no answer. Grief is deferred. The living grieve by continuing to fight. The dead are mourned in Scene 4's silence, if they're mourned at all.
+
+TECHNIQUE - SACRIFICE AS ARITHMETIC: The sacrifice scene is not an emotional crescendo — it's math. Someone has the ability. The situation requires it. The cost is understood. They do it because the alternative is everyone. Make the math visible: show what's left, show what's needed, show the gap between them. The reader should arrive at the same conclusion the characters do, a beat before anyone speaks.
+
+AVOID: Heroic speeches. Slow-motion deaths. The enemy as evil or monstrous — they are soldiers with families, orders, and the same fear. Clean deaths where people close their eyes and go still. War as adventure or spectacle. Protagonists who don't get tired, scared, hungry, or petty. Sacrifice as glory rather than cost. Narration that tells the reader how to feel. Any sentence that could appear on a monument.`,
+
+    eventInstructions: 'Events are the battle. They arrive as chaos, not as plot points. Multiple things happen simultaneously and the unit experiences them partially — an explosion three corridors away, a shout from a flank they can\'t see, a shift in the enemy\'s formation that means something has changed but no one on the ground knows what. The full picture is never available to anyone holding a weapon.',
+
+    craftPosture: `- Dialog is the primary tool. Let people talk. Their voices carry character, relationship, and tension more efficiently than any description. The quiet moments between soldiers earn more space than the violence.
+- Compress action, expand the human moments. The conversation before the fight and the silence after it are where the story lives. Combat is rendered in bursts — sharp, disorienting, over before the reader has fully processed it.
+- Death in half-sentences. Don't linger. The absence after is louder than the moment of dying. Let gaps do the mourning.
+- Symmetry between sides. If the unit has bonds, show that the enemy does too. If sacrifice costs the defenders, register what it costs the attackers. The story's moral weight comes from refusing to make one side's suffering matter more than the other's.
+- Physical before emotional. Show the shaking hands before naming the fear. Show the wound before the grief. The body knows before the mind does, and the prose should follow that order.`,
+
+    titleGuidance: 'The title names the ground — the position, the corridor, the ridge, the terrace. Military and concrete. It should sound like what survivors call this fight when they talk about it years later: not the official name, not the strategic significance, just the place where it happened. The register is tired, specific, earned. Two to four words. No glory in it. If the title sounds like it belongs on a memorial wall where someone has traced the letters with a flipper, it fits.',
+
+    roles: [
+      { role: 'the-line', count: { min: 1, max: 1 }, description: 'What is being held — a location, a faction, an artifact, a principle. The thing that makes the stand necessary. Not a person but what people are willing to die for' },
+      { role: 'squad-member', count: { min: 2, max: 3 }, description: 'Members of the unit — defined by how they talk, what they carry, and how they relate to each other under pressure. Named through action and dialog, not backstory. At least one will not survive' },
+      { role: 'the-tide', count: { min: 1, max: 1 }, description: 'The opposing force — a faction, a commander, an occurrence bearing down. Treated with the same dignity as the unit. They have their own bonds, their own reasons, their own cost to pay' },
+      { role: 'the-price', count: { min: 1, max: 1 }, description: 'What the sacrifice costs or what is sacrificed — may be an ability, an artifact, a bond, or a person. The thing that ends this battle but scars everything it touches. Described by what it does, not what it means' },
+      { role: 'the-weight', count: { min: 0, max: 1 }, description: 'What survivors carry after — an ideology born from the cost, a corruption that won\'t cleanse, a sound that won\'t stop. Not present in the battle itself; felt only in the silence after. The thing the story was really about, visible only from the far side of violence' },
+    ],
+
+    pacing: {
+      totalWordCount: { min: 1600, max: 2200 },
+      sceneCount: { min: 4, max: 4 },
+    },
+  },
 ];
