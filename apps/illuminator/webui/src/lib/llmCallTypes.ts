@@ -40,12 +40,13 @@ export type LLMCallType =
   // Chronicle Lore Backport
   | 'revision.loreBackport'      // Extract lore from chronicle and backport to cast entities
 
-  // Description Copy Edit
-  | 'description.copyEdit'       // Readability copy edit for a single entity description
-
-  // Historian Review
+  // Historian Review & Edition
   | 'historian.entityReview'     // Historian annotations for entity description
-  | 'historian.chronicleReview'; // Historian annotations for chronicle narrative
+  | 'historian.chronicleReview'  // Historian annotations for chronicle narrative
+  | 'historian.edition'          // Historian-voiced description synthesis from full archive
+  | 'historian.chronology'      // Historian assigns years to chronicles within an era
+  | 'historian.prep'            // Historian reading notes for a chronicle
+  | 'historian.eraNarrative';   // Era narrative chapter/thread generation
 
 export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   'description.narrative',
@@ -66,9 +67,12 @@ export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   'dynamics.generation',
   'revision.summary',
   'revision.loreBackport',
-  'description.copyEdit',
   'historian.entityReview',
   'historian.chronicleReview',
+  'historian.edition',
+  'historian.chronology',
+  'historian.prep',
+  'historian.eraNarrative',
 ];
 
 export type LLMCallCategory = 'description' | 'image' | 'perspective' | 'chronicle' | 'palette' | 'dynamics' | 'revision' | 'historian';
@@ -336,17 +340,6 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
     },
     recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
-  'description.copyEdit': {
-    label: 'Copy Edit',
-    description: 'Readability copy edit for a single entity description — fixes pronoun ambiguity, unexplained references, dense prose',
-    category: 'description',
-    defaults: {
-      model: 'claude-sonnet-4-5-20250929',
-      thinkingBudget: 4096,
-      maxTokens: 4096,
-    },
-    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
-  },
   'historian.entityReview': {
     label: 'Entity Review',
     description: 'Historian annotations for an entity description — scholarly commentary, factual corrections, tongue-in-cheek observations',
@@ -368,6 +361,50 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       maxTokens: 8192,
     },
     recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
+  },
+  'historian.edition': {
+    label: 'Historian Edition',
+    description: 'Historian-voiced synthesis of entity description from full description archive — scholarly rewrite with editorial discretion',
+    category: 'historian',
+    defaults: {
+      model: 'claude-sonnet-4-5-20250929',
+      thinkingBudget: 4096,
+      maxTokens: 4096,
+    },
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
+  },
+  'historian.chronology': {
+    label: 'Chronology',
+    description: 'Historian assigns year numbers to chronicles within an era, establishing chronological ordering',
+    category: 'historian',
+    defaults: {
+      model: 'claude-sonnet-4-5-20250929',
+      thinkingBudget: 8192,
+      maxTokens: 4096,
+    },
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
+  },
+  'historian.prep': {
+    label: 'Prep Brief',
+    description: 'Historian reading notes for a chronicle — private observations, thematic threads, cast dynamics',
+    category: 'historian',
+    defaults: {
+      model: 'claude-sonnet-4-5-20250929',
+      thinkingBudget: 4096,
+      maxTokens: 1024,
+    },
+    recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
+  },
+  'historian.eraNarrative': {
+    label: 'Era Narrative',
+    description: 'Multi-chapter era narrative — thread synthesis, chapter generation, editing, and title',
+    category: 'historian',
+    defaults: {
+      model: 'claude-opus-4-6',
+      thinkingBudget: 16384,
+      maxTokens: 16384,
+    },
+    recommendedModels: ['claude-opus-4-6', 'claude-sonnet-4-5-20250929'],
   },
 };
 
@@ -396,13 +433,13 @@ export const CATEGORY_DESCRIPTIONS: Record<LLMCallCategory, string> = {
 // Group call types by category
 export function getCallTypesByCategory(): Record<LLMCallCategory, LLMCallType[]> {
   return {
-    description: ['description.narrative', 'description.visualThesis', 'description.visualTraits', 'description.copyEdit'],
+    description: ['description.narrative', 'description.visualThesis', 'description.visualTraits'],
     image: ['image.promptFormatting', 'image.chronicleFormatting'],
     perspective: ['perspective.synthesis'],
     chronicle: ['chronicle.generation', 'chronicle.compare', 'chronicle.combine', 'chronicle.copyEdit', 'chronicle.summary', 'chronicle.title', 'chronicle.imageRefs', 'chronicle.coverImageScene'],
     palette: ['palette.expansion'],
     dynamics: ['dynamics.generation'],
     revision: ['revision.summary', 'revision.loreBackport'],
-    historian: ['historian.entityReview', 'historian.chronicleReview'],
+    historian: ['historian.entityReview', 'historian.chronicleReview', 'historian.edition', 'historian.chronology', 'historian.prep', 'historian.eraNarrative'],
   };
 }

@@ -18,6 +18,7 @@ import {
   type EntityWithPotential,
 } from '../../../lib/chronicle/storyPotential';
 import { getEntityUsageStats } from '../../../lib/db/chronicleRepository';
+import { getEraRanges } from '../../../lib/chronicle/timelineUtils';
 import {
   FilterChips,
   StoryPotentialRadarWithScore,
@@ -51,6 +52,7 @@ export default function EntryPointStep({
 }: EntryPointStepProps) {
   const {
     state,
+    eras,
     selectEntryPoint,
     clearEntryPoint,
     setIncludeErasInNeighborhood,
@@ -172,6 +174,23 @@ export default function EntryPointStep({
   const availableKinds = useMemo(() => {
     return getUniqueKinds(entities);
   }, [entities]);
+
+  // Era lookups: id -> color and id -> name
+  const eraColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const range of getEraRanges(eras)) {
+      map.set(range.id, range.color);
+    }
+    return map;
+  }, [eras]);
+
+  const eraNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const era of eras) {
+      map.set(era.id, era.name);
+    }
+    return map;
+  }, [eras]);
 
   // Filter and sort entities
   const filteredEntities = useMemo(() => {
@@ -390,6 +409,20 @@ export default function EntryPointStep({
                         }}>
                           {entity.kind}
                         </span>
+                        {entity.eraId && eraNameMap.has(entity.eraId) && (() => {
+                          const eraColor = eraColorMap.get(entity.eraId!);
+                          return (
+                            <span style={{
+                              padding: '1px 6px',
+                              background: isSelected ? 'rgba(255,255,255,0.2)' : eraColor ? `${eraColor}26` : 'var(--bg-tertiary)',
+                              borderRadius: '4px',
+                              fontSize: '9px',
+                              color: isSelected ? 'rgba(255,255,255,0.9)' : eraColor ?? 'var(--text-muted)',
+                            }}>
+                              {eraNameMap.get(entity.eraId!)}
+                            </span>
+                          );
+                        })()}
                         <span style={{
                           padding: '1px 6px',
                           background: isSelected ? 'rgba(255,255,255,0.2)' : 'var(--bg-tertiary)',

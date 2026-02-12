@@ -20,6 +20,7 @@ const normalizeFact = (fact, index) => {
     text,
     type,
     required: type === 'generation_constraint' ? false : Boolean(fact.required),
+    disabled: Boolean(fact.disabled),
   };
 };
 
@@ -30,7 +31,7 @@ const sortChronicles = (a, b) => {
   return String(a.title || '').localeCompare(String(b.title || ''));
 };
 
-export default function CoveragePanel({ worldContext, simulationRunId }) {
+export default function CoveragePanel({ worldContext, simulationRunId, onWorldContextChange }) {
   const [chronicles, setChronicles] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -77,6 +78,15 @@ export default function CoveragePanel({ worldContext, simulationRunId }) {
     }));
   }, []);
 
+  const toggleFact = useCallback((factId) => {
+    if (!onWorldContextChange) return;
+    const rawFacts = worldContext?.canonFactsWithMetadata || [];
+    const updated = rawFacts.map((f) =>
+      f.id === factId ? { ...f, disabled: !f.disabled, required: !f.disabled ? false : f.required } : f
+    );
+    onWorldContextChange({ canonFactsWithMetadata: updated });
+  }, [onWorldContextChange, worldContext?.canonFactsWithMetadata]);
+
   const analysis = useMemo(() => {
     const rawFacts = worldContext?.canonFactsWithMetadata || [];
     const normalizedWorldFacts = rawFacts
@@ -84,8 +94,10 @@ export default function CoveragePanel({ worldContext, simulationRunId }) {
       .filter(Boolean);
 
     const chronicleList = [...(chronicles || [])].sort(sortChronicles);
-    const facts = normalizedWorldFacts.filter((fact) => fact.type !== 'generation_constraint' && !fact.disabled);
-    const factIdSet = new Set(facts.map((fact) => fact.id));
+    const facts = normalizedWorldFacts.filter((fact) => fact.type !== 'generation_constraint');
+    const enabledFacts = facts.filter((fact) => !fact.disabled);
+    const factIdSet = new Set(enabledFacts.map((fact) => fact.id));
+    const allFactIdSet = new Set(facts.map((fact) => fact.id));
 
     const rows = chronicleList.map((chronicle) => {
       const synthesis = chronicle.perspectiveSynthesis || null;
@@ -93,7 +105,7 @@ export default function CoveragePanel({ worldContext, simulationRunId }) {
       let unparsedCount = 0;
       for (const facet of synthesis?.facets || []) {
         if (!facet?.factId) continue;
-        if (factIdSet.has(facet.factId)) {
+        if (allFactIdSet.has(facet.factId)) {
           facetIds.add(facet.factId);
         } else {
           unparsedCount += 1;
@@ -110,6 +122,7 @@ export default function CoveragePanel({ worldContext, simulationRunId }) {
     });
 
     const factTotals = new Map(facts.map((fact) => [fact.id, 0]));
+    const disabledFactIds = new Set(facts.filter((f) => f.disabled).map((f) => f.id));
 
     let totalSelections = 0;
     let unparsedTotal = 0;
@@ -121,18 +134,28 @@ export default function CoveragePanel({ worldContext, simulationRunId }) {
         for (const factId of row.facetIds) {
           factTotals.set(factId, (factTotals.get(factId) || 0) + 1);
         }
-        totalSelections += row.facetIds.size;
+        let enabledHits = 0;
+        for (const factId of row.facetIds) {
+          if (!disabledFactIds.has(factId)) enabledHits += 1;
+        }
+        totalSelections += enabledHits;
         unparsedTotal += row.unparsedCount || 0;
+      }
+
+      let rowEnabledTotal = 0;
+      for (const factId of row.facetIds) {
+        if (!disabledFactIds.has(factId)) rowEnabledTotal += 1;
       }
 
       return {
         ...row,
-        rowTotal: row.facetIds.size,
+        rowTotal: rowEnabledTotal,
       };
     });
 
     const chroniclesWithSynthesis = processedRows.filter((row) => row.synthesis).length;
-    const unusedFacts = facts.filter((fact) => (factTotals.get(fact.id) || 0) === 0).length;
+    const unusedFacts = enabledFacts.filter((fact) => (factTotals.get(fact.id) || 0) === 0).length;
+    const disabledFactCount = facts.filter((fact) => fact.disabled).length;
     const constraintCount = normalizedWorldFacts.filter((fact) => fact.type === 'generation_constraint').length;
 
     return {
@@ -145,6 +168,7 @@ export default function CoveragePanel({ worldContext, simulationRunId }) {
       chroniclesWithSynthesis,
       chronicleCount: processedRows.length,
       unusedFacts,
+      disabledFactCount,
       constraintCount,
     };
   }, [chronicles, worldContext, disabledChronicles]);
@@ -159,6 +183,7 @@ export default function CoveragePanel({ worldContext, simulationRunId }) {
     chroniclesWithSynthesis,
     chronicleCount,
     unusedFacts,
+    disabledFactCount,
     constraintCount,
   } = analysis;
 
@@ -226,7 +251,7 @@ export default function CoveragePanel({ worldContext, simulationRunId }) {
           <strong>Chronicles</strong>: {chronicleCount} total, {includedCount} counted, {chroniclesWithSynthesis} with synthesis
         </div>
         <div>
-          <strong>Facts</strong>: {facts.length} ({unusedFacts} unused)
+          <strong>Facts</strong>: {facts.length - disabledFactCount} active ({unusedFacts} unused){disabledFactCount > 0 && `, ${disabledFactCount} disabled`}
         </div>
         <div>
           <strong>Total selections</strong>: {totalSelections}
@@ -266,11 +291,14 @@ export default function CoveragePanel({ worldContext, simulationRunId }) {
               {facts.map((fact) => (
                 <th
                   key={fact.id}
-                  title={`${fact.id}${fact.text ? `: ${fact.text}` : ''}${fact.required ? ' (required)' : ''}`}
+                  title={`${fact.id}${fact.text ? `: ${fact.text}` : ''}${fact.required ? ' (required)' : ''}${fact.disabled ? ' (disabled — click to enable)' : ' (click to disable)'}`}
+                  onClick={onWorldContextChange ? () => toggleFact(fact.id) : undefined}
+                  style={onWorldContextChange ? { cursor: 'pointer' } : undefined}
                 >
-                  <div className="illuminator-coverage-fact-header">
+                  <div className="illuminator-coverage-fact-header" style={fact.disabled ? { opacity: 0.4 } : undefined}>
                     <span className="illuminator-coverage-fact-id">{fact.id}</span>
                     {fact.required && <span className="illuminator-coverage-required">R</span>}
+                    {fact.disabled && <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>off</span>}
                   </div>
                 </th>
               ))}
@@ -283,7 +311,7 @@ export default function CoveragePanel({ worldContext, simulationRunId }) {
               <td className="illuminator-coverage-sticky">Total usage</td>
               <td className="illuminator-coverage-toggle-col">{includedCount}</td>
               {facts.map((fact) => (
-                <td key={`total-${fact.id}`}>
+                <td key={`total-${fact.id}`} style={fact.disabled ? { opacity: 0.3 } : undefined}>
                   {factTotals.get(fact.id) || 0}
                 </td>
               ))}
@@ -314,7 +342,7 @@ export default function CoveragePanel({ worldContext, simulationRunId }) {
                     />
                   </td>
                   {facts.map((fact) => (
-                    <td key={`${chronicle.chronicleId}-${fact.id}`}>
+                    <td key={`${chronicle.chronicleId}-${fact.id}`} style={fact.disabled ? { opacity: 0.3 } : undefined}>
                       {row.facetIds.has(fact.id) ? (
                         <span className="illuminator-coverage-hit" />
                       ) : (

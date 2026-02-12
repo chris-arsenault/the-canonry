@@ -186,6 +186,13 @@ export interface ChronicleExport {
   // Temporal alignment check (if temporal check was run)
   temporalCheckReport?: string;
 
+  // Historian-assigned chronological year within the focal era
+  eraYear?: number;
+  eraYearReasoning?: string;
+
+  // Historian reading notes (prep brief)
+  historianPrep?: string;
+
   // Historian annotations
   historianNotes?: HistorianNote[];
 }
@@ -398,6 +405,17 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
   }
   if (chronicle.temporalCheckReport) {
     exportData.temporalCheckReport = chronicle.temporalCheckReport;
+  }
+
+  if (chronicle.eraYear != null) {
+    exportData.eraYear = chronicle.eraYear;
+    if (chronicle.eraYearReasoning) {
+      exportData.eraYearReasoning = chronicle.eraYearReasoning;
+    }
+  }
+
+  if (chronicle.historianPrep) {
+    exportData.historianPrep = chronicle.historianPrep;
   }
 
   if (chronicle.historianNotes && chronicle.historianNotes.length > 0) {

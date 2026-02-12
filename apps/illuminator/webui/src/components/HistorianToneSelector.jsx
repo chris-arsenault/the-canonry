@@ -13,6 +13,12 @@ import { useState, useRef, useEffect } from 'react';
 
 const TONE_OPTIONS = [
   {
+    value: 'scholarly',
+    label: 'Scholarly',
+    description: 'Professional, measured, objective',
+    symbol: '◎',
+  },
+  {
     value: 'witty',
     label: 'Witty',
     description: 'Sarcastic, playful, sly',
@@ -52,7 +58,7 @@ export const TONE_META = Object.fromEntries(
 // Component
 // ============================================================================
 
-export default function HistorianToneSelector({ onSelect, disabled, hasNotes, style }) {
+export default function HistorianToneSelector({ onSelect, disabled, hasNotes, style, label }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -83,16 +89,16 @@ export default function HistorianToneSelector({ onSelect, disabled, hasNotes, st
           background: 'var(--bg-tertiary)',
           border: '1px solid var(--border-color)',
           color: disabled ? 'var(--text-muted)' : 'var(--text-secondary)',
-          fontSize: '12px',
-          padding: '8px 16px',
-          borderRadius: '4px',
+          fontSize: '10px',
+          padding: '1px 6px',
+          borderRadius: '3px',
           cursor: disabled ? 'not-allowed' : 'pointer',
           textTransform: 'none',
           letterSpacing: 'normal',
           opacity: disabled ? 0.6 : 1,
         }}
       >
-        {hasNotes ? 'Re-annotate' : 'Historian'} ▾
+        {label || (hasNotes ? 'Re-annotate' : 'Historian')} ▾
       </button>
 
       {isOpen && (
@@ -100,12 +106,12 @@ export default function HistorianToneSelector({ onSelect, disabled, hasNotes, st
           style={{
             position: 'absolute',
             top: 'calc(100% + 4px)',
-            right: 0,
+            left: 0,
             background: 'var(--bg-secondary)',
             border: '1px solid var(--border-color)',
             borderRadius: '4px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            zIndex: 1000,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            zIndex: 10000,
             minWidth: '220px',
             padding: '4px',
           }}
@@ -136,6 +142,7 @@ export default function HistorianToneSelector({ onSelect, disabled, hasNotes, st
                 borderRadius: '3px',
                 cursor: 'pointer',
                 textAlign: 'left',
+                color: 'inherit',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'var(--bg-tertiary)';

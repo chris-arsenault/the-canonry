@@ -47,6 +47,7 @@ export function useChronicleQueueWatcher(queue: QueueItem[]): void {
 
     const chronicleTasks = queue.filter((item) =>
       item.type === 'entityChronicle' ||
+      item.type === 'historianPrep' ||
       (item.type === 'image' && item.imageType === 'chronicle')
     );
 
@@ -112,6 +113,11 @@ export function useChronicleQueueWatcher(queue: QueueItem[]): void {
           }
 
           chronicleIds.add(chronicleId);
+          continue;
+        }
+
+        if (task.type === 'historianPrep') {
+          if (task.chronicleId) chronicleIds.add(task.chronicleId);
           continue;
         }
 

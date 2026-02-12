@@ -20,7 +20,11 @@ export type CostType =
   | 'dynamicsGeneration'  // World dynamics synthesis turn
   | 'summaryRevision'    // Batch summary/description revision
   | 'chronicleLoreBackport' // Chronicle lore backport to cast entities
-  | 'historianReview';      // Historian scholarly annotations
+  | 'historianReview'       // Historian scholarly annotations
+  | 'historianEdition'     // Historian-voiced description synthesis
+  | 'historianChronology' // Historian-assigned era year chronology
+  | 'historianPrep'       // Historian reading notes for a chronicle
+  | 'eraNarrative';       // Era narrative chapter/thread generation
 
 export interface CostRecord {
   id: string;

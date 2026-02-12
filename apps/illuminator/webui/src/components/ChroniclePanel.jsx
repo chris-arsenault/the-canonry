@@ -18,6 +18,8 @@ import { buildChronicleScenePrompt } from '../lib/promptBuilders';
 import { resolveStyleSelection } from './StyleSelector';
 import { getCoverImageConfig } from '../lib/coverImageStyles';
 import { computeTemporalContext } from '../lib/chronicle/selectionWizard';
+import ChronologyModal from './ChronologyModal';
+import EraNarrativeModal from './EraNarrativeModal';
 import {
   updateChronicleImageRef,
   updateChronicleTemporalContext,
@@ -169,8 +171,13 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
       });
     }
 
+    // Historian prep
+    if (item.hasHistorianPrep) {
+      syms.push({ symbol: '\u270E', title: 'Historian prep brief', color: '#8b7355' });
+    }
+
     return syms;
-  }, [item.focusType, item.primaryCount, item.perspectiveSynthesis, item.combineInstructions, item.coverImageComplete, item.loreBackported, item.historianNoteCount, item.lens, item.hasTemporalNarrative, item.hasTemporalCheck]);
+  }, [item.focusType, item.primaryCount, item.perspectiveSynthesis, item.combineInstructions, item.coverImageComplete, item.loreBackported, item.historianNoteCount, item.lens, item.hasTemporalNarrative, item.hasTemporalCheck, item.hasHistorianPrep]);
 
   // Compact numeric badge: cast count + scene image count
   const castCount = (item.primaryCount || 0) + (item.supportingCount || 0);
@@ -213,15 +220,19 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
         </span>
       </div>
 
-      {/* Subtitle: narrative style + numeric counts */}
+      {/* Subtitle: era year + narrative style + numeric counts */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-        {styleName ? (
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-            {styleName}
-          </span>
-        ) : (
-          <span />
-        )}
+        <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {item.eraYear != null && (
+            <span
+              style={{ color: '#8b7355', fontWeight: 500, fontStyle: 'normal' }}
+              title={`Year ${item.eraYear}${item.focalEraStartTick != null ? ` (era-relative: Y${item.eraYear - item.focalEraStartTick + 1})` : ''}`}
+            >
+              {'\u231B'} Y{item.focalEraStartTick != null ? item.eraYear - item.focalEraStartTick + 1 : item.eraYear}
+            </span>
+          )}
+          {styleName && <span style={{ fontStyle: 'italic' }}>{styleName}</span>}
+        </span>
         {(castCount > 0 || imageCount > 0) && (
           <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', gap: '8px', whiteSpace: 'nowrap' }}>
             {castCount > 0 && (
@@ -318,6 +329,7 @@ export default function ChroniclePanel({
   onHistorianReview,
   isHistorianActive,
   historianConfigured,
+  historianConfig,
   onUpdateHistorianNote,
   onRefreshEraSummaries,
 }) {
@@ -365,6 +377,12 @@ export default function ChroniclePanel({
 
   // Collapsible bulk actions panel
   const [showBulkActions, setShowBulkActions] = useState(false);
+
+  // State for chronology modal
+  const [showChronologyModal, setShowChronologyModal] = useState(false);
+
+  // State for era narrative modal
+  const [showEraNarrativeModal, setShowEraNarrativeModal] = useState(false);
 
   // State for wizard modal
   const [showWizard, setShowWizard] = useState(false);
@@ -547,12 +565,18 @@ export default function ChroniclePanel({
           const orderA = getEraOrder(a);
           const orderB = getEraOrder(b);
           if (orderA !== orderB) return orderA - orderB;
+          const yearA = a.eraYear ?? Number.MAX_SAFE_INTEGER;
+          const yearB = b.eraYear ?? Number.MAX_SAFE_INTEGER;
+          if (yearA !== yearB) return yearA - yearB;
           return getEraName(a).localeCompare(getEraName(b));
         }
         case 'era_desc': {
           const orderA = getEraOrder(a);
           const orderB = getEraOrder(b);
           if (orderA !== orderB) return orderB - orderA;
+          const yearA = a.eraYear ?? -1;
+          const yearB = b.eraYear ?? -1;
+          if (yearA !== yearB) return yearB - yearA;
           return getEraName(b).localeCompare(getEraName(a));
         }
         case 'type_asc':
@@ -2067,6 +2091,49 @@ export default function ChroniclePanel({
               >
                 Reset Backports
               </button>
+              <button
+                onClick={() => setShowChronologyModal(true)}
+                className="illuminator-button"
+                disabled={!historianConfigured}
+                title={historianConfigured
+                  ? "Historian assigns chronological years to chronicles within each era"
+                  : "Configure historian persona first"}
+              >
+                Chronology
+              </button>
+              <button
+                onClick={() => {
+                  const eligible = chronicleItems.filter(
+                    (c) => (c.status === 'complete' || c.status === 'assembly_ready') && historianConfigured,
+                  );
+                  if (eligible.length === 0) return;
+                  const items = eligible.map((c) => {
+                    const primaryRole = c.roleAssignments?.find((r) => r.isPrimary) || c.roleAssignments?.[0];
+                    const entity = primaryRole
+                      ? { id: primaryRole.entityId, name: primaryRole.entityName, kind: primaryRole.entityKind, subtype: '', prominence: 'recognized', culture: '', status: 'active', description: '', tags: {} }
+                      : { id: c.chronicleId, name: c.name || 'Chronicle', kind: 'chronicle', subtype: '', prominence: 'recognized', culture: '', status: 'active', description: '', tags: {} };
+                    return { entity, type: 'historianPrep', prompt: JSON.stringify({ historianConfig, tone: 'weary' }), chronicleId: c.chronicleId };
+                  });
+                  onEnqueue(items);
+                }}
+                className="illuminator-button"
+                disabled={!historianConfigured}
+                title={historianConfigured
+                  ? "Generate historian reading notes for all chronicles (input for era narratives)"
+                  : "Configure historian persona first"}
+              >
+                Historian Prep
+              </button>
+              <button
+                onClick={() => setShowEraNarrativeModal(true)}
+                className="illuminator-button"
+                disabled={!historianConfigured}
+                title={historianConfigured
+                  ? "Generate a multi-chapter era narrative from historian prep briefs"
+                  : "Configure historian persona first"}
+              >
+                Era Narrative
+              </button>
             </div>
           </div>
         )}
@@ -2277,6 +2344,15 @@ export default function ChroniclePanel({
                     : undefined}
                   isHistorianActive={isHistorianActive}
                   onUpdateHistorianNote={onUpdateHistorianNote}
+                  onGeneratePrep={historianConfigured && (selectedItem.status === 'complete' || selectedItem.status === 'assembly_ready')
+                    ? () => {
+                        const primaryRole = selectedItem.roleAssignments?.find((r) => r.isPrimary) || selectedItem.roleAssignments?.[0];
+                        const entity = primaryRole
+                          ? { id: primaryRole.entityId, name: primaryRole.entityName, kind: primaryRole.entityKind, subtype: '', prominence: 'recognized', culture: '', status: 'active', description: '', tags: {} }
+                          : { id: selectedItem.chronicleId, name: selectedItem.name || 'Chronicle', kind: 'chronicle', subtype: '', prominence: 'recognized', culture: '', status: 'active', description: '', tags: {} };
+                        onEnqueue([{ entity, type: 'historianPrep', prompt: JSON.stringify({ historianConfig, tone: 'weary' }), chronicleId: selectedItem.chronicleId }]);
+                      }
+                    : undefined}
                   isGenerating={isGenerating}
                   refinements={refinementState}
                   entities={entities}
@@ -2551,6 +2627,33 @@ export default function ChroniclePanel({
       )}
 
       {/* Chronicle Wizard Modal */}
+      <ChronologyModal
+        isOpen={showChronologyModal}
+        onClose={() => setShowChronologyModal(false)}
+        chronicleItems={chronicleItems}
+        wizardEras={wizardEras}
+        wizardEvents={wizardEvents}
+        projectId={projectId}
+        simulationRunId={simulationRunId}
+        historianConfig={historianConfig}
+        onEnqueue={onEnqueue}
+        onApplied={() => {
+          useChronicleStore.getState().refreshAll();
+          setShowChronologyModal(false);
+        }}
+      />
+
+      <EraNarrativeModal
+        isOpen={showEraNarrativeModal}
+        onClose={() => setShowEraNarrativeModal(false)}
+        chronicleItems={chronicleItems}
+        wizardEras={wizardEras}
+        projectId={projectId}
+        simulationRunId={simulationRunId}
+        historianConfig={historianConfig}
+        onEnqueue={onEnqueue}
+      />
+
       <ChronicleWizard
         isOpen={showWizard}
         onClose={() => {

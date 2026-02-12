@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { diffWords } from 'diff';
 import ChronicleVersionSelector from './ChronicleVersionSelector';
 
@@ -137,8 +137,67 @@ export default function ContentTab({
 
   const copyToClipboard = (text) => navigator.clipboard.writeText(text);
 
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
+
   return (
     <div>
+      {/* Summary (collapsible) */}
+      {item.summary && (
+        <div style={{
+          marginBottom: '12px',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '8px',
+          overflow: 'hidden',
+        }}>
+          <div
+            onClick={() => setSummaryExpanded(v => !v)}
+            style={{
+              padding: '8px 16px',
+              background: 'var(--bg-tertiary)',
+              borderBottom: summaryExpanded ? '1px solid var(--border-color)' : 'none',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              cursor: 'pointer',
+              userSelect: 'none',
+            }}
+          >
+            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+              <span style={{ display: 'inline-block', width: '14px', fontSize: '10px' }}>
+                {summaryExpanded ? '\u25BC' : '\u25B6'}
+              </span>
+              Summary
+            </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(item.summary); }}
+              style={{
+                padding: '2px 10px',
+                fontSize: '11px',
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              Copy
+            </button>
+          </div>
+          {summaryExpanded && (
+            <div style={{
+              padding: '12px 16px',
+              fontSize: '13px',
+              lineHeight: 1.6,
+              color: 'var(--text-primary)',
+              whiteSpace: 'pre-wrap',
+            }}>
+              {item.summary}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Version selector for assembly mode */}
       {!isComplete && versions && versions.length > 1 && (
         <div style={{ marginBottom: '16px' }}>

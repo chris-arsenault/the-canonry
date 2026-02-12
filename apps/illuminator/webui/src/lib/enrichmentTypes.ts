@@ -9,7 +9,7 @@ import type { ChronicleFormat, ChronicleGenerationContext, ChronicleImageRefs, E
 import type { HistorianNote } from './historianTypes';
 import type { ResolvedLLMCallSettings } from './llmModelSettings';
 
-export type EnrichmentType = 'description' | 'image' | 'entityChronicle' | 'paletteExpansion' | 'dynamicsGeneration' | 'summaryRevision' | 'chronicleLoreBackport' | 'copyEdit' | 'historianReview';
+export type EnrichmentType = 'description' | 'image' | 'entityChronicle' | 'paletteExpansion' | 'dynamicsGeneration' | 'summaryRevision' | 'chronicleLoreBackport' | 'historianEdition' | 'historianReview' | 'historianChronology' | 'historianPrep' | 'eraNarrative';
 
 /**
  * Which image to display at a chronicle backref anchor in an entity description.

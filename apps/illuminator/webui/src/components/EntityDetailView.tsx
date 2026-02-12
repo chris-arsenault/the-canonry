@@ -16,6 +16,8 @@ import {
   type ProminenceScale,
 } from '@canonry/world-schema';
 import BackrefImageEditor from './BackrefImageEditor';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface EntityEnrichment {
   text?: {
@@ -67,8 +69,8 @@ interface EntityDetailViewProps {
   prominenceScale?: ProminenceScale;
   onUpdateBackrefs?: (entityId: string, backrefs: ChronicleBackref[]) => void;
   onUndoDescription?: (entityId: string) => void;
-  onCopyEdit?: (entityId: string) => void;
-  isCopyEditActive?: boolean;
+  onHistorianEdition?: (entityId: string, tone: string) => void;
+  isHistorianEditionActive?: boolean;
   onHistorianReview?: (entityId: string, tone: string) => void;
   isHistorianActive?: boolean;
   historianConfigured?: boolean;
@@ -376,8 +378,8 @@ export default function EntityDetailView({
   prominenceScale,
   onUpdateBackrefs,
   onUndoDescription,
-  onCopyEdit,
-  isCopyEditActive,
+  onHistorianEdition,
+  isHistorianEditionActive,
   onHistorianReview,
   isHistorianActive,
   historianConfigured,
@@ -667,27 +669,6 @@ export default function EntityDetailView({
                     Edit
                   </button>
                 )}
-                {onCopyEdit && (
-                  <button
-                    onClick={() => onCopyEdit(entity.id)}
-                    disabled={isCopyEditActive}
-                    title="Run a readability copy edit on this description"
-                    style={{
-                      background: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                      color: isCopyEditActive ? 'var(--text-muted)' : 'var(--text-secondary)',
-                      fontSize: '10px',
-                      padding: '1px 6px',
-                      borderRadius: '3px',
-                      cursor: isCopyEditActive ? 'not-allowed' : 'pointer',
-                      textTransform: 'none',
-                      letterSpacing: 'normal',
-                      opacity: isCopyEditActive ? 0.5 : 1,
-                    }}
-                  >
-                    Copy Edit
-                  </button>
-                )}
                 {onRename && (
                   <button
                     onClick={() => onRename(entity.id)}
@@ -726,14 +707,39 @@ export default function EntityDetailView({
                     Patch Events
                   </button>
                 )}
-                {onHistorianReview && historianConfigured && (
-                  <HistorianToneSelector
-                    onSelect={(tone: string) => onHistorianReview(entity.id, tone)}
-                    disabled={isHistorianActive}
-                    hasNotes={enrichment?.historianNotes && enrichment.historianNotes.length > 0}
-                  />
-                )}
               </div>
+              {historianConfigured && (onHistorianEdition || onHistorianReview) && (
+                <div style={{
+                  fontSize: '11px',
+                  color: 'var(--text-muted)',
+                  marginBottom: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}>
+                  Historian
+                  {onHistorianEdition && (
+                    <HistorianToneSelector
+                      onSelect={(tone: string) => onHistorianEdition(entity.id, tone)}
+                      disabled={isHistorianEditionActive}
+                      label="Copy Edit"
+                      hasNotes={false}
+                      style={{ display: 'inline-block' }}
+                    />
+                  )}
+                  {onHistorianReview && (
+                    <HistorianToneSelector
+                      onSelect={(tone: string) => onHistorianReview(entity.id, tone)}
+                      disabled={isHistorianActive}
+                      label="Annotate"
+                      hasNotes={enrichment?.historianNotes && enrichment.historianNotes.length > 0}
+                      style={{ display: 'inline-block' }}
+                    />
+                  )}
+                </div>
+              )}
               {editingDescription ? (
                 <textarea
                   autoFocus
@@ -764,15 +770,34 @@ export default function EntityDetailView({
                 />
               ) : (
                 <>
-                  <p style={{
-                    fontSize: '14px',
-                    color: 'var(--text-secondary)',
-                    lineHeight: '1.7',
-                    margin: 0,
-                    whiteSpace: 'pre-wrap',
-                  }}>
-                    {entity.description || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>No description</span>}
-                  </p>
+                  {entity.description ? (
+                    <div style={{
+                      fontSize: '14px',
+                      color: 'var(--text-secondary)',
+                      lineHeight: '1.7',
+                    }} className="entity-description-md">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          h2: ({ children }) => <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: '16px 0 6px', borderBottom: '1px solid var(--border-color)', paddingBottom: '3px' }}>{children}</h2>,
+                          h3: ({ children }) => <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: '12px 0 4px' }}>{children}</h3>,
+                          p: ({ children }) => <p style={{ margin: '0 0 8px' }}>{children}</p>,
+                          ul: ({ children }) => <ul style={{ margin: '4px 0 8px', paddingLeft: '20px' }}>{children}</ul>,
+                          ol: ({ children }) => <ol style={{ margin: '4px 0 8px', paddingLeft: '20px' }}>{children}</ol>,
+                          li: ({ children }) => <li style={{ marginBottom: '2px' }}>{children}</li>,
+                          table: ({ children }) => <table style={{ borderCollapse: 'collapse', margin: '8px 0', fontSize: '13px', width: '100%' }}>{children}</table>,
+                          th: ({ children }) => <th style={{ border: '1px solid var(--border-color)', padding: '4px 8px', textAlign: 'left', fontWeight: 600, background: 'var(--bg-tertiary)' }}>{children}</th>,
+                          td: ({ children }) => <td style={{ border: '1px solid var(--border-color)', padding: '4px 8px' }}>{children}</td>,
+                        }}
+                      >
+                        {entity.description}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p style={{ fontStyle: 'italic', color: 'var(--text-muted)', margin: 0 }}>
+                      No description
+                    </p>
+                  )}
                   {enrichment?.historianNotes && enrichment.historianNotes.length > 0 && (
                     <HistorianMarginNotes
                       notes={enrichment.historianNotes}

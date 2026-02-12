@@ -731,6 +731,23 @@ export async function updateChronicleTemporalCheckReport(
 }
 
 /**
+ * Update chronicle with historian prep brief
+ */
+export async function updateChronicleHistorianPrep(
+  chronicleId: string,
+  historianPrep: string
+): Promise<void> {
+  const record = await db.chronicles.get(chronicleId);
+  if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
+
+  record.historianPrep = historianPrep;
+  record.historianPrepGeneratedAt = Date.now();
+  record.updatedAt = Date.now();
+
+  await db.chronicles.put(record);
+}
+
+/**
  * Update chronicle with summary and title refinement
  */
 export async function updateChronicleSummary(
@@ -1317,6 +1334,34 @@ export async function startChronicleValidation(chronicleId: string): Promise<voi
 /**
  * Get a chronicle record
  */
+/**
+ * Batch update historian-assigned era years for multiple chronicles.
+ */
+export async function batchUpdateChronicleEraYears(
+  assignments: Array<{ chronicleId: string; eraYear: number; eraYearReasoning?: string }>
+): Promise<number> {
+  const ids = assignments.map(a => a.chronicleId);
+  const records = await db.chronicles.where('chronicleId').anyOf(ids).toArray();
+  const recordMap = new Map(records.map(r => [r.chronicleId, r]));
+  const now = Date.now();
+
+  const toUpdate: ChronicleRecord[] = [];
+  for (const assignment of assignments) {
+    const record = recordMap.get(assignment.chronicleId);
+    if (!record) continue;
+    record.eraYear = assignment.eraYear;
+    record.eraYearReasoning = assignment.eraYearReasoning;
+    record.updatedAt = now;
+    toUpdate.push(record);
+  }
+
+  if (toUpdate.length > 0) {
+    await db.chronicles.bulkPut(toUpdate);
+  }
+
+  return toUpdate.length;
+}
+
 export async function getChronicle(chronicleId: string): Promise<ChronicleRecord | undefined> {
   const record = await db.chronicles.get(chronicleId);
   if (record && ensureChronicleVersions(record)) {

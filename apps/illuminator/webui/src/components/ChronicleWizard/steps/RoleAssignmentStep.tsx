@@ -108,6 +108,15 @@ export default function RoleAssignmentStep() {
     return metricsMap.get(selectedEntityId);
   }, [selectedEntityId, metricsMap]);
 
+  // Era color map: eraId -> hex color (same palette as timeline)
+  const eraColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const range of getEraRanges(eras)) {
+      map.set(range.id, range.color);
+    }
+    return map;
+  }, [eras]);
+
   // Get era name and color for selected entity
   const selectedEntityEra = useMemo(() => {
     if (!selectedEntity || eras.length === 0) return undefined;
@@ -167,15 +176,6 @@ export default function RoleAssignmentStep() {
     }
     return Array.from(kinds).sort();
   }, [state.candidates]);
-
-  // Era color map: eraId -> hex color (same palette as timeline)
-  const eraColorMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const range of getEraRanges(eras)) {
-      map.set(range.id, range.color);
-    }
-    return map;
-  }, [eras]);
 
   // Available eras from candidates (in era order, only eras with entities)
   const availableEras = useMemo(() => {

@@ -74,6 +74,7 @@ export default function ChronicleWorkspace({
   onHistorianReview,
   isHistorianActive,
   onUpdateHistorianNote,
+  onGeneratePrep,
 
   // State
   isGenerating,
@@ -490,6 +491,7 @@ export default function ChronicleWorkspace({
             onHistorianReview={onHistorianReview}
             onUpdateHistorianNote={onUpdateHistorianNote}
             onBackportLore={onBackportLore}
+            onGeneratePrep={onGeneratePrep}
           />
         )}
 

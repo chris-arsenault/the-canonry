@@ -30,8 +30,11 @@ export interface ChronicleNavItem {
   wordCount: number;
   focalEraName?: string;
   focalEraOrder?: number;
+  focalEraStartTick?: number;
+  eraYear?: number;
   hasTemporalNarrative: boolean;
   hasTemporalCheck: boolean;
+  hasHistorianPrep: boolean;
 }
 
 export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
@@ -82,7 +85,10 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
       : (typeof record.temporalContext?.focalEra?.startTick === 'number'
         ? record.temporalContext.focalEra.startTick
         : undefined),
+    focalEraStartTick: record.temporalContext?.focalEra?.startTick,
+    eraYear: record.eraYear,
     hasTemporalNarrative: !!record.perspectiveSynthesis?.temporalNarrative,
     hasTemporalCheck: !!record.temporalCheckReport,
+    hasHistorianPrep: !!record.historianPrep,
   };
 }

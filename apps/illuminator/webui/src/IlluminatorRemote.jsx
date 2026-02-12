@@ -39,7 +39,7 @@ import { useChronicleQueueWatcher } from './hooks/useChronicleQueueWatcher';
 import { useDynamicsGeneration } from './hooks/useDynamicsGeneration';
 import { useSummaryRevision } from './hooks/useSummaryRevision';
 import { useChronicleLoreBackport } from './hooks/useChronicleLoreBackport';
-import { useCopyEdit } from './hooks/useCopyEdit';
+import { useHistorianEdition } from './hooks/useHistorianEdition';
 import { useHistorianReview } from './hooks/useHistorianReview';
 import HistorianReviewModal from './components/HistorianReviewModal';
 import HistorianConfigEditor from './components/HistorianConfigEditor';
@@ -1499,64 +1499,15 @@ export default function IlluminatorRemote({
     }, 1000);
   }, [backportRun?.status, autoBackportQueue, handleAcceptBackport, handleBackportLore]);
 
-  // Description copy edit (single-entity readability pass)
+  // Historian edition (historian-voiced description synthesis from full archive)
   const {
-    run: copyEditRun,
-    isActive: isCopyEditActive,
-    startCopyEdit,
-    togglePatchDecision: toggleCopyEditPatchDecision,
-    applyAccepted: applyAcceptedCopyEditPatches,
-    cancelCopyEdit,
-  } = useCopyEdit(enqueue);
-
-  const handleCopyEdit = useCallback((entityId) => {
-    if (!projectId || !simulationRunId || !entityId) return;
-
-    const entity = entityById.get(entityId);
-    if (!entity?.description) {
-      console.warn('[CopyEdit] Entity not found or has no description:', entityId);
-      return;
-    }
-
-    // Build relationships
-    const rels = (relationshipsByEntity.get(entity.id) || []).slice(0, 12).map((rel) => {
-      const targetId = rel.src === entity.id ? rel.dst : rel.src;
-      const target = entityById.get(targetId);
-      return {
-        kind: rel.kind,
-        targetName: target?.name || targetId,
-        targetKind: target?.kind || 'unknown',
-      };
-    });
-
-    const kindFocus = entityGuidance[entity.kind]?.focus || '';
-    const visualThesis = entity.enrichment?.text?.visualThesis || '';
-
-    startCopyEdit({
-      projectId,
-      simulationRunId,
-      entityId: entity.id,
-      entityName: entity.name,
-      entityKind: entity.kind,
-      entitySubtype: entity.subtype || '',
-      entityCulture: entity.culture || '',
-      entityProminence: prominenceLabelFromScale(entity.prominence, prominenceScale),
-      description: entity.description,
-      summary: entity.summary || '',
-      kindFocus,
-      visualThesis,
-      relationships: rels,
-    });
-  }, [projectId, simulationRunId, entityById, relationshipsByEntity, entityGuidance, prominenceScale, startCopyEdit]);
-
-  const handleAcceptCopyEdit = useCallback(async () => {
-    const patches = applyAcceptedCopyEditPatches();
-    await handleRevisionApplied(patches, 'copy-edit');
-
-    // Revalidate existing backrefs against updated descriptions (with fuzzy fallback)
-    await entityRepo.revalidateBackrefs(patches, { fuzzyFallback: true });
-    await reloadAndNotify(patches.map((p) => p.entityId));
-  }, [applyAcceptedCopyEditPatches, handleRevisionApplied, reloadAndNotify]);
+    run: historianEditionRun,
+    isActive: isHistorianEditionActive,
+    startHistorianEdition,
+    togglePatchDecision: toggleHistorianEditionPatchDecision,
+    applyAccepted: applyAcceptedHistorianEditionPatches,
+    cancelHistorianEdition,
+  } = useHistorianEdition(enqueue);
 
   // Entity rename / patch events
   const handleStartRename = useCallback((entityId) => {
@@ -1704,6 +1655,108 @@ export default function IlluminatorRemote({
       type: note.type,
     }));
   }, [entities, HISTORIAN_SAMPLING, simulationRunId]);
+
+  // Historian edition — start a historian-voiced description synthesis
+  const handleHistorianEdition = useCallback(async (entityId, tone) => {
+    if (!projectId || !simulationRunId || !entityId) return;
+    if (!isHistorianConfigured(historianConfig)) return;
+
+    const entity = entityById.get(entityId);
+    if (!entity?.description) return;
+
+    // Build relationships (up to 12)
+    const rels = (relationshipsByEntity.get(entity.id) || []).slice(0, 12).map((rel) => {
+      const targetId = rel.src === entity.id ? rel.dst : rel.src;
+      const target = entityById.get(targetId);
+      return {
+        kind: rel.kind,
+        targetName: target?.name || targetId,
+        targetKind: target?.kind || 'unknown',
+      };
+    });
+
+    // Get neighbor summaries (up to 5)
+    const neighborSummaries = (relationshipsByEntity.get(entity.id) || []).slice(0, 5).map((rel) => {
+      const targetId = rel.src === entity.id ? rel.dst : rel.src;
+      const target = entityById.get(targetId);
+      if (!target) return null;
+      return {
+        name: target.name,
+        kind: target.kind,
+        summary: target.summary || target.description?.slice(0, 200) || '',
+      };
+    }).filter(Boolean);
+
+    // Gather chronicle summaries from backrefs
+    const chronicleSummaries = [];
+    const backrefs = entity.enrichment?.chronicleBackrefs || [];
+    for (const ref of backrefs) {
+      if (!ref.chronicleId) continue;
+      try {
+        const chronicle = await getChronicle(ref.chronicleId);
+        if (chronicle && chronicle.title) {
+          chronicleSummaries.push({
+            chronicleId: chronicle.chronicleId,
+            title: chronicle.title,
+            format: chronicle.format || '',
+            summary: chronicle.finalContent?.slice(0, 500) || '',
+          });
+        }
+      } catch (err) {
+        // Skip if chronicle not found
+      }
+    }
+
+    // Previous notes for voice continuity
+    const relatedEntityIds = new Set([entity.id]);
+    for (const rel of (relationshipsByEntity.get(entity.id) || [])) {
+      const targetId = rel.src === entity.id ? rel.dst : rel.src;
+      if (targetId) relatedEntityIds.add(targetId);
+    }
+    const previousNotes = await collectPreviousNotes({
+      relatedEntityIds: Array.from(relatedEntityIds),
+    });
+
+    startHistorianEdition({
+      projectId,
+      simulationRunId,
+      entityId: entity.id,
+      entityName: entity.name,
+      entityKind: entity.kind,
+      entitySubtype: entity.subtype || '',
+      entityCulture: entity.culture || '',
+      entityProminence: prominenceLabelFromScale(entity.prominence, prominenceScale),
+      description: entity.description,
+      summary: entity.summary || '',
+      descriptionHistory: entity.enrichment?.descriptionHistory || [],
+      chronicleSummaries,
+      relationships: rels,
+      neighborSummaries,
+      canonFacts: (worldContext.canonFactsWithMetadata || []).map((f) => f.text),
+      worldDynamics: (worldContext.worldDynamics || []).map((d) => d.text),
+      previousNotes,
+      historianConfig,
+      tone: tone || 'scholarly',
+    });
+  }, [projectId, simulationRunId, entityById, relationshipsByEntity, worldContext, historianConfig, prominenceScale, collectPreviousNotes, startHistorianEdition]);
+
+  // Accept historian edition — apply the rewritten description
+  const handleAcceptHistorianEdition = useCallback(async () => {
+    const patches = applyAcceptedHistorianEditionPatches();
+    if (!patches?.length) return;
+
+    await handleRevisionApplied(patches, 'historian-edition');
+
+    // Clear historian notes for the edited entity (edition subsumes them)
+    for (const patch of patches) {
+      if (patch.entityId) {
+        await entityRepo.setHistorianNotes(patch.entityId, []);
+      }
+    }
+
+    // Reload to reflect cleared notes
+    await reloadAndNotify(patches.map((p) => p.entityId));
+  }, [applyAcceptedHistorianEditionPatches, handleRevisionApplied, reloadAndNotify]);
 
   const handleHistorianReview = useCallback(async (entityId, tone) => {
     if (!projectId || !simulationRunId || !entityId) return;
@@ -2158,8 +2211,8 @@ export default function IlluminatorRemote({
               isRevising={isRevisionActive}
               onUpdateBackrefs={handleUpdateBackrefs}
               onUndoDescription={handleUndoDescription}
-              onCopyEdit={handleCopyEdit}
-              isCopyEditActive={isCopyEditActive}
+              onHistorianEdition={handleHistorianEdition}
+              isHistorianEditionActive={isHistorianEditionActive}
               onHistorianReview={handleHistorianReview}
               isHistorianActive={isHistorianActive}
               historianConfigured={isHistorianConfigured(historianConfig)}
@@ -2201,6 +2254,7 @@ export default function IlluminatorRemote({
               onHistorianReview={handleChronicleHistorianReview}
               isHistorianActive={isHistorianActive}
               historianConfigured={isHistorianConfigured(historianConfig)}
+              historianConfig={historianConfig}
               onUpdateHistorianNote={handleUpdateHistorianNote}
               onRefreshEraSummaries={handleRefreshEraSummaries}
             />
@@ -2212,6 +2266,7 @@ export default function IlluminatorRemote({
             <CoveragePanel
               worldContext={worldContext}
               simulationRunId={simulationRunId}
+              onWorldContextChange={updateWorldContext}
             />
           </div>
         )}
@@ -2453,13 +2508,13 @@ export default function IlluminatorRemote({
         onUpdateAnchorPhrase={updateBackportAnchorPhrase}
       />
 
-      {/* Description Copy Edit Modal */}
+      {/* Historian Edition Modal */}
       <SummaryRevisionModal
-        run={copyEditRun}
-        isActive={isCopyEditActive}
-        onTogglePatch={toggleCopyEditPatchDecision}
-        onAccept={handleAcceptCopyEdit}
-        onCancel={cancelCopyEdit}
+        run={historianEditionRun}
+        isActive={isHistorianEditionActive}
+        onTogglePatch={toggleHistorianEditionPatchDecision}
+        onAccept={handleAcceptHistorianEdition}
+        onCancel={cancelHistorianEdition}
         getEntityContexts={getEntityContextsForRevision}
       />
 

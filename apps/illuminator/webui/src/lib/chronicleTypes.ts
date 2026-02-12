@@ -809,6 +809,11 @@ export interface ChronicleRecord {
   /** Temporal context including focal era */
   temporalContext?: ChronicleTemporalContext;
 
+  /** Historian-assigned chronological year within the focal era */
+  eraYear?: number;
+  /** Historian's reasoning for the year placement */
+  eraYearReasoning?: string;
+
   // ========================================================================
   // Mechanical metadata (used for graph traversal, not identity)
   // ========================================================================
@@ -926,6 +931,10 @@ export interface ChronicleRecord {
 
   /** Historian annotations — scholarly margin notes anchored to chronicle text */
   historianNotes?: HistorianNote[];
+
+  /** Historian's private reading notes — prep brief for era narrative input */
+  historianPrep?: string;
+  historianPrepGeneratedAt?: number;
 
   // Cost tracking (aggregated across all LLM calls)
   totalEstimatedCost: number;

@@ -421,8 +421,8 @@ export default function EntityBrowser({
   isRevising,
   onUpdateBackrefs,
   onUndoDescription,
-  onCopyEdit,
-  isCopyEditActive,
+  onHistorianEdition,
+  isHistorianEditionActive,
   onHistorianReview,
   isHistorianActive,
   historianConfigured,
@@ -1202,8 +1202,8 @@ export default function EntityBrowser({
           prominenceScale={effectiveProminenceScale}
           onUpdateBackrefs={onUpdateBackrefs}
           onUndoDescription={onUndoDescription}
-          onCopyEdit={onCopyEdit}
-          isCopyEditActive={isCopyEditActive}
+          onHistorianEdition={onHistorianEdition}
+          isHistorianEditionActive={isHistorianEditionActive}
           onHistorianReview={onHistorianReview}
           isHistorianActive={isHistorianActive}
           historianConfigured={historianConfigured}

@@ -8,8 +8,11 @@ import { paletteExpansionTask } from './paletteExpansionTask';
 import { dynamicsGenerationTask } from './dynamicsGenerationTask';
 import { summaryRevisionTask } from './summaryRevisionTask';
 import { chronicleLoreBackportTask } from './chronicleLoreBackportTask';
-import { copyEditTask } from './copyEditTask';
+import { historianEditionTask } from './historianEditionTask';
 import { historianReviewTask } from './historianReviewTask';
+import { historianChronologyTask } from './historianChronologyTask';
+import { historianPrepTask } from './historianPrepTask';
+import { eraNarrativeTask } from './eraNarrativeTask';
 
 export const TASK_HANDLERS = {
   description: descriptionTask,
@@ -19,8 +22,11 @@ export const TASK_HANDLERS = {
   dynamicsGeneration: dynamicsGenerationTask,
   summaryRevision: summaryRevisionTask,
   chronicleLoreBackport: chronicleLoreBackportTask,
-  copyEdit: copyEditTask,
+  historianEdition: historianEditionTask,
   historianReview: historianReviewTask,
+  historianChronology: historianChronologyTask,
+  historianPrep: historianPrepTask,
+  eraNarrative: eraNarrativeTask,
 } satisfies TaskHandlerMap;
 
 export async function executeTask<TType extends WorkerTask['type']>(
@@ -39,6 +45,9 @@ export {
   dynamicsGenerationTask,
   summaryRevisionTask,
   chronicleLoreBackportTask,
-  copyEditTask,
+  historianEditionTask,
   historianReviewTask,
+  historianChronologyTask,
+  historianPrepTask,
+  eraNarrativeTask,
 };
