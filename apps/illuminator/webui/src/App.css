@@ -2877,3 +2877,97 @@ body {
 .illuminator-coverage-row-disabled td {
   opacity: 0.5;
 }
+
+/* ── Entity Coverage Tables ────────────────────────────────────────── */
+
+.entity-coverage-table {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: auto;
+  background: var(--bg-secondary);
+  margin: 0 8px 8px;
+  max-height: 420px;
+}
+
+.entity-coverage-table table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.entity-coverage-table th,
+.entity-coverage-table td {
+  border-bottom: 1px solid var(--border-color);
+  padding: 5px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  background: var(--bg-secondary);
+}
+
+.entity-coverage-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-tertiary);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.entity-coverage-table th.ec-active {
+  color: var(--text-primary);
+}
+
+.entity-coverage-table th.ec-no-sort {
+  cursor: default;
+}
+
+.entity-coverage-table th.ec-right,
+.entity-coverage-table td.ec-right {
+  text-align: right;
+}
+
+.entity-coverage-table td.ec-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entity-coverage-table td.ec-muted {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.entity-coverage-table td.ec-center {
+  text-align: center;
+}
+
+.entity-coverage-table tr:last-child td {
+  border-bottom: none;
+}
+
+.entity-coverage-table .ec-empty td {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 12px 10px;
+}
+
+/* ── Entity Coverage 2-column Grid ───────────────────────────────── */
+
+.ec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ec-grid-cell {
+  min-width: 0; /* prevent table content from blowing out grid column */
+}

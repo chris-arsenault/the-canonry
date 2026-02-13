@@ -487,6 +487,31 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
     [onEnqueue, getChronicle],
   );
 
+  const quickCheck = useCallback(
+    (chronicleId: string) => {
+      const chronicle = getChronicle(chronicleId);
+      if (!chronicle) {
+        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        return;
+      }
+      if (!chronicle.assembledContent && !chronicle.finalContent) {
+        console.error('[Chronicle] No content available for quick check');
+        return;
+      }
+
+      onEnqueue([
+        {
+          entity: buildEntityRefFromRecord(chronicleId, chronicle),
+          type: 'entityChronicle' as EnrichmentType,
+          prompt: '',
+          chronicleStep: 'quick_check',
+          chronicleId,
+        },
+      ]);
+    },
+    [onEnqueue, getChronicle],
+  );
+
   return {
     generateV2,
     generateSummary,
@@ -499,5 +524,6 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
     combineVersions,
     copyEdit,
     temporalCheck,
+    quickCheck,
   };
 }

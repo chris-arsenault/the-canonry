@@ -263,6 +263,20 @@ export function useNarrativeLoading(): boolean {
   return useNarrativeStore((state) => state.status.loading);
 }
 
+export function useEntityNarrativeLoading(entityId: string | null | undefined): boolean {
+  return useNarrativeStore((state) => {
+    if (!entityId) return false;
+    return state.loadingEntityIds.has(entityId);
+  });
+}
+
+export function useEntityNarrativeReady(entityId: string | null | undefined): boolean {
+  return useNarrativeStore((state) => {
+    if (!entityId) return true;
+    return state.loadedEntityIds.has(entityId);
+  });
+}
+
 export function useAllNarrativeEvents(): NarrativeEvent[] {
   return useNarrativeStore((state) => Array.from(state.eventsById.values()));
 }
@@ -298,6 +312,34 @@ function stripSimulationRunId<T extends { simulationRunId?: string }>(record: T)
 function eventMatchesEntity(event: NarrativeEvent, entityId: string): boolean {
   const participants = Array.isArray(event.participantEffects) ? event.participantEffects : [];
   return participants.some((participant) => participant?.entity?.id === entityId);
+}
+
+/**
+ * Fetch-based backend for the viewer context.
+ * Loads pre-built per-entity timeline JSON files on demand.
+ */
+export class FetchBackend implements NarrativeBackend {
+  private baseUrl: string;
+  private timelineFiles: Record<string, { path: string; eventCount: number }>;
+
+  constructor(baseUrl: string, timelineFiles: Record<string, { path: string; eventCount: number }>) {
+    this.baseUrl = baseUrl;
+    this.timelineFiles = timelineFiles;
+  }
+
+  async getEventsForEntity(_simulationRunId: string, entityId: string): Promise<NarrativeEvent[]> {
+    const file = this.timelineFiles[entityId];
+    if (!file) return [];
+    const url = new URL(file.path, this.baseUrl).toString();
+    const response = await fetch(url);
+    if (!response.ok) return [];
+    return response.json();
+  }
+
+  async getAllEvents(): Promise<NarrativeEvent[]> {
+    // Not supported in fetch backend — per-entity loading only
+    return [];
+  }
 }
 
 export class IndexedDBBackend implements NarrativeBackend {

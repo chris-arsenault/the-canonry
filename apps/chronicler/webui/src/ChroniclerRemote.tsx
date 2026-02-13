@@ -10,19 +10,31 @@
 import { useEffect, useMemo, useState } from 'react';
 import './styles/variables.css';
 import WikiExplorer from './components/WikiExplorer.tsx';
-import type { WorldState } from './types/world.ts';
+import type { WorldState, SerializedPageIndex } from './types/world.ts';
 import { buildWorldStateForSlot } from '@penguin-tales/world-store';
 import { IndexedDBBackend, useNarrativeStore } from '@penguin-tales/narrative-store';
+import type { ChronicleRecord } from './lib/chronicleStorage.ts';
+import type { StaticPage } from './lib/staticPageStorage.ts';
 
 export interface ChroniclerRemoteProps {
   projectId?: string;
   activeSlotIndex?: number;
   /** Timestamp updated when Dexie ingestion completes (viewer). */
   dexieSeededAt?: number;
-  /** Page ID requested by external navigation (e.g., from Archivist) */
+  /** Page ID requested by external navigation */
   requestedPageId?: string | null;
   /** Callback to signal that the requested page has been consumed */
   onRequestedPageConsumed?: () => void;
+  /** Pre-loaded world data — skips IndexedDB read when provided (viewer context) */
+  preloadedWorldData?: WorldState | null;
+  /** Pre-loaded chronicles — skips IndexedDB read when provided (viewer context) */
+  preloadedChronicles?: ChronicleRecord[];
+  /** Pre-loaded static pages — skips IndexedDB read when provided (viewer context) */
+  preloadedStaticPages?: StaticPage[];
+  /** Pre-baked parchment tile URL — skips runtime canvas pipeline when provided */
+  prebakedParchmentUrl?: string;
+  /** Pre-computed page index — skips buildPageIndex on mount when provided */
+  precomputedPageIndex?: SerializedPageIndex;
 }
 
 export default function ChroniclerRemote({
@@ -31,18 +43,26 @@ export default function ChroniclerRemote({
   dexieSeededAt,
   requestedPageId,
   onRequestedPageConsumed,
+  preloadedWorldData,
+  preloadedChronicles,
+  preloadedStaticPages,
+  prebakedParchmentUrl,
+  precomputedPageIndex,
 }: ChroniclerRemoteProps) {
   const [worldDataState, setWorldDataState] = useState<WorldState | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const narrativeBackend = useMemo(() => new IndexedDBBackend(), []);
-  const effectiveWorldData = projectId ? worldDataState : null;
-  const effectiveLoading = projectId ? loading : false;
-  const effectiveLoadError = projectId ? loadError : null;
+  const hasPreloadedWorld = preloadedWorldData !== undefined;
+  const effectiveWorldData = projectId ? (hasPreloadedWorld ? preloadedWorldData : worldDataState) : null;
+  const effectiveLoading = projectId ? (hasPreloadedWorld ? false : loading) : false;
+  const effectiveLoadError = projectId ? (hasPreloadedWorld ? null : loadError) : null;
   const simulationRunId = effectiveWorldData?.metadata?.simulationRunId ?? null;
 
+  // Load world data from IndexedDB when no preloaded data is provided (Canonry shell context)
   useEffect(() => {
+    if (hasPreloadedWorld) return;
     if (!projectId) return;
 
     let cancelled = false;
@@ -71,7 +91,7 @@ export default function ChroniclerRemote({
     return () => {
       cancelled = true;
     };
-  }, [activeSlotIndex, dexieSeededAt, projectId]);
+  }, [activeSlotIndex, dexieSeededAt, hasPreloadedWorld, projectId]);
 
   useEffect(() => {
     const store = useNarrativeStore.getState();
@@ -162,6 +182,10 @@ export default function ChroniclerRemote({
       loreData={null}
       requestedPageId={requestedPageId}
       onRequestedPageConsumed={onRequestedPageConsumed}
+      preloadedChronicles={preloadedChronicles}
+      preloadedStaticPages={preloadedStaticPages}
+      prebakedParchmentUrl={prebakedParchmentUrl}
+      precomputedPageIndex={precomputedPageIndex}
     />
   );
 }

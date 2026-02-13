@@ -34,6 +34,7 @@ const sortChronicles = (a, b) => {
 export default function CoveragePanel({ worldContext, simulationRunId, onWorldContextChange }) {
   const [chronicles, setChronicles] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(true);
 
   const [disabledChronicles, setDisabledChronicles] = useState(() => {
     try {
@@ -241,123 +242,138 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
 
   return (
     <div className="illuminator-card">
-      <div className="illuminator-card-header">
-        <h2 className="illuminator-card-title">Coverage</h2>
-        <span className="illuminator-card-subtitle">Perspective synthesis fact usage across chronicles</span>
-      </div>
-
-      <div className="illuminator-coverage-summary">
-        <div>
-          <strong>Chronicles</strong>: {chronicleCount} total, {includedCount} counted, {chroniclesWithSynthesis} with synthesis
-        </div>
-        <div>
-          <strong>Facts</strong>: {facts.length - disabledFactCount} active ({unusedFacts} unused){disabledFactCount > 0 && `, ${disabledFactCount} disabled`}
-        </div>
-        <div>
-          <strong>Total selections</strong>: {totalSelections}
-        </div>
-        <div>
-          <strong>Unparsed facets</strong>: {unparsedTotal}
-        </div>
-        {constraintCount > 0 && (
-          <div>
-            <strong>Constraints excluded</strong>: {constraintCount}
-          </div>
+      <div
+        className="illuminator-card-header"
+        onClick={() => setExpanded((prev) => !prev)}
+        style={{ cursor: 'pointer', userSelect: 'none' }}
+      >
+        <span style={{ marginRight: '8px', fontSize: '10px', color: 'var(--text-muted)' }}>
+          {expanded ? '\u25BC' : '\u25B6'}
+        </span>
+        <h2 className="illuminator-card-title">Lore Coverage</h2>
+        {!expanded && (
+          <span className="illuminator-card-subtitle" style={{ marginLeft: '8px' }}>
+            {chronicleCount} chronicles, {facts.length - disabledFactCount} facts{unusedFacts > 0 ? `, ${unusedFacts} unused` : ''}
+          </span>
         )}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-          <button
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: '4px 10px', fontSize: '11px' }}
-            onClick={enableAll}
-          >
-            Count all
-          </button>
-          <button
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: '4px 10px', fontSize: '11px' }}
-            onClick={disableAll}
-          >
-            Count none
-          </button>
-        </div>
       </div>
 
-      <div className="illuminator-coverage-table">
-        <table>
-          <thead>
-            <tr>
-              <th className="illuminator-coverage-sticky">Chronicle</th>
-              <th className="illuminator-coverage-toggle-col">Counted</th>
-              {facts.map((fact) => (
-                <th
-                  key={fact.id}
-                  title={`${fact.id}${fact.text ? `: ${fact.text}` : ''}${fact.required ? ' (required)' : ''}${fact.disabled ? ' (disabled — click to enable)' : ' (click to disable)'}`}
-                  onClick={onWorldContextChange ? () => toggleFact(fact.id) : undefined}
-                  style={onWorldContextChange ? { cursor: 'pointer' } : undefined}
-                >
-                  <div className="illuminator-coverage-fact-header" style={fact.disabled ? { opacity: 0.4 } : undefined}>
-                    <span className="illuminator-coverage-fact-id">{fact.id}</span>
-                    {fact.required && <span className="illuminator-coverage-required">R</span>}
-                    {fact.disabled && <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>off</span>}
-                  </div>
-                </th>
-              ))}
-              <th className="illuminator-coverage-unparsed-col">Unparsed</th>
-              <th className="illuminator-coverage-total-col">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="illuminator-coverage-total-row">
-              <td className="illuminator-coverage-sticky">Total usage</td>
-              <td className="illuminator-coverage-toggle-col">{includedCount}</td>
-              {facts.map((fact) => (
-                <td key={`total-${fact.id}`} style={fact.disabled ? { opacity: 0.3 } : undefined}>
-                  {factTotals.get(fact.id) || 0}
-                </td>
-              ))}
-              <td className="illuminator-coverage-unparsed-col">{unparsedTotal}</td>
-              <td className="illuminator-coverage-total-col">{totalSelections}</td>
-            </tr>
-            {rows.map((row) => {
-              const chronicle = row.chronicle;
-              const hasSynthesis = Boolean(row.synthesis);
-              const rowClass = row.isIncluded ? '' : 'illuminator-coverage-row-disabled';
-              return (
-                <tr key={chronicle.chronicleId} className={rowClass}>
-                  <td className="illuminator-coverage-sticky">
-                    <div className="illuminator-coverage-chronicle-title">
-                      {chronicle.title || 'Untitled Chronicle'}
-                    </div>
-                    <div className="illuminator-coverage-chronicle-meta">
-                      {chronicle.chronicleId}
-                      {!hasSynthesis && ' • no synthesis'}
-                    </div>
-                  </td>
-                  <td className="illuminator-coverage-toggle-col">
-                    <input
-                      type="checkbox"
-                      checked={row.isIncluded}
-                      onChange={() => toggleChronicle(chronicle.chronicleId)}
-                      aria-label={`Toggle counting for ${chronicle.title || chronicle.chronicleId}`}
-                    />
-                  </td>
+      {expanded && (
+        <>
+          <div className="illuminator-coverage-summary">
+            <div>
+              <strong>Chronicles</strong>: {chronicleCount} total, {includedCount} counted, {chroniclesWithSynthesis} with synthesis
+            </div>
+            <div>
+              <strong>Facts</strong>: {facts.length - disabledFactCount} active ({unusedFacts} unused){disabledFactCount > 0 && `, ${disabledFactCount} disabled`}
+            </div>
+            <div>
+              <strong>Total selections</strong>: {totalSelections}
+            </div>
+            <div>
+              <strong>Unparsed facets</strong>: {unparsedTotal}
+            </div>
+            {constraintCount > 0 && (
+              <div>
+                <strong>Constraints excluded</strong>: {constraintCount}
+              </div>
+            )}
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+              <button
+                className="illuminator-button illuminator-button-secondary"
+                style={{ padding: '4px 10px', fontSize: '11px' }}
+                onClick={enableAll}
+              >
+                Count all
+              </button>
+              <button
+                className="illuminator-button illuminator-button-secondary"
+                style={{ padding: '4px 10px', fontSize: '11px' }}
+                onClick={disableAll}
+              >
+                Count none
+              </button>
+            </div>
+          </div>
+
+          <div className="illuminator-coverage-table">
+            <table>
+              <thead>
+                <tr>
+                  <th className="illuminator-coverage-sticky">Chronicle</th>
+                  <th className="illuminator-coverage-toggle-col">Counted</th>
                   {facts.map((fact) => (
-                    <td key={`${chronicle.chronicleId}-${fact.id}`} style={fact.disabled ? { opacity: 0.3 } : undefined}>
-                      {row.facetIds.has(fact.id) ? (
-                        <span className="illuminator-coverage-hit" />
-                      ) : (
-                        <span className="illuminator-coverage-miss" />
-                      )}
+                    <th
+                      key={fact.id}
+                      title={`${fact.id}${fact.text ? `: ${fact.text}` : ''}${fact.required ? ' (required)' : ''}${fact.disabled ? ' (disabled — click to enable)' : ' (click to disable)'}`}
+                      onClick={onWorldContextChange ? () => toggleFact(fact.id) : undefined}
+                      style={onWorldContextChange ? { cursor: 'pointer' } : undefined}
+                    >
+                      <div className="illuminator-coverage-fact-header" style={fact.disabled ? { opacity: 0.4 } : undefined}>
+                        <span className="illuminator-coverage-fact-id">{fact.id}</span>
+                        {fact.required && <span className="illuminator-coverage-required">R</span>}
+                        {fact.disabled && <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>off</span>}
+                      </div>
+                    </th>
+                  ))}
+                  <th className="illuminator-coverage-unparsed-col">Unparsed</th>
+                  <th className="illuminator-coverage-total-col">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="illuminator-coverage-total-row">
+                  <td className="illuminator-coverage-sticky">Total usage</td>
+                  <td className="illuminator-coverage-toggle-col">{includedCount}</td>
+                  {facts.map((fact) => (
+                    <td key={`total-${fact.id}`} style={fact.disabled ? { opacity: 0.3 } : undefined}>
+                      {factTotals.get(fact.id) || 0}
                     </td>
                   ))}
-                  <td className="illuminator-coverage-unparsed-col">{row.unparsedCount || 0}</td>
-                  <td className="illuminator-coverage-total-col">{row.rowTotal || 0}</td>
+                  <td className="illuminator-coverage-unparsed-col">{unparsedTotal}</td>
+                  <td className="illuminator-coverage-total-col">{totalSelections}</td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                {rows.map((row) => {
+                  const chronicle = row.chronicle;
+                  const hasSynthesis = Boolean(row.synthesis);
+                  const rowClass = row.isIncluded ? '' : 'illuminator-coverage-row-disabled';
+                  return (
+                    <tr key={chronicle.chronicleId} className={rowClass}>
+                      <td className="illuminator-coverage-sticky">
+                        <div className="illuminator-coverage-chronicle-title">
+                          {chronicle.title || 'Untitled Chronicle'}
+                        </div>
+                        <div className="illuminator-coverage-chronicle-meta">
+                          {chronicle.chronicleId}
+                          {!hasSynthesis && ' • no synthesis'}
+                        </div>
+                      </td>
+                      <td className="illuminator-coverage-toggle-col">
+                        <input
+                          type="checkbox"
+                          checked={row.isIncluded}
+                          onChange={() => toggleChronicle(chronicle.chronicleId)}
+                          aria-label={`Toggle counting for ${chronicle.title || chronicle.chronicleId}`}
+                        />
+                      </td>
+                      {facts.map((fact) => (
+                        <td key={`${chronicle.chronicleId}-${fact.id}`} style={fact.disabled ? { opacity: 0.3 } : undefined}>
+                          {row.facetIds.has(fact.id) ? (
+                            <span className="illuminator-coverage-hit" />
+                          ) : (
+                            <span className="illuminator-coverage-miss" />
+                          )}
+                        </td>
+                      ))}
+                      <td className="illuminator-coverage-unparsed-col">{row.unparsedCount || 0}</td>
+                      <td className="illuminator-coverage-total-col">{row.rowTotal || 0}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }

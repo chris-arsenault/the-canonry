@@ -730,6 +730,20 @@ export async function updateChronicleTemporalCheckReport(
   await db.chronicles.put(record);
 }
 
+export async function updateChronicleQuickCheckReport(
+  chronicleId: string,
+  report: import('../chronicleTypes').QuickCheckReport,
+): Promise<void> {
+  const record = await db.chronicles.get(chronicleId);
+  if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
+
+  record.quickCheckReport = report;
+  record.quickCheckReportGeneratedAt = Date.now();
+  record.updatedAt = Date.now();
+
+  await db.chronicles.put(record);
+}
+
 /**
  * Update chronicle with historian prep brief
  */

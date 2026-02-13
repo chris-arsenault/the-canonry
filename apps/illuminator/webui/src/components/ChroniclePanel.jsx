@@ -424,6 +424,7 @@ export default function ChroniclePanel({
     combineVersions,
     copyEdit,
     temporalCheck,
+    quickCheck,
   } = useChronicleActions(onEnqueue);
 
   // Lifecycle actions from store (no queue dependency)
@@ -733,6 +734,9 @@ export default function ChroniclePanel({
       },
       temporalCheck: {
         running: isRunning('temporal_check'),
+      },
+      quickCheck: {
+        running: isRunning('quick_check'),
       },
       coverImageScene: {
         running: isRunning('cover_image_scene'),
@@ -1171,6 +1175,11 @@ export default function ChroniclePanel({
     if (!selectedItem) return;
     temporalCheck(selectedItem.chronicleId);
   }, [selectedItem, temporalCheck]);
+
+  const handleQuickCheck = useCallback(() => {
+    if (!selectedItem) return;
+    quickCheck(selectedItem.chronicleId);
+  }, [selectedItem, quickCheck]);
 
   // Handle regenerate (delete and go back to start screen) - uses restart modal
   const handleRegenerate = useCallback(() => {
@@ -2323,6 +2332,7 @@ export default function ChroniclePanel({
                   onCombineVersions={handleCombineVersions}
                   onCopyEdit={handleCopyEdit}
                   onTemporalCheck={handleTemporalCheck}
+                  onQuickCheck={handleQuickCheck}
                   onGenerateChronicleImage={handleGenerateChronicleImage}
                   onResetChronicleImage={handleResetChronicleImage}
                   onRegenerateDescription={handleRegenerateDescription}

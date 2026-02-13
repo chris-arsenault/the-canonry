@@ -27,6 +27,7 @@ export type LLMCallType =
   | 'chronicle.imageRefs'        // Image reference extraction
   | 'chronicle.coverImageScene'  // Cover image scene/montage description
   | 'chronicle.copyEdit'        // Polish pass — voice smoothing, trimming, prose tightening
+  | 'chronicle.quickCheck'      // Detect unanchored entity references in chronicle text
 
   // Palette
   | 'palette.expansion'          // Trait palette curation
@@ -63,6 +64,7 @@ export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   'chronicle.imageRefs',
   'chronicle.coverImageScene',
   'chronicle.copyEdit',
+  'chronicle.quickCheck',
   'palette.expansion',
   'dynamics.generation',
   'revision.summary',
@@ -296,6 +298,17 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
     },
     recommendedModels: ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
   },
+  'chronicle.quickCheck': {
+    label: 'Quick Check',
+    description: 'Detects unanchored entity references — proper nouns not in the known cast or name bank',
+    category: 'chronicle',
+    defaults: {
+      model: 'claude-haiku-4-5-20251001',
+      thinkingBudget: 0,
+      maxTokens: 1024,
+    },
+    recommendedModels: ['claude-haiku-4-5-20251001'],
+  },
   'palette.expansion': {
     label: 'Palette Expansion',
     description: 'Curates visual trait categories with extended reasoning',
@@ -436,7 +449,7 @@ export function getCallTypesByCategory(): Record<LLMCallCategory, LLMCallType[]>
     description: ['description.narrative', 'description.visualThesis', 'description.visualTraits'],
     image: ['image.promptFormatting', 'image.chronicleFormatting'],
     perspective: ['perspective.synthesis'],
-    chronicle: ['chronicle.generation', 'chronicle.compare', 'chronicle.combine', 'chronicle.copyEdit', 'chronicle.summary', 'chronicle.title', 'chronicle.imageRefs', 'chronicle.coverImageScene'],
+    chronicle: ['chronicle.generation', 'chronicle.compare', 'chronicle.combine', 'chronicle.copyEdit', 'chronicle.quickCheck', 'chronicle.summary', 'chronicle.title', 'chronicle.imageRefs', 'chronicle.coverImageScene'],
     palette: ['palette.expansion'],
     dynamics: ['dynamics.generation'],
     revision: ['revision.summary', 'revision.loreBackport'],

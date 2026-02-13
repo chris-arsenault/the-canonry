@@ -151,11 +151,12 @@ export async function applyRename(
   newName: string,
   entityPatches: EntityPatch[],
   simulationRunId: string,
+  addOldNameAsAlias?: boolean,
 ): Promise<string[]> {
   const updatedIds: string[] = [];
 
   await db.transaction('rw', db.entities, async () => {
-    // 1. Target entity: update name + slugAlias
+    // 1. Target entity: update name + slugAlias + optional text alias
     if (targetEntityId) {
       const target = await db.entities.get(targetEntityId);
       if (target) {
@@ -164,11 +165,21 @@ export async function applyRename(
           ? existingAliases
           : [...existingAliases, targetEntityId];
 
+        // Add old name to text aliases if requested (for wiki link resolution)
+        let textEnrichment = target.enrichment?.text;
+        if (addOldNameAsAlias && target.name && target.name !== newName && textEnrichment) {
+          const existingTextAliases = textEnrichment.aliases || [];
+          if (!existingTextAliases.includes(target.name)) {
+            textEnrichment = { ...textEnrichment, aliases: [...existingTextAliases, target.name] };
+          }
+        }
+
         await db.entities.update(targetEntityId, {
           name: newName,
           enrichment: {
             ...target.enrichment,
             slugAliases,
+            ...(textEnrichment ? { text: textEnrichment } : {}),
           },
         });
         updatedIds.push(targetEntityId);

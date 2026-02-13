@@ -281,6 +281,7 @@ export type ChronicleStep =
   | 'combine'  // Combine all versions into a new draft
   | 'copy_edit' // Polish pass — trims, smooths voice, tightens prose without changing content
   | 'temporal_check' // Check if focal era / temporal narrative misalignment affected the output
+  | 'quick_check'    // Detect unanchored entity references (names not in cast or name bank)
   | 'validate'
   | 'edit'
   | 'summary'

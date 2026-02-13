@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import ImageModal from '../ImageModal';
+import QuickCheckModal from '../QuickCheckModal';
 import WorkspaceHeader from './WorkspaceHeader';
 import WorkspaceTabBar from './WorkspaceTabBar';
 import PipelineTab from './PipelineTab';
@@ -25,6 +26,7 @@ export default function ChronicleWorkspace({
   onCombineVersions,
   onCopyEdit,
   onTemporalCheck,
+  onQuickCheck,
   onValidate,
   onGenerateSummary,
   onGenerateTitle,
@@ -199,6 +201,7 @@ export default function ChronicleWorkspace({
   const combineRunning = refinements?.combine?.running || false;
   const copyEditRunning = refinements?.copyEdit?.running || false;
   const temporalCheckRunning = refinements?.temporalCheck?.running || false;
+  const quickCheckRunning = refinements?.quickCheck?.running || false;
 
   // ---------------------------------------------------------------------------
   // Seed data
@@ -247,6 +250,7 @@ export default function ChronicleWorkspace({
   // ---------------------------------------------------------------------------
   // Image modal
   // ---------------------------------------------------------------------------
+  const [showQuickCheckModal, setShowQuickCheckModal] = useState(false);
   const [imageModal, setImageModal] = useState({ open: false, imageId: '', title: '' });
   const handleImageClick = useCallback((imageId, title) => {
     setImageModal({ open: true, imageId, title });
@@ -480,6 +484,9 @@ export default function ChronicleWorkspace({
             onSetActiveVersion={isComplete ? undefined : onUpdateChronicleActiveVersion}
             onDeleteVersion={isComplete ? undefined : handleDeleteVersion}
             isGenerating={isGenerating}
+            onQuickCheck={onQuickCheck}
+            quickCheckRunning={quickCheckRunning}
+            onShowQuickCheck={() => setShowQuickCheckModal(true)}
           />
         )}
 
@@ -513,6 +520,13 @@ export default function ChronicleWorkspace({
         title={imageModal.title}
         onClose={() => setImageModal({ open: false, imageId: '', title: '' })}
       />
+
+      {showQuickCheckModal && item.quickCheckReport && (
+        <QuickCheckModal
+          report={item.quickCheckReport}
+          onClose={() => setShowQuickCheckModal(false)}
+        />
+      )}
 
       {showTitleAcceptModal && (() => {
         const hasPending = !!item?.pendingTitle;

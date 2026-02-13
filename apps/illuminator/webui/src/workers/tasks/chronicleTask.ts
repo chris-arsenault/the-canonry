@@ -9,6 +9,7 @@ import type {
   PromptRequestRef,
   ChronicleImageSize,
   ChronicleSampling,
+  QuickCheckReport,
 } from '../../lib/chronicleTypes';
 import { CHRONICLE_SAMPLING_TOP_P } from '../../lib/chronicleTypes';
 import { analyzeConstellation, type EntityConstellation } from '../../lib/constellationAnalyzer';
@@ -25,6 +26,7 @@ import {
   regenerateChronicleAssembly,
   updateChronicleComparisonReport,
   updateChronicleTemporalCheckReport,
+  updateChronicleQuickCheckReport,
   updateChronicleSummary,
   updateChronicleTitle,
   updateChronicleImageRefs,
@@ -128,6 +130,10 @@ async function executeEntityChronicleTask(
 
   if (step === 'temporal_check') {
     return executeTemporalCheckStep(task, chronicleRecord, context);
+  }
+
+  if (step === 'quick_check') {
+    return executeQuickCheckStep(task, chronicleRecord, context);
   }
 
   if (step === 'summary') {
@@ -1799,6 +1805,192 @@ Keep the total output under 800 words.`;
       outputTokens: checkCost.outputTokens,
     },
     debug: checkCall.result.debug,
+  };
+}
+
+// ============================================================================
+// Quick Check Step (user-triggered, detects unanchored entity references)
+// ============================================================================
+
+const QUICK_CHECK_SYSTEM_PROMPT = `You are a continuity checker for fictional narratives. Your job is to find proper-noun-like phrases in the text that do NOT correspond to any known entity in the provided cast list or name bank. These are "unanchored references" — names, titles, place names, or entity references that the author may have invented during generation without grounding them in the world's established entities.
+
+You should NOT flag:
+- Common nouns, adjectives, or generic descriptions ("the old captain", "the western shore")
+- Titles used as common nouns ("the king", "the council", "the elders")
+- Known entities referenced by their full name, alias, partial name, or ID slug
+- Name bank names used for minor/invented characters (this is expected and correct)
+- Obvious metonyms or descriptive epithets for known entities ("the great beast" for a known creature)
+- Pronouns or demonstratives ("he", "she", "this one")
+
+You SHOULD flag:
+- Proper nouns that don't match any known name, alias, or ID slug
+- Place names not in the cast
+- Organization or faction names not in the cast
+- Named characters who are not in the cast or name bank
+- Abbreviated or partial names that don't clearly correspond to a known entity (e.g. "Aldric" when the known entity is "Aldric the Bold" — this is borderline but worth flagging as low confidence)
+
+Return ONLY valid JSON. No markdown wrapping.`;
+
+function buildQuickCheckUserPrompt(
+  chronicleRecord: ChronicleRecord,
+  content: string,
+): string {
+  const sections: string[] = [];
+
+  // Cast list with ID slugs (ID slugs preserve original pre-rename names)
+  const roleAssignments = chronicleRecord.roleAssignments || [];
+  if (roleAssignments.length > 0) {
+    const castLines = roleAssignments.map(ra => {
+      const slugName = ra.entityId
+        .replace(/-[a-f0-9]{4,}$/, '') // strip trailing hash
+        .replace(/-/g, ' ');
+      return `- Name: "${ra.entityName}" | ID slug: "${ra.entityId}" (original: "${slugName}") | Kind: ${ra.entityKind} | Role: ${ra.role}`;
+    });
+    sections.push(`== KNOWN ENTITIES (cast) ==\n${castLines.join('\n')}`);
+  }
+
+  // Name bank
+  const nameBank = chronicleRecord.generationContext?.nameBank;
+  if (nameBank && Object.keys(nameBank).length > 0) {
+    const nbLines = Object.entries(nameBank).map(
+      ([culture, names]) => `${culture}: ${(names as string[]).join(', ')}`
+    );
+    sections.push(`== NAME BANK (expected invented names) ==\n${nbLines.join('\n')}`);
+  }
+
+  // Entity directives (extra name references)
+  const directives = chronicleRecord.generationContext?.entityDirectives;
+  if (directives && directives.length > 0) {
+    const dLines = directives.map(
+      d => `- ${d.entityName} (${d.entityId}): ${d.directive}`
+    );
+    sections.push(`== ENTITY DIRECTIVES ==\n${dLines.join('\n')}`);
+  }
+
+  sections.push(`== CHRONICLE TEXT ==\n${content}`);
+
+  sections.push(`== TASK ==
+Scan the chronicle text for proper-noun-like phrases that do NOT match any known entity name, alias, ID slug, or name bank entry. For each suspicious reference, provide the exact phrase, a brief snippet of surrounding context, your reasoning, and a confidence level.
+
+Return JSON:
+{
+  "suspects": [
+    {
+      "phrase": "the exact phrase as it appears",
+      "context": "...brief surrounding sentence or clause...",
+      "reasoning": "why this appears to be an unanchored reference",
+      "confidence": "high" | "medium" | "low"
+    }
+  ],
+  "assessment": "clean" | "minor" | "flagged",
+  "summary": "One sentence summary of findings"
+}`);
+
+  return sections.join('\n\n');
+}
+
+async function executeQuickCheckStep(
+  task: WorkerTask,
+  chronicleRecord: NonNullable<Awaited<ReturnType<typeof getChronicle>>>,
+  context: TaskContext
+): Promise<TaskResult> {
+  const { config, llmClient, isAborted } = context;
+  const chronicleId = chronicleRecord.chronicleId;
+
+  // Get content — prefer finalContent, fall back to active version
+  let content = chronicleRecord.finalContent;
+  if (!content) {
+    const resolved = resolveTargetVersionContent(chronicleRecord);
+    content = resolved.content;
+  }
+  if (!content) {
+    return { success: false, error: 'No chronicle content available for quick check' };
+  }
+
+  const callConfig = getCallConfig(config, 'chronicle.quickCheck');
+  console.log(`[Worker] Quick check for chronicle=${chronicleId}, model=${callConfig.model}...`);
+
+  const userPrompt = buildQuickCheckUserPrompt(chronicleRecord, content);
+
+  const callResult = await runTextCall({
+    llmClient,
+    callType: 'chronicle.quickCheck',
+    callConfig,
+    systemPrompt: QUICK_CHECK_SYSTEM_PROMPT,
+    prompt: userPrompt,
+    temperature: 0.2,
+  });
+
+  if (isAborted()) {
+    return { success: false, error: 'Task aborted', debug: callResult.result.debug };
+  }
+
+  if (callResult.result.error || !callResult.result.text) {
+    return {
+      success: false,
+      error: `Quick check failed: ${callResult.result.error || 'No text returned'}`,
+      debug: callResult.result.debug,
+    };
+  }
+
+  // Parse JSON response
+  let report: QuickCheckReport;
+  try {
+    const parsed = parseJsonObject<QuickCheckReport>(callResult.result.text, 'quickCheck');
+    report = {
+      suspects: Array.isArray(parsed.suspects) ? parsed.suspects.map(s => ({
+        phrase: typeof s.phrase === 'string' ? s.phrase : String(s.phrase ?? ''),
+        context: typeof s.context === 'string' ? s.context : String(s.context ?? ''),
+        reasoning: typeof s.reasoning === 'string' ? s.reasoning : String(s.reasoning ?? ''),
+        confidence: ['high', 'medium', 'low'].includes(s.confidence) ? s.confidence : 'medium',
+      })) : [],
+      assessment: ['clean', 'minor', 'flagged'].includes(parsed.assessment) ? parsed.assessment : 'minor',
+      summary: typeof parsed.summary === 'string' ? parsed.summary : 'Quick check completed.',
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: `Failed to parse quick check response: ${err instanceof Error ? err.message : String(err)}`,
+      debug: callResult.result.debug,
+    };
+  }
+
+  await updateChronicleQuickCheckReport(chronicleId, report);
+
+  const cost = {
+    estimated: callResult.estimate.estimatedCost,
+    actual: callResult.usage.actualCost,
+    inputTokens: callResult.usage.inputTokens,
+    outputTokens: callResult.usage.outputTokens,
+  };
+
+  await saveCostRecordWithDefaults({
+    projectId: task.projectId,
+    simulationRunId: task.simulationRunId,
+    entityId: task.entityId,
+    entityName: task.entityName,
+    entityKind: task.entityKind,
+    chronicleId,
+    type: 'chronicleQuickCheck' as CostType,
+    model: callConfig.model,
+    estimatedCost: cost.estimated,
+    actualCost: cost.actual,
+    inputTokens: cost.inputTokens,
+    outputTokens: cost.outputTokens,
+  });
+
+  return {
+    success: true,
+    result: {
+      chronicleId,
+      generatedAt: Date.now(),
+      model: callConfig.model,
+      estimatedCost: cost.estimated,
+      actualCost: cost.actual,
+      inputTokens: cost.inputTokens,
+      outputTokens: cost.outputTokens,
+    },
+    debug: callResult.result.debug,
   };
 }
 

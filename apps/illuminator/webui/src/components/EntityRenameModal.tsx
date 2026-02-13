@@ -74,6 +74,7 @@ interface EntityRenameModalProps {
     eventPatches: EventPatch[];
     targetEntityId: string | null;
     newName: string;
+    addOldNameAsAlias?: boolean;
   }) => void;
   onClose: () => void;
 }
@@ -503,6 +504,7 @@ export default function EntityRenameModal({
   const isPatch = mode === 'patch';
 
   const [phase, setPhase] = useState<Phase>('input');
+  const [addOldNameAsAlias, setAddOldNameAsAlias] = useState(true);
   // In patch mode: newName = entity.name (current, correct), oldNameInput = user-entered stale name
   const [newName, setNewName] = useState(isPatch ? entity?.name || '' : '');
   const [oldNameInput, setOldNameInput] = useState(
@@ -769,6 +771,7 @@ export default function EntityRenameModal({
         eventPatches: patches.eventPatches,
         targetEntityId: isPatch ? null : entityId,
         newName,
+        addOldNameAsAlias: isPatch ? false : addOldNameAsAlias,
       });
       setPhase('done');
     } catch (err) {
@@ -1086,6 +1089,24 @@ export default function EntityRenameModal({
                       </button>
                     )}
                   </div>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '11px',
+                      color: 'var(--text-secondary)',
+                      marginBottom: '8px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={addOldNameAsAlias}
+                      onChange={(e) => setAddOldNameAsAlias(e.target.checked)}
+                    />
+                    Add &ldquo;{entity.name}&rdquo; as alias (keeps wiki links working)
+                  </label>
                   <p
                     style={{
                       fontSize: '11px',

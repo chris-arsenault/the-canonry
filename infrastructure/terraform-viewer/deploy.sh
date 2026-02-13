@@ -50,9 +50,7 @@ sanity_check_dist() {
   fi
 }
 
-# Build remotes first, then the shell
-build_app "apps/archivist/webui"
-build_app "apps/chronicler/webui"
+# Build viewer (chronicler source is imported directly, no separate MFE build needed)
 build_app "apps/viewer/webui"
 
 # Deploy with Terraform

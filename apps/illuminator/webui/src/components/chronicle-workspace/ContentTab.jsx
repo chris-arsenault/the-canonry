@@ -6,7 +6,7 @@ import ChronicleVersionSelector from './ChronicleVersionSelector';
 // Assembled Content Viewer (local)
 // ============================================================================
 
-function AssembledContentViewer({ content, wordCount, onCopy, compareContent, compareLabel }) {
+function AssembledContentViewer({ content, wordCount, onCopy, compareContent, compareLabel, onQuickCheck, quickCheckRunning, quickCheckReport, onShowQuickCheck }) {
   const diffParts = useMemo(() => {
     if (!compareContent) return null;
     return diffWords(compareContent, content);
@@ -45,20 +45,59 @@ function AssembledContentViewer({ content, wordCount, onCopy, compareContent, co
             </span>
           )}
         </span>
-        <button
-          onClick={onCopy}
-          style={{
-            padding: '4px 12px',
-            fontSize: '11px',
-            background: 'var(--bg-primary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            color: 'var(--text-secondary)',
-          }}
-        >
-          Copy
-        </button>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          {onQuickCheck && (
+            <>
+              <button
+                onClick={onQuickCheck}
+                disabled={quickCheckRunning || !content}
+                title="Check for unanchored entity references (names not in cast or name bank)"
+                style={{
+                  padding: '4px 12px',
+                  fontSize: '11px',
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '4px',
+                  cursor: quickCheckRunning || !content ? 'not-allowed' : 'pointer',
+                  color: 'var(--text-secondary)',
+                  opacity: quickCheckRunning || !content ? 0.6 : 1,
+                }}
+              >
+                {quickCheckRunning ? 'Checking...' : 'Quick Check'}
+              </button>
+              {quickCheckReport && (
+                <span
+                  onClick={onShowQuickCheck}
+                  style={{
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    color: quickCheckReport.assessment === 'clean' ? '#22c55e'
+                      : quickCheckReport.assessment === 'minor' ? '#f59e0b' : '#ef4444',
+                  }}
+                  title={`Quick check: ${quickCheckReport.assessment} (${quickCheckReport.suspects.length} suspects)`}
+                >
+                  {quickCheckReport.assessment === 'clean'
+                    ? '\u2713'
+                    : `\u26A0 ${quickCheckReport.suspects.length}`}
+                </span>
+              )}
+            </>
+          )}
+          <button
+            onClick={onCopy}
+            style={{
+              padding: '4px 12px',
+              fontSize: '11px',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            Copy
+          </button>
+        </div>
       </div>
       <div
         style={{
@@ -126,6 +165,9 @@ export default function ContentTab({
   onSetActiveVersion,
   onDeleteVersion,
   isGenerating,
+  onQuickCheck,
+  quickCheckRunning,
+  onShowQuickCheck,
 }) {
   const content = isComplete
     ? item.finalContent
@@ -221,6 +263,10 @@ export default function ContentTab({
         onCopy={() => copyToClipboard(content)}
         compareContent={!isComplete ? compareToVersion?.content : undefined}
         compareLabel={!isComplete ? compareToVersion?.shortLabel : undefined}
+        onQuickCheck={onQuickCheck}
+        quickCheckRunning={quickCheckRunning}
+        quickCheckReport={item.quickCheckReport}
+        onShowQuickCheck={onShowQuickCheck}
       />
     </div>
   );

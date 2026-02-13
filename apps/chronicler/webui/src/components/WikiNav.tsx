@@ -7,7 +7,7 @@
  */
 
 import { useState } from 'react';
-import type { WikiPage, WikiCategory, PageIndexEntry } from '../types/world.ts';
+import type { WikiPage, WikiCategory } from '../types/world.ts';
 import WikiSearch from './WikiSearch.tsx';
 import styles from './WikiNav.module.css';
 
@@ -16,8 +16,6 @@ interface WikiNavProps {
   pages: WikiPage[];
   chronicles: WikiPage[];
   staticPages: WikiPage[];
-  confluxPages: PageIndexEntry[];
-  huddlePages: PageIndexEntry[];
   currentPageId: string | null;
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
@@ -36,8 +34,6 @@ export default function WikiNav({
   pages,
   chronicles,
   staticPages,
-  confluxPages,
-  huddlePages,
   currentPageId,
   searchQuery,
   onSearchQueryChange,
@@ -52,8 +48,6 @@ export default function WikiNav({
   const [loreExpanded, setLoreExpanded] = useState(false);
   const [expandedEras, setExpandedEras] = useState<Set<string>>(new Set());
   const [appendicesExpanded, setAppendicesExpanded] = useState(false);
-  const [confluxesExpanded, setConfluxesExpanded] = useState(false);
-  const [huddlesExpanded, setHuddlesExpanded] = useState(false);
 
   // Get top categories for quick access (entity kinds)
   const topCategories = categories
@@ -380,91 +374,6 @@ export default function WikiNav({
               <span className={currentPageId === 'all-categories' ? styles.badgeActive : styles.badge}>({categories.length})</span>
             </button>
 
-            {/* Confluxes - nested collapsible (always shown; data loads on navigation) */}
-            <button
-              className={styles.sectionTitleCollapsible}
-              onClick={() => setConfluxesExpanded(!confluxesExpanded)}
-              aria-expanded={confluxesExpanded}
-              style={{ paddingLeft: '8px' }}
-            >
-              <span className={styles.collapseIcon}>{confluxesExpanded ? '▼' : '▶'}</span>
-              Confluxes
-              {confluxPages.length > 0 && (
-                <span className={styles.badge}>({confluxPages.length})</span>
-              )}
-            </button>
-            {confluxesExpanded && (
-              <>
-                <button
-                  className={currentPageId === 'confluxes' ? styles.navItemActive : styles.navItem}
-                  onClick={() => onNavigate('confluxes')}
-                >
-                  All Confluxes
-                  {confluxPages.length > 0 && (
-                    <span className={currentPageId === 'confluxes' ? styles.badgeActive : styles.badge}>({confluxPages.length})</span>
-                  )}
-                </button>
-                {confluxPages
-                  .sort((a, b) => (a.conflux?.manifestations ?? 0) - (b.conflux?.manifestations ?? 0))
-                  .slice(0, 5)
-                  .map(page => {
-                    const isActive = currentPageId === page.id;
-                    return (
-                      <button
-                        key={page.id}
-                        className={isActive ? styles.navItemActive : styles.navItem}
-                        onClick={() => onNavigate(page.id)}
-                      >
-                        {page.title}
-                        <span className={isActive ? styles.badgeActive : styles.badge}>({page.conflux?.manifestations ?? 0})</span>
-                      </button>
-                    );
-                  })}
-              </>
-            )}
-
-            {/* Huddles - nested collapsible */}
-            {huddlePages.length > 0 && (
-              <>
-                <button
-                  className={styles.sectionTitleCollapsible}
-                  onClick={() => setHuddlesExpanded(!huddlesExpanded)}
-                  aria-expanded={huddlesExpanded}
-                  style={{ paddingLeft: '8px' }}
-                >
-                  <span className={styles.collapseIcon}>{huddlesExpanded ? '▼' : '▶'}</span>
-                  Huddles
-                  <span className={styles.badge}>({huddlePages.length})</span>
-                </button>
-                {huddlesExpanded && (
-                  <>
-                    <button
-                      className={currentPageId === 'huddles' ? styles.navItemActive : styles.navItem}
-                      onClick={() => onNavigate('huddles')}
-                    >
-                      All Huddles
-                      <span className={currentPageId === 'huddles' ? styles.badgeActive : styles.badge}>({huddlePages.length})</span>
-                    </button>
-                    {huddlePages
-                      .sort((a, b) => (b.huddleType?.largestSize ?? 0) - (a.huddleType?.largestSize ?? 0))
-                      .slice(0, 5)
-                      .map(page => {
-                        const isActive = currentPageId === page.id;
-                        return (
-                          <button
-                            key={page.id}
-                            className={isActive ? styles.navItemActive : styles.navItem}
-                            onClick={() => onNavigate(page.id)}
-                          >
-                            {page.title}
-                            <span className={isActive ? styles.badgeActive : styles.badge}>({page.huddleType?.largestSize ?? 0})</span>
-                          </button>
-                        );
-                      })}
-                  </>
-                )}
-              </>
-            )}
           </>
         )}
       </div>

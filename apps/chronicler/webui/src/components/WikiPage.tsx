@@ -12,7 +12,7 @@ import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import MDEditor from '@uiw/react-md-editor';
 import type { WikiPage, WikiSection, WikiSectionImage, WikiHistorianNote, HardState, DisambiguationEntry, ImageAspect } from '../types/world.ts';
 import { useImageUrl, useImageMetadata, useImageStore } from '@penguin-tales/image-store';
-import { useEntityNarrativeEvents, useNarrativeLoading } from '@penguin-tales/narrative-store';
+import { useEntityNarrativeEvents, useEntityNarrativeLoading } from '@penguin-tales/narrative-store';
 import { SeedModal, type ChronicleSeedData } from './ChronicleSeedViewer.tsx';
 import { applyWikiLinks } from '../lib/wikiBuilder.ts';
 import { resolveAnchorPhrase } from '../lib/fuzzyAnchor.ts';
@@ -883,8 +883,6 @@ function MarkdownSection({
     // Supports both [[EntityName]] (lookup by name) and [[EntityName|entityId]] (direct ID)
     return linkedContent.replace(/\[\[([^\]]+)\]\]/g, (match, linkContent) => {
       // Support [[EntityName|entityId]] format for ID-based linking
-      // This is used by conflux pages where entities may exist in narrativeHistory
-      // but not in hardState (entityNameMap is built from hardState)
       const pipeIndex = linkContent.lastIndexOf('|');
       let displayName: string;
       let pageId: string | undefined;
@@ -1102,8 +1100,9 @@ export default function WikiPageView({
   const isTablet = breakpoint === 'tablet';
   const showInfoboxInline = isMobile || isTablet;
   const isEntityPage = page.type === 'entity' || page.type === 'era';
-  const narrativeEvents = useEntityNarrativeEvents(isEntityPage ? page.id : null);
-  const narrativeLoading = useNarrativeLoading();
+  const entityIdForTimeline = isEntityPage ? page.id : null;
+  const narrativeEvents = useEntityNarrativeEvents(entityIdForTimeline);
+  const narrativeLoading = useEntityNarrativeLoading(entityIdForTimeline);
   const [showSeedModal, setShowSeedModal] = useState(false);
   const [activeImage, setActiveImage] = useState<{
     url: string;
@@ -1465,8 +1464,6 @@ export default function WikiPageView({
             ? 'Categories'
             : page.type === 'chronicle'
             ? 'Chronicles'
-            : page.type === 'conflux'
-            ? 'Confluxes'
             : page.type}
         </span>
         {' / '}
@@ -1506,9 +1503,7 @@ export default function WikiPageView({
                 ? (entityIndex.get(page.id)?.kind || page.type)
                 : page.type === 'static'
                   ? (page.title.includes(':') ? page.title.split(':')[0].toLowerCase() : 'page')
-                  : page.type === 'conflux'
-                    ? 'conflux'
-                    : page.type
+                  : page.type
             }.
             {' '}See also:
             {disambiguation
@@ -1684,7 +1679,7 @@ export default function WikiPageView({
           </div>
         )}
 
-        {isEntityPage && (narrativeLoading || narrativeEvents.length > 0) && (
+        {isEntityPage && (
           <div id="timeline" className={styles.section}>
             <button
               className={styles.sectionHeadingToggle}

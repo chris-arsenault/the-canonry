@@ -764,6 +764,30 @@ export interface ChronicleTemporalContext {
 }
 
 // =============================================================================
+// Quick Check - Unanchored entity reference detection
+// =============================================================================
+
+export interface QuickCheckSuspect {
+  /** The suspicious phrase found in the text */
+  phrase: string;
+  /** Brief surrounding context (sentence or clause) */
+  context: string;
+  /** LLM's reasoning for why this is suspicious */
+  reasoning: string;
+  /** Confidence: high = almost certainly unanchored, medium = ambiguous, low = might be fine */
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface QuickCheckReport {
+  /** List of suspicious references */
+  suspects: QuickCheckSuspect[];
+  /** Overall assessment: clean, minor, or flagged */
+  assessment: 'clean' | 'minor' | 'flagged';
+  /** Brief summary sentence */
+  summary: string;
+}
+
+// =============================================================================
 // Chronicle Record - Persisted chronicle data
 // =============================================================================
 
@@ -888,6 +912,10 @@ export interface ChronicleRecord {
   // Temporal alignment check report (user-triggered, checks focal era / temporal narrative vs text)
   temporalCheckReport?: string;
   temporalCheckReportGeneratedAt?: number;
+
+  // Quick check report (user-triggered, detects unanchored entity references)
+  quickCheckReport?: QuickCheckReport;
+  quickCheckReportGeneratedAt?: number;
 
   // Refinements
   summary?: string;

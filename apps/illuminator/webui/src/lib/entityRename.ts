@@ -848,6 +848,188 @@ export async function scanForReferences(
 }
 
 // ---------------------------------------------------------------------------
+// Grammar-aware replacement adjustment
+// ---------------------------------------------------------------------------
+
+/** Strip the leading "..." display prefix from contextBefore */
+function rawCtxBefore(ctx: string): string {
+  return ctx.startsWith('...') ? ctx.slice(3) : ctx;
+}
+
+/** Strip the trailing "..." display suffix from contextAfter */
+function rawCtxAfter(ctx: string): string {
+  return ctx.endsWith('...') ? ctx.slice(0, -3) : ctx;
+}
+
+/** Is this match at the start of a sentence? */
+function isAtSentenceStart(rawBefore: string): boolean {
+  if (rawBefore.length === 0) return true;
+  const trimmed = rawBefore.trimEnd();
+  if (trimmed.length === 0) return true;
+  const last = trimmed[trimmed.length - 1];
+  return '.!?:\n'.includes(last);
+}
+
+interface PrecedingArticle {
+  text: string;
+  normalized: 'the' | 'a' | 'an';
+  length: number;
+}
+
+/** Detect a preceding article (the/a/an) + trailing space at end of context. */
+function findPrecedingArticle(rawBefore: string): PrecedingArticle | null {
+  const m = rawBefore.match(/(the|an?)\s+$/i);
+  if (!m) return null;
+  const fullMatch = m[0]; // e.g. "the ", "The  ", "a ", "an "
+  const norm = m[1].toLowerCase() as 'the' | 'a' | 'an';
+  // Verify word boundary: char before the article must not be alphanumeric
+  const beforeArticle = rawBefore.slice(0, rawBefore.length - fullMatch.length);
+  if (beforeArticle.length > 0) {
+    const lastChar = beforeArticle[beforeArticle.length - 1];
+    if (/[a-zA-Z0-9]/.test(lastChar)) return null; // "bathe " — not an article
+  }
+  return { text: fullMatch, normalized: norm, length: fullMatch.length };
+}
+
+type CasePattern = 'allCaps' | 'allLower' | 'mixed';
+
+function detectCasePattern(text: string): CasePattern {
+  const letters = text.replace(/[^a-zA-Z]/g, '');
+  if (letters.length === 0) return 'mixed';
+  if (letters === letters.toUpperCase()) return 'allCaps';
+  if (letters === letters.toLowerCase()) return 'allLower';
+  return 'mixed';
+}
+
+// Common words starting with vowel letters but consonant sounds (yoo-, yew-)
+const CONSONANT_SOUND_VOWEL_PREFIXES = [
+  'uni', 'use', 'used', 'user', 'using', 'usual', 'usually',
+  'unique', 'union', 'unit', 'united', 'universal', 'university', 'euro',
+];
+// Common words starting with consonant letters but vowel sounds (silent h)
+const VOWEL_SOUND_CONSONANT_PREFIXES = ['hour', 'honest', 'honor', 'honour', 'heir', 'herb'];
+
+/** Heuristic: does text start with a vowel sound? */
+function startsWithVowelSound(text: string): boolean {
+  const trimmed = text.trimStart();
+  if (trimmed.length === 0) return false;
+  const firstWord = trimmed.split(/\s/)[0].toLowerCase();
+  for (const prefix of CONSONANT_SOUND_VOWEL_PREFIXES) {
+    if (firstWord.startsWith(prefix)) return false;
+  }
+  for (const prefix of VOWEL_SOUND_CONSONANT_PREFIXES) {
+    if (firstWord.startsWith(prefix)) return true;
+  }
+  return 'aeiou'.includes(firstWord[0]);
+}
+
+interface AdjustedReplacement {
+  position: number;
+  originalLength: number;
+  replacement: string;
+}
+
+/**
+ * Adjust a replacement for grammar given its surrounding context.
+ * Applies deterministic rules for article deduplication, case echo,
+ * mid-sentence lowercasing, a/an agreement, and possessive transfer.
+ */
+export function adjustReplacementForGrammar(
+  contextBefore: string,
+  contextAfter: string,
+  matchPosition: number,
+  matchedText: string,
+  replacement: string,
+): AdjustedReplacement {
+  let adjPosition = matchPosition;
+  let adjOriginalLength = matchedText.length;
+  let adjReplacement = replacement;
+
+  const rawBefore = rawCtxBefore(contextBefore);
+  const rawAfter = rawCtxAfter(contextAfter);
+  const sentenceStart = isAtSentenceStart(rawBefore);
+  const casePattern = detectCasePattern(matchedText);
+
+  // ── Rule 1: Case Echo ──
+  if (casePattern === 'allCaps') {
+    adjReplacement = adjReplacement.toUpperCase();
+  } else if (casePattern === 'allLower') {
+    adjReplacement = adjReplacement.toLowerCase();
+  }
+
+  // ── Rule 2: Article Deduplication ──
+  const replacementStartsWithThe = /^the\s/i.test(adjReplacement);
+  const precedingArticle = findPrecedingArticle(rawBefore);
+  let articleAbsorbed = false;
+
+  if (replacementStartsWithThe && precedingArticle) {
+    const thePrefix = adjReplacement.match(/^(the\s+)/i)![0];
+    const replacementWithoutThe = adjReplacement.slice(thePrefix.length);
+
+    if (precedingArticle.normalized === 'the') {
+      // "the Gore-Ruin" → "the End War" — keep preceding "the", strip from replacement
+      adjReplacement = replacementWithoutThe;
+    } else {
+      // "a Gore-Ruin" → "the End War" — absorb preceding article, replace with "the"
+      adjPosition = matchPosition - precedingArticle.length;
+      adjOriginalLength = matchedText.length + precedingArticle.length;
+      const wasCapitalized = /^[A-Z]/.test(precedingArticle.text);
+      adjReplacement = (wasCapitalized ? 'The ' : 'the ') + replacementWithoutThe;
+    }
+    articleAbsorbed = true;
+  }
+
+  // ── Rule 3: Mid-sentence article lowercasing ──
+  if (!sentenceStart && casePattern !== 'allCaps' && !articleAbsorbed) {
+    const articleMatch = adjReplacement.match(/^(The|A|An)\b/);
+    if (articleMatch) {
+      adjReplacement = articleMatch[1].toLowerCase() + adjReplacement.slice(articleMatch[1].length);
+    }
+  }
+
+  // ── Rule 4: A/an agreement ──
+  if (
+    precedingArticle && !replacementStartsWithThe && !articleAbsorbed &&
+    (precedingArticle.normalized === 'a' || precedingArticle.normalized === 'an')
+  ) {
+    const needsAn = startsWithVowelSound(adjReplacement);
+    const hasAn = precedingArticle.normalized === 'an';
+
+    if (needsAn !== hasAn) {
+      const correctArticle = needsAn ? 'an' : 'a';
+      const wasCapitalized = /^[A-Z]/.test(precedingArticle.text);
+      const casedArticle = wasCapitalized
+        ? correctArticle[0].toUpperCase() + correctArticle.slice(1)
+        : correctArticle;
+
+      adjPosition = matchPosition - precedingArticle.length;
+      adjOriginalLength = matchedText.length + precedingArticle.length;
+      adjReplacement = casedArticle + ' ' + adjReplacement;
+    }
+  }
+
+  // ── Rule 5: Possessive transfer ──
+  const possessiveMatch = rawAfter.match(/^(?:'\u0073|\u2019s|'(?=[^a-zA-Z]|$)|\u2019(?=[^a-zA-Z]|$))/);
+  if (possessiveMatch) {
+    const possessiveText = possessiveMatch[0];
+    const alreadyPossessive =
+      adjReplacement.endsWith("'s") || adjReplacement.endsWith('\u2019s') ||
+      adjReplacement.endsWith("'") || adjReplacement.endsWith('\u2019');
+
+    if (!alreadyPossessive) {
+      adjOriginalLength += possessiveText.length;
+      const lastChar = adjReplacement[adjReplacement.length - 1]?.toLowerCase() ?? '';
+      const useBareSuffix = lastChar === 's' || lastChar === 'x' || lastChar === 'z';
+      const apostrophe = possessiveText.includes('\u2019') ? '\u2019' : "'";
+
+      adjReplacement += useBareSuffix ? apostrophe : (apostrophe + 's');
+    }
+  }
+
+  return { position: adjPosition, originalLength: adjOriginalLength, replacement: adjReplacement };
+}
+
+// ---------------------------------------------------------------------------
 // Patch building
 // ---------------------------------------------------------------------------
 
@@ -931,11 +1113,18 @@ export function buildRenamePatches(
         chronicleMetaUpdates.set(match.sourceId, meta);
       }
     } else {
-      // Text field replacement — accumulate directly into per-type patch maps
+      // Text field replacement — apply grammar adjustment, then accumulate
+      const adjusted = adjustReplacementForGrammar(
+        match.contextBefore,
+        match.contextAfter,
+        match.position,
+        match.matchedText,
+        replacementText,
+      );
       const replacement: FieldReplacement = {
-        position: match.position,
-        originalLength: match.matchedText.length,
-        replacement: replacementText,
+        position: adjusted.position,
+        originalLength: adjusted.originalLength,
+        replacement: adjusted.replacement,
       };
 
       if (match.sourceType === 'entity') {

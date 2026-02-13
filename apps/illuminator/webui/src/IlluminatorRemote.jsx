@@ -29,6 +29,7 @@ import TraitPaletteSection from './components/TraitPaletteSection';
 import StyleLibraryEditor from './components/StyleLibraryEditor';
 import StaticPagesPanel from './components/StaticPagesPanel';
 import CoveragePanel from './components/CoveragePanel';
+import EntityCoveragePanel from './components/EntityCoveragePanel';
 import DynamicsGenerationModal from './components/DynamicsGenerationModal';
 import SummaryRevisionModal from './components/SummaryRevisionModal';
 import EntityRenameModal from './components/EntityRenameModal';
@@ -1518,10 +1519,10 @@ export default function IlluminatorRemote({
     setRenameModal({ entityId, mode: 'patch' });
   }, []);
 
-  const handleRenameApplied = useCallback(async ({ entityPatches, eventPatches, targetEntityId, newName }) => {
+  const handleRenameApplied = useCallback(async ({ entityPatches, eventPatches, targetEntityId, newName, addOldNameAsAlias }) => {
     try {
       // 1. Write entity patches to Dexie (source of truth)
-      const updatedIds = await entityRepo.applyRename(targetEntityId, newName, entityPatches, simulationRunId);
+      const updatedIds = await entityRepo.applyRename(targetEntityId, newName, entityPatches, simulationRunId, addOldNameAsAlias);
 
       // 2. Write narrative event patches to Dexie
       if (eventPatches.length > 0) {
@@ -2267,6 +2268,12 @@ export default function IlluminatorRemote({
               worldContext={worldContext}
               simulationRunId={simulationRunId}
               onWorldContextChange={updateWorldContext}
+            />
+            <EntityCoveragePanel
+              simulationRunId={simulationRunId}
+              entities={entities}
+              narrativeEvents={narrativeEvents}
+              relationships={relationships}
             />
           </div>
         )}
