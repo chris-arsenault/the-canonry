@@ -26,6 +26,39 @@ import {
 } from '@canonry/world-schema';
 // imageSettings imports removed - size/quality now in ImageSettingsDrawer
 
+// Highlight matching substring within text for search results
+function HighlightMatch({ text, query, truncate = 0, matchIndex }) {
+  if (!query || !text) return text;
+  const idx = matchIndex != null ? matchIndex : text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return truncate > 0 && text.length > truncate ? text.slice(0, truncate) + '\u2026' : text;
+
+  let displayText = text;
+  let displayIdx = idx;
+
+  // For long text (summaries), show a window around the match
+  if (truncate > 0 && text.length > truncate) {
+    const contextRadius = Math.floor(truncate / 2);
+    const winStart = Math.max(0, idx - contextRadius);
+    const winEnd = Math.min(text.length, idx + query.length + contextRadius);
+    displayText = (winStart > 0 ? '\u2026' : '') + text.slice(winStart, winEnd) + (winEnd < text.length ? '\u2026' : '');
+    displayIdx = idx - winStart + (winStart > 0 ? 1 : 0);
+  }
+
+  const before = displayText.slice(0, displayIdx);
+  const match = displayText.slice(displayIdx, displayIdx + query.length);
+  const after = displayText.slice(displayIdx + query.length);
+
+  return (
+    <>
+      {before}
+      <span style={{ background: 'rgba(245, 158, 11, 0.25)', color: 'var(--text-primary)', fontWeight: 600, borderRadius: '2px', padding: '0 1px' }}>
+        {match}
+      </span>
+      {after}
+    </>
+  );
+}
+
 // Thumbnail component that lazy-loads image when visible via IntersectionObserver
 function ImageThumbnail({ imageId, alt, onClick }) {
   const containerRef = useRef(null);
@@ -155,17 +188,22 @@ function EntityRow({
   entity,
   descStatus,
   imgStatus,
+  thesisStatus,
   selected,
   onToggleSelect,
   onQueueDesc,
+  onQueueThesis,
   onQueueImg,
   onCancelDesc,
+  onCancelThesis,
   onCancelImg,
   onAssignImage,
   canQueueImage,
   needsDescription,
   onImageClick,
   onEntityClick,
+  onEditEntity,
+  onDeleteEntity,
   descCost,
   imgCost,
   prominenceScale,
@@ -207,9 +245,31 @@ function EntityRow({
         >
           {entity.name}
         </div>
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-          {entity.kind}/{entity.subtype} · {prominenceLabelFromScale(entity.prominence, prominenceScale)}
-          {entity.culture && ` · ${entity.culture}`}
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span>
+            {entity.kind}/{entity.subtype} · {prominenceLabelFromScale(entity.prominence, prominenceScale)}
+            {entity.culture && ` · ${entity.culture}`}
+          </span>
+          {onEditEntity && entity.id.startsWith('manual_') && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEditEntity(entity); }}
+              className="illuminator-button illuminator-button-secondary"
+              style={{ padding: '2px 8px', fontSize: '10px' }}
+              title="Edit entity attributes"
+            >
+              Edit
+            </button>
+          )}
+          {onDeleteEntity && entity.id.startsWith('manual_') && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDeleteEntity(entity); }}
+              className="illuminator-button illuminator-button-secondary"
+              style={{ padding: '2px 8px', fontSize: '10px', color: '#ef4444' }}
+              title="Delete this manually-created entity"
+            >
+              Delete
+            </button>
+          )}
         </div>
 
         {/* Content row: description and image side by side */}
@@ -289,6 +349,41 @@ function EntityRow({
             </button>
           )}
         </div>
+
+        {/* Visual thesis status and action — only show when description exists */}
+        {descStatus === 'complete' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <EnrichmentStatusBadge status={thesisStatus} label="Thesis" />
+            {(thesisStatus === 'missing' || thesisStatus === 'complete') && (
+              <button
+                onClick={onQueueThesis}
+                className="illuminator-button illuminator-button-secondary"
+                style={{ padding: '4px 8px', fontSize: '11px' }}
+                title={thesisStatus === 'complete' ? 'Regenerate visual thesis & traits' : 'Generate visual thesis & traits'}
+              >
+                {thesisStatus === 'complete' ? 'Regen' : 'Queue'}
+              </button>
+            )}
+            {(thesisStatus === 'queued' || thesisStatus === 'running') && (
+              <button
+                onClick={onCancelThesis}
+                className="illuminator-button illuminator-button-secondary"
+                style={{ padding: '4px 8px', fontSize: '11px' }}
+              >
+                Cancel
+              </button>
+            )}
+            {thesisStatus === 'error' && (
+              <button
+                onClick={onQueueThesis}
+                className="illuminator-button illuminator-button-secondary"
+                style={{ padding: '4px 8px', fontSize: '11px' }}
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Image status and action */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -432,8 +527,15 @@ export default function EntityBrowser({
   onUpdateAliases,
   onUpdateDescription,
   onUpdateSummary,
+  onCreateEntity,
+  onEditEntity,
+  onDeleteEntity,
 }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchText, setSearchText] = useState(false);
+  const searchInputRef = useRef(null);
   const [filters, setFilters] = useState({
     kind: 'all',
     prominence: 'all',
@@ -470,6 +572,71 @@ export default function EntityBrowser({
     };
   }, [entities]);
 
+  // Entity search — partial match on name, aliases, and optionally summary/description
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q || q.length < 2) return [];
+    const results = [];
+    for (const entity of entities) {
+      const matches = [];
+      // Name match
+      const nameIdx = entity.name.toLowerCase().indexOf(q);
+      if (nameIdx !== -1) {
+        matches.push({ field: 'name', value: entity.name, matchIndex: nameIdx });
+      }
+      // Alias matches
+      const aliases = entity.enrichment?.text?.aliases || [];
+      for (const alias of aliases) {
+        if (typeof alias !== 'string') continue;
+        const aliasIdx = alias.toLowerCase().indexOf(q);
+        if (aliasIdx !== -1) {
+          matches.push({ field: 'alias', value: alias, matchIndex: aliasIdx });
+        }
+      }
+      // Slug alias matches
+      const slugAliases = entity.enrichment?.slugAliases || [];
+      for (const slug of slugAliases) {
+        if (typeof slug !== 'string') continue;
+        const slugIdx = slug.toLowerCase().indexOf(q);
+        if (slugIdx !== -1) {
+          matches.push({ field: 'slug alias', value: slug, matchIndex: slugIdx });
+        }
+      }
+      // Summary and description matches (only when searchText enabled)
+      if (searchText) {
+        if (entity.summary) {
+          const sumIdx = entity.summary.toLowerCase().indexOf(q);
+          if (sumIdx !== -1) {
+            matches.push({ field: 'summary', value: entity.summary, matchIndex: sumIdx });
+          }
+        }
+        if (entity.description) {
+          const descIdx = entity.description.toLowerCase().indexOf(q);
+          if (descIdx !== -1) {
+            matches.push({ field: 'description', value: entity.description, matchIndex: descIdx });
+          }
+        }
+      }
+      if (matches.length > 0) {
+        results.push({ entity, matches });
+      }
+    }
+    // Sort: name matches first, then by name alphabetically
+    results.sort((a, b) => {
+      const aHasName = a.matches.some(m => m.field === 'name') ? 0 : 1;
+      const bHasName = b.matches.some(m => m.field === 'name') ? 0 : 1;
+      if (aHasName !== bHasName) return aHasName - bHasName;
+      return a.entity.name.localeCompare(b.entity.name);
+    });
+    return results;
+  }, [entities, searchQuery, searchText]);
+
+  const handleSearchSelect = useCallback((entityId) => {
+    setSelectedEntityId(entityId);
+    setSearchOpen(false);
+    setSearchQuery('');
+  }, []);
+
   // Get enrichment status for an entity
   const getStatus = useCallback(
     (entity, type) => {
@@ -483,6 +650,7 @@ export default function EntityBrowser({
 
       // Check entity fields and enrichment
       if (type === 'description' && entity.summary && entity.description) return 'complete';
+      if (type === 'visualThesis' && entity.enrichment?.text?.visualThesis) return 'complete';
       if (type === 'image' && entity.enrichment?.image?.imageId) return 'complete';
 
       return 'missing';
@@ -572,9 +740,9 @@ export default function EntityBrowser({
   // Queue single item (with optional image overrides for image tasks)
   const queueItem = useCallback(
     (entity, type) => {
-      const prompt = buildPrompt(entity, type);
-      // For description tasks, pass visual config from template
-      const visualConfig = type === 'description' && getVisualConfig ? getVisualConfig(entity) : {};
+      const prompt = buildPrompt(entity, type === 'visualThesis' ? 'description' : type);
+      // For description and visualThesis tasks, pass visual config from template
+      const visualConfig = (type === 'description' || type === 'visualThesis') && getVisualConfig ? getVisualConfig(entity) : {};
       // For image tasks, apply current global size/quality
       const imageOverrides = type === 'image'
         ? { imageSize: imageGenSettings.imageSize, imageQuality: imageGenSettings.imageQuality }
@@ -915,6 +1083,119 @@ export default function EntityBrowser({
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {filteredEntities.length} of {entities.length} entities
           </span>
+          {onCreateEntity && (
+            <button
+              onClick={onCreateEntity}
+              className="illuminator-button illuminator-button-secondary"
+              style={{ padding: '4px 10px', fontSize: '11px', marginLeft: '8px' }}
+              title="Create a new entity manually"
+            >
+              + Add Entity
+            </button>
+          )}
+        </div>
+
+        {/* Entity search bar */}
+        <div style={{ position: 'relative', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (e.target.value.trim().length >= 2) setSearchOpen(true);
+              }}
+              onFocus={() => { if (searchQuery.trim().length >= 2) setSearchOpen(true); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(''); e.target.blur(); }
+                if (e.key === 'Enter' && searchResults.length > 0) handleSearchSelect(searchResults[0].entity.id);
+              }}
+              placeholder={searchText ? 'Search names, aliases, summaries, descriptions\u2026' : 'Search names, aliases\u2026'}
+              className="illuminator-select"
+              style={{
+                flex: 1,
+                padding: '6px 10px',
+              fontSize: '12px',
+              boxSizing: 'border-box',
+            }}
+            />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <input
+                type="checkbox"
+                checked={searchText}
+                onChange={(e) => setSearchText(e.target.checked)}
+              />
+              Include text
+            </label>
+          </div>
+          {searchOpen && searchQuery.trim().length >= 2 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                marginTop: '4px',
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                zIndex: 200,
+                maxHeight: '400px',
+                overflowY: 'auto',
+              }}
+            >
+              {searchResults.length === 0 ? (
+                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+                  No matches
+                </div>
+              ) : (
+                <>
+                  <div style={{ padding: '6px 12px', fontSize: '10px', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>
+                    {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
+                  </div>
+                  {searchResults.map(({ entity, matches }) => {
+                    const q = searchQuery.trim().toLowerCase();
+                    return (
+                      <div
+                        key={entity.id}
+                        onClick={() => handleSearchSelect(entity.id)}
+                        style={{
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                          <HighlightMatch text={entity.name} query={q} />
+                          <span style={{ marginLeft: '6px', fontSize: '10px', color: 'var(--text-muted)' }}>
+                            {entity.kind}{entity.subtype ? `/${entity.subtype}` : ''}
+                          </span>
+                        </div>
+                        {matches.filter(m => m.field !== 'name').map((m, i) => (
+                          <div key={i} style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>
+                            <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: '6px', color: 'var(--text-muted)', opacity: 0.7 }}>
+                              {m.field}
+                            </span>
+                            <HighlightMatch text={m.value} query={q} truncate={m.field === 'summary' || m.field === 'description' ? 120 : 0} matchIndex={m.matchIndex} />
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          )}
+          {searchOpen && (
+            <div
+              style={{ position: 'fixed', inset: 0, zIndex: 199 }}
+              onClick={() => { setSearchOpen(false); }}
+            />
+          )}
         </div>
 
         {/* Compact filters grid */}
@@ -1249,6 +1530,7 @@ export default function EntityBrowser({
               filteredEntities.map((entity) => {
                 const descStatus = getStatus(entity, 'description');
                 const imgStatus = getStatus(entity, 'image');
+                const thesisStatus = getStatus(entity, 'visualThesis');
                 const enrichment = entity.enrichment || {};
                 return (
                   <EntityRow
@@ -1256,11 +1538,14 @@ export default function EntityBrowser({
                     entity={entity}
                     descStatus={descStatus}
                     imgStatus={imgStatus}
+                    thesisStatus={thesisStatus}
                     selected={selectedIds.has(entity.id)}
                     onToggleSelect={() => toggleSelect(entity.id)}
                     onQueueDesc={() => queueItem(entity, 'description')}
+                    onQueueThesis={() => queueItem(entity, 'visualThesis')}
                     onQueueImg={() => queueItem(entity, 'image')}
                     onCancelDesc={() => cancelItem(entity, 'description')}
+                    onCancelThesis={() => cancelItem(entity, 'visualThesis')}
                     onCancelImg={() => cancelItem(entity, 'image')}
                     onAssignImage={() => openImagePicker(entity)}
                     canQueueImage={
@@ -1275,6 +1560,8 @@ export default function EntityBrowser({
                     }
                     onImageClick={openImageModal}
                     onEntityClick={() => openEntityModal(entity)}
+                    onEditEntity={onEditEntity}
+                    onDeleteEntity={onDeleteEntity}
                     descCost={getEntityCostDisplay(
                       entity,
                       'description',

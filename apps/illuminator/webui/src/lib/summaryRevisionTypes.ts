@@ -135,6 +135,10 @@ export interface RevisionEntityContext {
   }>;
   /** Existing chronicle backref anchor phrases that must be preserved in the description */
   existingAnchorPhrases?: string[];
+  /** Known aliases for this entity */
+  aliases?: string[];
+  /** Name as it appears in the chronicle text (tertiary cast matched by alias) */
+  chronicleName?: string;
   /** Per-kind description focus guidance (from entityGuidance config) */
   kindFocus?: string;
   /** True if this entity is the narrative lens (contextual frame, not a cast member) */

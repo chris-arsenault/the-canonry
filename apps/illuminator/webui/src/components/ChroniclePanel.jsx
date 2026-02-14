@@ -3,6 +3,12 @@
  *
  * Provides UI for generating long-form narrative content via single-shot LLM generation.
  * Includes wizard for entity/event selection and style configuration.
+ *
+ * PROP CHAIN: ChroniclePanel → ChronicleReviewPanel → ChronicleWorkspace
+ * When adding/changing props, all three files must be updated in concert:
+ *   - ChroniclePanel.jsx (this file) — creates callbacks, passes to ChronicleReviewPanel
+ *   - ChronicleReviewPanel.jsx — destructures and forwards to ChronicleWorkspace
+ *   - chronicle-workspace/ChronicleWorkspace.jsx — receives and distributes to tabs
  */
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
@@ -31,6 +37,7 @@ import {
   deriveTitleFromRoles,
   createChronicleShell,
   resetAllBackportFlags,
+  reconcileBackportStatusFromEntities,
   deleteChronicleVersion,
   applyImageRefSelections,
 } from '../lib/db/chronicleRepository';
@@ -147,9 +154,14 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
       syms.push({ symbol: '\u25A3', title: 'Cover image generated', color: '#10b981' });
     }
 
-    // Lore backported
-    if (item.loreBackported) {
-      syms.push({ symbol: '\u21C4', title: 'Lore backported to cast', color: 'var(--text-secondary)' });
+    // Lore backported (per-entity progress)
+    if (item.backportDone > 0) {
+      const allDone = item.backportDone === item.backportTotal;
+      syms.push({
+        symbol: '\u21C4',
+        title: `Backport: ${item.backportDone}/${item.backportTotal} entities`,
+        color: allDone ? '#10b981' : '#f59e0b',
+      });
     }
 
     // Historian notes
@@ -177,7 +189,7 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
     }
 
     return syms;
-  }, [item.focusType, item.primaryCount, item.perspectiveSynthesis, item.combineInstructions, item.coverImageComplete, item.loreBackported, item.historianNoteCount, item.lens, item.hasTemporalNarrative, item.hasTemporalCheck, item.hasHistorianPrep]);
+  }, [item.focusType, item.primaryCount, item.perspectiveSynthesis, item.combineInstructions, item.coverImageComplete, item.backportDone, item.backportTotal, item.historianNoteCount, item.lens, item.hasTemporalNarrative, item.hasTemporalCheck, item.hasHistorianPrep]);
 
   // Compact numeric badge: cast count + scene image count
   const castCount = (item.primaryCount || 0) + (item.supportingCount || 0);
@@ -368,6 +380,9 @@ export default function ChroniclePanel({
   // State for reset backport flags modal
   const [showResetBackportModal, setShowResetBackportModal] = useState(false);
   const [resetBackportResult, setResetBackportResult] = useState(null);
+
+  // State for reconcile backport status
+  const [reconcileBackportResult, setReconcileBackportResult] = useState(null);
 
   // State for era summary refresh
   const [eraSummaryRefreshResult, setEraSummaryRefreshResult] = useState(null);
@@ -1320,6 +1335,22 @@ export default function ChroniclePanel({
     setResetBackportResult(null);
   }, []);
 
+  // Reconcile backport status from actual entity backrefs
+  const handleReconcileBackports = useCallback(async () => {
+    if (!simulationRunId) return;
+    try {
+      // Fetch fresh entities from Dexie to get current backref state
+      const freshEntities = await getEntitiesForRun(simulationRunId);
+      const count = await reconcileBackportStatusFromEntities(simulationRunId, freshEntities);
+      setReconcileBackportResult({ success: true, count });
+      await refresh();
+      setTimeout(() => setReconcileBackportResult(null), 5000);
+    } catch (err) {
+      console.error('[Chronicle] Failed to reconcile backport status:', err);
+      setReconcileBackportResult({ success: false, error: String(err) });
+    }
+  }, [simulationRunId, refresh]);
+
   // Prepare wizard data
   const wizardEntities = useMemo(() => {
     if (!entities) return [];
@@ -2094,9 +2125,16 @@ export default function ChroniclePanel({
                 </button>
               )}
               <button
+                onClick={handleReconcileBackports}
+                className="illuminator-button"
+                title="Reconcile backport status from actual entity backrefs — fixes status to match reality"
+              >
+                Reconcile Backports
+              </button>
+              <button
                 onClick={handleOpenResetBackportModal}
                 className="illuminator-button"
-                title="Reset loreBackported flag on all chronicles (for re-running backport)"
+                title="Reset per-entity backport status on all chronicles (for re-running backport)"
               >
                 Reset Backports
               </button>
@@ -2365,6 +2403,8 @@ export default function ChroniclePanel({
                     : undefined}
                   isGenerating={isGenerating}
                   refinements={refinementState}
+                  simulationRunId={simulationRunId}
+                  worldSchema={{ entityKinds: worldData?.schema?.entityKinds || [], cultures: worldData?.schema?.cultures || [] }}
                   entities={entities}
                   styleLibrary={styleLibrary}
                   cultures={worldData?.schema?.cultures}
@@ -2479,7 +2519,7 @@ export default function ChroniclePanel({
               This will:
             </p>
             <ul style={{ margin: '0 0 16px 0', paddingLeft: '20px', color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.8 }}>
-              <li>Set <code style={{ background: 'var(--bg-tertiary)', padding: '2px 6px', borderRadius: '4px' }}>loreBackported = false</code> on all chronicles</li>
+              <li>Clear per-entity backport status on all chronicles</li>
               <li>Restore entity descriptions to their pre-backport state</li>
               <li>Clear chronicle backref links from entities</li>
             </ul>
@@ -2621,6 +2661,44 @@ export default function ChroniclePanel({
             {resetBackportResult.success
               ? `Reset ${resetBackportResult.chronicleCount} chronicle${resetBackportResult.chronicleCount !== 1 ? 's' : ''}, restored ${resetBackportResult.entityCount} entit${resetBackportResult.entityCount !== 1 ? 'ies' : 'y'}`
               : `Error: ${resetBackportResult.error}`}
+          </span>
+          <button
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '16px',
+            }}
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
+      {/* Reconcile Backport Result notification */}
+      {reconcileBackportResult && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            background: reconcileBackportResult.success ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)',
+            color: 'white',
+            padding: '16px 24px',
+            borderRadius: '8px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+            zIndex: 1001,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+          onClick={() => setReconcileBackportResult(null)}
+        >
+          <span>
+            {reconcileBackportResult.success
+              ? `Reconciled ${reconcileBackportResult.count} chronicle${reconcileBackportResult.count !== 1 ? 's' : ''} from entity backrefs`
+              : `Error: ${reconcileBackportResult.error}`}
           </span>
           <button
             style={{

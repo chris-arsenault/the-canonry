@@ -15,6 +15,7 @@ import {
   scanForReferences,
   buildRenamePatches,
   applyChroniclePatches,
+  adjustReplacementForGrammar,
   type RenameMatch,
   type MatchDecision,
   type RenameScanResult,
@@ -137,8 +138,47 @@ function MatchRow({
   onChangeAction: (action: DecisionAction) => void;
   onChangeEditText: (text: string) => void;
 }) {
-  const replacementText =
+  const rawReplacementText =
     decision.action === 'edit' ? decision.editText : newName;
+
+  // Compute grammar-adjusted replacement for preview (text matches only)
+  const preview = useMemo(() => {
+    if (decision.action === 'reject' || decision.action === 'edit' || match.matchType === 'metadata') {
+      return {
+        ctxBefore: match.contextBefore,
+        strikethrough: match.matchedText,
+        replacement: rawReplacementText,
+        ctxAfter: match.contextAfter,
+      };
+    }
+    const adjusted = adjustReplacementForGrammar(
+      match.contextBefore, match.contextAfter,
+      match.position, match.matchedText, rawReplacementText,
+    );
+
+    const absorbedBefore = match.position - adjusted.position;
+    const absorbedAfter = adjusted.originalLength - match.matchedText.length - absorbedBefore;
+
+    let ctxBefore = match.contextBefore;
+    let strikethrough = match.matchedText;
+    let ctxAfter = match.contextAfter;
+
+    if (absorbedBefore > 0) {
+      ctxBefore = match.contextBefore.slice(0, match.contextBefore.length - absorbedBefore);
+      strikethrough = match.contextBefore.slice(match.contextBefore.length - absorbedBefore) + strikethrough;
+    }
+    if (absorbedAfter > 0) {
+      strikethrough = strikethrough + match.contextAfter.slice(0, absorbedAfter);
+      ctxAfter = match.contextAfter.slice(absorbedAfter);
+    }
+
+    return {
+      ctxBefore,
+      strikethrough,
+      replacement: adjusted.replacement,
+      ctxAfter,
+    };
+  }, [match, rawReplacementText, decision.action]);
 
   return (
     <div
@@ -186,7 +226,7 @@ function MatchRow({
         )}
       </div>
 
-      {/* Context snippet with diff */}
+      {/* Context snippet with diff (grammar-adjusted) */}
       <div
         style={{
           fontSize: '11px',
@@ -198,7 +238,7 @@ function MatchRow({
         }}
       >
         <span style={{ color: 'var(--text-muted)' }}>
-          {match.contextBefore}
+          {preview.ctxBefore}
         </span>
         <span
           style={{
@@ -208,7 +248,7 @@ function MatchRow({
             borderRadius: '2px',
           }}
         >
-          {match.matchedText}
+          {preview.strikethrough}
         </span>
         {decision.action !== 'reject' && (
           <span
@@ -218,11 +258,11 @@ function MatchRow({
               borderRadius: '2px',
             }}
           >
-            {replacementText}
+            {preview.replacement}
           </span>
         )}
         <span style={{ color: 'var(--text-muted)' }}>
-          {match.contextAfter}
+          {preview.ctxAfter}
         </span>
       </div>
 

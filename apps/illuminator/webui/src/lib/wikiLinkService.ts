@@ -68,6 +68,25 @@ function isAsciiAlphaNumeric(char: string): boolean {
   );
 }
 
+function isApostrophe(char: string): boolean {
+  return char === "'" || char === '\u2019' || char === '\u2018';
+}
+
+/**
+ * Detect possessive 's at position i (apostrophe followed by 's' then
+ * a non-alphanumeric char or end of string). When true, the caller
+ * should skip both the apostrophe and the 's' so that e.g.
+ * "Micseleia's Dagger" normalizes to "micseleia-dagger" instead of
+ * "micseleia-s-dagger".
+ */
+function isPossessiveSuffix(text: string, i: number): boolean {
+  if (!isApostrophe(text[i])) return false;
+  if (i + 1 >= text.length) return false;
+  if (text[i + 1].toLowerCase() !== 's') return false;
+  if (i + 2 >= text.length) return true;
+  return !isAsciiAlphaNumeric(text[i + 2].toLowerCase());
+}
+
 function normalizeForMatch(text: string): NormalizedText {
   const normalizedChars: string[] = [];
   const indexMap: number[] = [];
@@ -79,6 +98,9 @@ function normalizeForMatch(text: string): NormalizedText {
       normalizedChars.push(lower);
       indexMap.push(i);
       prevSeparator = false;
+    } else if (isPossessiveSuffix(text, i)) {
+      // Skip apostrophe + 's' — don't emit a separator
+      i += 1;
     } else if (!prevSeparator) {
       normalizedChars.push('-');
       indexMap.push(i);
@@ -104,7 +126,7 @@ function normalizeSlug(text: string): string {
 
 function buildAutomaton(entities: WikiLinkEntity[]): Automaton {
   const slugToIds = new Map<string, string[]>();
-  const idToName = new Map(entities.map((entity) => [entity.id, entity.name]));
+  const slugToName = new Map<string, string>();
 
   for (const entity of entities) {
     const slug = normalizeSlug(entity.name);
@@ -115,21 +137,26 @@ function buildAutomaton(entities: WikiLinkEntity[]): Automaton {
     } else {
       slugToIds.set(slug, [entity.id]);
     }
+    // Keep the first name that produced this slug (real name comes before aliases)
+    if (!slugToName.has(slug)) {
+      slugToName.set(slug, entity.name);
+    }
   }
 
   const collisions: SlugCollision[] = [];
   const patterns: Pattern[] = [];
 
   for (const [slug, ids] of slugToIds.entries()) {
-    if (ids.length === 1) {
-      const entityId = ids[0];
+    const uniqueIds = [...new Set(ids)];
+    if (uniqueIds.length === 1) {
+      const entityId = uniqueIds[0];
       patterns.push({
         slug,
         entityId,
-        name: idToName.get(entityId) || slug,
+        name: slugToName.get(slug) || slug,
       });
     } else {
-      collisions.push({ slug, entityIds: ids });
+      collisions.push({ slug, entityIds: uniqueIds });
     }
   }
 
@@ -198,14 +225,20 @@ function isBoundaryMatch(normalized: string, start: number, end: number): boolea
   return beforeOk && afterOk;
 }
 
-function findFirstEntityMatches(
+/**
+ * Scan normalized text for all pattern matches. Returns one match per entity
+ * (earliest occurrence, preferring longer matches at the same position).
+ * No overlap filtering — callers that need non-overlapping results should
+ * use filterOverlaps().
+ */
+function scanEntityMatches(
   normalized: string,
   indexMap: number[],
   automaton: Automaton
-): WikiLinkMatch[] {
-  if (!normalized) return [];
-
+): Map<string, WikiLinkMatch> {
   const matchesByEntity = new Map<string, WikiLinkMatch>();
+  if (!normalized) return matchesByEntity;
+
   let state = 0;
 
   for (let i = 0; i < normalized.length; i += 1) {
@@ -247,7 +280,14 @@ function findFirstEntityMatches(
     }
   }
 
-  const matches = Array.from(matchesByEntity.values());
+  return matchesByEntity;
+}
+
+/**
+ * Filter matches to remove overlapping spans. Keeps earlier matches;
+ * later matches whose start falls within a kept match are dropped.
+ */
+function filterOverlaps(matches: WikiLinkMatch[]): WikiLinkMatch[] {
   matches.sort((a, b) => {
     if (a.start !== b.start) return a.start - b.start;
     return b.end - a.end;
@@ -264,6 +304,23 @@ function findFirstEntityMatches(
   return filtered;
 }
 
+/**
+ * Find entity mentions in text using Aho-Corasick matching.
+ * Returns one match per entity (first occurrence), no overlap filtering.
+ * Use this for detection (e.g. tertiary cast) where we need to know
+ * which entities are mentioned regardless of overlapping spans.
+ */
+export function findEntityMentions(
+  content: string,
+  entities: WikiLinkEntity[],
+): WikiLinkMatch[] {
+  if (!content || entities.length === 0) return [];
+  const automaton = getAutomaton(entities);
+  const { normalized, indexMap } = normalizeForMatch(content);
+  const matchesByEntity = scanEntityMatches(normalized, indexMap, automaton);
+  return Array.from(matchesByEntity.values());
+}
+
 export function applyWikiLinks(
   content: string,
   entities: WikiLinkEntity[]
@@ -274,7 +331,8 @@ export function applyWikiLinks(
 
   const automaton = getAutomaton(entities);
   const { normalized, indexMap } = normalizeForMatch(content);
-  const matches = findFirstEntityMatches(normalized, indexMap, automaton);
+  const matchesByEntity = scanEntityMatches(normalized, indexMap, automaton);
+  const matches = filterOverlaps(Array.from(matchesByEntity.values()));
 
   if (matches.length === 0) {
     return { content, links: [], collisions: automaton.collisions };

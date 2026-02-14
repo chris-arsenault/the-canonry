@@ -1,5 +1,60 @@
+import { useMemo } from 'react';
 import HistorianMarginNotes from '../HistorianMarginNotes';
 import HistorianToneSelector from '../HistorianToneSelector';
+import { computeBackportProgress } from '../../lib/chronicleTypes';
+
+function BackportLoreButton({ item, onBackportLore, isGenerating }) {
+  const { done, total } = useMemo(() => computeBackportProgress(item), [item.entityBackportStatus, item.roleAssignments, item.lens, item.tertiaryCast]);
+  const allDone = done > 0 && done === total;
+  const partial = done > 0 && done < total;
+
+  let label = 'Backport Lore to Cast';
+  let tooltip = 'Extract new lore from this chronicle and update cast member summaries/descriptions';
+  if (allDone) {
+    label = `Re-backport Lore (${done}/${total})`;
+    tooltip = 'Re-run lore backport for this chronicle';
+  } else if (partial) {
+    label = `Continue Backport (${done}/${total})`;
+    tooltip = `${total - done} entities remaining`;
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <button
+        onClick={onBackportLore}
+        disabled={isGenerating}
+        style={{
+          padding: '8px 16px',
+          fontSize: '12px',
+          background: 'var(--bg-tertiary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '6px',
+          cursor: isGenerating ? 'not-allowed' : 'pointer',
+          color: 'var(--text-secondary)',
+          opacity: isGenerating ? 0.6 : 1,
+        }}
+        title={tooltip}
+      >
+        {label}
+      </button>
+      {done > 0 && (
+        <span
+          style={{
+            fontSize: '11px',
+            color: allDone ? '#10b981' : '#f59e0b',
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+          title={`${done}/${total} entities backported`}
+        >
+          &#x21C4; {done}/{total}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function HistorianTab({
   item,
@@ -128,42 +183,7 @@ export default function HistorianTab({
           }}
         >
           <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>Lore Integration</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button
-              onClick={onBackportLore}
-              disabled={isGenerating}
-              style={{
-                padding: '8px 16px',
-                fontSize: '12px',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '6px',
-                cursor: isGenerating ? 'not-allowed' : 'pointer',
-                color: 'var(--text-secondary)',
-                opacity: isGenerating ? 0.6 : 1,
-              }}
-              title={item.loreBackported
-                ? "Re-run lore backport for this chronicle"
-                : "Extract new lore from this chronicle and update cast member summaries/descriptions"}
-            >
-              {item.loreBackported ? 'Re-backport Lore' : 'Backport Lore to Cast'}
-            </button>
-            {item.loreBackported && (
-              <span
-                style={{
-                  fontSize: '11px',
-                  color: '#10b981',
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-                title="Lore from this chronicle has been backported to cast"
-              >
-                &#x21C4; Backported
-              </span>
-            )}
-          </div>
+          <BackportLoreButton item={item} onBackportLore={onBackportLore} isGenerating={isGenerating} />
         </div>
       )}
 

@@ -1,6 +1,12 @@
+/**
+ * PROP CHAIN: ChroniclePanel → ChronicleReviewPanel → ChronicleWorkspace (this file)
+ * Props originate in ChroniclePanel and pass through ChronicleReviewPanel.
+ * When adding props, update all three files.
+ */
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import ImageModal from '../ImageModal';
 import QuickCheckModal from '../QuickCheckModal';
+import ChronicleFindReplaceModal from '../ChronicleFindReplaceModal';
 import WorkspaceHeader from './WorkspaceHeader';
 import WorkspaceTabBar from './WorkspaceTabBar';
 import PipelineTab from './PipelineTab';
@@ -10,6 +16,10 @@ import ReferenceTab from './ReferenceTab';
 import ContentTab from './ContentTab';
 import HistorianTab from './HistorianTab';
 import EnrichmentTab from './EnrichmentTab';
+import { findEntityMentions } from '../../lib/wikiLinkService';
+import { useChronicleStore } from '../../lib/db/chronicleStore';
+import { getEntitiesForRun, createEntity } from '../../lib/db/entityRepository';
+import CreateEntityModal from '../CreateEntityModal';
 
 const wordCount = (content) => content?.split(/\s+/).filter(Boolean).length || 0;
 
@@ -83,6 +93,8 @@ export default function ChronicleWorkspace({
   refinements,
 
   // Data
+  simulationRunId,
+  worldSchema,
   entities,
   styleLibrary,
   cultures,
@@ -204,6 +216,78 @@ export default function ChronicleWorkspace({
   const quickCheckRunning = refinements?.quickCheck?.running || false;
 
   // ---------------------------------------------------------------------------
+  // Tertiary cast — manual detect + persisted on ChronicleRecord
+  // ---------------------------------------------------------------------------
+  const detectTertiaryCast = useCallback(async () => {
+    if (!simulationRunId) return;
+    const content = isComplete
+      ? item.finalContent
+      : (selectedVersion?.content || item.assembledContent);
+    if (!content) return;
+
+    // Read fresh entities from Dexie so newly added/edited entities are included
+    const freshEntities = await getEntitiesForRun(simulationRunId);
+    const freshEntityMap = new Map(freshEntities.map((e) => [e.id, e]));
+
+    // Build name/alias dictionary for Aho-Corasick (exclude eras — too generic)
+    const wikiEntities = [];
+    for (const entity of freshEntities) {
+      if (entity.kind === 'era') continue;
+      wikiEntities.push({ id: entity.id, name: entity.name });
+      const aliases = entity.enrichment?.text?.aliases;
+      if (Array.isArray(aliases)) {
+        for (const alias of aliases) {
+          if (typeof alias === 'string' && alias.length >= 3) {
+            wikiEntities.push({ id: entity.id, name: alias });
+          }
+        }
+      }
+    }
+
+    const mentions = findEntityMentions(content, wikiEntities);
+
+    const declaredIds = new Set(item.selectedEntityIds || []);
+
+    // Preserve existing accepted/rejected decisions for entities still detected
+    const prevDecisions = new Map(
+      (item.tertiaryCast || []).map(e => [e.entityId, e.accepted])
+    );
+
+    const seen = new Set();
+    const entries = [];
+    for (const m of mentions) {
+      if (declaredIds.has(m.entityId) || seen.has(m.entityId)) continue;
+      seen.add(m.entityId);
+      const entity = freshEntityMap.get(m.entityId);
+      if (entity) {
+        entries.push({
+          entityId: entity.id,
+          name: entity.name,
+          kind: entity.kind,
+          matchedAs: content.slice(m.start, m.end),
+          matchStart: m.start,
+          matchEnd: m.end,
+          accepted: prevDecisions.get(entity.id) ?? true,
+        });
+      }
+    }
+
+    const { updateChronicleTertiaryCast } = await import('../../lib/db/chronicleRepository');
+    await updateChronicleTertiaryCast(item.chronicleId, entries);
+    await useChronicleStore.getState().refreshChronicle(item.chronicleId);
+  }, [simulationRunId, isComplete, item.finalContent, item.assembledContent, item.selectedEntityIds, item.chronicleId, item.tertiaryCast, selectedVersion]);
+
+  const toggleTertiaryCast = useCallback(async (entityId) => {
+    const current = item.tertiaryCast || [];
+    const updated = current.map(e =>
+      e.entityId === entityId ? { ...e, accepted: !e.accepted } : e
+    );
+    const { updateChronicleTertiaryCast } = await import('../../lib/db/chronicleRepository');
+    await updateChronicleTertiaryCast(item.chronicleId, updated);
+    await useChronicleStore.getState().refreshChronicle(item.chronicleId);
+  }, [item.chronicleId, item.tertiaryCast]);
+
+  // ---------------------------------------------------------------------------
   // Seed data
   // ---------------------------------------------------------------------------
   const seedData = useMemo(() => ({
@@ -251,10 +335,30 @@ export default function ChronicleWorkspace({
   // Image modal
   // ---------------------------------------------------------------------------
   const [showQuickCheckModal, setShowQuickCheckModal] = useState(false);
+  const [showFindReplaceModal, setShowFindReplaceModal] = useState(false);
+  const [createEntityDefaults, setCreateEntityDefaults] = useState(null);
   const [imageModal, setImageModal] = useState({ open: false, imageId: '', title: '' });
   const handleImageClick = useCallback((imageId, title) => {
     setImageModal({ open: true, imageId, title });
   }, []);
+
+  // Quick Check → Create Entity flow
+  const openCreateFromQuickCheck = useCallback((phrase) => {
+    setCreateEntityDefaults({
+      name: phrase,
+      kind: 'npc',
+      subtype: 'merchant',
+      eraId: item.temporalContext?.focalEra?.id,
+      startTick: item.temporalContext?.chronicleTickRange?.[0],
+      endTick: item.temporalContext?.chronicleTickRange?.[1],
+    });
+  }, [item.temporalContext]);
+
+  const handleCreateEntityFromQuickCheck = useCallback(async (entityData) => {
+    if (!simulationRunId) return;
+    await createEntity(simulationRunId, entityData);
+    setCreateEntityDefaults(null);
+  }, [simulationRunId]);
 
   // ---------------------------------------------------------------------------
   // Tab state
@@ -487,6 +591,9 @@ export default function ChronicleWorkspace({
             onQuickCheck={onQuickCheck}
             quickCheckRunning={quickCheckRunning}
             onShowQuickCheck={() => setShowQuickCheckModal(true)}
+            onFindReplace={isComplete ? () => setShowFindReplaceModal(true) : undefined}
+            onDetectTertiaryCast={detectTertiaryCast}
+            onToggleTertiaryCast={toggleTertiaryCast}
           />
         )}
 
@@ -524,7 +631,27 @@ export default function ChronicleWorkspace({
       {showQuickCheckModal && item.quickCheckReport && (
         <QuickCheckModal
           report={item.quickCheckReport}
+          entities={entities}
+          onCreateEntity={worldSchema ? openCreateFromQuickCheck : undefined}
           onClose={() => setShowQuickCheckModal(false)}
+        />
+      )}
+
+      {createEntityDefaults && worldSchema && (
+        <CreateEntityModal
+          worldSchema={worldSchema}
+          eras={eras}
+          defaults={createEntityDefaults}
+          onSubmit={handleCreateEntityFromQuickCheck}
+          onClose={() => setCreateEntityDefaults(null)}
+        />
+      )}
+
+      {showFindReplaceModal && (
+        <ChronicleFindReplaceModal
+          chronicleId={item.chronicleId}
+          onClose={() => setShowFindReplaceModal(false)}
+          onApplied={() => useChronicleStore.getState().refreshChronicle(item.chronicleId)}
         />
       )}
 

@@ -258,9 +258,16 @@ function buildUserPrompt(
 
   function formatEntityBlock(e: RevisionEntityContext): string {
     const parts: string[] = [];
+    const displayName = e.chronicleName || e.name;
     const lensTag = e.isLens ? ' [NARRATIVE LENS]' : '';
     const primaryTag = e.isPrimary ? ' [PRIMARY]' : '';
-    parts.push(`### ${e.name} (${e.kind}${e.subtype ? ` / ${e.subtype}` : ''})${lensTag}${primaryTag}`);
+    parts.push(`### ${displayName} (${e.kind}${e.subtype ? ` / ${e.subtype}` : ''})${lensTag}${primaryTag}`);
+    if (e.chronicleName && e.chronicleName !== e.name) {
+      parts.push(`Canonical name: ${e.name}`);
+    }
+    if (e.aliases?.length) {
+      parts.push(`Also known as: ${e.aliases.join(', ')}`);
+    }
     parts.push(`ID: ${e.id}`);
     const chronicleRole = e.isPrimary ? 'primary' : 'supporting';
     parts.push(`Prominence: ${resolveProminenceLabel(e.prominence, prominenceScale)} | Chronicle Role: ${chronicleRole} | Culture: ${e.culture} | Status: ${e.status}`);

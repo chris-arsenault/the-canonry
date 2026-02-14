@@ -1849,6 +1849,13 @@ function buildQuickCheckUserPrompt(
     sections.push(`== KNOWN ENTITIES (cast) ==\n${castLines.join('\n')}`);
   }
 
+  // Tertiary cast — entities detected in text but not in the declared cast
+  const acceptedTertiary = (chronicleRecord.tertiaryCast || []).filter(e => e.accepted);
+  if (acceptedTertiary.length > 0) {
+    const tertiaryLines = acceptedTertiary.map(e => `- ${e.name} (${e.kind})`);
+    sections.push(`== TERTIARY CAST (detected mentions, not in declared cast — treat as known) ==\n${tertiaryLines.join('\n')}`);
+  }
+
   // Name bank
   const nameBank = chronicleRecord.generationContext?.nameBank;
   if (nameBank && Object.keys(nameBank).length > 0) {

@@ -1,6 +1,7 @@
 import type { ChronicleRecord } from './chronicleRepository';
 import { isNoteActive } from '../historianTypes';
 import { deriveStatus } from '../../hooks/useChronicleGeneration';
+import { computeBackportProgress } from '../chronicleTypes';
 
 export interface ChronicleNavItem {
   id: string;
@@ -17,7 +18,8 @@ export interface ChronicleNavItem {
   perspectiveSynthesis: boolean;
   combineInstructions: boolean;
   coverImageComplete: boolean;
-  loreBackported: boolean;
+  backportDone: number;
+  backportTotal: number;
   historianNoteCount: number;
   lens?: { entityName: string };
   imageRefCompleteCount: number;
@@ -51,6 +53,8 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
       : '') ||
     'Untitled Chronicle';
 
+  const backportProgress = computeBackportProgress(record);
+
   return {
     id: record.chronicleId,
     chronicleId: record.chronicleId,
@@ -66,7 +70,8 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
     perspectiveSynthesis: !!record.perspectiveSynthesis,
     combineInstructions: !!record.combineInstructions,
     coverImageComplete: record.coverImage?.status === 'complete',
-    loreBackported: !!record.loreBackported,
+    backportDone: backportProgress.done,
+    backportTotal: backportProgress.total,
     historianNoteCount,
     lens: record.lens ? { entityName: record.lens.entityName } : undefined,
     imageRefCompleteCount:

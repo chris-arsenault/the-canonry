@@ -9,7 +9,7 @@ import type { WorldEntity } from '@canonry/world-schema';
 import { db, type PersistedEntity } from './illuminatorDb';
 import type { EntityPatch } from '../entityRename';
 import { applyReplacements, type FieldReplacement } from '../entityRename';
-import type { EntityEnrichment } from '../enrichmentTypes';
+import type { EntityEnrichment, DescriptionChainDebug } from '../enrichmentTypes';
 import { resolveAnchorPhrase, extractWordsAroundIndex } from '../fuzzyAnchor';
 
 // ---------------------------------------------------------------------------
@@ -40,6 +40,41 @@ export async function seedEntities(
     simulationRunId,
   }));
   await db.entities.bulkPut(records);
+}
+
+// ---------------------------------------------------------------------------
+// Manual Creation
+// ---------------------------------------------------------------------------
+
+/**
+ * Create a single entity manually. Generates a collision-safe ID
+ * with a `manual_` prefix.
+ */
+export async function createEntity(
+  simulationRunId: string,
+  entity: Omit<WorldEntity, 'id' | 'createdAt' | 'updatedAt'>,
+): Promise<PersistedEntity> {
+  if (!simulationRunId) {
+    throw new Error('simulationRunId is required to create an entity');
+  }
+  const now = Date.now();
+  const id = `manual_${entity.kind}_${now}_${Math.random().toString(36).slice(2, 8)}`;
+  const record: PersistedEntity = {
+    ...entity,
+    id,
+    createdAt: now,
+    updatedAt: now,
+    simulationRunId,
+  };
+  await db.entities.put(record);
+  return record;
+}
+
+export async function deleteEntity(entityId: string): Promise<void> {
+  if (!entityId.startsWith('manual_')) {
+    throw new Error('Only manually-created entities can be deleted');
+  }
+  await db.entities.delete(entityId);
 }
 
 /**
@@ -280,6 +315,48 @@ export async function applyDescriptionResult(
 }
 
 /**
+ * Apply a visual thesis result — updates only visual fields on enrichment.text,
+ * preserving existing aliases, description, and summary.
+ */
+export async function applyVisualThesisResult(
+  entityId: string,
+  visualThesis: string,
+  visualTraits: string[],
+  meta: {
+    generatedAt: number;
+    model: string;
+    estimatedCost?: number;
+    actualCost?: number;
+    inputTokens?: number;
+    outputTokens?: number;
+    chainDebug?: DescriptionChainDebug;
+  },
+): Promise<void> {
+  await db.transaction('rw', db.entities, async () => {
+    const entity = await db.entities.get(entityId);
+    if (!entity) return;
+    const existingText = entity.enrichment?.text;
+    await db.entities.update(entityId, {
+      enrichment: {
+        ...entity.enrichment,
+        text: {
+          aliases: existingText?.aliases || [],
+          visualThesis,
+          visualTraits,
+          generatedAt: meta.generatedAt,
+          model: meta.model,
+          estimatedCost: meta.estimatedCost,
+          actualCost: meta.actualCost,
+          inputTokens: meta.inputTokens,
+          outputTokens: meta.outputTokens,
+          chainDebug: meta.chainDebug,
+        },
+      },
+    });
+  });
+}
+
+/**
  * Apply an image enrichment result from the worker.
  */
 export async function applyImageResult(
@@ -437,8 +514,7 @@ export async function updateAliases(
   await db.transaction('rw', db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
-    const text = entity.enrichment?.text;
-    if (!text) return;
+    const text = entity.enrichment?.text || { aliases: [], visualTraits: [], generatedAt: 0, model: '' };
     await db.entities.update(entityId, {
       enrichment: { ...entity.enrichment, text: { ...text, aliases } },
     });

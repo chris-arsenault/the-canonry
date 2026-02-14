@@ -2,6 +2,7 @@ import type { WorkerTask } from '../../lib/enrichmentTypes';
 import type { TaskHandlerMap, TaskContext } from './taskTypes';
 import type { TaskResult } from '../types';
 import { descriptionTask } from './descriptionTask';
+import { visualThesisTask } from './visualThesisTask';
 import { imageTask } from './imageTask';
 import { chronicleTask } from './chronicleTask';
 import { paletteExpansionTask } from './paletteExpansionTask';
@@ -16,6 +17,7 @@ import { eraNarrativeTask } from './eraNarrativeTask';
 
 export const TASK_HANDLERS = {
   description: descriptionTask,
+  visualThesis: visualThesisTask,
   image: imageTask,
   entityChronicle: chronicleTask,
   paletteExpansion: paletteExpansionTask,
@@ -39,6 +41,7 @@ export async function executeTask<TType extends WorkerTask['type']>(
 
 export {
   descriptionTask,
+  visualThesisTask,
   imageTask,
   chronicleTask,
   paletteExpansionTask,

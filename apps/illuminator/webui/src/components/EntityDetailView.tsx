@@ -819,7 +819,7 @@ export default function EntityDetailView({
           {/* Aliases */}
           <AliasesList
             aliases={textEnrichment?.aliases || []}
-            onUpdate={onUpdateAliases && textEnrichment ? (aliases) => onUpdateAliases(entity.id, aliases) : undefined}
+            onUpdate={onUpdateAliases ? (aliases) => onUpdateAliases(entity.id, aliases) : undefined}
           />
 
           {/* Chronicle Images */}

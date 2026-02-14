@@ -54,7 +54,17 @@ async function persistResult(task: WorkerTask, result?: EnrichmentResult): Promi
   if (!result || !task.entityId) return;
 
   try {
-    if (task.type === 'description' && result.description) {
+    if (task.type === 'visualThesis' && result.visualThesis) {
+      await entityRepo.applyVisualThesisResult(task.entityId, result.visualThesis, result.visualTraits || [], {
+        generatedAt: result.generatedAt,
+        model: result.model,
+        estimatedCost: result.estimatedCost,
+        actualCost: result.actualCost,
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+        chainDebug: result.chainDebug,
+      });
+    } else if (task.type === 'description' && result.description) {
       await entityRepo.applyDescriptionResult(task.entityId, {
         text: {
           aliases: result.aliases || [],

@@ -1113,14 +1113,18 @@ export function buildRenamePatches(
         chronicleMetaUpdates.set(match.sourceId, meta);
       }
     } else {
-      // Text field replacement — apply grammar adjustment, then accumulate
-      const adjusted = adjustReplacementForGrammar(
-        match.contextBefore,
-        match.contextAfter,
-        match.position,
-        match.matchedText,
-        replacementText,
-      );
+      // Text field replacement — apply grammar adjustment for accepts only
+      // Edit mode uses the user's exact text (preserves intentional casing)
+      const isEdit = decision.action === 'edit';
+      const adjusted = isEdit
+        ? { position: match.position, originalLength: match.matchedText.length, replacement: replacementText }
+        : adjustReplacementForGrammar(
+            match.contextBefore,
+            match.contextAfter,
+            match.position,
+            match.matchedText,
+            replacementText,
+          );
       const replacement: FieldReplacement = {
         position: adjusted.position,
         originalLength: adjusted.originalLength,

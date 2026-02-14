@@ -33,6 +33,7 @@ import EntityCoveragePanel from './components/EntityCoveragePanel';
 import DynamicsGenerationModal from './components/DynamicsGenerationModal';
 import SummaryRevisionModal from './components/SummaryRevisionModal';
 import EntityRenameModal from './components/EntityRenameModal';
+import CreateEntityModal from './components/CreateEntityModal';
 import RevisionFilterModal from './components/RevisionFilterModal';
 import BackportConfigModal from './components/BackportConfigModal';
 import { useEnrichmentQueue } from './hooks/useEnrichmentQueue';
@@ -47,7 +48,8 @@ import HistorianConfigEditor from './components/HistorianConfigEditor';
 import PrePrintPanel from './components/PrePrintPanel';
 import { DEFAULT_HISTORIAN_CONFIG, isHistorianConfigured, isNoteActive } from './lib/historianTypes';
 import { getPublishedStaticPagesForProject } from './lib/db/staticPageRepository';
-import { getEntityUsageStats, getChronicle, getChroniclesForSimulation, updateChronicleLoreBackported, updateChronicleHistorianNotes, refreshEraSummariesInChronicles } from './lib/db/chronicleRepository';
+import { getEntityUsageStats, getChronicle, getChroniclesForSimulation, updateChronicleEntityBackportStatus, updateChronicleHistorianNotes, refreshEraSummariesInChronicles } from './lib/db/chronicleRepository';
+import { computeBackportProgress } from './lib/chronicleTypes';
 import { useChronicleStore } from './lib/db/chronicleStore';
 import { useStyleLibrary } from './hooks/useStyleLibrary';
 import { useImageGenSettings } from './hooks/useImageGenSettings';
@@ -254,6 +256,8 @@ export default function IlluminatorRemote({
   const [chronicleRefreshTrigger, setChronicleRefreshTrigger] = useState(0);
   // renameModal: { entityId, mode: 'rename' | 'patch' } | null
   const [renameModal, setRenameModal] = useState(null);
+  const [createEntityModal, setCreateEntityModal] = useState(false);
+  const [editEntityModal, setEditEntityModal] = useState(null); // WorldEntity | null
 
   // Persist API keys when enabled
   useEffect(() => {
@@ -750,6 +754,17 @@ export default function IlluminatorRemote({
       await entityRepo.applyImageResult(entityId, output.enrichment.image);
     } else if (output.enrichment?.entityChronicle) {
       await entityRepo.applyEntityChronicleResult(entityId, output.enrichment.entityChronicle);
+    } else if (output.enrichment?.text && !output.description) {
+      // Visual thesis only — no description change
+      await entityRepo.applyVisualThesisResult(entityId, output.enrichment.text.visualThesis, output.enrichment.text.visualTraits || [], {
+        generatedAt: output.enrichment.text.generatedAt,
+        model: output.enrichment.text.model,
+        estimatedCost: output.enrichment.text.estimatedCost,
+        actualCost: output.enrichment.text.actualCost,
+        inputTokens: output.enrichment.text.inputTokens,
+        outputTokens: output.enrichment.text.outputTokens,
+        chainDebug: output.enrichment.text.chainDebug,
+      });
     } else {
       await entityRepo.applyDescriptionResult(
         entityId, output.enrichment, output.summary, output.description,
@@ -1201,6 +1216,7 @@ export default function IlluminatorRemote({
         description: entity.description || '',
         visualThesis: entity.enrichment?.text?.visualThesis || '',
         relationships: rels,
+        aliases: (entity.enrichment?.text?.aliases || []).filter(a => typeof a === 'string' && a.length >= 3),
         ...(existingAnchorPhrases.length > 0 ? { existingAnchorPhrases } : {}),
         ...(kindFocus ? { kindFocus } : {}),
       };
@@ -1349,6 +1365,7 @@ export default function IlluminatorRemote({
 
   // Backport config modal state
   const [backportConfig, setBackportConfig] = useState(null);
+  const backportSentEntityIdsRef = useRef(null); // Track entity IDs sent in most recent backport
 
   const handleBackportLore = useCallback(async (chronicleId) => {
     if (!projectId || !simulationRunId || !chronicleId) return;
@@ -1382,6 +1399,28 @@ export default function IlluminatorRemote({
       }
     }
 
+    // Include accepted tertiary cast from persisted detection on chronicle record
+    const allContexts = [...castContexts];
+    const acceptedTertiary = (chronicle.tertiaryCast || []).filter(e => e.accepted);
+    if (acceptedTertiary.length > 0) {
+      const existingIds = new Set(allContexts.map(c => c.id));
+      const tertiaryFiltered = acceptedTertiary.filter(e => !existingIds.has(e.entityId));
+      const tertiaryIds = tertiaryFiltered.map(e => e.entityId);
+      if (tertiaryIds.length > 0) {
+        const tertiaryContexts = getEntityContextsForRevision(tertiaryIds);
+        const tertiaryByEntityId = new Map(tertiaryFiltered.map(t => [t.entityId, t]));
+        for (const ctx of tertiaryContexts) {
+          const entry = tertiaryByEntityId.get(ctx.id);
+          const matchedAs = entry?.matchedAs;
+          allContexts.push({
+            ...ctx,
+            isTertiary: true,
+            ...(matchedAs && matchedAs !== ctx.name ? { chronicleName: matchedAs } : {}),
+          });
+        }
+      }
+    }
+
     // Extract perspective synthesis output
     let perspectiveSynthesisJson = '';
     const ps = chronicle.perspectiveSynthesis;
@@ -1397,21 +1436,41 @@ export default function IlluminatorRemote({
       });
     }
 
+    // Build per-entity backport status from chronicle tracking + entity backrefs
+    const perEntityStatus = {};
+    const chronicleBackportMap = chronicle.entityBackportStatus || {};
+    for (const ctx of allContexts) {
+      if (chronicleBackportMap[ctx.id]) {
+        perEntityStatus[ctx.id] = chronicleBackportMap[ctx.id].status;
+        continue;
+      }
+      const entity = entityById.get(ctx.id);
+      const hasBackref = (entity?.enrichment?.chronicleBackrefs || [])
+        .some(br => br.chronicleId === chronicleId);
+      if (hasBackref) {
+        perEntityStatus[ctx.id] = 'backported';
+      }
+    }
+
     // Open config modal instead of starting immediately
     setBackportConfig({
       chronicleId,
       chronicleTitle: chronicle.title || 'Untitled Chronicle',
-      entities: castContexts,
+      entities: allContexts,
       chronicleText: chronicle.finalContent,
       perspectiveSynthesisJson,
+      perEntityStatus,
     });
-  }, [projectId, simulationRunId, getEntityContextsForRevision]);
+  }, [projectId, simulationRunId, getEntityContextsForRevision, entityById]);
 
   const handleBackportConfigStart = useCallback((selectedEntityIds, customInstructions) => {
     if (!backportConfig || !projectId || !simulationRunId) return;
 
     const selectedEntities = backportConfig.entities.filter(e => selectedEntityIds.includes(e.id));
     if (selectedEntities.length === 0) return;
+
+    // Track which entities were sent so handleAcceptBackport can mark them all
+    backportSentEntityIdsRef.current = selectedEntityIds;
 
     startBackport({
       projectId,
@@ -1435,14 +1494,45 @@ export default function IlluminatorRemote({
     if (cId) {
       await entityRepo.revalidateBackrefs(patches, { chronicleId: cId });
       await reloadAndNotify(patches.map((p) => p.entityId));
-      // Mark chronicle as backported and refresh the chronicle list
-      updateChronicleLoreBackported(cId, true).then(() => {
+
+      // Mark all sent entities as backported (not just those with patches —
+      // entities with no LLM changes are still "done" for this chronicle)
+      const sentIds = backportSentEntityIdsRef.current || patches.map((p) => p.entityId);
+      const now = Date.now();
+      const entries = sentIds.map(id => ({
+        entityId: id,
+        status: 'backported',
+        updatedAt: now,
+      }));
+      updateChronicleEntityBackportStatus(cId, entries).then(() => {
         setChronicleRefreshTrigger((n) => n + 1);
       }).catch((err) => {
-        console.warn('[Backport] Failed to set loreBackported flag:', err);
+        console.warn('[Backport] Failed to set entity backport status:', err);
       });
+      backportSentEntityIdsRef.current = null;
     }
   }, [applyAcceptedBackportPatches, handleRevisionApplied, backportChronicleId, reloadAndNotify]);
+
+  const handleMarkEntityNotNeeded = useCallback(async (entityIds) => {
+    if (!backportConfig?.chronicleId) return;
+    const now = Date.now();
+    const entries = entityIds.map(id => ({
+      entityId: id,
+      status: 'not_needed',
+      updatedAt: now,
+    }));
+    await updateChronicleEntityBackportStatus(backportConfig.chronicleId, entries);
+    // Update local modal state
+    setBackportConfig(prev => {
+      if (!prev) return null;
+      const updated = { ...prev.perEntityStatus };
+      for (const id of entityIds) {
+        updated[id] = 'not_needed';
+      }
+      return { ...prev, perEntityStatus: updated };
+    });
+    setChronicleRefreshTrigger((n) => n + 1);
+  }, [backportConfig]);
 
   // ---- Auto-backport all chronicles ----
   const [autoBackportQueue, setAutoBackportQueue] = useState(null); // { ids: string[], total: number } | null
@@ -1452,7 +1542,11 @@ export default function IlluminatorRemote({
     if (!simulationRunId) return;
     const allChronicles = await getChroniclesForSimulation(simulationRunId);
     const eligible = allChronicles
-      .filter((c) => !c.loreBackported && c.finalContent)
+      .filter((c) => {
+        if (!c.finalContent) return false;
+        const progress = computeBackportProgress(c);
+        return progress.done < progress.total;
+      })
       .map((c) => c.chronicleId);
     if (eligible.length === 0) {
       alert('No chronicles eligible for backport (all already backported or unpublished).');
@@ -1538,6 +1632,45 @@ export default function IlluminatorRemote({
     setRenameModal(null);
     setChronicleRefreshTrigger((n) => n + 1);
   }, [simulationRunId, reloadAndNotify]);
+
+  // Manual entity creation
+  const handleCreateEntity = useCallback(async (entityData) => {
+    if (!simulationRunId) return;
+    try {
+      const created = await entityRepo.createEntity(simulationRunId, entityData);
+      await reloadAndNotify([created.id]);
+    } catch (err) {
+      console.error('[Illuminator] Create entity failed:', err);
+    }
+    setCreateEntityModal(false);
+  }, [simulationRunId, reloadAndNotify]);
+
+  // Manual entity editing (manual_ entities only)
+  const handleEditEntity = useCallback(async (entityData) => {
+    if (!editEntityModal) return;
+    try {
+      await entityRepo.updateEntityFields(editEntityModal.id, {
+        ...entityData,
+        updatedAt: Date.now(),
+      });
+      await reloadAndNotify([editEntityModal.id]);
+    } catch (err) {
+      console.error('[Illuminator] Edit entity failed:', err);
+    }
+    setEditEntityModal(null);
+  }, [editEntityModal, reloadAndNotify]);
+
+  // Manual entity deletion (manual_ entities only)
+  const handleDeleteEntity = useCallback(async (entity) => {
+    if (!entity.id.startsWith('manual_')) return;
+    if (!confirm(`Delete "${entity.name}"? This cannot be undone.`)) return;
+    try {
+      await entityRepo.deleteEntity(entity.id);
+      await reloadAndNotify([]);
+    } catch (err) {
+      console.error('[Illuminator] Delete entity failed:', err);
+    }
+  }, [reloadAndNotify]);
 
   // Historian review (scholarly annotations for entities and chronicles)
   const {
@@ -2223,6 +2356,9 @@ export default function IlluminatorRemote({
               onUpdateAliases={handleUpdateAliases}
               onUpdateDescription={handleUpdateDescription}
               onUpdateSummary={handleUpdateSummary}
+              onCreateEntity={simulationRunId ? () => setCreateEntityModal(true) : undefined}
+              onEditEntity={simulationRunId ? (entity) => setEditEntityModal(entity) : undefined}
+              onDeleteEntity={simulationRunId ? handleDeleteEntity : undefined}
             />
           </div>
         )}
@@ -2500,7 +2636,9 @@ export default function IlluminatorRemote({
         isOpen={backportConfig !== null}
         chronicleTitle={backportConfig?.chronicleTitle || ''}
         entities={backportConfig?.entities || []}
+        perEntityStatus={backportConfig?.perEntityStatus || {}}
         onStart={handleBackportConfigStart}
+        onMarkNotNeeded={handleMarkEntityNotNeeded}
         onCancel={() => setBackportConfig(null)}
       />
 
@@ -2547,6 +2685,25 @@ export default function IlluminatorRemote({
           mode={renameModal.mode}
           onApply={handleRenameApplied}
           onClose={() => setRenameModal(null)}
+        />
+      )}
+
+      {createEntityModal && (
+        <CreateEntityModal
+          worldSchema={worldSchema}
+          eras={eraTemporalInfo}
+          onSubmit={handleCreateEntity}
+          onClose={() => setCreateEntityModal(false)}
+        />
+      )}
+
+      {editEntityModal && (
+        <CreateEntityModal
+          worldSchema={worldSchema}
+          eras={eraTemporalInfo}
+          editEntity={editEntityModal}
+          onSubmit={handleEditEntity}
+          onClose={() => setEditEntityModal(null)}
         />
       )}
     </div>

@@ -9,7 +9,7 @@ import type { ChronicleFormat, ChronicleGenerationContext, ChronicleImageRefs, E
 import type { HistorianNote } from './historianTypes';
 import type { ResolvedLLMCallSettings } from './llmModelSettings';
 
-export type EnrichmentType = 'description' | 'image' | 'entityChronicle' | 'paletteExpansion' | 'dynamicsGeneration' | 'summaryRevision' | 'chronicleLoreBackport' | 'historianEdition' | 'historianReview' | 'historianChronology' | 'historianPrep' | 'eraNarrative';
+export type EnrichmentType = 'description' | 'visualThesis' | 'image' | 'entityChronicle' | 'paletteExpansion' | 'dynamicsGeneration' | 'summaryRevision' | 'chronicleLoreBackport' | 'historianEdition' | 'historianReview' | 'historianChronology' | 'historianPrep' | 'eraNarrative';
 
 /**
  * Which image to display at a chronicle backref anchor in an entity description.
@@ -251,7 +251,12 @@ export type EnrichmentTaskPayload =
       visualTraitsInstructions: string;
     })
   | (EnrichmentTaskBase & {
-      type: Exclude<EnrichmentType, 'description'>;
+      type: 'visualThesis';
+      visualThesisInstructions: string;
+      visualTraitsInstructions: string;
+    })
+  | (EnrichmentTaskBase & {
+      type: Exclude<EnrichmentType, 'description' | 'visualThesis'>;
     });
 
 /**
@@ -417,6 +422,26 @@ export function applyEnrichmentResult(
       // Entity field updates - summary/description go directly on entity
       summary: lockedSummary ? undefined : result.summary,
       description: result.description,
+    };
+  }
+
+  if (type === 'visualThesis' && result.visualThesis) {
+    return {
+      enrichment: {
+        ...existing,
+        text: {
+          ...(existing.text || { aliases: [], visualTraits: [], generatedAt: 0, model: '' }),
+          visualThesis: result.visualThesis,
+          visualTraits: result.visualTraits || existing.text?.visualTraits || [],
+          generatedAt: result.generatedAt,
+          model: result.model,
+          estimatedCost: result.estimatedCost,
+          actualCost: result.actualCost,
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+          chainDebug: result.chainDebug,
+        },
+      },
     };
   }
 

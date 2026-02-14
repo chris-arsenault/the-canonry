@@ -3,6 +3,10 @@
  *
  * assembly_ready and complete statuses delegate to ChronicleWorkspace (tabbed UI).
  * validation_ready keeps its own inline layout since it's a different workflow.
+ *
+ * PROP CHAIN: ChroniclePanel → ChronicleReviewPanel (this file) → ChronicleWorkspace
+ * This file is the middle layer — it must destructure AND forward every prop that
+ * ChronicleWorkspace needs. When adding props, update all three files.
  */
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
@@ -181,6 +185,7 @@ export default function ChronicleReviewPanel({
   onCombineVersions,
   onCopyEdit,
   onTemporalCheck,
+  onQuickCheck,
   onCorrectSuggestions,
   onGenerateSummary,
   onGenerateTitle,
@@ -237,6 +242,8 @@ export default function ChronicleReviewPanel({
   refinements,
 
   // Data for refinements
+  simulationRunId,
+  worldSchema,
   entities,
   styleLibrary,
   cultures,
@@ -267,6 +274,7 @@ export default function ChronicleReviewPanel({
         onCombineVersions={onCombineVersions}
         onCopyEdit={onCopyEdit}
         onTemporalCheck={onTemporalCheck}
+        onQuickCheck={onQuickCheck}
         onValidate={onValidate}
         onGenerateSummary={onGenerateSummary}
         onGenerateTitle={onGenerateTitle}
@@ -302,6 +310,8 @@ export default function ChronicleReviewPanel({
         onUpdateHistorianNote={onUpdateHistorianNote}
         isGenerating={isGenerating}
         refinements={refinements}
+        simulationRunId={simulationRunId}
+        worldSchema={worldSchema}
         entities={entities}
         styleLibrary={styleLibrary}
         cultures={cultures}

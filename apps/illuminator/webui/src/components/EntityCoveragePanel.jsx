@@ -341,7 +341,7 @@ function computeCoreAnalysis(entities, chronicles, events, relationships) {
     const existing = eraChronicles.get(eraId) || { total: 0, completed: 0, backported: 0 };
     existing.total += 1;
     if (chronicle.status === 'complete') existing.completed += 1;
-    if (chronicle.loreBackported) existing.backported += 1;
+    if (chronicle.entityBackportStatus && Object.keys(chronicle.entityBackportStatus).length > 0) existing.backported += 1;
     eraChronicles.set(eraId, existing);
   }
 
@@ -387,12 +387,15 @@ function computeCoreAnalysis(entities, chronicles, events, relationships) {
     cultureEntities.set(entity.culture, existing);
   }
 
-  // Backported chronicle counts per entity
+  // Backported chronicle counts per entity (count chronicles where this entity has been backported)
   const entityBackportedCount = new Map();
   for (const chronicle of activeChronicles) {
-    if (!chronicle.loreBackported) continue;
+    const statusMap = chronicle.entityBackportStatus;
+    if (!statusMap) continue;
     for (const entityId of (chronicle.selectedEntityIds || [])) {
-      entityBackportedCount.set(entityId, (entityBackportedCount.get(entityId) || 0) + 1);
+      if (statusMap[entityId]) {
+        entityBackportedCount.set(entityId, (entityBackportedCount.get(entityId) || 0) + 1);
+      }
     }
   }
 
