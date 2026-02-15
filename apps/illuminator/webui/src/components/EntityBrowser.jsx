@@ -7,20 +7,16 @@
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { useEntityNavList } from '../lib/db/entitySelectors';
+import { useEntityStore } from '../lib/db/entityStore';
+import { useProminenceScale } from '../lib/db/indexSelectors';
 import ImageModal from './ImageModal';
 import ImagePickerModal from './ImagePickerModal';
 import EntityDetailView from './EntityDetailView';
 import { ImageSettingsSummary } from './ImageSettingsDrawer';
 import { useImageUrl } from '../hooks/useImageUrl';
+import { formatCost } from '../lib/costEstimation';
 import {
-  estimateTextCost,
-  estimateImageCost,
-  formatCost,
-  formatEstimatedCost,
-} from '../lib/costEstimation';
-import {
-  buildProminenceScale,
-  DEFAULT_PROMINENCE_DISTRIBUTION,
   prominenceLabelFromScale,
   prominenceThresholdFromScale,
 } from '@canonry/world-schema';
@@ -208,8 +204,6 @@ function EntityRow({
   imgCost,
   prominenceScale,
 }) {
-  const enrichment = entity.enrichment || {};
-
   return (
     <div
       style={{
@@ -250,7 +244,7 @@ function EntityRow({
             {entity.kind}/{entity.subtype} · {prominenceLabelFromScale(entity.prominence, prominenceScale)}
             {entity.culture && ` · ${entity.culture}`}
           </span>
-          {onEditEntity && entity.id.startsWith('manual_') && (
+          {onEditEntity && entity.isManual && (
             <button
               onClick={(e) => { e.stopPropagation(); onEditEntity(entity); }}
               className="illuminator-button illuminator-button-secondary"
@@ -260,7 +254,7 @@ function EntityRow({
               Edit
             </button>
           )}
-          {onDeleteEntity && entity.id.startsWith('manual_') && (
+          {onDeleteEntity && entity.isManual && (
             <button
               onClick={(e) => { e.stopPropagation(); onDeleteEntity(entity); }}
               className="illuminator-button illuminator-button-secondary"
@@ -274,7 +268,7 @@ function EntityRow({
 
         {/* Content row: description and image side by side */}
         <div style={{ display: 'flex', gap: '12px' }}>
-          {/* Description preview if exists (summary is now on entity directly) */}
+          {/* Description preview if exists */}
           {entity.summary && (
             <div
               style={{
@@ -296,9 +290,9 @@ function EntityRow({
           )}
 
           {/* Image preview if exists */}
-          {enrichment.image?.imageId && (
+          {entity.imageId && (
             <ImageThumbnail
-              imageId={enrichment.image.imageId}
+              imageId={entity.imageId}
               alt={entity.name}
               onClick={onImageClick}
             />
@@ -466,39 +460,19 @@ function EntityRow({
   );
 }
 
-// Helper to get cost display for an entity
-function getEntityCostDisplay(entity, type, status, config, enrichment, buildPrompt, imageGenSettings) {
-  // If complete, show actual cost
-  if (status === 'complete') {
-    if (type === 'description' && enrichment?.text?.actualCost) {
-      return formatCost(enrichment.text.actualCost);
-    }
-    if (type === 'image' && enrichment?.image?.actualCost) {
-      return formatCost(enrichment.image.actualCost);
-    }
+// Helper to get cost display for a nav item
+function getNavItemCostDisplay(navItem, type, status) {
+  if (status !== 'complete') return undefined;
+  if (type === 'description' && navItem.descriptionCost) {
+    return formatCost(navItem.descriptionCost);
   }
-
-  // If missing, show estimated cost
-  if (status === 'missing') {
-    if (type === 'description') {
-      const prompt = buildPrompt(entity, 'description');
-      const estimate = estimateTextCost(prompt, 'description', config.textModel);
-      return formatEstimatedCost(estimate.estimatedCost);
-    }
-    if (type === 'image') {
-      if (!config?.imageModel || !imageGenSettings?.imageSize || !imageGenSettings?.imageQuality) {
-        return undefined;
-      }
-      const cost = estimateImageCost(config.imageModel, imageGenSettings.imageSize, imageGenSettings.imageQuality);
-      return formatEstimatedCost(cost);
-    }
+  if (type === 'image' && navItem.imageCost) {
+    return formatCost(navItem.imageCost);
   }
-
   return undefined;
 }
 
 export default function EntityBrowser({
-  entities,
   queue,
   onEnqueue,
   onCancel,
@@ -511,7 +485,6 @@ export default function EntityBrowser({
   styleLibrary,
   imageGenSettings,
   onOpenImageSettings,
-  prominenceScale,
   onStartRevision,
   isRevising,
   onUpdateBackrefs,
@@ -531,6 +504,7 @@ export default function EntityBrowser({
   onEditEntity,
   onDeleteEntity,
 }) {
+  const navEntities = useEntityNavList();
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -543,13 +517,7 @@ export default function EntityBrowser({
     culture: 'all',
     chronicleImage: 'all',
   });
-  const effectiveProminenceScale = useMemo(() => {
-    if (prominenceScale) return prominenceScale;
-    const values = entities
-      .map((entity) => entity.prominence)
-      .filter((value) => typeof value === 'number' && Number.isFinite(value));
-    return buildProminenceScale(values, { distribution: DEFAULT_PROMINENCE_DISTRIBUTION });
-  }, [prominenceScale, entities]);
+  const prominenceScale = useProminenceScale();
   const [hideCompleted, setHideCompleted] = useState(false);
   const [imageModal, setImageModal] = useState({ open: false, imageId: '', title: '' });
   const [selectedEntityId, setSelectedEntityId] = useState(null);
@@ -561,7 +529,7 @@ export default function EntityBrowser({
     const kinds = new Set();
     const cultures = new Set();
 
-    for (const entity of entities) {
+    for (const entity of navEntities) {
       kinds.add(entity.kind);
       if (entity.culture) cultures.add(entity.culture);
     }
@@ -570,14 +538,14 @@ export default function EntityBrowser({
       kinds: Array.from(kinds).sort(),
       cultures: Array.from(cultures).sort(),
     };
-  }, [entities]);
+  }, [navEntities]);
 
-  // Entity search — partial match on name, aliases, and optionally summary/description
+  // Entity search — partial match on name, aliases, and optionally summary text
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q || q.length < 2) return [];
     const results = [];
-    for (const entity of entities) {
+    for (const entity of navEntities) {
       const matches = [];
       // Name match
       const nameIdx = entity.name.toLowerCase().indexOf(q);
@@ -585,8 +553,7 @@ export default function EntityBrowser({
         matches.push({ field: 'name', value: entity.name, matchIndex: nameIdx });
       }
       // Alias matches
-      const aliases = entity.enrichment?.text?.aliases || [];
-      for (const alias of aliases) {
+      for (const alias of entity.aliases) {
         if (typeof alias !== 'string') continue;
         const aliasIdx = alias.toLowerCase().indexOf(q);
         if (aliasIdx !== -1) {
@@ -594,27 +561,18 @@ export default function EntityBrowser({
         }
       }
       // Slug alias matches
-      const slugAliases = entity.enrichment?.slugAliases || [];
-      for (const slug of slugAliases) {
+      for (const slug of entity.slugAliases) {
         if (typeof slug !== 'string') continue;
         const slugIdx = slug.toLowerCase().indexOf(q);
         if (slugIdx !== -1) {
           matches.push({ field: 'slug alias', value: slug, matchIndex: slugIdx });
         }
       }
-      // Summary and description matches (only when searchText enabled)
-      if (searchText) {
-        if (entity.summary) {
-          const sumIdx = entity.summary.toLowerCase().indexOf(q);
-          if (sumIdx !== -1) {
-            matches.push({ field: 'summary', value: entity.summary, matchIndex: sumIdx });
-          }
-        }
-        if (entity.description) {
-          const descIdx = entity.description.toLowerCase().indexOf(q);
-          if (descIdx !== -1) {
-            matches.push({ field: 'description', value: entity.description, matchIndex: descIdx });
-          }
+      // Summary text matches (only when searchText enabled)
+      if (searchText && entity.summary) {
+        const sumIdx = entity.summary.toLowerCase().indexOf(q);
+        if (sumIdx !== -1) {
+          matches.push({ field: 'summary', value: entity.summary, matchIndex: sumIdx });
         }
       }
       if (matches.length > 0) {
@@ -629,7 +587,7 @@ export default function EntityBrowser({
       return a.entity.name.localeCompare(b.entity.name);
     });
     return results;
-  }, [entities, searchQuery, searchText]);
+  }, [navEntities, searchQuery, searchText]);
 
   const handleSearchSelect = useCallback((entityId) => {
     setSelectedEntityId(entityId);
@@ -637,41 +595,41 @@ export default function EntityBrowser({
     setSearchQuery('');
   }, []);
 
-  // Get enrichment status for an entity
+  // Get enrichment status for a nav item
   const getStatus = useCallback(
-    (entity, type) => {
+    (nav, type) => {
       // Check queue first
       const queueItem = queue.find(
-        (item) => item.entityId === entity.id && item.type === type
+        (item) => item.entityId === nav.id && item.type === type
       );
       if (queueItem) {
         return queueItem.status;
       }
 
-      // Check entity fields and enrichment
-      if (type === 'description' && entity.summary && entity.description) return 'complete';
-      if (type === 'visualThesis' && entity.enrichment?.text?.visualThesis) return 'complete';
-      if (type === 'image' && entity.enrichment?.image?.imageId) return 'complete';
+      // Check nav item flags
+      if (type === 'description' && nav.hasDescription) return 'complete';
+      if (type === 'visualThesis' && nav.hasVisualThesis) return 'complete';
+      if (type === 'image' && nav.imageId) return 'complete';
 
       return 'missing';
     },
     [queue]
   );
 
-  // Filter entities
-  const filteredEntities = useMemo(() => {
-    return entities.filter((entity) => {
-      if (filters.kind !== 'all' && entity.kind !== filters.kind) return false;
+  // Filter entities via nav items
+  const filteredNavItems = useMemo(() => {
+    return navEntities.filter((nav) => {
+      if (filters.kind !== 'all' && nav.kind !== filters.kind) return false;
       if (
         filters.prominence !== 'all' &&
-        prominenceLabelFromScale(entity.prominence, effectiveProminenceScale) !== filters.prominence
+        prominenceLabelFromScale(nav.prominence, prominenceScale) !== filters.prominence
       ) {
         return false;
       }
-      if (filters.culture !== 'all' && entity.culture !== filters.culture) return false;
+      if (filters.culture !== 'all' && nav.culture !== filters.culture) return false;
 
-      const descStatus = getStatus(entity, 'description');
-      const imgStatus = getStatus(entity, 'image');
+      const descStatus = getStatus(nav, 'description');
+      const imgStatus = getStatus(nav, 'image');
 
       // Hide completed filter
       if (hideCompleted && descStatus === 'complete' && imgStatus === 'complete') {
@@ -698,21 +656,20 @@ export default function EntityBrowser({
 
       // Chronicle image filter
       if (filters.chronicleImage !== 'all') {
-        const backrefs = entity.enrichment?.chronicleBackrefs || [];
-        if (filters.chronicleImage === 'none' && backrefs.length > 0) return false;
+        if (filters.chronicleImage === 'none' && nav.backrefCount > 0) return false;
         if (filters.chronicleImage === 'unconfigured') {
-          if (backrefs.length === 0) return false;
-          if (!backrefs.some((b) => b.imageSource === undefined)) return false;
+          if (nav.backrefCount === 0) return false;
+          if (nav.unconfiguredBackrefCount === 0) return false;
         }
         if (filters.chronicleImage === 'configured') {
-          if (backrefs.length === 0) return false;
-          if (backrefs.some((b) => b.imageSource === undefined)) return false;
+          if (nav.backrefCount === 0) return false;
+          if (nav.unconfiguredBackrefCount > 0) return false;
         }
       }
 
       return true;
     });
-  }, [entities, filters, hideCompleted, getStatus, effectiveProminenceScale]);
+  }, [navEntities, filters, hideCompleted, getStatus, prominenceScale]);
 
   // Toggle selection
   const toggleSelect = useCallback((entityId) => {
@@ -729,21 +686,21 @@ export default function EntityBrowser({
 
   // Select all filtered
   const selectAll = useCallback(() => {
-    setSelectedIds(new Set(filteredEntities.map((e) => e.id)));
-  }, [filteredEntities]);
+    setSelectedIds(new Set(filteredNavItems.map((e) => e.id)));
+  }, [filteredNavItems]);
 
   // Clear selection
   const clearSelection = useCallback(() => {
     setSelectedIds(new Set());
   }, []);
 
-  // Queue single item (with optional image overrides for image tasks)
+  // Queue single item — load full entity from store for prompt building
   const queueItem = useCallback(
-    (entity, type) => {
+    async (entityId, type) => {
+      const entity = await useEntityStore.getState().loadEntity(entityId);
+      if (!entity) return;
       const prompt = buildPrompt(entity, type === 'visualThesis' ? 'description' : type);
-      // For description and visualThesis tasks, pass visual config from template
       const visualConfig = (type === 'description' || type === 'visualThesis') && getVisualConfig ? getVisualConfig(entity) : {};
-      // For image tasks, apply current global size/quality
       const imageOverrides = type === 'image'
         ? { imageSize: imageGenSettings.imageSize, imageQuality: imageGenSettings.imageQuality }
         : {};
@@ -754,9 +711,9 @@ export default function EntityBrowser({
 
   // Cancel single item
   const cancelItem = useCallback(
-    (entity, type) => {
+    (entityId, type) => {
       const queueItem = queue.find(
-        (item) => item.entityId === entity.id && item.type === type
+        (item) => item.entityId === entityId && item.type === type
       );
       if (queueItem) {
         onCancel(queueItem.id);
@@ -765,47 +722,51 @@ export default function EntityBrowser({
     [queue, onCancel]
   );
 
-  // Queue all missing descriptions for selected
-  const queueSelectedDescriptions = useCallback(() => {
-    const items = [];
+  // Queue all missing descriptions for selected — filter on nav items, load full for prompt
+  const queueSelectedDescriptions = useCallback(async () => {
+    const missingIds = [];
     for (const entityId of selectedIds) {
-      const entity = entities.find((e) => e.id === entityId);
-      if (entity && getStatus(entity, 'description') === 'missing') {
-        const visualConfig = getVisualConfig ? getVisualConfig(entity) : {};
-        items.push({ entity, type: 'description', prompt: buildPrompt(entity, 'description'), ...visualConfig });
+      const nav = navEntities.find((e) => e.id === entityId);
+      if (nav && getStatus(nav, 'description') === 'missing') {
+        missingIds.push(entityId);
       }
     }
-    if (items.length > 0) {
-      onEnqueue(items);
-    }
-  }, [selectedIds, entities, getStatus, onEnqueue, buildPrompt, getVisualConfig]);
+    if (missingIds.length === 0) return;
+    const fullEntities = await useEntityStore.getState().loadEntities(missingIds);
+    const items = fullEntities.map((entity) => {
+      const visualConfig = getVisualConfig ? getVisualConfig(entity) : {};
+      return { entity, type: 'description', prompt: buildPrompt(entity, 'description'), ...visualConfig };
+    });
+    if (items.length > 0) onEnqueue(items);
+  }, [selectedIds, navEntities, getStatus, onEnqueue, buildPrompt, getVisualConfig]);
 
   // Queue all missing images for selected
-  const queueSelectedImages = useCallback(() => {
-    const items = [];
+  const queueSelectedImages = useCallback(async () => {
+    const eligibleIds = [];
     for (const entityId of selectedIds) {
-      const entity = entities.find((e) => e.id === entityId);
+      const nav = navEntities.find((e) => e.id === entityId);
       if (
-        entity &&
-        prominenceAtLeast(entity.prominence, config.minProminenceForImage, effectiveProminenceScale) &&
-        getStatus(entity, 'image') === 'missing' &&
-        (!config.requireDescription || (entity.summary && entity.description))
+        nav &&
+        prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
+        getStatus(nav, 'image') === 'missing' &&
+        (!config.requireDescription || nav.hasDescription)
       ) {
-        items.push({
-          entity,
-          type: 'image',
-          prompt: buildPrompt(entity, 'image'),
-          imageSize: imageGenSettings.imageSize,
-          imageQuality: imageGenSettings.imageQuality,
-        });
+        eligibleIds.push(entityId);
       }
     }
-    if (items.length > 0) {
-      onEnqueue(items);
-    }
+    if (eligibleIds.length === 0) return;
+    const fullEntities = await useEntityStore.getState().loadEntities(eligibleIds);
+    const items = fullEntities.map((entity) => ({
+      entity,
+      type: 'image',
+      prompt: buildPrompt(entity, 'image'),
+      imageSize: imageGenSettings.imageSize,
+      imageQuality: imageGenSettings.imageQuality,
+    }));
+    if (items.length > 0) onEnqueue(items);
   }, [
     selectedIds,
-    entities,
+    navEntities,
     getStatus,
     onEnqueue,
     buildPrompt,
@@ -813,103 +774,108 @@ export default function EntityBrowser({
     config.requireDescription,
     imageGenSettings.imageSize,
     imageGenSettings.imageQuality,
-    effectiveProminenceScale,
+    prominenceScale,
   ]);
 
-  // Regenerate all descriptions for selected (those with existing descriptions)
-  const regenSelectedDescriptions = useCallback(() => {
-    const items = [];
+  // Regenerate all descriptions for selected
+  const regenSelectedDescriptions = useCallback(async () => {
+    const completeIds = [];
     for (const entityId of selectedIds) {
-      const entity = entities.find((e) => e.id === entityId);
-      if (entity && getStatus(entity, 'description') === 'complete') {
-        const visualConfig = getVisualConfig ? getVisualConfig(entity) : {};
-        items.push({ entity, type: 'description', prompt: buildPrompt(entity, 'description'), ...visualConfig });
+      const nav = navEntities.find((e) => e.id === entityId);
+      if (nav && getStatus(nav, 'description') === 'complete') {
+        completeIds.push(entityId);
       }
     }
-    if (items.length > 0) {
-      onEnqueue(items);
-    }
-  }, [selectedIds, entities, getStatus, onEnqueue, buildPrompt, getVisualConfig]);
+    if (completeIds.length === 0) return;
+    const fullEntities = await useEntityStore.getState().loadEntities(completeIds);
+    const items = fullEntities.map((entity) => {
+      const visualConfig = getVisualConfig ? getVisualConfig(entity) : {};
+      return { entity, type: 'description', prompt: buildPrompt(entity, 'description'), ...visualConfig };
+    });
+    if (items.length > 0) onEnqueue(items);
+  }, [selectedIds, navEntities, getStatus, onEnqueue, buildPrompt, getVisualConfig]);
 
-  // Regenerate all images for selected (those with existing images)
-  const regenSelectedImages = useCallback(() => {
-    const items = [];
+  // Regenerate all images for selected
+  const regenSelectedImages = useCallback(async () => {
+    const completeIds = [];
     for (const entityId of selectedIds) {
-      const entity = entities.find((e) => e.id === entityId);
+      const nav = navEntities.find((e) => e.id === entityId);
       if (
-        entity &&
-        prominenceAtLeast(entity.prominence, config.minProminenceForImage, effectiveProminenceScale) &&
-        getStatus(entity, 'image') === 'complete'
+        nav &&
+        prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
+        getStatus(nav, 'image') === 'complete'
       ) {
-        items.push({
-          entity,
-          type: 'image',
-          prompt: buildPrompt(entity, 'image'),
-          imageSize: imageGenSettings.imageSize,
-          imageQuality: imageGenSettings.imageQuality,
-        });
+        completeIds.push(entityId);
       }
     }
-    if (items.length > 0) {
-      onEnqueue(items);
-    }
+    if (completeIds.length === 0) return;
+    const fullEntities = await useEntityStore.getState().loadEntities(completeIds);
+    const items = fullEntities.map((entity) => ({
+      entity,
+      type: 'image',
+      prompt: buildPrompt(entity, 'image'),
+      imageSize: imageGenSettings.imageSize,
+      imageQuality: imageGenSettings.imageQuality,
+    }));
+    if (items.length > 0) onEnqueue(items);
   }, [
     selectedIds,
-    entities,
+    navEntities,
     getStatus,
     onEnqueue,
     buildPrompt,
     config.minProminenceForImage,
     imageGenSettings.imageSize,
     imageGenSettings.imageQuality,
-    effectiveProminenceScale,
+    prominenceScale,
   ]);
 
-  // Quick action: queue all missing descriptions
-  const queueAllMissingDescriptions = useCallback(() => {
+  // Quick action: queue all missing descriptions — filter on nav, load full for prompt
+  const queueAllMissingDescriptions = useCallback(async () => {
+    const missingIds = filteredNavItems
+      .filter((nav) => getStatus(nav, 'description') === 'missing')
+      .map((nav) => nav.id);
+    if (missingIds.length === 0) return;
+    const fullEntities = await useEntityStore.getState().loadEntities(missingIds);
+    const items = fullEntities.map((entity) => {
+      const visualConfig = getVisualConfig ? getVisualConfig(entity) : {};
+      return { entity, type: 'description', prompt: buildPrompt(entity, 'description'), ...visualConfig };
+    });
+    if (items.length > 0) onEnqueue(items);
+  }, [filteredNavItems, getStatus, onEnqueue, buildPrompt, getVisualConfig]);
+
+  // Quick action: queue all missing images (and dependent descriptions if required)
+  const queueAllMissingImages = useCallback(async () => {
+    const eligibleNavs = filteredNavItems.filter((nav) =>
+      prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
+      getStatus(nav, 'image') === 'missing'
+    );
+    if (eligibleNavs.length === 0) return;
+    const fullEntities = await useEntityStore.getState().loadEntities(eligibleNavs.map((n) => n.id));
+    const entityMap = new Map(fullEntities.map((e) => [e.id, e]));
     const items = [];
-    for (const entity of filteredEntities) {
-      if (getStatus(entity, 'description') === 'missing') {
+    for (const nav of eligibleNavs) {
+      const entity = entityMap.get(nav.id);
+      if (!entity) continue;
+      if (
+        config.requireDescription &&
+        !nav.hasDescription &&
+        getStatus(nav, 'description') === 'missing'
+      ) {
         const visualConfig = getVisualConfig ? getVisualConfig(entity) : {};
         items.push({ entity, type: 'description', prompt: buildPrompt(entity, 'description'), ...visualConfig });
       }
+      items.push({
+        entity,
+        type: 'image',
+        prompt: buildPrompt(entity, 'image'),
+        imageSize: imageGenSettings.imageSize,
+        imageQuality: imageGenSettings.imageQuality,
+      });
     }
-    if (items.length > 0) {
-      onEnqueue(items);
-    }
-  }, [filteredEntities, getStatus, onEnqueue, buildPrompt, getVisualConfig]);
-
-  // Quick action: queue all missing images (and dependent descriptions if required)
-  const queueAllMissingImages = useCallback(() => {
-    const items = [];
-    for (const entity of filteredEntities) {
-      if (
-        prominenceAtLeast(entity.prominence, config.minProminenceForImage, effectiveProminenceScale) &&
-        getStatus(entity, 'image') === 'missing'
-      ) {
-        // If requireDescription is enabled and entity lacks description, queue that first
-        if (
-          config.requireDescription &&
-          !(entity.summary && entity.description) &&
-          getStatus(entity, 'description') === 'missing'
-        ) {
-          const visualConfig = getVisualConfig ? getVisualConfig(entity) : {};
-          items.push({ entity, type: 'description', prompt: buildPrompt(entity, 'description'), ...visualConfig });
-        }
-        items.push({
-          entity,
-          type: 'image',
-          prompt: buildPrompt(entity, 'image'),
-          imageSize: imageGenSettings.imageSize,
-          imageQuality: imageGenSettings.imageQuality,
-        });
-      }
-    }
-    if (items.length > 0) {
-      onEnqueue(items);
-    }
+    if (items.length > 0) onEnqueue(items);
   }, [
-    filteredEntities,
+    filteredNavItems,
     getStatus,
     onEnqueue,
     buildPrompt,
@@ -918,62 +884,28 @@ export default function EntityBrowser({
     config.requireDescription,
     imageGenSettings.imageSize,
     imageGenSettings.imageQuality,
-    effectiveProminenceScale,
+    prominenceScale,
   ]);
 
-  // Count missing and calculate aggregate costs
-  const { missingDescCount, missingDescCost } = useMemo(() => {
-    let count = 0;
-    let totalCost = 0;
-    for (const entity of filteredEntities) {
-      if (getStatus(entity, 'description') === 'missing') {
-        count++;
-        const prompt = buildPrompt(entity, 'description');
-        const estimate = estimateTextCost(prompt, 'description', config.textModel);
-        totalCost += estimate.estimatedCost;
-      }
-    }
-    return { missingDescCount: count, missingDescCost: totalCost };
-  }, [filteredEntities, getStatus, buildPrompt, config.textModel]);
-
-  const { missingImgCount, missingImgCost, dependentDescCount } = useMemo(() => {
-    let imgCount = 0;
+  // Count missing entities (cost estimation deferred to queue time for nav-only rendering)
+  const { missingDescCount, missingImgCount, dependentDescCount } = useMemo(() => {
     let descCount = 0;
-    let totalCost = 0;
-    const imgCostPerUnit = estimateImageCost(config.imageModel, imageGenSettings.imageSize, imageGenSettings.imageQuality);
-    for (const entity of filteredEntities) {
+    let imgCount = 0;
+    let depDescCount = 0;
+    for (const nav of filteredNavItems) {
+      if (getStatus(nav, 'description') === 'missing') descCount++;
       if (
-        prominenceAtLeast(entity.prominence, config.minProminenceForImage, effectiveProminenceScale) &&
-        getStatus(entity, 'image') === 'missing'
+        prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
+        getStatus(nav, 'image') === 'missing'
       ) {
         imgCount++;
-        totalCost += imgCostPerUnit;
-        // Count dependent descriptions that would be queued
-        if (
-          config.requireDescription &&
-          !(entity.summary && entity.description) &&
-          getStatus(entity, 'description') === 'missing'
-        ) {
-          descCount++;
-          const prompt = buildPrompt(entity, 'description');
-          const estimate = estimateTextCost(prompt, 'description', config.textModel);
-          totalCost += estimate.estimatedCost;
+        if (config.requireDescription && !nav.hasDescription && getStatus(nav, 'description') === 'missing') {
+          depDescCount++;
         }
       }
     }
-    return { missingImgCount: imgCount, missingImgCost: totalCost, dependentDescCount: descCount };
-  }, [
-    filteredEntities,
-    getStatus,
-    config.minProminenceForImage,
-    config.imageModel,
-    imageGenSettings.imageSize,
-    imageGenSettings.imageQuality,
-    config.requireDescription,
-    config.textModel,
-    buildPrompt,
-    effectiveProminenceScale,
-  ]);
+    return { missingDescCount: descCount, missingImgCount: imgCount, dependentDescCount: depDescCount };
+  }, [filteredNavItems, getStatus, config.minProminenceForImage, config.requireDescription, prominenceScale]);
 
   // Open image modal
   const openImageModal = useCallback((imageId, title) => {
@@ -990,30 +922,25 @@ export default function EntityBrowser({
     setSelectedEntityId(entity.id);
   }, []);
 
-  // Download debug info for selected entities
-  const downloadSelectedDebug = useCallback(() => {
+  // Download debug info for selected entities — load full entities from store
+  const downloadSelectedDebug = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    const fullEntities = await useEntityStore.getState().loadEntities(ids);
     const debugData = [];
 
-    for (const entityId of selectedIds) {
-      const entity = entities.find((e) => e.id === entityId);
-      if (!entity) continue;
-
+    for (const entity of fullEntities) {
       const textEnrichment = entity.enrichment?.text;
       const timestamp = textEnrichment?.generatedAt;
 
-      // Check for chain debug (3-step: narrative → thesis → traits)
       const chainDebug = textEnrichment?.chainDebug;
-
-      // Fall back to legacy single debug
       let legacyDebug = textEnrichment?.debug;
 
-      // Fall back to queue if no persisted debug
       if (!chainDebug && !legacyDebug) {
-        const queueItem = queue.find(
+        const qItem = queue.find(
           (item) => item.entityId === entity.id && item.type === 'description' && item.debug
         );
-        if (queueItem?.debug) {
-          legacyDebug = queueItem.debug;
+        if (qItem?.debug) {
+          legacyDebug = qItem.debug;
         }
       }
 
@@ -1024,24 +951,14 @@ export default function EntityBrowser({
           entityKind: entity.kind,
           timestamp,
           model: textEnrichment?.model,
-          // Include generated content for review (now on entity directly)
           summary: entity.summary,
           description: entity.description,
           visualThesis: textEnrichment?.visualThesis,
           visualTraits: textEnrichment?.visualTraits,
           aliases: textEnrichment?.aliases,
         };
-
-        // Include chain debug if available (all 3 steps)
-        if (chainDebug) {
-          entry.chainDebug = chainDebug;
-        }
-
-        // Include legacy debug as fallback
-        if (legacyDebug && !chainDebug) {
-          entry.legacyDebug = legacyDebug;
-        }
-
+        if (chainDebug) entry.chainDebug = chainDebug;
+        if (legacyDebug && !chainDebug) entry.legacyDebug = legacyDebug;
         debugData.push(entry);
       }
     }
@@ -1061,7 +978,7 @@ export default function EntityBrowser({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [selectedIds, entities, queue]);
+  }, [selectedIds, queue]);
 
   // Handle image selection from picker
   const handleImageSelected = useCallback(
@@ -1074,6 +991,58 @@ export default function EntityBrowser({
     [imagePickerEntity, onAssignImage]
   );
 
+  // Load full entity for detail view (on demand from bounded cache)
+  const [selectedEntity, setSelectedEntity] = useState(null);
+  useEffect(() => {
+    if (selectedEntityId) {
+      useEntityStore.getState().loadEntity(selectedEntityId).then(setSelectedEntity);
+    } else {
+      setSelectedEntity(null);
+    }
+  }, [selectedEntityId]);
+
+  // Handle edit — load full entity from store before passing to parent
+  const handleEditEntity = useCallback(async (navItem) => {
+    if (!onEditEntity) return;
+    const fullEntity = await useEntityStore.getState().loadEntity(navItem.id);
+    if (fullEntity) onEditEntity(fullEntity);
+  }, [onEditEntity]);
+
+  // Progressive rendering — only render visible rows, load more on scroll
+  const ENTITY_PAGE_SIZE = 20;
+  const [visibleCount, setVisibleCount] = useState(ENTITY_PAGE_SIZE);
+  const entityListRef = useRef(null);
+
+
+  // Reset visible count when filters/search change
+  useEffect(() => {
+    setVisibleCount(ENTITY_PAGE_SIZE);
+  }, [filters, hideCompleted, searchQuery]);
+
+  // Scroll-based progressive loading — load more when near bottom
+  useEffect(() => {
+    const container = entityListRef.current;
+    if (!container || visibleCount >= filteredNavItems.length) return;
+
+    const checkScrollPosition = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollHeight - scrollTop - clientHeight < 300) {
+        setVisibleCount((prev) => Math.min(prev + ENTITY_PAGE_SIZE, filteredNavItems.length));
+      }
+    };
+
+    container.addEventListener('scroll', checkScrollPosition, { passive: true });
+    // Check after paint — if content doesn't fill the container, load more immediately
+    requestAnimationFrame(checkScrollPosition);
+
+    return () => container.removeEventListener('scroll', checkScrollPosition);
+  }, [visibleCount, filteredNavItems.length]);
+
+  const visibleNavItems = useMemo(
+    () => filteredNavItems.slice(0, visibleCount),
+    [filteredNavItems, visibleCount],
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       {/* Filters and Settings Card - fixed header */}
@@ -1081,7 +1050,7 @@ export default function EntityBrowser({
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Entities</h2>
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            {filteredEntities.length} of {entities.length} entities
+            {filteredNavItems.length} of {navEntities.length} entities
           </span>
           {onCreateEntity && (
             <button
@@ -1372,11 +1341,6 @@ export default function EntityBrowser({
             disabled={missingDescCount === 0}
           >
             Queue All Descriptions ({missingDescCount})
-            {missingDescCount > 0 && (
-              <span style={{ opacity: 0.7, marginLeft: '4px' }}>
-                {formatEstimatedCost(missingDescCost)}
-              </span>
-            )}
           </button>
           <button
             onClick={queueAllMissingImages}
@@ -1386,11 +1350,6 @@ export default function EntityBrowser({
             {dependentDescCount > 0
               ? `Queue All Images + ${dependentDescCount} Desc (${missingImgCount})`
               : `Queue All Images (${missingImgCount})`}
-            {missingImgCount > 0 && (
-              <span style={{ opacity: 0.7, marginLeft: '4px' }}>
-                {formatEstimatedCost(missingImgCost)}
-              </span>
-            )}
           </button>
           {onStartRevision && (
             <button
@@ -1474,13 +1433,12 @@ export default function EntityBrowser({
       )}
 
       {/* Entity detail view OR entity list */}
-      {selectedEntityId && entities.find((e) => e.id === selectedEntityId) ? (
+      {selectedEntityId && selectedEntity ? (
         <EntityDetailView
-          entity={entities.find((e) => e.id === selectedEntityId)}
-          entities={entities}
+          entity={selectedEntity}
+          entities={navEntities}
           queue={queue}
           onBack={() => setSelectedEntityId(null)}
-          prominenceScale={effectiveProminenceScale}
           onUpdateBackrefs={onUpdateBackrefs}
           onUndoDescription={onUndoDescription}
           onHistorianEdition={onHistorianEdition}
@@ -1511,7 +1469,7 @@ export default function EntityBrowser({
           >
             <input
               type="checkbox"
-              checked={selectedIds.size === filteredEntities.length && filteredEntities.length > 0}
+              checked={selectedIds.size === filteredNavItems.length && filteredNavItems.length > 0}
               onChange={(e) => (e.target.checked ? selectAll() : clearSelection())}
               style={{ cursor: 'pointer' }}
             />
@@ -1520,70 +1478,61 @@ export default function EntityBrowser({
             </span>
           </div>
 
-          {/* Entity rows - scrollable container */}
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-            {filteredEntities.length === 0 ? (
+          {/* Entity rows - scrollable container with progressive rendering */}
+          <div ref={entityListRef} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+            {filteredNavItems.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                 No entities match the current filters.
               </div>
             ) : (
-              filteredEntities.map((entity) => {
-                const descStatus = getStatus(entity, 'description');
-                const imgStatus = getStatus(entity, 'image');
-                const thesisStatus = getStatus(entity, 'visualThesis');
-                const enrichment = entity.enrichment || {};
-                return (
-                  <EntityRow
-                    key={entity.id}
-                    entity={entity}
-                    descStatus={descStatus}
-                    imgStatus={imgStatus}
-                    thesisStatus={thesisStatus}
-                    selected={selectedIds.has(entity.id)}
-                    onToggleSelect={() => toggleSelect(entity.id)}
-                    onQueueDesc={() => queueItem(entity, 'description')}
-                    onQueueThesis={() => queueItem(entity, 'visualThesis')}
-                    onQueueImg={() => queueItem(entity, 'image')}
-                    onCancelDesc={() => cancelItem(entity, 'description')}
-                    onCancelThesis={() => cancelItem(entity, 'visualThesis')}
-                    onCancelImg={() => cancelItem(entity, 'image')}
-                    onAssignImage={() => openImagePicker(entity)}
-                    canQueueImage={
-                      prominenceAtLeast(entity.prominence, config.minProminenceForImage, effectiveProminenceScale) &&
-                      (!config.requireDescription ||
-                        (entity.summary && entity.description))
-                    }
-                    needsDescription={
-                      prominenceAtLeast(entity.prominence, config.minProminenceForImage, effectiveProminenceScale) &&
-                      config.requireDescription &&
-                      !(entity.summary && entity.description)
-                    }
-                    onImageClick={openImageModal}
-                    onEntityClick={() => openEntityModal(entity)}
-                    onEditEntity={onEditEntity}
-                    onDeleteEntity={onDeleteEntity}
-                    descCost={getEntityCostDisplay(
-                      entity,
-                      'description',
-                      descStatus,
-                      config,
-                      enrichment,
-                      buildPrompt,
-                      imageGenSettings,
-                    )}
-                    imgCost={getEntityCostDisplay(
-                      entity,
-                      'image',
-                      imgStatus,
-                      config,
-                      enrichment,
-                      buildPrompt,
-                      imageGenSettings,
-                    )}
-                    prominenceScale={effectiveProminenceScale}
-                  />
-                );
-              })
+              <>
+                {visibleNavItems.map((nav) => {
+                  const descStatus = getStatus(nav, 'description');
+                  const imgStatus = getStatus(nav, 'image');
+                  const thesisStatus = getStatus(nav, 'visualThesis');
+                  return (
+                    <EntityRow
+                      key={nav.id}
+                      entity={nav}
+                      descStatus={descStatus}
+                      imgStatus={imgStatus}
+                      thesisStatus={thesisStatus}
+                      selected={selectedIds.has(nav.id)}
+                      onToggleSelect={() => toggleSelect(nav.id)}
+                      onQueueDesc={() => queueItem(nav.id, 'description')}
+                      onQueueThesis={() => queueItem(nav.id, 'visualThesis')}
+                      onQueueImg={() => queueItem(nav.id, 'image')}
+                      onCancelDesc={() => cancelItem(nav.id, 'description')}
+                      onCancelThesis={() => cancelItem(nav.id, 'visualThesis')}
+                      onCancelImg={() => cancelItem(nav.id, 'image')}
+                      onAssignImage={() => openImagePicker(nav)}
+                      canQueueImage={
+                        prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
+                        (!config.requireDescription || nav.hasDescription)
+                      }
+                      needsDescription={
+                        prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
+                        config.requireDescription &&
+                        !nav.hasDescription
+                      }
+                      onImageClick={openImageModal}
+                      onEntityClick={() => openEntityModal(nav)}
+                      onEditEntity={onEditEntity ? handleEditEntity : undefined}
+                      onDeleteEntity={onDeleteEntity}
+                      descCost={getNavItemCostDisplay(nav, 'description', descStatus)}
+                      imgCost={getNavItemCostDisplay(nav, 'image', imgStatus)}
+                      prominenceScale={prominenceScale}
+                    />
+                  );
+                })}
+                {visibleCount < filteredNavItems.length && (
+                  <div
+                    style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}
+                  >
+                    Loading more... ({visibleCount} of {filteredNavItems.length})
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -1604,7 +1553,7 @@ export default function EntityBrowser({
         onSelect={handleImageSelected}
         entityKind={imagePickerEntity?.kind}
         entityCulture={imagePickerEntity?.culture}
-        currentImageId={imagePickerEntity?.enrichment?.image?.imageId}
+        currentImageId={imagePickerEntity?.imageId}
       />
     </div>
   );

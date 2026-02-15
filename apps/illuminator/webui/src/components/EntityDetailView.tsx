@@ -5,16 +5,14 @@
  * Rendered inside EntityBrowser, replacing the entity list when an entity is selected.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { QueueItem, NetworkDebugInfo, DescriptionChainDebug, ChronicleBackref } from '../lib/enrichmentTypes';
 import HistorianMarginNotes from './HistorianMarginNotes';
 import HistorianToneSelector from './HistorianToneSelector';
 import {
-  buildProminenceScale,
-  DEFAULT_PROMINENCE_DISTRIBUTION,
   prominenceLabelFromScale,
-  type ProminenceScale,
 } from '@canonry/world-schema';
+import { useProminenceScale } from '../lib/db/indexSelectors';
 import BackrefImageEditor from './BackrefImageEditor';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -66,7 +64,6 @@ interface EntityDetailViewProps {
   entities: Entity[];
   queue: QueueItem[];
   onBack: () => void;
-  prominenceScale?: ProminenceScale;
   onUpdateBackrefs?: (entityId: string, backrefs: ChronicleBackref[]) => void;
   onUndoDescription?: (entityId: string) => void;
   onHistorianEdition?: (entityId: string, tone: string) => void;
@@ -375,7 +372,6 @@ export default function EntityDetailView({
   entities,
   queue,
   onBack,
-  prominenceScale,
   onUpdateBackrefs,
   onUndoDescription,
   onHistorianEdition,
@@ -390,10 +386,7 @@ export default function EntityDetailView({
   onUpdateDescription,
   onUpdateSummary,
 }: EntityDetailViewProps) {
-  const effectiveProminenceScale = useMemo(() => {
-    if (prominenceScale) return prominenceScale;
-    return buildProminenceScale([], { distribution: DEFAULT_PROMINENCE_DISTRIBUTION });
-  }, [prominenceScale]);
+  const prominenceScale = useProminenceScale();
 
   const enrichment = entity.enrichment;
   const textEnrichment = enrichment?.text;
@@ -507,7 +500,7 @@ export default function EntityDetailView({
             {entity.name}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-            {entity.kind}/{entity.subtype} · {prominenceLabelFromScale(entity.prominence, effectiveProminenceScale)}
+            {entity.kind}/{entity.subtype} · {prominenceLabelFromScale(entity.prominence, prominenceScale)}
             {entity.culture && ` · ${entity.culture}`}
           </div>
         </div>

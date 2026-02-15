@@ -81,6 +81,38 @@ export async function getRelationshipsForRun(
   return relationships;
 }
 
+/**
+ * Get all relationships involving a specific entity (as src or dst).
+ * Uses the existing 'src' and 'dst' indexes for efficient per-entity queries.
+ */
+export async function getRelationshipsForEntity(
+  simulationRunId: string,
+  entityId: string,
+): Promise<PersistedRelationship[]> {
+  const [asSrc, asDst] = await Promise.all([
+    db.relationships
+      .where('src')
+      .equals(entityId)
+      .and((r) => r.simulationRunId === simulationRunId)
+      .toArray(),
+    db.relationships
+      .where('dst')
+      .equals(entityId)
+      .and((r) => r.simulationRunId === simulationRunId)
+      .toArray(),
+  ]);
+  const seen = new Set<string>();
+  const result: PersistedRelationship[] = [];
+  for (const rel of [...asSrc, ...asDst]) {
+    const key = `${rel.src}:${rel.dst}:${rel.kind}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(rel);
+    }
+  }
+  return result;
+}
+
 // ---------------------------------------------------------------------------
 // Cleanup
 // ---------------------------------------------------------------------------

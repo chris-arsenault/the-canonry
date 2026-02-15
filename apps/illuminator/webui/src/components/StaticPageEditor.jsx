@@ -12,7 +12,6 @@ import ImageRefPicker from './ImageRefPicker';
 
 export default function StaticPageEditor({
   page,
-  entities,
   projectId,
   onSave,
   onDelete,
@@ -202,7 +201,6 @@ export default function StaticPageEditor({
       {/* Modals */}
       {showEntityPicker && (
         <EntityLinkPicker
-          entities={entities}
           onSelect={handleEntityLinkSelect}
           onClose={() => setShowEntityPicker(false)}
         />

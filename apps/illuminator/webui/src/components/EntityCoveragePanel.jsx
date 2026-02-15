@@ -12,6 +12,9 @@
  */
 
 import { useMemo, useEffect, useState, useCallback } from 'react';
+import { useEntityNavList } from '../lib/db/entitySelectors';
+import { useRelationships } from '../lib/db/relationshipSelectors';
+import { useNarrativeEvents } from '../lib/db/narrativeEventSelectors';
 import { getChroniclesForSimulation } from '../lib/db/chronicleRepository';
 import { computeAllStoryPotentials, scoreToRating } from '../lib/chronicle/storyPotential';
 
@@ -1439,7 +1442,10 @@ function IntegrationSection({ entities, entityBackportedCount, expanded }) {
 // Main component
 // ============================================================================
 
-export default function EntityCoveragePanel({ simulationRunId, entities, narrativeEvents, relationships }) {
+export default function EntityCoveragePanel({ simulationRunId }) {
+  const entities = useEntityNavList();
+  const narrativeEvents = useNarrativeEvents();
+  const relationships = useRelationships();
   const [chronicles, setChronicles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expandedSections, setExpandedSections] = useState(new Set());

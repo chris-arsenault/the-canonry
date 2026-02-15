@@ -14,7 +14,7 @@ import {
   deleteStaticPage,
 } from '../lib/db/staticPageRepository';
 
-export default function StaticPagesPanel({ projectId, entities }) {
+export default function StaticPagesPanel({ projectId }) {
   const [pages, setPages] = useState([]);
   const [selectedPageId, setSelectedPageId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -156,7 +156,6 @@ export default function StaticPagesPanel({ projectId, entities }) {
       <div className="static-pages-editor-area">
         <StaticPageEditor
           page={selectedPage}
-          entities={entities}
           projectId={projectId}
           onSave={handleSavePage}
           onDelete={handleDeletePage}

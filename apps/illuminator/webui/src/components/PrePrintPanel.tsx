@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useEntityNavList } from '../lib/db/entitySelectors';
 import type { PersistedEntity } from '../lib/db/illuminatorDb';
 import type { ChronicleRecord } from '../lib/chronicleTypes';
 import type { ImageMetadataRecord } from '../lib/preprint/prePrintStats';
@@ -15,6 +16,7 @@ import { getChroniclesForSimulation } from '../lib/db/chronicleRepository';
 import { getAllImages } from '../lib/db/imageRepository';
 import { getStaticPagesForProject } from '../lib/db/staticPageRepository';
 import { loadTree, saveTree } from '../lib/db/contentTreeRepository';
+import { getEntitiesForRun } from '../lib/db/entityRepository';
 import StatsView from './preprint/StatsView';
 import ContentTreeView from './preprint/ContentTreeView';
 import ExportView from './preprint/ExportView';
@@ -22,13 +24,14 @@ import ExportView from './preprint/ExportView';
 type SubTab = 'stats' | 'tree' | 'export';
 
 interface PrePrintPanelProps {
-  entities: PersistedEntity[];
   projectId: string;
   simulationRunId: string;
 }
 
-export default function PrePrintPanel({ entities, projectId, simulationRunId }: PrePrintPanelProps) {
+export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPanelProps) {
+  const navEntities = useEntityNavList();
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('stats');
+  const [fullEntities, setFullEntities] = useState<PersistedEntity[]>([]);
   const [chronicles, setChronicles] = useState<ChronicleRecord[]>([]);
   const [allImages, setAllImages] = useState<ImageMetadataRecord[]>([]);
   const [staticPages, setStaticPages] = useState<StaticPage[]>([]);
@@ -48,13 +51,15 @@ export default function PrePrintPanel({ entities, projectId, simulationRunId }: 
       getAllImages(),
       getStaticPagesForProject(projectId),
       loadTree(projectId, simulationRunId),
-    ]).then(([chrons, allImgs, pages, tree]) => {
+      getEntitiesForRun(simulationRunId),
+    ]).then(([chrons, allImgs, pages, tree, ents]) => {
       if (cancelled) return;
       setChronicles(chrons);
       // Keep project-scoped images; further filtering happens in memo below.
       setAllImages(allImgs.filter((img) => img.projectId === projectId));
       setStaticPages(pages);
       setTreeState(tree);
+      setFullEntities(ents);
       setLoading(false);
     });
 
@@ -74,9 +79,8 @@ export default function PrePrintPanel({ entities, projectId, simulationRunId }: 
 
     const referencedIds = new Set<string>();
 
-    for (const entity of entities) {
-      const imageId = entity.enrichment?.image?.imageId;
-      if (imageId) referencedIds.add(imageId);
+    for (const entity of navEntities) {
+      if (entity.imageId) referencedIds.add(entity.imageId);
     }
 
     const publishableChronicles = chronicles.filter(
@@ -100,7 +104,7 @@ export default function PrePrintPanel({ entities, projectId, simulationRunId }: 
 
     if (referencedIds.size === 0) return [];
     return allImages.filter((img) => referencedIds.has(img.imageId));
-  }, [allImages, entities, chronicles]);
+  }, [allImages, navEntities, chronicles]);
 
   if (loading) {
     return (
@@ -141,7 +145,7 @@ export default function PrePrintPanel({ entities, projectId, simulationRunId }: 
       <div className="preprint-content">
         {activeSubTab === 'stats' && (
           <StatsView
-            entities={entities}
+            entities={fullEntities}
             chronicles={chronicles}
             images={images}
             staticPages={staticPages}
@@ -150,7 +154,7 @@ export default function PrePrintPanel({ entities, projectId, simulationRunId }: 
 
         {activeSubTab === 'tree' && (
           <ContentTreeView
-            entities={entities}
+            entities={fullEntities}
             chronicles={chronicles}
             staticPages={staticPages}
             treeState={treeState}
@@ -162,7 +166,7 @@ export default function PrePrintPanel({ entities, projectId, simulationRunId }: 
 
         {activeSubTab === 'export' && (
           <ExportView
-            entities={entities}
+            entities={fullEntities}
             chronicles={chronicles}
             images={images}
             staticPages={staticPages}

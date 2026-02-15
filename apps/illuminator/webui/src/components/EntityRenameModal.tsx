@@ -9,6 +9,10 @@
  */
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useEntityNavList } from '../lib/db/entitySelectors';
+import * as entityRepo from '../lib/db/entityRepository';
+import { useRelationships } from '../lib/db/relationshipSelectors';
+import { useNarrativeEvents } from '../lib/db/narrativeEventSelectors';
 import { generate } from 'name-forge';
 import { toCulture } from '../lib/chronicle/nameBank';
 import {
@@ -63,11 +67,8 @@ type ModalMode = 'rename' | 'patch';
 
 interface EntityRenameModalProps {
   entityId: string;
-  entities: Entity[];
   cultures: CultureDefinition[];
   simulationRunId: string;
-  relationships?: Relationship[];
-  narrativeEvents?: ScanNarrativeEvent[];
   /** 'rename' = full rename flow, 'patch' = repair stale names in events */
   mode?: ModalMode;
   onApply: (manifest: {
@@ -527,18 +528,18 @@ function SourceSection({
 
 export default function EntityRenameModal({
   entityId,
-  entities,
   cultures,
   simulationRunId,
-  relationships,
-  narrativeEvents,
   mode = 'rename',
   onApply,
   onClose,
 }: EntityRenameModalProps) {
+  const navEntities = useEntityNavList();
+  const relationships = useRelationships();
+  const narrativeEvents = useNarrativeEvents();
   const entity = useMemo(
-    () => entities.find((e) => e.id === entityId),
-    [entities, entityId],
+    () => navEntities.find((e) => e.id === entityId),
+    [navEntities, entityId],
   );
 
   const isPatch = mode === 'patch';
@@ -605,7 +606,6 @@ export default function EntityRenameModal({
     console.log('[EntityRenameModal] handleScan starting', {
       scanOldName,
       newName,
-      entityCount: entities.length,
       narrativeEventCount: narrativeEvents?.length ?? 0,
     });
 
@@ -621,11 +621,14 @@ export default function EntityRenameModal({
     }
 
     try {
-      const chronicles = await getChroniclesForSimulation(simulationRunId);
+      const [chronicles, fullEntities] = await Promise.all([
+        getChroniclesForSimulation(simulationRunId),
+        entityRepo.getEntitiesForRun(simulationRunId),
+      ]);
       const result = await scanForReferences(
         entityId,
         scanOldName,
-        entities,
+        fullEntities,
         chronicles,
         relationships,
         narrativeEvents,
@@ -661,7 +664,7 @@ export default function EntityRenameModal({
       console.error('[EntityRename] Scan failed:', err);
       setPhase('input');
     }
-  }, [newName, oldNameInput, isPatch, scanOldName, entityId, entities, simulationRunId, relationships, narrativeEvents]);
+  }, [newName, oldNameInput, isPatch, scanOldName, entityId, simulationRunId, relationships, narrativeEvents]);
 
   // --- Decision handling ---
   const handleChangeAction = useCallback(

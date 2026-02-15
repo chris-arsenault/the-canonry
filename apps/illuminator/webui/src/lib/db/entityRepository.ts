@@ -130,6 +130,11 @@ export async function getEntity(entityId: string): Promise<PersistedEntity | und
   return db.entities.get(entityId);
 }
 
+export async function getEntitiesByIds(entityIds: string[]): Promise<PersistedEntity[]> {
+  const results = await db.entities.bulkGet(entityIds);
+  return results.filter((e): e is PersistedEntity => e !== undefined);
+}
+
 export async function getEntitiesForRun(simulationRunId: string): Promise<PersistedEntity[]> {
   return db.entities.where('simulationRunId').equals(simulationRunId).toArray();
 }
