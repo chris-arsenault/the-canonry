@@ -958,6 +958,7 @@ export function getRelevantEvents(
   // Return all events involving assigned entities - no artificial limit
   // Final selection is limited to MAX_CHRONICLE_EVENTS in the UI
   return allEvents.filter(e =>
+    e.eventKind === 'creation_batch' ||
     (e.subjectId && assignedIds.has(e.subjectId)) ||
     (e.objectId && assignedIds.has(e.objectId))
   );
@@ -1094,8 +1095,9 @@ export function buildWizardSelectionContext(
     r => candidateIds.has(r.src) && candidateIds.has(r.dst)
   );
 
-  // Get events involving candidates
+  // Get events involving candidates + world-structuring events (always available)
   const candidateEvents = allEvents.filter(e =>
+    e.eventKind === 'creation_batch' ||
     (e.subjectId && candidateIds.has(e.subjectId)) ||
     (e.objectId && candidateIds.has(e.objectId))
   );

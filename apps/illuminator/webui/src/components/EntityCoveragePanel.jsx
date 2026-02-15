@@ -12,9 +12,9 @@
  */
 
 import { useMemo, useEffect, useState, useCallback } from 'react';
-import { useEntityNavList } from '../lib/db/entitySelectors';
 import { useRelationships } from '../lib/db/relationshipSelectors';
 import { useNarrativeEvents } from '../lib/db/narrativeEventSelectors';
+import { getEntitiesForRun } from '../lib/db/entityRepository';
 import { getChroniclesForSimulation } from '../lib/db/chronicleRepository';
 import { computeAllStoryPotentials, scoreToRating } from '../lib/chronicle/storyPotential';
 
@@ -1442,32 +1442,52 @@ function IntegrationSection({ entities, entityBackportedCount, expanded }) {
 // Main component
 // ============================================================================
 
+/**
+ * Main component.
+ *
+ * Coverage analysis needs full PersistedEntity data (enrichment.chronicleBackrefs,
+ * descriptionHistory, historianNotes, description text, tags, etc.) — fields that
+ * are NOT on the lightweight EntityNavItem projections.
+ *
+ * To avoid loading ~9MB of entity data on every tab visit, this panel does NOT
+ * auto-calculate. The user clicks "Calculate Statistics" which loads full entities
+ * and chronicles from Dexie on demand, computes the analysis, and renders sections.
+ * Events and relationships are subscribed from their stores (they're always in memory
+ * since those stores use the simple full-data pattern — see narrativeEventStore.ts).
+ */
 export default function EntityCoveragePanel({ simulationRunId }) {
-  const entities = useEntityNavList();
+  // Events and relationships are always in memory (simple store pattern, no nav/detail split)
   const narrativeEvents = useNarrativeEvents();
   const relationships = useRelationships();
-  const [chronicles, setChronicles] = useState([]);
-  const [loading, setLoading] = useState(false);
+
+  // Full entity + chronicle data loaded on demand when user clicks "Calculate"
+  const [analysisData, setAnalysisData] = useState(null);
+  const [calculating, setCalculating] = useState(false);
   const [expandedSections, setExpandedSections] = useState(new Set());
 
-  // Load chronicles
+  // Reset when simulation run changes
   useEffect(() => {
-    if (!simulationRunId) return;
-    let cancelled = false;
-    setLoading(true);
-    getChroniclesForSimulation(simulationRunId)
-      .then((records) => {
-        if (!cancelled) setChronicles(records);
-      })
-      .catch((err) => {
-        console.error('[EntityCoverage] Failed to load chronicles:', err);
-        if (!cancelled) setChronicles([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
+    setAnalysisData(null);
   }, [simulationRunId]);
+
+  const handleCalculate = useCallback(async () => {
+    if (!simulationRunId) return;
+    setCalculating(true);
+    try {
+      const [fullEntities, chronicles] = await Promise.all([
+        getEntitiesForRun(simulationRunId),
+        getChroniclesForSimulation(simulationRunId),
+      ]);
+      const safeEvents = narrativeEvents || [];
+      const safeRelationships = relationships || [];
+      const analysis = computeCoreAnalysis(fullEntities, chronicles, safeEvents, safeRelationships);
+      setAnalysisData({ fullEntities, chronicles, analysis, events: safeEvents, relationships: safeRelationships });
+    } catch (err) {
+      console.error('[EntityCoverage] Failed to calculate:', err);
+    } finally {
+      setCalculating(false);
+    }
+  }, [simulationRunId, narrativeEvents, relationships]);
 
   const toggleSection = useCallback((sectionId) => {
     setExpandedSections((prev) => {
@@ -1478,30 +1498,36 @@ export default function EntityCoveragePanel({ simulationRunId }) {
     });
   }, []);
 
-  // Core analysis
-  const analysis = useMemo(
-    () => computeCoreAnalysis(entities || [], chronicles, narrativeEvents || [], relationships || []),
-    [entities, chronicles, narrativeEvents, relationships]
-  );
-
   if (!simulationRunId) return null;
 
-  if (loading && chronicles.length === 0) {
+  // Before calculation — show button
+  if (!analysisData) {
     return (
-      <div className="illuminator-card" style={{ marginTop: '16px' }}>
-        <div style={{ padding: '10px 16px' }}>
-          <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-color)' }}>Entity Coverage Analysis</span>
-        </div>
-        <div style={{ padding: '0 16px 12px', color: 'var(--text-muted)', fontSize: '12px' }}>
-          Loading chronicle data...
+      <div style={{ marginTop: '16px' }}>
+        <div className="illuminator-card">
+          <div style={{ padding: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-color)' }}>Entity Coverage Analysis</span>
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '8px 0 12px' }}>
+              Analyzes coverage gaps across entities, chronicles, events, and relationships.
+              Loads full entity data on demand.
+            </p>
+            <button
+              onClick={handleCalculate}
+              disabled={calculating}
+              className="illuminator-button illuminator-button-secondary"
+              style={{ padding: '8px 16px', fontSize: '12px' }}
+            >
+              {calculating ? 'Calculating...' : 'Calculate Statistics'}
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  const safeEntities = entities || [];
-  const safeEvents = narrativeEvents || [];
-  const safeRelationships = relationships || [];
+  const { fullEntities, analysis, events: safeEvents, relationships: safeRelationships } = analysisData;
 
   // Compute underutil counts for collapsed section headers
   const sectionUnderutilCounts = {};
@@ -1509,7 +1535,7 @@ export default function EntityCoveragePanel({ simulationRunId }) {
     if (!expandedSections.has(sectionId)) {
       switch (sectionId) {
         case 'backrefs':
-          sectionUnderutilCounts[sectionId] = safeEntities.filter((e) => {
+          sectionUnderutilCounts[sectionId] = fullEntities.filter((e) => {
             if (e.kind === 'era') return false;
             const expected = expectedForProminence(e.prominence);
             if (expected === 0) return false;
@@ -1518,7 +1544,7 @@ export default function EntityCoveragePanel({ simulationRunId }) {
           }).length;
           break;
         case 'history':
-          sectionUnderutilCounts[sectionId] = safeEntities.filter((e) => {
+          sectionUnderutilCounts[sectionId] = fullEntities.filter((e) => {
             if (e.kind === 'era') return false;
             return (e.enrichment?.chronicleBackrefs?.length ?? 0) > 0 && (e.enrichment?.descriptionHistory?.length ?? 0) === 0;
           }).length;
@@ -1549,7 +1575,7 @@ export default function EntityCoveragePanel({ simulationRunId }) {
           break;
         }
         case 'integration':
-          sectionUnderutilCounts[sectionId] = safeEntities.filter((e) => {
+          sectionUnderutilCounts[sectionId] = fullEntities.filter((e) => {
             if (e.kind === 'era') return false;
             if ((Number(e.prominence) || 0) < 2) return false;
             let gaps = 0;
@@ -1566,23 +1592,32 @@ export default function EntityCoveragePanel({ simulationRunId }) {
   }
 
   const sectionProps = {
-    backrefs: { Component: BackrefsSection, props: { entities: safeEntities } },
-    history: { Component: HistorySection, props: { entities: safeEntities } },
-    culture: { Component: CultureSection, props: { entities: safeEntities, cultureRoles: analysis.cultureRoles, cultureEntities: analysis.cultureEntities, entityUsage: analysis.entityUsage } },
+    backrefs: { Component: BackrefsSection, props: { entities: fullEntities } },
+    history: { Component: HistorySection, props: { entities: fullEntities } },
+    culture: { Component: CultureSection, props: { entities: fullEntities, cultureRoles: analysis.cultureRoles, cultureEntities: analysis.cultureEntities, entityUsage: analysis.entityUsage } },
     events: { Component: EventsSection, props: { events: safeEvents, eventCoverage: analysis.eventCoverage } },
-    potential: { Component: PotentialSection, props: { entities: safeEntities, narrativeEvents: safeEvents, relationships: safeRelationships, entityUsage: analysis.entityUsage } },
-    eras: { Component: ErasSection, props: { entities: safeEntities, events: safeEvents, eraChronicles: analysis.eraChronicles, eraEntityCounts: analysis.eraEntityCounts, eraEventCounts: analysis.eraEventCounts } },
-    integration: { Component: IntegrationSection, props: { entities: safeEntities, entityBackportedCount: analysis.entityBackportedCount } },
+    potential: { Component: PotentialSection, props: { entities: fullEntities, narrativeEvents: safeEvents, relationships: safeRelationships, entityUsage: analysis.entityUsage } },
+    eras: { Component: ErasSection, props: { entities: fullEntities, events: safeEvents, eraChronicles: analysis.eraChronicles, eraEntityCounts: analysis.eraEntityCounts, eraEventCounts: analysis.eraEventCounts } },
+    integration: { Component: IntegrationSection, props: { entities: fullEntities, entityBackportedCount: analysis.entityBackportedCount } },
   };
 
   return (
     <div style={{ marginTop: '16px' }}>
       <div className="illuminator-card" style={{ marginBottom: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', padding: '10px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px' }}>
           <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-color)' }}>Entity Coverage Analysis</span>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            {safeEntities.filter((e) => e.kind !== 'era').length} entities, {analysis.activeChronicles.length} chronicles, {safeEvents.length} events
+            {analysis.nonEraEntities.length} entities, {analysis.activeChronicles.length} chronicles, {safeEvents.length} events
           </span>
+          <button
+            onClick={handleCalculate}
+            disabled={calculating}
+            className="illuminator-button illuminator-button-secondary"
+            style={{ padding: '4px 10px', fontSize: '11px', marginLeft: 'auto' }}
+            title="Reload data from database and recalculate all statistics"
+          >
+            {calculating ? 'Recalculating...' : 'Recalculate'}
+          </button>
         </div>
       </div>
 

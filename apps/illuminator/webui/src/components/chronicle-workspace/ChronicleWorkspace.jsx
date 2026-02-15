@@ -297,10 +297,11 @@ export default function ChronicleWorkspace({
     entrypointName: item.entrypointId
       ? entities?.find(e => e.id === item.entrypointId)?.name
       : undefined,
+    narrativeDirection: item.narrativeDirection,
     roleAssignments: item.roleAssignments || [],
     selectedEventIds: item.selectedEventIds || [],
     selectedRelationshipIds: item.selectedRelationshipIds || [],
-  }), [item.narrativeStyleId, item.narrativeStyle?.name, item.entrypointId, item.roleAssignments, item.selectedEventIds, item.selectedRelationshipIds, entities, styleLibrary?.narrativeStyles]);
+  }), [item.narrativeStyleId, item.narrativeStyle?.name, item.entrypointId, item.narrativeDirection, item.roleAssignments, item.selectedEventIds, item.selectedRelationshipIds, entities, styleLibrary?.narrativeStyles]);
 
   // ---------------------------------------------------------------------------
   // Title modal
