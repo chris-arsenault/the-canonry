@@ -1,8 +1,16 @@
 /**
  * Zustand selectors for chronicle store.
  *
- * Provides granular subscriptions so components only re-render when
- * the specific data they care about changes.
+ * Same selector pattern as entitySelectors.ts — nav items for lists,
+ * full records from cache for detail views.
+ *
+ * useChronicleNavItems()     → ChronicleNavItem[] for the nav list sidebar
+ * useSelectedChronicle(id)   → full ChronicleRecord from cache (async load on first access)
+ *
+ * IMPORTANT: useSelectedChronicle returns undefined until the record is loaded
+ * from Dexie into the cache. Don't use its return value for existence checks —
+ * check chronicleNavItems instead (they're synchronously available).
+ * See the clearing effect in ChroniclePanel.jsx for an example of this pitfall.
  */
 
 import { useMemo, useEffect } from 'react';

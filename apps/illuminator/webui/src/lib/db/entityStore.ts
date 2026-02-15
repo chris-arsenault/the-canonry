@@ -1,14 +1,48 @@
 /**
  * Entity Store — Zustand reactive layer for entity data.
  *
- * Holds lightweight nav items in memory for list rendering.
- * Full entity records are loaded on demand into a bounded FIFO cache.
+ * ## Two-layer architecture (see entityNav.ts for the full picture)
  *
- * Follows the chronicle store pattern: initialize projects all records
- * to nav items then discards the full records. loadEntity/loadEntities
- * fetch from Dexie on demand with cache.
+ * navItems (Map<id, EntityNavItem>):
+ *   Always in memory. Lightweight projections (~1-2MB for ~900 entities).
+ *   Built by initialize() which loads ALL entities from Dexie, projects
+ *   each to an EntityNavItem via buildEntityNavItem(), then DISCARDS the
+ *   full records. React components subscribe to these for list rendering.
  *
- * Dexie remains the source of truth.
+ * cache (Map<id, PersistedEntity>):
+ *   Bounded FIFO cache of full records. Max CACHE_LIMIT entries.
+ *   Populated on demand by loadEntity() / loadEntities() which read
+ *   from Dexie. Used for detail views, buildPrompt, and queue operations.
+ *   When the cache is full, the oldest entry is evicted.
+ *
+ * ## Store methods
+ *
+ * initialize(runId)      — Load all from Dexie → project to navItems → discard full records.
+ *                           Called once per simulation run load. Idempotent.
+ * loadEntity(id)         — Cache check → Dexie get → add to cache. Returns full PersistedEntity.
+ *                           Used by detail views and single-entity queue operations.
+ * loadEntities(ids)      — Batch version of loadEntity. Partitions into cached/uncached,
+ *                           loads uncached from Dexie in one call. Used by bulk queue ops.
+ * refreshEntities(ids)   — Reload specific entities from Dexie → update BOTH navItems AND cache.
+ *                           Called after mutations (enrichment complete, rename, etc.).
+ * refreshAll()           — Reload all from Dexie → rebuild navItems, clear cache.
+ *                           Called on data sync (import world).
+ * getEntity(id)          — Synchronous cache-only lookup. Returns undefined if not cached.
+ *                           For imperative callbacks that know the entity was recently loaded.
+ * reset()                — Clear everything. Called on project/run switch.
+ *
+ * ## Important: Dexie has no column projection
+ *
+ * Dexie (IndexedDB) always returns the full record — there's no SELECT columns.
+ * So initialize() unavoidably loads all full records into memory temporarily,
+ * but immediately discards them after projecting to nav items. The memory spike
+ * is transient (~9MB during init, settling to ~1-2MB for nav items only).
+ *
+ * ## Relationship to other stores
+ *
+ * The same nav/detail split is used for chronicles (chronicleStore.ts / chronicleNav.ts).
+ * Relationships, events, and indexes use simpler stores (full data in memory) because
+ * they're small enough that the split isn't worth the complexity.
  */
 
 import { create } from 'zustand';
@@ -16,6 +50,8 @@ import type { PersistedEntity } from './illuminatorDb';
 import { buildEntityNavItem, type EntityNavItem } from './entityNav';
 import * as entityRepo from './entityRepository';
 
+// Max full PersistedEntity records held in memory at once.
+// 50 × ~10KB = ~500KB worst case. Evicts oldest on overflow.
 const CACHE_LIMIT = 50;
 
 export interface EntityStoreState {

@@ -1,3 +1,14 @@
+/**
+ * ChronicleNavItem — lightweight projection of ChronicleRecord for nav list rendering.
+ *
+ * Same two-layer pattern as entityNav.ts / entityStore.ts.
+ * See entityNav.ts for the full architectural documentation.
+ *
+ * Chronicles are lighter than entities (~3KB vs ~10KB per record), so the memory
+ * savings are less dramatic, but the pattern still matters for render performance:
+ * the nav list only re-renders when nav item fields change, not when the full
+ * record's heavy content (assembledContent, generationHistory, etc.) changes.
+ */
 import type { ChronicleRecord } from './chronicleRepository';
 import { isNoteActive } from '../historianTypes';
 import { deriveStatus } from '../../hooks/useChronicleGeneration';

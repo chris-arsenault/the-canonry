@@ -1,11 +1,15 @@
 /**
- * Zustand store for chronicle data.
+ * Chronicle Store — Zustand reactive layer for chronicle data.
  *
- * Holds a lightweight nav index plus a bounded cache of full ChronicleRecords.
- * Components subscribe via selectors in chronicleSelectors.ts for granular re-renders.
+ * Same two-layer nav/cache architecture as entityStore.ts.
+ * See entityNav.ts for the full architectural documentation.
  *
- * Queue-dependent actions (generate, enqueue) live in useChronicleActions hook,
- * not here — Zustand stores should not hold prop-dependent closures.
+ * Key differences from entity store:
+ *   - navItems is Record<string, ChronicleNavItem> (not Map) + navOrder array for sort
+ *   - CACHE_LIMIT is 20 (chronicles are larger due to assembledContent/generationHistory)
+ *   - Includes lifecycle actions (accept, cancel, restart) that mutate Dexie then refresh
+ *   - Queue-dependent actions (generate, enqueue) live in useChronicleActions hook,
+ *     not here — Zustand stores should not hold prop-dependent closures
  */
 
 import { create } from 'zustand';

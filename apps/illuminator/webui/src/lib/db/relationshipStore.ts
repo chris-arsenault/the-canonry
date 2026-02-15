@@ -1,11 +1,14 @@
 /**
  * Relationship Store — Zustand reactive layer for relationship data.
  *
+ * Unlike entities and chronicles, relationships use a SIMPLE store pattern:
+ * all records fully loaded in memory, no nav/detail split. This is because
+ * relationships are small (~150KB for ~1500 records) and buildPrompt needs
+ * synchronous access for bulk "Queue All" operations.
+ *
  * Holds the full relationship array and a precomputed byEntity index.
  * Components subscribe via selectors in relationshipSelectors.ts.
- *
- * Dexie remains the source of truth. This store reads from Dexie
- * on initialize and refreshes on data sync.
+ * Dexie remains the source of truth.
  */
 
 import { create } from 'zustand';

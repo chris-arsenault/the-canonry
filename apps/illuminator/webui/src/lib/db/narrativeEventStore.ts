@@ -1,11 +1,13 @@
 /**
  * Narrative Event Store — Zustand reactive layer for narrative event data.
  *
- * Holds the full events array in memory. Components subscribe via
- * selectors in narrativeEventSelectors.ts.
+ * Unlike entities and chronicles, events use a SIMPLE store pattern:
+ * all records fully loaded in memory, no nav/detail split. This is because
+ * events are moderately sized (~1.3MB for ~6400 records) and buildPrompt
+ * needs synchronous access for bulk operations.
  *
- * Dexie remains the source of truth. This store reads from Dexie
- * on initialize and refreshes on rename or data sync.
+ * Components subscribe via selectors in narrativeEventSelectors.ts.
+ * Dexie remains the source of truth. Refreshes on rename or data sync.
  */
 
 import { create } from 'zustand';
