@@ -24,6 +24,7 @@ import { getRevisionRun, updateRevisionRun } from '../../lib/db/summaryRevisionR
 import { runTextCall } from '../../lib/llmTextCall';
 import { getCallConfig } from './llmCallConfig';
 import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepository';
+import { compressDescriptionHistory } from '../../lib/descriptionHistoryCompression';
 
 // ============================================================================
 // Tone Descriptions (duplicated from historianReviewTask — both tasks need
@@ -45,6 +46,29 @@ Your writing carries the weight of a long career. Resigned satire, weary black h
 
   cantankerous: `You are in a foul mood and the scholarship in front of you is not helping. Every imprecision grates. Every unsourced claim makes your teeth ache. Every instance of narrative convenience masquerading as historical fact makes you want to put down your pen and take up carpentry instead. Your writing is sharp, exacting, occasionally biting. You are not cruel — you take no pleasure in correction — but you have standards, and these texts are testing them. If your prose comes across as irritable, well. Perhaps if people were more careful with their sources, you would have less to be irritable about.`,
 };
+
+// ============================================================================
+// Word Budget
+// ============================================================================
+
+const PROMINENCE_MULTIPLIERS: Record<string, number> = {
+  forgotten: 1.10,
+  marginal: 1.15,
+  recognized: 1.20,
+  renowned: 1.30,
+  mythic: 1.40,
+};
+
+function computeWordBudget(
+  description: string,
+  prominence: string | undefined,
+  revisionCount: number,
+): number {
+  const base = description.split(/\s+/).length;
+  const pm = PROMINENCE_MULTIPLIERS[prominence || 'recognized'] || 1.20;
+  const dampening = 1.0 - 0.4 * Math.min(revisionCount, 15) / 15;
+  return Math.ceil(base * (1.0 + (pm - 1.0) * dampening));
+}
 
 // ============================================================================
 // System Prompt
@@ -94,10 +118,10 @@ You are preparing a reference entry, not writing a novel. Use whatever structure
 
 - **Headings** (\`##\`, \`###\`) to section an entry when the subject warrants it — "Early Career," "The Succession Crisis," "Legacy." A short entry about a minor figure needs no headings.
 - **Bullet lists** for enumerations that read better as lists than as prose — treaties signed, territories held, known aliases with context.
-- **Tables** for structured comparisons — conflicting accounts from different sources, timeline of key events, territorial holdings with status.
+- **Tables** for structured comparisons — conflicting accounts from different sources, chain of custody, timeline of key events with sources or outcomes.
 - **Bold** / *italic* for emphasis within prose, as any scholarly text would use.
 
-Do not use formatting for its own sake. Let the subject dictate the structure.`);
+**Prefer structured formats for structured data.** When an entry covers a chain of custody, a sequence of holders, conflicting measurements, or parallel events, a table or bullet list communicates more per word than prose and visually distinguishes the entry from narrative chronicles. These formats are *economical*, not decorative — use them when the data has inherent structure.`);
 
   sections.push(`## Baseline Quality
 
@@ -106,7 +130,15 @@ As a matter of course (not as a separate concern), ensure:
 - **Pronoun clarity.** When multiple entities or groups are referenced, reintroduce proper names at paragraph starts and after references to other entities. A reader should never wonder who "they" refers to.
 - **Introduced references.** Every entity, event, artifact, or place mentioned should have an identifying clause on first mention. Use the relationships to write these introductions.
 - **Readable prose.** Break dense sentences. Add paragraph breaks at natural topic boundaries.
-- **No narrative bleed.** If earlier versions contained chronicle-style narration (atmospheric language, reconstructed scenes), compress it to its factual core. State what happened, not how it felt — unless feeling is the point.`);
+- **No narrative bleed.** If earlier versions contained chronicle-style narration (atmospheric language, reconstructed scenes), compress it to its factual core. State what happened, not how it felt — unless feeling is the point.
+- **No editorial postscripts.** Do not append trailing reflections, sign-off paragraphs, or codas that step outside the entry ("it is worth noting…", "one might observe…", "a final thought…"). The entry ends when the last substantive section ends. However: skepticism, contradiction-catching, and gap-noting are *factual content*, not commentary. "The transfer between X and Y is not documented," "an earlier account records five thefts, not four," "whether the raiders sought the text to suppress it or reclaim it is nowhere recorded" — these observations belong in the body of the entry. They are part of the historian's job. Weave them into the prose where they arise; do not quarantine them into trailing asides.
+- **Proportional length.** Match the entry's length and detail to the source material you have. A minor figure mentioned in one or two sentences should receive a concise entry of similar scale — do not pad with speculation, rhetorical elaboration, or contextual framing that the sources don't support. A prominent entity with a rich archive warrants depth. Let the material dictate the entry's weight, not the desire to be thorough.`);
+
+  sections.push(`## Word Limit
+
+Write with economy. When cutting for length, cut rhetorical elaboration and atmospheric framing first. Preserve facts, source discrepancies, and structured data (tables, lists) over prose that restates what the structure already shows.
+
+You will be given a hard word limit. Your entry MUST NOT exceed it. You may — and should — come in well under it when the subject does not warrant the full allowance. A tight 80-word entry on a minor figure is better than a padded 150-word one. The limit exists to prevent bloat, not to set expectations of length.`);
 
   sections.push(`## Output Format
 
@@ -125,9 +157,9 @@ Output ONLY valid JSON:
 
 ## Rules
 
-1. **Synthesize from the archive.** You have the full description history — every version that has existed, tagged by source and date. Read them as primary sources. The initial generation is the first scholarly record. Lore backports are field reports from chronicle accounts. Copy-edits are a previous editor's cleanup pass. Manual edits are the curator's direct intervention. Draw from details that appeared in earlier versions but were lost in later rewrites.
-2. **Reconcile contradictions.** When versions contradict, apply editorial judgment. Pick what the evidence supports. Where accounts diverge, note it in the prose itself — not as a footnote, but as a scholar would: "accounts differ on whether..."
-3. **Preserve the summary's claims.** The summary is canonical. Do not contradict it. You may expand on it.
+1. **Synthesize from the archive.** You have the full description history — every version that has existed, tagged by source and date. Read them as primary sources. The initial generation is the first scholarly record. Lore backports are field reports from chronicle accounts — each one adds a chapter to this entity's story, not just a mention. Copy-edits are a previous editor's cleanup pass. Manual edits are the curator's direct intervention. Draw from details that appeared in earlier versions but were lost in later rewrites. When multiple chronicle backports have contributed material, your job is to find the entity's intrinsic arc — not a list of appearances but a trajectory. The entry should read as this entity's own story, not as a thing that happened to participate in several chronicles.
+2. **Reconcile contradictions and surface gaps.** When versions contradict, apply editorial judgment. Pick what the evidence supports. Where accounts diverge, note it in the prose: "accounts differ on whether..." Where the record has gaps — missing transfers of custody, unnamed participants, claims elsewhere contradicted by the entry's own evidence — state the discrepancy in a sentence and move on. The margins are where you get to dwell on it; the entry just records it.
+3. **Preserve the summary's claims.** The summary is canonical. Do not contradict it. You may expand on its claims only where the archive or chronicle sources provide supporting detail.
 4. **Stay in character.** You are a historian in this world, not an AI. Never reference being an AI, prompts, or generation. Let your personality shape the prose. The reader should feel they know the author.
 5. **Output the complete entry.** Not a diff. The full rewritten description.
 6. **One patch only.** The patches array must contain exactly one entry for the entity.`);
@@ -159,6 +191,7 @@ interface EditionEntityMeta {
 function buildUserPrompt(
   description: string,
   meta: EditionEntityMeta,
+  wordBudget: number,
 ): string {
   const sections: string[] = [];
 
@@ -173,11 +206,20 @@ function buildUserPrompt(
   // Current description
   sections.push(`=== CURRENT DESCRIPTION (active) ===\n${description}`);
 
-  // Description archive
+  // Description archive (compressed for outliers with many near-duplicate versions)
   if (meta.descriptionHistory && meta.descriptionHistory.length > 0) {
-    const archiveEntries = meta.descriptionHistory.map((entry, i) => {
+    const compressed = compressDescriptionHistory(meta.descriptionHistory);
+    const archiveEntries = compressed.map((entry, i) => {
       const date = new Date(entry.replacedAt).toISOString().split('T')[0];
-      return `[${i + 1}] Source: ${entry.source} | ${date}\n${entry.description}`;
+      let header = `[${i + 1}] Source: ${entry.source}`;
+      if (entry.consolidatedCount) {
+        const earliest = new Date(entry.earliestDate!).toISOString().split('T')[0];
+        header += ` (${entry.consolidatedCount} passes consolidated)`;
+        header += ` | ${earliest} → ${date}`;
+      } else {
+        header += ` | ${date}`;
+      }
+      return `${header}\n${entry.description}`;
     });
     sections.push(`=== DESCRIPTION ARCHIVE (oldest → newest) ===\nThese are previous versions of the description, in the order they were replaced. Each was the active description at the time. Read them as primary sources — details present in earlier versions but absent from later ones may be worth recovering.\n\n${archiveEntries.join('\n\n')}`);
   }
@@ -232,6 +274,8 @@ function buildUserPrompt(
   // Task
   sections.push(`=== YOUR TASK ===
 Prepare the definitive entry for ${meta.entityName} for your forthcoming edition. You have the entity's full description archive — every version that has existed. Read them as primary sources. Synthesize the strongest account, recover lost details where warranted, and write the entry in your voice.
+
+**Hard word limit: ${wordBudget} words.** Do not exceed this. Use fewer when the material warrants a shorter entry.
 
 Entity: ${meta.entityName} (${meta.entityKind})
 ID: ${meta.entityId}`);
@@ -298,8 +342,10 @@ async function executeHistorianEditionTask(
 
   const callConfig = getCallConfig(config, 'historian.edition');
   const tone = meta.tone || 'scholarly';
+  const revisionCount = (meta.descriptionHistory || []).length;
+  const wordBudget = computeWordBudget(description, meta.entityProminence, revisionCount);
   const systemPrompt = buildSystemPrompt(meta.historianConfig, tone);
-  const userPrompt = buildUserPrompt(description, meta);
+  const userPrompt = buildUserPrompt(description, meta, wordBudget);
 
   try {
     const callResult = await runTextCall({
