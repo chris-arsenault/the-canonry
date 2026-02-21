@@ -10,6 +10,13 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useEntityNavList } from '../lib/db/entitySelectors';
 import { useEntityStore } from '../lib/db/entityStore';
 import { useProminenceScale } from '../lib/db/indexSelectors';
+import { useEntityCrud, reloadEntities } from '../hooks/useEntityCrud';
+import { useHistorianActions } from '../hooks/useHistorianActions';
+import { convertLongEditionsToLegacy } from '../lib/db/entityRepository';
+import { useIlluminatorModals } from '../lib/db/modalStore';
+import { getEnqueue, getCancel } from '../lib/db/enrichmentQueueBridge';
+import { useEnrichmentQueueStore } from '../lib/db/enrichmentQueueStore';
+import DescriptionMotifWeaver from './DescriptionMotifWeaver';
 import ImageModal from './ImageModal';
 import ImagePickerModal from './ImagePickerModal';
 import EntityDetailView from './EntityDetailView';
@@ -244,6 +251,17 @@ function EntityRow({
             {entity.kind}/{entity.subtype} · {prominenceLabelFromScale(entity.prominence, prominenceScale)}
             {entity.culture && ` · ${entity.culture}`}
           </span>
+          {entity.historianEditionCount > 0 && (
+            <span
+              title={`${entity.historianEditionCount} historian edition${entity.historianEditionCount !== 1 ? 's' : ''}`}
+              style={{
+                color: entity.historianEditionCount >= 2 ? '#10b981' : '#f59e0b',
+                fontSize: '10px',
+              }}
+            >
+              {'\u270E'}{entity.historianEditionCount}
+            </span>
+          )}
           {onEditEntity && entity.isManual && (
             <button
               onClick={(e) => { e.stopPropagation(); onEditEntity(entity); }}
@@ -473,10 +491,6 @@ function getNavItemCostDisplay(navItem, type, status) {
 }
 
 export default function EntityBrowser({
-  queue,
-  onEnqueue,
-  onCancel,
-  onAssignImage,
   worldSchema,
   config,
   onConfigChange,
@@ -484,27 +498,23 @@ export default function EntityBrowser({
   getVisualConfig,
   styleLibrary,
   imageGenSettings,
-  onOpenImageSettings,
   onStartRevision,
   isRevising,
-  onUpdateBackrefs,
-  onUndoDescription,
-  onHistorianEdition,
-  isHistorianEditionActive,
-  onHistorianReview,
-  isHistorianActive,
-  historianConfigured,
-  onUpdateHistorianNote,
-  onRename,
-  onPatchEvents,
-  onUpdateAliases,
-  onUpdateDescription,
-  onUpdateSummary,
-  onCreateEntity,
-  onEditEntity,
-  onDeleteEntity,
+  onBulkHistorianReview,
+  onBulkHistorianEdition,
+  onBulkHistorianClear,
+  isBulkHistorianActive,
+  onNavigateToTab,
 }) {
   const navEntities = useEntityNavList();
+  const {
+    handleAssignImage,
+    handleDeleteEntity,
+    handleClearNotes,
+  } = useEntityCrud();
+  const { historianConfigured } = useHistorianActions();
+  const { openRename, openPatchEvents, openCreateEntity, openEditEntity, openImageSettings } = useIlluminatorModals();
+  const queue = useEnrichmentQueueStore((s) => s.queue);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -522,6 +532,7 @@ export default function EntityBrowser({
   const [imageModal, setImageModal] = useState({ open: false, imageId: '', title: '' });
   const [selectedEntityId, setSelectedEntityId] = useState(null);
   const [imagePickerEntity, setImagePickerEntity] = useState(null);
+  const [showMotifWeaver, setShowMotifWeaver] = useState(false);
   const imageModel = config.imageModel || 'dall-e-3';
 
   // Get unique values for filters
@@ -704,9 +715,9 @@ export default function EntityBrowser({
       const imageOverrides = type === 'image'
         ? { imageSize: imageGenSettings.imageSize, imageQuality: imageGenSettings.imageQuality }
         : {};
-      onEnqueue([{ entity, type, prompt, ...visualConfig, ...imageOverrides }]);
+      getEnqueue()([{ entity, type, prompt, ...visualConfig, ...imageOverrides }]);
     },
-    [onEnqueue, buildPrompt, getVisualConfig, imageGenSettings.imageSize, imageGenSettings.imageQuality]
+    [buildPrompt, getVisualConfig, imageGenSettings.imageSize, imageGenSettings.imageQuality]
   );
 
   // Cancel single item
@@ -716,10 +727,10 @@ export default function EntityBrowser({
         (item) => item.entityId === entityId && item.type === type
       );
       if (queueItem) {
-        onCancel(queueItem.id);
+        getCancel()(queueItem.id);
       }
     },
-    [queue, onCancel]
+    [queue]
   );
 
   // Queue all missing descriptions for selected — filter on nav items, load full for prompt
@@ -737,8 +748,8 @@ export default function EntityBrowser({
       const visualConfig = getVisualConfig ? getVisualConfig(entity) : {};
       return { entity, type: 'description', prompt: buildPrompt(entity, 'description'), ...visualConfig };
     });
-    if (items.length > 0) onEnqueue(items);
-  }, [selectedIds, navEntities, getStatus, onEnqueue, buildPrompt, getVisualConfig]);
+    if (items.length > 0) getEnqueue()(items);
+  }, [selectedIds, navEntities, getStatus, buildPrompt, getVisualConfig]);
 
   // Queue all missing images for selected
   const queueSelectedImages = useCallback(async () => {
@@ -763,12 +774,11 @@ export default function EntityBrowser({
       imageSize: imageGenSettings.imageSize,
       imageQuality: imageGenSettings.imageQuality,
     }));
-    if (items.length > 0) onEnqueue(items);
+    if (items.length > 0) getEnqueue()(items);
   }, [
     selectedIds,
     navEntities,
     getStatus,
-    onEnqueue,
     buildPrompt,
     config.minProminenceForImage,
     config.requireDescription,
@@ -792,8 +802,8 @@ export default function EntityBrowser({
       const visualConfig = getVisualConfig ? getVisualConfig(entity) : {};
       return { entity, type: 'description', prompt: buildPrompt(entity, 'description'), ...visualConfig };
     });
-    if (items.length > 0) onEnqueue(items);
-  }, [selectedIds, navEntities, getStatus, onEnqueue, buildPrompt, getVisualConfig]);
+    if (items.length > 0) getEnqueue()(items);
+  }, [selectedIds, navEntities, getStatus, buildPrompt, getVisualConfig]);
 
   // Regenerate all images for selected
   const regenSelectedImages = useCallback(async () => {
@@ -817,12 +827,11 @@ export default function EntityBrowser({
       imageSize: imageGenSettings.imageSize,
       imageQuality: imageGenSettings.imageQuality,
     }));
-    if (items.length > 0) onEnqueue(items);
+    if (items.length > 0) getEnqueue()(items);
   }, [
     selectedIds,
     navEntities,
     getStatus,
-    onEnqueue,
     buildPrompt,
     config.minProminenceForImage,
     imageGenSettings.imageSize,
@@ -841,8 +850,8 @@ export default function EntityBrowser({
       const visualConfig = getVisualConfig ? getVisualConfig(entity) : {};
       return { entity, type: 'description', prompt: buildPrompt(entity, 'description'), ...visualConfig };
     });
-    if (items.length > 0) onEnqueue(items);
-  }, [filteredNavItems, getStatus, onEnqueue, buildPrompt, getVisualConfig]);
+    if (items.length > 0) getEnqueue()(items);
+  }, [filteredNavItems, getStatus, buildPrompt, getVisualConfig]);
 
   // Quick action: queue all missing images (and dependent descriptions if required)
   const queueAllMissingImages = useCallback(async () => {
@@ -873,11 +882,10 @@ export default function EntityBrowser({
         imageQuality: imageGenSettings.imageQuality,
       });
     }
-    if (items.length > 0) onEnqueue(items);
+    if (items.length > 0) getEnqueue()(items);
   }, [
     filteredNavItems,
     getStatus,
-    onEnqueue,
     buildPrompt,
     getVisualConfig,
     config.minProminenceForImage,
@@ -906,6 +914,32 @@ export default function EntityBrowser({
     }
     return { missingDescCount: descCount, missingImgCount: imgCount, dependentDescCount: depDescCount };
   }, [filteredNavItems, getStatus, config.minProminenceForImage, config.requireDescription, prominenceScale]);
+
+  // Count entities eligible for bulk historian operations
+  const annotationEligibleCount = useMemo(() =>
+    filteredNavItems.filter(nav => nav.hasDescription && !nav.hasHistorianNotes).length,
+    [filteredNavItems]
+  );
+
+  const copyEditEligibleCount = useMemo(() =>
+    filteredNavItems.filter(nav => nav.hasDescription && !nav.hasHistorianEdition).length,
+    [filteredNavItems]
+  );
+
+  const reEditionEligibleCount = useMemo(() =>
+    filteredNavItems.filter(nav => nav.hasDescription && nav.hasHistorianEdition).length,
+    [filteredNavItems]
+  );
+
+  const legacyConvertEligibleCount = useMemo(() =>
+    filteredNavItems.filter(nav => nav.hasHistorianEdition).length,
+    [filteredNavItems]
+  );
+
+  const annotatedCount = useMemo(() =>
+    filteredNavItems.filter(nav => nav.hasHistorianNotes).length,
+    [filteredNavItems]
+  );
 
   // Open image modal
   const openImageModal = useCallback((imageId, title) => {
@@ -980,33 +1014,152 @@ export default function EntityBrowser({
     URL.revokeObjectURL(url);
   }, [selectedIds, queue]);
 
+  // Download edition comparison data (pre-historian / legacy / active + annotations) for selected entities
+  const downloadSelectedEditions = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    const fullEntities = await useEntityStore.getState().loadEntities(ids);
+    const editionSources = new Set(['historian-edition', 'legacy-copy-edit']);
+    const exportEntries = [];
+
+    for (const entity of fullEntities) {
+      const history = entity.enrichment?.descriptionHistory;
+      if (!history || !entity.description) continue;
+
+      const historianEntries = history
+        .map((entry, index) => ({ ...entry, historyIndex: index }))
+        .filter((entry) => editionSources.has(entry.source || ''));
+
+      if (historianEntries.length === 0) continue;
+
+      const entry = {
+        entityId: entity.id,
+        entityName: entity.name,
+        entityKind: entity.kind,
+        prominence: entity.prominence,
+        updatedAt: entity.updatedAt,
+        preHistorian: historianEntries[0].description,
+        legacyCopyEdit: historianEntries.length > 1
+          ? historianEntries[historianEntries.length - 1].description
+          : null,
+        active: entity.description,
+      };
+
+      const activeNotes = entity.enrichment?.historianNotes?.filter(
+        (n) => n.display !== 'disabled'
+      );
+      if (activeNotes && activeNotes.length > 0) {
+        entry.annotations = activeNotes.map((n) => ({
+          type: n.type,
+          display: n.display || 'full',
+          anchorPhrase: n.anchorPhrase,
+          text: n.text,
+        }));
+      }
+
+      exportEntries.push(entry);
+    }
+
+    if (exportEntries.length === 0) {
+      alert('No edition history available for selected entities.');
+      return;
+    }
+
+    const json = JSON.stringify(exportEntries, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `edition-export-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [selectedIds]);
+
+  // Download annotation review data for selected entities
+  const downloadSelectedAnnotations = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    const fullEntities = await useEntityStore.getState().loadEntities(ids);
+    const rows = [];
+
+    for (const entity of fullEntities) {
+      const activeNotes = entity.enrichment?.historianNotes?.filter(
+        (n) => n.display !== 'disabled'
+      );
+      if (!activeNotes || activeNotes.length === 0) continue;
+
+      rows.push({
+        entityName: entity.name,
+        entityKind: entity.kind,
+        entitySubtype: entity.subtype || null,
+        prominence: prominenceLabelFromScale(entity.prominence, prominenceScale),
+        noteCount: activeNotes.length,
+        annotations: activeNotes.map((n) => ({
+          type: n.type,
+          display: n.display || 'full',
+          anchorPhrase: n.anchorPhrase,
+          text: n.text,
+        })),
+      });
+    }
+
+    if (rows.length === 0) {
+      alert('No annotations found for selected entities.');
+      return;
+    }
+
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      totalEntities: rows.length,
+      totalAnnotations: rows.reduce((sum, r) => sum + r.noteCount, 0),
+      entities: rows,
+    };
+
+    const json = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `entity-annotation-review-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [selectedIds, prominenceScale]);
+
   // Handle image selection from picker
   const handleImageSelected = useCallback(
     (imageId, imageMetadata) => {
-      if (imagePickerEntity && onAssignImage) {
-        onAssignImage(imagePickerEntity.id, imageId, imageMetadata);
+      if (imagePickerEntity) {
+        handleAssignImage(imagePickerEntity.id, imageId, imageMetadata);
       }
       setImagePickerEntity(null);
     },
-    [imagePickerEntity, onAssignImage]
+    [imagePickerEntity, handleAssignImage]
   );
 
   // Load full entity for detail view (on demand from bounded cache)
+  // Subscribe to store cache so updates (e.g. historian note display toggle) propagate reactively
+  const cachedEntity = useEntityStore((s) => selectedEntityId ? s.cache.get(selectedEntityId) : undefined);
   const [selectedEntity, setSelectedEntity] = useState(null);
   useEffect(() => {
     if (selectedEntityId) {
-      useEntityStore.getState().loadEntity(selectedEntityId).then(setSelectedEntity);
+      // If already in cache (from subscription), use it directly; otherwise load from Dexie
+      if (cachedEntity) {
+        setSelectedEntity(cachedEntity);
+      } else {
+        useEntityStore.getState().loadEntity(selectedEntityId).then(setSelectedEntity);
+      }
     } else {
       setSelectedEntity(null);
     }
-  }, [selectedEntityId]);
+  }, [selectedEntityId, cachedEntity]);
 
-  // Handle edit — load full entity from store before passing to parent
+  // Handle edit — load full entity from store before opening edit modal
   const handleEditEntity = useCallback(async (navItem) => {
-    if (!onEditEntity) return;
     const fullEntity = await useEntityStore.getState().loadEntity(navItem.id);
-    if (fullEntity) onEditEntity(fullEntity);
-  }, [onEditEntity]);
+    if (fullEntity) openEditEntity(fullEntity);
+  }, [openEditEntity]);
 
   // Progressive rendering — only render visible rows, load more on scroll
   const ENTITY_PAGE_SIZE = 20;
@@ -1052,16 +1205,14 @@ export default function EntityBrowser({
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {filteredNavItems.length} of {navEntities.length} entities
           </span>
-          {onCreateEntity && (
-            <button
-              onClick={onCreateEntity}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: '4px 10px', fontSize: '11px', marginLeft: '8px' }}
-              title="Create a new entity manually"
-            >
-              + Add Entity
-            </button>
-          )}
+          <button
+            onClick={openCreateEntity}
+            className="illuminator-button illuminator-button-secondary"
+            style={{ padding: '4px 10px', fontSize: '11px', marginLeft: '8px' }}
+            title="Create a new entity manually"
+          >
+            + Add Entity
+          </button>
         </div>
 
         {/* Entity search bar */}
@@ -1295,7 +1446,7 @@ export default function EntityBrowser({
         <ImageSettingsSummary
           settings={imageGenSettings}
           styleLibrary={styleLibrary}
-          onOpenSettings={onOpenImageSettings}
+          onOpenSettings={openImageSettings}
         />
 
         {/* Min Event Significance for Descriptions */}
@@ -1358,6 +1509,89 @@ export default function EntityBrowser({
               className="illuminator-button illuminator-button-secondary"
             >
               {isRevising ? 'Revising...' : 'Revise Summaries'}
+            </button>
+          )}
+          {historianConfigured && onBulkHistorianReview && (
+            <button
+              onClick={() => {
+                const ids = filteredNavItems.filter(n => n.hasDescription && !n.hasHistorianNotes).map(n => n.id);
+                onBulkHistorianReview(ids);
+              }}
+              disabled={isBulkHistorianActive || annotationEligibleCount === 0}
+              className="illuminator-button illuminator-button-secondary"
+            >
+              {isBulkHistorianActive ? 'Running...' : `Annotate All (${annotationEligibleCount})`}
+            </button>
+          )}
+          {historianConfigured && onBulkHistorianEdition && (
+            <button
+              onClick={() => {
+                const ids = filteredNavItems.filter(n => n.hasDescription && !n.hasHistorianEdition).map(n => n.id);
+                onBulkHistorianEdition(ids);
+              }}
+              disabled={isBulkHistorianActive || copyEditEligibleCount === 0}
+              className="illuminator-button illuminator-button-secondary"
+            >
+              {isBulkHistorianActive ? 'Running...' : `Copy Edit All (${copyEditEligibleCount})`}
+            </button>
+          )}
+          {historianConfigured && onBulkHistorianEdition && reEditionEligibleCount > 0 && (
+            <button
+              onClick={() => {
+                const ids = filteredNavItems.filter(n => n.hasDescription && n.hasHistorianEdition).map(n => n.id);
+                onBulkHistorianEdition(ids, true);
+              }}
+              disabled={isBulkHistorianActive}
+              className="illuminator-button illuminator-button-secondary"
+            >
+              {isBulkHistorianActive ? 'Running...' : `Re-Edit All (${reEditionEligibleCount})`}
+            </button>
+          )}
+          {historianConfigured && legacyConvertEligibleCount > 0 && (
+            <button
+              onClick={async () => {
+                const ids = filteredNavItems.filter(n => n.hasHistorianEdition).map(n => n.id);
+                const count = await convertLongEditionsToLegacy(ids);
+                if (count > 0) await reloadEntities(ids);
+              }}
+              disabled={isBulkHistorianActive}
+              className="illuminator-button illuminator-button-secondary"
+              title="Relabel all historian-edition entries as legacy copy edits"
+            >
+              Convert to Legacy ({legacyConvertEligibleCount})
+            </button>
+          )}
+          {historianConfigured && annotatedCount > 0 && onBulkHistorianClear && (
+            <button
+              onClick={() => {
+                const ids = filteredNavItems.filter(n => n.hasHistorianNotes).map(n => n.id);
+                onBulkHistorianClear(ids);
+              }}
+              disabled={isBulkHistorianActive}
+              className="illuminator-button illuminator-button-secondary"
+              title="Remove all annotations from filtered entities"
+            >
+              Clear All Notes ({annotatedCount})
+            </button>
+          )}
+          {historianConfigured && annotatedCount > 0 && onNavigateToTab && (
+            <button
+              onClick={() => onNavigateToTab('finaledit')}
+              disabled={isBulkHistorianActive}
+              className="illuminator-button illuminator-button-secondary"
+              title="Find and replace across corpus (Final Edit tab)"
+            >
+              Find/Replace
+            </button>
+          )}
+          {historianConfigured && (
+            <button
+              onClick={() => setShowMotifWeaver(true)}
+              disabled={isBulkHistorianActive}
+              className="illuminator-button illuminator-button-secondary"
+              title="Weave a thematic phrase into descriptions where the concept exists but the phrase was stripped"
+            >
+              Motif Weaver
             </button>
           )}
         </div>
@@ -1423,6 +1657,22 @@ export default function EntityBrowser({
             Download Debug
           </button>
           <button
+            onClick={downloadSelectedEditions}
+            className="illuminator-button illuminator-button-secondary"
+            style={{ padding: '6px 12px', fontSize: '12px' }}
+            title="Export pre-historian, legacy, and active description versions + annotations for selected entities"
+          >
+            Export Editions
+          </button>
+          <button
+            onClick={downloadSelectedAnnotations}
+            className="illuminator-button illuminator-button-secondary"
+            style={{ padding: '6px 12px', fontSize: '12px' }}
+            title="Export historian annotations for selected entities (name, kind, prominence)"
+          >
+            Export Annotations
+          </button>
+          <button
             onClick={clearSelection}
             className="illuminator-button-link"
             style={{ marginLeft: 'auto' }}
@@ -1437,21 +1687,7 @@ export default function EntityBrowser({
         <EntityDetailView
           entity={selectedEntity}
           entities={navEntities}
-          queue={queue}
           onBack={() => setSelectedEntityId(null)}
-          onUpdateBackrefs={onUpdateBackrefs}
-          onUndoDescription={onUndoDescription}
-          onHistorianEdition={onHistorianEdition}
-          isHistorianEditionActive={isHistorianEditionActive}
-          onHistorianReview={onHistorianReview}
-          isHistorianActive={isHistorianActive}
-          historianConfigured={historianConfigured}
-          onUpdateHistorianNote={onUpdateHistorianNote}
-          onRename={onRename}
-          onPatchEvents={onPatchEvents}
-          onUpdateAliases={onUpdateAliases}
-          onUpdateDescription={onUpdateDescription}
-          onUpdateSummary={onUpdateSummary}
         />
       ) : (
         <div className="illuminator-card" style={{ padding: 0, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -1517,8 +1753,8 @@ export default function EntityBrowser({
                       }
                       onImageClick={openImageModal}
                       onEntityClick={() => openEntityModal(nav)}
-                      onEditEntity={onEditEntity ? handleEditEntity : undefined}
-                      onDeleteEntity={onDeleteEntity}
+                      onEditEntity={handleEditEntity}
+                      onDeleteEntity={handleDeleteEntity}
                       descCost={getNavItemCostDisplay(nav, 'description', descStatus)}
                       imgCost={getNavItemCostDisplay(nav, 'image', imgStatus)}
                       prominenceScale={prominenceScale}
@@ -1555,6 +1791,11 @@ export default function EntityBrowser({
         entityCulture={imagePickerEntity?.culture}
         currentImageId={imagePickerEntity?.imageId}
       />
+
+      {/* Description Motif Weaver */}
+      {showMotifWeaver && (
+        <DescriptionMotifWeaver onClose={() => setShowMotifWeaver(false)} />
+      )}
     </div>
   );
 }

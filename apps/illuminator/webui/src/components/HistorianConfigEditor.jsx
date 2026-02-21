@@ -249,6 +249,24 @@ export default function HistorianConfigEditor({ config, onChange }) {
     onChange({ ...config, [field]: value });
   }, [config, onChange]);
 
+  const [reloadStatus, setReloadStatus] = useState(null); // null | 'confirm' | 'loading' | 'done' | 'error'
+
+  const handleReloadFromDefaults = useCallback(async () => {
+    try {
+      setReloadStatus('loading');
+      const response = await fetch('/default-project/historianConfig.json');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const defaultConfig = await response.json();
+      onChange(defaultConfig);
+      setReloadStatus('done');
+      setTimeout(() => setReloadStatus(null), 2000);
+    } catch (err) {
+      setReloadStatus('error');
+      console.error('Failed to reload historian config:', err);
+      setTimeout(() => setReloadStatus(null), 3000);
+    }
+  }, [onChange]);
+
   const isConfigured = config.name.trim().length > 0 && config.background.trim().length > 0;
 
   return (
@@ -259,12 +277,26 @@ export default function HistorianConfigEditor({ config, onChange }) {
         paddingBottom: '12px',
         borderBottom: '1px solid var(--border-color)',
       }}>
-        <div style={{
-          fontSize: '14px',
-          fontWeight: 600,
-          color: 'var(--text-primary)',
-        }}>
-          Historian Persona
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{
+            fontSize: '14px',
+            fontWeight: 600,
+            color: 'var(--text-primary)',
+          }}>
+            Historian Persona
+          </div>
+          <button
+            onClick={() => setReloadStatus('confirm')}
+            disabled={reloadStatus === 'loading'}
+            className="illuminator-button illuminator-button-secondary"
+            style={{ padding: '4px 10px', fontSize: '11px' }}
+            title="Reload historian config from the default project template"
+          >
+            {reloadStatus === 'loading' ? 'Loading...' :
+             reloadStatus === 'done' ? 'Reloaded \u2713' :
+             reloadStatus === 'error' ? 'Failed \u2717' :
+             'Reload Defaults'}
+          </button>
         </div>
         <div style={{
           fontSize: '11px',
@@ -272,9 +304,10 @@ export default function HistorianConfigEditor({ config, onChange }) {
           marginTop: '4px',
           lineHeight: '1.5',
         }}>
-          Define the scholarly voice that annotates your world's entities and chronicles.
-          This historian will add margin notes — corrections, observations, asides —
-          in a consistent voice across all content. Tone varies per review.
+          Define the scholarly voice behind both <strong>annotations</strong> (margin notes — corrections,
+          observations, asides) and <strong>copy edits</strong> (full description rewrites synthesized
+          from the description archive). The same persona drives both operations in a
+          consistent voice across all content.
         </div>
         {!isConfigured && (
           <div style={{
@@ -286,7 +319,7 @@ export default function HistorianConfigEditor({ config, onChange }) {
             fontSize: '11px',
             color: '#8b7355',
           }}>
-            Configure at least a name and background to enable historian reviews.
+            Configure at least a name and background to enable historian annotations and copy edits.
           </div>
         )}
       </div>
@@ -371,7 +404,7 @@ export default function HistorianConfigEditor({ config, onChange }) {
         <div>
           <FieldLabel
             label="Stance Toward Source Material"
-            description="Their overall relationship to the texts they're annotating"
+            description="Their overall relationship to the texts they're working with"
           />
           <textarea
             value={config.stance}
@@ -396,7 +429,7 @@ export default function HistorianConfigEditor({ config, onChange }) {
         <div>
           <FieldLabel
             label="Private Facts"
-            description="Things the historian knows that aren't in the canon facts. The historian may reference these in annotations."
+            description="Things the historian knows that aren't in the canon facts. May surface in annotations and shape editorial choices in copy edits."
           />
           <ListEditor
             value={config.privateFacts}
@@ -420,6 +453,54 @@ export default function HistorianConfigEditor({ config, onChange }) {
           />
         </div>
       </div>
+
+      {/* Reload confirmation modal */}
+      {reloadStatus === 'confirm' && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0, 0, 0, 0.6)',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setReloadStatus(null); }}
+        >
+          <div style={{
+            background: 'var(--bg-primary)',
+            borderRadius: '10px',
+            border: '1px solid var(--border-color)',
+            padding: '20px 24px',
+            maxWidth: '400px',
+            boxShadow: '0 16px 48px rgba(0, 0, 0, 0.3)',
+          }}>
+            <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
+              Reload from Defaults?
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '16px' }}>
+              This will overwrite your current historian configuration with the default project template. Any edits you've made will be lost.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button
+                onClick={() => setReloadStatus(null)}
+                className="illuminator-button illuminator-button-secondary"
+                style={{ padding: '6px 14px', fontSize: '12px' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleReloadFromDefaults()}
+                className="illuminator-button"
+                style={{ padding: '6px 14px', fontSize: '12px' }}
+              >
+                Reload
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

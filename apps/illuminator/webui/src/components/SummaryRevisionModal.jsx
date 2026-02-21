@@ -226,9 +226,10 @@ function AnchorPhraseEditor({ patch, onUpdate }) {
 // Patch Card
 // ============================================================================
 
-function PatchCard({ patch, currentEntity, accepted, onToggle, expanded, onToggleExpand, onUpdateAnchorPhrase }) {
+function PatchCard({ patch, currentEntity, accepted, onToggle, expanded, onToggleExpand, onUpdateAnchorPhrase, descriptionBaseline }) {
   const hasSummaryChange = patch.summary && patch.summary !== currentEntity?.summary;
-  const hasDescChange = patch.description && patch.description !== currentEntity?.description;
+  const baselineDesc = descriptionBaseline ?? currentEntity?.description;
+  const hasDescChange = patch.description && patch.description !== baselineDesc;
 
   return (
     <div style={{
@@ -296,7 +297,7 @@ function PatchCard({ patch, currentEntity, accepted, onToggle, expanded, onToggl
           )}
           {hasDescChange && (
             <InlineDiff
-              current={currentEntity?.description || ''}
+              current={baselineDesc || ''}
               proposed={patch.description}
               label="Description"
             />
@@ -314,7 +315,7 @@ function PatchCard({ patch, currentEntity, accepted, onToggle, expanded, onToggl
 // Export Helpers
 // ============================================================================
 
-function buildExportText(allPatches, entityLookup, patchDecisions) {
+function buildExportText(allPatches, entityLookup, patchDecisions, descriptionBaseline) {
   const lines = [];
   for (const patch of allPatches) {
     const current = entityLookup.get(patch.entityId);
@@ -323,7 +324,8 @@ function buildExportText(allPatches, entityLookup, patchDecisions) {
     lines.push('');
 
     const hasSummaryChange = patch.summary && patch.summary !== current?.summary;
-    const hasDescChange = patch.description && patch.description !== current?.description;
+    const baselineDesc = descriptionBaseline ?? current?.description;
+    const hasDescChange = patch.description && patch.description !== baselineDesc;
 
     if (hasSummaryChange) {
       lines.push('--- Summary ---');
@@ -338,7 +340,7 @@ function buildExportText(allPatches, entityLookup, patchDecisions) {
     if (hasDescChange) {
       lines.push('--- Description ---');
       lines.push('CURRENT:');
-      lines.push(current?.description || '(empty)');
+      lines.push(baselineDesc || '(empty)');
       lines.push('');
       lines.push('PROPOSED:');
       lines.push(patch.description);
@@ -379,6 +381,7 @@ export default function SummaryRevisionModal({
   onCancel,
   getEntityContexts,
   onUpdateAnchorPhrase,
+  descriptionBaseline,
 }) {
   const scrollRef = useRef(null);
   const [expandedIds, setExpandedIds] = useState(new Set());
@@ -394,15 +397,20 @@ export default function SummaryRevisionModal({
   }, [run?.currentBatchIndex, run?.status]);
 
   // Build entity lookup from entity contexts
-  const entityLookup = useMemo(() => {
-    if (!run || !getEntityContexts) return new Map();
+  const [entityLookup, setEntityLookup] = useState(new Map());
+  useEffect(() => {
+    if (!run || !getEntityContexts) { setEntityLookup(new Map()); return; }
+    let cancelled = false;
     const allIds = run.batches.flatMap((b) => b.entityIds);
-    const contexts = getEntityContexts(allIds);
-    const map = new Map();
-    for (const ctx of contexts) {
-      if (ctx) map.set(ctx.id, ctx);
-    }
-    return map;
+    Promise.resolve(getEntityContexts(allIds)).then((contexts) => {
+      if (cancelled) return;
+      const map = new Map();
+      for (const ctx of contexts) {
+        if (ctx) map.set(ctx.id, ctx);
+      }
+      setEntityLookup(map);
+    });
+    return () => { cancelled = true; };
   }, [run, getEntityContexts]);
 
   if (!isActive || !run) return null;
@@ -441,7 +449,7 @@ export default function SummaryRevisionModal({
   };
 
   const handleExport = () => {
-    const text = buildExportText(allPatches, entityLookup, run.patchDecisions);
+    const text = buildExportText(allPatches, entityLookup, run.patchDecisions, descriptionBaseline);
     const timestamp = Date.now();
     downloadText(text, `revision-patches-${timestamp}.txt`);
   };
@@ -616,6 +624,7 @@ export default function SummaryRevisionModal({
                   expanded={expandedIds.has(patch.entityId)}
                   onToggleExpand={() => toggleExpand(patch.entityId)}
                   onUpdateAnchorPhrase={onUpdateAnchorPhrase}
+                  descriptionBaseline={descriptionBaseline}
                 />
               ))}
             </div>

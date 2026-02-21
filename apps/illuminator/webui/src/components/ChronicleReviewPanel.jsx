@@ -234,6 +234,8 @@ export default function ChronicleReviewPanel({
 
   // Historian review
   onHistorianReview,
+  onSetAssignedTone,
+  onDetectTone,
   isHistorianActive,
   onUpdateHistorianNote,
 
@@ -252,6 +254,7 @@ export default function ChronicleReviewPanel({
   worldContext,
   eras,
   events,
+  onNavigateToTab,
 }) {
   if (!item) return null;
 
@@ -306,6 +309,8 @@ export default function ChronicleReviewPanel({
         onExport={onExport}
         onBackportLore={onBackportLore}
         onHistorianReview={onHistorianReview}
+        onSetAssignedTone={onSetAssignedTone}
+        onDetectTone={onDetectTone}
         isHistorianActive={isHistorianActive}
         onUpdateHistorianNote={onUpdateHistorianNote}
         isGenerating={isGenerating}
@@ -319,6 +324,7 @@ export default function ChronicleReviewPanel({
         worldContext={worldContext}
         eras={eras}
         events={events}
+        onNavigateToTab={onNavigateToTab}
       />
     );
   }

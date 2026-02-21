@@ -754,6 +754,122 @@ export async function updateChronicleQuickCheckReport(
 }
 
 /**
+ * Update chronicle fact coverage analysis report
+ */
+export async function updateChronicleFactCoverage(
+  chronicleId: string,
+  report: import('../chronicleTypes').FactCoverageReport,
+): Promise<void> {
+  const record = await db.chronicles.get(chronicleId);
+  if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
+
+  record.factCoverageReport = report;
+  record.factCoverageReportGeneratedAt = Date.now();
+  record.updatedAt = Date.now();
+
+  await db.chronicles.put(record);
+}
+
+/**
+ * One-shot fixup: recompute wasFaceted on all stored factCoverageReports
+ * using perspectiveSynthesis.facets[].factId instead of fuzzy text matching.
+ */
+export async function repairFactCoverageWasFaceted(): Promise<number> {
+  const all = await db.chronicles.toArray();
+  let patched = 0;
+  for (const record of all) {
+    if (!record.factCoverageReport?.entries?.length) continue;
+    const facetedIds = new Set(
+      (record.perspectiveSynthesis?.facets ?? []).map((f: { factId: string }) => f.factId),
+    );
+    let changed = false;
+    for (const entry of record.factCoverageReport.entries) {
+      const correct = facetedIds.has(entry.factId);
+      if (entry.wasFaceted !== correct) {
+        entry.wasFaceted = correct;
+        changed = true;
+      }
+    }
+    if (changed) {
+      record.updatedAt = Date.now();
+      await db.chronicles.put(record);
+      patched++;
+    }
+  }
+  console.log(`[repairFactCoverageWasFaceted] Patched ${patched} chronicles`);
+  return patched;
+}
+
+/**
+ * Compute corpus-wide fact strength scores from all chronicles with coverage reports.
+ * Returns a Map of factId → strength percentage (0-100).
+ * Weighted: integral=3, prevalent=2, mentioned=1, missing=0, divided by max possible.
+ */
+export async function computeCorpusFactStrength(simulationRunId: string): Promise<Map<string, number>> {
+  const chronicles = await db.chronicles.where('simulationRunId').equals(simulationRunId).toArray();
+  const totals = new Map<string, { weighted: number; count: number }>();
+
+  const ratingWeight: Record<string, number> = { integral: 3, prevalent: 2, mentioned: 1, missing: 0 };
+
+  for (const chronicle of chronicles) {
+    if (!chronicle.factCoverageReport?.entries?.length) continue;
+    for (const entry of chronicle.factCoverageReport.entries) {
+      const agg = totals.get(entry.factId) || { weighted: 0, count: 0 };
+      agg.weighted += ratingWeight[entry.rating] ?? 0;
+      agg.count += 1;
+      totals.set(entry.factId, agg);
+    }
+  }
+
+  const result = new Map<string, number>();
+  for (const [factId, agg] of totals) {
+    result.set(factId, agg.count > 0 ? Math.round((agg.weighted / (agg.count * 3)) * 100) : 0);
+  }
+  return result;
+}
+
+export interface ReinforcementCounts {
+  /** Per-fact reinforcement count across all annotations (chronicle + entity) */
+  counts: Map<string, number>;
+  /** Number of annotations that carried fact guidance (denominator for fair-share) */
+  totalAnnotationsWithGuidance: number;
+}
+
+/**
+ * Count how many annotations have reinforced each canon fact.
+ * Scans both chronicle.reinforcedFacts and entity.enrichment.reinforcedFacts.
+ */
+export async function computeAnnotationReinforcementCounts(
+  simulationRunId: string,
+): Promise<ReinforcementCounts> {
+  const counts = new Map<string, number>();
+  let totalAnnotationsWithGuidance = 0;
+
+  // Chronicle reinforcements
+  const chronicles = await db.chronicles.where('simulationRunId').equals(simulationRunId).toArray();
+  for (const c of chronicles) {
+    if (!c.reinforcedFacts?.length) continue;
+    totalAnnotationsWithGuidance++;
+    for (const factId of c.reinforcedFacts) {
+      counts.set(factId, (counts.get(factId) ?? 0) + 1);
+    }
+  }
+
+  // Entity reinforcements
+  const entities = await db.entities.where('simulationRunId').equals(simulationRunId).toArray();
+  for (const e of entities) {
+    const rf = e.enrichment?.reinforcedFacts;
+    if (!rf?.length) continue;
+    totalAnnotationsWithGuidance++;
+    for (const factId of rf) {
+      counts.set(factId, (counts.get(factId) ?? 0) + 1);
+    }
+  }
+
+  return { counts, totalAnnotationsWithGuidance };
+}
+
+/**
  * Update chronicle tertiary cast (detected entity mentions not in declared cast)
  */
 export async function updateChronicleTertiaryCast(
@@ -1347,12 +1463,21 @@ export async function updateChronicleEntityBackportStatus(
  */
 export async function updateChronicleHistorianNotes(
   chronicleId: string,
-  historianNotes: HistorianNote[]
+  historianNotes: HistorianNote[],
+  prompts?: { systemPrompt: string; userPrompt: string },
+  reinforcedFacts?: string[],
 ): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
 
   record.historianNotes = historianNotes;
+  if (reinforcedFacts) {
+    record.reinforcedFacts = reinforcedFacts;
+  }
+  if (prompts) {
+    record.historianReviewSystemPrompt = prompts.systemPrompt;
+    record.historianReviewUserPrompt = prompts.userPrompt;
+  }
   record.updatedAt = Date.now();
 
   await db.chronicles.put(record);
@@ -1619,4 +1744,43 @@ export async function resetAllBackportFlags(simulationRunId: string): Promise<nu
   );
 
   return toUpdate.length;
+}
+
+// ============================================================================
+// Tone Ranking & Assignment
+// ============================================================================
+
+export async function updateChronicleToneRanking(
+  chronicleId: string,
+  ranking: [string, string, string],
+  rationale: string,
+  cost?: number,
+  rationales?: Record<string, string>,
+): Promise<void> {
+  const record = await db.chronicles.get(chronicleId);
+  if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
+
+  record.toneRanking = {
+    ranking: ranking as [import('../historianTypes').HistorianTone, import('../historianTypes').HistorianTone, import('../historianTypes').HistorianTone],
+    rationale,
+    rationales,
+    generatedAt: Date.now(),
+    actualCost: cost,
+  };
+  record.updatedAt = Date.now();
+
+  await db.chronicles.put(record);
+}
+
+export async function updateChronicleAssignedTone(
+  chronicleId: string,
+  tone: string,
+): Promise<void> {
+  const record = await db.chronicles.get(chronicleId);
+  if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
+
+  record.assignedTone = tone as import('../historianTypes').HistorianTone;
+  record.updatedAt = Date.now();
+
+  await db.chronicles.put(record);
 }

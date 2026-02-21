@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import HistorianMarginNotes from '../HistorianMarginNotes';
-import HistorianToneSelector from '../HistorianToneSelector';
+import HistorianToneSelector, { TONE_META } from '../HistorianToneSelector';
 import { computeBackportProgress } from '../../lib/chronicleTypes';
 
 function BackportLoreButton({ item, onBackportLore, isGenerating }) {
@@ -56,17 +56,102 @@ function BackportLoreButton({ item, onBackportLore, isGenerating }) {
   );
 }
 
+const ANNOTATION_TONES = ['witty', 'weary', 'elegiac', 'cantankerous', 'rueful', 'conspiratorial', 'bemused'];
+
 export default function HistorianTab({
   item,
   isGenerating,
   isHistorianActive,
   onHistorianReview,
+  onSetAssignedTone,
+  onDetectTone,
   onUpdateHistorianNote,
   onBackportLore,
   onGeneratePrep,
 }) {
   return (
     <div>
+      {/* Tone Assignment */}
+      {onSetAssignedTone && (
+        <div
+          style={{
+            marginBottom: '20px',
+            padding: '16px',
+            background: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 600 }}>Tone</div>
+            {item.toneRanking?.ranking && (
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                Ranked: {item.toneRanking.ranking.map((tone, i) => {
+                  const meta = TONE_META[tone];
+                  const perTone = item.toneRanking.rationales?.[tone];
+                  return (
+                    <span
+                      key={i}
+                      style={{ opacity: i === 0 ? 1 : i === 1 ? 0.6 : 0.4 }}
+                      title={perTone || item.toneRanking.rationale || undefined}
+                    >
+                      {i > 0 ? ' > ' : ''}{meta?.label || tone}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            {onDetectTone && (
+              <button
+                onClick={onDetectTone}
+                disabled={isGenerating}
+                style={{
+                  padding: '2px 8px',
+                  fontSize: '10px',
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '3px',
+                  cursor: isGenerating ? 'not-allowed' : 'pointer',
+                  color: 'var(--text-secondary)',
+                  opacity: isGenerating ? 0.6 : 1,
+                  marginLeft: 'auto',
+                }}
+                title="Run LLM tone detection for this chronicle"
+              >
+                Detect
+              </button>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {ANNOTATION_TONES.map((tone) => {
+              const meta = TONE_META[tone];
+              const isAssigned = item.assignedTone === tone;
+              const perTone = item.toneRanking?.rationales?.[tone];
+              return (
+                <button
+                  key={tone}
+                  onClick={() => onSetAssignedTone(tone)}
+                  style={{
+                    padding: '5px 12px',
+                    fontSize: '12px',
+                    background: isAssigned ? 'var(--bg-tertiary)' : 'transparent',
+                    border: isAssigned ? '1px solid var(--text-muted)' : '1px solid var(--border-color)',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    color: isAssigned ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    fontWeight: isAssigned ? 600 : 400,
+                    opacity: isAssigned ? 1 : 0.7,
+                  }}
+                  title={perTone || meta?.description || tone}
+                >
+                  {meta?.symbol} {meta?.label || tone}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Historian Review */}
       {onHistorianReview && (
         <div
@@ -78,17 +163,46 @@ export default function HistorianTab({
             border: '1px solid var(--border-color)',
           }}
         >
-          <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>Historian Review</div>
+          <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>Annotate</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {item.assignedTone && (() => {
+              const meta = TONE_META[item.assignedTone];
+              return (
+                <button
+                  onClick={() => onHistorianReview(item.assignedTone)}
+                  disabled={isGenerating || isHistorianActive}
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '12px',
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '6px',
+                    cursor: (isGenerating || isHistorianActive) ? 'not-allowed' : 'pointer',
+                    color: 'var(--text-secondary)',
+                    opacity: (isGenerating || isHistorianActive) ? 0.6 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                  title={`Run historian review with assigned tone: ${meta?.label || item.assignedTone}`}
+                >
+                  <span style={{ fontSize: '14px' }}>{meta?.symbol || '?'}</span>
+                  {item.historianNotes?.length > 0 ? 'Re-annotate' : 'Annotate'} ({meta?.label || item.assignedTone})
+                </button>
+              );
+            })()}
             <HistorianToneSelector
               onSelect={(tone) => onHistorianReview(tone)}
               disabled={isGenerating || isHistorianActive}
               hasNotes={item.historianNotes?.length > 0}
               style={{ display: 'inline-block' }}
+              label={item.assignedTone ? 'Override' : undefined}
             />
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Select a tone to generate historian margin notes.
-            </div>
+            {!item.assignedTone && (
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Select a tone to generate historian margin notes.
+              </div>
+            )}
           </div>
         </div>
       )}

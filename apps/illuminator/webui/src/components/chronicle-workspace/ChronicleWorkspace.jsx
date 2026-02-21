@@ -6,7 +6,6 @@
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import ImageModal from '../ImageModal';
 import QuickCheckModal from '../QuickCheckModal';
-import ChronicleFindReplaceModal from '../ChronicleFindReplaceModal';
 import WorkspaceHeader from './WorkspaceHeader';
 import WorkspaceTabBar from './WorkspaceTabBar';
 import PipelineTab from './PipelineTab';
@@ -84,6 +83,8 @@ export default function ChronicleWorkspace({
 
   // Historian review
   onHistorianReview,
+  onSetAssignedTone,
+  onDetectTone,
   isHistorianActive,
   onUpdateHistorianNote,
   onGeneratePrep,
@@ -102,6 +103,7 @@ export default function ChronicleWorkspace({
   worldContext,
   eras,
   events,
+  onNavigateToTab,
 }) {
   const isComplete = item.status === 'complete';
 
@@ -336,7 +338,6 @@ export default function ChronicleWorkspace({
   // Image modal
   // ---------------------------------------------------------------------------
   const [showQuickCheckModal, setShowQuickCheckModal] = useState(false);
-  const [showFindReplaceModal, setShowFindReplaceModal] = useState(false);
   const [createEntityDefaults, setCreateEntityDefaults] = useState(null);
   const [imageModal, setImageModal] = useState({ open: false, imageId: '', title: '' });
   const handleImageClick = useCallback((imageId, title) => {
@@ -592,7 +593,7 @@ export default function ChronicleWorkspace({
             onQuickCheck={onQuickCheck}
             quickCheckRunning={quickCheckRunning}
             onShowQuickCheck={() => setShowQuickCheckModal(true)}
-            onFindReplace={isComplete ? () => setShowFindReplaceModal(true) : undefined}
+            onFindReplace={isComplete && onNavigateToTab ? () => onNavigateToTab('finaledit') : undefined}
             onDetectTertiaryCast={detectTertiaryCast}
             onToggleTertiaryCast={toggleTertiaryCast}
           />
@@ -604,6 +605,8 @@ export default function ChronicleWorkspace({
             isGenerating={isGenerating}
             isHistorianActive={isHistorianActive}
             onHistorianReview={onHistorianReview}
+            onSetAssignedTone={onSetAssignedTone}
+            onDetectTone={onDetectTone}
             onUpdateHistorianNote={onUpdateHistorianNote}
             onBackportLore={onBackportLore}
             onGeneratePrep={onGeneratePrep}
@@ -645,14 +648,6 @@ export default function ChronicleWorkspace({
           defaults={createEntityDefaults}
           onSubmit={handleCreateEntityFromQuickCheck}
           onClose={() => setCreateEntityDefaults(null)}
-        />
-      )}
-
-      {showFindReplaceModal && (
-        <ChronicleFindReplaceModal
-          chronicleId={item.chronicleId}
-          onClose={() => setShowFindReplaceModal(false)}
-          onApplied={() => useChronicleStore.getState().refreshChronicle(item.chronicleId)}
         />
       )}
 

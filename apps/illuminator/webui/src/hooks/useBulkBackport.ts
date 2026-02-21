@@ -12,6 +12,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { EnrichmentType } from '../lib/enrichmentTypes';
+import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
 import type {
   SummaryRevisionPatch,
   RevisionEntityContext,
@@ -117,12 +118,6 @@ function sleep(ms: number): Promise<void> {
 // ============================================================================
 
 export function useBulkBackport(
-  onEnqueue: (items: Array<{
-    entity: { id: string; name: string; kind: string; subtype: string; prominence: string; culture: string; status: string; description: string; tags: Record<string, unknown> };
-    type: EnrichmentType;
-    prompt: string;
-    chronicleId?: string;
-  }>) => void,
   deps: {
     assembleContextForChronicle: (chronicleId: string) => Promise<BackportContext | null>;
     applyPatches: (patches: SummaryRevisionPatch[], chronicleId: string, sentEntityIds: string[]) => Promise<void>;
@@ -157,13 +152,13 @@ export function useBulkBackport(
       description: '',
       tags: {},
     };
-    onEnqueue([{
+    getEnqueue()([{
       entity: sentinelEntity,
       type: 'chronicleLoreBackport' as EnrichmentType,
       prompt: JSON.stringify(batchEntityContexts),
       chronicleId: runId,
     }]);
-  }, [onEnqueue]);
+  }, []);
 
   const pollForCompletion = useCallback(async (runId: string): Promise<{ patches: SummaryRevisionPatch[]; cost: number } | null> => {
     while (true) {

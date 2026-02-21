@@ -6,13 +6,19 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import type { QueueItem, NetworkDebugInfo, DescriptionChainDebug, ChronicleBackref } from '../lib/enrichmentTypes';
+import type { NetworkDebugInfo, DescriptionChainDebug, ChronicleBackref } from '../lib/enrichmentTypes';
 import HistorianMarginNotes from './HistorianMarginNotes';
 import HistorianToneSelector from './HistorianToneSelector';
+import HistorianEditionComparison from './HistorianEditionComparison';
 import {
   prominenceLabelFromScale,
 } from '@canonry/world-schema';
 import { useProminenceScale } from '../lib/db/indexSelectors';
+import { useEntityCrud } from '../hooks/useEntityCrud';
+import { useHistorianActions } from '../hooks/useHistorianActions';
+import { useIlluminatorModals } from '../lib/db/modalStore';
+import { useEnrichmentQueueStore } from '../lib/db/enrichmentQueueStore';
+import HistoryCompressionPreviewModal from './HistoryCompressionPreviewModal';
 import BackrefImageEditor from './BackrefImageEditor';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -36,6 +42,7 @@ interface EntityEnrichment {
     generatedAt: number;
     model: string;
   };
+  historianNotes?: import('../lib/historianTypes').HistorianNote[];
   chronicleBackrefs?: ChronicleBackref[];
   descriptionHistory?: Array<{
     description: string;
@@ -62,21 +69,7 @@ interface Entity {
 interface EntityDetailViewProps {
   entity: Entity;
   entities: Entity[];
-  queue: QueueItem[];
   onBack: () => void;
-  onUpdateBackrefs?: (entityId: string, backrefs: ChronicleBackref[]) => void;
-  onUndoDescription?: (entityId: string) => void;
-  onHistorianEdition?: (entityId: string, tone: string) => void;
-  isHistorianEditionActive?: boolean;
-  onHistorianReview?: (entityId: string, tone: string) => void;
-  isHistorianActive?: boolean;
-  historianConfigured?: boolean;
-  onUpdateHistorianNote?: (targetType: string, targetId: string, noteId: string, updates: Record<string, unknown>) => void;
-  onRename?: (entityId: string) => void;
-  onPatchEvents?: (entityId: string) => void;
-  onUpdateAliases?: (entityId: string, aliases: string[]) => void;
-  onUpdateDescription?: (entityId: string, description: string) => void;
-  onUpdateSummary?: (entityId: string, summary: string) => void;
 }
 
 function formatDate(timestamp: number | undefined): string {
@@ -370,23 +363,31 @@ function AliasesList({ aliases, onUpdate }: { aliases: string[]; onUpdate?: (ali
 export default function EntityDetailView({
   entity,
   entities,
-  queue,
   onBack,
-  onUpdateBackrefs,
-  onUndoDescription,
-  onHistorianEdition,
-  isHistorianEditionActive,
-  onHistorianReview,
-  isHistorianActive,
-  historianConfigured,
-  onUpdateHistorianNote,
-  onRename,
-  onPatchEvents,
-  onUpdateAliases,
-  onUpdateDescription,
-  onUpdateSummary,
 }: EntityDetailViewProps) {
   const prominenceScale = useProminenceScale();
+  const queue = useEnrichmentQueueStore((s) => s.queue);
+  const {
+    handleUpdateBackrefs,
+    handleUndoDescription,
+    handleUpdateAliases,
+    handleUpdateDescription,
+    handleUpdateSummary,
+    handleClearNotes,
+    handleRestoreDescription,
+  } = useEntityCrud();
+  const {
+    historianConfigured,
+    isHistorianEditionActive,
+    isHistorianActive,
+    handleHistorianEdition,
+    handleHistorianReview,
+    handleUpdateHistorianNote,
+    editionPreview,
+    handleEditionPreviewProceed,
+    handleEditionPreviewCancel,
+  } = useHistorianActions();
+  const { openRename, openPatchEvents } = useIlluminatorModals();
 
   const enrichment = entity.enrichment;
   const textEnrichment = enrichment?.text;
@@ -403,13 +404,12 @@ export default function EntityDetailView({
   }, [entity.summary]);
 
   const saveSummary = useCallback(() => {
-    if (!onUpdateSummary) return;
     const trimmed = summaryDraft.trim();
     if (trimmed && trimmed !== entity.summary) {
-      onUpdateSummary(entity.id, trimmed);
+      handleUpdateSummary(entity.id, trimmed);
     }
     setEditingSummary(false);
-  }, [onUpdateSummary, summaryDraft, entity.summary, entity.id]);
+  }, [handleUpdateSummary, summaryDraft, entity.summary, entity.id]);
 
   const cancelSummary = useCallback(() => {
     setEditingSummary(false);
@@ -422,13 +422,12 @@ export default function EntityDetailView({
   }, [entity.description]);
 
   const saveDescription = useCallback(() => {
-    if (!onUpdateDescription) return;
     const trimmed = descriptionDraft.trim();
     if (trimmed && trimmed !== entity.description) {
-      onUpdateDescription(entity.id, trimmed);
+      handleUpdateDescription(entity.id, trimmed);
     }
     setEditingDescription(false);
-  }, [onUpdateDescription, descriptionDraft, entity.description, entity.id]);
+  }, [handleUpdateDescription, descriptionDraft, entity.description, entity.id]);
 
   const cancelDescription = useCallback(() => {
     setEditingDescription(false);
@@ -465,6 +464,7 @@ export default function EntityDetailView({
   const lastEntry = historyLen > 0 ? enrichment!.descriptionHistory![historyLen - 1] : null;
 
   return (
+  <>
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {/* Header bar */}
       <div
@@ -514,7 +514,7 @@ export default function EntityDetailView({
         {/* Main content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', minWidth: 0 }}>
           {/* Summary */}
-          {(entity.summary || onUpdateSummary) && (
+          {(entity.summary || handleUpdateSummary) && (
             <div style={{ marginBottom: '20px' }}>
               <div style={{
                 fontSize: '11px',
@@ -527,7 +527,7 @@ export default function EntityDetailView({
                 gap: '8px',
               }}>
                 Summary
-                {onUpdateSummary && !editingSummary && (
+                {handleUpdateSummary && !editingSummary && (
                   <button
                     onClick={startEditSummary}
                     title="Edit summary"
@@ -605,7 +605,7 @@ export default function EntityDetailView({
           )}
 
           {/* Full Description */}
-          {(entity.description || onUpdateDescription) && (
+          {(entity.description || handleUpdateDescription) && (
             <div style={{ marginBottom: '20px' }}>
               <div style={{
                 fontSize: '11px',
@@ -624,9 +624,9 @@ export default function EntityDetailView({
                     v{historyLen + 1} ({historyLen} previous)
                   </span>
                 )}
-                {historyLen > 0 && onUndoDescription && (
+                {historyLen > 0 && handleUndoDescription && (
                   <button
-                    onClick={() => onUndoDescription(entity.id)}
+                    onClick={() => handleUndoDescription(entity.id)}
                     title={`Revert to previous version (from ${lastEntry?.source || 'unknown'}, ${lastEntry?.replacedAt ? new Date(lastEntry.replacedAt).toLocaleDateString() : 'unknown'})`}
                     style={{
                       background: 'var(--bg-tertiary)',
@@ -643,7 +643,7 @@ export default function EntityDetailView({
                     ↩ Undo
                   </button>
                 )}
-                {onUpdateDescription && !editingDescription && (
+                {handleUpdateDescription && !editingDescription && (
                   <button
                     onClick={startEditDescription}
                     title="Edit description"
@@ -662,9 +662,8 @@ export default function EntityDetailView({
                     Edit
                   </button>
                 )}
-                {onRename && (
-                  <button
-                    onClick={() => onRename(entity.id)}
+                <button
+                    onClick={() => openRename(entity.id)}
                     title="Rename this entity with full propagation across all references"
                     style={{
                       background: 'var(--bg-tertiary)',
@@ -680,10 +679,8 @@ export default function EntityDetailView({
                   >
                     Rename
                   </button>
-                )}
-                {onPatchEvents && (
-                  <button
-                    onClick={() => onPatchEvents(entity.id)}
+                <button
+                    onClick={() => openPatchEvents(entity.id)}
                     title="Repair stale names in narrative event history for this entity"
                     style={{
                       background: 'var(--bg-tertiary)',
@@ -699,39 +696,73 @@ export default function EntityDetailView({
                   >
                     Patch Events
                   </button>
-                )}
               </div>
-              {historianConfigured && (onHistorianEdition || onHistorianReview) && (
-                <div style={{
-                  fontSize: '11px',
-                  color: 'var(--text-muted)',
-                  marginBottom: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                }}>
-                  Historian
-                  {onHistorianEdition && (
+              {historianConfigured && (
+                <>
+                  <div style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    marginBottom: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                  }}>
+                    Historian
                     <HistorianToneSelector
-                      onSelect={(tone: string) => onHistorianEdition(entity.id, tone)}
+                      onSelect={(tone: string) => handleHistorianEdition(entity.id, tone)}
                       disabled={isHistorianEditionActive}
                       label="Copy Edit"
                       hasNotes={false}
                       style={{ display: 'inline-block' }}
                     />
-                  )}
-                  {onHistorianReview && (
+                    {enrichment?.descriptionHistory?.some((h: { source?: string }) => h.source === 'historian-edition') && (
+                      <HistorianToneSelector
+                        onSelect={(tone: string) => handleHistorianEdition(entity.id, tone, true)}
+                        disabled={isHistorianEditionActive}
+                        label="Re-Edit"
+                        hasNotes={false}
+                        style={{ display: 'inline-block' }}
+                      />
+                    )}
                     <HistorianToneSelector
-                      onSelect={(tone: string) => onHistorianReview(entity.id, tone)}
+                      onSelect={(tone: string) => handleHistorianReview(entity.id, tone)}
                       disabled={isHistorianActive}
                       label="Annotate"
                       hasNotes={enrichment?.historianNotes && enrichment.historianNotes.length > 0}
                       style={{ display: 'inline-block' }}
                     />
+                    {handleClearNotes && enrichment?.historianNotes && enrichment.historianNotes.length > 0 && (
+                      <button
+                        onClick={() => handleClearNotes(entity.id)}
+                        title="Remove all annotations from this entity"
+                        style={{
+                          background: 'none',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-muted)',
+                          fontSize: '10px',
+                          padding: '1px 6px',
+                          borderRadius: '3px',
+                          cursor: 'pointer',
+                          textTransform: 'none',
+                          letterSpacing: 'normal',
+                        }}
+                      >
+                        Clear Notes
+                      </button>
+                    )}
+                  </div>
+                  {enrichment?.descriptionHistory?.some((h: { source?: string }) => h.source === 'historian-edition' || h.source === 'legacy-copy-edit') && entity.description && (
+                    <HistorianEditionComparison
+                      entityId={entity.id}
+                      currentDescription={entity.description}
+                      descriptionHistory={enrichment.descriptionHistory}
+                      historianNotes={enrichment.historianNotes}
+                      onRestoreVersion={handleRestoreDescription}
+                    />
                   )}
-                </div>
+                </>
               )}
               {editingDescription ? (
                 <textarea
@@ -796,9 +827,7 @@ export default function EntityDetailView({
                       notes={enrichment.historianNotes}
                       sourceText={entity.description}
                       style={{ marginTop: '12px' }}
-                      onUpdateNote={onUpdateHistorianNote
-                        ? (noteId: string, updates: Record<string, unknown>) => onUpdateHistorianNote('entity', entity.id, noteId, updates)
-                        : undefined}
+                      onUpdateNote={(noteId: string, updates: Record<string, unknown>) => handleUpdateHistorianNote('entity', entity.id, noteId, updates)}
                     />
                   )}
                 </>
@@ -812,11 +841,11 @@ export default function EntityDetailView({
           {/* Aliases */}
           <AliasesList
             aliases={textEnrichment?.aliases || []}
-            onUpdate={onUpdateAliases ? (aliases) => onUpdateAliases(entity.id, aliases) : undefined}
+            onUpdate={(aliases) => handleUpdateAliases(entity.id, aliases)}
           />
 
           {/* Chronicle Images */}
-          {onUpdateBackrefs && enrichment?.chronicleBackrefs && enrichment.chronicleBackrefs.length > 0 && (
+          {enrichment?.chronicleBackrefs && enrichment.chronicleBackrefs.length > 0 && (
             <>
               <div style={{
                 borderTop: '1px solid var(--border-color)',
@@ -825,7 +854,7 @@ export default function EntityDetailView({
               <BackrefImageEditor
                 entity={entity}
                 entities={entities}
-                onUpdateBackrefs={onUpdateBackrefs}
+                onUpdateBackrefs={handleUpdateBackrefs}
                 alwaysExpanded
               />
             </>
@@ -937,5 +966,16 @@ export default function EntityDetailView({
         </div>
       </div>
     </div>
+
+    {editionPreview && (
+      <HistoryCompressionPreviewModal
+        entityName={editionPreview.entityName}
+        originalCount={editionPreview.originalCount}
+        compressed={editionPreview.compressed}
+        onProceed={handleEditionPreviewProceed}
+        onCancel={handleEditionPreviewCancel}
+      />
+    )}
+  </>
   );
 }

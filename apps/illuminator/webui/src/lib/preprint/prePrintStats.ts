@@ -69,6 +69,18 @@ export function computePrePrintStats(
   const chronicleBodyTexts = publishedChronicles.map(getPublishedContent);
   const chronicleSummaryTexts = publishedChronicles.map((c) => c.summary || '');
   const entityDescTexts = entities.map((e) => e.description || '');
+  // Pre-historian-edit descriptions: for entities with a historian edition, use the
+  // history entry that was replaced (source='historian-edition'); otherwise use current.
+  const entityDescPreEditTexts = entities.map((e) => {
+    const history = e.enrichment?.descriptionHistory;
+    if (history?.length) {
+      const preEditEntry = history.find(
+        (h: { source?: string }) => h.source === 'historian-edition',
+      );
+      if (preEditEntry) return preEditEntry.description || '';
+    }
+    return e.description || '';
+  });
   const entitySummaryTexts = entities.map((e) => e.summary || '');
   const captionTexts = collectCaptions(publishedChronicles);
   const pageTexts = publishedPages.map((p) => p.content || '');
@@ -87,18 +99,22 @@ export function computePrePrintStats(
     }
   }
   const allHistorianNotes = [...entityHistorianNotes, ...chronicleHistorianNotes];
-  const historianNoteText = collectHistorianNoteTexts(allHistorianNotes);
 
   const sumWords = (texts: string[]) => texts.reduce((s, t) => s + countWords(t), 0);
   const sumChars = (texts: string[]) => texts.reduce((s, t) => s + countChars(t), 0);
+
+  const entityHistorianNoteText = collectHistorianNoteTexts(entityHistorianNotes);
+  const chronicleHistorianNoteText = collectHistorianNoteTexts(chronicleHistorianNotes);
 
   const wordBreakdown: WordCountBreakdown = {
     chronicleBody: sumWords(chronicleBodyTexts),
     chronicleSummaries: sumWords(chronicleSummaryTexts),
     entityDescriptions: sumWords(entityDescTexts),
+    entityDescriptionsPreEdit: sumWords(entityDescPreEditTexts),
     entitySummaries: sumWords(entitySummaryTexts),
     imageCaptions: sumWords(captionTexts),
-    historianNotes: countWords(historianNoteText),
+    historianNotesEntity: countWords(entityHistorianNoteText),
+    historianNotesChronicle: countWords(chronicleHistorianNoteText),
     staticPageContent: sumWords(pageTexts),
   };
 
@@ -106,14 +122,17 @@ export function computePrePrintStats(
     chronicleBody: sumChars(chronicleBodyTexts),
     chronicleSummaries: sumChars(chronicleSummaryTexts),
     entityDescriptions: sumChars(entityDescTexts),
+    entityDescriptionsPreEdit: sumChars(entityDescPreEditTexts),
     entitySummaries: sumChars(entitySummaryTexts),
     imageCaptions: sumChars(captionTexts),
-    historianNotes: countChars(historianNoteText),
+    historianNotesEntity: countChars(entityHistorianNoteText),
+    historianNotesChronicle: countChars(chronicleHistorianNoteText),
     staticPageContent: sumChars(pageTexts),
   };
 
-  const totalWords = Object.values(wordBreakdown).reduce((s, v) => s + v, 0);
-  const totalChars = Object.values(charBreakdown).reduce((s, v) => s + v, 0);
+  // Pre-edit counts are comparison metrics, not additional content — exclude from totals
+  const totalWords = Object.values(wordBreakdown).reduce((s, v) => s + v, 0) - wordBreakdown.entityDescriptionsPreEdit;
+  const totalChars = Object.values(charBreakdown).reduce((s, v) => s + v, 0) - charBreakdown.entityDescriptionsPreEdit;
 
   // =========================================================================
   // Image Stats

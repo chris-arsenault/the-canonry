@@ -27,7 +27,7 @@ import {
 // Compact model labels for table display
 const MODEL_SHORT_LABELS = {
   'claude-opus-4-6': 'Opus',
-  'claude-sonnet-4-5-20250929': 'Sonnet',
+  'claude-sonnet-4-6': 'Sonnet',
   'claude-haiku-4-5-20251001': 'Haiku',
 };
 
@@ -246,7 +246,7 @@ export default function LLMCallConfigPanel() {
     forceUpdate((n) => n + 1);
   }, []);
 
-  const categories = ['description', 'perspective', 'chronicle', 'image', 'palette', 'dynamics', 'revision'];
+  const categories = ['description', 'perspective', 'chronicle', 'image', 'palette', 'dynamics', 'revision', 'historian'];
 
   return (
     <div className="illuminator-card llm-config-panel">

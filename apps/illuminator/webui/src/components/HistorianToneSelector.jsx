@@ -48,6 +48,24 @@ const TONE_OPTIONS = [
     description: 'Irritable, exacting, sharp',
     symbol: '♯',
   },
+  {
+    value: 'rueful',
+    label: 'Rueful',
+    description: 'Self-aware regret, crooked smile',
+    symbol: '⌒',
+  },
+  {
+    value: 'conspiratorial',
+    label: 'Conspiratorial',
+    description: 'Whispering asides, sharing secrets',
+    symbol: '⊘',
+  },
+  {
+    value: 'bemused',
+    label: 'Bemused',
+    description: 'Puzzled, entertained by absurdity',
+    symbol: '⁂',
+  },
 ];
 
 export const TONE_META = Object.fromEntries(

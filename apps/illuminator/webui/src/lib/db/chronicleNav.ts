@@ -48,6 +48,10 @@ export interface ChronicleNavItem {
   hasTemporalNarrative: boolean;
   hasTemporalCheck: boolean;
   hasHistorianPrep: boolean;
+  hasSummary: boolean;
+  toneRanking?: [string, string, string];
+  assignedTone?: string;
+  eraNarrativeWeight?: 'structural' | 'contextual' | 'flavor';
 }
 
 export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
@@ -106,5 +110,9 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
     hasTemporalNarrative: !!record.perspectiveSynthesis?.temporalNarrative,
     hasTemporalCheck: !!record.temporalCheckReport,
     hasHistorianPrep: !!record.historianPrep,
+    hasSummary: !!record.summary,
+    toneRanking: record.toneRanking?.ranking,
+    assignedTone: record.assignedTone,
+    eraNarrativeWeight: record.narrativeStyle?.eraNarrativeWeight,
   };
 }

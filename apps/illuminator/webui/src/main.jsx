@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import IlluminatorRemote from './IlluminatorRemote';
 import './App.css';
 import { exportImagePrompts, downloadImagePromptExport } from './lib/db/imageRepository';
+import { repairFactCoverageWasFaceted } from './lib/db/chronicleRepository';
 
 // Standalone entry point for development
 // In production, this is loaded via Module Federation from The Canonry
@@ -13,6 +14,8 @@ window.illuminatorDebug = {
   exportImagePrompts,
   /** Download image prompt data as JSON file */
   downloadImagePromptExport,
+  /** One-shot: fix wasFaceted flags on stored fact coverage reports */
+  repairFactCoverageWasFaceted,
 };
 
 const mockSchema = Object.freeze({

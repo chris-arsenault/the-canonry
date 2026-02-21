@@ -125,6 +125,13 @@ async function executeTask(task: WorkerTask): Promise<WorkerResult> {
     ? { ...config!, llmCallSettings: task.llmCallSettings }
     : config!;
 
+  const onThinkingDelta = (delta: string) => {
+    emit({ type: 'thinking_delta', taskId: task.id, delta });
+  };
+  const onTextDelta = (delta: string) => {
+    emit({ type: 'text_delta', taskId: task.id, delta });
+  };
+
   try {
     let result;
 
@@ -133,6 +140,8 @@ async function executeTask(task: WorkerTask): Promise<WorkerResult> {
       llmClient: llmClient!,
       imageClient: imageClient!,
       isAborted: checkAborted,
+      onThinkingDelta,
+      onTextDelta,
     });
 
     if (!result.success) {

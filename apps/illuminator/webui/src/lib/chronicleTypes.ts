@@ -7,7 +7,7 @@
 
 import type { NarrativeStyle } from '@canonry/world-schema';
 import type { ChronicleStep } from './enrichmentTypes';
-import type { HistorianNote } from './historianTypes';
+import type { HistorianNote, HistorianTone } from './historianTypes';
 
 // =============================================================================
 // Chronicle Plan - Output of Step 1
@@ -787,6 +787,30 @@ export interface QuickCheckReport {
   summary: string;
 }
 
+// ============================================================================
+// Fact Coverage Analysis
+// ============================================================================
+
+export type FactCoverageRating = 'missing' | 'mentioned' | 'prevalent' | 'integral';
+
+export interface FactCoverageEntry {
+  factId: string;
+  factText: string;
+  rating: FactCoverageRating;
+  /** Brief evidence/reasoning from the LLM */
+  evidence: string;
+  /** Whether this fact was in the chronicle's faceted facts (post-perspective synthesis) */
+  wasFaceted: boolean;
+}
+
+export interface FactCoverageReport {
+  entries: FactCoverageEntry[];
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  actualCost: number;
+}
+
 /** An entity mentioned in chronicle text but not in the declared primary/secondary cast */
 export interface TertiaryCastEntry {
   entityId: string;
@@ -973,6 +997,10 @@ export interface ChronicleRecord {
   quickCheckReport?: QuickCheckReport;
   quickCheckReportGeneratedAt?: number;
 
+  // Fact coverage analysis (canon fact presence ratings from Haiku)
+  factCoverageReport?: FactCoverageReport;
+  factCoverageReportGeneratedAt?: number;
+
   // Tertiary cast — entities detected in text but not in declared cast (persisted on manual detect)
   tertiaryCast?: TertiaryCastEntry[];
   tertiaryCastDetectedAt?: number;
@@ -1019,6 +1047,22 @@ export interface ChronicleRecord {
 
   /** Historian annotations — scholarly margin notes anchored to chronicle text */
   historianNotes?: HistorianNote[];
+  /** Canon fact IDs that annotation guidance directed the historian to reinforce */
+  reinforcedFacts?: string[];
+  /** LLM prompts used to generate historian annotations (for review/export) */
+  historianReviewSystemPrompt?: string;
+  historianReviewUserPrompt?: string;
+
+  /** LLM-ranked tone preferences for historian annotations (Phase 1 result) */
+  toneRanking?: {
+    ranking: [HistorianTone, HistorianTone, HistorianTone];
+    rationale: string;
+    rationales?: Record<string, string>;
+    generatedAt: number;
+    actualCost?: number;
+  };
+  /** Algorithm/user-assigned tone for historian review (Phase 2 result) */
+  assignedTone?: HistorianTone;
 
   /** Historian's private reading notes — prep brief for era narrative input */
   historianPrep?: string;

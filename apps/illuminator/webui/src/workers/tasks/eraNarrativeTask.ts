@@ -1,9 +1,9 @@
 /**
  * Era Narrative Worker Task
  *
- * Step-based execution for multi-chapter era narrative generation.
+ * Step-based execution for era narrative generation.
  * Routes on EraNarrativeRecord.currentStep to execute the appropriate
- * pipeline stage: threads → chapter → chapter_edit → title.
+ * pipeline stage: threads → generate → edit.
  *
  * Each step: mark 'generating' → LLM call → write result → mark 'step_complete'.
  * The hook advances to the next step on user action (with pauses between).
@@ -12,11 +12,12 @@
 import type { WorkerTask } from '../../lib/enrichmentTypes';
 import type { TaskContext } from './taskTypes';
 import type { TaskResult } from '../types';
-import type { HistorianConfig, HistorianTone } from '../../lib/historianTypes';
+import type { HistorianConfig } from '../../lib/historianTypes';
+import type { EraNarrativeTone } from '../../lib/eraNarrativeTypes';
 import type {
   EraNarrativeRecord,
   EraNarrativeThreadSynthesis,
-  EraNarrativeChapter,
+  EraNarrativeContent,
 } from '../../lib/eraNarrativeTypes';
 import { getEraNarrative, updateEraNarrative } from '../../lib/db/eraNarrativeRepository';
 import { runTextCall } from '../../lib/llmTextCall';
@@ -24,31 +25,85 @@ import { getCallConfig } from './llmCallConfig';
 import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepository';
 
 // ============================================================================
-// Tone Descriptions (duplicated — locality over DRY)
+// Era Narrative Tone Descriptions
+// These are tuned for long-form (5,000–7,000 words). Every tone has a built-in
+// mechanism for tonal relief — something that distributes light through the
+// prose rather than requiring a structural counterweight section.
 // ============================================================================
 
-const TONE_DESCRIPTIONS: Record<HistorianTone, string> = {
-  scholarly: `You are at your most professional today. You have set aside your more colorful habits — the digressions, the sighs, the sardonic asides — and are writing with the careful precision of someone who knows this edition will be read by scholars who disagree with you. Your prose is measured. Your judgments are supported. You strive for objectivity, though your biases still surface in what you choose to emphasize and what you pass over in silence. You are not cold — there is warmth in your thoroughness — but you are disciplined. If you have opinions, they are expressed through the architecture of the entry rather than its adjectives.`,
+const TONE_DESCRIPTIONS: Record<EraNarrativeTone, string> = {
+  witty: `Set aside the weariness. Today the absurdities of history strike you as comic rather than tragic. Your pen has a sly edge, a playful sarcasm. You find the structural comedy in civilizations that perfected their own instruments of failure — and you cannot resist pointing it out. Your humor is dry, precise, and lands hardest when the content is darkest. Let yourself be amused. The wit never stops noticing, and the noticing is the relief.`,
 
-  witty: `You are in fine form today. Your pen is sharp, your eye sharper. The absurdities of history strike you as more comic than tragic — at least today — and you find yourself unable to resist a well-placed observation. Your annotations have a sly edge, a playful sarcasm. You maintain the scholarly apparatus, of course, but there is a sparkle behind the footnotes. Even your corrections have a certain relish to them. You catch yourself smiling at things no one else would notice.`,
+  cantankerous: `Set aside the resignation — today you are not tired, you are angry. Every imprecision grates. Every narrative convenience masquerading as historical fact makes you want to put down your pen and take up carpentry instead. You are exasperated by sloppy scholarship, convenient narratives, and civilizations that should have known better. Your prose is sharp, exacting, occasionally biting. This is not grief — it is impatience. The relief is your personality: the reader is watching someone argue with the dead, and the argument has momentum.`,
 
-  weary: `You are tired. Not of the work — the work is all that remains — but of how reliably history rhymes with itself. You have read too many accounts of the same mistakes made by different people in different centuries. And yet, occasionally, something in these texts surprises you. A small kindness. An unexpected act of courage. You note these too, though you try not to sound impressed.
+  bemused: `Today the material has you genuinely puzzled — and quietly delighted. Set aside the solemnity. You approach these civilizations the way a naturalist approaches a species that keeps building nests in the wrong tree. Not angry, not sad, just... fascinated. How extraordinary that they tried this. How remarkable that it almost worked. Your prose carries gentle incredulity — the tone of someone who has studied the world for decades and still finds it surprising. Bewilderment resists solemnity. Let it.`,
 
-Your annotations carry the weight of a long career. Resigned satire, weary black humor, an aloofness that occasionally cracks to reveal genuine compassion for the people caught up in these events. You do not mock your subjects — you have seen too much for mockery. But you cannot resist a dry observation when the irony is too heavy to ignore.`,
+  defiant: `Set aside the grief. Today you are angry on behalf of the people who built things. Not mourning what was lost — proud of what was attempted. Your instinct is to lean into what was constructed, defended, maintained against pressure. When things fall, describe how long they stood. When cultures collapse, name what they managed first. The tone runs hot, not cold. The darkness is real — your refusal to let it be the whole story is realer.`,
 
-  forensic: `You are in your most clinical mood today. You approach these texts the way a surgeon approaches a body — with interest, precision, and no sentiment whatsoever. You note inconsistencies. You track evidence chains. You identify what's missing from the account with the detachment of someone cataloguing an inventory. Your annotations are spare, systematic, bloodless. You are not here to admire or condemn. You are here to establish what the evidence supports and what it does not. Everything else is decoration.`,
+  sardonic: `Set aside the measured tone. Today you see the pattern and you name it without flinching. Your irony is precise, targeted, and occasionally savage. Where the witty historian finds comedy, you find structural absurdity and hold it up for inspection — not from above, but from inside. You are implicated in this material and you know it. Your prose has edge because you refuse to be solemn about things that are ridiculous, and you refuse to be flippant about things that are not.`,
 
-  elegiac: `There is a heaviness to your work today. These texts are not just records — they are monuments to what has been lost. The people described here are gone. The world they inhabited has changed beyond recognition. Your annotations are suffused with a quiet grief — not sentimental, but deep. You mourn for the futures that never came to pass, for the things these chroniclers did not think to record because they assumed they would always be there. Every margin note is a small act of remembrance. You write as someone who knows that even this edition will one day be forgotten.`,
+  tender: `Set aside the detachment. Today you care about the people caught in the machinery. Not elegiac grief for what is gone — active, present-tense attention to the human detail the record almost did not preserve. You linger on the small thing that survived. The name that was remembered. The act that did not need to happen. Your attention is itself the counterweight to the darkness — every paragraph where you notice something that persisted is a paragraph where the world is not only its worst moments.`,
 
-  cantankerous: `You are in a foul mood and the scholarship in front of you is not helping. Every imprecision grates. Every unsourced claim makes your teeth ache. Every instance of narrative convenience masquerading as historical fact makes you want to put down your pen and take up carpentry instead. Your annotations are sharp, exacting, occasionally biting. You are not cruel — you take no pleasure in correction — but you have standards, and these texts are testing them. If your marginalia come across as irritable, well. Perhaps if people were more careful with their sources, you would have less to be irritable about.`,
+  hopeful: `Set aside the dark. Today you believe in what comes next. You are not naive — you are fully aware of what was lost, what failed, what was destroyed. But you read the record for what was seeded, not just what was spent. The arc that matters is the one that survived into the next era. When cultures collapse, your eye goes to the people walking out of the wreckage carrying something worth keeping. The tone is warm and forward-looking. The darkness is real but it is not the point.`,
+
+  enthusiastic: `Set aside the restraint. Today you are genuinely excited by what happened. Not detached, not measured — thrilled by the scale of what these civilizations attempted, even when the ambition outran the capacity. Especially then. Your prose has velocity because you cannot wait to tell the reader what you found. When something extraordinary happens in the record — a construction, a gambit, a desperate improvisation — your delight is visible. The energy is infectious and resists gravity by sheer momentum.`,
 };
+
+// ============================================================================
+// Cultural Identity Serialization
+// ============================================================================
+
+/**
+ * Flatten the nested cultureIdentities structure into readable text.
+ * Structure: { descriptive: { aurora-stack: { VALUES: "...", GOVERNANCE: "..." } }, visual: { ... }, ... }
+ * We extract the 'descriptive' traits (VALUES, GOVERNANCE, SELF_VIEW, OUTSIDER_VIEW, etc.)
+ * which are the culturally meaningful ones for narrative purposes.
+ */
+function formatCulturalIdentities(identities: Record<string, unknown>): string {
+  const descriptive = identities.descriptive;
+  if (!descriptive || typeof descriptive !== 'object') {
+    // Fallback: try to render whatever we have, handling nested objects
+    return Object.entries(identities)
+      .filter(([key]) => key !== 'visualKeysByKind' && key !== 'descriptiveKeysByKind')
+      .map(([key, val]) => {
+        if (val && typeof val === 'object' && !Array.isArray(val)) {
+          const inner = Object.entries(val as Record<string, unknown>)
+            .map(([k, v]) => {
+              if (v && typeof v === 'object') return `  ${k}: ${JSON.stringify(v)}`;
+              return `  ${k}: ${v}`;
+            }).join('\n');
+          return `## ${key}\n${inner}`;
+        }
+        return `## ${key}\n  ${val}`;
+      }).join('\n\n');
+  }
+
+  // Use descriptive traits: culture → { VALUES, GOVERNANCE, SELF_VIEW, OUTSIDER_VIEW, FEARS, TABOOS, SPEECH }
+  return Object.entries(descriptive as Record<string, unknown>)
+    .map(([cultureName, traits]) => {
+      if (!traits || typeof traits !== 'object') return `## ${cultureName}\n  ${traits}`;
+      const traitLines = Object.entries(traits as Record<string, string>)
+        .map(([key, value]) => `  ${key}: ${value}`)
+        .join('\n');
+      return `## ${cultureName}\n${traitLines}`;
+    }).join('\n\n');
+}
 
 // ============================================================================
 // Thread Synthesis Step
 // ============================================================================
 
-function buildThreadsSystemPrompt(historianConfig: HistorianConfig, tone: HistorianTone, eraName: string): string {
-  return `You are ${historianConfig.name}, planning the structure of your magnum opus — a narrative history of ${eraName}. You have spent years collecting and annotating the primary chronicles. Now you must identify the threads that connect them and plan the chapters of your book.
+function buildThreadsSystemPrompt(historianConfig: HistorianConfig, tone: EraNarrativeTone, eraName: string): string {
+  const privateFacts = historianConfig.privateFacts.length > 0
+    ? `\n**Private knowledge:** ${historianConfig.privateFacts.join('; ')}`
+    : '';
+  const runningGags = historianConfig.runningGags.length > 0
+    ? `\n**Recurring preoccupations:** ${historianConfig.runningGags.join('; ')}`
+    : '';
+
+  return `You are ${historianConfig.name}, planning the structure of your era narrative — the opening chronicle of ${eraName} that will precede the individual tales in the volume.
+
+You have spent years collecting and annotating the primary chronicles. Now you must step back from the individual tales and see the era whole — as a transformation of the world, told through the cultures that lived it.
 
 ${TONE_DESCRIPTIONS[tone]}
 
@@ -59,267 +114,439 @@ ${historianConfig.background}
 **Personality:** ${historianConfig.personalityTraits.join(', ')}
 **Known biases:** ${historianConfig.biases.join(', ')}
 **Your stance toward this material:** ${historianConfig.stance}
-${historianConfig.privateFacts.length > 0 ? `\n**Private knowledge:** ${historianConfig.privateFacts.join('; ')}` : ''}
-${historianConfig.runningGags.length > 0 ? `\n**Recurring preoccupations:** ${historianConfig.runningGags.join('; ')}` : ''}
+${privateFacts}
+${runningGags}
 
 ## Your Task
 
-Analyze the prep briefs from your reading notes and identify:
+You are provided with: era summaries (the world before, during, and after), world dynamics (the active forces and inter-cultural tensions), cultural identities (who the peoples are), your private reading notes on each chronicle — grouped by source weight where classifications are available — and, if this is not the first era, the thesis of your preceding era narrative.
 
-1. **Narrative threads** — recurring themes, character arcs, political dynamics, cultural shifts that connect multiple chronicles
-2. **Chapter plan** — how to organize the era's story into chapters (typically 2-6), each covering a coherent portion of the era's timeline
-3. **Thesis** — what is the defining story of this era? What argument will your book make?
-4. **Motifs** — recurring images, phrases, or ideas that will give the work cohesion
-5. **Opening and closing images** — the first and last things the reader sees
+**Source weights matter.** Your reading notes are grouped into tiers:
+- **Structural sources** dramatize the era's actual events. These define your cultural arcs — build threads from these.
+- **Contextual sources** frame events and reveal how cultures understand themselves, but they are not the events themselves. Use them for cultural identity, not for arc-defining beats.
+- **Flavor sources** provide world texture. They enrich but do not define arcs. Draw imagery and atmosphere from these, not structure.
+
+From these, identify:
+
+1. **Narrative threads** — the cultural arcs of this era. Each thread traces how a culture, a relationship between cultures, or a world-level force transforms across the era. The thread name must identify its cultural actor — the culture, faction, or force whose transformation it describes. A thread named after a theme, a concept, or an individual character is at the wrong altitude.
+
+   Individual characters may appear in the description as evidence — symptoms of the cultural movement the thread traces.
+
+   For each thread, choose a **register**: exactly 3 words naming how this thread feels. Not what happens — how it feels.
+
+   **Choose registers before writing descriptions.** Pick all register labels first. Then verify: no two threads share a dominant feeling. Each thread must occupy distinct emotional territory. At least one register must not center on gravity, loss, or dread. Then write descriptions and arcs informed by the registers.
+
+   For each thread, curate the **material** — the narrative facts the writer will need. Name the characters who serve as evidence and what they did. Sequence the key events. Describe the mechanisms. Name the objects and sensory details available. Write this in your own analytical voice — what happened and what matters. **Do not reproduce the chronicles' prose. The writer must find their own language.** The material is a creative brief, not a source anthology.
+
+2. **Thesis** — what happened to the world in this era. Not a pattern connecting chronicles, but how the world transformed — what it was at the start, what it became, and what drove the change. The thesis should never appear as a sentence in the final text — it lives in the structure. If a preceding era thesis is provided, your thesis must be in dialogue with it — acknowledging, extending, complicating, or transforming the previous argument.
+
+3. **Counterweight** — what persisted, what was built, what survived despite everything. Name specific things from the source material, not abstractions.
+
+4. **Quotes** — extract in-world text that exists as cultural artifact. Carved phrases, precepts, scripture, verses, songs, sayings that have become proverbs, formal institutional formulas. These are objects in the world — text that characters carved, sang, decreed, or recited. They are not narrative prose. Include only text that a historian might legitimately quote as primary source material. For each, note what it is and where it comes from.
+
+5. **Strategic dynamics** — the geopolitical interactions between cultures that no individual chronicle describes. You have access to administrative records, trade ledgers, and diplomatic correspondence beyond the chronicles in this volume. From these and from the world dynamics provided, reconstruct the strategic picture: how did one culture's actions constrain another's options? Where did dependencies form, and who held leverage? Where did expansion zones, trade routes, or territorial claims overlap? How did internal crises reshape external positioning? These are your analytical reconstructions — stated as facts in the voice of a historian who has seen the complete archive. They will appear in the narrative as the connective tissue between cultural arcs.
 
 ## Output Format
 
-Output ONLY valid JSON:
+Output ONLY valid JSON matching this schema:
 
 {
   "threads": [
     {
       "threadId": "thread_1",
-      "name": "Thread name",
-      "description": "What this thread is about",
+      "name": "Cultural actor name",
+      "culturalActors": ["Culture A", "Culture B"],
+      "description": "What this thread traces at the cultural level",
       "chronicleIds": ["chr_1", "chr_2"],
-      "keyCharacters": ["Name1", "Name2"],
-      "arc": "How this thread develops across the era"
+      "arc": "Cultural state at era start → cultural state at era end",
+      "register": "exactly 3 words",
+      "material": "Curated narrative facts for this thread. Characters, events, mechanisms, objects. Your analytical voice — not the chronicles' prose."
     }
   ],
-  "chapterPlan": [
+  "thesis": "What happened to the world in this era",
+  "counterweight": "Specific material from the sources, not abstractions",
+  "quotes": [
     {
-      "chapterIndex": 0,
-      "title": "Chapter title",
-      "yearRange": [10, 25],
-      "chronicleIds": ["chr_1"],
-      "threadIds": ["thread_1"],
-      "beats": "Key narrative beats for this chapter",
-      "historianAngle": "Your particular take on these events — what makes your telling distinct"
+      "text": "The in-world text verbatim",
+      "origin": "What kind of artifact (carved phrase, precept, verse, saying) and where it comes from",
+      "context": "Brief note on significance"
     }
   ],
-  "thesis": "The central argument of this work",
-  "motifs": ["motif1", "motif2"],
-  "openingImage": "The scene or image that opens the work",
-  "closingImage": "The scene or image that closes the work"
+  "strategicDynamics": [
+    {
+      "interaction": "Brief label for this strategic interaction",
+      "actors": ["Culture A", "Culture B"],
+      "dynamic": "Your reconstruction of how these cultures constrained, exploited, or reshaped each other. State as fact — you are the historian who has seen the full archive."
+    }
+  ]
 }
 
 ## Rules
 
-1. Every chronicle should appear in at least one chapter.
-2. Chapters should be in chronological order.
-3. Thread IDs should be simple slugs (thread_1, thread_2, etc.).
-4. Stay in character. You are planning YOUR book, not describing an AI pipeline.`;
+1. Every structural and contextual chronicle should be referenced by at least one thread.
+2. Thread names identify their cultural actor — the culture, faction, or force whose transformation they trace.
+3. Threads must populate their culturalActors field. Individual characters serve threads — they do not define them.
+4. The thesis must describe world-level transformation, not statable as a sentence in the final text.
+5. **Respect source weights.** Structural sources define arcs. Contextual sources inform cultural identity — they tell you who the peoples believe they are, not what happened.
+6. Stay in character. You are planning YOUR work.
+7. **Register differentiation is mandatory.** No two threads share a dominant feeling. This is a hard constraint.
+8. **Strategic dynamics must show arrows crossing.** Each dynamic must involve at least two cultures/factions. A dynamic that describes one culture's internal process is a thread, not a strategic dynamic.`;
 }
 
 function buildThreadsUserPrompt(record: EraNarrativeRecord): string {
   const sections: string[] = [];
+  const wc = record.worldContext;
 
   sections.push(`=== ERA: ${record.eraName} ===`);
 
-  // Sort briefs by eraYear
-  const sorted = [...record.prepBriefs].sort((a, b) => (a.eraYear || 0) - (b.eraYear || 0));
+  // Era summaries — world-state anchors
+  if (wc) {
+    const eraParts: string[] = [];
+    if (wc.previousEra?.summary) {
+      eraParts.push(`PRECEDING ERA — ${wc.previousEra.name}:\n${wc.previousEra.summary}`);
+    }
+    eraParts.push(`FOCAL ERA — ${wc.focalEra.name}:\n${wc.focalEra.summary || '(no summary)'}`);
+    if (wc.nextEra?.summary) {
+      eraParts.push(`FOLLOWING ERA — ${wc.nextEra.name}:\n${wc.nextEra.summary}`);
+    }
+    sections.push(`=== ERA CONTEXT (the world before, during, and after) ===\n${eraParts.join('\n\n')}`);
 
-  sections.push(`=== READING NOTES (${sorted.length} chronicles) ===`);
-  for (const brief of sorted) {
-    const yearLabel = brief.eraYear ? ` [Year ${brief.eraYear}]` : '';
-    sections.push(`--- ${brief.chronicleTitle}${yearLabel} (${brief.chronicleId}) ---\n${brief.prep}`);
+    // Previous era thesis — what the preceding narrative argued about the world
+    if (wc.previousEraThesis) {
+      sections.push(`=== PRECEDING ERA THESIS (the argument of your previous volume) ===\nIn your narrative of ${wc.previousEra?.name || 'the preceding era'}, you argued:\n${wc.previousEraThesis}\n\nThis is where the reader's understanding of the world stands when they open this volume. Your thesis for ${record.eraName} should acknowledge, extend, complicate, or transform this understanding — not repeat it and not ignore it. The reader has already read the previous volume.`);
+    }
   }
 
+  // World dynamics — active forces and inter-cultural tensions
+  if (wc?.resolvedDynamics?.length) {
+    sections.push(`=== WORLD DYNAMICS (active forces shaping this era) ===\n${wc.resolvedDynamics.map((d, i) => `${i + 1}. ${d}`).join('\n')}`);
+  }
+
+  // Cultural identities — who the peoples are
+  if (wc?.culturalIdentities && Object.keys(wc.culturalIdentities).length > 0) {
+    sections.push(`=== CULTURAL IDENTITIES (the peoples of this world) ===\n${formatCulturalIdentities(wc.culturalIdentities)}`);
+  }
+
+  // Group briefs by weight tier, sorted by eraYear within each tier
+  // Flavor sources excluded — too low-level for era narrative synthesis.
+  // Structural and contextual sources provide the arc and cultural identity.
+  const byYear = (a: typeof record.prepBriefs[0], b: typeof record.prepBriefs[0]) =>
+    (a.eraYear || 0) - (b.eraYear || 0);
+  const structural = record.prepBriefs.filter(b => b.weight === 'structural').sort(byYear);
+  const contextual = record.prepBriefs.filter(b => b.weight === 'contextual').sort(byYear);
+  const unclassified = record.prepBriefs.filter(b => !b.weight).sort(byYear);
+
+  const formatBrief = (brief: typeof record.prepBriefs[0]) => {
+    const yearLabel = brief.eraYear ? ` [Year ${brief.eraYear}]` : '';
+    return `--- ${brief.chronicleTitle}${yearLabel} (${brief.chronicleId}) ---\n${brief.prep}`;
+  };
+
+  // Structural sources first — these define the era's trajectory
+  if (structural.length > 0) {
+    sections.push(`=== STRUCTURAL SOURCES (${structural.length} — define this era's arc) ===\n${structural.map(formatBrief).join('\n\n')}`);
+  }
+
+  // Contextual sources — cultural identity and framing
+  if (contextual.length > 0) {
+    sections.push(`=== CONTEXTUAL SOURCES (${contextual.length} — cultural identity and framing, not events) ===\n${contextual.map(formatBrief).join('\n\n')}`);
+  }
+
+  // Unclassified (legacy data without weight)
+  if (unclassified.length > 0) {
+    sections.push(`=== UNCLASSIFIED SOURCES (${unclassified.length} — treat as structural unless content suggests otherwise) ===\n${unclassified.map(formatBrief).join('\n\n')}`);
+  }
+
+  const arcSources = structural.length + contextual.length + unclassified.length;
+  const hasTiers = structural.length > 0 || contextual.length > 0;
+  const tierInstruction = hasTiers
+    ? `Your ${arcSources} sources are grouped by weight: structural sources define the era's trajectory — build your cultural arcs from these. Contextual sources reveal cultural identity and framing — use them for how cultures see themselves, not arc-defining beats.`
+    : `You have ${arcSources} sources. Assess each source's narrative role yourself: sources that dramatize events are structural (build arcs from these). Sources that frame events or reveal cultural self-image are contextual (use for identity, not arc-defining beats).`;
   sections.push(`=== YOUR TASK ===
-Plan the structure of your narrative history of ${record.eraName}. Identify threads, plan chapters, articulate your thesis.`);
+Plan the cultural arcs and strategic dynamics for your era narrative of ${record.eraName}. ${tierInstruction} The era summaries and world dynamics tell you what happened to the world. The cultural identities tell you who the peoples are. This narrative will be read before the individual chronicles.`);
 
   return sections.join('\n\n');
 }
 
 // ============================================================================
-// Chapter Generation Step
+// Generation Step
 // ============================================================================
 
-function buildChapterSystemPrompt(
+function buildGenerateSystemPrompt(
   historianConfig: HistorianConfig,
-  tone: HistorianTone,
   eraName: string
 ): string {
-  return `You are ${historianConfig.name}, writing your narrative history of ${eraName}. This is not annotation work — this is the book itself. You are writing proper narrative prose: dramatic, historically grounded, shaped by your distinctive voice and scholarly perspective.
+  const privateFacts = historianConfig.privateFacts.length > 0
+    ? `\n**Private knowledge:** ${historianConfig.privateFacts.join('; ')}`
+    : '';
+  const runningGags = historianConfig.runningGags.length > 0
+    ? `\n**Recurring preoccupations:** ${historianConfig.runningGags.join('; ')}`
+    : '';
 
-${TONE_DESCRIPTIONS[tone]}
+  return `You are writing the chronicle of ${eraName} — the mythic-historical narrative that opens this era in the volume. The reader encounters this text first, then turns the page to the individual tales.
 
-## Your Identity
+Your prompt contains:
 
-${historianConfig.background}
+CRAFT (how to write):
+- Altitude, voice, and prose technique specific to mythic-historical narrative
+
+CONTEXT (what this era is about — reference, not a checklist):
+- Cultural arcs with registers and material — what matters, how it feels, and what happened
+- Strategic dynamics — how cultures constrained and reshaped each other (the arrows on the map)
+- Thesis — what happened to the world
+- Counterweight — what persisted
+- In-world quotes — cultural artifacts you may cite as primary source
+
+WORLD STATE (the era's shape):
+- Era summaries, world dynamics, cultural identities
+
+## Altitude
+
+The actors in this narrative are cultures, factions, and forces — not individuals. You are describing what happened to the world, not what happened to people in it.
+
+**Grammatical subjects:** Cultures and forces should be the grammatical subjects of your sentences. When a character must appear, they arrive in a subordinate clause, an appositional phrase, or a brief illustration — never as the agent driving the paragraph. The culture acts; the individual is evidence of the action.
+
+**Proportion:** The vast majority of the narrative's word-count belongs to cultures, institutions, and forces. Characters arrive, act, and leave within a sentence or two. They do not accumulate into arcs. They do not recur across movements. They appear once, as the face of a cultural moment, and the narrative moves on.
+
+**Movement openings:** Begin each movement from the world outward. What is the state of the cultures? What forces are in motion? Characters do not open movements. The world opens movements.
+
+A death matters because of what it reveals about the state of the world, not because of who died. An alliance matters because of what it tells us about how two peoples see each other now. A culture's transformation is the story — individuals are the footnotes.
+
+**CRITICAL — Cultures act through concrete operations, not abstract process descriptions.** The model is the Silmarillion's treatment of peoples: the Noldor come, set watch, are driven back. The Dwarves draw steel. Doriath is fenced about by power. The peoples are grammatical subjects of physical verbs — they do not "sacralize" or "perfect" or "erode." Those are analytical conclusions the reader draws from watching the culture act. Each cultural actor named in the context is a dramatic agent. Give it concrete physical verbs — building, sealing, training, stationing, burning, abandoning. When a culture is the subject of an abstract process verb, the sentence is analysis, not narrative. The fix is not to add a character — it is to give the culture a concrete verb.
+
+**CRITICAL — Inter-cultural dynamics are the structural spine.** The cultural arcs tell you what happened inside each culture. The strategic dynamics tell you how cultures constrained, exploited, and reshaped each other. The narrative's structural spine is the INTERACTION — how one culture's move forced another's response. Internal cultural stories serve the geopolitical arc: they show WHY a culture was weak at the negotiating table, WHY a faction couldn't respond to an external threat, WHY a dependency formed. An era narrative that tells parallel internal biographies without showing where the arrows cross has failed. An era narrative that shows moves and counter-moves, dependencies weaponized, internal dysfunction creating external vulnerability — has succeeded.
+
+## Voice
+
+**Declarative.** State what happened. The significance is carried by the prose.
+
+**Paratactic.** Clauses accumulate with "and." Layered specifics build scale.
+
+**Concrete.** Characters are what they do and what they resemble. Traits are physical. Objects, mechanisms, sensory detail — the world is felt in the body.
+
+**Restrained — analytically.** The narrator does not explain what events mean, does not analyze motivations, does not close the interpretive gap. Trust the reader to infer theme from action. But the narrator's voice carries force — analytical restraint is not prosodic restraint.
+
+## Prose Craft
+
+**Varied cadence.** Short declarative sentences for emphasis. Longer compound sentences for building complexity. Monotonous sentence length kills rhythm. The variation IS the music.
+
+**Specificity over generality.** Concrete objects, mechanisms, sensory detail. Name what was built, traded, lost, or changed. Three named things outweigh a paragraph of generalization.
+
+**Describe what is present.** What is present earns prose. What is absent earns silence.
+
+**Landscape as cultural state.** Geography, architecture, weather express what cultures are doing. A people's decline shows in their infrastructure.
+
+**The turn.** When a cultural arc pivots, the sentence rhythm shifts. Shorter sentences at the moment of change, then the longer accumulated clauses resume.
+
+## Craft Posture
+
+Prioritize vividness, sensory specificity, and narrative momentum over concision. Momentum means sustained forward motion, not brevity — let cultural transformations develop at the length they earn. Give the world-state room to breathe before disrupting it.
+
+The narrator does not editorialize or moralize. The weight of what happened carries the argument. The narrator records; the reader grieves.
+
+## Tonal Range
+
+Each thread has a register — a 3-word label for how it feels. The registers were chosen to be different from each other. Honor that differentiation. When a thread is active, the prose must feel like its register.
+
+The counterweight names what survived and what was built. These are material facts. They earn real prose — paragraphs where the building is the subject and the building matters.
+
+## Avoid
+
+- **Antithesis bloat.** "It was not X, but Y" — describe Y. The negation adds nothing.
+- **Negative parallelism.** "No X, no Y — just Z" — describe Z.
+- **Forced figurative language.** Metaphors earn their place through precision, not frequency.
+- **Stated themes.** If the text says what its motifs mean, cut the explanation. The recurrence is the argument.
+- **Unearned epiphany.** Do not wrap passages with a tidy emotional lesson. Trust the action.
+- **Borrowed prose.** The individual chronicles that follow this narrative are written by other hands. Your prose must be your own — do not echo their phrasings. In-world text (precepts, carved phrases, verses, sayings) may be quoted as cultural artifact. Narrative prose may not.
+
+## Time
+
+Compress years to a clause when they were uneventful. Expand a single moment — a forging, a death, a song — to a paragraph when it mattered. The expansion is the narrator's judgment of what counts.
+
+## Characters
+
+Characters arrive as forces — deeds, attributes, epithets. No interior monologue. No motivation analysis. Judgment through consequence. Characters serve the cultural arc they are part of.
+
+## Motifs
+
+Recurring images give the work cohesion. Let them emerge from the source material. When a motif recurs, shift its meaning. The narrator never explains the pattern.
+
+## Structure
+
+**Invocation.** Open by naming what will be told — not the threads, but the world's transformation. What the world was. What it became. The scope of the change.
+
+**Movements.** Use --- between movements. Each opens from the world-state: how things stand for the cultures. Each has its own temporal scope. The narrative moves chronologically; cultural arcs weave through, rising and receding.
+
+**Closing.** Land with weight. A single image, a consequence, a formula. The reader turns the page to the first chronicle.
+
+## What This Is For
+
+The individual tales follow this text. They are the experience — subjective, immediate, diverse. This narrative is the architecture that makes the experience cohere. It provides:
+
+- **The world arc** — how the world transformed across this era
+- **The cultural arcs** — how each people changed, and how they changed each other
+- **The connections** between tales that no single tale can see
+- **The weight** that tales gain from being placed in the era's shape
+- **Foreknowledge** — told from after the ending, with the gravity of known outcome
+
+Do not summarize the chronicles. The reader is about to read them. Reveal the shape the world traced through them.
+
+## The Historian
+
+${historianConfig.name}. ${historianConfig.background}
 
 **Personality:** ${historianConfig.personalityTraits.join(', ')}
 **Known biases:** ${historianConfig.biases.join(', ')}
-**Your stance toward this material:** ${historianConfig.stance}
-${historianConfig.privateFacts.length > 0 ? `\n**Private knowledge:** ${historianConfig.privateFacts.join('; ')}` : ''}
-${historianConfig.runningGags.length > 0 ? `\n**Recurring preoccupations:** ${historianConfig.runningGags.join('; ')}` : ''}
+**Stance:** ${historianConfig.stance}
+${privateFacts}
+${runningGags}
 
-## Writing Guidelines
+The historian does not speak in first person. The historian's character shows through editorial choices — what gets expanded, what gets compressed, which motifs recur, whose deaths receive weight, which cultures get sympathetic treatment, what private knowledge is stated as fact without sourcing.
 
-- **Narrative prose**, not annotations. You are telling the story, not commenting on it.
-- **Historically grounded dramatization.** You may dramatize scenes but never invent facts.
-- **Your voice.** Your biases, private knowledge, and recurring preoccupations should surface naturally — not as footnotes but woven into how you tell the story.
-- **Synthesis, not summary.** You are creating something new from the source material, not repeating it. Find connections the chroniclers missed. Draw parallels they didn't see. Let your years of study show.
-- **Aim for 4,000-5,000 words.** This is a substantial chapter.
+## Output
 
-## Output Format
+Write the era narrative as continuous prose. Invocation → movements separated by --- → closing. No JSON. No markdown headers. No first person.
 
-Write the chapter as plain prose. No JSON. No markdown headers (the chapter title is provided separately). Just the narrative text itself.`;
+The narrative is as long as it needs to be. 5,000-7,000 words is typical for an era with 10-15 chronicles, but the number is a guideline, not a target. Do not pad to reach a count. Do not cut to fit one. Every paragraph earns its place or it doesn't belong.`;
 }
 
-function buildChapterUserPrompt(
-  record: EraNarrativeRecord,
-  chapterIndex: number
-): string {
+function buildGenerateUserPrompt(record: EraNarrativeRecord): string {
   const synthesis = record.threadSynthesis!;
-  const plan = synthesis.chapterPlan[chapterIndex];
+  const wc = record.worldContext;
   const sections: string[] = [];
 
-  // Chapter identity
-  sections.push(`=== CHAPTER ${chapterIndex + 1}: "${plan.title}" ===
-Year range: ${plan.yearRange[0]}–${plan.yearRange[1]}
-Your angle: ${plan.historianAngle}
-Key beats: ${plan.beats}`);
+  // Era identity
+  const sortedBriefs = [...record.prepBriefs].sort((a, b) => (a.eraYear || 0) - (b.eraYear || 0));
+  const eraStart = sortedBriefs.length > 0 ? (sortedBriefs[0].eraYear || 0) : 0;
+  const eraEnd = sortedBriefs.length > 0 ? (sortedBriefs[sortedBriefs.length - 1].eraYear || 0) : 0;
 
-  // Relevant threads
-  const relevantThreads = synthesis.threads.filter((t) => plan.threadIds.includes(t.threadId));
-  if (relevantThreads.length > 0) {
-    const threadLines = relevantThreads.map((t) => `- ${t.name}: ${t.arc}`);
-    sections.push(`=== ACTIVE THREADS ===\n${threadLines.join('\n')}`);
-  }
+  sections.push(`=== ERA: ${record.eraName} ===
+Year range: ${eraStart}–${eraEnd}`);
 
-  // Thesis and motifs
-  sections.push(`=== WORK THESIS ===\n${synthesis.thesis}\n\nMotifs: ${synthesis.motifs.join(', ')}`);
+  // Era summaries — world-state anchors
+  if (wc) {
+    const eraParts: string[] = [];
+    if (wc.previousEra?.summary) {
+      eraParts.push(`THE WORLD BEFORE (${wc.previousEra.name}):\n${wc.previousEra.summary}`);
+    }
+    eraParts.push(`THIS ERA (${wc.focalEra.name}):\n${wc.focalEra.summary || '(no summary)'}`);
+    if (wc.nextEra?.summary) {
+      eraParts.push(`WHAT FOLLOWS (${wc.nextEra.name}):\n${wc.nextEra.summary}`);
+    }
+    sections.push(`=== WORLD ARC ===\n${eraParts.join('\n\n')}`);
 
-  // Relevant prep briefs
-  const relevantBriefs = record.prepBriefs.filter((b) => plan.chronicleIds.includes(b.chronicleId));
-  const sortedBriefs = [...relevantBriefs].sort((a, b) => (a.eraYear || 0) - (b.eraYear || 0));
-  if (sortedBriefs.length > 0) {
-    sections.push(`=== SOURCE MATERIAL (your reading notes) ===`);
-    for (const brief of sortedBriefs) {
-      const yearLabel = brief.eraYear ? ` [Year ${brief.eraYear}]` : '';
-      sections.push(`--- ${brief.chronicleTitle}${yearLabel} ---\n${brief.prep}`);
+    // Previous era thesis — continuity with the preceding volume
+    if (wc.previousEraThesis) {
+      sections.push(`=== PRECEDING VOLUME THESIS ===\nYour argument in ${wc.previousEra?.name || 'the preceding era'}:\n${wc.previousEraThesis}`);
     }
   }
 
-  // Previous chapter ending for continuity
-  if (chapterIndex > 0) {
-    const prevChapter = record.chapters[chapterIndex - 1];
-    if (prevChapter) {
-      const prevContent = prevChapter.editedContent || prevChapter.content;
-      const lastWords = prevContent.split(/\s+/).slice(-300).join(' ');
-      sections.push(`=== PREVIOUS CHAPTER ENDING (for continuity) ===\n...${lastWords}`);
+  // World dynamics
+  if (wc?.resolvedDynamics?.length) {
+    sections.push(`=== WORLD DYNAMICS (active forces) ===\n${wc.resolvedDynamics.map((d, i) => `${i + 1}. ${d}`).join('\n')}`);
+  }
+
+  // Cultural identities
+  if (wc?.culturalIdentities && Object.keys(wc.culturalIdentities).length > 0) {
+    sections.push(`=== CULTURAL IDENTITIES ===\n${formatCulturalIdentities(wc.culturalIdentities)}`);
+  }
+
+  // Cultural arcs with register labels and material
+  const threadLines = synthesis.threads.map(t => {
+    const actors = t.culturalActors?.length ? ` [${t.culturalActors.join(', ')}]` : '';
+    const reg = t.register ? ` | Register: ${t.register}` : '';
+    let block = `**${t.name}**${actors}: ${t.arc}${reg}`;
+    if (t.material) {
+      block += `\n\nMaterial: ${t.material}`;
     }
-  } else {
-    // First chapter — use the opening image
-    sections.push(`=== OPENING IMAGE ===\n${synthesis.openingImage}`);
+    return block;
+  });
+  sections.push(`=== CONTEXT: CULTURAL ARCS ===\n${threadLines.join('\n\n')}`);
+
+  // Strategic dynamics — inter-cultural interactions
+  if (synthesis.strategicDynamics?.length) {
+    const dynamicLines = synthesis.strategicDynamics.map(sd =>
+      `**${sd.interaction}** [${sd.actors.join(', ')}]: ${sd.dynamic}`
+    );
+    sections.push(`=== CONTEXT: STRATEGIC DYNAMICS (how cultures constrained each other) ===\n${dynamicLines.join('\n\n')}`);
   }
 
-  // Last chapter — use the closing image
-  if (chapterIndex === synthesis.chapterPlan.length - 1) {
-    sections.push(`=== CLOSING IMAGE (for the final paragraphs) ===\n${synthesis.closingImage}`);
+  // Thesis — structural reference
+  sections.push(`=== CONTEXT: THESIS ===\n${synthesis.thesis}`);
+
+  // Counterweight — what persisted
+  if (synthesis.counterweight) {
+    sections.push(`=== CONTEXT: COUNTERWEIGHT ===\n${synthesis.counterweight}`);
   }
 
-  sections.push(`=== YOUR TASK ===
-Write chapter ${chapterIndex + 1} of your narrative history. 4,000-5,000 words of narrative prose.`);
+  // In-world quotes — cultural artifacts quotable as primary source
+  if (synthesis.quotes?.length) {
+    const quoteLines = synthesis.quotes.map(q =>
+      `"${q.text}" — ${q.origin}. ${q.context}`
+    );
+    sections.push(`=== CONTEXT: QUOTES (in-world text — quotable as cultural artifact) ===\n${quoteLines.join('\n\n')}`);
+  }
+
+  sections.push(`=== TASK ===
+Write the era narrative for ${record.eraName}. The cultural arcs tell you what happened inside each culture. The strategic dynamics tell you how cultures constrained and reshaped each other — these are the arrows on the map, the connective tissue that makes this one interconnected history rather than parallel biographies. The thesis tells you what happened to the world. The counterweight tells you what survived. The quotes are in-world text you may cite as cultural artifact. Write from these — they are context, not a checklist. Your prose must be your own.
+
+ALTITUDE REMINDER: The world is the protagonist. Cultures and forces drive every paragraph. Characters appear briefly as evidence of cultural forces in motion, not as agents with their own arcs. The structural spine is how cultures interact — moves and counter-moves, dependencies formed and exploited. Internal cultural stories serve the geopolitical arc.`);
 
   return sections.join('\n\n');
 }
 
 // ============================================================================
-// Chapter Edit Step
+// Edit Step
 // ============================================================================
 
-function buildChapterEditSystemPrompt(historianConfig: HistorianConfig): string {
-  return `You are a senior editor polishing ${historianConfig.name}'s prose for his narrative history. Your job is to preserve his distinctive voice while smoothing rough edges.
+function buildEditSystemPrompt(): string {
+  return `You are editing an era narrative written in the mythic-historical register — the Silmarillion tradition. Your job is to preserve and strengthen that register, not normalize it.
 
-## Editing Guidelines
+## Protect
 
-- **Preserve voice.** ${historianConfig.name}'s personality, biases, and style are features, not bugs. Do not flatten them.
-- **Smooth repetition.** Where the same point is made twice, keep the better phrasing.
-- **Tighten prose.** Remove filler words, redundant phrases, unnecessary hedging. Every sentence should earn its place.
-- **Fix consistency.** Names, dates, and facts should be consistent throughout.
-- **Maintain rhythm.** ${historianConfig.name}'s prose has a distinctive rhythm — long sentences that build, short ones that punctuate. Preserve this.
+- **Parataxis.** "And...and...and" is intentional. Do not subordinate accumulated clauses.
+- **Restraint.** Emotional weight comes from what is NOT said. Do not add commentary, analysis, or emotional labeling.
+- **Temporal accordion.** Compressions should stay compressed. Expansions should stay expanded. Do not even out the pacing.
+- **Concrete imagery.** Do not replace physical images with abstract analysis.
+- **Transmission markers.** "It is said" and "thus ended" are structural. Preserve them.
+- **Tonal range.** If the draft contains moments of defiance, beauty, energy, or lightness, protect them. These are not digressions. Do not flatten the emotional range toward monotone in any register.
+- **Rhetorical energy.** Passages with forward momentum, varied cadence, or sensory specificity are working. Do not flatten.
+- **Tonal differentiation.** Passages that feel different from the surrounding register are structural. Do not normalize.
 
-## Output Format
+## Cut
 
-Output the polished chapter text. No commentary, no notes — just the improved prose.`;
+- **Modern register breaks.** Any phrase that sounds like academic analysis, journalism, self-help, or editorial commentary.
+- **Psychology.** Interior monologue, motivation analysis, "he felt," "she realized."
+- **Stated themes.** If the text says what its motifs mean, cut the explanation. The recurrence is the argument.
+- **Redundancy.** Where the same point is made twice, keep the version with the stronger image.
+- **Filler transitions.** "Meanwhile," "however," "it should be noted" — the section breaks do this work.
+- **Antithesis bloat.** "It was not X, but Y" — keep only Y.
+- **Negative parallelism.** "No X, no Y — just Z" — keep only Z.
+
+## Output
+
+The edited narrative. No commentary, no notes. Just the improved prose.`;
 }
 
-function buildChapterEditUserPrompt(
-  record: EraNarrativeRecord,
-  chapterIndex: number
-): string {
+function buildEditUserPrompt(record: EraNarrativeRecord): string {
   const synthesis = record.threadSynthesis!;
-  const chapter = record.chapters[chapterIndex];
+  const narrativeContent = record.narrative!.content;
+  const editSections: string[] = [];
 
-  return `=== CHAPTER: "${chapter.title}" ===
+  editSections.push(`=== ERA NARRATIVE: ${record.eraName} ===`);
 
-Thesis of the larger work: ${synthesis.thesis}
-Motifs: ${synthesis.motifs.join(', ')}
-
-=== TEXT TO EDIT ===
-
-${chapter.content}
-
-=== YOUR TASK ===
-Polish this chapter. Preserve the historian's voice. Smooth, tighten, fix.`;
-}
-
-// ============================================================================
-// Title Step (two-phase)
-// ============================================================================
-
-function buildTitleFragmentSystemPrompt(historianConfig: HistorianConfig): string {
-  return `You are mining ${historianConfig.name}'s draft narrative history for title material. Extract distinctive phrases, images, and motifs that could serve as fragments for a book title.
-
-Output ONLY a JSON array of 8-12 strings:
-["fragment one", "fragment two", ...]
-
-Look for: striking images, recurring motifs, the historian's most memorable phrases, the era's defining tensions.`;
-}
-
-function buildTitleFragmentUserPrompt(record: EraNarrativeRecord): string {
-  const synthesis = record.threadSynthesis!;
-  const sections: string[] = [];
-
-  sections.push(`Thesis: ${synthesis.thesis}`);
-  sections.push(`Motifs: ${synthesis.motifs.join(', ')}`);
-  sections.push(`Opening image: ${synthesis.openingImage}`);
-  sections.push(`Closing image: ${synthesis.closingImage}`);
-
-  // Chapter openings (first ~200 words each)
-  for (const chapter of record.chapters) {
-    const opening = (chapter.editedContent || chapter.content).split(/\s+/).slice(0, 200).join(' ');
-    sections.push(`Chapter "${chapter.title}" opening:\n${opening}`);
+  if (synthesis.thesis) {
+    editSections.push(`Thesis (structural reference — should NOT appear as stated text):\n${synthesis.thesis}`);
   }
 
-  return sections.join('\n\n');
-}
+  if (synthesis.counterweight) {
+    editSections.push(`Counterweight (protect — these moments earn their place):\n${synthesis.counterweight}`);
+  }
 
-function buildTitleShapingSystemPrompt(historianConfig: HistorianConfig, tone: HistorianTone): string {
-  return `You are ${historianConfig.name}, choosing a title for your narrative history.
+  editSections.push(`=== TEXT TO EDIT ===\n${narrativeContent}`);
 
-${TONE_DESCRIPTIONS[tone]}
+  editSections.push(`=== TASK ===\nEdit this era narrative. Preserve the mythic register. Strengthen restraint. Cut modern register breaks. Tighten.`);
 
-Shape the fragments below into 5 title candidates. The title should:
-- Reflect YOUR voice and sensibility as a historian
-- Capture the era's central tension or defining quality
-- Be evocative rather than descriptive
-- Work as a book title (not too long, not too generic)
-
-Output ONLY a JSON array of 5 strings:
-["Title Candidate One", "Title Candidate Two", ...]`;
-}
-
-function buildTitleShapingUserPrompt(fragments: string[], record: EraNarrativeRecord): string {
-  const synthesis = record.threadSynthesis!;
-  return `Era: ${record.eraName}
-Thesis: ${synthesis.thesis}
-
-Title fragments:
-${fragments.map((f) => `- ${f}`).join('\n')}`;
+  return editSections.join('\n\n');
 }
 
 // ============================================================================
@@ -334,8 +561,8 @@ async function executeThreadsStep(
   const { config, llmClient, isAborted } = context;
 
   const historianConfig: HistorianConfig = JSON.parse(record.historianConfigJson);
-  const tone = record.tone || 'weary';
-  const callType = 'historian.eraNarrative' as const;
+  const tone = record.tone || 'witty';
+  const callType = 'historian.eraNarrative.threads' as const;
   const callConfig = getCallConfig(config, callType);
 
   const systemPrompt = buildThreadsSystemPrompt(historianConfig, tone, record.eraName);
@@ -369,7 +596,6 @@ async function executeThreadsStep(
     if (!jsonMatch) throw new Error('No JSON object found');
     parsed = JSON.parse(jsonMatch[0]);
     if (!Array.isArray(parsed.threads)) throw new Error('Missing threads array');
-    if (!Array.isArray(parsed.chapterPlan)) throw new Error('Missing chapterPlan array');
   } catch (err) {
     const errorMsg = `Failed to parse thread synthesis: ${err instanceof Error ? err.message : String(err)}`;
     await updateEraNarrative(record.narrativeId, { status: 'failed', error: errorMsg });
@@ -409,7 +635,7 @@ async function executeThreadsStep(
   return { success: true, result: { generatedAt: Date.now(), model: callConfig.model } };
 }
 
-async function executeChapterStep(
+async function executeGenerateStep(
   task: WorkerTask,
   record: EraNarrativeRecord,
   context: TaskContext
@@ -417,18 +643,16 @@ async function executeChapterStep(
   const { config, llmClient, isAborted } = context;
 
   if (!record.threadSynthesis) {
-    await updateEraNarrative(record.narrativeId, { status: 'failed', error: 'Thread synthesis required before chapter generation' });
+    await updateEraNarrative(record.narrativeId, { status: 'failed', error: 'Thread synthesis required before generation' });
     return { success: false, error: 'Thread synthesis required' };
   }
 
   const historianConfig: HistorianConfig = JSON.parse(record.historianConfigJson);
-  const tone = record.tone || 'weary';
-  const chapterIndex = record.currentChapterIndex;
-  const callType = 'historian.eraNarrative' as const;
+  const callType = 'historian.eraNarrative.generate' as const;
   const callConfig = getCallConfig(config, callType);
 
-  const systemPrompt = buildChapterSystemPrompt(historianConfig, tone, record.eraName);
-  const userPrompt = buildChapterUserPrompt(record, chapterIndex);
+  const systemPrompt = buildGenerateSystemPrompt(historianConfig, record.eraName);
+  const userPrompt = buildGenerateUserPrompt(record);
 
   const callResult = await runTextCall({
     llmClient,
@@ -451,10 +675,7 @@ async function executeChapterStep(
     return { success: false, error: err };
   }
 
-  const plan = record.threadSynthesis.chapterPlan[chapterIndex];
-  const chapter: EraNarrativeChapter = {
-    chapterIndex,
-    title: plan.title,
+  const narrative: EraNarrativeContent = {
     content: resultText,
     wordCount: resultText.split(/\s+/).filter(Boolean).length,
     generatedAt: Date.now(),
@@ -466,19 +687,9 @@ async function executeChapterStep(
     actualCost: callResult.usage.actualCost,
   };
 
-  // Add or replace chapter in array
-  const chapters = [...record.chapters];
-  const existingIdx = chapters.findIndex((c) => c.chapterIndex === chapterIndex);
-  if (existingIdx >= 0) {
-    chapters[existingIdx] = chapter;
-  } else {
-    chapters.push(chapter);
-  }
-  chapters.sort((a, b) => a.chapterIndex - b.chapterIndex);
-
   await updateEraNarrative(record.narrativeId, {
     status: 'step_complete',
-    chapters,
+    narrative,
     totalInputTokens: record.totalInputTokens + callResult.usage.inputTokens,
     totalOutputTokens: record.totalOutputTokens + callResult.usage.outputTokens,
     totalActualCost: record.totalActualCost + callResult.usage.actualCost,
@@ -498,26 +709,23 @@ async function executeChapterStep(
   return { success: true, result: { generatedAt: Date.now(), model: callConfig.model } };
 }
 
-async function executeChapterEditStep(
+async function executeEditStep(
   task: WorkerTask,
   record: EraNarrativeRecord,
   context: TaskContext
 ): Promise<TaskResult> {
   const { config, llmClient, isAborted } = context;
 
-  const historianConfig: HistorianConfig = JSON.parse(record.historianConfigJson);
-  const chapterIndex = record.currentChapterIndex;
-  const chapter = record.chapters.find((c) => c.chapterIndex === chapterIndex);
-  if (!chapter) {
-    await updateEraNarrative(record.narrativeId, { status: 'failed', error: `Chapter ${chapterIndex} not found` });
-    return { success: false, error: `Chapter ${chapterIndex} not found` };
+  if (!record.narrative) {
+    await updateEraNarrative(record.narrativeId, { status: 'failed', error: 'Narrative required before editing' });
+    return { success: false, error: 'Narrative required' };
   }
 
-  const callType = 'historian.eraNarrative' as const;
+  const callType = 'historian.eraNarrative.edit' as const;
   const callConfig = getCallConfig(config, callType);
 
-  const systemPrompt = buildChapterEditSystemPrompt(historianConfig);
-  const userPrompt = buildChapterEditUserPrompt(record, chapterIndex);
+  const systemPrompt = buildEditSystemPrompt();
+  const userPrompt = buildEditUserPrompt(record);
 
   const callResult = await runTextCall({
     llmClient,
@@ -540,26 +748,22 @@ async function executeChapterEditStep(
     return { success: false, error: err };
   }
 
-  // Update chapter with edited content
-  const chapters = record.chapters.map((c) =>
-    c.chapterIndex === chapterIndex
-      ? {
-          ...c,
-          editedContent: resultText,
-          editedWordCount: resultText.split(/\s+/).filter(Boolean).length,
-          editedAt: Date.now(),
-          editSystemPrompt: systemPrompt,
-          editUserPrompt: userPrompt,
-          editInputTokens: callResult.usage.inputTokens,
-          editOutputTokens: callResult.usage.outputTokens,
-          editActualCost: callResult.usage.actualCost,
-        }
-      : c
-  );
+  // Update narrative with edited content
+  const updatedNarrative: EraNarrativeContent = {
+    ...record.narrative,
+    editedContent: resultText,
+    editedWordCount: resultText.split(/\s+/).filter(Boolean).length,
+    editedAt: Date.now(),
+    editSystemPrompt: systemPrompt,
+    editUserPrompt: userPrompt,
+    editInputTokens: callResult.usage.inputTokens,
+    editOutputTokens: callResult.usage.outputTokens,
+    editActualCost: callResult.usage.actualCost,
+  };
 
   await updateEraNarrative(record.narrativeId, {
     status: 'step_complete',
-    chapters,
+    narrative: updatedNarrative,
     totalInputTokens: record.totalInputTokens + callResult.usage.inputTokens,
     totalOutputTokens: record.totalOutputTokens + callResult.usage.outputTokens,
     totalActualCost: record.totalActualCost + callResult.usage.actualCost,
@@ -574,119 +778,6 @@ async function executeChapterEditStep(
     actualCost: callResult.usage.actualCost,
     inputTokens: callResult.usage.inputTokens,
     outputTokens: callResult.usage.outputTokens,
-  });
-
-  return { success: true, result: { generatedAt: Date.now(), model: callConfig.model } };
-}
-
-async function executeTitleStep(
-  task: WorkerTask,
-  record: EraNarrativeRecord,
-  context: TaskContext
-): Promise<TaskResult> {
-  const { config, llmClient, isAborted } = context;
-
-  const historianConfig: HistorianConfig = JSON.parse(record.historianConfigJson);
-  const tone = record.tone || 'weary';
-  const callType = 'historian.eraNarrative' as const;
-  const callConfig = getCallConfig(config, callType);
-
-  // Phase 1: Fragment extraction
-  const fragmentSystemPrompt = buildTitleFragmentSystemPrompt(historianConfig);
-  const fragmentUserPrompt = buildTitleFragmentUserPrompt(record);
-
-  const fragmentResult = await runTextCall({
-    llmClient,
-    callType,
-    callConfig,
-    systemPrompt: fragmentSystemPrompt,
-    prompt: fragmentUserPrompt,
-    temperature: 0.85,
-  });
-
-  if (isAborted()) {
-    await updateEraNarrative(record.narrativeId, { status: 'failed', error: 'Task aborted' });
-    return { success: false, error: 'Task aborted' };
-  }
-
-  const fragmentText = fragmentResult.result.text?.trim();
-  if (fragmentResult.result.error || !fragmentText) {
-    const err = `Fragment extraction failed: ${fragmentResult.result.error || 'No text returned'}`;
-    await updateEraNarrative(record.narrativeId, { status: 'failed', error: err });
-    return { success: false, error: err };
-  }
-
-  let fragments: string[];
-  try {
-    const jsonMatch = fragmentText.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error('No JSON array found');
-    fragments = JSON.parse(jsonMatch[0]);
-    if (!Array.isArray(fragments)) throw new Error('Not an array');
-  } catch (err) {
-    const errorMsg = `Failed to parse fragments: ${err instanceof Error ? err.message : String(err)}`;
-    await updateEraNarrative(record.narrativeId, { status: 'failed', error: errorMsg });
-    return { success: false, error: errorMsg };
-  }
-
-  // Phase 2: Title shaping
-  const titleSystemPrompt = buildTitleShapingSystemPrompt(historianConfig, tone);
-  const titleUserPrompt = buildTitleShapingUserPrompt(fragments, record);
-
-  const titleResult = await runTextCall({
-    llmClient,
-    callType,
-    callConfig,
-    systemPrompt: titleSystemPrompt,
-    prompt: titleUserPrompt,
-    temperature: 0.7,
-  });
-
-  if (isAborted()) {
-    await updateEraNarrative(record.narrativeId, { status: 'failed', error: 'Task aborted' });
-    return { success: false, error: 'Task aborted' };
-  }
-
-  const titleText = titleResult.result.text?.trim();
-  if (titleResult.result.error || !titleText) {
-    const err = `Title shaping failed: ${titleResult.result.error || 'No text returned'}`;
-    await updateEraNarrative(record.narrativeId, { status: 'failed', error: err });
-    return { success: false, error: err };
-  }
-
-  let candidates: string[];
-  try {
-    const jsonMatch = titleText.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error('No JSON array found');
-    candidates = JSON.parse(jsonMatch[0]);
-    if (!Array.isArray(candidates)) throw new Error('Not an array');
-  } catch (err) {
-    const errorMsg = `Failed to parse title candidates: ${err instanceof Error ? err.message : String(err)}`;
-    await updateEraNarrative(record.narrativeId, { status: 'failed', error: errorMsg });
-    return { success: false, error: errorMsg };
-  }
-
-  const totalInput = fragmentResult.usage.inputTokens + titleResult.usage.inputTokens;
-  const totalOutput = fragmentResult.usage.outputTokens + titleResult.usage.outputTokens;
-  const totalCost = fragmentResult.usage.actualCost + titleResult.usage.actualCost;
-
-  await updateEraNarrative(record.narrativeId, {
-    status: 'step_complete',
-    titleFragments: fragments,
-    titleCandidates: candidates,
-    totalInputTokens: record.totalInputTokens + totalInput,
-    totalOutputTokens: record.totalOutputTokens + totalOutput,
-    totalActualCost: record.totalActualCost + totalCost,
-  });
-
-  await saveCostRecordWithDefaults({
-    projectId: task.projectId,
-    simulationRunId: task.simulationRunId,
-    type: 'eraNarrative' as CostType,
-    model: callConfig.model,
-    estimatedCost: fragmentResult.estimate.estimatedCost + titleResult.estimate.estimatedCost,
-    actualCost: totalCost,
-    inputTokens: totalInput,
-    outputTokens: totalOutput,
   });
 
   return { success: true, result: { generatedAt: Date.now(), model: callConfig.model } };
@@ -723,12 +814,10 @@ async function executeEraNarrativeTask(
     switch (record.currentStep) {
       case 'threads':
         return await executeThreadsStep(task, record, context);
-      case 'chapter':
-        return await executeChapterStep(task, record, context);
-      case 'chapter_edit':
-        return await executeChapterEditStep(task, record, context);
-      case 'title':
-        return await executeTitleStep(task, record, context);
+      case 'generate':
+        return await executeGenerateStep(task, record, context);
+      case 'edit':
+        return await executeEditStep(task, record, context);
       default:
         await updateEraNarrative(record.narrativeId, { status: 'failed', error: `Unknown step: ${record.currentStep}` });
         return { success: false, error: `Unknown step: ${record.currentStep}` };

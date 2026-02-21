@@ -8,7 +8,7 @@
  * The LLM works best with natural language guidance, not fragmented config.
  */
 
-import type { RoleDefinition } from './narrativeStyles.js';
+import type { RoleDefinition, EraNarrativeWeight } from './narrativeStyles.js';
 
 /**
  * Document narrative style - for in-universe document formats
@@ -29,6 +29,8 @@ export interface DocumentNarrativeStyle {
   description: string;
   /** Tags for categorization */
   tags?: string[];
+  /** How this style weights in era narrative assembly */
+  eraNarrativeWeight?: EraNarrativeWeight;
 
   // === Freeform Text Blocks (injected directly into prompts) ===
 
@@ -82,6 +84,7 @@ export const DEFAULT_DOCUMENT_STYLES: DocumentNarrativeStyle[] = [
     name: "Herald's Dispatch",
     description: 'Official news proclamation or town crier announcement about recent events',
     tags: ['document', 'news', 'official', 'proclamation'],
+    eraNarrativeWeight: 'contextual',
     format: 'document',
 
     documentInstructions: `This is an official news dispatch meant to be read aloud in the town square.
@@ -120,6 +123,7 @@ Avoid modern journalism terms, passive voice in headlines, speculation presented
     name: 'Treatise on Powers',
     description: 'Scholarly analysis of abilities, magic, or supernatural phenomena',
     tags: ['document', 'scholarly', 'abilities', 'academic'],
+    eraNarrativeWeight: 'flavor',
     format: 'document',
 
     documentInstructions: `This is an academic treatise presenting scholarly findings to peers.
@@ -160,6 +164,7 @@ Avoid casual language, unsubstantiated claims, sensationalism, first person sing
     name: "Merchant's Broadsheet",
     description: 'Commercial advertisement, trade announcement, or market bulletin',
     tags: ['document', 'commercial', 'trade', 'advertisement'],
+    eraNarrativeWeight: 'flavor',
     format: 'document',
 
     documentInstructions: `This is a commercial advertisement from a merchant trying to attract customers.
@@ -198,6 +203,7 @@ Avoid modern marketing jargon, obvious lies, threatening language, desperation.`
     name: 'Collected Correspondence',
     description: 'Exchange of letters between entities revealing relationships and events',
     tags: ['document', 'letters', 'personal', 'epistolary'],
+    eraNarrativeWeight: 'contextual',
     format: 'document',
 
     documentInstructions: `This is a collection of authentic personal letters between entities.
@@ -236,6 +242,7 @@ Avoid identical voices, exposition dumps, modern idioms, perfect information.`,
     name: 'Chronicle Entry',
     description: 'Official historical record or archive entry documenting events',
     tags: ['document', 'historical', 'official', 'archive'],
+    eraNarrativeWeight: 'contextual',
     format: 'document',
 
     documentInstructions: `This is an official historical chronicle entry documenting events for posterity.
@@ -276,6 +283,7 @@ Avoid emotional language, speculation as fact, modern historical terms, bias wit
     name: 'Wanted Notice',
     description: 'Bounty poster, warning notice, or official alert about a person or threat',
     tags: ['document', 'warning', 'bounty', 'official'],
+    eraNarrativeWeight: 'flavor',
     format: 'document',
 
     documentInstructions: `This is an official notice meant to be posted publicly - a wanted poster or warning.
@@ -314,6 +322,7 @@ Avoid ambiguity, lengthy prose, humor, speculation.`,
     name: 'Diplomatic Accord',
     description: 'Treaty, alliance agreement, or formal pact between factions',
     tags: ['document', 'diplomatic', 'treaty', 'formal'],
+    eraNarrativeWeight: 'contextual',
     format: 'document',
 
     documentInstructions: `This is a formal diplomatic treaty or accord between powers.
@@ -353,6 +362,7 @@ Avoid ambiguous terms, one-sided benefits, informal language, unenforceable clau
     name: 'Tavern Notice Board',
     description: 'Collection of community postings: jobs, rumors, announcements, personal ads',
     tags: ['document', 'community', 'rumors', 'informal'],
+    eraNarrativeWeight: 'flavor',
     format: 'document',
 
     documentInstructions: `This is a collection of notices as they would appear on a public tavern board.
@@ -393,6 +403,7 @@ Avoid modern references, all notices sounding the same, only dramatic content.`,
     name: 'Field Report',
     description: 'Military scout report, expedition log, or reconnaissance document',
     tags: ['document', 'military', 'reconnaissance', 'tactical'],
+    eraNarrativeWeight: 'contextual',
     format: 'document',
 
     documentInstructions: `This is a professional military or expedition field report.
@@ -434,6 +445,7 @@ Avoid emotional language, speculation without marking it, irrelevant details, ca
     name: "Artisan's Catalogue",
     description: 'Detailed catalog of items, artifacts, or creations with descriptions and provenance',
     tags: ['document', 'catalog', 'items', 'artifacts'],
+    eraNarrativeWeight: 'flavor',
     format: 'document',
 
     documentInstructions: `This is an item catalog or collection inventory from a knowledgeable collector or artisan.
@@ -473,6 +485,7 @@ Avoid generic descriptions, identical formats for each item, excessive jargon.`,
     name: 'Sacred Text',
     description: 'Religious scripture, prophecy, or spiritual teaching from a culture or faith tradition',
     tags: ['document', 'religious', 'spiritual', 'sacred'],
+    eraNarrativeWeight: 'contextual',
     format: 'document',
 
     documentInstructions: `This is a religious or sacred text with reverence and weight appropriate to sacred literature.
@@ -513,6 +526,7 @@ Avoid casual language, modern idioms, uncertainty or hedging, irony.`,
     name: 'Creation Myth',
     description: 'Cosmogonic narration — how the world was made, why it divided, what was sealed. Competing traditions, multiple shapers, mythic specificity',
     tags: ['document', 'myth', 'cosmogony', 'origin'],
+    eraNarrativeWeight: 'contextual',
     format: 'document',
 
     documentInstructions: `This is a creation myth — a cosmogonic text narrating how the world was made, divided, and settled into its present shape.
@@ -527,6 +541,9 @@ The myth moves from undifferentiation to differentiation: formless to formed, na
 3. THE DIVISION: Why the world split. The central fracture — what separated cultures, powers, or geographies. Caused by specific acts with specific consequences, where both sides of the split have legitimate claims.
 
 4. THE UNRESOLVED: What was sealed, buried, or left open. The myth carries its world's anxieties forward: the door that stays shut, the force contained rather than destroyed, the question the traditions still argue over.
+
+TEMPORAL ANCHOR:
+The myth belongs to the time of making. Its central acts are cosmogonic — the shaping, the dividing, the sealing. Events from later ages are consequences the myth foreshadows, not events it narrates. The figures exist here at their fullest scale.
 
 COMPETING TRADITIONS:
 This text was assembled from multiple source traditions that agree on events but disagree on meaning. The compiler is visible — the seams between accounts show. Where traditions contradict, both versions stand. The text has layers and argues with itself.
@@ -567,20 +584,21 @@ Restraint at the edges — what was sealed stays sealed, what is unanswered stay
     name: 'Origin Myth',
     description: 'Gods who walk in the world — how the current age was forged by divine-scale figures whose acts reshaped the landscape itself',
     tags: ['document', 'myth', 'origin', 'age-transition', 'divine'],
+    eraNarrativeWeight: 'contextual',
     format: 'document',
 
     documentInstructions: `This is an origin myth — the story of divine or near-divine figures whose acts during a previous age shaped the world into its current form. The world already existed. These figures walked in it, and the world bent around them. Their griefs reshaped coastlines. Their conflicts created new geographies. Their departures changed the climate. Where a mortal chronicle records a battle, this records the mountain that was raised to win it.
 
 STRUCTURE:
-Number chapters with Roman numerals (I, II, III...). The myth moves from the old age through crisis to the threshold of the current one, but let the content determine section breaks and headings — the narrative arc, not a taxonomy, organizes the text.
+Three to five chapters, numbered with Roman numerals. Each chapter is a substantial movement of the myth — long enough to build, dense enough to carry weight. Let chapter breaks fall at genuine turning points in the narrative, not at each new topic or each new figure. Establish the figures in relation to each other and to the world in the same movement — their story is how they interacted, how their powers collided and complemented, not a sequence of isolated portraits.
 
-The arc: establish the old age and the figures who shaped it. Build toward what destabilized that age — divine-scale acts with physical consequences on the world. Move through the transition: what was destroyed, transformed, or carried. End at the threshold of the current age, where the figures are receding and what survives of them is partial — a title preserved, a place that still carries their weather, an artifact that still hums.
+The arc: establish the old age and the figures who shaped it. Build toward what destabilized that age — divine-scale acts with physical consequences on the world. Move through the transition: what was destroyed, transformed, or carried. End at the threshold of the current age, where the figures are receding and what survives of them is partial.
 
 TEMPORAL ANCHOR:
 This myth belongs to the old age. Its central acts, its defining choices, its dramatic weight all belong to the time before the transition. Events that the current age records as recent history are consequences the myth foreshadows — echoes and inheritances, not the myth's own story. The figures' mortal-era deeds are aftermath. The myth tells what they did when they were still walking at full scale.
 
-COMPETING TRADITIONS:
-This text was assembled from sources that remember these figures differently. The compiler is visible — the seams between accounts show. Where traditions contradict, both versions stand. These figures are large enough that different communities experienced them differently, and each account is true from where it stood.
+VOICE:
+The myth speaks for itself. No compiler frame, no curatorial apparatus, no editorial commentary explaining where traditions diverge. Where traditions contradict, weave both versions into the narrative directly — let the reader feel the seam without a narrator pointing to it. The text is the myth as it has been told and retold, not an academic assembly of sources.
 
 MYTHIC REGISTER:
 Deep-time narration at divine scale. The figures' actions have geological and climatic consequences described with physical specificity. Parallelism and catalog passages that enumerate what a figure made, destroyed, or left behind. Declarative, confident, incantatory at the transitions.
@@ -591,8 +609,8 @@ Divine scale means more detail, not less. A god's weapon has a name and a materi
     eventInstructions: 'Events are the acts of divine-scale figures with world-shaping consequences. Anchor events in the old age — the myth tells what these figures did at full scale, before they diminished. Later-era events are consequences the myth foreshadows, not events it narrates.',
 
     craftPosture: `Confident narration throughout. The myth knows what happened, even when it disagrees with itself about why.
-The compiler presents competing accounts without resolving them.
-Economy over exhaustiveness — each passage earns its place. The myth is told, not compiled.`,
+Where traditions contradict, both stand without resolution — the seams show in the telling, not in editorial commentary.
+Economy over exhaustiveness — each passage earns its place.`,
 
     titleGuidance: 'The title names the old age, the transition, or the figures themselves — what later generations call the time when gods walked. Short, heavy, carrying the weight of deep memory. One to four words. A noun phrase that sounds ancient and well-worn, spoken with reverence or fear depending on who speaks it.',
 
@@ -602,13 +620,13 @@ Economy over exhaustiveness — each passage earns its place. The myth is told, 
       { role: 'lost-order', count: { min: 0, max: 2 }, description: 'Powers, alliances, or institutions that existed in the old age and were destroyed or transformed by the transition' },
       { role: 'shaped-ground', count: { min: 1, max: 2 }, description: 'Locations that bear the marks of divine action — landscapes carved, frozen, raised, or broken by the figures of the old age' },
       { role: 'catalyst-event', count: { min: 0, max: 2 }, description: 'The specific acts that triggered or defined the transition — divine choices with world-scale consequences' },
-      { role: 'relic', count: { min: 0, max: 3 }, description: 'Objects of divine origin or power — things that survived the transition and still carry the old age\'s weight' },
+      { role: 'relic', count: { min: 0, max: 3 }, description: 'Objects of power from the old age or from before it — things that survived the transition, things even the divine figures did not fully understand' },
       { role: 'sealed-legacy', count: { min: 0, max: 2 }, description: 'What was sealed, buried, or withdrawn — divine works that the new age contains rather than understands' },
       { role: 'contested-figure', count: { min: 0, max: 2 }, description: 'Figures the traditions disagree about — savior to one account, destroyer to another. Large enough that different communities experienced them differently.' },
     ],
 
     pacing: {
-      wordCount: { min: 1500, max: 2500 },
+      wordCount: { min: 1500, max: 3500 },
     },
   },
 
@@ -618,6 +636,7 @@ Economy over exhaustiveness — each passage earns its place. The myth is told, 
     name: 'Proverbs & Sayings',
     description: 'Collection of folk wisdom, traditional sayings, and cultural aphorisms',
     tags: ['document', 'wisdom', 'folklore', 'cultural'],
+    eraNarrativeWeight: 'flavor',
     format: 'document',
 
     documentInstructions: `This is a collection of authentic-feeling folk wisdom and proverbs.
@@ -657,6 +676,7 @@ Avoid modern concepts, abstract language, lengthy explanations within proverbs, 
     name: 'Product Reviews',
     description: 'Customer testimonials and critiques of goods, services, or establishments',
     tags: ['document', 'commercial', 'reviews', 'informal'],
+    eraNarrativeWeight: 'flavor',
     format: 'document',
 
     documentInstructions: `This is a collection of authentic-feeling customer reviews with varied voices and opinions.
@@ -695,6 +715,7 @@ Avoid identical voices, all positive or all negative, generic praise, modern rev
     name: 'Personal Diary',
     description: 'Private journal entries spanning days or weeks - unguarded, inconsistent, never meant to be read',
     tags: ['document', 'personal', 'private', 'journal'],
+    eraNarrativeWeight: 'contextual',
     format: 'document',
 
     documentInstructions: `This is a private diary. The writer is talking to themselves. There is no audience, no performance, no filter. Some entries are three words. Some are rambling paragraphs. The tone shifts with the writer's mood - bored, panicked, tender, petty, profound.
@@ -733,6 +754,7 @@ Avoid consistent tone, literary polish, awareness of audience, complete narrativ
     name: 'Interrogation Record',
     description: 'Official transcript of questioning - terse exchanges, redacted sections, margin notes from a reviewing officer',
     tags: ['document', 'official', 'transcript', 'adversarial'],
+    eraNarrativeWeight: 'contextual',
     format: 'document',
 
     documentInstructions: `This is an official interrogation transcript. Bureaucratic header. Terse Q&A format. The interrogator is persistent. The subject is evasive, frightened, or defiant. Truth leaks out through cracks in the subject's composure.
@@ -772,6 +794,7 @@ Avoid casual language, long speeches, the subject volunteering information freel
     name: 'Folk Song',
     description: 'Verse with stanzas and refrain - rhyming flow is primary, story optional or told obliquely through imagery',
     tags: ['document', 'verse', 'song', 'oral-tradition'],
+    eraNarrativeWeight: 'flavor',
     format: 'document',
 
     documentInstructions: `This is a folk song meant to be sung. Rhythm and rhyme are paramount. Story is optional - if present, it's told obliquely through images and refrains rather than narrated directly. The song should feel like it's been passed through many voices, smoothed by repetition into something that sounds inevitable.
@@ -815,6 +838,7 @@ Avoid prose disguised as verse, forced rhymes that sacrifice meaning, modern idi
     name: 'Nursery Rhymes',
     description: 'Collection of short children\'s rhymes on diverse subjects - simple meter, memorable, often darker than they seem',
     tags: ['document', 'verse', 'children', 'folklore'],
+    eraNarrativeWeight: 'flavor',
     format: 'document',
 
     documentInstructions: `This is a collection of nursery rhymes - the songs and chants children use for games, skipping, counting, or bedtime. Each rhyme is independent, touching a different subject. Together they form a mosaic of a culture's anxieties, values, and history filtered through children's mouths.
@@ -856,6 +880,7 @@ Avoid adult vocabulary, complex syntax, obvious allegory, rhymes that sound comp
     name: 'Haiku Collection',
     description: 'Three to four haikus - extreme compression, nature imagery, a single moment seized in 5-7-5 syllables',
     tags: ['document', 'verse', 'minimal', 'contemplative'],
+    eraNarrativeWeight: 'flavor',
     format: 'document',
 
     documentInstructions: `This is a small collection of 3-4 haikus. Each is exactly three lines: 5 syllables, 7 syllables, 5 syllables. The haiku captures a single moment of perception - not a thought, not a narrative, but a seeing. The world briefly holds still.

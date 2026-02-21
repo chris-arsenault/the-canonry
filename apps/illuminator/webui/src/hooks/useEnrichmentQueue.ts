@@ -25,6 +25,7 @@ import { applyEnrichmentResult } from '../lib/enrichmentTypes';
 import type { WorkerConfig, WorkerOutbound } from '../workers/enrichment.worker';
 import { createWorkerPool, resetWorkerPool, type WorkerHandle } from '../lib/workerFactory';
 import { getResolvedLLMCallSettings } from '../lib/llmModelSettings';
+import { useThinkingStore } from '../lib/db/thinkingStore';
 
 export interface EnrichedEntity {
   id: string;
@@ -264,8 +265,26 @@ export function useEnrichmentQueue(
           }
           break;
 
-        case 'started':
+        case 'started': {
           // Already updated status when we sent the task
+          // Initialize thinking entry for this task
+          const startedItem = queueRef.current.find(item => item.id === message.taskId);
+          if (startedItem) {
+            useThinkingStore.getState().startTask(
+              message.taskId,
+              startedItem.entityName,
+              startedItem.type,
+            );
+          }
+          break;
+        }
+
+        case 'thinking_delta':
+          useThinkingStore.getState().appendDelta(message.taskId, message.delta);
+          break;
+
+        case 'text_delta':
+          useThinkingStore.getState().appendTextDelta(message.taskId, message.delta);
           break;
 
         case 'complete': {
@@ -306,6 +325,8 @@ export function useEnrichmentQueue(
             }
           }
 
+          useThinkingStore.getState().finishTask(result.id);
+
           // Process next task for this worker
           setTimeout(() => processNextForWorker(workerId), 0);
           break;
@@ -332,6 +353,8 @@ export function useEnrichmentQueue(
                 : item
             )
           );
+
+          useThinkingStore.getState().finishTask(message.taskId);
 
           if (message.error?.includes('Worker not initialized')) {
             const attempts = autoReconnectAttemptsRef.current.get(message.taskId) || 0;

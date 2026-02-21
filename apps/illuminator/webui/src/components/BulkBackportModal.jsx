@@ -6,10 +6,33 @@
  * 2. Processing: progress bars, current chronicle, entity count, cost
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useFloatingPillStore } from '../lib/db/floatingPillStore';
+
+const PILL_ID = 'bulk-backport';
 
 export default function BulkBackportModal({ progress, onConfirm, onCancel, onClose }) {
+  const isMinimized = useFloatingPillStore((s) => s.isMinimized(PILL_ID));
+
+  useEffect(() => {
+    if (!isMinimized || !progress) return;
+    const statusColor = progress.status === 'running' ? '#f59e0b'
+      : progress.status === 'complete' ? '#10b981'
+      : progress.status === 'failed' ? '#ef4444' : '#6b7280';
+    const statusText = progress.status === 'running'
+      ? `${progress.processedEntities}/${progress.totalEntities}`
+      : progress.status;
+    useFloatingPillStore.getState().updatePill(PILL_ID, { statusText, statusColor });
+  }, [isMinimized, progress?.status, progress?.processedEntities]);
+
+  useEffect(() => {
+    if (!progress || progress.status === 'idle') {
+      useFloatingPillStore.getState().remove(PILL_ID);
+    }
+  }, [progress?.status]);
+
   if (!progress || progress.status === 'idle') return null;
+  if (isMinimized) return null;
 
   const isConfirming = progress.status === 'confirming';
   const isTerminal = progress.status === 'complete' || progress.status === 'cancelled' || progress.status === 'failed';
@@ -61,20 +84,37 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
             <h2 style={{ margin: 0, fontSize: '16px' }}>
               Bulk Backport
             </h2>
-            <span style={{
-              fontSize: '12px',
-              fontWeight: 500,
-              color: progress.status === 'complete' ? '#10b981'
-                : progress.status === 'failed' ? '#ef4444'
-                : progress.status === 'cancelled' ? '#f59e0b'
-                : 'var(--text-muted)',
-            }}>
-              {isConfirming && `${progress.chronicles.length} chronicles`}
-              {progress.status === 'running' && 'Processing...'}
-              {progress.status === 'complete' && 'Complete'}
-              {progress.status === 'cancelled' && 'Cancelled'}
-              {progress.status === 'failed' && 'Failed'}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {!isConfirming && (
+                <button
+                  onClick={() => useFloatingPillStore.getState().minimize({
+                    id: PILL_ID,
+                    label: 'Bulk Backport',
+                    statusText: progress.status === 'running' ? `${progress.processedEntities}/${progress.totalEntities}` : progress.status,
+                    statusColor: progress.status === 'running' ? '#f59e0b' : progress.status === 'complete' ? '#10b981' : '#ef4444',
+                  })}
+                  className="illuminator-button"
+                  style={{ padding: '2px 8px', fontSize: '11px' }}
+                  title="Minimize to pill"
+                >
+                  ―
+                </button>
+              )}
+              <span style={{
+                fontSize: '12px',
+                fontWeight: 500,
+                color: progress.status === 'complete' ? '#10b981'
+                  : progress.status === 'failed' ? '#ef4444'
+                  : progress.status === 'cancelled' ? '#f59e0b'
+                  : 'var(--text-muted)',
+              }}>
+                {isConfirming && `${progress.chronicles.length} chronicles`}
+                {progress.status === 'running' && 'Processing...'}
+                {progress.status === 'complete' && 'Complete'}
+                {progress.status === 'cancelled' && 'Cancelled'}
+                {progress.status === 'failed' && 'Failed'}
+              </span>
+            </div>
           </div>
         </div>
 

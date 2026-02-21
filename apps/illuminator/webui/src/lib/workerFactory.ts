@@ -70,6 +70,7 @@ type ServiceWorkerHandleEntry = {
   handle: WorkerHandle;
   reconnect: () => void;
   markDisconnected: () => void;
+  taskCompleted: () => void;
 };
 
 function getServiceWorkerHandleMap(): Map<string, ServiceWorkerHandleEntry> {
@@ -89,8 +90,12 @@ function ensureServiceWorkerMessageRouter(): void {
     const message = event.data as WorkerOutbound & { handleId?: string };
     if (!message || typeof message !== 'object' || !message.handleId) return;
     const entry = getServiceWorkerHandleMap().get(message.handleId);
-    if (!entry?.handle.onmessage) return;
-    entry.handle.onmessage({ data: message } as MessageEvent<WorkerOutbound>);
+    if (!entry) return;
+    // Track task completion for keepalive timer (same as port handler)
+    if (message.type === 'complete' || message.type === 'error') {
+      entry.taskCompleted();
+    }
+    entry.handle.onmessage?.({ data: message } as MessageEvent<WorkerOutbound>);
   });
 
   navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -198,6 +203,31 @@ function createServiceWorkerHandle(): WorkerHandle {
   let lastInitPayload: Record<string, unknown> | null = null;
   let pendingInitPayload: Record<string, unknown> | null = null;
 
+  // Keepalive: prevent browser from terminating SW during long-running tasks.
+  // Sends periodic messages to create fresh events in the SW event loop.
+  let keepaliveTimer: ReturnType<typeof setInterval> | null = null;
+  let activeTaskCount = 0;
+
+  const startKeepalive = () => {
+    if (keepaliveTimer) return;
+    keepaliveTimer = setInterval(() => {
+      if (!isConnected) return;
+      getActiveServiceWorker()
+        .then((worker) => {
+          worker.postMessage({ type: 'keepalive', handleId });
+        })
+        .catch(() => {});
+    }, 25_000);
+  };
+
+  const taskCompleted = () => {
+    activeTaskCount = Math.max(0, activeTaskCount - 1);
+    if (activeTaskCount === 0 && keepaliveTimer) {
+      clearInterval(keepaliveTimer);
+      keepaliveTimer = null;
+    }
+  };
+
   const bindPort = (nextPort: MessagePort) => {
     if (port) {
       port.onmessage = null;
@@ -206,6 +236,11 @@ function createServiceWorkerHandle(): WorkerHandle {
     }
     port = nextPort;
     port.onmessage = (event: MessageEvent<WorkerOutbound>) => {
+      // Track task completion for keepalive timer
+      const msg = event.data;
+      if (msg.type === 'complete' || msg.type === 'error') {
+        taskCompleted();
+      }
       handle.onmessage?.(event);
     };
     port.onmessageerror = () => {
@@ -258,6 +293,11 @@ function createServiceWorkerHandle(): WorkerHandle {
 
     postMessage(message: unknown) {
       const payload = { ...(message as Record<string, unknown>), handleId };
+      // Track task dispatch for keepalive
+      if (payload.type === 'execute') {
+        activeTaskCount++;
+        startKeepalive();
+      }
       if (payload.type === 'init') {
         lastInitPayload = payload;
         if (!isConnected) {
@@ -289,6 +329,10 @@ function createServiceWorkerHandle(): WorkerHandle {
     },
 
     terminate() {
+      if (keepaliveTimer) {
+        clearInterval(keepaliveTimer);
+        keepaliveTimer = null;
+      }
       if (port) {
         port.close();
       }
@@ -306,7 +350,7 @@ function createServiceWorkerHandle(): WorkerHandle {
 
   console.log('[WorkerFactory] Created ServiceWorker handle');
   ensureServiceWorkerMessageRouter();
-  getServiceWorkerHandleMap().set(handleId, { handle, reconnect, markDisconnected });
+  getServiceWorkerHandleMap().set(handleId, { handle, reconnect, markDisconnected, taskCompleted });
   return handle;
 }
 

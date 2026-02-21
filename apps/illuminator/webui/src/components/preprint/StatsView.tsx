@@ -116,11 +116,22 @@ export default function StatsView({ entities, chronicles, images, staticPages }:
           </div>
           <WordRow label="Chronicle body text" words={wb.chronicleBody} chars={cb.chronicleBody} total={stats.totalWords} />
           <WordRow label="Chronicle summaries" words={wb.chronicleSummaries} chars={cb.chronicleSummaries} total={stats.totalWords} />
-          <WordRow label="Entity descriptions" words={wb.entityDescriptions} chars={cb.entityDescriptions} total={stats.totalWords} />
+          <WordRow label="Entity descriptions (final)" words={wb.entityDescriptions} chars={cb.entityDescriptions} total={stats.totalWords} />
+          <WordRow label="Entity descriptions (pre-edit)" words={wb.entityDescriptionsPreEdit} chars={cb.entityDescriptionsPreEdit} total={stats.totalWords} />
           <WordRow label="Entity summaries" words={wb.entitySummaries} chars={cb.entitySummaries} total={stats.totalWords} />
           <WordRow label="Image captions" words={wb.imageCaptions} chars={cb.imageCaptions} total={stats.totalWords} />
-          <WordRow label="Historian notes" words={wb.historianNotes} chars={cb.historianNotes} total={stats.totalWords} />
+          <WordRow label="Historian notes (entity)" words={wb.historianNotesEntity} chars={cb.historianNotesEntity} total={stats.totalWords} />
+          <WordRow label="Historian notes (chronicle)" words={wb.historianNotesChronicle} chars={cb.historianNotesChronicle} total={stats.totalWords} />
           <WordRow label="Static page content" words={wb.staticPageContent} chars={cb.staticPageContent} total={stats.totalWords} />
+
+          <div className="preprint-stats-subsection" style={{ marginTop: 'var(--space-sm)' }}>Historian Copy Edit Impact</div>
+          <DeltaRow
+            label="Description change"
+            wordsBefore={wb.entityDescriptionsPreEdit}
+            wordsAfter={wb.entityDescriptions}
+            charsBefore={cb.entityDescriptionsPreEdit}
+            charsAfter={cb.entityDescriptions}
+          />
         </div>
       </div>
 
@@ -264,6 +275,23 @@ function WordRow({ label, words, chars, total }: { label: string; words: number;
       <span className="preprint-stats-value">{words.toLocaleString()}</span>
       <span className="preprint-stats-value">{chars.toLocaleString()}</span>
       <span className="preprint-stats-value">{pct(words, total)}</span>
+    </div>
+  );
+}
+
+function DeltaRow({ label, wordsBefore, wordsAfter, charsBefore, charsAfter }: {
+  label: string; wordsBefore: number; wordsAfter: number; charsBefore: number; charsAfter: number;
+}) {
+  const wordDelta = wordsAfter - wordsBefore;
+  const charDelta = charsAfter - charsBefore;
+  const wordPctChange = wordsBefore > 0 ? Math.round((wordDelta / wordsBefore) * 100) : 0;
+  const sign = wordDelta >= 0 ? '+' : '';
+  return (
+    <div className="preprint-stats-table-row">
+      <span>{label}</span>
+      <span className="preprint-stats-value">{sign}{wordDelta.toLocaleString()}</span>
+      <span className="preprint-stats-value">{sign}{charDelta.toLocaleString()}</span>
+      <span className="preprint-stats-value">{sign}{wordPctChange}%</span>
     </div>
   );
 }

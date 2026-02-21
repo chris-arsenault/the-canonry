@@ -7,7 +7,7 @@ export function createClients(config: WorkerConfig): { llmClient: LLMClient; ima
   const llmClient = new LLMClient({
     enabled: Boolean(config.anthropicApiKey),
     apiKey: config.anthropicApiKey,
-    model: 'claude-sonnet-4-5-20250929', // Default; overridden per call
+    model: 'claude-sonnet-4-6', // Default; overridden per call
   });
 
   const imageClient = new ImageClient({

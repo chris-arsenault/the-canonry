@@ -42,6 +42,16 @@ export type NarrativeFormat = 'story' | 'document';
  * Instead of dozens of structured fields that get fragmented in prompts,
  * we use a few rich text blocks that flow naturally into generation prompts.
  */
+/**
+ * Era narrative weight — determines how a chronicle using this style
+ * is weighted in era narrative prompt assembly.
+ *
+ * - 'structural': Defines the era's trajectory. These chronicles ARE the major events.
+ * - 'contextual': Provides institutional, political, or personal framing.
+ * - 'flavor': World texture. Color and atmosphere, not arc-defining.
+ */
+export type EraNarrativeWeight = 'structural' | 'contextual' | 'flavor';
+
 export interface StoryNarrativeStyle {
   format: 'story';
 
@@ -54,6 +64,8 @@ export interface StoryNarrativeStyle {
   description: string;
   /** Tags for categorization */
   tags?: string[];
+  /** How this style weights in era narrative assembly */
+  eraNarrativeWeight?: EraNarrativeWeight;
 
   // === Freeform Text Blocks (injected directly into prompts) ===
 
@@ -111,6 +123,7 @@ export const DEFAULT_NARRATIVE_STYLES: StoryNarrativeStyle[] = [
     name: 'Epic Drama',
     description: 'Grand narratives told as chronicle - we know how it ends, the question is how it came to this',
     tags: ['dramatic', 'high-stakes', 'retrospective'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: RETROSPECTIVE CHRONICLE
@@ -181,6 +194,7 @@ AVOID: The chronicler explaining what events "meant." Losses described at a dist
     name: 'Action Adventure',
     description: 'Race against time - each scene marked by how long remains, tension from the ticking clock',
     tags: ['action', 'countdown', 'urgent'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: COUNTDOWN
@@ -249,6 +263,7 @@ AVOID: Scenes where people stand and talk. Internal monologue. Reflection. Any s
     name: 'Romance',
     description: 'Two lives shown separately before they collide - the reader knows both before they know each other',
     tags: ['romantic', 'dual-POV', 'convergence'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: PARALLEL CONVERGENCE
@@ -321,6 +336,7 @@ AVOID: Love at first sight without complication. External plot overwhelming the 
     name: 'Slice of Life',
     description: 'One continuous moment, no scene breaks - time unfolds without interruption',
     tags: ['quiet', 'continuous', 'immersive'],
+    eraNarrativeWeight: 'flavor',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: SINGLE EXTENDED SCENE
@@ -381,6 +397,7 @@ AVOID: Dramatic events. Conflict requiring resolution. Backstory dumps. Realizat
     name: 'Political Intrigue',
     description: 'Schemes unfold through sequential moves - each scene a chess move in a larger game',
     tags: ['political', 'machination', 'layered'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: SEQUENTIAL MACHINATION
@@ -464,6 +481,7 @@ AVOID: Mustache-twirling villains. Characters who state their true motives. Easy
     name: 'Rashomon',
     description: 'One pivotal moment told three times - each account complete, each contradictory, truth assembled by the reader',
     tags: ['multi-POV', 'unreliable', 'layered'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: THREE ACCOUNTS OF ONE MOMENT
@@ -530,6 +548,7 @@ AVOID: Omniscient resolution. One account being obviously correct. Witnesses ack
     name: 'Poetic/Lyrical',
     description: 'Circular structure - the ending returns to the opening image, transformed by what came between',
     tags: ['literary', 'circular', 'meditative'],
+    eraNarrativeWeight: 'flavor',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: CIRCULAR RETURN
@@ -605,6 +624,7 @@ AVOID: Plot mechanics. Explaining what images mean. Rushing to conclusion. Gener
     name: 'Dark Comedy',
     description: 'One disaster escalating through reasonable responses - the gap between catastrophe and procedure is the comedy',
     tags: ['comedy', 'escalation', 'deadpan'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: CASCADING CATASTROPHE
@@ -679,6 +699,7 @@ AVOID: Jokes. Punchlines. Winking at the audience. Characters being funny on pur
     name: 'Heroic Fantasy',
     description: 'The classic hero\'s journey in explicit three-act form - departure, ordeal, return',
     tags: ['heroic', 'three-act', 'mythic'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: CLASSIC THREE-ACT
@@ -748,6 +769,7 @@ AVOID: Irony. Deconstruction. Moral ambiguity. Anticlimactic endings. This is no
     name: 'Tragedy',
     description: 'Begin at the fall, then show how we got there - the ending is known, the tragedy is in the becoming',
     tags: ['tragic', 'non-linear', 'inevitable'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: ENDING FIRST - THEN FLASHBACK
@@ -826,6 +848,7 @@ AVOID: Redemption arcs. Last-minute saves. Villains to blame. The tragedy is tha
     name: 'Mystery/Suspense',
     description: 'Write the opening so it can be reread after the revelation - clues hidden in plain sight',
     tags: ['mystery', 'revelation', 'rereadable'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: REVELATION THAT REFRAMES
@@ -899,6 +922,7 @@ AVOID: Cheating. Clues the reader couldn't have noticed. Revelations that come f
     name: 'Treasure Hunt',
     description: 'The journey is the story - multiple trials, each testing something different, building to discovery',
     tags: ['quest', 'trials', 'adventure'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: QUEST WITH TRIALS
@@ -979,6 +1003,7 @@ AVOID: Easy victories. Luck over virtue. Anticlimactic discovery. Treasure that'
     name: 'Haunted Relic',
     description: 'Alternating past and present - the curse\'s origin and its current manifestation intercut',
     tags: ['horror', 'dual-timeline', 'curse'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: DUAL TIMELINE
@@ -1053,6 +1078,7 @@ AVOID: Jump scares. Gore without meaning. Easy cures. Heroes who don't suffer. T
     name: 'Lost Legacy',
     description: 'Multiple generations, no privileged present - the artifact is the protagonist, carrying meaning through time',
     tags: ['generational', 'mosaic', 'inheritance'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: GENERATIONAL MOSAIC
@@ -1124,6 +1150,7 @@ AVOID: Privileging one generation as "the real story." Sentimentality about ance
     name: 'Confession',
     description: 'A single voice justifying themselves to someone - judge, lover, god, or self. The reader sees what the speaker cannot.',
     tags: ['unreliable', 'first-person', 'intimate', 'self-deception'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: UNRELIABLE MONOLOGUE
@@ -1193,6 +1220,7 @@ AVOID: Making the speaker obviously villainous. Making the "truth" explicitly st
     name: 'Fable',
     description: 'History exaggerated into allegory - real events mythologized, real people made into archetypes, truth bent to serve a moral',
     tags: ['allegorical', 'mythologized', 'didactic', 'embellished'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: ALLEGORICAL TALE
@@ -1261,6 +1289,7 @@ AVOID: Psychological complexity. Moral ambiguity (the fable has a clear lesson, 
     name: 'Trial & Judgment',
     description: 'Adversarial courtroom or tribunal - two sides construct opposing narratives from the same facts, judgment falls',
     tags: ['adversarial', 'formal', 'justice', 'multi-voice'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: ADVERSARIAL TRIBUNAL
@@ -1338,6 +1367,7 @@ AVOID: Clear-cut guilt or innocence. Perry Mason revelations. Courtroom drama cl
     name: 'Dreamscape',
     description: 'Surreal, psychedelic narrative where logic dissolves - images transform, identities merge, causality breaks',
     tags: ['surreal', 'psychedelic', 'non-linear', 'hallucinatory'],
+    eraNarrativeWeight: 'flavor',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: DISSOLVING LOGIC
@@ -1412,6 +1442,7 @@ AVOID: Plot. Causality. Rational explanations. Metaphors that are "explained" - 
     name: 'Apocalyptic Vision',
     description: 'Prophetic revelation of doom and transformation - cosmic scale, symbolic imagery, the end of one world and birth of another',
     tags: ['prophetic', 'apocalyptic', 'visionary', 'cosmic'],
+    eraNarrativeWeight: 'flavor',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: PROPHETIC REVELATION
@@ -1491,6 +1522,7 @@ AVOID: Nihilism. Destruction without meaning. Modern apocalyptic cliches (zombie
     name: 'Last Stand',
     description: 'War from the inside — a unit holding the line, the bonds between soldiers, the arithmetic of sacrifice. No heroes, no villains. Just duty and its cost.',
     tags: ['war', 'ensemble', 'visceral', 'sacrifice', 'ground-level'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: THE LINE HOLDS (OR BREAKS)

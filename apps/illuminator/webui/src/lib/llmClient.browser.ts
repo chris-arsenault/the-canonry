@@ -25,6 +25,10 @@ export interface LLMRequest {
   topP?: number;
   /** Enable extended thinking with budget in tokens (Sonnet/Opus only) */
   thinkingBudget?: number;
+  /** Callback for streaming thinking deltas — called on every thinking chunk */
+  onThinkingDelta?: (delta: string) => void;
+  /** Callback for streaming text deltas — called on every text chunk */
+  onTextDelta?: (delta: string) => void;
 }
 
 export interface NetworkDebugInfo {
@@ -50,6 +54,8 @@ export interface LLMResult {
     inputTokens: number;
     outputTokens: number;
   };
+  /** Accumulated thinking text from extended thinking (if enabled) */
+  thinking?: string;
 }
 
 export interface CallLogEntry {
@@ -143,7 +149,7 @@ export class LLMClient {
   constructor(config: LLMConfig) {
     this.config = {
       ...config,
-      model: (config.model || 'claude-sonnet-4-20250514').trim(),
+      model: (config.model || 'claude-sonnet-4-6').trim(),
       apiKey: (config.apiKey || '').trim(),
     };
   }
@@ -210,10 +216,13 @@ export class LLMClient {
           };
         }
 
+        // Enable streaming to keep service worker alive during long calls
+        requestBody.stream = true;
+
         const rawRequest = JSON.stringify(requestBody);
         lastDebug = { request: rawRequest };
 
-        console.log('[LLM] Request start', {
+        console.log('[LLM] Request start (streaming)', {
           callNumber,
           attempt,
           model: resolvedModel,
@@ -236,10 +245,33 @@ export class LLMClient {
           body: rawRequest,
         });
 
-        const responseText = await response.text();
-        const durationMs = Date.now() - requestStart;
         const rateLimit = extractRateLimitHeaders(response.headers);
         const requestId = extractRequestId(response.headers);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          const durationMs = Date.now() - requestStart;
+          const responseMeta = {
+            provider: 'anthropic' as const,
+            status: response.status,
+            statusText: response.statusText,
+            durationMs,
+            requestId,
+            rateLimit: Object.keys(rateLimit).length > 0 ? rateLimit : undefined,
+          };
+          lastDebug = { request: rawRequest, response: errorText, meta: responseMeta };
+          console.warn('[LLM] Response error', {
+            callNumber,
+            attempt,
+            ...responseMeta,
+            responseChars: errorText.length,
+          });
+          throw new Error(`API error ${response.status}: ${errorText}`);
+        }
+
+        // Consume SSE stream
+        const streamResult = await this.consumeSSEStream(response, request.onThinkingDelta, request.onTextDelta);
+        const durationMs = Date.now() - requestStart;
         const responseMeta = {
           provider: 'anthropic' as const,
           status: response.status,
@@ -249,53 +281,31 @@ export class LLMClient {
           rateLimit: Object.keys(rateLimit).length > 0 ? rateLimit : undefined,
         };
 
-        lastDebug = { request: rawRequest, response: responseText, meta: responseMeta };
+        lastDebug = { request: rawRequest, response: streamResult.rawResponse, meta: responseMeta };
 
-        if (!response.ok) {
-          console.warn('[LLM] Response error', {
-            callNumber,
-            attempt,
-            ...responseMeta,
-            responseChars: responseText.length,
-          });
-          throw new Error(`API error ${response.status}: ${responseText}`);
-        }
-
-        let data: any;
-        try {
-          data = JSON.parse(responseText);
-        } catch (parseError) {
-          throw new Error(`Failed to parse response JSON: ${parseError}`);
-        }
-        let text = '';
-        for (const part of data.content) {
-          if (part.type === 'text') {
-            text += part.text;
-          }
-        }
-
-        // Extract usage data from response
-        const usage = data.usage ? {
-          inputTokens: data.usage.input_tokens || 0,
-          outputTokens: data.usage.output_tokens || 0,
-        } : undefined;
-
-        console.log('[LLM] Response success', {
+        console.log('[LLM] Response success (streaming)', {
           callNumber,
           attempt,
           ...responseMeta,
-          usage,
-          responseChars: responseText.length,
+          usage: streamResult.usage,
+          textChars: streamResult.text.length,
+          thinkingChars: streamResult.thinking.length,
         });
 
-        this.logResponse(logEntry, text);
+        this.logResponse(logEntry, streamResult.text);
 
-        if (text) {
-          this.cache.set(cacheKey, text);
+        if (streamResult.text) {
+          this.cache.set(cacheKey, streamResult.text);
         }
 
         this.callsCompleted++;
-        return { text, cached: false, usage, debug: lastDebug };
+        return {
+          text: streamResult.text,
+          cached: false,
+          usage: streamResult.usage,
+          debug: lastDebug,
+          thinking: streamResult.thinking || undefined,
+        };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         console.error(`[LLM] Call ${callNumber}, Attempt ${attempt}/${maxAttempts}: ${message}`);
@@ -311,6 +321,101 @@ export class LLMClient {
     }
 
     return { text: '', cached: false, skipped: true };
+  }
+
+  private async consumeSSEStream(
+    response: Response,
+    onThinkingDelta?: (delta: string) => void,
+    onTextDelta?: (delta: string) => void,
+  ): Promise<{
+    text: string;
+    thinking: string;
+    usage: { inputTokens: number; outputTokens: number } | undefined;
+    rawResponse: string;
+  }> {
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+
+    let text = '';
+    let thinking = '';
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let hasUsage = false;
+    const rawChunks: string[] = [];
+    let buffer = '';
+
+    // Track content block types by index (thinking vs text)
+    const blockTypes = new Map<number, string>();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      rawChunks.push(chunk);
+      buffer += chunk;
+
+      // Parse SSE lines from buffer
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // Keep incomplete last line in buffer
+
+      let currentEventType = '';
+      for (const line of lines) {
+        if (line.startsWith('event: ')) {
+          currentEventType = line.slice(7).trim();
+        } else if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+
+            switch (currentEventType) {
+              case 'message_start': {
+                if (parsed.message?.usage?.input_tokens) {
+                  inputTokens = parsed.message.usage.input_tokens;
+                  hasUsage = true;
+                }
+                break;
+              }
+              case 'content_block_start': {
+                if (parsed.content_block) {
+                  blockTypes.set(parsed.index, parsed.content_block.type);
+                }
+                break;
+              }
+              case 'content_block_delta': {
+                const delta = parsed.delta;
+                if (delta?.type === 'thinking_delta') {
+                  thinking += delta.thinking;
+                  onThinkingDelta?.(delta.thinking);
+                } else if (delta?.type === 'text_delta') {
+                  text += delta.text;
+                  onTextDelta?.(delta.text);
+                }
+                break;
+              }
+              case 'message_delta': {
+                if (parsed.usage?.output_tokens) {
+                  outputTokens = parsed.usage.output_tokens;
+                  hasUsage = true;
+                }
+                break;
+              }
+            }
+          } catch {
+            // Skip unparseable data lines
+          }
+        }
+      }
+    }
+
+    return {
+      text,
+      thinking,
+      usage: hasUsage ? { inputTokens, outputTokens } : undefined,
+      rawResponse: rawChunks.join(''),
+    };
   }
 
   private async createCacheKey(request: LLMRequest, model: string): Promise<string> {

@@ -13,7 +13,7 @@ import type { ChronicleRecord, ChronicleImageRef } from '../chronicleTypes';
 import type { ImageMetadataRecord } from './prePrintStats';
 import type { StaticPage } from '../staticPageTypes';
 import type { HistorianNote } from '../historianTypes';
-import { isNoteActive } from '../historianTypes';
+import { isNoteActive, noteDisplay } from '../historianTypes';
 import { resolveAnchorPhrase } from '../fuzzyAnchor';
 import type {
   ContentTreeState,
@@ -177,12 +177,28 @@ function formatEntityMarkdown(
   // Historian notes
   const notes = entity.enrichment?.historianNotes?.filter(n => isNoteActive(n));
   if (notes?.length) {
-    lines.push('## Historian\'s Notes');
-    lines.push('');
-    for (const note of notes) {
-      lines.push(formatHistorianNote(note));
+    const fullNotes = notes.filter(n => noteDisplay(n) === 'full');
+    const popoutNotes = notes.filter(n => noteDisplay(n) === 'popout');
+
+    if (fullNotes.length > 0) {
+      lines.push('## Historian\'s Notes');
+      lines.push('');
+      for (const note of fullNotes) {
+        lines.push(formatHistorianNote(note));
+      }
+      lines.push('');
     }
-    lines.push('');
+
+    if (popoutNotes.length > 0) {
+      if (fullNotes.length === 0) {
+        lines.push('## Historian\'s Notes');
+        lines.push('');
+      }
+      for (const note of popoutNotes) {
+        lines.push(formatHistorianFootnote(note));
+      }
+      lines.push('');
+    }
   }
 
   return lines.join('\n');
@@ -296,12 +312,28 @@ function formatChronicleMarkdown(
   // Historian notes
   const chronicleNotes = chronicle.historianNotes?.filter(n => isNoteActive(n));
   if (chronicleNotes?.length) {
-    lines.push('## Historian\'s Notes');
-    lines.push('');
-    for (const note of chronicleNotes) {
-      lines.push(formatHistorianNote(note));
+    const fullNotes = chronicleNotes.filter(n => noteDisplay(n) === 'full');
+    const popoutNotes = chronicleNotes.filter(n => noteDisplay(n) === 'popout');
+
+    if (fullNotes.length > 0) {
+      lines.push('## Historian\'s Notes');
+      lines.push('');
+      for (const note of fullNotes) {
+        lines.push(formatHistorianNote(note));
+      }
+      lines.push('');
     }
-    lines.push('');
+
+    if (popoutNotes.length > 0) {
+      if (fullNotes.length === 0) {
+        lines.push('## Historian\'s Notes');
+        lines.push('');
+      }
+      for (const note of popoutNotes) {
+        lines.push(formatHistorianFootnote(note));
+      }
+      lines.push('');
+    }
   }
 
   return lines.join('\n');
@@ -362,6 +394,11 @@ function formatStaticPageMarkdown(
 function formatHistorianNote(note: HistorianNote): string {
   const typeLabel = note.type.charAt(0).toUpperCase() + note.type.slice(1);
   return `> **[${typeLabel}]** ${note.text} *(anchored to: "${note.anchorPhrase}")*\n`;
+}
+
+function formatHistorianFootnote(note: HistorianNote): string {
+  const typeLabel = note.type.charAt(0).toUpperCase() + note.type.slice(1);
+  return `- *[${typeLabel}]* ${note.text} — "${note.anchorPhrase}"\n`;
 }
 
 // =============================================================================

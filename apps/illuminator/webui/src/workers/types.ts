@@ -32,11 +32,14 @@ export interface WorkerConfig {
 export type WorkerInbound =
   | { type: 'init'; config: WorkerConfig }
   | { type: 'execute'; task: WorkerTask }
-  | { type: 'abort'; taskId?: string };
+  | { type: 'abort'; taskId?: string }
+  | { type: 'keepalive' };
 
 export type WorkerOutbound =
   | { type: 'ready' }
   | { type: 'started'; taskId: string }
+  | { type: 'thinking_delta'; taskId: string; delta: string }
+  | { type: 'text_delta'; taskId: string; delta: string }
   | { type: 'complete'; result: WorkerResult }
   | { type: 'error'; taskId: string; error: string; debug?: NetworkDebugInfo };
 

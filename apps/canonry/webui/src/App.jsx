@@ -180,64 +180,67 @@ function mergeEntitiesWithDexie(baseEntities, dexieEntities) {
 }
 
 async function hydrateWorldDataFromDexie({ worldData, projectId, simulationRunId }) {
-  if (!worldData || !simulationRunId || !projectId) return worldData;
-
-  try {
-    const [
-      { getEntitiesForRun },
-      { getNarrativeEventsForRun },
-      { getRelationshipsForRun },
-      { getCoordinateState },
-      { getSchema },
-    ] = await Promise.all([
-      import('illuminator/entityRepository'),
-      import('illuminator/eventRepository'),
-      import('illuminator/relationshipRepository'),
-      import('illuminator/coordinateStateRepository'),
-      import('illuminator/schemaRepository'),
-    ]);
-
-    const [
-      dexieEntities,
-      dexieEvents,
-      dexieRelationships,
-      coordinateRecord,
-      schemaRecord,
-    ] = await Promise.all([
-      getEntitiesForRun(simulationRunId),
-      getNarrativeEventsForRun(simulationRunId),
-      getRelationshipsForRun(simulationRunId),
-      getCoordinateState(simulationRunId),
-      getSchema(projectId),
-    ]);
-
-    const mergedEntities = mergeEntitiesWithDexie(worldData.hardState || [], dexieEntities);
-    const relationships = Array.isArray(dexieRelationships) && dexieRelationships.length > 0
-      ? dexieRelationships.map(stripSimulationRunId)
-      : worldData.relationships || [];
-    const narrativeHistory = Array.isArray(dexieEvents) && dexieEvents.length > 0
-      ? dexieEvents.map(stripSimulationRunId)
-      : worldData.narrativeHistory || [];
-    const coordinateState = coordinateRecord?.coordinateState || worldData.coordinateState;
-    const schema = schemaRecord?.schema || worldData.schema;
-
-    return {
-      ...worldData,
-      schema,
-      hardState: mergedEntities,
-      relationships,
-      narrativeHistory,
-      coordinateState,
-      metadata: {
-        ...worldData.metadata,
-        entityCount: mergedEntities.length,
-        relationshipCount: relationships.length,
-      },
-    };
-  } catch (err) {
-    console.warn('[Canonry] Failed to hydrate export from Dexie:', err);
-    return worldData;
+  if (!worldData || !simulationRunId || !projectId) {
+    throw new Error(
+      `Cannot hydrate export: missing ${[
+        !worldData && 'worldData',
+        !simulationRunId && 'simulationRunId',
+        !projectId && 'projectId',
+      ].filter(Boolean).join(', ')}`
+    );
   }
+
+  const [
+    { getEntitiesForRun },
+    { getNarrativeEventsForRun },
+    { getRelationshipsForRun },
+    { getCoordinateState },
+    { getSchema },
+  ] = await Promise.all([
+    import('illuminator/entityRepository'),
+    import('illuminator/eventRepository'),
+    import('illuminator/relationshipRepository'),
+    import('illuminator/coordinateStateRepository'),
+    import('illuminator/schemaRepository'),
+  ]);
+
+  const [
+    dexieEntities,
+    dexieEvents,
+    dexieRelationships,
+    coordinateRecord,
+    schemaRecord,
+  ] = await Promise.all([
+    getEntitiesForRun(simulationRunId),
+    getNarrativeEventsForRun(simulationRunId),
+    getRelationshipsForRun(simulationRunId),
+    getCoordinateState(simulationRunId),
+    getSchema(projectId),
+  ]);
+
+  const mergedEntities = mergeEntitiesWithDexie(worldData.hardState || [], dexieEntities);
+  const relationships = Array.isArray(dexieRelationships) && dexieRelationships.length > 0
+    ? dexieRelationships.map(stripSimulationRunId)
+    : worldData.relationships || [];
+  const narrativeHistory = Array.isArray(dexieEvents) && dexieEvents.length > 0
+    ? dexieEvents.map(stripSimulationRunId)
+    : worldData.narrativeHistory || [];
+  const coordinateState = coordinateRecord?.coordinateState || worldData.coordinateState;
+  const schema = schemaRecord?.schema || worldData.schema;
+
+  return {
+    ...worldData,
+    schema,
+    hardState: mergedEntities,
+    relationships,
+    narrativeHistory,
+    coordinateState,
+    metadata: {
+      ...worldData.metadata,
+      entityCount: mergedEntities.length,
+      relationshipCount: relationships.length,
+    },
+  };
 }
 
 

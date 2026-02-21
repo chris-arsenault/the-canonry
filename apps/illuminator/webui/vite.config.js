@@ -22,6 +22,9 @@ export default defineConfig({
         './IlluminatorRemote': './src/IlluminatorRemote.jsx',
         './entityRepository': './src/lib/db/entityRepository.ts',
         './eventRepository': './src/lib/db/eventRepository.ts',
+        './relationshipRepository': './src/lib/db/relationshipRepository.ts',
+        './coordinateStateRepository': './src/lib/db/coordinateStateRepository.ts',
+        './schemaRepository': './src/lib/db/schemaRepository.ts',
       },
       shared: {
         react: { singleton: true, requiredVersion: '^19.0.0' },

@@ -84,6 +84,10 @@ export interface EntityNavItem {
   unconfiguredBackrefCount: number;  // backrefs missing imageSource — for filter
   isManual: boolean;          // id.startsWith('manual_') — controls Edit/Delete visibility
   lockedSummary: boolean;     // prevents summary overwrite during enrichment
+  hasHistorianNotes: boolean; // (entity.enrichment?.historianNotes?.length ?? 0) > 0
+  hasHistorianEdition: boolean; // descriptionHistory contains a 'historian-edition' source entry
+  historianEditionCount: number; // count of historian-edition entries in descriptionHistory
+  descriptionWordCount: number; // word count of current description for token estimation
 }
 
 export function buildEntityNavItem(entity: PersistedEntity): EntityNavItem {
@@ -111,5 +115,13 @@ export function buildEntityNavItem(entity: PersistedEntity): EntityNavItem {
     ).length,
     isManual: entity.id.startsWith('manual_'),
     lockedSummary: !!entity.lockedSummary,
+    hasHistorianNotes: (entity.enrichment?.historianNotes?.length ?? 0) > 0,
+    hasHistorianEdition: (entity.enrichment?.descriptionHistory || []).some(
+      (h: { source?: string }) => h.source === 'historian-edition',
+    ),
+    historianEditionCount: (entity.enrichment?.descriptionHistory || []).filter(
+      (h: { source?: string }) => h.source === 'historian-edition',
+    ).length,
+    descriptionWordCount: entity.description ? entity.description.split(/\s+/).length : 0,
   };
 }

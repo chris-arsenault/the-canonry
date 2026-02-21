@@ -12,6 +12,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { EnrichmentType } from '../lib/enrichmentTypes';
+import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
 import type {
   SummaryRevisionRun,
   SummaryRevisionBatch,
@@ -117,12 +118,6 @@ function groupEntitiesIntoBatches(entities: RevisionEntityContext[]): SummaryRev
 // ============================================================================
 
 export function useSummaryRevision(
-  onEnqueue: (items: Array<{
-    entity: { id: string; name: string; kind: string; subtype: string; prominence: string; culture: string; status: string; description: string; tags: Record<string, unknown> };
-    type: EnrichmentType;
-    prompt: string;
-    chronicleId?: string;
-  }>) => void,
   /** Callback to get entity context by IDs (called when dispatching a batch) */
   getEntityContexts: (entityIds: string[]) => RevisionEntityContext[],
 ): UseSummaryRevisionReturn {
@@ -157,13 +152,13 @@ export function useSummaryRevision(
       tags: {},
     };
 
-    onEnqueue([{
+    getEnqueue()([{
       entity: sentinelEntity,
       type: 'summaryRevision' as EnrichmentType,
       prompt: JSON.stringify(batchEntityContexts),
       chronicleId: runId,
     }]);
-  }, [onEnqueue]);
+  }, []);
 
   // Poll IndexedDB for run state changes
   const startPolling = useCallback((runId: string) => {

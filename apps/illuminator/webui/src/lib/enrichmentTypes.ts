@@ -9,7 +9,7 @@ import type { ChronicleFormat, ChronicleGenerationContext, ChronicleImageRefs, E
 import type { HistorianNote } from './historianTypes';
 import type { ResolvedLLMCallSettings } from './llmModelSettings';
 
-export type EnrichmentType = 'description' | 'visualThesis' | 'image' | 'entityChronicle' | 'paletteExpansion' | 'dynamicsGeneration' | 'summaryRevision' | 'chronicleLoreBackport' | 'historianEdition' | 'historianReview' | 'historianChronology' | 'historianPrep' | 'eraNarrative';
+export type EnrichmentType = 'description' | 'visualThesis' | 'image' | 'entityChronicle' | 'paletteExpansion' | 'dynamicsGeneration' | 'summaryRevision' | 'chronicleLoreBackport' | 'historianEdition' | 'historianReview' | 'historianChronology' | 'historianPrep' | 'eraNarrative' | 'motifVariation' | 'factCoverage' | 'toneRanking' | 'bulkToneRanking';
 
 /**
  * Which image to display at a chronicle backref anchor in an entity description.
@@ -171,6 +171,8 @@ export interface EntityEnrichment {
   }>;
   /** Historian annotations — scholarly margin notes anchored to description text */
   historianNotes?: HistorianNote[];
+  /** Canon fact IDs that annotation guidance directed the historian to reinforce */
+  reinforcedFacts?: string[];
   /** Slug aliases from entity renames — old entity IDs that should still resolve in deep links */
   slugAliases?: string[];
 }

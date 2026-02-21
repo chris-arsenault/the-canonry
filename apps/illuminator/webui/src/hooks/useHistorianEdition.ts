@@ -15,6 +15,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { EnrichmentType } from '../lib/enrichmentTypes';
+import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
 import type { HistorianConfig, HistorianTone } from '../lib/historianTypes';
 import type {
   SummaryRevisionRun,
@@ -79,14 +80,7 @@ const POLL_INTERVAL_MS = 1500;
 // Hook
 // ============================================================================
 
-export function useHistorianEdition(
-  onEnqueue: (items: Array<{
-    entity: { id: string; name: string; kind: string; subtype: string; prominence: string; culture: string; status: string; description: string; tags: Record<string, unknown> };
-    type: EnrichmentType;
-    prompt: string;
-    chronicleId?: string;
-  }>) => void,
-): UseHistorianEditionReturn {
+export function useHistorianEdition(): UseHistorianEditionReturn {
   const [run, setRun] = useState<SummaryRevisionRun | null>(null);
   const [isActive, setIsActive] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -116,13 +110,13 @@ export function useHistorianEdition(
       tags: {},
     };
 
-    onEnqueue([{
+    getEnqueue()([{
       entity: sentinelEntity,
       type: 'historianEdition' as EnrichmentType,
       prompt: '', // All data is in IndexedDB run context
       chronicleId: runId, // Repurpose chronicleId field for runId
     }]);
-  }, [onEnqueue]);
+  }, []);
 
   // Poll IndexedDB for run state changes
   const startPolling = useCallback((runId: string) => {

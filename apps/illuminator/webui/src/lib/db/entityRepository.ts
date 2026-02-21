@@ -490,6 +490,41 @@ export async function undoDescription(entityId: string): Promise<void> {
 }
 
 /**
+ * Restore a specific description history entry as the active description.
+ * The current description is pushed to history before the swap.
+ */
+export async function restoreDescriptionFromHistory(
+  entityId: string,
+  historyIndex: number,
+): Promise<void> {
+  await db.transaction('rw', db.entities, async () => {
+    const entity = await db.entities.get(entityId);
+    if (!entity) return;
+    const history = [...(entity.enrichment?.descriptionHistory || [])];
+    if (historyIndex < 0 || historyIndex >= history.length) return;
+
+    const selected = history[historyIndex];
+
+    // Push current description to history
+    if (entity.description) {
+      history.push({
+        description: entity.description,
+        replacedAt: Date.now(),
+        source: 'version-restore',
+      });
+    }
+
+    // Remove the selected entry from history
+    history.splice(historyIndex, 1);
+
+    await db.entities.update(entityId, {
+      description: selected.description,
+      enrichment: { ...entity.enrichment, descriptionHistory: history },
+    });
+  });
+}
+
+/**
  * Set chronicle backrefs on an entity.
  */
 export async function updateBackrefs(
@@ -664,13 +699,16 @@ export async function revalidateBackrefs(
 export async function setHistorianNotes(
   entityId: string,
   notes: NonNullable<EntityEnrichment['historianNotes']>,
+  reinforcedFacts?: string[],
 ): Promise<void> {
   await db.transaction('rw', db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
-    await db.entities.update(entityId, {
-      enrichment: { ...entity.enrichment, historianNotes: notes },
-    });
+    const enrichment = { ...entity.enrichment, historianNotes: notes };
+    if (reinforcedFacts) {
+      enrichment.reinforcedFacts = reinforcedFacts;
+    }
+    await db.entities.update(entityId, { enrichment });
   });
 }
 
@@ -754,4 +792,39 @@ export async function resetEntitiesToPreBackportState(
 
 export async function deleteEntitiesForRun(simulationRunId: string): Promise<void> {
   await db.entities.where('simulationRunId').equals(simulationRunId).delete();
+}
+
+/**
+ * Bulk-convert all historian-edition history entries to 'legacy-copy-edit' source.
+ * Clears the historian-edition slate so entities can go through a fresh edition cycle.
+ *
+ * Returns the count of entities modified.
+ */
+export async function convertLongEditionsToLegacy(
+  entityIds: string[],
+): Promise<number> {
+  let modified = 0;
+  await db.transaction('rw', db.entities, async () => {
+    for (const entityId of entityIds) {
+      const entity = await db.entities.get(entityId);
+      if (!entity) continue;
+
+      const history = [...(entity.enrichment?.descriptionHistory || [])];
+      let changed = false;
+      for (let i = 0; i < history.length; i++) {
+        if (history[i].source === 'historian-edition') {
+          history[i] = { ...history[i], source: 'legacy-copy-edit' };
+          changed = true;
+        }
+      }
+
+      if (!changed) continue;
+
+      await db.entities.update(entityId, {
+        enrichment: { ...entity.enrichment, descriptionHistory: history },
+      });
+      modified++;
+    }
+  });
+  return modified;
 }

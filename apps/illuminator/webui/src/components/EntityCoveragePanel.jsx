@@ -1,7 +1,8 @@
 /**
  * EntityCoveragePanel - Entity-level coverage analysis across chronicles
  *
- * 7 collapsible sections surfacing deterministic coverage gaps:
+ * 8 collapsible sections surfacing deterministic coverage gaps:
+ * 0. Chronicle Suggestions (entity + era combos that cover uncovered events)
  * 1. Chronicle Backrefs per Entity
  * 2. Description History per Entity
  * 3. Cultural Representation
@@ -11,7 +12,7 @@
  * 7. Lore Integration Gaps
  */
 
-import { useMemo, useEffect, useState, useCallback } from 'react';
+import React, { useMemo, useEffect, useState, useCallback } from 'react';
 import { useRelationships } from '../lib/db/relationshipSelectors';
 import { useNarrativeEvents } from '../lib/db/narrativeEventSelectors';
 import { getEntitiesForRun } from '../lib/db/entityRepository';
@@ -48,6 +49,7 @@ function expectedForProminence(value) {
 }
 
 const SECTION_IDS = [
+  'suggestions',
   'backrefs',
   'history',
   'culture',
@@ -58,6 +60,7 @@ const SECTION_IDS = [
 ];
 
 const SECTION_LABELS = {
+  suggestions: 'Chronicle Suggestions',
   backrefs: 'Chronicle Backrefs per Entity',
   history: 'Description History per Entity',
   culture: 'Cultural Representation',
@@ -68,6 +71,7 @@ const SECTION_LABELS = {
 };
 
 const SECTION_DESCRIPTIONS = {
+  suggestions: 'Uncovered events by action type — expand to see involved entities, era, and significance',
   backrefs: 'Backref links from entity descriptions to source chronicles, relative to prominence',
   history: 'Description rewrites from lore backport vs. backref mentions — divergence signals shallow integration',
   culture: 'Primary vs supporting role distribution by culture across chronicles',
@@ -414,6 +418,337 @@ function computeCoreAnalysis(entities, chronicles, events, relationships) {
     cultureEntities,
     entityBackportedCount,
   };
+}
+
+// ============================================================================
+// Section 0: Chronicle Suggestions
+// ============================================================================
+
+const SUGGESTION_MIN_SIG_OPTIONS = [
+  { value: '0', label: 'All significance' },
+  { value: '0.3', label: '>= 0.3' },
+  { value: '0.5', label: '>= 0.5' },
+  { value: '0.7', label: '>= 0.7' },
+];
+
+const SUGGESTION_COVERAGE_OPTIONS = [
+  { value: 'uncovered', label: 'Has uncovered' },
+  { value: 'all', label: 'All actions' },
+];
+
+/** Strip entity-specific suffix from action: "kill_orca:The Sapphire League" -> "kill_orca" */
+function baseAction(raw) {
+  if (!raw) return 'unknown';
+  const idx = raw.indexOf(':');
+  return idx > 0 ? raw.slice(0, idx) : raw;
+}
+
+/** Check if an event is purely a prominence side-effect (only field_changed on prominence) */
+function isProminenceOnly(event) {
+  const effects = event.participantEffects;
+  if (!effects || effects.length === 0) return false;
+  for (const pe of effects) {
+    for (const eff of pe.effects || []) {
+      if (eff.type !== 'field_changed' || eff.field !== 'prominence') return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Compute group key for an event:
+ * - creation_batch → template name from causedBy.actionType
+ * - prominence-only side-effects → "prominence_change" (prevents inflating parent action)
+ * - everything else → base action
+ */
+function eventGroupKey(event) {
+  if (event.eventKind === 'creation_batch' && event.causedBy?.actionType) {
+    return event.causedBy.actionType;
+  }
+  if (isProminenceOnly(event)) {
+    return 'prominence_change';
+  }
+  return baseAction(event.action || event.eventKind) || 'unknown';
+}
+
+/**
+ * Event-action-centric coverage suggestions. Groups events by action type,
+ * shows covered/uncovered counts, and expands to show each uncovered event
+ * instance with its full participant list, era, and significance.
+ *
+ * Workflow: find an action with uncovered events -> expand -> see which
+ * entities are involved in each uncovered instance -> pick one as entry point
+ * in the wizard.
+ */
+function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expanded }) {
+  const [minSignificance, setMinSignificance] = useState('0');
+  const [coverageFilter, setCoverageFilter] = useState('uncovered');
+  const [expandedAction, setExpandedAction] = useState(null);
+  const [sort, onSort] = useColumnSort('uncovered', true);
+
+  // Build entity lookup for names/kinds/prominence
+  const entityMap = useMemo(() => {
+    const m = new Map();
+    for (const e of entities) m.set(e.id, e);
+    return m;
+  }, [entities]);
+
+  // Era name lookup
+  const eraNameMap = useMemo(() => {
+    const m = new Map();
+    for (const e of entities) {
+      if (e.kind === 'era') m.set(e.id, e.name);
+    }
+    return m;
+  }, [entities]);
+
+  const actionGroups = useMemo(() => {
+    const minSig = Number(minSignificance);
+
+    // Group key logic:
+    // - creation_batch: split by template (causedBy.actionType) so "spawn_settlement"
+    //   and "spawn_faction" appear as separate rows instead of one blob
+    // - prominence-only side-effects: grouped as "prominence_change" regardless of
+    //   which system caused them, so they don't inflate the parent action's count
+    // - everything else: group by base action (kill_orca, artifact_attracts, etc.)
+    const groups = new Map();
+    for (const event of events) {
+      if (event.significance < minSig) continue;
+      const key = eventGroupKey(event);
+      const existing = groups.get(key) || {
+        action: key,
+        total: 0,
+        covered: 0,
+        uncovered: 0,
+        totalSignificance: 0,
+        uncoveredEvents: [],
+        coveredEvents: [],
+        eras: new Set(),
+      };
+      existing.total += 1;
+      existing.totalSignificance += event.significance;
+      const isCovered = (eventCoverage.get(event.id) || 0) > 0;
+      if (isCovered) {
+        existing.covered += 1;
+        existing.coveredEvents.push(event);
+      } else {
+        existing.uncovered += 1;
+        existing.uncoveredEvents.push(event);
+      }
+      if (event.era) existing.eras.add(event.era);
+      groups.set(key, existing);
+    }
+
+    let result = [...groups.values()].map((g) => ({
+      ...g,
+      avgSignificance: g.total > 0 ? g.totalSignificance / g.total : 0,
+      coverageRate: g.total > 0 ? g.covered / g.total : 0,
+      eraCount: g.eras.size,
+    }));
+
+    if (coverageFilter === 'uncovered') result = result.filter((g) => g.uncovered > 0);
+
+    result.sort((a, b) => {
+      let cmp = 0;
+      switch (sort.col) {
+        case 'action': cmp = a.action.localeCompare(b.action); break;
+        case 'total': cmp = a.total - b.total; break;
+        case 'covered': cmp = a.covered - b.covered; break;
+        case 'uncovered': cmp = a.uncovered - b.uncovered; break;
+        case 'coverageRate': cmp = a.coverageRate - b.coverageRate; break;
+        case 'avgSig': cmp = a.avgSignificance - b.avgSignificance; break;
+      }
+      return sort.desc ? -cmp : cmp;
+    });
+
+    return result;
+  }, [events, eventCoverage, minSignificance, coverageFilter, sort]);
+
+  const totalUncoveredActions = useMemo(() => actionGroups.filter((g) => g.uncovered > 0).length, [actionGroups]);
+
+  if (!expanded) return totalUncoveredActions;
+
+  return (
+    <div>
+      <SectionToolbar>
+        <FilterSelect value={coverageFilter} onChange={setCoverageFilter} options={SUGGESTION_COVERAGE_OPTIONS} label="Coverage" />
+        <FilterSelect value={minSignificance} onChange={setMinSignificance} options={SUGGESTION_MIN_SIG_OPTIONS} label="Min significance" />
+        <span style={{ marginLeft: 'auto', fontSize: '10px', color: 'var(--text-muted)' }}>
+          {actionGroups.length} action types
+        </span>
+      </SectionToolbar>
+      <TableWrap>
+        <thead>
+          <tr>
+            <StaticTh> </StaticTh>
+            <SortableTh sortKey="action" sort={sort} onSort={onSort}>Event Kind</SortableTh>
+            <SortableTh sortKey="total" sort={sort} onSort={onSort} right>Total</SortableTh>
+            <SortableTh sortKey="covered" sort={sort} onSort={onSort} right>Cov</SortableTh>
+            <SortableTh sortKey="uncovered" sort={sort} onSort={onSort} right>Uncov</SortableTh>
+            <SortableTh sortKey="coverageRate" sort={sort} onSort={onSort} right>Cov%</SortableTh>
+            <SortableTh sortKey="avgSig" sort={sort} onSort={onSort} right>Avg Sig</SortableTh>
+          </tr>
+        </thead>
+        <tbody>
+          {actionGroups.length === 0 && <EmptyRow colSpan={7} text="No event kinds match filters" />}
+          {actionGroups.map((g) => {
+            const isDetailExpanded = expandedAction === g.action;
+            return (
+              <React.Fragment key={g.action}>
+                <tr
+                  style={{ cursor: g.uncovered > 0 ? 'pointer' : 'default' }}
+                  onClick={() => g.uncovered > 0 && setExpandedAction(isDetailExpanded ? null : g.action)}
+                  title={g.uncovered > 0 ? 'Click to see uncovered events and their entities' : 'All events covered'}
+                >
+                  <td style={{ width: '16px', textAlign: 'center', fontSize: '10px', color: 'var(--text-muted)' }}>
+                    {g.uncovered > 0 ? (isDetailExpanded ? '\u25BC' : '\u25B6') : ''}
+                  </td>
+                  <td className="ec-name">{g.action}</td>
+                  <td className="ec-right">{g.total}</td>
+                  <td className="ec-right" style={{ color: '#22c55e' }}>{g.covered}</td>
+                  <td className="ec-right">
+                    {g.uncovered > 0 ? (
+                      <span style={{ fontWeight: 600, color: '#ef4444' }}>{g.uncovered}</span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)' }}>0</span>
+                    )}
+                  </td>
+                  <td className="ec-right">
+                    <span style={{ color: g.coverageRate === 1 ? '#22c55e' : g.coverageRate >= 0.5 ? '#f59e0b' : '#ef4444' }}>
+                      {(g.coverageRate * 100).toFixed(0)}%
+                    </span>
+                  </td>
+                  <td className="ec-right"><SignificanceStars value={g.avgSignificance} /></td>
+                </tr>
+                {isDetailExpanded && (
+                  <tr>
+                    <td colSpan={7} style={{ padding: 0 }}>
+                      <SuggestionActionDetail
+                        group={g}
+                        entityMap={entityMap}
+                        eraNameMap={eraNameMap}
+                        entityUsage={entityUsage}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </TableWrap>
+    </div>
+  );
+}
+
+/**
+ * Expansion detail for one action group. Shows each uncovered event instance
+ * with its full participant list, era, and significance. Entities shown inline
+ * with kind, prominence, and existing chronicle count.
+ */
+function SuggestionActionDetail({ group, entityMap, eraNameMap, entityUsage }) {
+  const uncoveredEvents = useMemo(
+    () => [...group.uncoveredEvents].sort((a, b) => b.significance - a.significance),
+    [group.uncoveredEvents]
+  );
+
+  /** Resolve an entity ref to display info */
+  function resolveEntity(id) {
+    const ent = entityMap.get(id);
+    return {
+      id,
+      name: ent?.name || id,
+      kind: ent?.kind || '?',
+      culture: ent?.culture || '',
+      prominence: Number(ent?.prominence) || 0,
+      chronicleAppearances: entityUsage.get(id)?.total || 0,
+    };
+  }
+
+  return (
+    <div style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
+      <div style={{ padding: '8px 16px 8px 32px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+          {group.uncovered} uncovered event{group.uncovered !== 1 ? 's' : ''}
+          {group.covered > 0 && (
+            <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> ({group.covered} already covered)</span>
+          )}
+        </div>
+        {uncoveredEvents.map((event) => {
+          const headline = event.description || `${event.subject?.name || 'Unknown'}: ${event.action || event.eventKind}`;
+          const eraName = eraNameMap.get(event.era) || event.era || '?';
+
+          // Collect all involved entities (subject + participants), deduplicated
+          const seen = new Set();
+          const involved = [];
+          if (event.subject?.id) {
+            seen.add(event.subject.id);
+            involved.push({ ...resolveEntity(event.subject.id), role: 'subject' });
+          }
+          for (const p of event.participantEffects || []) {
+            if (p.entity?.id && !seen.has(p.entity.id)) {
+              seen.add(p.entity.id);
+              involved.push({ ...resolveEntity(p.entity.id), role: 'participant' });
+            }
+          }
+
+          return (
+            <div
+              key={event.id}
+              style={{
+                marginBottom: '8px',
+                padding: '6px 8px',
+                border: '1px solid var(--border-color)',
+                borderRadius: '4px',
+                background: 'var(--bg-primary)',
+              }}
+            >
+              {/* Event headline row */}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-color)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={headline}>
+                  {headline}
+                </span>
+                <SignificanceStars value={event.significance} />
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', flexShrink: 0 }} title={`Era: ${eraName}`}>
+                  {eraName}
+                </span>
+              </div>
+              {/* Entity list */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px' }}>
+                {involved.map((ent) => (
+                  <span
+                    key={ent.id}
+                    style={{ fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                    title={[
+                      `${ent.name} (${ent.kind})`,
+                      ent.culture ? `Culture: ${ent.culture}` : null,
+                      `Prominence: ${prominenceLabel(ent.prominence)}`,
+                      `${ent.chronicleAppearances} chronicle appearance${ent.chronicleAppearances !== 1 ? 's' : ''}`,
+                      ent.role === 'subject' ? 'Subject of event' : 'Participant',
+                    ].filter(Boolean).join('\n')}
+                  >
+                    {ent.role === 'subject' ? (
+                      <span style={{ color: '#60a5fa', fontSize: '9px' }}>◆</span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '9px' }}>○</span>
+                    )}
+                    <span style={{ color: 'var(--text-color)' }}>{ent.name}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>{ent.kind}</span>
+                    <ProminenceDots value={ent.prominence} />
+                    {ent.chronicleAppearances === 0 ? (
+                      <span style={{ color: '#a855f7', fontSize: '9px' }}>new</span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '9px' }}>☰{ent.chronicleAppearances}</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // ============================================================================
@@ -1534,6 +1869,17 @@ export default function EntityCoveragePanel({ simulationRunId }) {
   for (const sectionId of SECTION_IDS) {
     if (!expandedSections.has(sectionId)) {
       switch (sectionId) {
+        case 'suggestions':
+          sectionUnderutilCounts[sectionId] = (() => {
+            const groupsWithUncovered = new Set();
+            for (const e of safeEvents) {
+              if (!(analysis.eventCoverage.get(e.id) > 0)) {
+                groupsWithUncovered.add(eventGroupKey(e));
+              }
+            }
+            return groupsWithUncovered.size;
+          })();
+          break;
         case 'backrefs':
           sectionUnderutilCounts[sectionId] = fullEntities.filter((e) => {
             if (e.kind === 'era') return false;
@@ -1592,6 +1938,7 @@ export default function EntityCoveragePanel({ simulationRunId }) {
   }
 
   const sectionProps = {
+    suggestions: { Component: SuggestionsSection, props: { events: safeEvents, entities: fullEntities, eventCoverage: analysis.eventCoverage, entityUsage: analysis.entityUsage } },
     backrefs: { Component: BackrefsSection, props: { entities: fullEntities } },
     history: { Component: HistorySection, props: { entities: fullEntities } },
     culture: { Component: CultureSection, props: { entities: fullEntities, cultureRoles: analysis.cultureRoles, cultureEntities: analysis.cultureEntities, entityUsage: analysis.entityUsage } },

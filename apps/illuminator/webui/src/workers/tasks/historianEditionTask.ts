@@ -121,7 +121,7 @@ You are preparing a reference entry, not writing a novel. Use whatever structure
 - **Tables** for structured comparisons — conflicting accounts from different sources, chain of custody, timeline of key events with sources or outcomes.
 - **Bold** / *italic* for emphasis within prose, as any scholarly text would use.
 
-**Prefer structured formats for structured data.** When an entry covers a chain of custody, a sequence of holders, conflicting measurements, or parallel events, a table or bullet list communicates more per word than prose and visually distinguishes the entry from narrative chronicles. These formats are *economical*, not decorative — use them when the data has inherent structure.`);
+**Prefer structured formats for structured data.** When an entry covers a sequence of holders, conflicting measurements, or parallel events, a table or bullet list communicates the structure more clearly than prose and visually distinguishes the entry from narrative chronicles. Use them when the data has inherent structure.`);
 
   sections.push(`## Baseline Quality
 
@@ -130,8 +130,8 @@ As a matter of course (not as a separate concern), ensure:
 - **Pronoun clarity.** When multiple entities or groups are referenced, reintroduce proper names at paragraph starts and after references to other entities. A reader should never wonder who "they" refers to.
 - **Introduced references.** Every entity, event, artifact, or place mentioned should have an identifying clause on first mention. Use the relationships to write these introductions.
 - **Readable prose.** Break dense sentences. Add paragraph breaks at natural topic boundaries.
-- **No narrative bleed.** If earlier versions contained chronicle-style narration (atmospheric language, reconstructed scenes), compress it to its factual core. State what happened, not how it felt — unless feeling is the point.
-- **No editorial postscripts.** Do not append trailing reflections, sign-off paragraphs, or codas that step outside the entry ("it is worth noting…", "one might observe…", "a final thought…"). The entry ends when the last substantive section ends. However: skepticism, contradiction-catching, and gap-noting are *factual content*, not commentary. "The transfer between X and Y is not documented," "an earlier account records five thefts, not four," "whether the raiders sought the text to suppress it or reclaim it is nowhere recorded" — these observations belong in the body of the entry. They are part of the historian's job. Weave them into the prose where they arise; do not quarantine them into trailing asides.
+- **No narrative bleed.** If earlier versions contained chronicle-style narration (reconstructed scenes, sensory staging, dramatic atmosphere from chronicle backports), compress it to its factual core. State what happened, not how it felt — unless feeling is the point. Claims grounded in the canon facts are not atmosphere — they describe the world's nature. Preserve them as fact.
+- **No editorial postscripts.** Do not append trailing reflections, sign-off paragraphs, or codas that step outside the entry. The entry ends when the last substantive section ends.
 - **Proportional length.** Match the entry's length and detail to the source material you have. A minor figure mentioned in one or two sentences should receive a concise entry of similar scale — do not pad with speculation, rhetorical elaboration, or contextual framing that the sources don't support. A prominent entity with a rich archive warrants depth. Let the material dictate the entry's weight, not the desire to be thorough.`);
 
   sections.push(`## Word Limit
@@ -221,7 +221,7 @@ function buildUserPrompt(
       }
       return `${header}\n${entry.description}`;
     });
-    sections.push(`=== DESCRIPTION ARCHIVE (oldest → newest) ===\nThese are previous versions of the description, in the order they were replaced. Each was the active description at the time. Read them as primary sources — details present in earlier versions but absent from later ones may be worth recovering.\n\n${archiveEntries.join('\n\n')}`);
+    sections.push(`=== DESCRIPTION ARCHIVE (oldest → newest) ===\nThese are previous versions of the description, in the order they were replaced. Each was the active description at the time.\n\n${archiveEntries.join('\n\n')}`);
   }
 
   // Summary
@@ -252,7 +252,7 @@ function buildUserPrompt(
     const neighborLines = meta.neighborSummaries.map(
       (n) => `  [${n.kind}] ${n.name}: ${n.summary}`
     );
-    sections.push(`=== RELATED ENTITIES (for cross-references and introductions) ===\n${neighborLines.join('\n')}`);
+    sections.push(`=== RELATED ENTITIES (context for accurate identifying clauses) ===\n${neighborLines.join('\n')}`);
   }
 
   // World context
@@ -273,7 +273,7 @@ function buildUserPrompt(
 
   // Task
   sections.push(`=== YOUR TASK ===
-Prepare the definitive entry for ${meta.entityName} for your forthcoming edition. You have the entity's full description archive — every version that has existed. Read them as primary sources. Synthesize the strongest account, recover lost details where warranted, and write the entry in your voice.
+Prepare the definitive entry for ${meta.entityName} for your forthcoming edition. You have the entity's full description archive. Synthesize a single authoritative account in your voice. The entry should read as this entity's own story.
 
 **Hard word limit: ${wordBudget} words.** Do not exceed this. Use fewer when the material warrants a shorter entry.
 

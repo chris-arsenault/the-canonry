@@ -46,7 +46,7 @@ export interface GptImageModelRates {
 export type ImageModelRates = DalleImageModelRates | GptImageModelRates;
 
 export const TEXT_MODEL_RATES: Record<string, TextModelRates> = {
-  'claude-sonnet-4-5-20250929': { inputPerMillion: 3, outputPerMillion: 15 },
+  'claude-sonnet-4-6': { inputPerMillion: 3, outputPerMillion: 15 },
   'claude-haiku-4-5-20251001': { inputPerMillion: 1, outputPerMillion: 5 },
   // Legacy models
   'claude-sonnet-4-20250514': { inputPerMillion: 3, outputPerMillion: 15 },

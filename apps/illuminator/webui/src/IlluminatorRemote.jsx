@@ -29,6 +29,7 @@ import TraitPaletteSection from './components/TraitPaletteSection';
 import StyleLibraryEditor from './components/StyleLibraryEditor';
 import StaticPagesPanel from './components/StaticPagesPanel';
 import CoveragePanel from './components/CoveragePanel';
+import FinalEditTab from './components/FinalEditTab';
 import EntityCoveragePanel from './components/EntityCoveragePanel';
 import DynamicsGenerationModal from './components/DynamicsGenerationModal';
 import SummaryRevisionModal from './components/SummaryRevisionModal';
@@ -37,6 +38,9 @@ import CreateEntityModal from './components/CreateEntityModal';
 import RevisionFilterModal from './components/RevisionFilterModal';
 import BackportConfigModal from './components/BackportConfigModal';
 import BulkBackportModal from './components/BulkBackportModal';
+import BulkHistorianModal from './components/BulkHistorianModal';
+import { getCallConfig as getLLMCallConfig } from './lib/llmModelSettings';
+import { useBulkHistorian } from './hooks/useBulkHistorian';
 import { useEnrichmentQueue } from './hooks/useEnrichmentQueue';
 import { useChronicleQueueWatcher } from './hooks/useChronicleQueueWatcher';
 import { useDynamicsGeneration } from './hooks/useDynamicsGeneration';
@@ -47,10 +51,20 @@ import { useHistorianEdition } from './hooks/useHistorianEdition';
 import { useHistorianReview } from './hooks/useHistorianReview';
 import HistorianReviewModal from './components/HistorianReviewModal';
 import HistorianConfigEditor from './components/HistorianConfigEditor';
+import { ThinkingViewer } from './components/ThinkingViewer';
+import { FloatingPills } from './components/FloatingPills';
+import BulkToneRankingModal from './components/BulkToneRankingModal';
+import ToneAssignmentPreviewModal from './components/ToneAssignmentPreviewModal';
+import BulkChronicleAnnotationModal from './components/BulkChronicleAnnotationModal';
+import InterleavedAnnotationModal from './components/InterleavedAnnotationModal';
+import { useToneRankingStore } from './lib/db/toneRankingStore';
+import { useBulkChronicleAnnotationStore } from './lib/db/bulkChronicleAnnotationStore';
+import { useInterleavedAnnotationStore } from './lib/db/interleavedAnnotationStore';
+import { extractReinforcedFactIds } from './lib/db/historianRunHelpers';
 import PrePrintPanel from './components/PrePrintPanel';
-import { DEFAULT_HISTORIAN_CONFIG, isHistorianConfigured, isNoteActive } from './lib/historianTypes';
+import { DEFAULT_HISTORIAN_CONFIG, isHistorianConfigured } from './lib/historianTypes';
 import { getPublishedStaticPagesForProject } from './lib/db/staticPageRepository';
-import { getEntityUsageStats, getChronicle, getChroniclesForSimulation, updateChronicleEntityBackportStatus, updateChronicleHistorianNotes, refreshEraSummariesInChronicles } from './lib/db/chronicleRepository';
+import { getEntityUsageStats, getChronicle, getChroniclesForSimulation, updateChronicleEntityBackportStatus, updateChronicleHistorianNotes, refreshEraSummariesInChronicles, repairFactCoverageWasFaceted, computeCorpusFactStrength } from './lib/db/chronicleRepository';
 import { computeBackportProgress } from './lib/chronicleTypes';
 import { useChronicleStore } from './lib/db/chronicleStore';
 import { useStyleLibrary } from './hooks/useStyleLibrary';
@@ -74,7 +88,13 @@ import * as slotRepo from './lib/db/slotRepository';
 import * as schemaRepo from './lib/db/schemaRepository';
 import * as coordinateStateRepo from './lib/db/coordinateStateRepository';
 import { useEntityStore } from './lib/db/entityStore';
+import { useIlluminatorModals } from './lib/db/modalStore';
+import { useIlluminatorConfigStore } from './lib/db/illuminatorConfigStore';
 import { useIndexStore } from './lib/db/indexStore';
+import { registerHistorianStarters } from './hooks/useHistorianActions';
+import { registerQueue } from './lib/db/enrichmentQueueBridge';
+import { useEnrichmentQueueStore } from './lib/db/enrichmentQueueStore';
+import { buildHistorianEditionContext, buildHistorianReviewContext, collectPreviousNotes, buildFactCoverageGuidance } from './lib/historianContextBuilders';
 import {
   useProminenceScale,
   useRenownedThreshold,
@@ -124,6 +144,7 @@ if (typeof window !== 'undefined') {
         cultureCount: Object.keys(record.prominentByCulture).length,
       });
     },
+    repairFactCoverageWasFaceted,
   };
 }
 
@@ -137,7 +158,8 @@ const TABS = [
   { id: 'entities', label: 'Entities' },     // 6. Main enrichment work
   { id: 'chronicle', label: 'Chronicle' },   // 7. Wiki-ready long-form content
   { id: 'coverage', label: 'Coverage' },     // 8. Fact usage tracking
-  { id: 'pages', label: 'Pages' },           // 9. Static pages (user-authored)
+  { id: 'finaledit', label: 'Final Edit' }, // 9. Corpus-wide editorial tools
+  { id: 'pages', label: 'Pages' },           // 10. Static pages (user-authored)
   { id: 'activity', label: 'Activity' },     // 10. Monitor queue
   { id: 'costs', label: 'Costs' },           // 11. Track spending
   { id: 'storage', label: 'Storage' },       // 12. Manage images
@@ -289,10 +311,11 @@ export default function IlluminatorRemote({
   });
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [chronicleRefreshTrigger, setChronicleRefreshTrigger] = useState(0);
-  // renameModal: { entityId, mode: 'rename' | 'patch' } | null
-  const [renameModal, setRenameModal] = useState(null);
-  const [createEntityModal, setCreateEntityModal] = useState(false);
-  const [editEntityModal, setEditEntityModal] = useState(null); // WorldEntity | null
+  // Modal state — from centralized store (children open via store actions directly)
+  const renameModal = useIlluminatorModals((s) => s.renameModal);
+  const createEntityModal = useIlluminatorModals((s) => s.createEntityModal);
+  const editEntityModal = useIlluminatorModals((s) => s.editEntityModal);
+  const imageSettingsOpen = useIlluminatorModals((s) => s.imageSettingsOpen);
 
   // Persist API keys when enabled
   useEffect(() => {
@@ -382,9 +405,6 @@ export default function IlluminatorRemote({
     compositionStyleId: imageGenSettings.compositionStyleId,
     colorPaletteId: imageGenSettings.colorPaletteId,
   }), [imageGenSettings.artisticStyleId, imageGenSettings.compositionStyleId, imageGenSettings.colorPaletteId]);
-
-  // Image settings drawer open state
-  const [imageSettingsOpen, setImageSettingsOpen] = useState(false);
 
   // Style library - loaded from IndexedDB or defaults from world-schema
   const {
@@ -567,6 +587,19 @@ export default function IlluminatorRemote({
   const hasHardRelationships = Boolean(worldData?.relationships?.length);
   const hasHardEvents = Boolean(worldData?.narrativeHistory?.length);
 
+  // Sync project-level config into the centralized store.
+  // Children (useHistorianActions, historianContextBuilders) read these imperatively.
+  useEffect(() => {
+    useIlluminatorConfigStore.getState().setConfig({
+      projectId: projectId || null,
+      simulationRunId: simulationRunId || null,
+      worldContext,
+      historianConfig,
+      entityGuidance,
+      cultureIdentities,
+    });
+  }, [projectId, simulationRunId, worldContext, historianConfig, entityGuidance, cultureIdentities]);
+
   // Scoped reload helpers: fetch only the data that actually changed.
   // Entity-only reload — the common case (enrichment, backport, CRUD, historian)
   const reloadEntities = useCallback(async (invalidateIds, overrideRunId) => {
@@ -740,12 +773,6 @@ export default function IlluminatorRemote({
     return () => window.removeEventListener('entities-updated', handleEntitiesUpdated);
   }, [reloadEntities, simulationRunId]);
 
-  // Handle assigning an existing image from the library to an entity
-  const handleAssignImage = useCallback(async (entityId, imageId, imageMetadata) => {
-    await entityRepo.assignImage(entityId, imageId, imageMetadata);
-    await reloadEntities([entityId]);
-  }, [reloadEntities]);
-
   // Handle entity enrichment update from queue
   // output is ApplyEnrichmentOutput with { enrichment, summary?, description? }
   const handleEntityUpdate = useCallback(async (entityId, output) => {
@@ -769,36 +796,6 @@ export default function IlluminatorRemote({
         entityId, output.enrichment, output.summary, output.description,
       );
     }
-    await reloadEntities([entityId]);
-  }, [reloadEntities]);
-
-  // Undo last description change — pop from history
-  const handleUndoDescription = useCallback(async (entityId) => {
-    await entityRepo.undoDescription(entityId);
-    await reloadEntities([entityId]);
-  }, [reloadEntities]);
-
-  // Handle backref image config update
-  const handleUpdateBackrefs = useCallback(async (entityId, updatedBackrefs) => {
-    await entityRepo.updateBackrefs(entityId, updatedBackrefs);
-    await reloadEntities([entityId]);
-  }, [reloadEntities]);
-
-  // Handle alias update
-  const handleUpdateAliases = useCallback(async (entityId, aliases) => {
-    await entityRepo.updateAliases(entityId, aliases);
-    await reloadEntities([entityId]);
-  }, [reloadEntities]);
-
-  // Handle manual description edit
-  const handleUpdateDescription = useCallback(async (entityId, description) => {
-    await entityRepo.updateDescriptionManual(entityId, description);
-    await reloadEntities([entityId]);
-  }, [reloadEntities]);
-
-  // Handle manual summary edit
-  const handleUpdateSummary = useCallback(async (entityId, summary) => {
-    await entityRepo.updateSummaryManual(entityId, summary);
     await reloadEntities([entityId]);
   }, [reloadEntities]);
 
@@ -847,6 +844,14 @@ export default function IlluminatorRemote({
     retry,
     clearCompleted,
   } = useEnrichmentQueue(handleEntityUpdate, projectId, simulationRunId);
+
+  // Register queue functions on the bridge (hooks call getEnqueue() imperatively)
+  registerQueue(enqueue, cancel);
+
+  // Sync queue state to the store for reactive reads by child components
+  useEffect(() => {
+    useEnrichmentQueueStore.getState().setQueue(queue, stats);
+  }, [queue, stats]);
 
   // Bridge chronicle-related queue completions to chronicle store refreshes
   useChronicleQueueWatcher(queue);
@@ -1162,7 +1167,7 @@ export default function IlluminatorRemote({
     submitFeedback: submitDynamicsFeedback,
     acceptDynamics,
     cancelGeneration: cancelDynamicsGeneration,
-  } = useDynamicsGeneration(enqueue, handleDynamicsAccepted);
+  } = useDynamicsGeneration(handleDynamicsAccepted);
 
   // Summary revision (batch entity summary/description revision)
   const getEntityContextsForRevision = useCallback(async (entityIds) => {
@@ -1220,7 +1225,7 @@ export default function IlluminatorRemote({
     togglePatchDecision,
     applyAccepted: applyAcceptedPatches,
     cancelRevision,
-  } = useSummaryRevision(enqueue, getEntityContextsForRevision);
+  } = useSummaryRevision(getEntityContextsForRevision);
 
   // Revision filter modal state
   const [revisionFilter, setRevisionFilter] = useState({
@@ -1349,7 +1354,7 @@ export default function IlluminatorRemote({
     updateAnchorPhrase: updateBackportAnchorPhrase,
     applyAccepted: applyAcceptedBackportPatches,
     cancelBackport,
-  } = useChronicleLoreBackport(enqueue, getEntityContextsForRevision);
+  } = useChronicleLoreBackport(getEntityContextsForRevision);
 
   // Shared context assembly for both single and bulk backport
   const assembleContextForChronicle = useCallback(async (chronicleId) => {
@@ -1360,7 +1365,7 @@ export default function IlluminatorRemote({
 
     const roleAssignments = chronicle.roleAssignments || [];
     const castEntityIds = roleAssignments.map((r) => r.entityId);
-    const baseContexts = getEntityContextsForRevision(castEntityIds);
+    const baseContexts = await getEntityContextsForRevision(castEntityIds);
     if (baseContexts.length === 0) return null;
 
     const primarySet = new Set(roleAssignments.filter((r) => r.isPrimary).map((r) => r.entityId));
@@ -1370,7 +1375,7 @@ export default function IlluminatorRemote({
     }));
 
     if (chronicle.lens && !castEntityIds.includes(chronicle.lens.entityId)) {
-      const lensContexts = getEntityContextsForRevision([chronicle.lens.entityId]);
+      const lensContexts = await getEntityContextsForRevision([chronicle.lens.entityId]);
       if (lensContexts.length > 0) {
         castContexts.push({ ...lensContexts[0], isLens: true });
       }
@@ -1383,7 +1388,7 @@ export default function IlluminatorRemote({
       const tertiaryFiltered = acceptedTertiary.filter(e => !existingIds.has(e.entityId));
       const tertiaryIds = tertiaryFiltered.map(e => e.entityId);
       if (tertiaryIds.length > 0) {
-        const tertiaryContexts = getEntityContextsForRevision(tertiaryIds);
+        const tertiaryContexts = await getEntityContextsForRevision(tertiaryIds);
         const tertiaryByEntityId = new Map(tertiaryFiltered.map(t => [t.entityId, t]));
         for (const ctx of tertiaryContexts) {
           const entry = tertiaryByEntityId.get(ctx.id);
@@ -1583,7 +1588,7 @@ export default function IlluminatorRemote({
     prepareBulkBackport,
     confirmBulkBackport,
     cancelBulkBackport,
-  } = useBulkBackport(enqueue, bulkBackportDeps);
+  } = useBulkBackport(bulkBackportDeps);
 
   const [showBulkBackportModal, setShowBulkBackportModal] = useState(false);
 
@@ -1628,16 +1633,7 @@ export default function IlluminatorRemote({
     togglePatchDecision: toggleHistorianEditionPatchDecision,
     applyAccepted: applyAcceptedHistorianEditionPatches,
     cancelHistorianEdition,
-  } = useHistorianEdition(enqueue);
-
-  // Entity rename / patch events
-  const handleStartRename = useCallback((entityId) => {
-    setRenameModal({ entityId, mode: 'rename' });
-  }, []);
-
-  const handleStartPatchEvents = useCallback((entityId) => {
-    setRenameModal({ entityId, mode: 'patch' });
-  }, []);
+  } = useHistorianEdition();
 
   const handleRenameApplied = useCallback(async ({ entityPatches, eventPatches, targetEntityId, newName, addOldNameAsAlias }) => {
     try {
@@ -1661,7 +1657,7 @@ export default function IlluminatorRemote({
       console.error('[Illuminator] Rename persist failed:', err);
     }
 
-    setRenameModal(null);
+    useIlluminatorModals.getState().closeRename();
     setChronicleRefreshTrigger((n) => n + 1);
   }, [simulationRunId, reloadEntitiesAndEvents]);
 
@@ -1681,7 +1677,7 @@ export default function IlluminatorRemote({
     } catch (err) {
       console.error('[Illuminator] Create entity failed:', err);
     }
-    setCreateEntityModal(false);
+    useIlluminatorModals.getState().closeCreateEntity();
   }, [simulationRunId, reloadEntities]);
 
   // Manual entity editing (manual_ entities only)
@@ -1696,20 +1692,8 @@ export default function IlluminatorRemote({
     } catch (err) {
       console.error('[Illuminator] Edit entity failed:', err);
     }
-    setEditEntityModal(null);
+    useIlluminatorModals.getState().closeEditEntity();
   }, [editEntityModal, reloadEntities]);
-
-  // Manual entity deletion (manual_ entities only)
-  const handleDeleteEntity = useCallback(async (entity) => {
-    if (!entity.id.startsWith('manual_')) return;
-    if (!confirm(`Delete "${entity.name}"? This cannot be undone.`)) return;
-    try {
-      await entityRepo.deleteEntity(entity.id);
-      await reloadEntities([entity.id]);
-    } catch (err) {
-      console.error('[Illuminator] Delete entity failed:', err);
-    }
-  }, [reloadEntities]);
 
   // Historian review (scholarly annotations for entities and chronicles)
   const {
@@ -1719,206 +1703,18 @@ export default function IlluminatorRemote({
     toggleNoteDecision: toggleHistorianNoteDecision,
     applyAccepted: applyAcceptedHistorianNotes,
     cancelReview: cancelHistorianReview,
-  } = useHistorianReview(enqueue);
+  } = useHistorianReview();
 
-  // Configurable caps for historian voice-continuity sampling
-  const HISTORIAN_SAMPLING = useMemo(() => ({
-    maxTotal: 15,       // Total notes in the sample
-    maxPerTarget: 3,    // Max notes from any single entity/chronicle
-    relatedRatio: 0.3,  // Soft bias toward related entities/chronicles
-  }), []);
+  // Register historian start functions for useHistorianActions bridge
+  registerHistorianStarters({ startHistorianEdition, startHistorianReview });
 
-  // Collect previous historian notes for memory/continuity (sample from entities + chronicles)
-  const collectPreviousNotes = useCallback(async (options = {}) => {
-    const { maxTotal, maxPerTarget, relatedRatio } = HISTORIAN_SAMPLING;
-    const relatedEntityIds = new Set(options.relatedEntityIds || []);
-    const relatedChronicleIds = new Set(options.relatedChronicleIds || []);
-
-    const shuffleInPlace = (items) => {
-      for (let i = items.length - 1; i > 0; i -= 1) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [items[i], items[j]] = [items[j], items[i]];
-      }
-    };
-
-    const takeRandomSample = (items, count) => {
-      if (!items.length || count <= 0) return [];
-      if (items.length <= count) return [...items];
-      const copy = [...items];
-      shuffleInPlace(copy);
-      return copy.slice(0, count);
-    };
-
-    // Group enabled notes by stable target key
-    const byTarget = new Map();
-
-    const addNotesForTarget = (targetKey, targetMeta, notes) => {
-      if (!notes.length) return;
-      const mapped = notes.map((note, index) => ({
-        noteKey: note.noteId || `${targetKey}:${index}`,
-        targetKey,
-        targetType: targetMeta.type,
-        targetId: targetMeta.id,
-        targetName: targetMeta.name,
-        anchorPhrase: note.anchorPhrase,
-        text: note.text,
-        type: note.type,
-      }));
-      byTarget.set(targetKey, mapped);
-    };
-
-    // Entity notes — load full entities from Dexie for historianNotes access
-    if (simulationRunId) {
-      const allEntities = await entityRepo.getEntitiesForRun(simulationRunId);
-      for (const entity of allEntities) {
-        const notes = (entity.enrichment?.historianNotes || []).filter(isNoteActive);
-        addNotesForTarget(`entity:${entity.id}`, {
-          type: 'entity',
-          id: entity.id,
-          name: entity.name,
-        }, notes);
-      }
-    }
-
-    // Chronicle notes
-    if (simulationRunId) {
-      const chronicleRecords = await getChroniclesForSimulation(simulationRunId);
-      for (const chronicle of chronicleRecords) {
-        const notes = (chronicle.historianNotes || []).filter(isNoteActive);
-        addNotesForTarget(`chronicle:${chronicle.chronicleId}`, {
-          type: 'chronicle',
-          id: chronicle.chronicleId,
-          name: chronicle.title || chronicle.chronicleId,
-        }, notes);
-      }
-    }
-
-    // Cap each target at maxPerTarget (randomized to avoid bias)
-    const cappedNotes = [];
-    for (const notes of byTarget.values()) {
-      const selected = notes.length > maxPerTarget
-        ? takeRandomSample(notes, maxPerTarget)
-        : notes.slice();
-      cappedNotes.push(...selected);
-    }
-
-    if (cappedNotes.length === 0) return [];
-
-    const total = Math.min(maxTotal, cappedNotes.length);
-    const relatedNotes = cappedNotes.filter((note) => {
-      if (note.targetType === 'entity') {
-        return relatedEntityIds.has(note.targetId);
-      }
-      if (note.targetType === 'chronicle') {
-        return relatedChronicleIds.has(note.targetId);
-      }
-      return false;
+  // Sync historian isActive flags to config store for reactive reads
+  useEffect(() => {
+    useIlluminatorConfigStore.getState().setConfig({
+      isHistorianEditionActive,
+      isHistorianActive,
     });
-
-    const relatedQuota = Math.min(relatedNotes.length, Math.round(total * relatedRatio));
-    const relatedSample = takeRandomSample(relatedNotes, relatedQuota);
-    const relatedKeys = new Set(relatedSample.map((note) => note.noteKey));
-    const remainingPool = cappedNotes.filter((note) => !relatedKeys.has(note.noteKey));
-    const remainingSample = takeRandomSample(remainingPool, total - relatedSample.length);
-
-    const finalSample = [...relatedSample, ...remainingSample];
-    shuffleInPlace(finalSample);
-
-    return finalSample.map((note) => ({
-      targetName: note.targetName,
-      anchorPhrase: note.anchorPhrase,
-      text: note.text,
-      type: note.type,
-    }));
-  }, [HISTORIAN_SAMPLING, simulationRunId]);
-
-  // Historian edition — start a historian-voiced description synthesis
-  const handleHistorianEdition = useCallback(async (entityId, tone) => {
-    if (!projectId || !simulationRunId || !entityId) return;
-    if (!isHistorianConfigured(historianConfig)) return;
-
-    const entity = await useEntityStore.getState().loadEntity(entityId);
-    if (!entity?.description) return;
-
-    // Build relationships (up to 12) — use nav map for target name/kind
-    const rels = (relationshipsByEntity.get(entity.id) || []).slice(0, 12).map((rel) => {
-      const targetId = rel.src === entity.id ? rel.dst : rel.src;
-      const target = entityNavMap.get(targetId);
-      return {
-        kind: rel.kind,
-        targetName: target?.name || targetId,
-        targetKind: target?.kind || 'unknown',
-      };
-    });
-
-    // Get neighbor summaries (up to 5) — need full entity for description
-    const neighborIds = (relationshipsByEntity.get(entity.id) || []).slice(0, 5).map((rel) =>
-      rel.src === entity.id ? rel.dst : rel.src
-    );
-    const neighborFull = await useEntityStore.getState().loadEntities(neighborIds);
-    const neighborMap = new Map(neighborFull.map((e) => [e.id, e]));
-    const neighborSummaries = neighborIds.map((nId) => {
-      const target = neighborMap.get(nId);
-      if (!target) return null;
-      return {
-        name: target.name,
-        kind: target.kind,
-        summary: target.summary || target.description?.slice(0, 200) || '',
-      };
-    }).filter(Boolean);
-
-    // Gather chronicle summaries from backrefs
-    const chronicleSummaries = [];
-    const backrefs = entity.enrichment?.chronicleBackrefs || [];
-    for (const ref of backrefs) {
-      if (!ref.chronicleId) continue;
-      try {
-        const chronicle = await getChronicle(ref.chronicleId);
-        if (chronicle && chronicle.title) {
-          chronicleSummaries.push({
-            chronicleId: chronicle.chronicleId,
-            title: chronicle.title,
-            format: chronicle.format || '',
-            summary: chronicle.finalContent?.slice(0, 500) || '',
-          });
-        }
-      } catch (err) {
-        // Skip if chronicle not found
-      }
-    }
-
-    // Previous notes for voice continuity
-    const relatedEntityIds = new Set([entity.id]);
-    for (const rel of (relationshipsByEntity.get(entity.id) || [])) {
-      const targetId = rel.src === entity.id ? rel.dst : rel.src;
-      if (targetId) relatedEntityIds.add(targetId);
-    }
-    const previousNotes = await collectPreviousNotes({
-      relatedEntityIds: Array.from(relatedEntityIds),
-    });
-
-    startHistorianEdition({
-      projectId,
-      simulationRunId,
-      entityId: entity.id,
-      entityName: entity.name,
-      entityKind: entity.kind,
-      entitySubtype: entity.subtype || '',
-      entityCulture: entity.culture || '',
-      entityProminence: prominenceLabelFromScale(entity.prominence, prominenceScale),
-      description: entity.description,
-      summary: entity.summary || '',
-      descriptionHistory: entity.enrichment?.descriptionHistory || [],
-      chronicleSummaries,
-      relationships: rels,
-      neighborSummaries,
-      canonFacts: (worldContext.canonFactsWithMetadata || []).map((f) => f.text),
-      worldDynamics: (worldContext.worldDynamics || []).map((d) => d.text),
-      previousNotes,
-      historianConfig,
-      tone: tone || 'scholarly',
-    });
-  }, [projectId, simulationRunId, entityNavMap, relationshipsByEntity, worldContext, historianConfig, prominenceScale, collectPreviousNotes, startHistorianEdition]);
+  }, [isHistorianEditionActive, isHistorianActive]);
 
   // Accept historian edition — apply the rewritten description
   const handleAcceptHistorianEdition = useCallback(async () => {
@@ -1935,77 +1731,23 @@ export default function IlluminatorRemote({
     await reloadEntities(updatedIds);
   }, [applyAcceptedHistorianEditionPatches, reloadEntities]);
 
-  const handleHistorianReview = useCallback(async (entityId, tone) => {
-    if (!projectId || !simulationRunId || !entityId) return;
-    if (!isHistorianConfigured(historianConfig)) return;
+  // Standalone result-application callbacks — used by both single-entity and bulk flows
+  const applyReviewNotesForEntity = useCallback(async (entityId, notes) => {
+    await entityRepo.setHistorianNotes(entityId, notes);
+  }, []);
 
-    const entity = await useEntityStore.getState().loadEntity(entityId);
-    if (!entity?.description) return;
-
-    // Build relationships — use nav map for target name/kind
-    const rels = (relationshipsByEntity.get(entity.id) || []).slice(0, 12).map((rel) => {
-      const targetId = rel.src === entity.id ? rel.dst : rel.src;
-      const target = entityNavMap.get(targetId);
-      return {
-        kind: rel.kind,
-        targetName: target?.name || targetId,
-        targetKind: target?.kind || 'unknown',
-      };
-    });
-
-    // Get neighbor summaries — need full entity for description
-    const neighborIds = (relationshipsByEntity.get(entity.id) || []).slice(0, 5).map((rel) =>
-      rel.src === entity.id ? rel.dst : rel.src
-    );
-    const neighborFull = await useEntityStore.getState().loadEntities(neighborIds);
-    const neighborMap = new Map(neighborFull.map((e) => [e.id, e]));
-    const neighborSummaries = neighborIds.map((nId) => {
-      const target = neighborMap.get(nId);
-      if (!target) return null;
-      return {
-        name: target.name,
-        kind: target.kind,
-        summary: target.summary || target.description?.slice(0, 200) || '',
-      };
-    }).filter(Boolean);
-
-    // Assemble context
-    const contextJson = JSON.stringify({
-      entityId: entity.id,
-      entityName: entity.name,
-      entityKind: entity.kind,
-      entitySubtype: entity.subtype || '',
-      entityCulture: entity.culture || '',
-      entityProminence: prominenceLabelFromScale(entity.prominence, prominenceScale),
-      summary: entity.summary || '',
-      relationships: rels,
-      neighborSummaries,
-      canonFacts: (worldContext.canonFactsWithMetadata || []).map((f) => f.text),
-      worldDynamics: (worldContext.worldDynamics || []).map((d) => d.text),
-    });
-
-    const relatedEntityIds = new Set([entity.id]);
-    for (const rel of (relationshipsByEntity.get(entity.id) || [])) {
-      const targetId = rel.src === entity.id ? rel.dst : rel.src;
-      if (targetId) relatedEntityIds.add(targetId);
+  const applyEditionPatchesForEntity = useCallback(async (patches) => {
+    const updatedIds = await entityRepo.applyRevisionPatches(patches, 'historian-edition');
+    for (const patch of patches) {
+      if (patch.entityId) {
+        await entityRepo.setHistorianNotes(patch.entityId, []);
+      }
     }
-    const previousNotes = await collectPreviousNotes({
-      relatedEntityIds: Array.from(relatedEntityIds),
-    });
+    return updatedIds;
+  }, []);
 
-    startHistorianReview({
-      projectId,
-      simulationRunId,
-      targetType: 'entity',
-      targetId: entity.id,
-      targetName: entity.name,
-      sourceText: entity.description,
-      contextJson,
-      previousNotesJson: JSON.stringify(previousNotes),
-      historianConfig,
-      tone: tone || 'weary',
-    });
-  }, [projectId, simulationRunId, entityNavMap, relationshipsByEntity, worldContext, historianConfig, prominenceScale, collectPreviousNotes, startHistorianReview]);
+  // Cache corpus fact strength for the session to avoid recomputing per-chronicle
+  const corpusStrengthCacheRef = useRef({ runId: null, strength: null });
 
   const handleChronicleHistorianReview = useCallback(async (chronicleId, tone) => {
     if (!projectId || !simulationRunId || !chronicleId) return;
@@ -2041,6 +1783,27 @@ export default function IlluminatorRemote({
       };
     });
 
+    // Compute fact coverage guidance if report exists
+    let factCoverageGuidance = undefined;
+    if (chronicle.factCoverageReport?.entries?.length) {
+      if (corpusStrengthCacheRef.current.runId !== simulationRunId) {
+        corpusStrengthCacheRef.current = {
+          runId: simulationRunId,
+          strength: await computeCorpusFactStrength(simulationRunId),
+        };
+      }
+      const constraintFactIds = new Set(
+        (worldContext.canonFactsWithMetadata || [])
+          .filter((f) => f.type === 'generation_constraint' || f.disabled)
+          .map((f) => f.id),
+      );
+      factCoverageGuidance = buildFactCoverageGuidance(
+        chronicle.factCoverageReport,
+        corpusStrengthCacheRef.current.strength,
+        constraintFactIds,
+      );
+    }
+
     const contextJson = JSON.stringify({
       chronicleId: chronicle.chronicleId,
       title: chronicle.title || 'Untitled',
@@ -2050,6 +1813,7 @@ export default function IlluminatorRemote({
       castSummaries,
       canonFacts: (worldContext.canonFactsWithMetadata || []).map((f) => f.text),
       worldDynamics: (worldContext.worldDynamics || []).map((d) => d.text),
+      factCoverageGuidance,
       temporalNarrative: chronicle.perspectiveSynthesis?.temporalNarrative || undefined,
       focalEra: chronicle.temporalContext?.focalEra
         ? { name: chronicle.temporalContext.focalEra.name, description: chronicle.temporalContext.focalEra.description }
@@ -2076,9 +1840,92 @@ export default function IlluminatorRemote({
       contextJson,
       previousNotesJson: JSON.stringify(previousNotes),
       historianConfig,
-      tone: tone || 'weary',
+      tone: tone || chronicle.assignedTone || 'weary',
     });
-  }, [projectId, simulationRunId, worldContext, historianConfig, collectPreviousNotes, startHistorianReview]);
+  }, [projectId, simulationRunId, worldContext, historianConfig, startHistorianReview]);
+
+  // Bulk historian (sequential annotation or copy-edit for all filtered entities)
+  const bulkHistorianDeps = useMemo(() => ({
+    buildReviewContext: buildHistorianReviewContext,
+    buildEditionContext: buildHistorianEditionContext,
+    applyReviewNotes: applyReviewNotesForEntity,
+    applyEditionPatches: applyEditionPatchesForEntity,
+    reloadEntities,
+    getEntityNav: (entityId) => entityNavMap.get(entityId),
+  }), [applyReviewNotesForEntity, applyEditionPatchesForEntity, reloadEntities, entityNavMap]);
+
+  const {
+    progress: bulkHistorianProgress,
+    isActive: isBulkHistorianActive,
+    prepareBulkHistorian,
+    confirmBulkHistorian,
+    cancelBulkHistorian,
+    setTone: setBulkHistorianTone,
+  } = useBulkHistorian(bulkHistorianDeps);
+
+  const [showBulkHistorianModal, setShowBulkHistorianModal] = useState(false);
+  const editionMaxTokens = useMemo(() => getLLMCallConfig('historian.edition').maxTokens, []);
+
+  const handleStartBulkHistorianReview = useCallback((eligibleEntityIds) => {
+    prepareBulkHistorian('review', 'scholarly', eligibleEntityIds);
+    setShowBulkHistorianModal(true);
+  }, [prepareBulkHistorian]);
+
+  const handleStartBulkHistorianEdition = useCallback((eligibleEntityIds, reEdition) => {
+    prepareBulkHistorian('edition', 'scholarly', eligibleEntityIds, reEdition);
+    setShowBulkHistorianModal(true);
+  }, [prepareBulkHistorian]);
+
+  const handleStartBulkHistorianClear = useCallback((eligibleEntityIds) => {
+    prepareBulkHistorian('clear', 'scholarly', eligibleEntityIds);
+    setShowBulkHistorianModal(true);
+  }, [prepareBulkHistorian]);
+
+  const handleConfirmBulkHistorian = useCallback(() => {
+    confirmBulkHistorian();
+  }, [confirmBulkHistorian]);
+
+  const handleCancelBulkHistorian = useCallback(() => {
+    cancelBulkHistorian();
+    setShowBulkHistorianModal(false);
+  }, [cancelBulkHistorian]);
+
+  const handleCloseBulkHistorian = useCallback(() => {
+    setShowBulkHistorianModal(false);
+  }, []);
+
+  // Close modal if prepare found no eligible entities
+  useEffect(() => {
+    if (showBulkHistorianModal && bulkHistorianProgress.status === 'idle') {
+      const timer = setTimeout(() => {
+        if (bulkHistorianProgress.status === 'idle') {
+          setShowBulkHistorianModal(false);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [showBulkHistorianModal, bulkHistorianProgress.status]);
+
+  // Tone Ranking — state lives in Zustand store, persists across tab switches
+  const toneRankingProgress = useToneRankingStore((s) => s.progress);
+  const confirmToneRanking = useToneRankingStore((s) => s.confirmToneRanking);
+  const cancelToneRanking = useToneRankingStore((s) => s.cancelToneRanking);
+  const closeToneRanking = useToneRankingStore((s) => s.closeToneRanking);
+  const toneAssignmentPreview = useToneRankingStore((s) => s.assignmentPreview);
+  const applyToneAssignment = useToneRankingStore((s) => s.applyAssignment);
+  const closeToneAssignment = useToneRankingStore((s) => s.closeAssignment);
+
+  // Bulk Chronicle Annotations — state lives in Zustand store
+  const bulkAnnotationProgress = useBulkChronicleAnnotationStore((s) => s.progress);
+  const confirmBulkAnnotation = useBulkChronicleAnnotationStore((s) => s.confirmAnnotation);
+  const cancelBulkAnnotation = useBulkChronicleAnnotationStore((s) => s.cancelAnnotation);
+  const closeBulkAnnotation = useBulkChronicleAnnotationStore((s) => s.closeAnnotation);
+
+  // Interleaved Annotation — Zustand store
+  const interleavedProgress = useInterleavedAnnotationStore((s) => s.progress);
+  const confirmInterleaved = useInterleavedAnnotationStore((s) => s.confirmInterleaved);
+  const cancelInterleaved = useInterleavedAnnotationStore((s) => s.cancelInterleaved);
+  const closeInterleaved = useInterleavedAnnotationStore((s) => s.closeInterleaved);
 
   const handleAcceptHistorianNotes = useCallback(async () => {
     const targetId = historianRun?.targetId;
@@ -2091,7 +1938,13 @@ export default function IlluminatorRemote({
       await reloadEntities([targetId]);
     } else if (targetType === 'chronicle' && targetId) {
       try {
-        await updateChronicleHistorianNotes(targetId, notes);
+        const prompts = historianRun.systemPrompt && historianRun.userPrompt
+          ? { systemPrompt: historianRun.systemPrompt, userPrompt: historianRun.userPrompt }
+          : undefined;
+        const reinforcedFacts = historianRun.contextJson
+          ? extractReinforcedFactIds(historianRun.contextJson)
+          : undefined;
+        await updateChronicleHistorianNotes(targetId, notes, prompts, reinforcedFacts);
         await useChronicleStore.getState().refreshChronicle(targetId);
       } catch (err) {
         console.error('[Historian] Failed to save chronicle notes:', err);
@@ -2285,7 +2138,7 @@ export default function IlluminatorRemote({
           <ImageSettingsTrigger
             settings={imageGenSettings}
             styleLibrary={styleLibrary}
-            onClick={() => setImageSettingsOpen(true)}
+            onClick={() => useIlluminatorModals.getState().openImageSettings()}
           />
         </div>
 
@@ -2379,10 +2232,6 @@ export default function IlluminatorRemote({
         {activeTab === 'entities' && (
           <div className="illuminator-content">
             <EntityBrowser
-              queue={queue}
-              onEnqueue={enqueue}
-              onCancel={cancel}
-              onAssignImage={handleAssignImage}
               worldSchema={worldSchema}
               config={config}
               onConfigChange={updateConfig}
@@ -2390,25 +2239,13 @@ export default function IlluminatorRemote({
               getVisualConfig={getVisualConfig}
               styleLibrary={styleLibrary}
               imageGenSettings={imageGenSettings}
-              onOpenImageSettings={() => setImageSettingsOpen(true)}
               onStartRevision={handleOpenRevisionFilter}
               isRevising={isRevisionActive}
-              onUpdateBackrefs={handleUpdateBackrefs}
-              onUndoDescription={handleUndoDescription}
-              onHistorianEdition={handleHistorianEdition}
-              isHistorianEditionActive={isHistorianEditionActive}
-              onHistorianReview={handleHistorianReview}
-              isHistorianActive={isHistorianActive}
-              historianConfigured={isHistorianConfigured(historianConfig)}
-              onUpdateHistorianNote={handleUpdateHistorianNote}
-              onRename={handleStartRename}
-              onPatchEvents={handleStartPatchEvents}
-              onUpdateAliases={handleUpdateAliases}
-              onUpdateDescription={handleUpdateDescription}
-              onUpdateSummary={handleUpdateSummary}
-              onCreateEntity={simulationRunId ? () => setCreateEntityModal(true) : undefined}
-              onEditEntity={simulationRunId ? (entity) => setEditEntityModal(entity) : undefined}
-              onDeleteEntity={simulationRunId ? handleDeleteEntity : undefined}
+              onBulkHistorianReview={handleStartBulkHistorianReview}
+              onBulkHistorianEdition={handleStartBulkHistorianEdition}
+              onBulkHistorianClear={handleStartBulkHistorianClear}
+              isBulkHistorianActive={isBulkHistorianActive}
+              onNavigateToTab={setActiveTab}
             />
           </div>
         )}
@@ -2433,13 +2270,14 @@ export default function IlluminatorRemote({
               isBulkBackportActive={isBulkBackportActive}
               refreshTrigger={chronicleRefreshTrigger}
               imageModel={config.imageModel}
-              onOpenImageSettings={() => setImageSettingsOpen(true)}
+              onOpenImageSettings={() => useIlluminatorModals.getState().openImageSettings()}
               onHistorianReview={handleChronicleHistorianReview}
               isHistorianActive={isHistorianActive}
               historianConfigured={isHistorianConfigured(historianConfig)}
               historianConfig={historianConfig}
               onUpdateHistorianNote={handleUpdateHistorianNote}
               onRefreshEraSummaries={handleRefreshEraSummaries}
+              onNavigateToTab={setActiveTab}
             />
           </div>
         )}
@@ -2454,6 +2292,12 @@ export default function IlluminatorRemote({
             <EntityCoveragePanel
               simulationRunId={simulationRunId}
             />
+          </div>
+        )}
+
+        {activeTab === 'finaledit' && (
+          <div className="illuminator-content">
+            <FinalEditTab />
           </div>
         )}
 
@@ -2631,7 +2475,7 @@ export default function IlluminatorRemote({
       {/* Image Settings Drawer */}
       <ImageSettingsDrawer
         isOpen={imageSettingsOpen}
-        onClose={() => setImageSettingsOpen(false)}
+        onClose={() => useIlluminatorModals.getState().closeImageSettings()}
         settings={imageGenSettings}
         onSettingsChange={updateImageGenSettings}
         styleLibrary={styleLibrary}
@@ -2690,6 +2534,18 @@ export default function IlluminatorRemote({
         />
       )}
 
+      {/* Bulk Historian Modal */}
+      {showBulkHistorianModal && (
+        <BulkHistorianModal
+          progress={bulkHistorianProgress}
+          onConfirm={handleConfirmBulkHistorian}
+          onCancel={handleCancelBulkHistorian}
+          onClose={handleCloseBulkHistorian}
+          onChangeTone={setBulkHistorianTone}
+          editionMaxTokens={editionMaxTokens}
+        />
+      )}
+
       {/* Chronicle Lore Backport Review Modal */}
       <SummaryRevisionModal
         run={backportRun}
@@ -2709,6 +2565,7 @@ export default function IlluminatorRemote({
         onAccept={handleAcceptHistorianEdition}
         onCancel={cancelHistorianEdition}
         getEntityContexts={getEntityContextsForRevision}
+        descriptionBaseline={historianEditionRun?.worldDynamicsContext}
       />
 
       {/* Historian Review Modal */}
@@ -2729,7 +2586,7 @@ export default function IlluminatorRemote({
           simulationRunId={simulationRunId || ''}
           mode={renameModal.mode}
           onApply={handleRenameApplied}
-          onClose={() => setRenameModal(null)}
+          onClose={() => useIlluminatorModals.getState().closeRename()}
         />
       )}
 
@@ -2738,7 +2595,7 @@ export default function IlluminatorRemote({
           worldSchema={worldSchema}
           eras={eraTemporalInfo}
           onSubmit={handleCreateEntity}
-          onClose={() => setCreateEntityModal(false)}
+          onClose={() => useIlluminatorModals.getState().closeCreateEntity()}
         />
       )}
 
@@ -2748,9 +2605,35 @@ export default function IlluminatorRemote({
           eras={eraTemporalInfo}
           editEntity={editEntityModal}
           onSubmit={handleEditEntity}
-          onClose={() => setEditEntityModal(null)}
+          onClose={() => useIlluminatorModals.getState().closeEditEntity()}
         />
       )}
+
+      <BulkToneRankingModal
+        progress={toneRankingProgress}
+        onConfirm={confirmToneRanking}
+        onCancel={cancelToneRanking}
+        onClose={closeToneRanking}
+      />
+      <ToneAssignmentPreviewModal
+        preview={toneAssignmentPreview}
+        onApply={applyToneAssignment}
+        onClose={closeToneAssignment}
+      />
+      <BulkChronicleAnnotationModal
+        progress={bulkAnnotationProgress}
+        onConfirm={confirmBulkAnnotation}
+        onCancel={cancelBulkAnnotation}
+        onClose={closeBulkAnnotation}
+      />
+      <InterleavedAnnotationModal
+        progress={interleavedProgress}
+        onConfirm={confirmInterleaved}
+        onCancel={cancelInterleaved}
+        onClose={closeInterleaved}
+      />
+      <ThinkingViewer />
+      <FloatingPills onNavigate={setActiveTab} />
     </div>
   );
 }

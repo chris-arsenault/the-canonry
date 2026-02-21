@@ -7,12 +7,16 @@
  */
 
 import type { ChronicleRecord } from './db/chronicleRepository';
+import { getChroniclesForSimulation, computeCorpusFactStrength } from './db/chronicleRepository';
+import type { EraNarrativeRecord } from './eraNarrativeTypes';
 import type {
   PerspectiveSynthesisRecord,
   ChronicleImageRefs,
+  FactCoverageReport,
 } from './chronicleTypes';
 import type { HistorianNote } from './historianTypes';
-import { isNoteActive } from './historianTypes';
+import { isNoteActive, computeNoteRange } from './historianTypes';
+import { buildFactCoverageGuidance } from './historianContextBuilders';
 
 // =============================================================================
 // Export Types
@@ -195,6 +199,10 @@ export interface ChronicleExport {
 
   // Historian annotations
   historianNotes?: HistorianNote[];
+  historianReviewLLMCall?: ExportLLMCall;
+
+  // Fact coverage analysis
+  factCoverageReport?: FactCoverageReport;
 }
 
 // =============================================================================
@@ -425,6 +433,18 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
     }
   }
 
+  if (chronicle.historianReviewSystemPrompt && chronicle.historianReviewUserPrompt) {
+    exportData.historianReviewLLMCall = {
+      systemPrompt: chronicle.historianReviewSystemPrompt,
+      userPrompt: chronicle.historianReviewUserPrompt,
+      model: 'stored',
+    };
+  }
+
+  if (chronicle.factCoverageReport) {
+    exportData.factCoverageReport = chronicle.factCoverageReport;
+  }
+
   return exportData;
 }
 
@@ -445,6 +465,343 @@ export function downloadChronicleExport(chronicle: ChronicleRecord): void {
   const filename = `chronicle-export-${safeTitle}-${Date.now()}.json`;
 
   // Create blob and download
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    type: 'application/json',
+  });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// =============================================================================
+// Bulk Annotation Review Export
+// =============================================================================
+
+export async function downloadBulkAnnotationReviewExport(simulationRunId: string): Promise<void> {
+  const chronicles = await getChroniclesForSimulation(simulationRunId);
+
+  const annotated = chronicles
+    .filter((c) => c.historianNotes && c.historianNotes.filter(isNoteActive).length > 0)
+    .sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+
+  const rows = annotated.map((c) => {
+    const notes = (c.historianNotes || []).filter(isNoteActive);
+    return {
+      title: c.title || 'Untitled',
+      format: c.format || 'story',
+      narrativeStyleName: c.narrativeStyle?.name || c.narrativeStyleId || null,
+      assignedTone: c.assignedTone || null,
+      noteCount: notes.length,
+      annotations: notes.map((n) => ({
+        type: n.type,
+        display: n.display,
+        anchorPhrase: n.anchorPhrase,
+        text: n.text,
+      })),
+    };
+  });
+
+  const exportData = {
+    exportedAt: new Date().toISOString(),
+    totalChronicles: rows.length,
+    totalAnnotations: rows.reduce((sum, r) => sum + r.noteCount, 0),
+    chronicles: rows,
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `chronicle-annotation-review-${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// =============================================================================
+// Bulk Tone Review Export
+// =============================================================================
+
+export async function downloadBulkToneReviewExport(simulationRunId: string): Promise<void> {
+  const chronicles = await getChroniclesForSimulation(simulationRunId);
+  const corpusStrength = await computeCorpusFactStrength(simulationRunId);
+
+  const complete = chronicles.filter(
+    (c) => c.status === 'complete' || c.status === 'assembly_ready',
+  );
+
+  const rows = complete.map((c) => {
+    const wordCount = c.finalContent?.split(/\s+/).length || c.wordCount || 0;
+    const noteRange = computeNoteRange('chronicle', wordCount);
+
+    // Compute fact coverage guidance using the same logic as the annotation prompt
+    const guidance = c.factCoverageReport
+      ? buildFactCoverageGuidance(c.factCoverageReport, corpusStrength)
+      : null;
+
+    const maxRequired = noteRange.max <= 4 ? 1 : (guidance?.length ?? 0);
+    const required = guidance?.slice(0, maxRequired) ?? [];
+    const optional = guidance?.slice(maxRequired) ?? [];
+
+    return {
+      title: c.title || 'Untitled',
+      summary: c.summary || null,
+      brief: c.perspectiveSynthesis?.brief || null,
+      wordCount,
+      noteRange,
+      assignedTone: c.assignedTone || null,
+      toneRanking: c.toneRanking
+        ? {
+            ranking: c.toneRanking.ranking,
+            rationales: c.toneRanking.rationales || { _legacy: c.toneRanking.rationale },
+          }
+        : null,
+      factCoverage: c.factCoverageReport?.entries?.map((e) => ({
+        factId: e.factId,
+        rating: e.rating,
+        wasFaceted: e.wasFaceted,
+      })) || null,
+      annotationGuidance: {
+        required: required.map((t) => ({
+          factId: t.factId,
+          action: t.action,
+          evidence: t.evidence,
+          corpusStrength: t.corpusStrength,
+        })),
+        optional: optional.map((t) => ({
+          factId: t.factId,
+          action: t.action,
+          evidence: t.evidence,
+          corpusStrength: t.corpusStrength,
+        })),
+      },
+    };
+  });
+
+  const exportData = {
+    exportedAt: new Date().toISOString(),
+    totalChronicles: rows.length,
+    chronicles: rows,
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `chronicle-tone-review-${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// =============================================================================
+// Era Narrative Export
+// =============================================================================
+
+export interface EraNarrativeExport {
+  exportVersion: '1.0';
+  exportedAt: string;
+
+  narrative: {
+    narrativeId: string;
+    eraId: string;
+    eraName: string;
+    tone: string;
+    status: string;
+    createdAt: string;
+  };
+
+  threadSynthesis?: {
+    thesis: string;
+    counterweight?: string;
+    motifs?: string[];
+    openingImage?: string;
+    closingImage?: string;
+    threads: Array<{
+      threadId: string;
+      name: string;
+      description: string;
+      arc: string;
+      register?: string;
+      material?: string;
+      culturalActors: string[];
+      chronicleIds: string[];
+    }>;
+    quotes?: Array<{
+      text: string;
+      origin: string;
+      context: string;
+    }>;
+    strategicDynamics?: Array<{
+      interaction: string;
+      actors: string[];
+      dynamic: string;
+    }>;
+    movements?: Array<{
+      movementIndex: number;
+      yearRange: [number, number];
+      worldState?: string;
+      threadFocus: string[];
+      beats: string;
+    }>;
+    llmCall: ExportLLMCall;
+    tokens: { input: number; output: number };
+    cost: number;
+  };
+
+  draft?: {
+    content: string;
+    wordCount: number;
+    generatedAt: string;
+    llmCall: ExportLLMCall;
+    tokens: { input: number; output: number };
+    cost: number;
+  };
+
+  edited?: {
+    content: string;
+    wordCount: number;
+    editedAt: string;
+    llmCall: ExportLLMCall;
+    tokens: { input: number; output: number };
+    cost: number;
+  };
+
+  sourceBriefs: Array<{
+    chronicleId: string;
+    chronicleTitle: string;
+    eraYear?: number;
+    weight?: string;
+    prep: string;
+  }>;
+
+  cost: {
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    totalActualCost: number;
+  };
+}
+
+export function buildEraNarrativeExport(record: EraNarrativeRecord): EraNarrativeExport {
+  const exportData: EraNarrativeExport = {
+    exportVersion: '1.0',
+    exportedAt: new Date().toISOString(),
+
+    narrative: {
+      narrativeId: record.narrativeId,
+      eraId: record.eraId,
+      eraName: record.eraName,
+      tone: record.tone,
+      status: record.status,
+      createdAt: new Date(record.createdAt).toISOString(),
+    },
+
+    sourceBriefs: record.prepBriefs.map((b) => ({
+      chronicleId: b.chronicleId,
+      chronicleTitle: b.chronicleTitle,
+      eraYear: b.eraYear,
+      ...(b.weight ? { weight: b.weight } : {}),
+      prep: b.prep,
+    })),
+
+    cost: {
+      totalInputTokens: record.totalInputTokens,
+      totalOutputTokens: record.totalOutputTokens,
+      totalActualCost: record.totalActualCost,
+    },
+  };
+
+  if (record.threadSynthesis) {
+    const ts = record.threadSynthesis;
+    exportData.threadSynthesis = {
+      thesis: ts.thesis || '',
+      ...(ts.counterweight ? { counterweight: ts.counterweight } : {}),
+      ...(ts.motifs?.length ? { motifs: ts.motifs } : {}),
+      ...(ts.openingImage ? { openingImage: ts.openingImage } : {}),
+      ...(ts.closingImage ? { closingImage: ts.closingImage } : {}),
+      threads: (ts.threads || []).map((t) => ({
+        threadId: t.threadId,
+        name: t.name,
+        description: t.description,
+        arc: t.arc,
+        ...(t.register ? { register: t.register } : {}),
+        ...(t.material ? { material: t.material } : {}),
+        culturalActors: t.culturalActors || [],
+        chronicleIds: t.chronicleIds || [],
+      })),
+      ...(ts.quotes?.length ? { quotes: ts.quotes.map(q => ({ text: q.text, origin: q.origin, context: q.context })) } : {}),
+      ...(ts.strategicDynamics?.length ? { strategicDynamics: ts.strategicDynamics.map(sd => ({ interaction: sd.interaction, actors: sd.actors, dynamic: sd.dynamic })) } : {}),
+      ...(ts.movements?.length ? {
+        movements: ts.movements.map((m) => ({
+          movementIndex: m.movementIndex,
+          yearRange: m.yearRange,
+          worldState: m.worldState,
+          threadFocus: m.threadFocus || [],
+          beats: m.beats,
+        })),
+      } : {}),
+      llmCall: {
+        systemPrompt: ts.systemPrompt || '',
+        userPrompt: ts.userPrompt || '',
+        model: ts.model || '',
+      },
+      tokens: { input: ts.inputTokens || 0, output: ts.outputTokens || 0 },
+      cost: ts.actualCost || 0,
+    };
+  }
+
+  if (record.narrative) {
+    const n = record.narrative;
+    exportData.draft = {
+      content: n.content,
+      wordCount: n.wordCount,
+      generatedAt: new Date(n.generatedAt).toISOString(),
+      llmCall: {
+        systemPrompt: n.systemPrompt,
+        userPrompt: n.userPrompt,
+        model: n.model,
+      },
+      tokens: { input: n.inputTokens, output: n.outputTokens },
+      cost: n.actualCost,
+    };
+
+    if (n.editedContent && n.editedAt) {
+      exportData.edited = {
+        content: n.editedContent,
+        wordCount: n.editedWordCount || n.editedContent.split(/\s+/).filter(Boolean).length,
+        editedAt: new Date(n.editedAt).toISOString(),
+        llmCall: {
+          systemPrompt: n.editSystemPrompt || '',
+          userPrompt: n.editUserPrompt || '',
+          model: n.model,
+        },
+        tokens: { input: n.editInputTokens || 0, output: n.editOutputTokens || 0 },
+        cost: n.editActualCost || 0,
+      };
+    }
+  }
+
+  return exportData;
+}
+
+export function downloadEraNarrativeExport(record: EraNarrativeRecord): void {
+  const exportData = buildEraNarrativeExport(record);
+
+  const safeTitle = (record.eraName || 'era-narrative')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 50);
+  const filename = `era-narrative-export-${safeTitle}-${Date.now()}.json`;
+
   const blob = new Blob([JSON.stringify(exportData, null, 2)], {
     type: 'application/json',
   });

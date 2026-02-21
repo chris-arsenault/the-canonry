@@ -46,10 +46,26 @@ import {
   applyImageRefSelections,
   getChronicle,
   updateChronicleTertiaryCast,
+  updateChronicleAssignedTone,
+  getChroniclesForSimulation,
+  updateChronicleHistorianPrep,
 } from '../lib/db/chronicleRepository';
 import { findEntityMentions } from '../lib/wikiLinkService';
-import { downloadChronicleExport } from '../lib/chronicleExport';
+import { downloadChronicleExport, downloadBulkToneReviewExport, downloadBulkAnnotationReviewExport } from '../lib/chronicleExport';
 import { getCallConfig } from '../lib/llmModelSettings';
+import { useFactCoverage } from '../hooks/useFactCoverage';
+import BulkFactCoverageModal from './BulkFactCoverageModal';
+import { useToneRanking } from '../hooks/useToneRanking';
+import { useBulkChronicleAnnotationStore } from '../lib/db/bulkChronicleAnnotationStore';
+import { useInterleavedAnnotationStore } from '../lib/db/interleavedAnnotationStore';
+import { useEntityStore } from '../lib/db/entityStore';
+import { annotateEntityNames } from '../lib/annotateEntityNames';
+import { getEraNarrativesForSimulation } from '../lib/db/eraNarrativeRepository';
+import { useIlluminatorModals } from '../lib/db/modalStore';
+import { buildEraNarrativeNavItem } from '../lib/db/eraNarrativeNav';
+import EraNarrativeViewer from './EraNarrativeViewer';
+import BulkEraNarrativeModal from './BulkEraNarrativeModal';
+import { useBulkEraNarrativeStore } from '../lib/db/bulkEraNarrativeStore';
 
 const REFINEMENT_STEPS = new Set(['summary', 'image_refs', 'compare', 'combine', 'cover_image_scene', 'cover_image']);
 const NAV_PAGE_SIZE = 10;
@@ -194,8 +210,19 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
       syms.push({ symbol: '\u270E', title: 'Historian prep brief', color: '#8b7355' });
     }
 
+    // Assigned tone
+    if (item.assignedTone) {
+      const toneSymbols = { witty: '\u2736', weary: '\u25CB', forensic: '\u25C8', elegiac: '\u25C7', cantankerous: '\u266F' };
+      const toneLabels = { witty: 'Witty', weary: 'Weary', forensic: 'Forensic', elegiac: 'Elegiac', cantankerous: 'Cantankerous' };
+      syms.push({
+        symbol: toneSymbols[item.assignedTone] || '?',
+        title: `Tone: ${toneLabels[item.assignedTone] || item.assignedTone}`,
+        color: '#b8860b',
+      });
+    }
+
     return syms;
-  }, [item.focusType, item.primaryCount, item.perspectiveSynthesis, item.combineInstructions, item.coverImageComplete, item.backportDone, item.backportTotal, item.historianNoteCount, item.lens, item.hasTemporalNarrative, item.hasTemporalCheck, item.hasHistorianPrep]);
+  }, [item.focusType, item.primaryCount, item.perspectiveSynthesis, item.combineInstructions, item.coverImageComplete, item.backportDone, item.backportTotal, item.historianNoteCount, item.lens, item.hasTemporalNarrative, item.hasTemporalCheck, item.hasHistorianPrep, item.assignedTone]);
 
   // Compact numeric badge: cast count + scene image count
   const castCount = (item.primaryCount || 0) + (item.supportingCount || 0);
@@ -321,6 +348,90 @@ function AssembledContentViewer({ content, wordCount, onCopy }) {
   );
 }
 
+function EraNarrativeItemCard({ item, isSelected, onClick }) {
+  const statusColors = {
+    complete: '#10b981',
+    step_complete: '#f59e0b',
+    generating: '#3b82f6',
+    pending: 'var(--text-muted)',
+    failed: '#ef4444',
+    cancelled: 'var(--text-muted)',
+  };
+
+  const inlineSymbols = useMemo(() => {
+    const syms = [];
+    syms.push({ symbol: '\u2756', title: 'Era narrative', color: '#d97706' });
+    if (item.hasThesis) {
+      syms.push({ symbol: '\u2261', title: 'Thesis identified', color: '#8b7355' });
+    }
+    if (item.threadCount > 0) {
+      syms.push({ symbol: `\u2630`, title: `${item.threadCount} threads`, color: '#6366f1' });
+    }
+    return syms;
+  }, [item.hasThesis, item.threadCount]);
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        padding: '10px 12px',
+        background: isSelected ? 'var(--bg-tertiary)' : 'transparent',
+        borderTop: isSelected ? '1px solid #d97706' : '1px solid transparent',
+        borderRight: isSelected ? '1px solid #d97706' : '1px solid transparent',
+        borderBottom: isSelected ? '1px solid #d97706' : '1px solid transparent',
+        borderLeft: '3px solid #d97706',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        marginBottom: '4px',
+        transition: 'background 0.1s',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+        <span style={{ fontWeight: 500, fontSize: '13px', flex: 1, lineHeight: 1.3 }}>
+          {item.name}
+          {inlineSymbols.map((sym, i) => (
+            <span
+              key={i}
+              title={sym.title}
+              style={{ marginLeft: '5px', fontSize: '10px', color: sym.color, opacity: 0.85 }}
+            >{sym.symbol}</span>
+          ))}
+        </span>
+        <span style={{
+          fontSize: '10px',
+          color: statusColors[item.status] || 'var(--text-muted)',
+          fontWeight: 500,
+          whiteSpace: 'nowrap',
+        }}>
+          {item.status === 'complete' ? 'Complete' : item.status}
+        </span>
+      </div>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: '3px',
+        fontSize: '11px',
+        color: 'var(--text-muted)',
+      }}>
+        <span style={{ fontStyle: 'italic' }}>{item.tone}</span>
+        <span style={{ display: 'flex', gap: '8px' }}>
+          {item.wordCount > 0 && (
+            <span title={`${item.wordCount.toLocaleString()} words`}>
+              {'\u270E'} {item.wordCount.toLocaleString()}
+            </span>
+          )}
+          {item.movementCount > 0 && (
+            <span title={`${item.movementCount} movements`}>
+              {'\u25B8'} {item.movementCount}
+            </span>
+          )}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function ChroniclePanel({
   worldData,
   queue,
@@ -346,6 +457,7 @@ export default function ChroniclePanel({
   historianConfig,
   onUpdateHistorianNote,
   onRefreshEraSummaries,
+  onNavigateToTab,
 }) {
   const navEntities = useEntityNavList();
   const entityNavMap = useEntityNavItems();
@@ -359,7 +471,7 @@ export default function ChroniclePanel({
     return saved || null;
   });
   const [groupByType, setGroupByType] = useState(false);
-  const [sortMode, setSortMode] = useState('created_desc');
+  const [sortMode, setSortMode] = useState('era_asc');
   const [statusFilter, setStatusFilter] = useState('all');
   const [focusFilter, setFocusFilter] = useState('all');
   const [entitySearchQuery, setEntitySearchQuery] = useState('');
@@ -414,14 +526,53 @@ export default function ChroniclePanel({
   // State for bulk tertiary re-detect
   const [tertiaryDetectResult, setTertiaryDetectResult] = useState(null);
 
+  // State for bulk summary generation
+  const [bulkSummaryResult, setBulkSummaryResult] = useState(null);
+
   // Collapsible bulk actions panel
   const [showBulkActions, setShowBulkActions] = useState(false);
 
   // State for chronology modal
   const [showChronologyModal, setShowChronologyModal] = useState(false);
 
-  // State for era narrative modal
-  const [showEraNarrativeModal, setShowEraNarrativeModal] = useState(false);
+  // Era narrative modal — state lives in Zustand store to survive tab switches
+  const eraNarrativeModal = useIlluminatorModals((s) => s.eraNarrativeModal);
+
+  // Bulk era narrative modal
+  const [showBulkEraNarrative, setShowBulkEraNarrative] = useState(false);
+  const bulkEraNarrativeProgress = useBulkEraNarrativeStore((s) => s.progress);
+
+  // Era narrative nav items (loaded from IndexedDB, merged into chronicle list)
+  const [eraNarrativeNavItems, setEraNarrativeNavItems] = useState([]);
+
+  // Fact coverage bulk analysis
+  const {
+    progress: factCoverageProgress,
+    isActive: isFactCoverageActive,
+    prepareFactCoverage,
+    confirmFactCoverage,
+    cancelFactCoverage,
+    closeFactCoverage,
+  } = useFactCoverage();
+
+  // Tone ranking & assignment
+  const {
+    progress: toneRankingProgress,
+    isActive: isToneRankingActive,
+    prepareToneRanking,
+    prepareAssignment,
+  } = useToneRanking();
+
+  // Bulk chronicle annotations (clear / run)
+  const bulkAnnotationProgress = useBulkChronicleAnnotationStore((s) => s.progress);
+  const prepareBulkAnnotation = useBulkChronicleAnnotationStore((s) => s.prepareAnnotation);
+  const isBulkAnnotationActive = bulkAnnotationProgress.status === 'running' || bulkAnnotationProgress.status === 'confirming';
+
+  // Interleaved annotation (chronicle + entity)
+  const prepareInterleaved = useInterleavedAnnotationStore((s) => s.prepareInterleaved);
+  const interleavedProgress = useInterleavedAnnotationStore((s) => s.progress);
+  const isInterleavedActive = interleavedProgress.status === 'running' || interleavedProgress.status === 'confirming';
+  const entityNavItems = useEntityStore((s) => s.navItems);
 
   // State for wizard modal
   const [showWizard, setShowWizard] = useState(false);
@@ -464,7 +615,7 @@ export default function ChroniclePanel({
     copyEdit,
     temporalCheck,
     quickCheck,
-  } = useChronicleActions(onEnqueue);
+  } = useChronicleActions();
 
   // Lifecycle actions from store (no queue dependency)
   const acceptChronicle = useChronicleStore((s) => s.acceptChronicle);
@@ -484,6 +635,37 @@ export default function ChroniclePanel({
     (id) => useChronicleStore.getState().refreshChronicle(id),
     [],
   );
+
+  // Assign tone to a chronicle without triggering annotation
+  const handleSetAssignedTone = useCallback(async (chronicleId, tone) => {
+    await updateChronicleAssignedTone(chronicleId, tone);
+    refreshChronicle(chronicleId);
+  }, [refreshChronicle]);
+
+  // Detect tone for a single chronicle via LLM
+  const handleDetectTone = useCallback(async (chronicleId, title) => {
+    const record = await getChronicle(chronicleId);
+    if (!record?.summary) return;
+    const payload = {
+      chronicleId,
+      summary: record.summary,
+      format: record.format || 'story',
+      narrativeStyleName: record.narrativeStyle?.name,
+      brief: record.perspectiveSynthesis?.brief,
+    };
+    const entity = {
+      id: chronicleId,
+      name: title || 'Chronicle',
+      kind: 'chronicle',
+      subtype: '',
+      prominence: 'recognized',
+      culture: '',
+      status: 'active',
+      description: '',
+      tags: {},
+    };
+    onEnqueue([{ entity, type: 'toneRanking', prompt: JSON.stringify(payload), chronicleId }]);
+  }, [onEnqueue]);
 
   // External refresh trigger (e.g. after lore backport)
   useEffect(() => {
@@ -548,6 +730,7 @@ export default function ChroniclePanel({
   const chronicleItems = useChronicleNavItems(getEffectiveStatus);
 
   const getChronicleTypeLabel = useCallback((item) => {
+    if (item?.itemType === 'era_narrative') return 'Era Narrative';
     if (item?.narrativeStyleName) return item.narrativeStyleName;
     if (item?.narrativeStyleId) {
       return narrativeStyleNameMap.get(item.narrativeStyleId) || item.narrativeStyleId;
@@ -559,6 +742,7 @@ export default function ChroniclePanel({
     const query = entitySearchQuery.trim().toLowerCase();
     let items = chronicleItems;
 
+    // Apply chronicle-specific filters (era narratives bypass these)
     if (statusFilter !== 'all') {
       items = items.filter((item) => item.status === statusFilter);
     }
@@ -577,13 +761,16 @@ export default function ChroniclePanel({
       );
     }
 
+    // Merge era narrative nav items (they participate in sorting but not chronicle filters)
+    const allItems = [...items, ...eraNarrativeNavItems];
+
     const getLength = (item) => item.wordCount || 0;
 
     const getEraOrder = (item) => typeof item.focalEraOrder === 'number' ? item.focalEraOrder : Number.MAX_SAFE_INTEGER;
 
     const getEraName = (item) => item.focalEraName || '';
 
-    const sorted = [...items].sort((a, b) => {
+    const sorted = [...allItems].sort((a, b) => {
       switch (sortMode) {
         case 'created_asc':
           return (a.createdAt || 0) - (b.createdAt || 0);
@@ -622,6 +809,7 @@ export default function ChroniclePanel({
     return sorted;
   }, [
     chronicleItems,
+    eraNarrativeNavItems,
     entitySearchQuery,
     entitySearchSelectedId,
     focusFilter,
@@ -697,8 +885,15 @@ export default function ChroniclePanel({
     return labels.map((label) => ({ label, items: groups.get(label) }));
   }, [visibleChronicleItems, getChronicleTypeLabel, groupByType]);
 
+  // Era narrative selection: prefixed IDs distinguish from chronicle IDs
+  const isEraNarrativeSelected = selectedItemId?.startsWith('eranarr:') ?? false;
+  const selectedEraNarrativeId = isEraNarrativeSelected
+    ? selectedItemId.slice('eranarr:'.length)
+    : null;
+
   // Selected chronicle from store — only re-renders when THIS chronicle changes
-  const selectedChronicle = useSelectedChronicle(selectedItemId);
+  // Pass null when an era narrative is selected (no chronicle to load)
+  const selectedChronicle = useSelectedChronicle(isEraNarrativeSelected ? null : selectedItemId);
 
   // Build selectedItem with derived fields for compatibility with existing callbacks/UI
   const selectedItem = useMemo(() => {
@@ -779,15 +974,24 @@ export default function ChroniclePanel({
 
   // Clear selection if stored item no longer exists in current nav items
   // (Check nav items — synchronously available — not selectedItem which loads async from cache)
+  // Era narrative selections use prefixed IDs and are checked against eraNarrativeNavItems
   useEffect(() => {
     if (selectedItemId && chronicleItems.length > 0) {
-      const existsInNav = chronicleItems.some((item) => item.chronicleId === selectedItemId);
-      if (!existsInNav) {
-        console.log('[Chronicle] Stored selectedItemId not found in current items, clearing');
-        setSelectedItemId(null);
+      if (selectedItemId.startsWith('eranarr:')) {
+        const existsInEraNarr = eraNarrativeNavItems.some((item) => item.id === selectedItemId);
+        if (eraNarrativeNavItems.length > 0 && !existsInEraNarr) {
+          console.log('[Chronicle] Stored era narrative selectedItemId not found, clearing');
+          setSelectedItemId(null);
+        }
+      } else {
+        const existsInNav = chronicleItems.some((item) => item.chronicleId === selectedItemId);
+        if (!existsInNav) {
+          console.log('[Chronicle] Stored selectedItemId not found in current items, clearing');
+          setSelectedItemId(null);
+        }
       }
     }
-  }, [selectedItemId, chronicleItems]);
+  }, [selectedItemId, chronicleItems, eraNarrativeNavItems]);
 
   // Generate name bank when selected chronicle's entities change
   useEffect(() => {
@@ -1534,6 +1738,22 @@ export default function ChroniclePanel({
     });
   }, [fullEntities]);
 
+  // Load era narratives for the simulation run (merged into chronicle nav list)
+  const refreshEraNarratives = useCallback(() => {
+    if (!simulationRunId) return;
+    getEraNarrativesForSimulation(simulationRunId).then((records) => {
+      const eraOrderMap = new Map(wizardEras.map((e) => [e.id, e.order]));
+      const navItems = records
+        .filter((r) => r.status === 'complete')
+        .map((r) => buildEraNarrativeNavItem(r, eraOrderMap.get(r.eraId)));
+      setEraNarrativeNavItems(navItems);
+    });
+  }, [simulationRunId, wizardEras]);
+
+  useEffect(() => {
+    refreshEraNarratives();
+  }, [refreshEraNarratives]);
+
   // Handle wizard completion
   const handleWizardGenerate = useCallback(async (wizardConfig) => {
     if (!worldContext) {
@@ -2184,6 +2404,75 @@ export default function ChroniclePanel({
                   Refresh Era Summaries
                 </button>
               )}
+              <button
+                onClick={() => {
+                  const eligible = chronicleItems.filter(
+                    (c) => !c.hasSummary && (c.status === 'complete' || c.status === 'assembly_ready'),
+                  );
+                  if (eligible.length === 0) {
+                    setBulkSummaryResult({ success: true, count: 0 });
+                    setTimeout(() => setBulkSummaryResult(null), 4000);
+                    return;
+                  }
+                  const items = eligible.map((c) => {
+                    const primaryRole = c.roleAssignments?.find((r) => r.isPrimary) || c.roleAssignments?.[0];
+                    const entity = primaryRole
+                      ? { id: primaryRole.entityId, name: primaryRole.entityName, kind: primaryRole.entityKind, subtype: '', prominence: 'recognized', culture: '', status: 'active', description: '', tags: {} }
+                      : { id: c.chronicleId, name: c.title || 'Chronicle', kind: 'chronicle', subtype: '', prominence: 'recognized', culture: '', status: 'active', description: '', tags: {} };
+                    return { entity, type: 'entityChronicle', prompt: '', chronicleStep: 'summary', chronicleId: c.chronicleId };
+                  });
+                  onEnqueue(items);
+                  setBulkSummaryResult({ success: true, count: eligible.length });
+                  setTimeout(() => setBulkSummaryResult(null), 4000);
+                }}
+                className="illuminator-button"
+                title="Generate summaries for all chronicles that are missing them"
+              >
+                Generate Summaries
+              </button>
+              <button
+                onClick={() => prepareFactCoverage(chronicleItems)}
+                disabled={isFactCoverageActive}
+                className="illuminator-button"
+                title="Analyze canon fact coverage across all chronicles using Haiku"
+              >
+                {isFactCoverageActive ? 'Analyzing...' : 'Fact Coverage'}
+              </button>
+            </div>
+            {/* Historian Tone */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Historian Tone
+              </span>
+              <button
+                onClick={() => prepareToneRanking(chronicleItems)}
+                disabled={isToneRankingActive}
+                className="illuminator-button"
+                title="Rank top 3 historian annotation tones for each chronicle using Haiku"
+              >
+                {isToneRankingActive ? 'Ranking...' : 'Rank Tones'}
+              </button>
+              {(toneRankingProgress.status === 'complete' || toneRankingProgress.status === 'failed' || toneRankingProgress.status === 'cancelled') && (
+                <div style={{ fontSize: '11px', padding: '2px 0', color: toneRankingProgress.status === 'complete' ? '#10b981' : toneRankingProgress.status === 'failed' ? '#ef4444' : '#f59e0b' }}>
+                  {toneRankingProgress.status === 'complete' && `Ranked ${toneRankingProgress.processedChronicles}/${toneRankingProgress.totalChronicles}`}
+                  {toneRankingProgress.status === 'failed' && (toneRankingProgress.error || 'Failed')}
+                  {toneRankingProgress.status === 'cancelled' && `Cancelled (${toneRankingProgress.processedChronicles}/${toneRankingProgress.totalChronicles})`}
+                </div>
+              )}
+              <button
+                onClick={prepareAssignment}
+                className="illuminator-button"
+                title="Assign tones across corpus with distribution balancing (requires ranked tones)"
+              >
+                Assign Tones
+              </button>
+              <button
+                onClick={() => downloadBulkToneReviewExport(simulationRunId)}
+                className="illuminator-button"
+                title="Export all chronicle tone/fact data for offline review"
+              >
+                Review Export
+              </button>
             </div>
             {/* Backport */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -2252,7 +2541,7 @@ export default function ChroniclePanel({
                 Historian Prep
               </button>
               <button
-                onClick={() => setShowEraNarrativeModal(true)}
+                onClick={() => useIlluminatorModals.getState().openEraNarrative()}
                 className="illuminator-button"
                 disabled={!historianConfigured}
                 title={historianConfigured
@@ -2260,6 +2549,69 @@ export default function ChroniclePanel({
                   : "Configure historian persona first"}
               >
                 Era Narrative
+              </button>
+              <button
+                onClick={() => setShowBulkEraNarrative(true)}
+                className="illuminator-button"
+                disabled={!historianConfigured || bulkEraNarrativeProgress.status === 'running'}
+                title={historianConfigured
+                  ? "Run all eras through the full narrative pipeline (threads → generate → edit)"
+                  : "Configure historian persona first"}
+              >
+                {bulkEraNarrativeProgress.status === 'running' ? 'Running...' : 'Bulk Era Narrative'}
+              </button>
+              <button
+                onClick={() => prepareBulkAnnotation('run', chronicleItems)}
+                disabled={!historianConfigured || isBulkAnnotationActive || isInterleavedActive}
+                className="illuminator-button"
+                title={historianConfigured
+                  ? "Run historian annotations on all complete chronicles using their assigned tones"
+                  : "Configure historian persona first"}
+              >
+                {isBulkAnnotationActive && bulkAnnotationProgress.operation === 'run' ? 'Annotating...' : 'Run Annotations'}
+              </button>
+              <button
+                onClick={() => prepareBulkAnnotation('clear', chronicleItems)}
+                disabled={isBulkAnnotationActive || isInterleavedActive}
+                className="illuminator-button"
+                title="Clear all historian annotations from chronicles that have them"
+              >
+                Clear Annotations
+              </button>
+              <button
+                onClick={() => prepareInterleaved(chronicleItems, entityNavItems)}
+                disabled={!historianConfigured || isBulkAnnotationActive || isInterleavedActive}
+                className="illuminator-button"
+                title="Annotate chronicles and their referenced entities in chronological order"
+              >
+                {isInterleavedActive ? 'Running...' : 'Annotate All (Interleaved)'}
+              </button>
+              <button
+                onClick={() => downloadBulkAnnotationReviewExport(simulationRunId)}
+                className="illuminator-button"
+                title="Export all chronicle titles, styles, formats, and annotations for offline review"
+              >
+                Annotation Export
+              </button>
+              <button
+                onClick={async () => {
+                  if (!simulationRunId || entityNavItems.size === 0) return;
+                  const chronicles = await getChroniclesForSimulation(simulationRunId);
+                  let amended = 0;
+                  for (const record of chronicles) {
+                    if (!record.historianPrep) continue;
+                    const annotated = annotateEntityNames(record.historianPrep, entityNavItems);
+                    if (annotated !== record.historianPrep) {
+                      await updateChronicleHistorianPrep(record.chronicleId, annotated);
+                      amended++;
+                    }
+                  }
+                  console.log(`[Amend Briefs] Annotated ${amended} of ${chronicles.filter(c => c.historianPrep).length} briefs`);
+                }}
+                className="illuminator-button"
+                title="Annotate entity names in historian prep briefs with type/culture metadata (e.g. faction/company, aurora-stack)"
+              >
+                Amend Briefs
               </button>
             </div>
           </div>
@@ -2304,23 +2656,41 @@ export default function ChroniclePanel({
                   <span style={{ fontSize: '10px' }}>{group.items.length}</span>
                 </div>
                 {group.items.map((item) => (
-                  <ChronicleItemCard
-                    key={item.id}
-                    item={item}
-                    isSelected={item.id === selectedItemId}
-                    onClick={() => setSelectedItemId(item.id)}
-                  />
+                  item.itemType === 'era_narrative' ? (
+                    <EraNarrativeItemCard
+                      key={item.id}
+                      item={item}
+                      isSelected={item.id === selectedItemId}
+                      onClick={() => setSelectedItemId(item.id)}
+                    />
+                  ) : (
+                    <ChronicleItemCard
+                      key={item.id}
+                      item={item}
+                      isSelected={item.id === selectedItemId}
+                      onClick={() => setSelectedItemId(item.id)}
+                    />
+                  )
                 ))}
               </div>
             ))
           ) : (
             visibleChronicleItems.map((item) => (
-              <ChronicleItemCard
-                key={item.id}
-                item={item}
-                isSelected={item.id === selectedItemId}
-                onClick={() => setSelectedItemId(item.id)}
-              />
+              item.itemType === 'era_narrative' ? (
+                <EraNarrativeItemCard
+                  key={item.id}
+                  item={item}
+                  isSelected={item.id === selectedItemId}
+                  onClick={() => setSelectedItemId(item.id)}
+                />
+              ) : (
+                <ChronicleItemCard
+                  key={item.id}
+                  item={item}
+                  isSelected={item.id === selectedItemId}
+                  onClick={() => setSelectedItemId(item.id)}
+                />
+              )
             ))
           )}
           {navVisibleCount < filteredChronicleItems.length && (
@@ -2340,7 +2710,9 @@ export default function ChroniclePanel({
 
         {/* Right panel: Selected item detail */}
         <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
-          {!selectedItem ? (
+          {isEraNarrativeSelected && selectedEraNarrativeId ? (
+            <EraNarrativeViewer narrativeId={selectedEraNarrativeId} />
+          ) : !selectedItem ? (
             <div
               style={{
                 display: 'flex',
@@ -2470,6 +2842,10 @@ export default function ChroniclePanel({
                   onHistorianReview={onHistorianReview && historianConfigured && selectedItem.status === 'complete'
                     ? (tone) => onHistorianReview(selectedItem.chronicleId, tone)
                     : undefined}
+                  onSetAssignedTone={(tone) => handleSetAssignedTone(selectedItem.chronicleId, tone)}
+                  onDetectTone={selectedItem.summary
+                    ? () => handleDetectTone(selectedItem.chronicleId, selectedItem.name)
+                    : undefined}
                   isHistorianActive={isHistorianActive}
                   onUpdateHistorianNote={onUpdateHistorianNote}
                   onGeneratePrep={historianConfigured && (selectedItem.status === 'complete' || selectedItem.status === 'assembly_ready')
@@ -2493,6 +2869,7 @@ export default function ChroniclePanel({
                   worldContext={worldContext}
                   eras={wizardEras}
                   events={wizardEvents}
+                  onNavigateToTab={onNavigateToTab}
                 />
               )}
             </>
@@ -2718,6 +3095,44 @@ export default function ChroniclePanel({
         </div>
       )}
 
+      {/* Bulk Summary Result notification */}
+      {bulkSummaryResult && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            background: 'rgba(16, 185, 129, 0.95)',
+            color: 'white',
+            padding: '16px 24px',
+            borderRadius: '8px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+            zIndex: 1001,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+          onClick={() => setBulkSummaryResult(null)}
+        >
+          <span>
+            {bulkSummaryResult.count > 0
+              ? `Enqueued summary generation for ${bulkSummaryResult.count} chronicle${bulkSummaryResult.count !== 1 ? 's' : ''}`
+              : 'No chronicles with missing summaries'}
+          </span>
+          <button
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '16px',
+            }}
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       {/* Reset Backport Result notification */}
       {resetBackportResult && (
         <div
@@ -2794,6 +3209,14 @@ export default function ChroniclePanel({
         </div>
       )}
 
+      <BulkFactCoverageModal
+        progress={factCoverageProgress}
+        onConfirm={confirmFactCoverage}
+        onCancel={cancelFactCoverage}
+        onClose={closeFactCoverage}
+      />
+
+
       {/* Chronicle Wizard Modal */}
       <ChronologyModal
         isOpen={showChronologyModal}
@@ -2812,14 +3235,27 @@ export default function ChroniclePanel({
       />
 
       <EraNarrativeModal
-        isOpen={showEraNarrativeModal}
-        onClose={() => setShowEraNarrativeModal(false)}
+        isOpen={eraNarrativeModal !== null}
+        resumeNarrativeId={eraNarrativeModal?.narrativeId}
+        onClose={() => { useIlluminatorModals.getState().closeEraNarrative(); refreshEraNarratives(); }}
         chronicleItems={chronicleItems}
         wizardEras={wizardEras}
         projectId={projectId}
         simulationRunId={simulationRunId}
         historianConfig={historianConfig}
         onEnqueue={onEnqueue}
+        styleLibrary={styleLibrary}
+      />
+
+      <BulkEraNarrativeModal
+        isOpen={showBulkEraNarrative || bulkEraNarrativeProgress.status === 'running'}
+        onClose={() => { setShowBulkEraNarrative(false); refreshEraNarratives(); }}
+        chronicleItems={chronicleItems}
+        wizardEras={wizardEras}
+        eraTemporalInfo={wizardEras}
+        projectId={projectId}
+        simulationRunId={simulationRunId}
+        styleLibrary={styleLibrary}
       />
 
       <ChronicleWizard

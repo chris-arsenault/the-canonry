@@ -11,6 +11,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { EnrichmentType } from '../lib/enrichmentTypes';
+import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
 import type {
   DynamicsRun,
   DynamicsMessage,
@@ -62,12 +63,6 @@ export interface UseDynamicsGenerationReturn {
 const POLL_INTERVAL_MS = 1000;
 
 export function useDynamicsGeneration(
-  onEnqueue: (items: Array<{
-    entity: { id: string; name: string; kind: string; subtype: string; prominence: string; culture: string; status: string; description: string; tags: Record<string, unknown> };
-    type: EnrichmentType;
-    prompt: string;
-    chronicleId?: string;
-  }>) => void,
   onDynamicsAccepted?: (dynamics: DynamicsRun['proposedDynamics']) => void
 ): UseDynamicsGenerationReturn {
   const [run, setRun] = useState<DynamicsRun | null>(null);
@@ -115,13 +110,13 @@ export function useDynamicsGeneration(
       tags: {},
     };
 
-    onEnqueue([{
+    getEnqueue()([{
       entity: sentinelEntity,
       type: 'dynamicsGeneration' as EnrichmentType,
       prompt: '',
       chronicleId: runId, // Repurpose chronicleId for runId
     }]);
-  }, [onEnqueue]);
+  }, []);
 
   // Start a new generation session
   const startGeneration = useCallback(async (config: DynamicsGenerationConfig) => {

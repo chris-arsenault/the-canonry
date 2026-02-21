@@ -137,9 +137,6 @@ async function executeEntityChronicleTask(
   }
 
   if (step === 'summary') {
-    if (!task.chronicleContext) {
-      return { success: false, error: 'Chronicle context required for summary step' };
-    }
     return executeSummaryStep(task, chronicleRecord, context);
   }
 
@@ -1640,7 +1637,7 @@ async function executeTemporalCheckStep(
     ? allEras.map(era => {
         const isFocal = focalEra?.id === era.id ? ' ← FOCAL ERA' : '';
         const isTouched = touchedEraIds.includes(era.id) ? ' (touched)' : '';
-        return `- **${era.name}** (ticks ${era.startTick}–${era.endTick})${isFocal}${isTouched}${era.summary ? `: ${era.summary}` : ''}`;
+        return `- **${era.name}** (years ${era.startTick}–${era.endTick})${isFocal}${isTouched}${era.summary ? `: ${era.summary}` : ''}`;
       }).join('\n')
     : 'No era information available.';
 
@@ -1683,7 +1680,7 @@ async function executeTemporalCheckStep(
         lines.push(`This chronicle touches ${touchedEraIds.length} eras: ${touchedNames.join(', ')}. Focal era: ${focalEra.name}.`);
       }
       for (const { era, boundary, direction } of adjacentEras) {
-        lines.push(`The chronicle's tick range [${tickRange[0]}–${tickRange[1]}] is near the boundary at tick ${boundary} (between ${direction === 'preceding' ? era.name + ' and ' + focalEra.name : focalEra.name + ' and ' + era.name}).`);
+        lines.push(`The chronicle's year range [${tickRange[0]}–${tickRange[1]}] is near the boundary at year ${boundary} (between ${direction === 'preceding' ? era.name + ' and ' + focalEra.name : focalEra.name + ' and ' + era.name}).`);
         if (era.summary) {
           lines.push(`**${era.name}:** ${era.summary}`);
         }

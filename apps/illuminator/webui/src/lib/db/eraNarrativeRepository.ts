@@ -29,18 +29,23 @@ export async function getEraNarrativesForEra(
     .toArray();
 }
 
+export async function getEraNarrativesForSimulation(
+  simulationRunId: string
+): Promise<EraNarrativeRecord[]> {
+  return db.eraNarratives
+    .where('simulationRunId')
+    .equals(simulationRunId)
+    .toArray();
+}
+
 export async function updateEraNarrative(
   narrativeId: string,
   updates: Partial<Pick<EraNarrativeRecord,
     | 'status'
     | 'error'
     | 'currentStep'
-    | 'currentChapterIndex'
     | 'threadSynthesis'
-    | 'chapters'
-    | 'titleCandidates'
-    | 'titleFragments'
-    | 'selectedTitle'
+    | 'narrative'
     | 'totalInputTokens'
     | 'totalOutputTokens'
     | 'totalActualCost'
@@ -52,12 +57,8 @@ export async function updateEraNarrative(
   if (updates.status !== undefined) record.status = updates.status;
   if (updates.error !== undefined) record.error = updates.error;
   if (updates.currentStep !== undefined) record.currentStep = updates.currentStep;
-  if (updates.currentChapterIndex !== undefined) record.currentChapterIndex = updates.currentChapterIndex;
   if (updates.threadSynthesis !== undefined) record.threadSynthesis = updates.threadSynthesis;
-  if (updates.chapters !== undefined) record.chapters = updates.chapters;
-  if (updates.titleCandidates !== undefined) record.titleCandidates = updates.titleCandidates;
-  if (updates.titleFragments !== undefined) record.titleFragments = updates.titleFragments;
-  if (updates.selectedTitle !== undefined) record.selectedTitle = updates.selectedTitle;
+  if (updates.narrative !== undefined) record.narrative = updates.narrative;
   if (updates.totalInputTokens !== undefined) record.totalInputTokens = updates.totalInputTokens;
   if (updates.totalOutputTokens !== undefined) record.totalOutputTokens = updates.totalOutputTokens;
   if (updates.totalActualCost !== undefined) record.totalActualCost = updates.totalActualCost;

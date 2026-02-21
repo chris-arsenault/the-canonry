@@ -17,9 +17,11 @@ export interface WordCountBreakdown {
   chronicleBody: number;
   chronicleSummaries: number;
   entityDescriptions: number;
+  entityDescriptionsPreEdit: number;
   entitySummaries: number;
   imageCaptions: number;
-  historianNotes: number;
+  historianNotesEntity: number;
+  historianNotesChronicle: number;
   staticPageContent: number;
 }
 
@@ -27,9 +29,11 @@ export interface CharCountBreakdown {
   chronicleBody: number;
   chronicleSummaries: number;
   entityDescriptions: number;
+  entityDescriptionsPreEdit: number;
   entitySummaries: number;
   imageCaptions: number;
-  historianNotes: number;
+  historianNotesEntity: number;
+  historianNotesChronicle: number;
   staticPageContent: number;
 }
 
