@@ -78,6 +78,8 @@ async function main() {
     distribution: DEFAULT_PROMINENCE_DISTRIBUTION,
   });
 
+  const eraNarratives = Array.isArray(coreBundle.eraNarratives) ? coreBundle.eraNarratives : [];
+
   // Build the full page index
   const pageIndex = buildPageIndex(
     worldData,
@@ -85,6 +87,7 @@ async function main() {
     chronicles,
     staticPages,
     prominenceScale,
+    eraNarratives,
   );
 
   // Serialize Maps to entry arrays for JSON transport

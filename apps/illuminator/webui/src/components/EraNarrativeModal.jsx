@@ -17,7 +17,7 @@ import { useIlluminatorConfigStore } from '../lib/db/illuminatorConfigStore';
 import { useEraTemporalInfo } from '../lib/db/indexSelectors';
 import { useFloatingPillStore } from '../lib/db/floatingPillStore';
 import { useIlluminatorModals } from '../lib/db/modalStore';
-import { getEraNarrativesForEra, deleteEraNarrative } from '../lib/db/eraNarrativeRepository';
+import { getEraNarrativesForEra, deleteEraNarrative, resolveActiveContent } from '../lib/db/eraNarrativeRepository';
 
 const PILL_ID = 'era-narrative';
 
@@ -46,8 +46,11 @@ export default function EraNarrativeModal({
 }) {
   const [selectedEraId, setSelectedEraId] = useState('');
   const [tone, setTone] = useState('witty');
+  const [arcDirection, setArcDirection] = useState('');
   const [existingNarratives, setExistingNarratives] = useState([]);
   const [previousEraThesis, setPreviousEraThesis] = useState(null);
+  const [selectedVersionId, setSelectedVersionId] = useState('');
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
 
   const {
     narrative,
@@ -57,6 +60,9 @@ export default function EraNarrativeModal({
     resumeNarrative,
     advanceStep,
     skipEdit,
+    rerunCopyEdit,
+    deleteVersion,
+    setActiveVersion,
     cancel,
   } = useEraNarrative(onEnqueue);
 
@@ -162,15 +168,14 @@ export default function EraNarrativeModal({
     const worldDynamics = configStore.worldContext?.worldDynamics || [];
     const cultureIds = configStore.cultureIdentities || {};
 
-    // Resolve dynamics for focal era (apply era overrides)
-    const resolvedDynamics = worldDynamics.map((d) => {
-      let text = d.text || '';
-      if (d.eraOverrides?.[era.id]) {
+    // Resolve dynamics for focal era — only include dynamics that have an override for this era
+    const resolvedDynamics = worldDynamics
+      .filter((d) => d.eraOverrides?.[era.id])
+      .map((d) => {
         const override = d.eraOverrides[era.id];
-        text = override.replace ? override.text : `${text} ${override.text}`;
-      }
-      return text;
-    }).filter(Boolean);
+        return override.replace ? override.text : `${d.text || ''} ${override.text}`;
+      })
+      .filter(Boolean);
 
     // Find focal + adjacent eras from temporal info
     const focalEraInfo = eraTemporalInfo.find((e) => e.id === era.id);
@@ -209,11 +214,12 @@ export default function EraNarrativeModal({
       eraId: era.id,
       eraName: era.name,
       tone,
+      arcDirection: arcDirection.trim() || undefined,
       historianConfig,
       prepBriefs,
       worldContext,
     };
-  }, [selectedEraId, wizardEras, chronicleItems, projectId, simulationRunId, historianConfig, tone, eraTemporalInfo]);
+  }, [selectedEraId, wizardEras, chronicleItems, projectId, simulationRunId, historianConfig, tone, arcDirection, eraTemporalInfo]);
 
   // Start interactive narrative
   const handleStart = useCallback(async () => {
@@ -305,6 +311,23 @@ export default function EraNarrativeModal({
     return map;
   }, [synthesis]);
 
+  // Resolve versioned content from the narrative record
+  const resolved = useMemo(() => {
+    if (!narrative) return { content: undefined, versions: [], activeVersionId: undefined };
+    return resolveActiveContent(narrative);
+  }, [narrative]);
+
+  // Sync selectedVersionId to activeVersionId when versions change
+  useEffect(() => {
+    if (resolved.activeVersionId) {
+      // Reset selection when active version changes (e.g., after re-run edit completes)
+      // or when no version is selected yet
+      if (!selectedVersionId || !resolved.versions.some((v) => v.versionId === selectedVersionId)) {
+        setSelectedVersionId(resolved.activeVersionId);
+      }
+    }
+  }, [resolved.activeVersionId, resolved.versions.length]);
+
   if (!isOpen) return null;
   if (isMinimized) return null;
 
@@ -314,14 +337,20 @@ export default function EraNarrativeModal({
   const isComplete = narrative?.status === 'complete';
   const narrativeContent = narrative?.narrative;
 
+  // Currently viewed version (for version selector)
+  const viewedVersion = resolved.versions.find((v) => v.versionId === selectedVersionId)
+    || resolved.versions[resolved.versions.length - 1];
+  const viewedContent = viewedVersion?.content || resolved.content;
+  const viewedWordCount = viewedVersion?.wordCount || 0;
+
   // Determine what to show
   const showSetup = !isActive && !narrative;
   const showThreadReview = isStepComplete && narrative?.currentStep === 'threads' && synthesis;
-  const showNarrativeReview = isStepComplete && narrative?.currentStep === 'generate' && narrativeContent;
-  const showEditReview = isStepComplete && narrative?.currentStep === 'edit' && narrativeContent;
+  const showNarrativeReview = isStepComplete && narrative?.currentStep === 'generate' && (viewedContent || narrativeContent);
+  const showEditReview = isStepComplete && narrative?.currentStep === 'edit' && (viewedContent || narrativeContent);
 
-  // Word count from single narrative
-  const wordCount = narrativeContent?.editedWordCount || narrativeContent?.wordCount || 0;
+  // Word count from resolved version
+  const wordCount = viewedWordCount || narrativeContent?.editedWordCount || narrativeContent?.wordCount || 0;
 
   return (
     <div
@@ -587,6 +616,32 @@ export default function EraNarrativeModal({
                 </div>
               </div>
 
+              {/* Arc Direction Override (optional) */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>
+                  Arc Direction <span style={{ fontStyle: 'italic' }}>(optional)</span>
+                </label>
+                <textarea
+                  value={arcDirection}
+                  onChange={(e) => setArcDirection(e.target.value)}
+                  placeholder="Override the era's narrative arc. When set, the historian's thesis, thread arcs, and register choices must honor this direction."
+                  style={{
+                    width: '100%',
+                    minHeight: '60px',
+                    maxHeight: '120px',
+                    padding: '8px',
+                    fontSize: '12px',
+                    lineHeight: 1.5,
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '6px',
+                    color: 'var(--text-secondary)',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                  }}
+                />
+              </div>
+
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   onClick={handleStart}
@@ -811,14 +866,14 @@ export default function EraNarrativeModal({
           )}
 
           {/* Narrative Review */}
-          {showNarrativeReview && narrativeContent && (
+          {showNarrativeReview && (
             <>
               <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontSize: '14px', fontWeight: 600 }}>
                   Era Narrative
                 </div>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  {narrativeContent.wordCount.toLocaleString()} words
+                  {viewedWordCount.toLocaleString()} words
                 </span>
               </div>
               <div style={{
@@ -833,20 +888,20 @@ export default function EraNarrativeModal({
                 overflow: 'auto',
                 color: 'var(--text-secondary)',
               }}>
-                {narrativeContent.content}
+                {viewedContent}
               </div>
             </>
           )}
 
           {/* Edit Review */}
-          {showEditReview && narrativeContent && (
+          {showEditReview && (
             <>
               <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontSize: '14px', fontWeight: 600 }}>
                   Era Narrative (edited)
                 </div>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  {(narrativeContent.editedWordCount || narrativeContent.wordCount).toLocaleString()} words
+                  {viewedWordCount.toLocaleString()} words
                 </span>
               </div>
               <div style={{
@@ -861,35 +916,130 @@ export default function EraNarrativeModal({
                 overflow: 'auto',
                 color: 'var(--text-secondary)',
               }}>
-                {narrativeContent.editedContent || narrativeContent.content}
+                {viewedContent}
               </div>
             </>
           )}
 
-          {/* Complete */}
+          {/* Complete — Workspace View */}
           {isComplete && (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>
-                {narrative?.eraName || 'Era Narrative Complete'}
+            <>
+              {/* Version Selector */}
+              {resolved.versions.length > 0 && (
+                <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <select
+                    value={selectedVersionId || resolved.activeVersionId || ''}
+                    onChange={(e) => {
+                      setSelectedVersionId(e.target.value);
+                      setConfirmingDeleteId(null);
+                    }}
+                    className="illuminator-select"
+                    style={{ width: 'auto', minWidth: '240px', fontSize: '12px', padding: '4px 6px' }}
+                  >
+                    {resolved.versions.map((v) => {
+                      const date = new Date(v.generatedAt);
+                      const timeStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                        + ' ' + date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                      const stepLabel = v.step === 'generate' ? 'Draft' : 'Edit';
+                      return (
+                        <option key={v.versionId} value={v.versionId}>
+                          {stepLabel} — {v.wordCount.toLocaleString()} words — {timeStr}
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  {/* Active badge or Make Active button */}
+                  {viewedVersion && viewedVersion.versionId === resolved.activeVersionId ? (
+                    <span style={{
+                      fontSize: '11px', padding: '2px 8px',
+                      background: 'rgba(16, 185, 129, 0.15)', color: '#10b981',
+                      borderRadius: '999px', fontWeight: 500,
+                    }}>
+                      Active
+                    </span>
+                  ) : viewedVersion ? (
+                    <button
+                      onClick={() => {
+                        setActiveVersion(viewedVersion.versionId);
+                        setConfirmingDeleteId(null);
+                      }}
+                      className="illuminator-button"
+                      style={{ padding: '2px 8px', fontSize: '11px' }}
+                    >
+                      Make Active
+                    </button>
+                  ) : null}
+
+                  {/* Delete version button (cannot delete generate versions) */}
+                  {viewedVersion && viewedVersion.step !== 'generate' && (() => {
+                    const isConfirming = confirmingDeleteId === viewedVersion.versionId;
+                    return (
+                      <button
+                        onClick={() => {
+                          if (isConfirming) {
+                            deleteVersion(viewedVersion.versionId);
+                            setConfirmingDeleteId(null);
+                            // Reset selection to active version
+                            setSelectedVersionId(resolved.activeVersionId || '');
+                          } else {
+                            setConfirmingDeleteId(viewedVersion.versionId);
+                          }
+                        }}
+                        onBlur={() => setConfirmingDeleteId(null)}
+                        className="illuminator-button"
+                        style={{
+                          padding: '2px 8px', fontSize: '11px',
+                          background: isConfirming ? '#ef4444' : undefined,
+                          color: isConfirming ? '#fff' : 'var(--text-muted)',
+                          borderColor: isConfirming ? '#ef4444' : undefined,
+                        }}
+                        title={isConfirming ? 'Click again to confirm' : 'Delete this version'}
+                      >
+                        {isConfirming ? 'Confirm Delete' : 'Delete'}
+                      </button>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Content header */}
+              <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '14px', fontWeight: 600 }}>
+                  {narrative?.eraName || 'Era Narrative'}
+                </div>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  {viewedWordCount.toLocaleString()} words | ${(narrative?.totalActualCost || 0).toFixed(4)}
+                </span>
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                {wordCount.toLocaleString()} words |
-                ${(narrative?.totalActualCost || 0).toFixed(4)}
-              </div>
-              <button onClick={handleClose} className="illuminator-button" style={{
-                background: 'var(--accent-primary)',
-                color: '#fff',
-                fontWeight: 600,
-                padding: '8px 24px',
-              }}>
-                Close
-              </button>
-            </div>
+
+              {/* Content viewer */}
+              {viewedContent ? (
+                <div style={{
+                  padding: '16px',
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  lineHeight: '1.7',
+                  whiteSpace: 'pre-wrap',
+                  maxHeight: '400px',
+                  overflow: 'auto',
+                  color: 'var(--text-secondary)',
+                }}>
+                  {viewedContent}
+                </div>
+              ) : (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  No content available
+                </div>
+              )}
+            </>
           )}
         </div>
 
         {/* Footer */}
-        {(showThreadReview || showNarrativeReview || showEditReview) && (
+        {(showThreadReview || showNarrativeReview || showEditReview || isComplete) && (
           <div style={{
             padding: '12px 20px',
             borderTop: '1px solid var(--border-color)',
@@ -901,7 +1051,9 @@ export default function EraNarrativeModal({
               {narrative?.totalActualCost ? `$${narrative.totalActualCost.toFixed(4)}` : ''}
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={cancel} className="illuminator-button">Cancel</button>
+              {!isComplete && (
+                <button onClick={cancel} className="illuminator-button">Cancel</button>
+              )}
 
               {showThreadReview && (
                 <button
@@ -936,6 +1088,29 @@ export default function EraNarrativeModal({
                 >
                   Finish
                 </button>
+              )}
+
+              {isComplete && (
+                <>
+                  <button
+                    onClick={() => {
+                      setSelectedVersionId('');
+                      rerunCopyEdit();
+                    }}
+                    className="illuminator-button"
+                    style={{ fontWeight: 500 }}
+                    title="Re-run the copy edit pass on the latest version"
+                  >
+                    Re-run Copy Edit
+                  </button>
+                  <button
+                    onClick={handleClose}
+                    className="illuminator-button"
+                    style={{ background: 'var(--accent-primary)', color: '#fff', fontWeight: 600 }}
+                  >
+                    Close
+                  </button>
+                </>
               )}
             </div>
           </div>

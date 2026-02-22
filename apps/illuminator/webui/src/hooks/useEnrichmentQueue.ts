@@ -24,8 +24,41 @@ import type {
 import { applyEnrichmentResult } from '../lib/enrichmentTypes';
 import type { WorkerConfig, WorkerOutbound } from '../workers/enrichment.worker';
 import { createWorkerPool, resetWorkerPool, type WorkerHandle } from '../lib/workerFactory';
-import { getResolvedLLMCallSettings } from '../lib/llmModelSettings';
+import { getResolvedLLMCallSettings, type ResolvedLLMCallSettings } from '../lib/llmModelSettings';
+import type { LLMCallType } from '../lib/llmCallTypes';
+import type { EnrichmentType } from '../lib/enrichmentTypes';
 import { useThinkingStore } from '../lib/db/thinkingStore';
+import { executeBrowserTask } from '../lib/browserTaskExecutor';
+
+/**
+ * Map enrichment task types to their primary LLM call type.
+ * Used to look up the runInBrowser flag for execution context decisions.
+ */
+const TASK_PRIMARY_CALL_TYPE: Partial<Record<EnrichmentType, LLMCallType>> = {
+  description: 'description.narrative',
+  visualThesis: 'description.visualThesis',
+  image: 'image.promptFormatting',
+  entityChronicle: 'chronicle.generation',
+  paletteExpansion: 'palette.expansion',
+  dynamicsGeneration: 'dynamics.generation',
+  summaryRevision: 'revision.summary',
+  chronicleLoreBackport: 'revision.loreBackport',
+  historianEdition: 'historian.edition',
+  historianReview: 'historian.entityReview',
+  historianChronology: 'historian.chronology',
+  historianPrep: 'historian.prep',
+  eraNarrative: 'historian.eraNarrative.threads',
+  motifVariation: 'historian.motifVariation',
+  factCoverage: 'chronicle.factCoverage',
+  toneRanking: 'chronicle.toneRanking',
+  bulkToneRanking: 'chronicle.bulkToneRanking',
+};
+
+function shouldRunInBrowser(taskType: string, settings: ResolvedLLMCallSettings): boolean {
+  const callType = TASK_PRIMARY_CALL_TYPE[taskType as EnrichmentType];
+  if (!callType) return false;
+  return settings[callType]?.runInBrowser ?? false;
+}
 
 export interface EnrichedEntity {
   id: string;
@@ -221,7 +254,7 @@ export function useEnrichmentQueue(
         )
       );
 
-      // Send to worker with all metadata needed for IndexedDB storage
+      // Build task payload
       const {
         status: _status,
         queuedAt: _queuedAt,
@@ -242,6 +275,56 @@ export function useEnrichmentQueue(
         projectId: projectIdRef.current || 'unknown',
         llmCallSettings: latestLlmSettings,
       };
+
+      // Check if this task should run in the browser instead of the service worker
+      if (shouldRunInBrowser(task.type, latestLlmSettings) && configRef.current) {
+        // Release the worker slot — this task runs in the main thread
+        workerState.currentTaskId = null;
+
+        console.log('[EnrichmentQueue] Executing in browser', { taskId: task.id, type: task.type });
+
+        // Initialize thinking entry (same as 'started' message handler)
+        useThinkingStore.getState().startTask(task.id, nextItem.entityName, nextItem.type);
+
+        executeBrowserTask(task, configRef.current, {
+          onThinkingDelta: (taskId, delta) => useThinkingStore.getState().appendDelta(taskId, delta),
+          onTextDelta: (taskId, delta) => useThinkingStore.getState().appendTextDelta(taskId, delta),
+        }).then((taskResult) => {
+          taskWorkerMapRef.current.delete(task.id);
+          if (taskResult.success) {
+            setQueue((prev) =>
+              prev.map((item) =>
+                item.id === task.id
+                  ? { ...item, status: 'complete' as const, completedAt: Date.now(), result: taskResult.result, debug: taskResult.debug }
+                  : item
+              )
+            );
+            if (taskResult.result) {
+              const queueItem = queueRef.current.find(item => item.id === task.id);
+              const isChronicleImage = queueItem?.imageType === 'chronicle';
+              if (!isChronicleImage) {
+                const output = applyEnrichmentResult({}, task.type, taskResult.result, queueItem?.entityLockedSummary);
+                onEntityUpdateRef.current(task.entityId, output);
+              }
+            }
+          } else {
+            setQueue((prev) =>
+              prev.map((item) =>
+                item.id === task.id
+                  ? { ...item, status: 'error' as const, completedAt: Date.now(), error: taskResult.error, debug: taskResult.debug }
+                  : item
+              )
+            );
+          }
+          useThinkingStore.getState().finishTask(task.id);
+          // Process next tasks — browser execution freed this worker
+          setTimeout(() => processNextForWorker(workerId), 0);
+        });
+
+        // Process next task for this worker immediately (it's not blocked)
+        setTimeout(() => processNextForWorker(workerId), 0);
+        return;
+      }
 
       workerState.worker.postMessage({ type: 'execute', task });
     },

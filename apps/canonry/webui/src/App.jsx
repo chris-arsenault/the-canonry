@@ -62,6 +62,7 @@ import {
   importChronicles,
   getChronicleCountForProject,
 } from './storage/chronicleStorage';
+import { getCompletedEraNarrativesForSimulation } from './storage/eraNarrativeStorage';
 import { importBundleImageReferences, getImageCountForProject } from './storage/imageStorage';
 import { importEntities, getEntityCountForRun } from './storage/entityStorage';
 import { importNarrativeEvents, getNarrativeEventCountForRun } from './storage/eventStorage';
@@ -1823,18 +1824,22 @@ export default function App() {
         projectId: currentProject.id,
         simulationRunId,
       });
-      const [loreData, staticPagesRaw, chroniclesRaw] = await Promise.all([
+      const [loreData, staticPagesRaw, chroniclesRaw, eraNarrativesRaw] = await Promise.all([
         extractLoreDataWithCurrentImageRefs(exportWorldData),
         getStaticPagesForProject(currentProject.id),
         simulationRunId
           ? getCompletedChroniclesForSimulation(simulationRunId)
           : getCompletedChroniclesForProject(currentProject.id),
+        simulationRunId
+          ? getCompletedEraNarrativesForSimulation(simulationRunId)
+          : Promise.resolve([]),
       ]);
 
       throwIfExportCanceled(shouldCancel);
 
       const staticPages = (staticPagesRaw || []).filter((page) => page.status === 'published');
       const chronicles = chroniclesRaw || [];
+      const eraNarratives = eraNarrativesRaw || [];
       const useS3Images = Boolean(awsConfig?.useS3Images && awsConfig?.imageBucket);
       const imageStorage = useS3Images ? buildImageStorageConfig(awsConfig, currentProject.id) : null;
 
@@ -1907,6 +1912,7 @@ export default function App() {
         loreData,
         staticPages,
         chronicles,
+        eraNarratives,
         imageData,
         images,
       };

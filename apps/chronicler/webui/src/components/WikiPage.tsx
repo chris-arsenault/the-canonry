@@ -1428,6 +1428,8 @@ export default function WikiPageView({
   }, [infoboxImageUrl, infoboxImageId, entityIndex, page.id, page.title, page.content.summary, openImageModal]);
 
   const isChronicle = page.type === 'chronicle';
+  const isEraNarrative = page.type === 'era_narrative';
+  const isLongFormProse = isChronicle || isEraNarrative;
 
   const staticTitle = useMemo(() => {
     if (page.type !== 'static') {
@@ -1464,6 +1466,8 @@ export default function WikiPageView({
             ? 'Categories'
             : page.type === 'chronicle'
             ? 'Chronicles'
+            : page.type === 'era_narrative'
+            ? 'Era Narratives'
             : page.type}
         </span>
         {' / '}
@@ -1484,12 +1488,18 @@ export default function WikiPageView({
       {/* Header */}
       <div className={styles.header}>
 
-        {/* Chronicle title: centered display serif (skip if already in hero) */}
-        {isChronicle && !page.content.coverImageId && (
+        {/* Chronicle/era narrative title: centered display serif (skip if already in hero) */}
+        {isLongFormProse && !page.content.coverImageId && (
           <h1 className={styles.chronicleTitle}>{page.title}</h1>
         )}
-        {/* Non-chronicle title: standard */}
-        {!isChronicle && (
+        {/* Era narrative subtitle */}
+        {isEraNarrative && page.eraNarrative && (
+          <div className={styles.summary} style={{ textAlign: 'center', fontStyle: 'italic', opacity: 0.7, fontSize: '13px' }}>
+            Era Narrative (synthetic) · {page.eraNarrative.tone}
+          </div>
+        )}
+        {/* Non-chronicle, non-era-narrative title: standard */}
+        {!isLongFormProse && (
           <h1 className={styles.title}>
             {page.type === 'static' ? staticTitle.displayTitle : page.title}
           </h1>
@@ -1501,9 +1511,11 @@ export default function WikiPageView({
             This page is about the {
               page.type === 'entity' || page.type === 'era'
                 ? (entityIndex.get(page.id)?.kind || page.type)
-                : page.type === 'static'
-                  ? (page.title.includes(':') ? page.title.split(':')[0].toLowerCase() : 'page')
-                  : page.type
+                : page.type === 'era_narrative'
+                  ? 'era narrative'
+                  : page.type === 'static'
+                    ? (page.title.includes(':') ? page.title.split(':')[0].toLowerCase() : 'page')
+                    : page.type
             }.
             {' '}See also:
             {disambiguation
@@ -1522,8 +1534,8 @@ export default function WikiPageView({
           </div>
         )}
 
-        {/* Summary + cover image for non-chronicle, non-static pages only */}
-        {!isChronicle && page.type !== 'static' && page.content.summary && (
+        {/* Summary + cover image for non-chronicle, non-era-narrative, non-static pages only */}
+        {!isLongFormProse && page.type !== 'static' && page.content.summary && (
           <div className={styles.summary}>
             {page.content.coverImageId && (
               <ChronicleImage
@@ -1618,9 +1630,9 @@ export default function WikiPageView({
 
         {/* Sections */}
         <div
-          className={isChronicle ? styles.chronicleBody : undefined}
+          className={isLongFormProse ? styles.chronicleBody : undefined}
           data-style={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
-          {...(isChronicle && page.content.sections[0]?.content && (() => {
+          {...(isLongFormProse && page.content.sections[0]?.content && (() => {
             const stripped = page.content.sections[0].content.replace(/^[\s*_#>]+/, '');
             // Must start with a letter, but not a Roman numeral section marker (e.g. "IV. Title")
             return /^[a-zA-Z]/.test(stripped) && !/^[IVXLCDM]+\.\s/.test(stripped);
@@ -1628,8 +1640,8 @@ export default function WikiPageView({
         >
         {page.content.sections.map((section, sectionIndex) => (
           <div key={section.id} id={section.id} className={styles.section}>
-            {/* Hide default "Chronicle" heading on chronicle pages */}
-            {!(isChronicle && section.heading === 'Chronicle') && (
+            {/* Hide default "Chronicle"/"Narrative" heading on long-form prose pages */}
+            {!(isLongFormProse && (section.heading === 'Chronicle' || section.heading === 'Narrative')) && (
               <>
                 <h2 className={styles.sectionHeading}>{section.heading}</h2>
                 <SectionDivider className={styles.sectionDividerSvg} />
@@ -1645,12 +1657,38 @@ export default function WikiPageView({
               onHoverLeave={handleEntityHoverLeave}
               onImageOpen={handleInlineImageOpen}
               historianNotes={page.content.historianNotes}
-              isFirstChronicleSection={isChronicle && sectionIndex === 0}
+              isFirstChronicleSection={isLongFormProse && sectionIndex === 0}
               narrativeStyleId={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
             />
           </div>
         ))}
         </div>
+
+        {/* Era narrative source chronicles */}
+        {isEraNarrative && page.eraNarrative?.sourceChronicleIds && page.eraNarrative.sourceChronicleIds.length > 0 && (
+          <div className={styles.chronicles}>
+            <div className={styles.chroniclesTitle}>
+              Source Chronicles ({page.eraNarrative.sourceChronicleIds.length})
+            </div>
+            {page.eraNarrative.sourceChronicleIds.map(cId => {
+              const link = pages.find(p => p.id === cId);
+              return link ? (
+                <button
+                  key={cId}
+                  className={styles.chronicleItem}
+                  onClick={() => onNavigate(cId)}
+                >
+                  <span>{link.title}</span>
+                  {link.chronicle?.format && (
+                    <span className={styles.chronicleMeta}>
+                      {link.chronicle.format === 'document' ? 'Document' : 'Story'}
+                    </span>
+                  )}
+                </button>
+              ) : null;
+            })}
+          </div>
+        )}
 
         {chronicleLinks.length > 0 && (
           <div className={styles.chronicles}>

@@ -52,6 +52,14 @@ const MAX_TOKENS_SHORT_LABELS = {
   65536: '64K',
 };
 
+const STREAM_TIMEOUT_OPTIONS = [
+  { value: 0, label: 'Off' },
+  { value: 30, label: '30s' },
+  { value: 60, label: '60s' },
+  { value: 120, label: '2m' },
+  { value: 300, label: '5m' },
+];
+
 function CallTypeRow({ callType, config, isDefault, onUpdate, isLast }) {
   const metadata = LLM_CALL_METADATA[callType];
   const canThink = THINKING_CAPABLE_MODELS.includes(config.model);
@@ -71,6 +79,9 @@ function CallTypeRow({ callType, config, isDefault, onUpdate, isLast }) {
       temperature: resolveOverride(overrides.temperature ?? config.temperature, metadata.defaults.temperature),
       topP: resolveOverride(overrides.topP ?? config.topP, metadata.defaults.topP),
     } : {}),
+    streamTimeout: resolveOverride(overrides.streamTimeout ?? config.streamTimeout, metadata.defaults.streamTimeout ?? 0),
+    disableStreaming: resolveOverride(overrides.disableStreaming ?? config.disableStreaming, metadata.defaults.disableStreaming ?? false),
+    runInBrowser: resolveOverride(overrides.runInBrowser ?? config.runInBrowser, metadata.defaults.runInBrowser ?? false),
   });
 
   const handleModelChange = (e) => {
@@ -101,6 +112,19 @@ function CallTypeRow({ callType, config, isDefault, onUpdate, isLast }) {
   const handleLowSamplingToggle = (e) => {
     const newTopP = e.target.checked ? 0.95 : 1.0;
     onUpdate(callType, buildUpdatePayload({ topP: newTopP }));
+  };
+
+  const handleTimeoutChange = (e) => {
+    const newTimeout = parseInt(e.target.value, 10);
+    onUpdate(callType, buildUpdatePayload({ streamTimeout: newTimeout }));
+  };
+
+  const handleSyncToggle = (e) => {
+    onUpdate(callType, buildUpdatePayload({ disableStreaming: e.target.checked }));
+  };
+
+  const handleBrowserToggle = (e) => {
+    onUpdate(callType, buildUpdatePayload({ runInBrowser: e.target.checked }));
   };
 
   const handleReset = () => {
@@ -189,6 +213,42 @@ function CallTypeRow({ callType, config, isDefault, onUpdate, isLast }) {
           ))}
         </select>
       </td>
+      <td className="llm-table-cell llm-table-cell-timeout">
+        <select
+          value={config.streamTimeout}
+          onChange={handleTimeoutChange}
+          disabled={config.disableStreaming}
+          className="llm-table-select"
+          title={config.disableStreaming ? 'Timeout disabled in sync mode' : 'SSE read timeout — abort if no data received within this period'}
+        >
+          {STREAM_TIMEOUT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+              {o.value === (metadata.defaults.streamTimeout ?? 0) ? '*' : ''}
+            </option>
+          ))}
+        </select>
+      </td>
+      <td className="llm-table-cell llm-table-cell-sync">
+        <label className="llm-table-checkbox-label" title="Get full response at once instead of streaming. No live thinking/text output, but avoids SSE stall issues.">
+          <input
+            type="checkbox"
+            checked={config.disableStreaming}
+            onChange={handleSyncToggle}
+            className="llm-table-checkbox"
+          />
+        </label>
+      </td>
+      <td className="llm-table-cell llm-table-cell-browser">
+        <label className="llm-table-checkbox-label" title="Run in browser main thread instead of service worker. Work won't survive page reload, but avoids service worker lifecycle issues.">
+          <input
+            type="checkbox"
+            checked={config.runInBrowser}
+            onChange={handleBrowserToggle}
+            className="llm-table-checkbox"
+          />
+        </label>
+      </td>
       <td className="llm-table-cell llm-table-cell-action">
         {!isDefault && (
           <button
@@ -207,7 +267,7 @@ function CallTypeRow({ callType, config, isDefault, onUpdate, isLast }) {
 function CategoryHeader({ category }) {
   return (
     <tr className="llm-table-category-row">
-      <td colSpan={7} className="llm-table-category-cell">
+      <td colSpan={10} className="llm-table-category-cell">
         {CATEGORY_LABELS[category]}
       </td>
     </tr>
@@ -229,7 +289,8 @@ export default function LLMCallConfigPanel() {
       },
     };
 
-    if (!config.model && config.thinkingBudget === undefined && config.maxTokens === undefined) {
+    if (!config.model && config.thinkingBudget === undefined && config.maxTokens === undefined
+        && config.streamTimeout === undefined && config.disableStreaming === undefined && config.runInBrowser === undefined) {
       delete next.callOverrides[callType];
     } else {
       next.callOverrides[callType] = config;
@@ -281,6 +342,9 @@ export default function LLMCallConfigPanel() {
               <th className="llm-table-th llm-table-th-temp">Temp</th>
               <th className="llm-table-th llm-table-th-top-p">Low P</th>
               <th className="llm-table-th llm-table-th-max">Max Tokens</th>
+              <th className="llm-table-th llm-table-th-timeout">Timeout</th>
+              <th className="llm-table-th llm-table-th-sync">No Stream</th>
+              <th className="llm-table-th llm-table-th-browser">Browser</th>
               <th className="llm-table-th llm-table-th-action"></th>
             </tr>
           </thead>

@@ -170,6 +170,13 @@ export interface PageIndexEntry {
     pageId: string;
     status: 'draft' | 'published';
   };
+  // For era narrative pages
+  eraNarrative?: {
+    eraId: string;
+    tone: string;
+    thesis?: string;
+    sourceChronicleIds?: string[];
+  };
   // For link resolution
   linkedEntities: string[];
   lastUpdated: number;
@@ -245,7 +252,7 @@ export interface WikiPage {
   id: string;
   slug: string;
   title: string;
-  type: 'entity' | 'era' | 'category' | 'relationship' | 'chronicle' | 'static' | 'region';
+  type: 'entity' | 'era' | 'category' | 'relationship' | 'chronicle' | 'static' | 'region' | 'era_narrative';
   chronicle?: {
     format: 'story' | 'document';
     entrypointId?: string;
@@ -259,6 +266,12 @@ export interface WikiPage {
   static?: {
     pageId: string;
     status: 'draft' | 'published';
+  };
+  eraNarrative?: {
+    eraId: string;
+    tone: string;
+    thesis?: string;
+    sourceChronicleIds?: string[];
   };
   aliases?: string[];
   content: WikiContent;

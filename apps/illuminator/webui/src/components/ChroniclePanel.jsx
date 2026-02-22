@@ -538,6 +538,9 @@ export default function ChroniclePanel({
   // Era narrative modal — state lives in Zustand store to survive tab switches
   const eraNarrativeModal = useIlluminatorModals((s) => s.eraNarrativeModal);
 
+  // Bulk historian prep: skip chronicles that already have prep
+  const [skipCompletedPrep, setSkipCompletedPrep] = useState(true);
+
   // Bulk era narrative modal
   const [showBulkEraNarrative, setShowBulkEraNarrative] = useState(false);
   const bulkEraNarrativeProgress = useBulkEraNarrativeStore((s) => s.progress);
@@ -2519,9 +2522,12 @@ export default function ChroniclePanel({
               </button>
               <button
                 onClick={() => {
-                  const eligible = chronicleItems.filter(
+                  let eligible = chronicleItems.filter(
                     (c) => (c.status === 'complete' || c.status === 'assembly_ready') && historianConfigured,
                   );
+                  if (skipCompletedPrep) {
+                    eligible = eligible.filter((c) => !c.hasHistorianPrep);
+                  }
                   if (eligible.length === 0) return;
                   const items = eligible.map((c) => {
                     const primaryRole = c.roleAssignments?.find((r) => r.isPrimary) || c.roleAssignments?.[0];
@@ -2540,6 +2546,18 @@ export default function ChroniclePanel({
               >
                 Historian Prep
               </button>
+              <label
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-muted)', cursor: 'pointer', marginTop: '-2px' }}
+                title="Skip chronicles that already have historian prep briefs"
+              >
+                <input
+                  type="checkbox"
+                  checked={skipCompletedPrep}
+                  onChange={(e) => setSkipCompletedPrep(e.target.checked)}
+                  style={{ margin: 0 }}
+                />
+                Skip completed
+              </label>
               <button
                 onClick={() => useIlluminatorModals.getState().openEraNarrative()}
                 className="illuminator-button"
@@ -2598,15 +2616,22 @@ export default function ChroniclePanel({
                   if (!simulationRunId || entityNavItems.size === 0) return;
                   const chronicles = await getChroniclesForSimulation(simulationRunId);
                   let amended = 0;
+                  const unchanged = [];
                   for (const record of chronicles) {
                     if (!record.historianPrep) continue;
                     const annotated = annotateEntityNames(record.historianPrep, entityNavItems);
                     if (annotated !== record.historianPrep) {
                       await updateChronicleHistorianPrep(record.chronicleId, annotated);
                       amended++;
+                    } else {
+                      unchanged.push(record.title || record.chronicleId);
                     }
                   }
-                  console.log(`[Amend Briefs] Annotated ${amended} of ${chronicles.filter(c => c.historianPrep).length} briefs`);
+                  const total = chronicles.filter(c => c.historianPrep).length;
+                  console.log(`[Amend Briefs] Annotated ${amended}/${total} briefs`);
+                  if (unchanged.length > 0) {
+                    console.log(`[Amend Briefs] Unchanged (${unchanged.length}):`, unchanged);
+                  }
                 }}
                 className="illuminator-button"
                 title="Annotate entity names in historian prep briefs with type/culture metadata (e.g. faction/company, aurora-stack)"
@@ -2711,7 +2736,7 @@ export default function ChroniclePanel({
         {/* Right panel: Selected item detail */}
         <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
           {isEraNarrativeSelected && selectedEraNarrativeId ? (
-            <EraNarrativeViewer narrativeId={selectedEraNarrativeId} />
+            <EraNarrativeViewer narrativeId={selectedEraNarrativeId} onEnqueue={onEnqueue} />
           ) : !selectedItem ? (
             <div
               style={{

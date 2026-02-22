@@ -53,6 +53,8 @@ export type LLMCallType =
   | 'historian.eraNarrative.threads'   // Era narrative: thread synthesis (JSON structure)
   | 'historian.eraNarrative.generate'  // Era narrative: prose generation (5-7K words)
   | 'historian.eraNarrative.edit'      // Era narrative: copy-edit pass
+  | 'historian.eraNarrative.coverImageScene'  // Era narrative: cover image scene description
+  | 'historian.eraNarrative.imageRefs'        // Era narrative: image reference placement
   | 'historian.motifVariation'; // Motif phrase variation for annotation deduplication
 
 export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
@@ -86,6 +88,8 @@ export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   'historian.eraNarrative.threads',
   'historian.eraNarrative.generate',
   'historian.eraNarrative.edit',
+  'historian.eraNarrative.coverImageScene',
+  'historian.eraNarrative.imageRefs',
   'historian.motifVariation',
 ];
 
@@ -99,6 +103,12 @@ export interface LLMCallDefaults {
   temperature?: number;
   /** Top-p for thinking-enabled calls. 1.0 = normal, 0.95 = low sampling. */
   topP?: number;
+  /** SSE read timeout in seconds. 0 = no timeout (default). */
+  streamTimeout?: number;
+  /** When true, bypass SSE streaming and use synchronous JSON response. */
+  disableStreaming?: boolean;
+  /** When true, execute LLM call in main thread instead of service worker. */
+  runInBrowser?: boolean;
 }
 
 export interface LLMCallMetadata {
@@ -118,6 +128,9 @@ export interface LLMCallConfig {
   maxTokens?: number;       // 0 = auto (style-derived)
   temperature?: number;
   topP?: number;
+  streamTimeout?: number;
+  disableStreaming?: boolean;
+  runInBrowser?: boolean;
 }
 
 // Available models
@@ -486,6 +499,28 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
     },
     recommendedModels: ['claude-opus-4-6', 'claude-sonnet-4-6'],
   },
+  'historian.eraNarrative.coverImageScene': {
+    label: 'Era Narrative — Cover Scene',
+    description: 'Generates a scene description for the era narrative cover image',
+    category: 'historian',
+    defaults: {
+      model: 'claude-haiku-4-5-20251001',
+      thinkingBudget: 0,
+      maxTokens: 512,
+    },
+    recommendedModels: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6'],
+  },
+  'historian.eraNarrative.imageRefs': {
+    label: 'Era Narrative — Image Refs',
+    description: 'Places image references throughout the era narrative, referencing chronicle images or generating new scenes',
+    category: 'historian',
+    defaults: {
+      model: 'claude-haiku-4-5-20251001',
+      thinkingBudget: 0,
+      maxTokens: 2048,
+    },
+    recommendedModels: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6'],
+  },
   'historian.motifVariation': {
     label: 'Motif Variation',
     description: 'Rewrite annotation clauses to vary overused phrases while preserving voice',
@@ -531,6 +566,6 @@ export function getCallTypesByCategory(): Record<LLMCallCategory, LLMCallType[]>
     palette: ['palette.expansion'],
     dynamics: ['dynamics.generation'],
     revision: ['revision.summary', 'revision.loreBackport'],
-    historian: ['historian.entityReview', 'historian.chronicleReview', 'historian.edition', 'historian.chronology', 'historian.prep', 'historian.eraNarrative.threads', 'historian.eraNarrative.generate', 'historian.eraNarrative.edit', 'historian.motifVariation'],
+    historian: ['historian.entityReview', 'historian.chronicleReview', 'historian.edition', 'historian.chronology', 'historian.prep', 'historian.eraNarrative.threads', 'historian.eraNarrative.generate', 'historian.eraNarrative.edit', 'historian.eraNarrative.coverImageScene', 'historian.eraNarrative.imageRefs', 'historian.motifVariation'],
   };
 }

@@ -1,29 +1,50 @@
 /**
- * EraNarrativeViewer — Read-only viewer for a completed era narrative.
+ * EraNarrativeViewer — Workspace viewer for a completed era narrative.
  *
  * Loads the full EraNarrativeRecord from IndexedDB and displays:
  * 1. Header: title, era name, tone, word count, cost
- * 2. Narrative prose (primary content, dominates the view)
- * 3. Thread Synthesis (collapsible): thesis, threads, movements, motifs, images
- * 4. Source Briefs (collapsible): per-chronicle prep inputs
- * 5. Cost/model metadata footer
+ * 2. Version selector: switch between generate/edit versions, delete, set active
+ * 3. Narrative prose (primary content, dominates the view)
+ * 4. Thread Synthesis (collapsible): thesis, threads, movements, motifs, images
+ * 5. Source Briefs (collapsible): per-chronicle prep inputs
+ * 6. Cost/model metadata footer
+ * 7. Actions: re-run copy edit, export
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { getEraNarrative } from '../lib/db/eraNarrativeRepository';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import {
+  getEraNarrative,
+  updateEraNarrative,
+  resolveActiveContent,
+  deleteEraNarrativeVersion,
+  setEraNarrativeActiveVersion,
+} from '../lib/db/eraNarrativeRepository';
 import { downloadEraNarrativeExport } from '../lib/chronicleExport';
 import type { EraNarrativeRecord } from '../lib/eraNarrativeTypes';
+import type { EnrichmentType } from '../lib/enrichmentTypes';
 
 interface EraNarrativeViewerProps {
   narrativeId: string;
+  onEnqueue: (items: Array<{
+    entity: { id: string; name: string; kind: string; subtype: string; prominence: string; culture: string; status: string; description: string; tags: Record<string, unknown> };
+    type: EnrichmentType;
+    prompt: string;
+    chronicleId?: string;
+  }>) => void;
 }
 
-export default function EraNarrativeViewer({ narrativeId }: EraNarrativeViewerProps) {
+const POLL_INTERVAL_MS = 2000;
+
+export default function EraNarrativeViewer({ narrativeId, onEnqueue }: EraNarrativeViewerProps) {
   const [record, setRecord] = useState<EraNarrativeRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [showThreads, setShowThreads] = useState(false);
   const [showBriefs, setShowBriefs] = useState(false);
+  const [selectedVersionId, setSelectedVersionId] = useState('');
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Load record from IndexedDB
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -31,9 +52,42 @@ export default function EraNarrativeViewer({ narrativeId }: EraNarrativeViewerPr
       if (cancelled) return;
       setRecord(r ?? null);
       setLoading(false);
+      setSelectedVersionId('');
+      setConfirmingDeleteId(null);
     });
     return () => { cancelled = true; };
   }, [narrativeId]);
+
+  // Stop polling helper
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => stopPolling, [stopPolling]);
+
+  // Poll while generating (for re-run copy edit)
+  const startPolling = useCallback(() => {
+    stopPolling();
+    pollRef.current = setInterval(async () => {
+      const updated = await getEraNarrative(narrativeId);
+      if (!updated) return;
+      setRecord(updated);
+
+      if (updated.status === 'complete' || updated.status === 'failed' || updated.status === 'step_complete') {
+        // If step_complete from edit, mark complete automatically
+        if (updated.status === 'step_complete' && updated.currentStep === 'edit') {
+          await updateEraNarrative(updated.narrativeId, { status: 'complete' });
+          const final = await getEraNarrative(narrativeId);
+          if (final) setRecord(final);
+        }
+        stopPolling();
+      }
+    }, POLL_INTERVAL_MS);
+  }, [narrativeId, stopPolling]);
 
   const threadNameMap = useMemo(() => {
     if (!record?.threadSynthesis) return {};
@@ -44,15 +98,81 @@ export default function EraNarrativeViewer({ narrativeId }: EraNarrativeViewerPr
     return map;
   }, [record?.threadSynthesis]);
 
+  // Resolve versioned content
+  const resolved = useMemo(() => {
+    if (!record) return { content: undefined, versions: [], activeVersionId: undefined };
+    return resolveActiveContent(record);
+  }, [record]);
+
+  // Sync selectedVersionId to activeVersionId
+  useEffect(() => {
+    if (resolved.activeVersionId) {
+      if (!selectedVersionId || !resolved.versions.some((v) => v.versionId === selectedVersionId)) {
+        setSelectedVersionId(resolved.activeVersionId);
+      }
+    }
+  }, [resolved.activeVersionId, resolved.versions.length]);
+
+  const viewedVersion = resolved.versions.find((v) => v.versionId === selectedVersionId)
+    || resolved.versions[resolved.versions.length - 1];
+  const viewedContent = viewedVersion?.content || resolved.content;
+  const viewedWordCount = viewedVersion?.wordCount || 0;
+
+  // Actions
   const handleExport = useCallback(() => {
-    console.log('[EraNarrativeViewer] Export clicked, record:', !!record);
     if (!record) return;
     try {
       downloadEraNarrativeExport(record);
-      console.log('[EraNarrativeViewer] Export completed');
     } catch (err) {
       console.error('[EraNarrativeViewer] Export failed:', err);
     }
+  }, [record]);
+
+  const handleRerunCopyEdit = useCallback(async () => {
+    if (!record) return;
+    await updateEraNarrative(record.narrativeId, {
+      status: 'pending',
+      currentStep: 'edit',
+    });
+    setSelectedVersionId('');
+
+    // Dispatch worker task
+    const sentinelEntity = {
+      id: '__era_narrative__',
+      name: 'Era Narrative',
+      kind: 'system',
+      subtype: '',
+      prominence: '',
+      culture: '',
+      status: 'active',
+      description: '',
+      tags: {},
+    };
+    onEnqueue([{
+      entity: sentinelEntity,
+      type: 'eraNarrative' as EnrichmentType,
+      prompt: '',
+      chronicleId: record.narrativeId,
+    }]);
+
+    // Refresh record and start polling
+    const updated = await getEraNarrative(record.narrativeId);
+    if (updated) setRecord(updated);
+    startPolling();
+  }, [record, onEnqueue, startPolling]);
+
+  const handleDeleteVersion = useCallback(async (versionId: string) => {
+    if (!record) return;
+    const updated = await deleteEraNarrativeVersion(record.narrativeId, versionId);
+    setRecord(updated);
+    setConfirmingDeleteId(null);
+    if (updated.activeVersionId) setSelectedVersionId(updated.activeVersionId);
+  }, [record]);
+
+  const handleSetActiveVersion = useCallback(async (versionId: string) => {
+    if (!record) return;
+    const updated = await setEraNarrativeActiveVersion(record.narrativeId, versionId);
+    setRecord(updated);
   }, [record]);
 
   if (loading) {
@@ -72,9 +192,7 @@ export default function EraNarrativeViewer({ narrativeId }: EraNarrativeViewerPr
   }
 
   const synthesis = record.threadSynthesis;
-  const narrativeContent = record.narrative;
-  const displayContent = narrativeContent?.editedContent || narrativeContent?.content;
-  const wordCount = narrativeContent?.editedWordCount || narrativeContent?.wordCount || 0;
+  const isGenerating = record.status === 'pending' || record.status === 'generating';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0', height: '100%' }}>
@@ -102,9 +220,9 @@ export default function EraNarrativeViewer({ narrativeId }: EraNarrativeViewerPr
             }}>
               {record.tone}
             </span>
-            {wordCount > 0 && (
+            {viewedWordCount > 0 && (
               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                {wordCount.toLocaleString()} words
+                {viewedWordCount.toLocaleString()} words
               </span>
             )}
             <button
@@ -126,8 +244,111 @@ export default function EraNarrativeViewer({ narrativeId }: EraNarrativeViewerPr
         </div>
       </div>
 
+      {/* Version Selector + Actions */}
+      {resolved.versions.length > 0 && !isGenerating && (
+        <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <select
+            value={selectedVersionId || resolved.activeVersionId || ''}
+            onChange={(e) => {
+              setSelectedVersionId(e.target.value);
+              setConfirmingDeleteId(null);
+            }}
+            className="illuminator-select"
+            style={{ width: 'auto', minWidth: '240px', fontSize: '12px', padding: '4px 6px' }}
+          >
+            {resolved.versions.map((v) => {
+              const date = new Date(v.generatedAt);
+              const timeStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                + ' ' + date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+              const stepLabel = v.step === 'generate' ? 'Draft' : 'Edit';
+              return (
+                <option key={v.versionId} value={v.versionId}>
+                  {stepLabel} — {v.wordCount.toLocaleString()} words — {timeStr}
+                </option>
+              );
+            })}
+          </select>
+
+          {/* Active badge or Make Active button */}
+          {viewedVersion && viewedVersion.versionId === resolved.activeVersionId ? (
+            <span style={{
+              fontSize: '11px', padding: '2px 8px',
+              background: 'rgba(16, 185, 129, 0.15)', color: '#10b981',
+              borderRadius: '999px', fontWeight: 500,
+            }}>
+              Active
+            </span>
+          ) : viewedVersion ? (
+            <button
+              onClick={() => {
+                handleSetActiveVersion(viewedVersion.versionId);
+                setConfirmingDeleteId(null);
+              }}
+              className="illuminator-button"
+              style={{ padding: '2px 8px', fontSize: '11px' }}
+            >
+              Make Active
+            </button>
+          ) : null}
+
+          {/* Delete version button (cannot delete generate versions) */}
+          {viewedVersion && viewedVersion.step !== 'generate' && (() => {
+            const isConfirming = confirmingDeleteId === viewedVersion.versionId;
+            return (
+              <button
+                onClick={() => {
+                  if (isConfirming) {
+                    handleDeleteVersion(viewedVersion.versionId);
+                  } else {
+                    setConfirmingDeleteId(viewedVersion.versionId);
+                  }
+                }}
+                onBlur={() => setConfirmingDeleteId(null)}
+                className="illuminator-button"
+                style={{
+                  padding: '2px 8px', fontSize: '11px',
+                  background: isConfirming ? '#ef4444' : undefined,
+                  color: isConfirming ? '#fff' : 'var(--text-muted)',
+                  borderColor: isConfirming ? '#ef4444' : undefined,
+                }}
+                title={isConfirming ? 'Click again to confirm' : 'Delete this version'}
+              >
+                {isConfirming ? 'Confirm Delete' : 'Delete'}
+              </button>
+            );
+          })()}
+
+          <div style={{ marginLeft: 'auto' }}>
+            <button
+              onClick={handleRerunCopyEdit}
+              className="illuminator-button"
+              style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 500 }}
+              title="Re-run copy edit on the latest version"
+            >
+              Re-run Copy Edit
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Generating indicator */}
+      {isGenerating && (
+        <div style={{
+          padding: '12px 16px',
+          marginBottom: '12px',
+          background: 'rgba(245, 158, 11, 0.08)',
+          border: '1px solid rgba(245, 158, 11, 0.2)',
+          borderRadius: '6px',
+          fontSize: '13px',
+          color: '#d97706',
+          textAlign: 'center',
+        }}>
+          {record.currentStep === 'edit' ? 'Running copy edit...' : `Running ${record.currentStep} step...`}
+        </div>
+      )}
+
       {/* Narrative Prose — primary content */}
-      {displayContent ? (
+      {viewedContent ? (
         <div style={{
           padding: '20px 24px',
           background: 'var(--bg-primary)',
@@ -142,7 +363,7 @@ export default function EraNarrativeViewer({ narrativeId }: EraNarrativeViewerPr
           flex: '1 1 0',
           minHeight: '200px',
         }}>
-          {displayContent}
+          {viewedContent}
         </div>
       ) : (
         <div style={{
@@ -450,9 +671,6 @@ export default function EraNarrativeViewer({ narrativeId }: EraNarrativeViewerPr
         )}
         {synthesis && (
           <span title="Thread synthesis model">{synthesis.model}</span>
-        )}
-        {narrativeContent && narrativeContent.model !== synthesis?.model && (
-          <span title="Narrative model">{narrativeContent.model}</span>
         )}
         <span style={{ marginLeft: 'auto' }}>
           {new Date(record.createdAt).toLocaleDateString()}

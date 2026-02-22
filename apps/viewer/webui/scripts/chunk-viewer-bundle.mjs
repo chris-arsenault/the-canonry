@@ -178,6 +178,23 @@ async function main() {
     }
   }
 
+  // Strip era narrative generation metadata not needed for viewing
+  // The export already projects to viewer-friendly format, but strip any
+  // remaining generation fields that may have leaked through
+  if (Array.isArray(coreBundle.eraNarratives)) {
+    const STRIP_NARRATIVE_FIELDS = [
+      'historianConfigJson',
+      'worldContext',
+      'error',
+      'prepBriefs',  // Full prep text — sourceChronicles has the IDs/titles already
+    ];
+    for (const narrative of coreBundle.eraNarratives) {
+      for (const field of STRIP_NARRATIVE_FIELDS) {
+        delete narrative[field];
+      }
+    }
+  }
+
   // Strip image generation prompts (viewer only needs paths + metadata)
   if (Array.isArray(coreBundle.imageData?.results)) {
     for (const image of coreBundle.imageData.results) {

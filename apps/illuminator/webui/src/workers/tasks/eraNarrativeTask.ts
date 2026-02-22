@@ -18,8 +18,22 @@ import type {
   EraNarrativeRecord,
   EraNarrativeThreadSynthesis,
   EraNarrativeContent,
+  EraNarrativeContentVersion,
+  EraNarrativeCoverImage,
+  EraNarrativeImageRef,
+  EraNarrativeImageRefs,
+  EraNarrativeImageSize,
+  ChronicleImageRef as EraNarrativeChronicleImageRef,
+  EraNarrativePromptRequestRef,
 } from '../../lib/eraNarrativeTypes';
-import { getEraNarrative, updateEraNarrative } from '../../lib/db/eraNarrativeRepository';
+import {
+  getEraNarrative,
+  updateEraNarrative,
+  generateVersionId,
+  resolveActiveContent,
+  updateEraNarrativeCoverImage,
+  updateEraNarrativeImageRefs,
+} from '../../lib/db/eraNarrativeRepository';
 import { runTextCall } from '../../lib/llmTextCall';
 import { getCallConfig } from './llmCallConfig';
 import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepository';
@@ -93,7 +107,7 @@ function formatCulturalIdentities(identities: Record<string, unknown>): string {
 // Thread Synthesis Step
 // ============================================================================
 
-function buildThreadsSystemPrompt(historianConfig: HistorianConfig, tone: EraNarrativeTone, eraName: string): string {
+function buildThreadsSystemPrompt(historianConfig: HistorianConfig, tone: EraNarrativeTone, eraName: string, arcDirection?: string): string {
   const privateFacts = historianConfig.privateFacts.length > 0
     ? `\n**Private knowledge:** ${historianConfig.privateFacts.join('; ')}`
     : '';
@@ -134,11 +148,13 @@ From these, identify:
 
    For each thread, choose a **register**: exactly 3 words naming how this thread feels. Not what happens — how it feels.
 
-   **Choose registers before writing descriptions.** Pick all register labels first. Then verify: no two threads share a dominant feeling. Each thread must occupy distinct emotional territory. At least one register must not center on gravity, loss, or dread. Then write descriptions and arcs informed by the registers.
+   **Choose registers before writing descriptions.** Pick all register labels first. Then verify: no two threads share a dominant feeling. Each thread must occupy distinct emotional territory. At least one register must carry the energy of what the era built, attempted, or changed — not only what it lost. Registers should span the era's emotional range, not cluster around the chronicles' dominant tone. Then write descriptions and arcs informed by the registers.
 
    For each thread, curate the **material** — the narrative facts the writer will need. Name the characters who serve as evidence and what they did. Sequence the key events. Describe the mechanisms. Name the objects and sensory details available. Write this in your own analytical voice — what happened and what matters. **Do not reproduce the chronicles' prose. The writer must find their own language.** The material is a creative brief, not a source anthology.
 
 2. **Thesis** — what happened to the world in this era. Not a pattern connecting chronicles, but how the world transformed — what it was at the start, what it became, and what drove the change. The thesis should never appear as a sentence in the final text — it lives in the structure. If a preceding era thesis is provided, your thesis must be in dialogue with it — acknowledging, extending, complicating, or transforming the previous argument.
+
+   **The focal era summary describes the era's defining movement — the transformation that gives the era its name.** Your thesis must be in dialogue with this movement. The chronicles show what happened inside the era; the era summary tells you what the era IS. When the chronicles and the era summary tell different stories, your thesis should explain the relationship — not discard the era summary in favor of the chronicles.
 
 3. **Counterweight** — what persisted, what was built, what survived despite everything. Name specific things from the source material, not abstractions.
 
@@ -189,8 +205,14 @@ Output ONLY valid JSON matching this schema:
 4. The thesis must describe world-level transformation, not statable as a sentence in the final text.
 5. **Respect source weights.** Structural sources define arcs. Contextual sources inform cultural identity — they tell you who the peoples believe they are, not what happened.
 6. Stay in character. You are planning YOUR work.
-7. **Register differentiation is mandatory.** No two threads share a dominant feeling. This is a hard constraint.
-8. **Strategic dynamics must show arrows crossing.** Each dynamic must involve at least two cultures/factions. A dynamic that describes one culture's internal process is a thread, not a strategic dynamic.`;
+7. **Register differentiation is mandatory.** No two threads share a dominant feeling. Registers collectively must span the era's emotional range as described in the era summary — not merely reflect the chronicles' shared tone. This is a hard constraint.
+8. **Strategic dynamics must show arrows crossing.** Each dynamic must involve at least two cultures/factions. A dynamic that describes one culture's internal process is a thread, not a strategic dynamic.${arcDirection ? `
+
+## CRITICAL: ARC DIRECTION
+
+The following arc direction has been set for this era narrative. Your thesis, thread arcs, and register choices must honor this direction. The individual chronicles may emphasize particular aspects of the era — your job is to place them within this larger arc.
+
+${arcDirection}` : ''}`;
 }
 
 function buildThreadsUserPrompt(record: EraNarrativeRecord): string {
@@ -199,17 +221,21 @@ function buildThreadsUserPrompt(record: EraNarrativeRecord): string {
 
   sections.push(`=== ERA: ${record.eraName} ===`);
 
-  // Era summaries — world-state anchors
+  // Focal era summary — the defining movement of this era (separated for authority)
   if (wc) {
-    const eraParts: string[] = [];
+    sections.push(`=== ERA IDENTITY (the defining movement of this era) ===\n${wc.focalEra.name}:\n${wc.focalEra.summary || '(no summary)'}`);
+
+    // Adjacent eras — world-state context
+    const adjacentParts: string[] = [];
     if (wc.previousEra?.summary) {
-      eraParts.push(`PRECEDING ERA — ${wc.previousEra.name}:\n${wc.previousEra.summary}`);
+      adjacentParts.push(`PRECEDING ERA — ${wc.previousEra.name}:\n${wc.previousEra.summary}`);
     }
-    eraParts.push(`FOCAL ERA — ${wc.focalEra.name}:\n${wc.focalEra.summary || '(no summary)'}`);
     if (wc.nextEra?.summary) {
-      eraParts.push(`FOLLOWING ERA — ${wc.nextEra.name}:\n${wc.nextEra.summary}`);
+      adjacentParts.push(`FOLLOWING ERA — ${wc.nextEra.name}:\n${wc.nextEra.summary}`);
     }
-    sections.push(`=== ERA CONTEXT (the world before, during, and after) ===\n${eraParts.join('\n\n')}`);
+    if (adjacentParts.length > 0) {
+      sections.push(`=== ERA CONTEXT (the world before and after) ===\n${adjacentParts.join('\n\n')}`);
+    }
 
     // Previous era thesis — what the preceding narrative argued about the world
     if (wc.previousEraThesis) {
@@ -262,7 +288,7 @@ function buildThreadsUserPrompt(record: EraNarrativeRecord): string {
     ? `Your ${arcSources} sources are grouped by weight: structural sources define the era's trajectory — build your cultural arcs from these. Contextual sources reveal cultural identity and framing — use them for how cultures see themselves, not arc-defining beats.`
     : `You have ${arcSources} sources. Assess each source's narrative role yourself: sources that dramatize events are structural (build arcs from these). Sources that frame events or reveal cultural self-image are contextual (use for identity, not arc-defining beats).`;
   sections.push(`=== YOUR TASK ===
-Plan the cultural arcs and strategic dynamics for your era narrative of ${record.eraName}. ${tierInstruction} The era summaries and world dynamics tell you what happened to the world. The cultural identities tell you who the peoples are. This narrative will be read before the individual chronicles.`);
+Plan the cultural arcs **and strategic dynamics** for your era narrative of ${record.eraName}. ${tierInstruction} The era identity describes the era's defining movement — your thesis and thread arcs must be in dialogue with it, not derived solely from the chronicles. The world dynamics and cultural identities provide the context. This narrative will be read before the individual chronicles.`);
 
   return sections.join('\n\n');
 }
@@ -335,6 +361,8 @@ A death matters because of what it reveals about the state of the world, not bec
 
 **Landscape as cultural state.** Geography, architecture, weather express what cultures are doing. A people's decline shows in their infrastructure.
 
+**The world as actor.** When governance fractures, the world itself acts in the vacancy. The ice records what institutions miss. Corruption flows where jurisdiction withdraws. Artifacts act outside any faction's authority. An abandoned territory is a space where non-institutional agents operate — give the world, the landscape, and the forces already identified in the threads concrete verbs. These are better narrative subjects than a list of factions contesting a title.
+
 **The turn.** When a cultural arc pivots, the sentence rhythm shifts. Shorter sentences at the moment of change, then the longer accumulated clauses resume.
 
 ## Craft Posture
@@ -357,6 +385,7 @@ The counterweight names what survived and what was built. These are material fac
 - **Stated themes.** If the text says what its motifs mean, cut the explanation. The recurrence is the argument.
 - **Unearned epiphany.** Do not wrap passages with a tidy emotional lesson. Trust the action.
 - **Borrowed prose.** The individual chronicles that follow this narrative are written by other hands. Your prose must be your own — do not echo their phrasings. In-world text (precepts, carved phrases, verses, sayings) may be quoted as cultural artifact. Narrative prose may not.
+- **Institutional inventory.** Compress the institutional landscape to two or three named actors and let the rest exist as unnamed weight. A proper noun that appears once, performs no action, and connects to no later sentence is dead weight — cut it or give it a verb.
 
 ## Time
 
@@ -422,17 +451,21 @@ function buildGenerateUserPrompt(record: EraNarrativeRecord): string {
   sections.push(`=== ERA: ${record.eraName} ===
 Year range: ${eraStart}–${eraEnd}`);
 
-  // Era summaries — world-state anchors
+  // Era identity — the defining movement (separated for authority)
   if (wc) {
-    const eraParts: string[] = [];
+    sections.push(`=== ERA IDENTITY (the defining movement of this era) ===\n${wc.focalEra.name}:\n${wc.focalEra.summary || '(no summary)'}`);
+
+    // Adjacent eras — world-state context
+    const adjacentParts: string[] = [];
     if (wc.previousEra?.summary) {
-      eraParts.push(`THE WORLD BEFORE (${wc.previousEra.name}):\n${wc.previousEra.summary}`);
+      adjacentParts.push(`THE WORLD BEFORE (${wc.previousEra.name}):\n${wc.previousEra.summary}`);
     }
-    eraParts.push(`THIS ERA (${wc.focalEra.name}):\n${wc.focalEra.summary || '(no summary)'}`);
     if (wc.nextEra?.summary) {
-      eraParts.push(`WHAT FOLLOWS (${wc.nextEra.name}):\n${wc.nextEra.summary}`);
+      adjacentParts.push(`WHAT FOLLOWS (${wc.nextEra.name}):\n${wc.nextEra.summary}`);
     }
-    sections.push(`=== WORLD ARC ===\n${eraParts.join('\n\n')}`);
+    if (adjacentParts.length > 0) {
+      sections.push(`=== WORLD ARC ===\n${adjacentParts.join('\n\n')}`);
+    }
 
     // Previous era thesis — continuity with the preceding volume
     if (wc.previousEraThesis) {
@@ -527,9 +560,8 @@ function buildEditSystemPrompt(): string {
 The edited narrative. No commentary, no notes. Just the improved prose.`;
 }
 
-function buildEditUserPrompt(record: EraNarrativeRecord): string {
+function buildEditUserPrompt(record: EraNarrativeRecord, contentToEdit: string): string {
   const synthesis = record.threadSynthesis!;
-  const narrativeContent = record.narrative!.content;
   const editSections: string[] = [];
 
   editSections.push(`=== ERA NARRATIVE: ${record.eraName} ===`);
@@ -542,7 +574,7 @@ function buildEditUserPrompt(record: EraNarrativeRecord): string {
     editSections.push(`Counterweight (protect — these moments earn their place):\n${synthesis.counterweight}`);
   }
 
-  editSections.push(`=== TEXT TO EDIT ===\n${narrativeContent}`);
+  editSections.push(`=== TEXT TO EDIT ===\n${contentToEdit}`);
 
   editSections.push(`=== TASK ===\nEdit this era narrative. Preserve the mythic register. Strengthen restraint. Cut modern register breaks. Tighten.`);
 
@@ -565,7 +597,7 @@ async function executeThreadsStep(
   const callType = 'historian.eraNarrative.threads' as const;
   const callConfig = getCallConfig(config, callType);
 
-  const systemPrompt = buildThreadsSystemPrompt(historianConfig, tone, record.eraName);
+  const systemPrompt = buildThreadsSystemPrompt(historianConfig, tone, record.eraName, record.arcDirection);
   const userPrompt = buildThreadsUserPrompt(record);
 
   const callResult = await runTextCall({
@@ -675,10 +707,14 @@ async function executeGenerateStep(
     return { success: false, error: err };
   }
 
+  const wordCount = resultText.split(/\s+/).filter(Boolean).length;
+  const now = Date.now();
+
+  // Legacy narrative field (backward compat)
   const narrative: EraNarrativeContent = {
     content: resultText,
-    wordCount: resultText.split(/\s+/).filter(Boolean).length,
-    generatedAt: Date.now(),
+    wordCount,
+    generatedAt: now,
     model: callConfig.model,
     systemPrompt,
     userPrompt,
@@ -687,9 +723,28 @@ async function executeGenerateStep(
     actualCost: callResult.usage.actualCost,
   };
 
+  // Versioned content
+  const version: EraNarrativeContentVersion = {
+    versionId: generateVersionId(),
+    content: resultText,
+    wordCount,
+    step: 'generate',
+    generatedAt: now,
+    model: callConfig.model,
+    systemPrompt,
+    userPrompt,
+    inputTokens: callResult.usage.inputTokens,
+    outputTokens: callResult.usage.outputTokens,
+    actualCost: callResult.usage.actualCost,
+  };
+
+  const contentVersions = [...(record.contentVersions || []), version];
+
   await updateEraNarrative(record.narrativeId, {
     status: 'step_complete',
     narrative,
+    contentVersions,
+    activeVersionId: version.versionId,
     totalInputTokens: record.totalInputTokens + callResult.usage.inputTokens,
     totalOutputTokens: record.totalOutputTokens + callResult.usage.outputTokens,
     totalActualCost: record.totalActualCost + callResult.usage.actualCost,
@@ -716,16 +771,18 @@ async function executeEditStep(
 ): Promise<TaskResult> {
   const { config, llmClient, isAborted } = context;
 
-  if (!record.narrative) {
-    await updateEraNarrative(record.narrativeId, { status: 'failed', error: 'Narrative required before editing' });
-    return { success: false, error: 'Narrative required' };
+  // Resolve content to edit: latest version, or fall back to legacy narrative
+  const { content: activeContent } = resolveActiveContent(record);
+  if (!activeContent) {
+    await updateEraNarrative(record.narrativeId, { status: 'failed', error: 'No content available for editing' });
+    return { success: false, error: 'No content available for editing' };
   }
 
   const callType = 'historian.eraNarrative.edit' as const;
   const callConfig = getCallConfig(config, callType);
 
   const systemPrompt = buildEditSystemPrompt();
-  const userPrompt = buildEditUserPrompt(record);
+  const userPrompt = buildEditUserPrompt(record, activeContent);
 
   const callResult = await runTextCall({
     llmClient,
@@ -748,12 +805,25 @@ async function executeEditStep(
     return { success: false, error: err };
   }
 
-  // Update narrative with edited content
+  const editWordCount = resultText.split(/\s+/).filter(Boolean).length;
+  const now = Date.now();
+
+  // Legacy narrative field update (backward compat)
   const updatedNarrative: EraNarrativeContent = {
-    ...record.narrative,
+    ...(record.narrative || {
+      content: activeContent,
+      wordCount: activeContent.split(/\s+/).filter(Boolean).length,
+      generatedAt: now,
+      model: callConfig.model,
+      systemPrompt: '',
+      userPrompt: '',
+      inputTokens: 0,
+      outputTokens: 0,
+      actualCost: 0,
+    }),
     editedContent: resultText,
-    editedWordCount: resultText.split(/\s+/).filter(Boolean).length,
-    editedAt: Date.now(),
+    editedWordCount: editWordCount,
+    editedAt: now,
     editSystemPrompt: systemPrompt,
     editUserPrompt: userPrompt,
     editInputTokens: callResult.usage.inputTokens,
@@ -761,9 +831,28 @@ async function executeEditStep(
     editActualCost: callResult.usage.actualCost,
   };
 
+  // Versioned content — push new edit version
+  const editVersion: EraNarrativeContentVersion = {
+    versionId: generateVersionId(),
+    content: resultText,
+    wordCount: editWordCount,
+    step: 'edit',
+    generatedAt: now,
+    model: callConfig.model,
+    systemPrompt,
+    userPrompt,
+    inputTokens: callResult.usage.inputTokens,
+    outputTokens: callResult.usage.outputTokens,
+    actualCost: callResult.usage.actualCost,
+  };
+
+  const contentVersions = [...(record.contentVersions || []), editVersion];
+
   await updateEraNarrative(record.narrativeId, {
     status: 'step_complete',
     narrative: updatedNarrative,
+    contentVersions,
+    activeVersionId: editVersion.versionId,
     totalInputTokens: record.totalInputTokens + callResult.usage.inputTokens,
     totalOutputTokens: record.totalOutputTokens + callResult.usage.outputTokens,
     totalActualCost: record.totalActualCost + callResult.usage.actualCost,
@@ -778,6 +867,419 @@ async function executeEditStep(
     actualCost: callResult.usage.actualCost,
     inputTokens: callResult.usage.inputTokens,
     outputTokens: callResult.usage.outputTokens,
+  });
+
+  return { success: true, result: { generatedAt: Date.now(), model: callConfig.model } };
+}
+
+// ============================================================================
+// Cover Image Scene Step
+// ============================================================================
+
+function buildCoverImageScenePrompt(
+  eraName: string,
+  thesis: string,
+  counterweight: string | undefined,
+  threads: { name: string; culturalActors: string[]; arc: string; register?: string }[],
+  content: string
+): string {
+  const threadSummary = threads.map((t) => {
+    const actors = t.culturalActors.length ? ` [${t.culturalActors.join(', ')}]` : '';
+    return `- ${t.name}${actors}: ${t.arc}${t.register ? ` (${t.register})` : ''}`;
+  }).join('\n');
+
+  return `You are composing a visual scene description for the cover image of an era narrative — a mythic-historical text about cultural forces and world transformation, not individual characters.
+
+## Era
+${eraName}
+
+## Thesis
+${thesis}
+
+## Cultural Threads
+${threadSummary}
+
+${counterweight ? `## Counterweight\n${counterweight}\n` : ''}
+## Narrative (excerpt — first 2000 characters)
+${content.slice(0, 2000)}
+
+## Instructions
+Compose a scene description (100-150 words) that captures the era's transformation at the cultural/civilizational level. Think of this as a symbolic-abstract composition — forces in motion, landscapes transforming, cultures colliding or building. The scene should evoke the era's emotional register and thesis without depicting specific individual characters.
+
+Focus on: architectural scale, landscape transformation, cultural symbols, forces in tension, the passage of time compressed into a single frame. This is a mythic painting, not a photograph.
+
+Return ONLY valid JSON:
+{"coverImageScene": "..."}`;
+}
+
+async function executeCoverImageSceneStep(
+  task: WorkerTask,
+  record: EraNarrativeRecord,
+  context: TaskContext
+): Promise<TaskResult> {
+  const { config, llmClient, isAborted } = context;
+
+  const { content } = resolveActiveContent(record);
+  if (!content) {
+    return { success: false, error: 'No narrative content for cover image scene' };
+  }
+
+  if (!record.threadSynthesis) {
+    return { success: false, error: 'Thread synthesis required for cover image scene' };
+  }
+
+  const callType = 'historian.eraNarrative.coverImageScene' as const;
+  const callConfig = getCallConfig(config, callType);
+
+  const prompt = buildCoverImageScenePrompt(
+    record.eraName,
+    record.threadSynthesis.thesis,
+    record.threadSynthesis.counterweight,
+    record.threadSynthesis.threads,
+    content
+  );
+
+  const callResult = await runTextCall({
+    llmClient,
+    callType,
+    callConfig,
+    systemPrompt: 'You are a visual art director creating cover image compositions for mythic-historical texts. Always respond with valid JSON.',
+    prompt,
+    temperature: 0.5,
+  });
+
+  if (isAborted()) {
+    return { success: false, error: 'Task aborted' };
+  }
+
+  const resultText = callResult.result.text?.trim();
+  if (callResult.result.error || !resultText) {
+    return { success: false, error: `Cover image scene failed: ${callResult.result.error || 'Empty response'}` };
+  }
+
+  let sceneDescription: string;
+  try {
+    const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found');
+    const parsed = JSON.parse(jsonMatch[0]);
+    sceneDescription = typeof parsed.coverImageScene === 'string' ? parsed.coverImageScene.trim() : '';
+    if (!sceneDescription) throw new Error('Empty coverImageScene');
+  } catch {
+    return { success: false, error: 'Failed to parse cover image scene response' };
+  }
+
+  const coverImage: EraNarrativeCoverImage = {
+    sceneDescription,
+    status: 'pending',
+  };
+
+  const costs = {
+    estimated: callResult.estimate.estimatedCost,
+    actual: callResult.usage.actualCost,
+    inputTokens: callResult.usage.inputTokens,
+    outputTokens: callResult.usage.outputTokens,
+  };
+
+  await updateEraNarrativeCoverImage(record.narrativeId, coverImage, costs, callConfig.model);
+
+  await saveCostRecordWithDefaults({
+    projectId: task.projectId,
+    simulationRunId: task.simulationRunId,
+    type: 'eraNarrativeCoverImageScene' as CostType,
+    model: callConfig.model,
+    estimatedCost: costs.estimated,
+    actualCost: costs.actual,
+    inputTokens: costs.inputTokens,
+    outputTokens: costs.outputTokens,
+  });
+
+  return { success: true, result: { generatedAt: Date.now(), model: callConfig.model } };
+}
+
+// ============================================================================
+// Image Refs Step
+// ============================================================================
+
+export interface AvailableChronicleImage {
+  chronicleId: string;
+  chronicleTitle: string;
+  imageSource: 'cover' | 'image_ref';
+  imageRefId?: string;
+  imageId: string;
+  sceneDescription: string;
+}
+
+function splitNarrativeIntoChunks(content: string): { index: number; text: string }[] {
+  const words = content.split(/\s+/);
+  const wordCount = words.length;
+  let chunkCount = wordCount < 1500 ? 3 : wordCount < 3000 ? 4 : wordCount < 5000 ? 5 : wordCount < 7000 ? 6 : 7;
+  chunkCount += Math.random() < 0.5 ? -1 : 1;
+  chunkCount = Math.max(3, Math.min(7, chunkCount));
+
+  const chunkSize = Math.ceil(wordCount / chunkCount);
+  const chunks: { index: number; text: string }[] = [];
+
+  for (let i = 0; i < chunkCount; i++) {
+    const start = i * chunkSize;
+    const end = Math.min(start + chunkSize, wordCount);
+    if (start >= wordCount) break;
+    chunks.push({ index: i, text: words.slice(start, end).join(' ') });
+  }
+
+  return chunks;
+}
+
+function buildImageRefsPrompt(
+  content: string,
+  eraName: string,
+  availableImages: AvailableChronicleImage[]
+): string {
+  const chunks = splitNarrativeIntoChunks(content);
+
+  const imageList = availableImages.length > 0
+    ? availableImages.map((img) => {
+        const source = img.imageSource === 'cover' ? 'cover image' : 'scene image';
+        return `- [${img.chronicleId}${img.imageRefId ? `:${img.imageRefId}` : ''}] "${img.chronicleTitle}" (${source}): ${img.sceneDescription}`;
+      }).join('\n')
+    : '(No chronicle images available — use prompt_request for all images)';
+
+  const chunksDisplay = chunks.map((chunk) =>
+    `### CHUNK ${chunk.index + 1} of ${chunks.length}\n${chunk.text}\n----`
+  ).join('\n\n');
+
+  return `You are placing image references in an era narrative for ${eraName}. The era narrative is a mythic-historical text about cultural forces and world transformation.
+
+## Available Chronicle Images
+These illustrations come from the individual chronicles of this era. Reference them where the era narrative discusses the events or cultures those chronicles depict.
+
+${imageList}
+
+## Instructions
+The narrative has been divided into ${chunks.length} chunks. For EACH chunk, decide whether it deserves an image (0 or 1 per chunk).
+
+For each image, choose one type:
+
+1. **Chronicle Reference** (type: "chronicle_ref") - Use an existing chronicle illustration
+   - Use when the narrative discusses events or cultures depicted in an available chronicle image
+   - Provide the chronicleId, chronicleTitle, imageSource, and imageId from the list above
+
+2. **Prompt Request** (type: "prompt_request") - Request a new generated image
+   - Use for scenes that have no matching chronicle image
+   - Describe the scene at cultural/civilizational scale — landscapes, architecture, forces — not individual character portraits
+
+## Output Format
+Return a JSON object:
+{
+  "imageRefs": [
+    {
+      "type": "chronicle_ref",
+      "chronicleId": "<chronicle id>",
+      "chronicleTitle": "<chronicle title>",
+      "imageSource": "cover|image_ref",
+      "imageRefId": "<ref id if image_ref source, omit for cover>",
+      "imageId": "<image id>",
+      "anchorText": "<exact 5-15 word phrase from the narrative>",
+      "size": "small|medium|large|full-width",
+      "caption": "<optional>"
+    },
+    {
+      "type": "prompt_request",
+      "sceneDescription": "<vivid 1-2 sentence scene at cultural scale>",
+      "anchorText": "<exact 5-15 word phrase from the narrative>",
+      "size": "small|medium|large|full-width",
+      "caption": "<optional>"
+    }
+  ]
+}
+
+## Size Guidelines
+- small: 150px, supplementary/margin images
+- medium: 300px, standard images
+- large: 450px, key scenes
+- full-width: 100%, establishing shots
+
+## Rules
+- Suggest 0 or 1 image per chunk (total 2-5 images for the whole narrative)
+- anchorText MUST be an exact phrase from the chunk's text
+- Prefer chronicle_ref when a matching image exists — reuse before generating new
+- Return valid JSON only, no markdown
+
+## Narrative Chunks
+${chunksDisplay}`;
+}
+
+function parseEraNarrativeImageRefsResponse(
+  text: string,
+  availableImages: AvailableChronicleImage[]
+): EraNarrativeImageRef[] {
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('No JSON object found');
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  const rawRefs = parsed.imageRefs;
+  if (!rawRefs || !Array.isArray(rawRefs)) {
+    throw new Error('imageRefs array not found');
+  }
+
+  const availableMap = new Map(
+    availableImages.map((img) => [`${img.chronicleId}:${img.imageSource}:${img.imageRefId || ''}`, img])
+  );
+
+  const validSizes: EraNarrativeImageSize[] = ['small', 'medium', 'large', 'full-width'];
+
+  return rawRefs.map((ref: Record<string, unknown>, index: number) => {
+    const refId = `enimgref_${Date.now()}_${index}`;
+    const anchorText = typeof ref.anchorText === 'string' ? ref.anchorText : '';
+    const rawSize = typeof ref.size === 'string' ? ref.size : 'medium';
+    const size: EraNarrativeImageSize = validSizes.includes(rawSize as EraNarrativeImageSize)
+      ? (rawSize as EraNarrativeImageSize) : 'medium';
+    const caption = typeof ref.caption === 'string' ? ref.caption : undefined;
+
+    if (ref.type === 'chronicle_ref') {
+      const chronicleId = typeof ref.chronicleId === 'string' ? ref.chronicleId : '';
+      const chronicleTitle = typeof ref.chronicleTitle === 'string' ? ref.chronicleTitle : '';
+      const imageSource = ref.imageSource === 'image_ref' ? 'image_ref' as const : 'cover' as const;
+      const imageRefId = typeof ref.imageRefId === 'string' ? ref.imageRefId : undefined;
+      const imageId = typeof ref.imageId === 'string' ? ref.imageId : '';
+
+      const key = `${chronicleId}:${imageSource}:${imageRefId || ''}`;
+      const available = availableMap.get(key);
+      const resolvedImageId = imageId || available?.imageId || '';
+
+      if (!resolvedImageId) {
+        throw new Error(`chronicle_ref at index ${index} has no valid imageId`);
+      }
+
+      return {
+        refId,
+        type: 'chronicle_ref',
+        chronicleId,
+        chronicleTitle: chronicleTitle || available?.chronicleTitle || '',
+        imageSource,
+        imageRefId,
+        imageId: resolvedImageId,
+        anchorText,
+        size,
+        caption,
+      } as EraNarrativeChronicleImageRef;
+    } else if (ref.type === 'prompt_request') {
+      const sceneDescription = typeof ref.sceneDescription === 'string' ? ref.sceneDescription : '';
+      if (!sceneDescription) {
+        throw new Error(`prompt_request at index ${index} missing sceneDescription`);
+      }
+      return {
+        refId,
+        type: 'prompt_request',
+        sceneDescription,
+        anchorText,
+        size,
+        caption,
+        status: 'pending',
+      } as EraNarrativePromptRequestRef;
+    } else {
+      throw new Error(`Unknown image ref type at index ${index}: ${ref.type}`);
+    }
+  });
+}
+
+function resolveAnchorPhrase(
+  anchorText: string,
+  content: string
+): { phrase: string; index: number } | null {
+  if (!anchorText) return null;
+  const index = content.indexOf(anchorText);
+  if (index >= 0) return { phrase: anchorText, index };
+  const lowerContent = content.toLowerCase();
+  const lowerAnchor = anchorText.toLowerCase();
+  const lowerIndex = lowerContent.indexOf(lowerAnchor);
+  if (lowerIndex >= 0) {
+    return { phrase: content.slice(lowerIndex, lowerIndex + anchorText.length), index: lowerIndex };
+  }
+  return null;
+}
+
+async function executeImageRefsStep(
+  task: WorkerTask,
+  record: EraNarrativeRecord,
+  context: TaskContext
+): Promise<TaskResult> {
+  const { config, llmClient, isAborted } = context;
+
+  const { content } = resolveActiveContent(record);
+  if (!content) {
+    return { success: false, error: 'No narrative content for image refs' };
+  }
+
+  const availableImages: AvailableChronicleImage[] = (task as unknown as { availableChronicleImages?: AvailableChronicleImage[] }).availableChronicleImages || [];
+
+  const callType = 'historian.eraNarrative.imageRefs' as const;
+  const callConfig = getCallConfig(config, callType);
+
+  const prompt = buildImageRefsPrompt(content, record.eraName, availableImages);
+
+  const callResult = await runTextCall({
+    llmClient,
+    callType,
+    callConfig,
+    systemPrompt: 'You are placing image references in a mythic-historical era narrative. Always respond with valid JSON.',
+    prompt,
+    temperature: 0.4,
+  });
+
+  if (isAborted()) {
+    return { success: false, error: 'Task aborted' };
+  }
+
+  const resultText = callResult.result.text?.trim();
+  if (callResult.result.error || !resultText) {
+    return { success: false, error: `Image refs failed: ${callResult.result.error || 'Empty response'}` };
+  }
+
+  let parsedRefs: EraNarrativeImageRef[];
+  try {
+    parsedRefs = parseEraNarrativeImageRefsResponse(resultText, availableImages);
+  } catch (e) {
+    return { success: false, error: `Failed to parse image refs: ${e instanceof Error ? e.message : 'Unknown error'}` };
+  }
+
+  if (parsedRefs.length === 0) {
+    return { success: false, error: 'No image refs found in response' };
+  }
+
+  for (const ref of parsedRefs) {
+    if (ref.anchorText) {
+      const resolved = resolveAnchorPhrase(ref.anchorText, content);
+      if (resolved) {
+        ref.anchorText = resolved.phrase;
+        ref.anchorIndex = resolved.index;
+      }
+    }
+  }
+
+  const imageRefs: EraNarrativeImageRefs = {
+    refs: parsedRefs,
+    generatedAt: Date.now(),
+    model: callConfig.model,
+  };
+
+  const costs = {
+    estimated: callResult.estimate.estimatedCost,
+    actual: callResult.usage.actualCost,
+    inputTokens: callResult.usage.inputTokens,
+    outputTokens: callResult.usage.outputTokens,
+  };
+
+  await updateEraNarrativeImageRefs(record.narrativeId, imageRefs, costs, callConfig.model);
+
+  await saveCostRecordWithDefaults({
+    projectId: task.projectId,
+    simulationRunId: task.simulationRunId,
+    type: 'eraNarrativeImageRefs' as CostType,
+    model: callConfig.model,
+    estimatedCost: costs.estimated,
+    actualCost: costs.actual,
+    inputTokens: costs.inputTokens,
+    outputTokens: costs.outputTokens,
   });
 
   return { success: true, result: { generatedAt: Date.now(), model: callConfig.model } };
@@ -807,7 +1309,16 @@ async function executeEraNarrativeTask(
     return { success: false, error: `Era narrative ${narrativeId} not found` };
   }
 
-  // Mark as generating
+  // Cover image scene and image refs steps don't use the standard step status flow
+  const eraNarrativeStep = (task as unknown as { eraNarrativeStep?: string }).eraNarrativeStep;
+  if (eraNarrativeStep === 'cover_image_scene') {
+    return executeCoverImageSceneStep(task, record, context);
+  }
+  if (eraNarrativeStep === 'image_refs') {
+    return executeImageRefsStep(task, record, context);
+  }
+
+  // Mark as generating for standard pipeline steps
   await updateEraNarrative(record.narrativeId, { status: 'generating' });
 
   try {

@@ -14,6 +14,7 @@ import { useImageUrl } from '@penguin-tales/image-store';
 import { buildPageIndex, buildPageById } from '../lib/wikiBuilder.ts';
 import { getCompletedChroniclesForSimulation, type ChronicleRecord } from '../lib/chronicleStorage.ts';
 import { getPublishedStaticPagesForProject, type StaticPage } from '../lib/staticPageStorage.ts';
+import { getCompletedEraNarrativesForSimulation, type EraNarrativeViewRecord } from '../lib/eraNarrativeStorage.ts';
 import { useBreakpoint } from '../hooks/useBreakpoint.ts';
 import WikiNav from './WikiNav.tsx';
 import ChronicleIndex from './ChronicleIndex.tsx';
@@ -112,6 +113,8 @@ interface WikiExplorerProps {
   preloadedChronicles?: ChronicleRecord[];
   /** Pre-loaded static pages — skips IndexedDB read when provided (viewer context) */
   preloadedStaticPages?: StaticPage[];
+  /** Pre-loaded era narratives — skips IndexedDB read when provided (viewer context) */
+  preloadedEraNarratives?: EraNarrativeViewRecord[];
   /** Pre-baked parchment tile URL — skips runtime canvas pipeline when provided */
   prebakedParchmentUrl?: string;
   /** Pre-computed page index — skips buildPageIndex on mount when provided */
@@ -126,6 +129,7 @@ export default function WikiExplorer({
   onRequestedPageConsumed,
   preloadedChronicles,
   preloadedStaticPages,
+  preloadedEraNarratives,
   prebakedParchmentUrl,
   precomputedPageIndex,
 }: WikiExplorerProps) {
@@ -144,6 +148,9 @@ export default function WikiExplorer({
   );
   const [staticPages, setStaticPages] = useState<StaticPage[]>(
     () => preloadedStaticPages ? normalizeStaticPages(preloadedStaticPages) : []
+  );
+  const [eraNarratives, setEraNarratives] = useState<EraNarrativeViewRecord[]>(
+    () => preloadedEraNarratives ?? []
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [parchmentConfig] = useState<ParchmentConfig>(() => ({ ...DEFAULT_PARCHMENT_CONFIG }));
@@ -211,6 +218,37 @@ export default function WikiExplorer({
     };
   }, [preloadedStaticPages, projectId]);
 
+  // Load era narratives from IndexedDB when simulationRunId changes (skipped when preloaded)
+  useEffect(() => {
+    if (preloadedEraNarratives) return;
+    if (!simulationRunId) {
+      setEraNarratives([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadEraNarratives() {
+      try {
+        const loaded = await getCompletedEraNarrativesForSimulation(simulationRunId!);
+        if (!cancelled) {
+          setEraNarratives(loaded);
+        }
+      } catch (err) {
+        console.error('[WikiExplorer] Failed to load era narratives:', err);
+        if (!cancelled) {
+          setEraNarratives([]);
+        }
+      }
+    }
+
+    loadEraNarratives();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [preloadedEraNarratives, simulationRunId]);
+
   // Validate world data before building index
   // Returns first validation error found, or null if valid
   const dataError = useMemo((): { message: string; details: string } | null => {
@@ -248,13 +286,13 @@ export default function WikiExplorer({
     }
     const idx = precomputedPageIndex
       ? deserializePageIndex(precomputedPageIndex)
-      : buildPageIndex(worldData, loreData, chronicles, staticPages, prominenceScale);
+      : buildPageIndex(worldData, loreData, chronicles, staticPages, prominenceScale, eraNarratives);
     const entityIdx = new Map<string, HardState>();
     for (const entity of worldData.hardState) {
       entityIdx.set(entity.id, entity);
     }
     return { pageIndex: idx, entityIndex: entityIdx };
-  }, [worldData, loreData, chronicles, staticPages, dataError, prominenceScale, precomputedPageIndex]);
+  }, [worldData, loreData, chronicles, staticPages, dataError, prominenceScale, precomputedPageIndex, eraNarratives]);
 
   const resolvePageId = useCallback((pageId: string | null): string | null => {
     if (!pageId) return null;
@@ -268,7 +306,7 @@ export default function WikiExplorer({
     const resolvedId = resolvePageId(pageId);
     if (!resolvedId) return pageId;
     const entry = pageIndex.byId.get(resolvedId);
-    const shouldUseSlug = entry && (entry.type === 'entity' || entry.type === 'chronicle' || entry.type === 'static');
+    const shouldUseSlug = entry && (entry.type === 'entity' || entry.type === 'chronicle' || entry.type === 'static' || entry.type === 'era_narrative');
     return shouldUseSlug && entry?.slug ? entry.slug : pageId;
   }, [pageIndex, resolvePageId]);
 
@@ -320,7 +358,7 @@ export default function WikiExplorer({
   // Page cache - stores fully built pages by ID
   // Use useMemo to create a NEW cache when data changes, ensuring synchronous invalidation
   // (useEffect runs after render, which causes stale cache reads when chunks load)
-  const pageCache = useMemo(() => new Map<string, WikiPage>(), [worldData, loreData, chronicles, staticPages]);
+  const pageCache = useMemo(() => new Map<string, WikiPage>(), [worldData, loreData, chronicles, staticPages, eraNarratives]);
 
   // Get a page from cache or build it on-demand
   const getPage = useCallback((pageId: string): WikiPage | null => {
@@ -341,13 +379,14 @@ export default function WikiExplorer({
       pageIndex,
       chronicles,
       staticPages,
-      prominenceScale
+      prominenceScale,
+      eraNarratives,
     );
     if (page) {
       pageCache.set(canonicalId, page);
     }
     return page;
-  }, [worldData, loreData, pageIndex, chronicles, staticPages, prominenceScale, pageCache]);
+  }, [worldData, loreData, pageIndex, chronicles, staticPages, prominenceScale, pageCache, eraNarratives]);
 
   // Convert index entries to minimal WikiPage objects for navigation components
   const indexAsPages = useMemo(() => {
@@ -357,6 +396,7 @@ export default function WikiExplorer({
       type: entry.type,
       slug: entry.slug,
       chronicle: entry.chronicle,
+      eraNarrative: entry.eraNarrative,
       aliases: entry.aliases,
       content: { sections: [], summary: entry.summary },
       categories: entry.categories,
@@ -370,6 +410,22 @@ export default function WikiExplorer({
     () => indexAsPages.filter((page) => page.type === 'chronicle' && page.chronicle),
     [indexAsPages]
   );
+
+  const eraNarrativePages = useMemo(
+    () => indexAsPages.filter((page) => page.type === 'era_narrative'),
+    [indexAsPages]
+  );
+
+  // Map era entity IDs to era narrative page IDs (for redirecting era links on home page)
+  const eraNarrativeByEraId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const entry of pageIndex.entries) {
+      if (entry.type === 'era_narrative' && entry.eraNarrative?.eraId) {
+        map.set(entry.eraNarrative.eraId, entry.id);
+      }
+    }
+    return map;
+  }, [pageIndex]);
 
   const staticPagesAsWikiPages = useMemo(
     () => indexAsPages.filter((page) => page.type === 'static'),
@@ -576,6 +632,7 @@ export default function WikiExplorer({
           {isChronicleIndex ? (
             <ChronicleIndex
               chronicles={chroniclePages}
+              eraNarrativePages={eraNarrativePages}
               filter={
                 currentPageId === 'chronicles-story'
                   ? { kind: 'format', format: 'story' }
@@ -631,6 +688,7 @@ export default function WikiExplorer({
               onNavigate={handleNavigate}
               prominenceScale={prominenceScale}
               breakpoint={breakpoint}
+              eraNarrativeByEraId={eraNarrativeByEraId}
             />
           )}
         </div>
@@ -649,6 +707,7 @@ interface HomePageProps {
   onNavigate: (pageId: string) => void;
   prominenceScale: ProminenceScale;
   breakpoint: 'mobile' | 'tablet' | 'desktop';
+  eraNarrativeByEraId: Map<string, string>;
 }
 
 /**
@@ -704,6 +763,7 @@ function HomePage({
   onNavigate,
   prominenceScale,
   breakpoint,
+  eraNarrativeByEraId,
 }: HomePageProps) {
   const isMobile = breakpoint === 'mobile';
   // Find System:About This Project page
@@ -971,21 +1031,24 @@ function HomePage({
             <div className={styles.section}>
               <h2 className={styles.sectionTitle}>Eras of History</h2>
               <div className={styles.eraList}>
-                {eras.map((era, idx) => (
-                  <button
-                    key={era.id}
-                    onClick={() => onNavigate(era.id)}
-                    className={styles.eraButton}
-                  >
-                    <span className={styles.eraNumber}>{idx + 1}</span>
-                    <span className={styles.eraButtonName}>{era.name}</span>
-                    {era.summary && (
-                      <span className={styles.eraButtonSummary}>
-                        {truncateSummary(era.summary, 40)}
-                      </span>
-                    )}
-                  </button>
-                ))}
+                {eras.map((era, idx) => {
+                  const narrativePageId = eraNarrativeByEraId.get(era.id);
+                  return (
+                    <button
+                      key={era.id}
+                      onClick={() => onNavigate(narrativePageId || era.id)}
+                      className={styles.eraButton}
+                    >
+                      <span className={styles.eraNumber}>{idx + 1}</span>
+                      <span className={styles.eraButtonName}>{era.name}</span>
+                      {era.summary && (
+                        <span className={styles.eraButtonSummary}>
+                          {truncateSummary(era.summary, 40)}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

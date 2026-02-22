@@ -15,6 +15,7 @@ import { buildWorldStateForSlot } from '@penguin-tales/world-store';
 import { IndexedDBBackend, useNarrativeStore } from '@penguin-tales/narrative-store';
 import type { ChronicleRecord } from './lib/chronicleStorage.ts';
 import type { StaticPage } from './lib/staticPageStorage.ts';
+import type { EraNarrativeViewRecord } from './lib/eraNarrativeStorage.ts';
 
 export interface ChroniclerRemoteProps {
   projectId?: string;
@@ -31,6 +32,8 @@ export interface ChroniclerRemoteProps {
   preloadedChronicles?: ChronicleRecord[];
   /** Pre-loaded static pages — skips IndexedDB read when provided (viewer context) */
   preloadedStaticPages?: StaticPage[];
+  /** Pre-loaded era narratives — skips IndexedDB read when provided (viewer context) */
+  preloadedEraNarratives?: EraNarrativeViewRecord[];
   /** Pre-baked parchment tile URL — skips runtime canvas pipeline when provided */
   prebakedParchmentUrl?: string;
   /** Pre-computed page index — skips buildPageIndex on mount when provided */
@@ -46,6 +49,7 @@ export default function ChroniclerRemote({
   preloadedWorldData,
   preloadedChronicles,
   preloadedStaticPages,
+  preloadedEraNarratives,
   prebakedParchmentUrl,
   precomputedPageIndex,
 }: ChroniclerRemoteProps) {
@@ -184,6 +188,7 @@ export default function ChroniclerRemote({
       onRequestedPageConsumed={onRequestedPageConsumed}
       preloadedChronicles={preloadedChronicles}
       preloadedStaticPages={preloadedStaticPages}
+      preloadedEraNarratives={preloadedEraNarratives}
       prebakedParchmentUrl={prebakedParchmentUrl}
       precomputedPageIndex={precomputedPageIndex}
     />

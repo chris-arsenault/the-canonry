@@ -423,6 +423,7 @@ export default function App() {
       worldData: bundle.worldData,
       chronicles: bundle.chronicles,
       staticPages: bundle.staticPages,
+      eraNarratives: bundle.eraNarratives,
     })
       .then(() => {
         setDexieSeededAt(Date.now());
@@ -445,6 +446,13 @@ export default function App() {
     if (!bundle?.staticPages) return undefined;
     return bundle.staticPages.filter(
       (p) => p?.status === 'published'
+    );
+  }, [bundle]);
+
+  const preloadedEraNarratives = useMemo(() => {
+    if (!bundle?.eraNarratives) return undefined;
+    return bundle.eraNarratives.filter(
+      (n) => n?.status === 'complete' && n.content
     );
   }, [bundle]);
 
@@ -541,6 +549,7 @@ export default function App() {
             preloadedWorldData={bundle.worldData}
             preloadedChronicles={preloadedChronicles}
             preloadedStaticPages={preloadedStaticPages}
+            preloadedEraNarratives={preloadedEraNarratives}
             prebakedParchmentUrl={parchmentTileUrl}
             precomputedPageIndex={bundle.precomputedPageIndex}
           />

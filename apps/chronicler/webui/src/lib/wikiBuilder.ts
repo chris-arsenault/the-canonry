@@ -30,6 +30,7 @@ import type {
 import type { ChronicleRecord } from './chronicleStorage.ts';
 import { getChronicleContent } from './chronicleStorage.ts';
 import type { StaticPage } from './staticPageStorage.ts';
+import type { EraNarrativeViewRecord } from './eraNarrativeStorage.ts';
 import { applyWikiLinks } from './entityLinking.ts';
 import {
   buildProminenceScale,
@@ -319,6 +320,7 @@ export function buildPageIndex(
   chronicles: ChronicleRecord[] = [],
   staticPages: StaticPage[] = [],
   prominenceScale?: ProminenceScale,
+  eraNarratives: EraNarrativeViewRecord[] = [],
 ): WikiPageIndex {
   const resolvedProminenceScale = resolveProminenceScale(worldData, prominenceScale);
   const entries: PageIndexEntry[] = [];
@@ -333,6 +335,16 @@ export function buildPageIndex(
   // Note: loreIndex is not built here - it's only needed for full page builds (buildPageById)
   // Summary/description/aliases are now read directly from entity fields
 
+  // Build era narrative lookup: eraId -> narrative record
+  // Era entities that have completed narratives will be suppressed from the page index
+  // (their name/slug lookups will redirect to the era narrative page instead)
+  const eraNarrativeByEraId = new Map<string, EraNarrativeViewRecord>();
+  for (const narrative of eraNarratives) {
+    if (narrative.status === 'complete' && narrative.content) {
+      eraNarrativeByEraId.set(narrative.eraId, narrative);
+    }
+  }
+
   // Build entity index entries
   for (const entity of worldData.hardState) {
     // Summary and description are now directly on entity
@@ -344,6 +356,11 @@ export function buildPageIndex(
         .map((alias) => alias.trim())
         .filter(Boolean)
       : [];
+
+    // When an era has a completed narrative, suppress the era entity page:
+    // keep it in byId (for direct ID lookups) but exclude from entries/byName/bySlug
+    // so it doesn't appear in lists, search, or name-based link resolution.
+    const hasEraNarrative = entity.kind === 'era' && eraNarrativeByEraId.has(entity.id);
 
     const entry: PageIndexEntry = {
       id: entity.id,
@@ -361,15 +378,19 @@ export function buildPageIndex(
       lastUpdated: entity.updatedAt || entity.createdAt,
     };
 
-    entries.push(entry);
     byId.set(entry.id, entry);
-    byName.set(entity.name.toLowerCase(), entity.id);
 
-    // Index by slug for URL resolution (name slug + slug aliases from renames)
-    const nameSlug = slugify(entity.name);
-    if (nameSlug && !bySlug.has(nameSlug)) {
-      bySlug.set(nameSlug, entity.id);
+    if (!hasEraNarrative) {
+      entries.push(entry);
+      byName.set(entity.name.toLowerCase(), entity.id);
+
+      // Index by slug for URL resolution (name slug + slug aliases from renames)
+      const nameSlug = slugify(entity.name);
+      if (nameSlug && !bySlug.has(nameSlug)) {
+        bySlug.set(nameSlug, entity.id);
+      }
     }
+
     const slugAliases: string[] = (entity.enrichment as any)?.slugAliases || [];
     for (const sa of slugAliases) {
       if (sa && !bySlug.has(sa)) {
@@ -382,6 +403,43 @@ export function buildPageIndex(
       if (!byName.has(normalized) && !byAlias.has(normalized)) {
         byAlias.set(normalized, entity.id);
       }
+    }
+  }
+
+  // Build era narrative index entries
+  // These replace era entity pages: name/slug lookups resolve here instead
+  for (const narrative of eraNarrativeByEraId.values()) {
+    const narrativeSlug = `era-narrative/${slugify(narrative.eraName)}`;
+
+    const entry: PageIndexEntry = {
+      id: narrative.narrativeId,
+      title: narrative.eraName,
+      type: 'era_narrative',
+      slug: narrativeSlug,
+      summary: narrative.thesis || undefined,
+      categories: [],
+      eraNarrative: {
+        eraId: narrative.eraId,
+        tone: narrative.tone,
+        thesis: narrative.thesis,
+        sourceChronicleIds: narrative.sourceChronicles.map(s => s.chronicleId),
+      },
+      linkedEntities: [], // Computed on full page build
+      lastUpdated: narrative.updatedAt,
+    };
+
+    entries.push(entry);
+    byId.set(entry.id, entry);
+
+    // Override name/slug to point to era narrative instead of era entity
+    byName.set(narrative.eraName.toLowerCase(), narrative.narrativeId);
+    if (narrativeSlug) {
+      bySlug.set(narrativeSlug, narrative.narrativeId);
+    }
+    // Also claim the bare era name slug so [[Era Name]] links work
+    const bareSlug = slugify(narrative.eraName);
+    if (bareSlug) {
+      bySlug.set(bareSlug, narrative.narrativeId);
     }
   }
 
@@ -647,7 +705,8 @@ export function buildPageById(
   pageIndex: WikiPageIndex,
   chronicles: ChronicleRecord[] = [],
   staticPages: StaticPage[] = [],
-  prominenceScale?: ProminenceScale
+  prominenceScale?: ProminenceScale,
+  eraNarratives: EraNarrativeViewRecord[] = [],
 ): WikiPage | null {
   const resolvedProminenceScale = resolveProminenceScale(worldData, prominenceScale);
   let indexEntry = pageIndex.byId.get(pageId);
@@ -669,6 +728,13 @@ export function buildPageById(
     const entity = worldData.hardState.find(e => e.id === pageId);
     if (!entity) return null;
     return buildEntityPage(entity, worldData, loreIndex, imageIndex, aliasIndex, resolvedProminenceScale, chronicles);
+  }
+
+  // Era narrative page - long-form era synthesis
+  if (indexEntry.type === 'era_narrative') {
+    const narrative = eraNarratives.find(n => n.narrativeId === pageId);
+    if (!narrative) return null;
+    return buildEraNarrativePage(narrative, worldData, aliasIndex, pageIndex.byName);
   }
 
   // Chronicle page - look up in ChronicleRecords
@@ -719,6 +785,114 @@ export function buildPageById(
   }
 
   return null;
+}
+
+/**
+ * Build a single era narrative page from an EraNarrativeViewRecord.
+ * Long-form prose treated similarly to chronicle pages.
+ */
+function buildEraNarrativePage(
+  narrative: EraNarrativeViewRecord,
+  worldData: WorldState,
+  aliasIndex: Map<string, string>,
+  pageNameIndex?: Map<string, string>,
+): WikiPage {
+  const content = narrative.content;
+  const narrativeSlug = `era-narrative/${slugify(narrative.eraName)}`;
+
+  // Parse prose into sections (same approach as chronicles)
+  const { sections } = buildEraNarrativeSections(content);
+
+  const linkableNames = buildLinkableNamesForBacklinks(worldData, pageNameIndex);
+  const linkedSections = sections.map(section => ({
+    ...section,
+    content: applyWikiLinks(section.content, linkableNames),
+  }));
+
+  const linkedEntities = extractLinkedEntities(linkedSections, worldData, aliasIndex, pageNameIndex);
+
+  // Source chronicles section
+  const sourceChronicleIds = narrative.sourceChronicles.map(s => s.chronicleId);
+
+  return {
+    id: narrative.narrativeId,
+    slug: narrativeSlug,
+    title: narrative.eraName,
+    type: 'era_narrative',
+    eraNarrative: {
+      eraId: narrative.eraId,
+      tone: narrative.tone,
+      thesis: narrative.thesis,
+      sourceChronicleIds,
+    },
+    content: {
+      sections,
+      summary: narrative.thesis || undefined,
+    },
+    categories: [],
+    linkedEntities: Array.from(new Set(linkedEntities)),
+    images: [],
+    lastUpdated: narrative.updatedAt,
+  };
+}
+
+/**
+ * Parse era narrative prose into wiki sections.
+ * Splits on ## headings, similar to chronicle/static page parsing.
+ */
+function buildEraNarrativeSections(content: string): { sections: WikiSection[] } {
+  const trimmed = content.trim();
+  if (!trimmed) {
+    return { sections: [] };
+  }
+
+  let body = trimmed;
+  // Strip leading H1 if present (era name as title is shown separately)
+  if (body.startsWith('# ')) {
+    const lines = body.split('\n');
+    body = lines.slice(1).join('\n').trim();
+  }
+
+  const sections: WikiSection[] = [];
+  let currentHeading = 'Narrative';
+  let buffer: string[] = [];
+  let sectionIndex = 0;
+
+  const flush = () => {
+    const sectionBody = buffer.join('\n').trim();
+    if (!sectionBody) return;
+    sections.push({
+      id: `era-narrative-section-${sectionIndex}`,
+      heading: currentHeading,
+      level: 2,
+      content: sectionBody,
+    });
+    sectionIndex++;
+  };
+
+  for (const line of body.split('\n')) {
+    if (line.startsWith('## ')) {
+      flush();
+      currentHeading = line.replace(/^##\s+/, '').trim() || 'Narrative';
+      buffer = [];
+      continue;
+    }
+    buffer.push(line);
+  }
+
+  flush();
+
+  // If no sections were created (no ## headings), wrap entire content as one section
+  if (sections.length === 0 && body) {
+    sections.push({
+      id: 'era-narrative-section-0',
+      heading: 'Narrative',
+      level: 2,
+      content: body,
+    });
+  }
+
+  return { sections };
 }
 
 /**

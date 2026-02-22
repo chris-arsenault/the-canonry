@@ -238,6 +238,7 @@ export default function ChronicleReviewPanel({
   onDetectTone,
   isHistorianActive,
   onUpdateHistorianNote,
+  onGeneratePrep,
 
   // State
   isGenerating,
@@ -313,6 +314,7 @@ export default function ChronicleReviewPanel({
         onDetectTone={onDetectTone}
         isHistorianActive={isHistorianActive}
         onUpdateHistorianNote={onUpdateHistorianNote}
+        onGeneratePrep={onGeneratePrep}
         isGenerating={isGenerating}
         refinements={refinements}
         simulationRunId={simulationRunId}

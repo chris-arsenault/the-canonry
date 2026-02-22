@@ -615,6 +615,7 @@ export interface EraNarrativeExport {
     eraId: string;
     eraName: string;
     tone: string;
+    arcDirection?: string;
     status: string;
     createdAt: string;
   };
@@ -700,6 +701,7 @@ export function buildEraNarrativeExport(record: EraNarrativeRecord): EraNarrativ
       eraId: record.eraId,
       eraName: record.eraName,
       tone: record.tone,
+      ...(record.arcDirection ? { arcDirection: record.arcDirection } : {}),
       status: record.status,
       createdAt: new Date(record.createdAt).toISOString(),
     },

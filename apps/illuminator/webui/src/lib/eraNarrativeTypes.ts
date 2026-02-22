@@ -96,7 +96,7 @@ export interface EraNarrativeThreadSynthesis {
 }
 
 // =============================================================================
-// Narrative Content (single narrative, not chapter array)
+// Narrative Content (legacy single-object model — kept for backward compat)
 // =============================================================================
 
 export interface EraNarrativeContent {
@@ -117,6 +117,77 @@ export interface EraNarrativeContent {
   editInputTokens?: number;
   editOutputTokens?: number;
   editActualCost?: number;
+}
+
+// =============================================================================
+// Content Versions (replaces legacy single-object model)
+// =============================================================================
+
+export interface EraNarrativeContentVersion {
+  versionId: string;
+  content: string;
+  wordCount: number;
+  step: 'generate' | 'edit';
+  generatedAt: number;
+  model: string;
+  systemPrompt: string;
+  userPrompt: string;
+  inputTokens: number;
+  outputTokens: number;
+  actualCost: number;
+}
+
+// =============================================================================
+// Cover Image
+// =============================================================================
+
+export interface EraNarrativeCoverImage {
+  sceneDescription: string;
+  status: 'pending' | 'generating' | 'complete' | 'failed';
+  generatedImageId?: string;
+  error?: string;
+}
+
+// =============================================================================
+// Image Refs (inline images referencing chronicle images or new scenes)
+// =============================================================================
+
+export type EraNarrativeImageSize = 'small' | 'medium' | 'large' | 'full-width';
+
+interface BaseEraNarrativeImageRef {
+  refId: string;
+  anchorText: string;
+  anchorIndex?: number;
+  size: EraNarrativeImageSize;
+  justification?: 'left' | 'right';
+  caption?: string;
+}
+
+/** Reference to a chronicle image (cover or scene image from an era's chronicle) */
+export interface ChronicleImageRef extends BaseEraNarrativeImageRef {
+  type: 'chronicle_ref';
+  chronicleId: string;
+  chronicleTitle: string;
+  imageSource: 'cover' | 'image_ref';
+  imageRefId?: string;
+  imageId: string;
+}
+
+/** New scene image generated for the era narrative */
+export interface EraNarrativePromptRequestRef extends BaseEraNarrativeImageRef {
+  type: 'prompt_request';
+  sceneDescription: string;
+  status: 'pending' | 'generating' | 'complete' | 'failed';
+  generatedImageId?: string;
+  error?: string;
+}
+
+export type EraNarrativeImageRef = ChronicleImageRef | EraNarrativePromptRequestRef;
+
+export interface EraNarrativeImageRefs {
+  refs: EraNarrativeImageRef[];
+  generatedAt: number;
+  model: string;
 }
 
 // =============================================================================
@@ -170,6 +241,8 @@ export interface EraNarrativeRecord {
   error?: string;
 
   tone: EraNarrativeTone;
+  /** Optional arc direction override — when set, injected as a CRITICAL framing constraint for thesis, threads, and registers */
+  arcDirection?: string;
   historianConfigJson: string;
 
   currentStep: EraNarrativeStep;
@@ -177,7 +250,18 @@ export interface EraNarrativeRecord {
   prepBriefs: EraNarrativePrepBrief[];
   worldContext?: EraNarrativeWorldContext;
   threadSynthesis?: EraNarrativeThreadSynthesis;
+  /** Legacy single-object narrative — kept for backward compat with existing records */
   narrative?: EraNarrativeContent;
+
+  /** Versioned content — each generate/edit step pushes a new version */
+  contentVersions?: EraNarrativeContentVersion[];
+  /** User-selected active version (defaults to latest) */
+  activeVersionId?: string;
+
+  /** Cover image for the era narrative */
+  coverImage?: EraNarrativeCoverImage;
+  /** Inline image refs (chronicle images + generated scenes) */
+  imageRefs?: EraNarrativeImageRefs;
 
   totalInputTokens: number;
   totalOutputTokens: number;

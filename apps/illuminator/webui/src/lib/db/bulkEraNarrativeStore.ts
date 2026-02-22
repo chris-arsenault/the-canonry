@@ -190,14 +190,14 @@ async function buildEraConfig(
   const worldDynamics = configStore.worldContext?.worldDynamics || [];
   const cultureIds = configStore.cultureIdentities || {};
 
-  const resolvedDynamics = worldDynamics.map((d) => {
-    let text = d.text || '';
-    if (d.eraOverrides?.[eraId]) {
-      const override = d.eraOverrides[eraId];
-      text = override.replace ? override.text : `${text} ${override.text}`;
-    }
-    return text;
-  }).filter(Boolean);
+  // Only include dynamics that have an override for this era
+  const resolvedDynamics = worldDynamics
+    .filter((d) => d.eraOverrides?.[eraId])
+    .map((d) => {
+      const override = d.eraOverrides![eraId];
+      return override.replace ? override.text : `${d.text || ''} ${override.text}`;
+    })
+    .filter(Boolean);
 
   const focalEraInfo = eraTemporalInfo.find((e) => e.id === eraId);
   const focalOrder = focalEraInfo?.order ?? -1;

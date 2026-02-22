@@ -27,7 +27,7 @@ function buildAnnotation(item: EntityNavItem): string {
  * - Filters era entities (era names appear everywhere)
  * - Sorts by name length descending to prevent partial matches
  * - Annotates first occurrence only, case-sensitive
- * - Tracks character ranges to prevent overlapping annotations
+ * - Tracks character ranges in the mutated string to prevent overlapping annotations
  * - Idempotent: skips names already followed by ` (`
  */
 export function annotateEntityNames(
@@ -48,14 +48,15 @@ export function annotateEntityNames(
   // Longest first — prevents partial matches (e.g. "The Pinnacle" before "Pinnacle")
   candidates.sort((a, b) => b.name.length - a.name.length);
 
-  // Track annotated regions to prevent overlaps
+  // Track annotated regions in the mutated string's coordinates.
+  // After each replacement the ranges shift — we adjust all existing ranges
+  // so overlap checks always work against current positions.
   const annotatedRanges: Array<[number, number]> = [];
 
   const overlaps = (start: number, end: number): boolean =>
     annotatedRanges.some(([rs, re]) => start < re && end > rs);
 
   let result = text;
-  let offset = 0; // cumulative offset from prior replacements
 
   for (const { name, annotation } of candidates) {
     const idx = result.indexOf(name);
@@ -67,19 +68,23 @@ export function annotateEntityNames(
       continue;
     }
 
-    // Check overlap with already-annotated regions
-    const originalStart = idx - offset;
-    const originalEnd = originalStart + name.length;
-    if (overlaps(originalStart, originalEnd)) continue;
+    // Check overlap with already-annotated regions (all in mutated-string coords)
+    if (overlaps(idx, afterName)) continue;
 
     // Replace
     result = result.slice(0, idx) + annotation + result.slice(afterName);
 
-    // Track the annotated region in original-text coordinates
-    annotatedRanges.push([originalStart, originalStart + annotation.length]);
+    // Shift all existing ranges that start after the replacement point
+    const delta = annotation.length - name.length;
+    for (let i = 0; i < annotatedRanges.length; i++) {
+      const [rs, re] = annotatedRanges[i];
+      if (rs >= afterName) {
+        annotatedRanges[i] = [rs + delta, re + delta];
+      }
+    }
 
-    // Update offset
-    offset += annotation.length - name.length;
+    // Track the new annotated region (in current mutated-string coords)
+    annotatedRanges.push([idx, idx + annotation.length]);
   }
 
   return result;

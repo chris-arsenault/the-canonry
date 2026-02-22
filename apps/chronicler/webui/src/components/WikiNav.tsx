@@ -97,6 +97,14 @@ export default function WikiNav({
   const storyChronicles = chroniclePages.filter((page) => page.chronicle?.format === 'story');
   const documentChronicles = chroniclePages.filter((page) => page.chronicle?.format === 'document');
 
+  // Build era narrative lookup from all pages (eraId -> page)
+  const eraNarrativeByEraId = new Map<string, WikiPage>();
+  for (const page of pages) {
+    if (page.type === 'era_narrative' && page.eraNarrative?.eraId) {
+      eraNarrativeByEraId.set(page.eraNarrative.eraId, page);
+    }
+  }
+
   // Group chronicles by era
   const chroniclesByEra = chroniclePages.reduce((groups, page) => {
     const focalEra = page.chronicle?.temporalContext?.focalEra;
@@ -228,6 +236,19 @@ export default function WikiNav({
                 </button>
                 {isExpanded && (
                   <>
+                    {eraNarrativeByEraId.has(era.eraId) && (() => {
+                      const narrativePage = eraNarrativeByEraId.get(era.eraId)!;
+                      const isActive = currentPageId === narrativePage.id;
+                      return (
+                        <button
+                          className={isActive ? styles.navItemActive : styles.navItem}
+                          onClick={() => onNavigate(narrativePage.id)}
+                          style={{ paddingLeft: '24px', fontStyle: 'italic' }}
+                        >
+                          Era Narrative
+                        </button>
+                      );
+                    })()}
                     <button
                       className={currentPageId === eraAllId ? styles.navItemActive : styles.navItem}
                       onClick={() => onNavigate(eraAllId)}

@@ -29,6 +29,10 @@ export interface LLMRequest {
   onThinkingDelta?: (delta: string) => void;
   /** Callback for streaming text deltas — called on every text chunk */
   onTextDelta?: (delta: string) => void;
+  /** SSE read timeout in seconds. 0 = no timeout. When set, each reader.read() races against this. */
+  streamTimeout?: number;
+  /** When true, bypass SSE streaming — use a single JSON request/response. */
+  disableStreaming?: boolean;
 }
 
 export interface NetworkDebugInfo {
@@ -216,13 +220,17 @@ export class LLMClient {
           };
         }
 
-        // Enable streaming to keep service worker alive during long calls
-        requestBody.stream = true;
+        // Enable streaming unless explicitly disabled
+        const useSync = Boolean(request.disableStreaming);
+        if (!useSync) {
+          requestBody.stream = true;
+        }
 
         const rawRequest = JSON.stringify(requestBody);
         lastDebug = { request: rawRequest };
 
-        console.log('[LLM] Request start (streaming)', {
+        const modeLabel = useSync ? 'sync' : 'streaming';
+        console.log(`[LLM] Request start (${modeLabel})`, {
           callNumber,
           attempt,
           model: resolvedModel,
@@ -269,8 +277,11 @@ export class LLMClient {
           throw new Error(`API error ${response.status}: ${errorText}`);
         }
 
-        // Consume SSE stream
-        const streamResult = await this.consumeSSEStream(response, request.onThinkingDelta, request.onTextDelta);
+        // Consume response — sync JSON or SSE stream
+        const streamTimeoutMs = (request.streamTimeout ?? 0) * 1000;
+        const streamResult = useSync
+          ? await this.consumeJsonResponse(response)
+          : await this.consumeSSEStream(response, request.onThinkingDelta, request.onTextDelta, streamTimeoutMs);
         const durationMs = Date.now() - requestStart;
         const responseMeta = {
           provider: 'anthropic' as const,
@@ -283,7 +294,7 @@ export class LLMClient {
 
         lastDebug = { request: rawRequest, response: streamResult.rawResponse, meta: responseMeta };
 
-        console.log('[LLM] Response success (streaming)', {
+        console.log(`[LLM] Response success (${modeLabel})`, {
           callNumber,
           attempt,
           ...responseMeta,
@@ -323,10 +334,51 @@ export class LLMClient {
     return { text: '', cached: false, skipped: true };
   }
 
+  /**
+   * Parse a non-streaming JSON response from the Messages API.
+   */
+  private async consumeJsonResponse(
+    response: Response,
+  ): Promise<{
+    text: string;
+    thinking: string;
+    usage: { inputTokens: number; outputTokens: number } | undefined;
+    rawResponse: string;
+  }> {
+    const rawResponse = await response.text();
+    const data = JSON.parse(rawResponse);
+
+    let text = '';
+    let thinking = '';
+
+    if (Array.isArray(data.content)) {
+      for (const block of data.content) {
+        if (block.type === 'thinking' && block.thinking) {
+          thinking += block.thinking;
+        } else if (block.type === 'text' && block.text) {
+          text += block.text;
+        }
+      }
+    }
+
+    const usage = data.usage
+      ? { inputTokens: data.usage.input_tokens || 0, outputTokens: data.usage.output_tokens || 0 }
+      : undefined;
+
+    return { text, thinking, usage, rawResponse };
+  }
+
+  /**
+   * Consume an SSE stream from the Messages API.
+   *
+   * When streamTimeoutMs > 0, each reader.read() races against a timeout.
+   * Handles SSE `error` and `message_stop` event types.
+   */
   private async consumeSSEStream(
     response: Response,
     onThinkingDelta?: (delta: string) => void,
     onTextDelta?: (delta: string) => void,
+    streamTimeoutMs?: number,
   ): Promise<{
     text: string;
     thinking: string;
@@ -335,6 +387,7 @@ export class LLMClient {
   }> {
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
+    const timeoutMs = streamTimeoutMs && streamTimeoutMs > 0 ? streamTimeoutMs : 0;
 
     let text = '';
     let thinking = '';
@@ -347,67 +400,100 @@ export class LLMClient {
     // Track content block types by index (thinking vs text)
     const blockTypes = new Map<number, string>();
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        let readResult: ReadableStreamReadResult<Uint8Array>;
 
-      const chunk = decoder.decode(value, { stream: true });
-      rawChunks.push(chunk);
-      buffer += chunk;
+        if (timeoutMs > 0) {
+          // Race read against timeout
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(
+              () => reject(new Error(`SSE read timeout — no data received for ${Math.round(timeoutMs / 1000)}s`)),
+              timeoutMs,
+            );
+          });
+          readResult = await Promise.race([reader.read(), timeoutPromise]);
+        } else {
+          readResult = await reader.read();
+        }
 
-      // Parse SSE lines from buffer
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || ''; // Keep incomplete last line in buffer
+        if (readResult.done) break;
 
-      let currentEventType = '';
-      for (const line of lines) {
-        if (line.startsWith('event: ')) {
-          currentEventType = line.slice(7).trim();
-        } else if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          if (data === '[DONE]') continue;
+        const chunk = decoder.decode(readResult.value, { stream: true });
+        rawChunks.push(chunk);
+        buffer += chunk;
 
-          try {
-            const parsed = JSON.parse(data);
+        // Parse SSE lines from buffer
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete last line in buffer
 
-            switch (currentEventType) {
-              case 'message_start': {
-                if (parsed.message?.usage?.input_tokens) {
-                  inputTokens = parsed.message.usage.input_tokens;
-                  hasUsage = true;
+        let currentEventType = '';
+        let shouldBreak = false;
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            currentEventType = line.slice(7).trim();
+          } else if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+
+            try {
+              const parsed = JSON.parse(data);
+
+              switch (currentEventType) {
+                case 'message_start': {
+                  if (parsed.message?.usage?.input_tokens) {
+                    inputTokens = parsed.message.usage.input_tokens;
+                    hasUsage = true;
+                  }
+                  break;
                 }
-                break;
-              }
-              case 'content_block_start': {
-                if (parsed.content_block) {
-                  blockTypes.set(parsed.index, parsed.content_block.type);
+                case 'content_block_start': {
+                  if (parsed.content_block) {
+                    blockTypes.set(parsed.index, parsed.content_block.type);
+                  }
+                  break;
                 }
-                break;
-              }
-              case 'content_block_delta': {
-                const delta = parsed.delta;
-                if (delta?.type === 'thinking_delta') {
-                  thinking += delta.thinking;
-                  onThinkingDelta?.(delta.thinking);
-                } else if (delta?.type === 'text_delta') {
-                  text += delta.text;
-                  onTextDelta?.(delta.text);
+                case 'content_block_delta': {
+                  const delta = parsed.delta;
+                  if (delta?.type === 'thinking_delta') {
+                    thinking += delta.thinking;
+                    onThinkingDelta?.(delta.thinking);
+                  } else if (delta?.type === 'text_delta') {
+                    text += delta.text;
+                    onTextDelta?.(delta.text);
+                  }
+                  break;
                 }
-                break;
-              }
-              case 'message_delta': {
-                if (parsed.usage?.output_tokens) {
-                  outputTokens = parsed.usage.output_tokens;
-                  hasUsage = true;
+                case 'message_delta': {
+                  if (parsed.usage?.output_tokens) {
+                    outputTokens = parsed.usage.output_tokens;
+                    hasUsage = true;
+                  }
+                  break;
                 }
-                break;
+                case 'message_stop': {
+                  shouldBreak = true;
+                  break;
+                }
+                case 'error': {
+                  const errorMsg = parsed.error?.message || parsed.message || JSON.stringify(parsed);
+                  throw new Error(`SSE error event: ${errorMsg}`);
+                }
               }
+            } catch (parseErr) {
+              // Re-throw SSE error events (they were explicitly thrown above)
+              if (parseErr instanceof Error && parseErr.message.startsWith('SSE error event:')) {
+                throw parseErr;
+              }
+              // Skip unparseable data lines
             }
-          } catch {
-            // Skip unparseable data lines
           }
         }
+        if (shouldBreak) break;
       }
+    } finally {
+      // Ensure reader is released on timeout or error
+      try { reader.cancel(); } catch { /* ignore */ }
     }
 
     return {

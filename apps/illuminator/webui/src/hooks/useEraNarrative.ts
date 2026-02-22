@@ -30,6 +30,8 @@ import {
   updateEraNarrative,
   deleteEraNarrative,
   generateEraNarrativeId,
+  deleteEraNarrativeVersion,
+  setEraNarrativeActiveVersion,
 } from '../lib/db/eraNarrativeRepository';
 
 // ============================================================================
@@ -42,6 +44,8 @@ export interface EraNarrativeConfig {
   eraId: string;
   eraName: string;
   tone: EraNarrativeTone;
+  /** Optional arc direction override — framing constraint for thesis, threads, and registers */
+  arcDirection?: string;
   historianConfig: HistorianConfig;
   prepBriefs: EraNarrativePrepBrief[];
   worldContext?: EraNarrativeWorldContext;
@@ -62,6 +66,12 @@ export interface UseEraNarrativeReturn {
   advanceStep: () => Promise<void>;
   /** Skip edit step and mark complete */
   skipEdit: () => Promise<void>;
+  /** Re-run copy edit on the latest version of a completed narrative */
+  rerunCopyEdit: () => Promise<void>;
+  /** Delete a content version (cannot delete the generate version) */
+  deleteVersion: (versionId: string) => Promise<void>;
+  /** Set the active content version */
+  setActiveVersion: (versionId: string) => Promise<void>;
   /** Cancel the current session */
   cancel: () => void;
 }
@@ -164,12 +174,12 @@ export function useEraNarrative(
 
       if (updated.status === 'step_complete') {
         if (headlessRef.current) {
-          // Headless: auto-advance without user interaction
+          // Headless: auto-advance without user interaction (skips edit)
           stopPolling();
 
           const nextStep = NEXT_STEP[updated.currentStep];
-          if (!nextStep) {
-            // Final step: mark complete
+          if (!nextStep || updated.currentStep === 'generate') {
+            // Final step (or generate in headless — skip edit): mark complete
             await updateEraNarrative(updated.narrativeId, { status: 'complete' });
             setNarrative((prev) => prev ? { ...prev, status: 'complete' } : null);
           } else {
@@ -198,6 +208,7 @@ export function useEraNarrative(
       eraName: config.eraName,
       status: 'pending',
       tone: config.tone,
+      arcDirection: config.arcDirection || undefined,
       historianConfigJson: JSON.stringify(config.historianConfig),
       currentStep: 'threads',
       prepBriefs: config.prepBriefs,
@@ -272,6 +283,41 @@ export function useEraNarrative(
     stopPolling();
   }, [narrative, stopPolling]);
 
+  // Re-run copy edit on the latest version of a completed narrative
+  const rerunCopyEdit = useCallback(async () => {
+    if (!narrative) return;
+
+    // Reset to edit step + pending so the worker picks it up
+    await updateEraNarrative(narrative.narrativeId, {
+      status: 'pending',
+      currentStep: 'edit',
+    });
+
+    setNarrative((prev) => prev ? {
+      ...prev,
+      status: 'pending',
+      currentStep: 'edit',
+    } : null);
+
+    headlessRef.current = false;
+    dispatchTask(narrative.narrativeId);
+    startPolling(narrative.narrativeId);
+  }, [narrative, dispatchTask, startPolling]);
+
+  // Delete a content version (cannot delete the generate version)
+  const deleteVersion = useCallback(async (versionId: string) => {
+    if (!narrative) return;
+    const updated = await deleteEraNarrativeVersion(narrative.narrativeId, versionId);
+    setNarrative(updated);
+  }, [narrative]);
+
+  // Set the active content version
+  const setActiveVersion = useCallback(async (versionId: string) => {
+    if (!narrative) return;
+    const updated = await setEraNarrativeActiveVersion(narrative.narrativeId, versionId);
+    setNarrative(updated);
+  }, [narrative]);
+
   // Cancel
   const cancel = useCallback(() => {
     headlessRef.current = false;
@@ -291,6 +337,9 @@ export function useEraNarrative(
     resumeNarrative,
     advanceStep,
     skipEdit,
+    rerunCopyEdit,
+    deleteVersion,
+    setActiveVersion,
     cancel,
   };
 }
