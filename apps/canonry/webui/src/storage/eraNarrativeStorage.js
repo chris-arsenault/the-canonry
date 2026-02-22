@@ -31,6 +31,8 @@ function projectForExport(raw) {
     content,
     wordCount: narrative?.editedWordCount || narrative?.wordCount || 0,
     thesis: raw.threadSynthesis?.thesis || undefined,
+    coverImage: raw.coverImage || undefined,
+    imageRefs: raw.imageRefs || undefined,
     sourceChronicles: Array.isArray(raw.prepBriefs)
       ? raw.prepBriefs.map((b) => ({
           chronicleId: b.chronicleId,

@@ -206,7 +206,7 @@ export interface EnrichmentTaskBase {
   // For chronicle image tasks
   imageRefId?: string;
   sceneDescription?: string;
-  imageType?: 'entity' | 'chronicle';
+  imageType?: 'entity' | 'chronicle' | 'era_narrative';
   /** Visual thesis per entity ID, for cover image scene generation */
   visualIdentities?: Record<string, string>;
   // For palette expansion tasks

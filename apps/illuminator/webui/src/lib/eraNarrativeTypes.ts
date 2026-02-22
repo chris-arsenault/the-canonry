@@ -243,6 +243,8 @@ export interface EraNarrativeRecord {
   tone: EraNarrativeTone;
   /** Optional arc direction override — when set, injected as a CRITICAL framing constraint for thesis, threads, and registers */
   arcDirection?: string;
+  /** Optional scene/passage to weave into the narrative during copy edit */
+  editInsertion?: string;
   historianConfigJson: string;
 
   currentStep: EraNarrativeStep;

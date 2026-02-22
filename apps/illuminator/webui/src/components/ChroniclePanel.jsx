@@ -1747,7 +1747,6 @@ export default function ChroniclePanel({
     getEraNarrativesForSimulation(simulationRunId).then((records) => {
       const eraOrderMap = new Map(wizardEras.map((e) => [e.id, e.order]));
       const navItems = records
-        .filter((r) => r.status === 'complete')
         .map((r) => buildEraNarrativeNavItem(r, eraOrderMap.get(r.eraId)));
       setEraNarrativeNavItems(navItems);
     });
@@ -2736,7 +2735,20 @@ export default function ChroniclePanel({
         {/* Right panel: Selected item detail */}
         <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
           {isEraNarrativeSelected && selectedEraNarrativeId ? (
-            <EraNarrativeViewer narrativeId={selectedEraNarrativeId} onEnqueue={onEnqueue} />
+            <EraNarrativeViewer
+              narrativeId={selectedEraNarrativeId}
+              onEnqueue={onEnqueue}
+              styleLibrary={styleLibrary}
+              styleSelection={chronicleStyleSelection}
+              imageSize={chronicleImageSize}
+              imageQuality={chronicleImageQuality}
+              imageModel={imageModel}
+              imageGenSettings={imageGenSettings}
+              onOpenImageSettings={onOpenImageSettings}
+              cultures={worldData?.schema?.cultures}
+              cultureIdentities={cultureIdentities}
+              worldContext={worldContext}
+            />
           ) : !selectedItem ? (
             <div
               style={{

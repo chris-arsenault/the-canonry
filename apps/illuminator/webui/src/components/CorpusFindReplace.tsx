@@ -1,6 +1,7 @@
 /**
  * CorpusFindReplace — Unified find/replace across chronicle content,
- * chronicle annotations, and entity annotations.
+ * chronicle titles, chronicle annotations, entity annotations, and
+ * era narrative content.
  *
  * Consolidates ChronicleFindReplaceModal (literal replace on chronicle content)
  * and AnnotationMotifTool (LLM-powered replace on entity annotations) into a
@@ -22,12 +23,13 @@ import { reloadEntities } from '../hooks/useEntityCrud';
 import type { HistorianNote } from '../lib/historianTypes';
 import { isNoteActive } from '../lib/historianTypes';
 import type { MotifVariationPayload, MotifVariationResult } from '../workers/tasks/motifVariationTask';
+import { getEraNarrativesForSimulation, getEraNarrative, updateEraNarrative, resolveActiveContent } from '../lib/db/eraNarrativeRepository';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-type SearchContext = 'chronicleContent' | 'chronicleAnnotations' | 'entityAnnotations';
+type SearchContext = 'chronicleContent' | 'chronicleTitles' | 'chronicleAnnotations' | 'entityAnnotations' | 'eraNarrativeContent';
 
 interface CorpusMatch {
   id: string;
@@ -54,8 +56,10 @@ const BATCH_SIZE = 8;
 
 const CONTEXT_LABELS: Record<SearchContext, string> = {
   chronicleContent: 'Chronicle Content',
+  chronicleTitles: 'Chronicle Titles',
   chronicleAnnotations: 'Chronicle Annotations',
   entityAnnotations: 'Entity Annotations',
+  eraNarrativeContent: 'Era Narratives',
 };
 
 // ============================================================================
@@ -387,7 +391,7 @@ export default function CorpusFindReplace() {
   const [replace, setReplace] = useState('');
   const [caseSensitive, setCaseSensitive] = useState(true);
   const [contexts, setContexts] = useState<Set<SearchContext>>(
-    new Set(['chronicleContent', 'chronicleAnnotations', 'entityAnnotations']),
+    new Set(['chronicleContent', 'chronicleTitles', 'chronicleAnnotations', 'entityAnnotations', 'eraNarrativeContent']),
   );
   const [llmMode, setLlmMode] = useState(false);
   const [phase, setPhase] = useState<Phase>('input');
@@ -453,7 +457,19 @@ export default function CorpusFindReplace() {
       }
     }
 
-    // 2. Chronicle annotations
+    // 2. Chronicle titles
+    if (contexts.has('chronicleTitles')) {
+      const allIds = Object.values(chronicleNavItems).map((nav) => nav.chronicleId);
+
+      for (let i = 0; i < allIds.length; i++) {
+        if (i % 50 === 0) setScanProgress(`Chronicle titles ${i + 1}/${allIds.length}`);
+        const record = await getChronicle(allIds[i]);
+        if (!record?.title) continue;
+        allMatches.push(...scanText(record.title, find, caseSensitive, record.title, 'chronicleTitles', allIds[i], 'title', 'Title', undefined, undefined));
+      }
+    }
+
+    // 3. Chronicle annotations
     if (contexts.has('chronicleAnnotations')) {
       const annotatedIds = Object.values(chronicleNavItems)
         .filter((nav) => nav.historianNoteCount > 0)
@@ -476,7 +492,7 @@ export default function CorpusFindReplace() {
       }
     }
 
-    // 3. Entity annotations
+    // 4. Entity annotations
     if (contexts.has('entityAnnotations')) {
       const annotatedNavs = navEntities.filter((n) => n.hasHistorianNotes);
       setScanProgress(`Entity annotations: loading ${annotatedNavs.length} entities`);
@@ -495,6 +511,23 @@ export default function CorpusFindReplace() {
           if (note.anchorPhrase) {
             allMatches.push(...scanText(note.anchorPhrase, find, caseSensitive, entity.name + ' (anchor)', 'entityAnnotations', entity.id, undefined, undefined, note.noteId, note.text));
           }
+        }
+      }
+    }
+
+    // 5. Era narrative content
+    if (contexts.has('eraNarrativeContent')) {
+      const simRunId = useChronicleStore.getState().simulationRunId;
+      if (simRunId) {
+        const allNarratives = await getEraNarrativesForSimulation(simRunId);
+        const completedNarratives = allNarratives.filter((n) => n.status === 'complete' || n.status === 'step_complete');
+
+        for (let i = 0; i < completedNarratives.length; i++) {
+          setScanProgress(`Era narratives ${i + 1}/${completedNarratives.length}`);
+          const record = completedNarratives[i];
+          const { content } = resolveActiveContent(record);
+          if (!content) continue;
+          allMatches.push(...scanText(content, find, caseSensitive, record.eraName, 'eraNarrativeContent', record.narrativeId, 'activeContent', 'Active Version', undefined, undefined));
         }
       }
     }
@@ -678,7 +711,25 @@ export default function CorpusFindReplace() {
       await putChronicle(record);
     }
 
-    // 2. Chronicle annotations — group by chronicleId
+    // 2. Chronicle titles — group by chronicleId
+    const titleByChronicle = new Map<string, number[]>();
+    for (const m of matches) {
+      if (m.context !== 'chronicleTitles' || !decisions[m.id]) continue;
+      if (!titleByChronicle.has(m.sourceId)) titleByChronicle.set(m.sourceId, []);
+      titleByChronicle.get(m.sourceId)!.push(m.position);
+    }
+
+    for (const [chronicleId, positions] of titleByChronicle) {
+      const record = await getChronicle(chronicleId);
+      if (!record?.title) continue;
+
+      record.title = applySelectiveReplace(record.title, find, replace, positions);
+      record.updatedAt = Date.now();
+      await putChronicle(record);
+      total += positions.length;
+    }
+
+    // 3. Chronicle annotations — group by chronicleId
     const chronAnnotChanges = new Map<string, Map<string, { noteText: string; positions: number[]; variant?: string }>>();
     for (const m of matches) {
       if (m.context !== 'chronicleAnnotations' || !decisions[m.id] || !m.noteId) continue;
@@ -722,7 +773,7 @@ export default function CorpusFindReplace() {
       await updateChronicleHistorianNotes(chronicleId, updatedNotes);
     }
 
-    // 3. Entity annotations — group by entityId
+    // 4. Entity annotations — group by entityId
     const entityAnnotChanges = new Map<string, Map<string, { noteText: string; positions: number[]; variant?: string }>>();
     for (const m of matches) {
       if (m.context !== 'entityAnnotations' || !decisions[m.id] || !m.noteId) continue;
@@ -766,8 +817,34 @@ export default function CorpusFindReplace() {
       updatedEntityIds.push(entityId);
     }
 
+    // 5. Era narrative content — group by narrativeId
+    const eraNarrativeChanges = new Map<string, number[]>();
+    for (const m of matches) {
+      if (m.context !== 'eraNarrativeContent' || !decisions[m.id]) continue;
+      if (!eraNarrativeChanges.has(m.sourceId)) eraNarrativeChanges.set(m.sourceId, []);
+      eraNarrativeChanges.get(m.sourceId)!.push(m.position);
+    }
+
+    for (const [narrativeId, positions] of eraNarrativeChanges) {
+      const record = await getEraNarrative(narrativeId);
+      if (!record) continue;
+
+      const { activeVersionId } = resolveActiveContent(record);
+      const versions = [...(record.contentVersions || [])];
+      const vIdx = versions.findIndex((v) => v.versionId === activeVersionId);
+      if (vIdx === -1) continue;
+
+      const updated = { ...versions[vIdx] };
+      updated.content = applySelectiveReplace(updated.content, find, replace, positions);
+      updated.wordCount = updated.content.split(/\s+/).filter(Boolean).length;
+      versions[vIdx] = updated;
+
+      await updateEraNarrative(narrativeId, { contentVersions: versions });
+      total += positions.length;
+    }
+
     // Refresh stores
-    if (contentByChronicle.size > 0 || chronAnnotChanges.size > 0) {
+    if (contentByChronicle.size > 0 || titleByChronicle.size > 0 || chronAnnotChanges.size > 0) {
       await useChronicleStore.getState().refreshAll();
     }
     if (updatedEntityIds.length > 0) {
@@ -786,8 +863,9 @@ export default function CorpusFindReplace() {
   const acceptAllMatches = useCallback(() => {
     setDecisions((prev) => {
       const next = { ...prev };
+      const literalContexts: Set<SearchContext> = new Set(['chronicleContent', 'chronicleTitles', 'eraNarrativeContent']);
       for (const m of matches) {
-        if (!llmMode || m.context === 'chronicleContent' || variants.has(m.id)) next[m.id] = true;
+        if (!llmMode || literalContexts.has(m.context) || variants.has(m.id)) next[m.id] = true;
       }
       return next;
     });
@@ -804,8 +882,9 @@ export default function CorpusFindReplace() {
   const acceptGroup = useCallback((groupMatches: CorpusMatch[]) => {
     setDecisions((prev) => {
       const next = { ...prev };
+      const literalContexts: Set<SearchContext> = new Set(['chronicleContent', 'chronicleTitles', 'eraNarrativeContent']);
       for (const m of groupMatches) {
-        if (!llmMode || m.context === 'chronicleContent' || variants.has(m.id)) next[m.id] = true;
+        if (!llmMode || literalContexts.has(m.context) || variants.has(m.id)) next[m.id] = true;
       }
       return next;
     });
@@ -846,7 +925,7 @@ export default function CorpusFindReplace() {
   const groupedByContext = useMemo(() => {
     const result: Array<{ context: SearchContext; label: string; sourceGroups: Array<{ key: string; label: string; matches: CorpusMatch[] }> }> = [];
 
-    for (const ctx of ['chronicleContent', 'chronicleAnnotations', 'entityAnnotations'] as SearchContext[]) {
+    for (const ctx of ['chronicleContent', 'chronicleTitles', 'chronicleAnnotations', 'entityAnnotations', 'eraNarrativeContent'] as SearchContext[]) {
       const ctxMatches = matches.filter((m) => m.context === ctx);
       if (ctxMatches.length === 0) continue;
 
@@ -885,7 +964,7 @@ export default function CorpusFindReplace() {
               Search in
             </label>
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              {(['chronicleContent', 'chronicleAnnotations', 'entityAnnotations'] as SearchContext[]).map((ctx) => (
+              {(['chronicleContent', 'chronicleTitles', 'chronicleAnnotations', 'entityAnnotations', 'eraNarrativeContent'] as SearchContext[]).map((ctx) => (
                 <label key={ctx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
                   <input type="checkbox" checked={contexts.has(ctx)} onChange={() => toggleContext(ctx)} style={{ cursor: 'pointer' }} />
                   {CONTEXT_LABELS[ctx]}
@@ -1051,7 +1130,7 @@ export default function CorpusFindReplace() {
                 className="illuminator-button illuminator-button-secondary"
                 style={{ padding: '6px 16px', fontSize: '12px' }}
               >
-                Generate Variants ({matches.filter((m) => m.context !== 'chronicleContent').length})
+                Generate Variants ({matches.filter((m) => m.context === 'chronicleAnnotations' || m.context === 'entityAnnotations').length})
               </button>
             )}
             <button
@@ -1071,9 +1150,9 @@ export default function CorpusFindReplace() {
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
           <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Generating contextual variants...</div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            {matches.filter((m) => m.context !== 'chronicleContent').length} annotation matches
+            {matches.filter((m) => m.context === 'chronicleAnnotations' || m.context === 'entityAnnotations').length} annotation matches
             {' \u00B7 '}
-            {Math.ceil(matches.filter((m) => m.context !== 'chronicleContent').length / BATCH_SIZE)} LLM calls
+            {Math.ceil(matches.filter((m) => m.context === 'chronicleAnnotations' || m.context === 'entityAnnotations').length / BATCH_SIZE)} LLM calls
           </div>
           {error && <div style={{ marginTop: '12px', fontSize: '12px', color: '#ef4444' }}>{error}</div>}
         </div>

@@ -532,28 +532,28 @@ ALTITUDE REMINDER: The world is the protagonist. Cultures and forces drive every
 // ============================================================================
 
 function buildEditSystemPrompt(): string {
-  return `You are editing an era narrative written in the mythic-historical register — the Silmarillion tradition. Your job is to preserve and strengthen that register, not normalize it.
+  return `You are copy-editing an era narrative. The draft is strong. Your job is to make it cleaner, not different.
 
-## Protect
+## The Draft's Voice Is Correct
 
-- **Parataxis.** "And...and...and" is intentional. Do not subordinate accumulated clauses.
-- **Restraint.** Emotional weight comes from what is NOT said. Do not add commentary, analysis, or emotional labeling.
-- **Temporal accordion.** Compressions should stay compressed. Expansions should stay expanded. Do not even out the pacing.
-- **Concrete imagery.** Do not replace physical images with abstract analysis.
-- **Transmission markers.** "It is said" and "thus ended" are structural. Preserve them.
-- **Tonal range.** If the draft contains moments of defiance, beauty, energy, or lightness, protect them. These are not digressions. Do not flatten the emotional range toward monotone in any register.
-- **Rhetorical energy.** Passages with forward momentum, varied cadence, or sensory specificity are working. Do not flatten.
-- **Tonal differentiation.** Passages that feel different from the surrounding register are structural. Do not normalize.
+The tone, the cadence, the register — these were chosen deliberately. Do not normalize them. If a passage feels different from its surroundings, that differentiation is structural. Protect it.
 
-## Cut
+## What to look for
 
-- **Modern register breaks.** Any phrase that sounds like academic analysis, journalism, self-help, or editorial commentary.
-- **Psychology.** Interior monologue, motivation analysis, "he felt," "she realized."
-- **Stated themes.** If the text says what its motifs mean, cut the explanation. The recurrence is the argument.
-- **Redundancy.** Where the same point is made twice, keep the version with the stronger image.
-- **Filler transitions.** "Meanwhile," "however," "it should be noted" — the section breaks do this work.
-- **Antithesis bloat.** "It was not X, but Y" — keep only Y.
-- **Negative parallelism.** "No X, no Y — just Z" — keep only Z.
+- **Register breaks.** Sentences that sound like a different text — academic analysis, editorial commentary, generic sentiment — in an otherwise specific and voiced draft. These stand out. Remove or rewrite to match the surrounding register.
+- **Internal contradiction.** Passages whose claims the draft's own body refutes. If the invocation asserts something the movements then disprove, the invocation is wrong and should be adjusted.
+- **Structural weight.** The closing should land where the arc direction points. If a thread dominates the reader's final experience and the arc direction says another thread should, rebalance the closing — not by cutting, but by ensuring the right thread gets the last sustained paragraph before the coda.
+- **Stated themes.** If the text explains what its motifs mean, cut the explanation. The recurrence is the argument.
+- **Redundancy.** Where the same point is made twice in adjacent passages, keep the version with the stronger image.
+- **Scene insertion.** If a scene is provided for insertion, find the natural home for it in the narrative's movement structure. Weave it into the surrounding prose — match voice, register, and altitude. It should read as if the draft had always contained it.
+
+## What to leave alone
+
+- Parataxis ("and...and...and") — intentional
+- Temporal compression and expansion — intentional
+- Concrete imagery, sensory detail, physical verbs — these are the prose working
+- Tonal range — moments of defiance, beauty, energy, or lightness are not digressions
+- Length — do not shorten the draft. A 5,000-word draft should produce a 5,000-word edit.
 
 ## Output
 
@@ -565,6 +565,18 @@ function buildEditUserPrompt(record: EraNarrativeRecord, contentToEdit: string):
   const editSections: string[] = [];
 
   editSections.push(`=== ERA NARRATIVE: ${record.eraName} ===`);
+  editSections.push(`Tone: ${record.tone || 'witty'}`);
+
+  if (record.arcDirection) {
+    editSections.push(`Arc direction:\n${record.arcDirection}`);
+  }
+
+  if (synthesis.threads?.length) {
+    const threadList = synthesis.threads
+      .map((t: { name: string; register: string }) => `- ${t.name}: register "${t.register}"`)
+      .join('\n');
+    editSections.push(`Thread registers (each thread should feel like its register):\n${threadList}`);
+  }
 
   if (synthesis.thesis) {
     editSections.push(`Thesis (structural reference — should NOT appear as stated text):\n${synthesis.thesis}`);
@@ -574,9 +586,13 @@ function buildEditUserPrompt(record: EraNarrativeRecord, contentToEdit: string):
     editSections.push(`Counterweight (protect — these moments earn their place):\n${synthesis.counterweight}`);
   }
 
+  if (record.editInsertion) {
+    editSections.push(`=== SCENE TO WEAVE IN ===\nThe following passage should be woven into the narrative at the most natural point. Match the surrounding voice and register. Do not drop it in verbatim — integrate it so it reads as part of the original draft.\n\n${record.editInsertion}`);
+  }
+
   editSections.push(`=== TEXT TO EDIT ===\n${contentToEdit}`);
 
-  editSections.push(`=== TASK ===\nEdit this era narrative. Preserve the mythic register. Strengthen restraint. Cut modern register breaks. Tighten.`);
+  editSections.push(`=== TASK ===\nCopy-edit this era narrative. The voice is correct — clean it, don't change it.`);
 
   return editSections.join('\n\n');
 }
@@ -853,6 +869,7 @@ async function executeEditStep(
     narrative: updatedNarrative,
     contentVersions,
     activeVersionId: editVersion.versionId,
+    editInsertion: undefined,
     totalInputTokens: record.totalInputTokens + callResult.usage.inputTokens,
     totalOutputTokens: record.totalOutputTokens + callResult.usage.outputTokens,
     totalActualCost: record.totalActualCost + callResult.usage.actualCost,

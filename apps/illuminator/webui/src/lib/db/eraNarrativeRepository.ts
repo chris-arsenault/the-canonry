@@ -62,6 +62,7 @@ export async function updateEraNarrative(
     | 'totalInputTokens'
     | 'totalOutputTokens'
     | 'totalActualCost'
+    | 'editInsertion'
   >>
 ): Promise<EraNarrativeRecord> {
   const record = await db.eraNarratives.get(narrativeId);
@@ -79,6 +80,7 @@ export async function updateEraNarrative(
   if (updates.totalInputTokens !== undefined) record.totalInputTokens = updates.totalInputTokens;
   if (updates.totalOutputTokens !== undefined) record.totalOutputTokens = updates.totalOutputTokens;
   if (updates.totalActualCost !== undefined) record.totalActualCost = updates.totalActualCost;
+  if (updates.editInsertion !== undefined) record.editInsertion = updates.editInsertion;
   record.updatedAt = Date.now();
 
   await db.eraNarratives.put(record);
@@ -93,12 +95,56 @@ export async function deleteEraNarrative(narrativeId: string): Promise<void> {
 // Version Management
 // =============================================================================
 
+/**
+ * Materialize legacy `narrative` field into `contentVersions` if the record
+ * hasn't been migrated yet. Mutates the record in place.
+ */
+function materializeLegacyVersions(record: EraNarrativeRecord): void {
+  if (record.contentVersions && record.contentVersions.length > 0) return;
+  if (!record.narrative) return;
+
+  const versions: EraNarrativeContentVersion[] = [];
+  versions.push({
+    versionId: `legacy_gen_${record.narrative.generatedAt}`,
+    content: record.narrative.content,
+    wordCount: record.narrative.wordCount,
+    step: 'generate',
+    generatedAt: record.narrative.generatedAt,
+    model: record.narrative.model,
+    systemPrompt: record.narrative.systemPrompt,
+    userPrompt: record.narrative.userPrompt,
+    inputTokens: record.narrative.inputTokens,
+    outputTokens: record.narrative.outputTokens,
+    actualCost: record.narrative.actualCost,
+  });
+  if (record.narrative.editedContent) {
+    versions.push({
+      versionId: `legacy_edit_${record.narrative.editedAt || record.narrative.generatedAt}`,
+      content: record.narrative.editedContent,
+      wordCount: record.narrative.editedWordCount || record.narrative.editedContent.split(/\s+/).filter(Boolean).length,
+      step: 'edit',
+      generatedAt: record.narrative.editedAt || record.narrative.generatedAt,
+      model: record.narrative.model,
+      systemPrompt: record.narrative.editSystemPrompt || '',
+      userPrompt: record.narrative.editUserPrompt || '',
+      inputTokens: record.narrative.editInputTokens || 0,
+      outputTokens: record.narrative.editOutputTokens || 0,
+      actualCost: record.narrative.editActualCost || 0,
+    });
+  }
+
+  record.contentVersions = versions;
+  record.activeVersionId = versions[versions.length - 1].versionId;
+}
+
 export async function deleteEraNarrativeVersion(
   narrativeId: string,
   versionId: string
 ): Promise<EraNarrativeRecord> {
   const record = await db.eraNarratives.get(narrativeId);
   if (!record) throw new Error(`Era narrative ${narrativeId} not found`);
+
+  materializeLegacyVersions(record);
 
   const versions = record.contentVersions || [];
   const target = versions.find((v) => v.versionId === versionId);
@@ -126,6 +172,8 @@ export async function setEraNarrativeActiveVersion(
 ): Promise<EraNarrativeRecord> {
   const record = await db.eraNarratives.get(narrativeId);
   if (!record) throw new Error(`Era narrative ${narrativeId} not found`);
+
+  materializeLegacyVersions(record);
 
   const versions = record.contentVersions || [];
   if (!versions.some((v) => v.versionId === versionId)) {
@@ -212,6 +260,33 @@ export async function updateEraNarrativeImageRefStatus(
   ref.status = status;
   if (imageId) ref.generatedImageId = imageId;
   if (error) ref.error = error;
+  record.updatedAt = Date.now();
+  await db.eraNarratives.put(record);
+}
+
+/**
+ * Update arbitrary fields on an image ref (anchor text, size, justification).
+ */
+export async function updateEraNarrativeImageRefField(
+  narrativeId: string,
+  refId: string,
+  updates: { anchorText?: string; size?: string; justification?: 'left' | 'right' | null }
+): Promise<void> {
+  const record = await db.eraNarratives.get(narrativeId);
+  if (!record || !record.imageRefs) return;
+
+  const ref = record.imageRefs.refs.find((r) => r.refId === refId);
+  if (!ref) return;
+
+  if (updates.anchorText !== undefined) ref.anchorText = updates.anchorText;
+  if (updates.size !== undefined) (ref as any).size = updates.size;
+  if (updates.justification !== undefined) {
+    if (updates.justification === null) {
+      delete (ref as any).justification;
+    } else {
+      ref.justification = updates.justification;
+    }
+  }
   record.updatedAt = Date.now();
   await db.eraNarratives.put(record);
 }

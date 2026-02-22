@@ -188,6 +188,10 @@ export function useEnrichmentQueue(
   const reconnectInProgressRef = useRef(false);
   const autoReconnectAttemptsRef = useRef<Map<string, number>>(new Map());
   const pendingAutoRetryRef = useRef<Set<string>>(new Set());
+  // Track tasks currently executing in the browser (not on a worker).
+  // Prevents re-entry: queueRef.current is stale until React re-renders,
+  // so without this guard the same task can be picked up multiple times.
+  const browserRunningTasksRef = useRef<Set<string>>(new Set());
 
   // Keep projectId ref in sync
   useEffect(() => {
@@ -235,9 +239,13 @@ export function useEnrichmentQueue(
       const currentQueue = queueRef.current;
 
       // Find next queued task assigned to this worker
+      // Also exclude tasks already running in the browser — queueRef is stale
+      // until React re-renders, so status may still read 'queued'.
       const nextItem = currentQueue.find(
         (item) =>
-          item.status === 'queued' && taskWorkerMapRef.current.get(item.id) === workerId
+          item.status === 'queued' &&
+          taskWorkerMapRef.current.get(item.id) === workerId &&
+          !browserRunningTasksRef.current.has(item.id)
       );
 
       if (!nextItem) return;
@@ -280,6 +288,7 @@ export function useEnrichmentQueue(
       if (shouldRunInBrowser(task.type, latestLlmSettings) && configRef.current) {
         // Release the worker slot — this task runs in the main thread
         workerState.currentTaskId = null;
+        browserRunningTasksRef.current.add(nextItem.id);
 
         console.log('[EnrichmentQueue] Executing in browser', { taskId: task.id, type: task.type });
 
@@ -290,6 +299,7 @@ export function useEnrichmentQueue(
           onThinkingDelta: (taskId, delta) => useThinkingStore.getState().appendDelta(taskId, delta),
           onTextDelta: (taskId, delta) => useThinkingStore.getState().appendTextDelta(taskId, delta),
         }).then((taskResult) => {
+          browserRunningTasksRef.current.delete(task.id);
           taskWorkerMapRef.current.delete(task.id);
           if (taskResult.success) {
             setQueue((prev) =>

@@ -279,7 +279,7 @@ function sanitizeFileName(value, fallback) {
   return sanitized || fallback;
 }
 
-function collectReferencedImageIds(worldData, chronicles, staticPages) {
+function collectReferencedImageIds(worldData, chronicles, staticPages, eraNarratives) {
   const ids = new Set();
   const entityById = new Map();
   if (worldData?.hardState) {
@@ -309,6 +309,21 @@ function collectReferencedImageIds(worldData, chronicles, staticPages) {
       }
     }
   }
+  if (Array.isArray(eraNarratives)) {
+    for (const narrative of eraNarratives) {
+      const coverImageId = narrative?.coverImage?.generatedImageId;
+      if (coverImageId) ids.add(coverImageId);
+      const refs = narrative?.imageRefs?.refs || [];
+      for (const ref of refs) {
+        if (ref?.type === 'chronicle_ref' && ref?.imageId) {
+          ids.add(ref.imageId);
+        }
+        if (ref?.type === 'prompt_request' && ref?.generatedImageId) {
+          ids.add(ref.generatedImageId);
+        }
+      }
+    }
+  }
   if (Array.isArray(staticPages)) {
     for (const page of staticPages) {
       const content = page?.content;
@@ -329,12 +344,13 @@ async function buildBundleImageAssets({
   worldData,
   chronicles,
   staticPages,
+  eraNarratives,
   shouldCancel,
   onProgress,
   mode = 'local',
   storage,
 }) {
-  const imageIds = collectReferencedImageIds(worldData, chronicles, staticPages);
+  const imageIds = collectReferencedImageIds(worldData, chronicles, staticPages, eraNarratives);
   const totalImages = imageIds.size;
   if (imageIds.size === 0) {
     return { imageData: null, images: null, imageFiles: [] };
@@ -1869,6 +1885,7 @@ export default function App() {
         worldData: exportWorldData,
         chronicles,
         staticPages,
+        eraNarratives,
         shouldCancel,
         onProgress: ({ phase, processed, total }) => {
           if (phase !== 'images') return;
@@ -1917,21 +1934,37 @@ export default function App() {
         images,
       };
 
-      const { default: JSZip } = await import('jszip');
-      const zip = new JSZip();
-      zip.file('bundle.json', JSON.stringify(bundle, null, 2));
-      for (const file of imageFiles) {
-        zip.file(file.path, file.blob);
-      }
-
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const bundleJson = JSON.stringify(bundle, null, 2);
       throwIfExportCanceled(shouldCancel);
-      const url = URL.createObjectURL(zipBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${safeBase || `slot-${slotIndex}`}.canonry-bundle.zip`;
-      link.click();
-      URL.revokeObjectURL(url);
+
+      if (imageFiles.length === 0) {
+        // S3 mode (or no local images) — export a timestamped JSON file directly
+        const timestamp = exportedAt.replace(/[:.]/g, '-').replace('T', '_').replace('Z', '');
+        const blob = new Blob([bundleJson], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${safeBase || `slot-${slotIndex}`}.bundle.${timestamp}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+      } else {
+        // Local mode — zip bundle.json with embedded image blobs
+        const { default: JSZip } = await import('jszip');
+        const zip = new JSZip();
+        zip.file('bundle.json', bundleJson);
+        for (const file of imageFiles) {
+          zip.file(file.path, file.blob);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        throwIfExportCanceled(shouldCancel);
+        const url = URL.createObjectURL(zipBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${safeBase || `slot-${slotIndex}`}.canonry-bundle.zip`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
       closeExportModal();
     } catch (err) {
       if (err?.name === EXPORT_CANCEL_ERROR_NAME) {

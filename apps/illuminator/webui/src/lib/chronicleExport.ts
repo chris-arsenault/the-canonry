@@ -606,6 +606,17 @@ export async function downloadBulkToneReviewExport(simulationRunId: string): Pro
 // Era Narrative Export
 // =============================================================================
 
+export interface EraNarrativeExportVersion {
+  versionId: string;
+  step: 'generate' | 'edit';
+  content: string;
+  wordCount: number;
+  generatedAt: string;
+  llmCall: ExportLLMCall;
+  tokens: { input: number; output: number };
+  cost: number;
+}
+
 export interface EraNarrativeExport {
   exportVersion: '1.0';
   exportedAt: string;
@@ -658,6 +669,12 @@ export interface EraNarrativeExport {
     cost: number;
   };
 
+  /** All content versions (generate + edits) in chronological order */
+  contentVersions?: EraNarrativeExportVersion[];
+  /** Which version is active */
+  activeVersionId?: string;
+
+  /** Legacy: first generate version (for backwards compatibility) */
   draft?: {
     content: string;
     wordCount: number;
@@ -667,6 +684,7 @@ export interface EraNarrativeExport {
     cost: number;
   };
 
+  /** Legacy: latest edit version (for backwards compatibility) */
   edited?: {
     content: string;
     wordCount: number;
@@ -760,7 +778,58 @@ export function buildEraNarrativeExport(record: EraNarrativeRecord): EraNarrativ
     };
   }
 
-  if (record.narrative) {
+  // Export contentVersions if available, otherwise fall back to legacy narrative field
+  if (record.contentVersions && record.contentVersions.length > 0) {
+    const versions = record.contentVersions;
+    exportData.contentVersions = versions.map((v) => ({
+      versionId: v.versionId,
+      step: v.step,
+      content: v.content,
+      wordCount: v.wordCount,
+      generatedAt: new Date(v.generatedAt).toISOString(),
+      llmCall: {
+        systemPrompt: v.systemPrompt,
+        userPrompt: v.userPrompt,
+        model: v.model,
+      },
+      tokens: { input: v.inputTokens, output: v.outputTokens },
+      cost: v.actualCost,
+    }));
+    exportData.activeVersionId = record.activeVersionId;
+
+    // Backwards-compat: draft = first generate, edited = latest edit
+    const generate = versions.find((v) => v.step === 'generate');
+    if (generate) {
+      exportData.draft = {
+        content: generate.content,
+        wordCount: generate.wordCount,
+        generatedAt: new Date(generate.generatedAt).toISOString(),
+        llmCall: {
+          systemPrompt: generate.systemPrompt,
+          userPrompt: generate.userPrompt,
+          model: generate.model,
+        },
+        tokens: { input: generate.inputTokens, output: generate.outputTokens },
+        cost: generate.actualCost,
+      };
+    }
+    const edits = versions.filter((v) => v.step === 'edit');
+    if (edits.length > 0) {
+      const latest = edits[edits.length - 1];
+      exportData.edited = {
+        content: latest.content,
+        wordCount: latest.wordCount,
+        editedAt: new Date(latest.generatedAt).toISOString(),
+        llmCall: {
+          systemPrompt: latest.systemPrompt,
+          userPrompt: latest.userPrompt,
+          model: latest.model,
+        },
+        tokens: { input: latest.inputTokens, output: latest.outputTokens },
+        cost: latest.actualCost,
+      };
+    }
+  } else if (record.narrative) {
     const n = record.narrative;
     exportData.draft = {
       content: n.content,

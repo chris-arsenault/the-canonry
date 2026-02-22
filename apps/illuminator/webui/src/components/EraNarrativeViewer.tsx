@@ -5,44 +5,128 @@
  * 1. Header: title, era name, tone, word count, cost
  * 2. Version selector: switch between generate/edit versions, delete, set active
  * 3. Narrative prose (primary content, dominates the view)
- * 4. Thread Synthesis (collapsible): thesis, threads, movements, motifs, images
- * 5. Source Briefs (collapsible): per-chronicle prep inputs
- * 6. Cost/model metadata footer
- * 7. Actions: re-run copy edit, export
+ * 4. Cover Image (shared CoverImageControls component with full generation pipeline)
+ * 5. Image Refs (shared ChronicleImagePanel for prompt_request refs, read-only for chronicle_ref)
+ * 6. Thread Synthesis (collapsible): thesis, threads, movements, motifs, images
+ * 7. Source Briefs (collapsible): per-chronicle prep inputs
+ * 8. Cost/model metadata footer
+ * 9. Actions: re-run copy edit, export
  */
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   getEraNarrative,
   updateEraNarrative,
+  updateEraNarrativeCoverImageStatus,
+  updateEraNarrativeImageRefStatus,
+  updateEraNarrativeImageRefField,
   resolveActiveContent,
   deleteEraNarrativeVersion,
   setEraNarrativeActiveVersion,
 } from '../lib/db/eraNarrativeRepository';
+import { useChronicleStore } from '../lib/db/chronicleStore';
 import { downloadEraNarrativeExport } from '../lib/chronicleExport';
-import type { EraNarrativeRecord } from '../lib/eraNarrativeTypes';
+import { buildChronicleScenePrompt } from '../lib/promptBuilders';
+import { resolveStyleSelection } from './StyleSelector';
+import { CoverImageControls } from './CoverImageControls';
+import ChronicleImagePanel from './ChronicleImagePanel';
+import { useImageUrl } from '../hooks/useImageUrl';
+import type { EraNarrativeRecord, ChronicleImageRef as NarrativeChronicleRef } from '../lib/eraNarrativeTypes';
+import type { ChronicleImageRefs, PromptRequestRef } from '../lib/chronicleTypes';
 import type { EnrichmentType } from '../lib/enrichmentTypes';
+import type { AvailableChronicleImage } from '../workers/tasks/eraNarrativeTask';
+import type { StyleInfo } from '../lib/promptBuilders';
+import type { ImageGenSettings } from '../hooks/useImageGenSettings';
 
 interface EraNarrativeViewerProps {
   narrativeId: string;
   onEnqueue: (items: Array<{
-    entity: { id: string; name: string; kind: string; subtype: string; prominence: string; culture: string; status: string; description: string; tags: Record<string, unknown> };
+    entity: { id: string; name: string; kind: string; subtype?: string; prominence?: string; culture?: string; status?: string; description?: string; tags?: Record<string, unknown> };
     type: EnrichmentType;
     prompt: string;
     chronicleId?: string;
+    [key: string]: unknown;
   }>) => void;
+  // Image generation props (from ChroniclePanel)
+  styleLibrary?: {
+    artisticStyles: Array<{ id: string; name: string; description?: string; promptFragment?: string }>;
+    compositionStyles: Array<{ id: string; name: string; description?: string; promptFragment?: string; suitableForKinds?: string[] }>;
+    colorPalettes: Array<{ id: string; name: string; description?: string; promptFragment?: string }>;
+  };
+  styleSelection?: { artisticStyleId?: string; compositionStyleId?: string; colorPaletteId?: string };
+  imageSize?: string;
+  imageQuality?: string;
+  imageModel?: string;
+  imageGenSettings?: ImageGenSettings;
+  onOpenImageSettings?: () => void;
+  cultures?: Array<{ id: string; name: string; styleKeywords?: string[] }>;
+  cultureIdentities?: {
+    visual?: Record<string, Record<string, string>>;
+    descriptive?: Record<string, Record<string, string>>;
+    visualKeysByKind?: Record<string, string[]>;
+    descriptiveKeysByKind?: Record<string, string[]>;
+  };
+  worldContext?: { name?: string; description?: string; toneFragments?: { core: string }; speciesConstraint?: string };
 }
 
 const POLL_INTERVAL_MS = 2000;
+const SENTINEL_ENTITY = {
+  id: '__era_narrative__',
+  name: 'Era Narrative',
+  kind: 'system',
+  subtype: '',
+  prominence: '',
+  culture: '',
+  status: 'active',
+  description: '',
+  tags: {},
+};
 
-export default function EraNarrativeViewer({ narrativeId, onEnqueue }: EraNarrativeViewerProps) {
+// Thumbnail for chronicle_ref images
+function ChronicleRefThumbnail({ imageId }: { imageId: string }) {
+  const { url, loading } = useImageUrl(imageId);
+  if (loading) return <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>...</span>;
+  if (!url) return <span style={{ fontSize: '16px', color: 'var(--text-muted)' }}>—</span>;
+  return (
+    <img
+      src={url}
+      alt="Chronicle image"
+      loading="lazy"
+      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '3px' }}
+    />
+  );
+}
+
+export default function EraNarrativeViewer({
+  narrativeId,
+  onEnqueue,
+  styleLibrary,
+  styleSelection: externalStyleSelection,
+  imageSize,
+  imageQuality,
+  imageModel,
+  imageGenSettings,
+  onOpenImageSettings,
+  cultures,
+  cultureIdentities,
+  worldContext,
+}: EraNarrativeViewerProps) {
   const [record, setRecord] = useState<EraNarrativeRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [showThreads, setShowThreads] = useState(false);
   const [showBriefs, setShowBriefs] = useState(false);
   const [selectedVersionId, setSelectedVersionId] = useState('');
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [showInsertion, setShowInsertion] = useState(false);
+  const [insertionText, setInsertionText] = useState('');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollReasonRef = useRef<'edit' | 'cover_image' | 'image_refs' | null>(null);
+
+  const styleSelection = externalStyleSelection || {
+    artisticStyleId: 'random',
+    compositionStyleId: 'random',
+    colorPaletteId: 'random',
+  };
 
   // Load record from IndexedDB
   useEffect(() => {
@@ -54,6 +138,11 @@ export default function EraNarrativeViewer({ narrativeId, onEnqueue }: EraNarrat
       setLoading(false);
       setSelectedVersionId('');
       setConfirmingDeleteId(null);
+      setInsertionText(r?.editInsertion || '');
+      // Resume polling if record is stuck in a generating state
+      if (r && (r.status === 'pending' || r.status === 'generating')) {
+        startPolling('edit');
+      }
     });
     return () => { cancelled = true; };
   }, [narrativeId]);
@@ -69,25 +158,54 @@ export default function EraNarrativeViewer({ narrativeId, onEnqueue }: EraNarrat
   // Cleanup on unmount
   useEffect(() => stopPolling, [stopPolling]);
 
-  // Poll while generating (for re-run copy edit)
-  const startPolling = useCallback(() => {
+  // Poll while generating (for re-run copy edit, cover image, image refs)
+  const startPolling = useCallback((reason: 'edit' | 'cover_image' | 'image_refs' = 'edit') => {
     stopPolling();
+    pollReasonRef.current = reason;
+    const snapshotCoverImage = record?.coverImage;
+    const snapshotImageRefs = record?.imageRefs;
+
     pollRef.current = setInterval(async () => {
       const updated = await getEraNarrative(narrativeId);
       if (!updated) return;
       setRecord(updated);
 
-      if (updated.status === 'complete' || updated.status === 'failed' || updated.status === 'step_complete') {
-        // If step_complete from edit, mark complete automatically
-        if (updated.status === 'step_complete' && updated.currentStep === 'edit') {
-          await updateEraNarrative(updated.narrativeId, { status: 'complete' });
-          const final = await getEraNarrative(narrativeId);
-          if (final) setRecord(final);
+      const r = pollReasonRef.current;
+
+      // Edit polling: stop on terminal states or step_complete
+      if (r === 'edit') {
+        if (updated.status === 'complete' || updated.status === 'failed' || updated.status === 'step_complete') {
+          if (updated.status === 'step_complete' && updated.currentStep === 'edit') {
+            await updateEraNarrative(updated.narrativeId, { status: 'complete' });
+            const final = await getEraNarrative(narrativeId);
+            if (final) setRecord(final);
+          }
+          stopPolling();
         }
-        stopPolling();
+        return;
+      }
+
+      // Cover image polling: stop when coverImage appears or changes
+      if (r === 'cover_image') {
+        const hasCover = updated.coverImage?.sceneDescription;
+        const hadCover = snapshotCoverImage?.sceneDescription;
+        if (hasCover && hasCover !== hadCover) {
+          stopPolling();
+        }
+        return;
+      }
+
+      // Image refs polling: stop when imageRefs appears or changes
+      if (r === 'image_refs') {
+        const hasRefs = updated.imageRefs?.generatedAt;
+        const hadRefs = snapshotImageRefs?.generatedAt;
+        if (hasRefs && hasRefs !== hadRefs) {
+          stopPolling();
+        }
+        return;
       }
     }, POLL_INTERVAL_MS);
-  }, [narrativeId, stopPolling]);
+  }, [narrativeId, stopPolling, record?.coverImage, record?.imageRefs]);
 
   const threadNameMap = useMemo(() => {
     if (!record?.threadSynthesis) return {};
@@ -118,7 +236,10 @@ export default function EraNarrativeViewer({ narrativeId, onEnqueue }: EraNarrat
   const viewedContent = viewedVersion?.content || resolved.content;
   const viewedWordCount = viewedVersion?.wordCount || 0;
 
+  // =========================================================================
   // Actions
+  // =========================================================================
+
   const handleExport = useCallback(() => {
     if (!record) return;
     try {
@@ -133,33 +254,29 @@ export default function EraNarrativeViewer({ narrativeId, onEnqueue }: EraNarrat
     await updateEraNarrative(record.narrativeId, {
       status: 'pending',
       currentStep: 'edit',
+      editInsertion: insertionText || undefined,
     });
     setSelectedVersionId('');
 
-    // Dispatch worker task
-    const sentinelEntity = {
-      id: '__era_narrative__',
-      name: 'Era Narrative',
-      kind: 'system',
-      subtype: '',
-      prominence: '',
-      culture: '',
-      status: 'active',
-      description: '',
-      tags: {},
-    };
     onEnqueue([{
-      entity: sentinelEntity,
+      entity: SENTINEL_ENTITY,
       type: 'eraNarrative' as EnrichmentType,
       prompt: '',
       chronicleId: record.narrativeId,
     }]);
 
-    // Refresh record and start polling
     const updated = await getEraNarrative(record.narrativeId);
     if (updated) setRecord(updated);
     startPolling();
-  }, [record, onEnqueue, startPolling]);
+  }, [record, onEnqueue, startPolling, insertionText]);
+
+  const handleForceComplete = useCallback(async () => {
+    if (!record) return;
+    stopPolling();
+    await updateEraNarrative(record.narrativeId, { status: 'complete' });
+    const updated = await getEraNarrative(record.narrativeId);
+    if (updated) setRecord(updated);
+  }, [record, stopPolling]);
 
   const handleDeleteVersion = useCallback(async (versionId: string) => {
     if (!record) return;
@@ -174,6 +291,226 @@ export default function EraNarrativeViewer({ narrativeId, onEnqueue }: EraNarrat
     const updated = await setEraNarrativeActiveVersion(record.narrativeId, versionId);
     setRecord(updated);
   }, [record]);
+
+  // =========================================================================
+  // Era Narrative Sub-Step Dispatch
+  // =========================================================================
+
+  const dispatchEraNarrativeStep = useCallback((step: string, extras?: Record<string, unknown>) => {
+    if (!record) return;
+    onEnqueue([{
+      entity: SENTINEL_ENTITY,
+      type: 'eraNarrative' as EnrichmentType,
+      prompt: '',
+      chronicleId: record.narrativeId,
+      eraNarrativeStep: step,
+      ...extras,
+    }]);
+  }, [record, onEnqueue]);
+
+  // =========================================================================
+  // Cover Image Handlers
+  // =========================================================================
+
+  const handleGenerateCoverImageScene = useCallback(() => {
+    dispatchEraNarrativeStep('cover_image_scene');
+    startPolling('cover_image');
+  }, [dispatchEraNarrativeStep, startPolling]);
+
+  const handleGenerateCoverImage = useCallback(() => {
+    if (!record?.coverImage?.sceneDescription) return;
+
+    // Mark as generating
+    updateEraNarrativeCoverImageStatus(record.narrativeId, 'generating')
+      .then(() => getEraNarrative(record.narrativeId))
+      .then((updated) => { if (updated) setRecord(updated); });
+
+    // Build style info
+    const resolved = resolveStyleSelection({
+      selection: styleSelection,
+      entityKind: 'chronicle',
+      styleLibrary: styleLibrary || { artisticStyles: [], compositionStyles: [], colorPalettes: [] },
+    });
+    const styleInfo: StyleInfo = {
+      compositionPromptFragment: 'cinematic montage composition, overlapping character silhouettes and scene elements, layered movie-poster layout, multiple focal points at different scales, dramatic depth layering, figures and settings blending into each other, NO TEXT NO TITLES NO LETTERING',
+      artisticPromptFragment: resolved.artisticStyle?.promptFragment,
+      colorPalettePromptFragment: resolved.colorPalette?.promptFragment,
+    };
+
+    const prompt = buildChronicleScenePrompt(
+      {
+        sceneDescription: record.coverImage.sceneDescription,
+        size: 'medium',
+        chronicleTitle: record.eraName,
+        world: worldContext ? {
+          name: worldContext.name || 'Unknown World',
+          description: worldContext.description,
+          speciesConstraint: worldContext.speciesConstraint,
+        } : undefined,
+      },
+      styleInfo
+    );
+
+    onEnqueue([{
+      entity: { id: '__era_narrative__', name: record.eraName, kind: 'era_narrative' },
+      type: 'image' as EnrichmentType,
+      prompt,
+      chronicleId: record.narrativeId,
+      imageRefId: '__cover_image__',
+      sceneDescription: record.coverImage.sceneDescription,
+      imageType: 'era_narrative',
+      imageSize: imageSize || '1024x1024',
+      imageQuality: imageQuality || 'standard',
+    }]);
+  }, [record, styleSelection, styleLibrary, worldContext, onEnqueue, imageSize, imageQuality]);
+
+  // =========================================================================
+  // Image Refs Handlers
+  // =========================================================================
+
+  const handleGenerateImageRefs = useCallback(async () => {
+    if (!record) return;
+
+    // Gather available chronicle images from this era's chronicles
+    const store = useChronicleStore.getState();
+    const available: AvailableChronicleImage[] = [];
+
+    for (const brief of record.prepBriefs) {
+      const chronicle = await store.loadChronicle(brief.chronicleId);
+      if (!chronicle) continue;
+
+      if (chronicle.coverImage?.generatedImageId && chronicle.coverImage?.sceneDescription) {
+        available.push({
+          chronicleId: brief.chronicleId,
+          chronicleTitle: brief.chronicleTitle,
+          imageSource: 'cover',
+          imageId: chronicle.coverImage.generatedImageId,
+          sceneDescription: chronicle.coverImage.sceneDescription,
+        });
+      }
+
+      if (chronicle.imageRefs?.refs) {
+        for (const ref of chronicle.imageRefs.refs) {
+          if (ref.type === 'prompt_request' && ref.generatedImageId && ref.sceneDescription) {
+            available.push({
+              chronicleId: brief.chronicleId,
+              chronicleTitle: brief.chronicleTitle,
+              imageSource: 'image_ref',
+              imageRefId: ref.refId,
+              imageId: ref.generatedImageId,
+              sceneDescription: ref.sceneDescription,
+            });
+          }
+        }
+      }
+    }
+
+    dispatchEraNarrativeStep('image_refs', { availableChronicleImages: available });
+    startPolling('image_refs');
+  }, [record, dispatchEraNarrativeStep, startPolling]);
+
+  // Build style info for scene image generation
+  const buildStyleInfo = useCallback((): StyleInfo => {
+    const resolved = resolveStyleSelection({
+      selection: styleSelection,
+      entityKind: 'scene',
+      styleLibrary: styleLibrary || { artisticStyles: [], compositionStyles: [], colorPalettes: [] },
+    });
+    return {
+      artisticPromptFragment: resolved.artisticStyle?.promptFragment,
+      compositionPromptFragment: resolved.compositionStyle?.promptFragment,
+      colorPalettePromptFragment: resolved.colorPalette?.promptFragment,
+    };
+  }, [styleSelection, styleLibrary]);
+
+  // Generate a single scene image (called by ChronicleImagePanel)
+  const handleGenerateSceneImage = useCallback((ref: PromptRequestRef, prompt: string, _styleInfo: StyleInfo) => {
+    if (!record) return;
+
+    // Mark as generating
+    updateEraNarrativeImageRefStatus(record.narrativeId, ref.refId, 'generating')
+      .then(() => getEraNarrative(record.narrativeId))
+      .then((updated) => { if (updated) setRecord(updated); });
+
+    onEnqueue([{
+      entity: { id: '__era_narrative__', name: record.eraName, kind: 'era_narrative' },
+      type: 'image' as EnrichmentType,
+      prompt,
+      chronicleId: record.narrativeId,
+      imageRefId: ref.refId,
+      sceneDescription: ref.sceneDescription,
+      imageType: 'era_narrative',
+      imageSize: imageSize || '1024x1024',
+      imageQuality: imageQuality || 'standard',
+    }]);
+  }, [record, onEnqueue, imageSize, imageQuality]);
+
+  // Reset a failed image ref back to pending
+  const handleResetImage = useCallback((ref: PromptRequestRef) => {
+    if (!record) return;
+    updateEraNarrativeImageRefStatus(record.narrativeId, ref.refId, 'pending')
+      .then(() => getEraNarrative(record.narrativeId))
+      .then((updated) => { if (updated) setRecord(updated); });
+  }, [record]);
+
+  // Update anchor text for a ref
+  const handleUpdateAnchorText = useCallback((ref: PromptRequestRef, anchorText: string) => {
+    if (!record) return;
+    updateEraNarrativeImageRefField(record.narrativeId, ref.refId, { anchorText })
+      .then(() => getEraNarrative(record.narrativeId))
+      .then((updated) => { if (updated) setRecord(updated); });
+  }, [record]);
+
+  // Update size for a ref
+  const handleUpdateSize = useCallback((ref: PromptRequestRef, size: string) => {
+    if (!record) return;
+    const updates: { size: string; justification?: null } = { size };
+    if (size === 'full-width') updates.justification = null;
+    updateEraNarrativeImageRefField(record.narrativeId, ref.refId, updates)
+      .then(() => getEraNarrative(record.narrativeId))
+      .then((updated) => { if (updated) setRecord(updated); });
+  }, [record]);
+
+  // Update justification for a ref
+  const handleUpdateJustification = useCallback((ref: PromptRequestRef, justification: 'left' | 'right') => {
+    if (!record) return;
+    updateEraNarrativeImageRefField(record.narrativeId, ref.refId, { justification })
+      .then(() => getEraNarrative(record.narrativeId))
+      .then((updated) => { if (updated) setRecord(updated); });
+  }, [record]);
+
+  // =========================================================================
+  // Convert era narrative image refs to chronicle-compatible format
+  // =========================================================================
+
+  const { chronicleCompatibleImageRefs, chronicleRefImages, emptyEntities } = useMemo(() => {
+    const emptyEntities = new Map();
+    if (!record?.imageRefs) {
+      return { chronicleCompatibleImageRefs: null, chronicleRefImages: [] as NarrativeChronicleRef[], emptyEntities };
+    }
+
+    const promptRefs: PromptRequestRef[] = [];
+    const chronicleRefImages: NarrativeChronicleRef[] = [];
+
+    for (const ref of record.imageRefs.refs) {
+      if (ref.type === 'prompt_request') {
+        // Cast — structurally compatible (involvedEntityIds is optional)
+        promptRefs.push(ref as unknown as PromptRequestRef);
+      } else if (ref.type === 'chronicle_ref') {
+        chronicleRefImages.push(ref);
+      }
+    }
+
+    const chronicleCompatibleImageRefs: ChronicleImageRefs | null = promptRefs.length > 0
+      ? { refs: promptRefs, generatedAt: record.imageRefs.generatedAt, model: record.imageRefs.model }
+      : null;
+
+    return { chronicleCompatibleImageRefs, chronicleRefImages, emptyEntities };
+  }, [record?.imageRefs]);
+
+  // =========================================================================
+  // Render
+  // =========================================================================
 
   if (loading) {
     return (
@@ -318,7 +655,15 @@ export default function EraNarrativeViewer({ narrativeId, onEnqueue }: EraNarrat
             );
           })()}
 
-          <div style={{ marginLeft: 'auto' }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              onClick={() => setShowInsertion(prev => !prev)}
+              className="illuminator-button"
+              style={{ padding: '2px 8px', fontSize: '10px', opacity: 0.7 }}
+              title="Paste a scene or passage to weave into the narrative during copy edit"
+            >
+              {showInsertion ? '\u25BE Scene Insertion' : '\u25B8 Scene Insertion'}
+            </button>
             <button
               onClick={handleRerunCopyEdit}
               className="illuminator-button"
@@ -328,6 +673,29 @@ export default function EraNarrativeViewer({ narrativeId, onEnqueue }: EraNarrat
               Re-run Copy Edit
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Scene insertion textarea */}
+      {showInsertion && !isGenerating && (
+        <div style={{ marginBottom: '12px' }}>
+          <textarea
+            value={insertionText}
+            onChange={(e) => setInsertionText(e.target.value)}
+            placeholder="Paste a scene or passage to weave into the narrative during copy edit..."
+            style={{
+              width: '100%',
+              height: '80px',
+              fontSize: '11px',
+              resize: 'vertical',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '4px',
+              padding: '8px',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.5,
+            }}
+          />
         </div>
       )}
 
@@ -341,9 +709,27 @@ export default function EraNarrativeViewer({ narrativeId, onEnqueue }: EraNarrat
           borderRadius: '6px',
           fontSize: '13px',
           color: '#d97706',
-          textAlign: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
         }}>
-          {record.currentStep === 'edit' ? 'Running copy edit...' : `Running ${record.currentStep} step...`}
+          <span>{record.currentStep === 'edit' ? 'Running copy edit...' : `Running ${record.currentStep} step...`}</span>
+          <button
+            onClick={handleForceComplete}
+            title="Force status to complete (use if stuck)"
+            style={{
+              background: 'none',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              borderRadius: '4px',
+              color: '#d97706',
+              fontSize: '11px',
+              padding: '2px 8px',
+              cursor: 'pointer',
+            }}
+          >
+            Mark Complete
+          </button>
         </div>
       )}
 
@@ -373,6 +759,162 @@ export default function EraNarrativeViewer({ narrativeId, onEnqueue }: EraNarrat
           marginBottom: '20px',
         }}>
           No narrative content generated yet.
+        </div>
+      )}
+
+      {/* Cover Image — shared CoverImageControls component */}
+      {!isGenerating && (
+        <div style={{
+          marginBottom: '16px',
+          padding: '12px 14px',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '8px',
+        }}>
+          <CoverImageControls
+            item={record}
+            onGenerateCoverImageScene={handleGenerateCoverImageScene}
+            onGenerateCoverImage={handleGenerateCoverImage}
+            isGenerating={isGenerating}
+          />
+        </div>
+      )}
+
+      {/* Image Refs — Chronicle ref images (read-only) + ChronicleImagePanel for prompt_request refs */}
+      {!isGenerating && (
+        <div style={{ marginBottom: '16px' }}>
+          {/* Generate Image Refs button if none yet */}
+          {!record.imageRefs && (
+            <div style={{
+              padding: '12px 14px',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 500 }}>Image References</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Place image references throughout the narrative (from chronicle images).
+                </div>
+              </div>
+              <button
+                onClick={handleGenerateImageRefs}
+                style={{
+                  padding: '8px 14px',
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  height: '32px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Generate
+              </button>
+            </div>
+          )}
+
+          {/* Chronicle ref images — read-only display */}
+          {chronicleRefImages.length > 0 && (
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{
+                fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px',
+                textTransform: 'uppercase', letterSpacing: '0.5px',
+              }}>
+                Chronicle Images ({chronicleRefImages.length})
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {chronicleRefImages.map((ref) => (
+                  <div key={ref.refId} style={{
+                    display: 'flex', gap: '10px', padding: '10px 12px',
+                    background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '6px',
+                  }}>
+                    <div style={{
+                      width: '48px', height: '48px', borderRadius: '4px',
+                      background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      overflow: 'hidden', flexShrink: 0,
+                    }}>
+                      <ChronicleRefThumbnail imageId={ref.imageId} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                        <span style={{
+                          fontSize: '10px', padding: '1px 5px',
+                          background: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6',
+                          borderRadius: '3px', fontWeight: 500,
+                        }}>
+                          {ref.imageSource === 'cover' ? 'Cover' : 'Scene'}
+                        </span>
+                        <span style={{ fontSize: '12px', fontWeight: 500 }}>{ref.chronicleTitle}</span>
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        anchor: &ldquo;{ref.anchorText.length > 40 ? ref.anchorText.slice(0, 40) + '...' : ref.anchorText}&rdquo;
+                      </div>
+                      {ref.caption && (
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                          {ref.caption}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', whiteSpace: 'nowrap', alignSelf: 'center' }}>
+                      {ref.size}{ref.justification ? ` ${ref.justification}` : ''}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Scene images — full ChronicleImagePanel with generation controls */}
+          {chronicleCompatibleImageRefs && (
+            <ChronicleImagePanel
+              imageRefs={chronicleCompatibleImageRefs}
+              entities={emptyEntities}
+              onGenerateImage={handleGenerateSceneImage}
+              onResetImage={handleResetImage}
+              onUpdateAnchorText={(ref, text) => handleUpdateAnchorText(ref as PromptRequestRef, text)}
+              onUpdateSize={(ref, size) => handleUpdateSize(ref as PromptRequestRef, size as string)}
+              onUpdateJustification={(ref, just) => handleUpdateJustification(ref as PromptRequestRef, just)}
+              chronicleText={viewedContent}
+              isGenerating={isGenerating}
+              styleLibrary={styleLibrary}
+              styleSelection={styleSelection}
+              cultures={cultures}
+              cultureIdentities={cultureIdentities}
+              worldContext={worldContext}
+              chronicleTitle={record.eraName}
+              imageSize={imageSize}
+              imageQuality={imageQuality}
+              imageModel={imageModel}
+              imageGenSettings={imageGenSettings}
+              onOpenImageSettings={onOpenImageSettings}
+            />
+          )}
+
+          {/* Regenerate image refs button when already present */}
+          {record.imageRefs && (
+            <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={handleGenerateImageRefs}
+                style={{
+                  padding: '6px 12px',
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '4px',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                }}
+              >
+                Regenerate Image Refs
+              </button>
+            </div>
+          )}
         </div>
       )}
 
