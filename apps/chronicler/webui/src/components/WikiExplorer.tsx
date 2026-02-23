@@ -398,7 +398,7 @@ export default function WikiExplorer({
       chronicle: entry.chronicle,
       eraNarrative: entry.eraNarrative,
       aliases: entry.aliases,
-      content: { sections: [], summary: entry.summary },
+      content: { sections: [], summary: entry.summary, coverImageId: entry.coverImageId },
       categories: entry.categories,
       linkedEntities: entry.linkedEntities,
       images: [],

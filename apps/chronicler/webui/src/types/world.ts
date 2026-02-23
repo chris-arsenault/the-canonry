@@ -177,6 +177,8 @@ export interface PageIndexEntry {
     thesis?: string;
     sourceChronicleIds?: string[];
   };
+  // Cover image for gallery display
+  coverImageId?: string;
   // For link resolution
   linkedEntities: string[];
   lastUpdated: number;

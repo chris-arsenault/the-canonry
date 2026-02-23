@@ -29,6 +29,35 @@ export interface EraNarrativeViewRecord {
   /** Analytical thesis — one-sentence summary of the era's transformation */
   thesis?: string;
 
+  /** Cover image metadata */
+  coverImage?: {
+    sceneDescription: string;
+    status: string;
+    generatedImageId?: string;
+  };
+
+  /** Inline image refs (chronicle refs + generated scenes) */
+  imageRefs?: {
+    refs: Array<{
+      refId: string;
+      type: string;
+      anchorText: string;
+      anchorIndex?: number;
+      size: string;
+      justification?: 'left' | 'right';
+      caption?: string;
+      // chronicle_ref fields
+      imageId?: string;
+      chronicleId?: string;
+      // prompt_request fields
+      sceneDescription?: string;
+      status?: string;
+      generatedImageId?: string;
+    }>;
+    generatedAt: number;
+    model: string;
+  };
+
   /** Source chronicle IDs and titles */
   sourceChronicles: Array<{ chronicleId: string; chronicleTitle: string }>;
 
@@ -50,14 +79,20 @@ function projectToViewRecord(raw: Record<string, unknown>): EraNarrativeViewReco
     wordCount?: number;
   } | undefined;
 
-  const content = narrative?.editedContent || narrative?.content || '';
+  // Support both full records (content under narrative) and viewer-projected records (content at top level)
+  const content = narrative?.editedContent || narrative?.content || (typeof raw.content === 'string' ? raw.content : '');
   if (!content) return null;
 
   const threadSynthesis = raw.threadSynthesis as { thesis?: string } | undefined;
   const prepBriefs = Array.isArray(raw.prepBriefs)
     ? (raw.prepBriefs as Array<{ chronicleId: string; chronicleTitle: string }>)
         .map(b => ({ chronicleId: b.chronicleId, chronicleTitle: b.chronicleTitle }))
-    : [];
+    : Array.isArray(raw.sourceChronicles)
+      ? (raw.sourceChronicles as Array<{ chronicleId: string; chronicleTitle: string }>)
+      : [];
+
+  const coverImage = raw.coverImage as EraNarrativeViewRecord['coverImage'] | undefined;
+  const imageRefs = raw.imageRefs as EraNarrativeViewRecord['imageRefs'] | undefined;
 
   return {
     narrativeId: raw.narrativeId as string,
@@ -68,8 +103,12 @@ function projectToViewRecord(raw: Record<string, unknown>): EraNarrativeViewReco
     status: raw.status as string,
     tone: raw.tone as string,
     content,
-    wordCount: narrative?.editedWordCount || narrative?.wordCount || 0,
-    thesis: threadSynthesis?.thesis,
+    wordCount: narrative?.editedWordCount || narrative?.wordCount || (typeof raw.wordCount === 'number' ? raw.wordCount : 0),
+    thesis: threadSynthesis?.thesis || (typeof raw.thesis === 'string' ? raw.thesis : undefined),
+    coverImage: coverImage?.status === 'complete' && coverImage?.generatedImageId
+      ? coverImage
+      : undefined,
+    imageRefs: imageRefs?.refs?.length ? imageRefs : undefined,
     sourceChronicles: prepBriefs,
     createdAt: raw.createdAt as number,
     updatedAt: raw.updatedAt as number,

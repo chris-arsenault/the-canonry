@@ -43,96 +43,7 @@ import { resolveAnchorPhrase } from './fuzzyAnchor.ts';
 // Re-export for backwards compatibility
 export { applyWikiLinks };
 
-import type { ChronicleBackref } from '../types/world.ts';
-
 const DEBUG_WIKI_BUILDER = import.meta.env?.DEV;
-
-/**
- * Resolve the image ID for a chronicle backref based on its imageSource config.
- *
- * - imageSource undefined (legacy): fallback to cover image
- * - imageSource null: no image
- * - { source: 'cover' }: chronicle cover image
- * - { source: 'image_ref', refId }: specific image ref from chronicle
- * - { source: 'entity', entityId }: entity portrait
- */
-function resolveBackrefImageId(
-  backref: ChronicleBackref,
-  chronicle: ChronicleRecord,
-  entities: HardState[],
-): string | null {
-  const { imageSource } = backref;
-
-  // Explicitly no image
-  if (imageSource === null) return null;
-
-  // Legacy fallback: use cover image
-  if (imageSource === undefined) {
-    if (chronicle.coverImage?.status === 'complete' && chronicle.coverImage.generatedImageId) {
-      return chronicle.coverImage.generatedImageId;
-    }
-    return null;
-  }
-
-  if (imageSource.source === 'cover') {
-    if (chronicle.coverImage?.status === 'complete' && chronicle.coverImage.generatedImageId) {
-      return chronicle.coverImage.generatedImageId;
-    }
-    return null;
-  }
-
-  if (imageSource.source === 'image_ref') {
-    const ref = chronicle.imageRefs?.refs?.find((r) => r.refId === imageSource.refId);
-    if (!ref) return null;
-    if (ref.type === 'prompt_request' && ref.status === 'complete' && ref.generatedImageId) {
-      return ref.generatedImageId;
-    }
-    if (ref.type === 'entity_ref' && ref.entityId) {
-      const entity = entities.find((e) => e.id === ref.entityId);
-      return entity?.enrichment?.image?.imageId || null;
-    }
-    return null;
-  }
-
-  if (imageSource.source === 'entity') {
-    const entity = entities.find((e) => e.id === imageSource.entityId);
-    return entity?.enrichment?.image?.imageId || null;
-  }
-
-  return null;
-}
-
-/**
- * Inject subtle footnote markers at chronicle backref anchor positions.
- * Each anchor phrase gets a superscript link to the source chronicle page.
- * If the anchor phrase isn't found in the text, it's silently skipped.
- */
-function injectBackrefFootnotes(
-  content: string,
-  backrefs: ChronicleBackref[],
-): string {
-  if (!backrefs.length) return content;
-
-  // Process backrefs in reverse order of position to avoid offset shifts
-  const positioned: Array<{ backref: ChronicleBackref; index: number; phraseLength: number }> = [];
-  for (const backref of backrefs) {
-    const resolved = resolveAnchorPhrase(backref.anchorPhrase, content);
-    if (resolved) {
-      positioned.push({ backref, index: resolved.index, phraseLength: resolved.phrase.length });
-    }
-  }
-  // Sort by position descending so insertions don't shift earlier indices
-  positioned.sort((a, b) => b.index - a.index);
-
-  let result = content;
-  for (const { backref, index, phraseLength } of positioned) {
-    const insertAt = index + phraseLength;
-    // Use wiki link syntax [[display|pageId]] which MarkdownSection already handles
-    const footnote = `<sup>[[↗|${backref.chronicleId}]]</sup>`;
-    result = result.slice(0, insertAt) + footnote + result.slice(insertAt);
-  }
-  return result;
-}
 
 /**
  * Chronicle image ref types (matching illuminator/chronicleTypes.ts)
@@ -424,6 +335,9 @@ export function buildPageIndex(
         thesis: narrative.thesis,
         sourceChronicleIds: narrative.sourceChronicles.map(s => s.chronicleId),
       },
+      coverImageId: narrative.coverImage?.status === 'complete' && narrative.coverImage?.generatedImageId
+        ? narrative.coverImage.generatedImageId
+        : undefined,
       linkedEntities: [], // Computed on full page build
       lastUpdated: narrative.updatedAt,
     };
@@ -468,6 +382,9 @@ export function buildPageIndex(
         selectedRelationshipIds: chronicle.selectedRelationshipIds,
         temporalContext: chronicle.temporalContext,
       },
+      coverImageId: chronicle.coverImage?.status === 'complete' && chronicle.coverImage?.generatedImageId
+        ? chronicle.coverImage.generatedImageId
+        : undefined,
       linkedEntities: chronicle.selectedEntityIds,
       lastUpdated: chronicle.acceptedAt || chronicle.updatedAt,
     };
@@ -803,6 +720,47 @@ function buildEraNarrativePage(
   // Parse prose into sections (same approach as chronicles)
   const { sections } = buildEraNarrativeSections(content);
 
+  // Attach image refs to sections — adapt era narrative refs to the chronicle ref shape
+  if (narrative.imageRefs?.refs) {
+    const adaptedRefs: ChronicleImageRef[] = narrative.imageRefs.refs
+      .map(ref => {
+        if (ref.type === 'chronicle_ref' && ref.imageId) {
+          // Chronicle ref already has imageId — present as a completed prompt_request
+          return {
+            refId: ref.refId,
+            anchorText: ref.anchorText,
+            anchorIndex: ref.anchorIndex,
+            size: ref.size as ChronicleImageRef['size'],
+            justification: ref.justification,
+            caption: ref.caption,
+            type: 'prompt_request' as const,
+            status: 'complete' as const,
+            generatedImageId: ref.imageId,
+          };
+        }
+        if (ref.type === 'prompt_request') {
+          return {
+            refId: ref.refId,
+            anchorText: ref.anchorText,
+            anchorIndex: ref.anchorIndex,
+            size: ref.size as ChronicleImageRef['size'],
+            justification: ref.justification,
+            caption: ref.caption,
+            type: 'prompt_request' as const,
+            sceneDescription: ref.sceneDescription,
+            status: ref.status as ChronicleImageRef['status'],
+            generatedImageId: ref.generatedImageId,
+          };
+        }
+        return null;
+      })
+      .filter((r): r is ChronicleImageRef => r !== null);
+
+    if (adaptedRefs.length > 0) {
+      attachImagesToSections(sections, adaptedRefs, worldData);
+    }
+  }
+
   const linkableNames = buildLinkableNamesForBacklinks(worldData, pageNameIndex);
   const linkedSections = sections.map(section => ({
     ...section,
@@ -813,6 +771,11 @@ function buildEraNarrativePage(
 
   // Source chronicles section
   const sourceChronicleIds = narrative.sourceChronicles.map(s => s.chronicleId);
+
+  // Cover image
+  const coverImageId = narrative.coverImage?.status === 'complete' && narrative.coverImage?.generatedImageId
+    ? narrative.coverImage.generatedImageId
+    : undefined;
 
   return {
     id: narrative.narrativeId,
@@ -828,6 +791,7 @@ function buildEraNarrativePage(
     content: {
       sections,
       summary: narrative.thesis || undefined,
+      coverImageId,
     },
     categories: [],
     linkedEntities: Array.from(new Set(linkedEntities)),
@@ -1407,35 +1371,11 @@ function buildEntityPage(
       });
     }
   } else if (entity.description) {
-    // Use entity's description field (now stored directly on entity)
-    const backrefs = entity.enrichment?.chronicleBackrefs || [];
-
-    // Attach images from backref chronicles using per-backref config
-    const backrefImages: WikiSectionImage[] = [];
-    for (const backref of backrefs) {
-      const chronicle = chronicles.find(c => c.chronicleId === backref.chronicleId);
-      if (!chronicle) continue;
-
-      const imageId = resolveBackrefImageId(backref, chronicle, worldData.hardState);
-      if (imageId) {
-        backrefImages.push({
-          refId: `backref-${backref.chronicleId}`,
-          type: 'chronicle_image',
-          imageId,
-          anchorText: backref.anchorPhrase,
-          size: backref.imageSize || 'medium',
-          justification: backref.imageAlignment || 'left',
-          caption: chronicle.title,
-        });
-      }
-    }
-
     sections.push({
       id: `section-${sectionIndex++}`,
       heading: 'Overview',
       level: 2,
-      content: injectBackrefFootnotes(entity.description, backrefs),
-      images: backrefImages.length > 0 ? backrefImages : undefined,
+      content: entity.description,
     });
   }
 
