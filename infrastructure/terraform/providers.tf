@@ -10,16 +10,11 @@ terraform {
     }
   }
 
-  # Uncomment and configure for remote state storage
-  # backend "s3" {
-  #   bucket         = "penguin-tales-terraform-state"
-  #   key            = "terraform.tfstate"
-  #   region         = "us-east-1"
-  #   encrypt        = true
-  #   dynamodb_table = "penguin-tales-terraform-locks"
-  # }
-  backend "local" {
-    path = "./canonry.tfstate"
+  backend "s3" {
+    region       = "us-east-1"
+    key          = "canonry.tfstate"
+    encrypt      = true
+    use_lockfile = true
   }
 }
 
