@@ -13,7 +13,8 @@ import type { ChronicleRecord } from '../../lib/chronicleTypes';
 import type { ImageMetadataRecord } from '../../lib/preprint/prePrintStats';
 import type { StaticPage } from '../../lib/staticPageTypes';
 import type { EraNarrativeRecord } from '../../lib/eraNarrativeTypes';
-import type { ContentTreeState, S3ExportConfig, ExportFormat } from '../../lib/preprint/prePrintTypes';
+import type { ContentTreeState, S3ExportConfig, ExportFormat, IdmlLayoutOptions } from '../../lib/preprint/prePrintTypes';
+import { IDML_PAGE_PRESETS, IDML_FONT_PRESETS, DEFAULT_IDML_LAYOUT } from '../../lib/preprint/prePrintTypes';
 import { buildExportZip, buildInDesignExportZip, buildIdmlImageScript } from '../../lib/preprint/markdownExport';
 
 interface ExportViewProps {
@@ -35,9 +36,8 @@ const FORMAT_DESCRIPTIONS: Record<ExportFormat, string> = {
     'for pulling images from S3.',
   indesign:
     'Exports a single .idml file \u2014 InDesign\u2019s native interchange format. Double-click or File \u2192 Open ' +
-    'to get a complete 6\u00d79\u2033 document with one story per entry, 4 master spreads, inline footnotes, ' +
-    'callout boxes, and linked image placeholders. Paragraph and character styles come pre-loaded ' +
-    'with typographic defaults (Junicode) \u2014 override them in your Styles panels to match your design.',
+    'to get a complete document with one story per entry, 4 master spreads, inline footnotes, ' +
+    'callout boxes, and linked image placeholders. Configure page size, font, and spacing below.',
 };
 
 const FORMAT_CONTENTS: Record<ExportFormat, { label: string; description: string }[]> = {
@@ -68,6 +68,8 @@ export default function ExportView({
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
+  const [idmlLayout, setIdmlLayout] = useState<IdmlLayoutOptions>({ ...DEFAULT_IDML_LAYOUT });
+  const [customFont, setCustomFont] = useState('');
 
   // Read S3 config from localStorage (set by Canonry AWS panel)
   const s3Config = useMemo<S3ExportConfig | null>(() => {
@@ -75,10 +77,10 @@ export default function ExportView({
       const raw = localStorage.getItem('canonry.aws.config');
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      if (!parsed.bucket || !parsed.basePrefix) return null;
+      if (!parsed.imageBucket) return null;
       return {
-        bucket: parsed.bucket,
-        basePrefix: parsed.basePrefix,
+        bucket: parsed.imageBucket,
+        basePrefix: parsed.imagePrefix || '',
         rawPrefix: parsed.rawPrefix || 'raw',
         region: parsed.region || 'us-east-1',
       };
@@ -104,6 +106,7 @@ export default function ExportView({
         projectId,
         simulationRunId,
         s3Config,
+        idmlLayout,
       };
 
       const blob = exportFormat === 'indesign'
@@ -127,7 +130,7 @@ export default function ExportView({
     } finally {
       setExporting(false);
     }
-  }, [treeState, entities, chronicles, images, staticPages, eraNarratives, projectId, simulationRunId, s3Config, exportFormat]);
+  }, [treeState, entities, chronicles, images, staticPages, eraNarratives, projectId, simulationRunId, s3Config, exportFormat, idmlLayout]);
 
   const handleDownloadScript = useCallback(() => {
     const script = buildIdmlImageScript({
@@ -213,6 +216,130 @@ export default function ExportView({
         <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-md)', lineHeight: 1.5, marginTop: 'var(--space-md)' }}>
           {FORMAT_DESCRIPTIONS[exportFormat]}
         </p>
+
+        {exportFormat === 'indesign' && (
+          <div className="preprint-export-config">
+            <div className="preprint-stats-subsection">Layout Options</div>
+
+            <div className="preprint-stats-row">
+              <span>Page Size</span>
+              <select
+                className="preprint-export-select"
+                value={idmlLayout.pagePreset}
+                onChange={(e) => setIdmlLayout((prev) => ({ ...prev, pagePreset: e.target.value }))}
+              >
+                {Object.entries(IDML_PAGE_PRESETS).map(([key, preset]) => (
+                  <option key={key} value={key}>{preset.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="preprint-stats-row">
+              <span>Font</span>
+              <select
+                className="preprint-export-select"
+                value={IDML_FONT_PRESETS.includes(idmlLayout.fontFamily as any) ? idmlLayout.fontFamily : '__custom__'}
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setIdmlLayout((prev) => ({ ...prev, fontFamily: customFont || 'Junicode' }));
+                  } else {
+                    setIdmlLayout((prev) => ({ ...prev, fontFamily: e.target.value }));
+                  }
+                }}
+              >
+                {IDML_FONT_PRESETS.map((f) => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+                <option value="__custom__">Custom...</option>
+              </select>
+            </div>
+
+            {!IDML_FONT_PRESETS.includes(idmlLayout.fontFamily as any) && (
+              <div className="preprint-stats-row">
+                <span>Custom Font</span>
+                <input
+                  type="text"
+                  className="preprint-export-input"
+                  value={customFont}
+                  placeholder="Font family name"
+                  onChange={(e) => {
+                    setCustomFont(e.target.value);
+                    if (e.target.value) {
+                      setIdmlLayout((prev) => ({ ...prev, fontFamily: e.target.value }));
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            <div className="preprint-stats-row">
+              <span>Body Size</span>
+              <select
+                className="preprint-export-select"
+                value={idmlLayout.bodySize}
+                onChange={(e) => setIdmlLayout((prev) => ({ ...prev, bodySize: Number(e.target.value) }))}
+              >
+                {[9, 10, 11, 12, 13, 14].map((s) => (
+                  <option key={s} value={s}>{s}pt</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="preprint-stats-row">
+              <span>Leading</span>
+              <select
+                className="preprint-export-select"
+                value={idmlLayout.bodyLeading}
+                onChange={(e) => setIdmlLayout((prev) => ({ ...prev, bodyLeading: Number(e.target.value) }))}
+              >
+                {[11, 12, 13, 14, 15, 16, 18].map((l) => (
+                  <option key={l} value={l}>{l}pt</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="preprint-stats-row">
+              <span>Columns</span>
+              <select
+                className="preprint-export-select"
+                value={idmlLayout.columnCount}
+                onChange={(e) => setIdmlLayout((prev) => ({ ...prev, columnCount: Number(e.target.value) }))}
+              >
+                <option value={1}>1</option>
+                <option value={2}>2</option>
+              </select>
+            </div>
+
+            {idmlLayout.columnCount === 2 && (
+              <div className="preprint-stats-row">
+                <span>Column Gutter</span>
+                <select
+                  className="preprint-export-select"
+                  value={idmlLayout.columnGutter}
+                  onChange={(e) => setIdmlLayout((prev) => ({ ...prev, columnGutter: Number(e.target.value) }))}
+                >
+                  {[12, 18, 24].map((g) => (
+                    <option key={g} value={g}>{g}pt</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="preprint-stats-row">
+              <span>Paragraph Spacing</span>
+              <select
+                className="preprint-export-select"
+                value={idmlLayout.paragraphSpacing}
+                onChange={(e) => setIdmlLayout((prev) => ({ ...prev, paragraphSpacing: Number(e.target.value) }))}
+              >
+                <option value={0.75}>Tight</option>
+                <option value={1.0}>Normal</option>
+                <option value={1.25}>Relaxed</option>
+                <option value={1.5}>Spacious</option>
+              </select>
+            </div>
+          </div>
+        )}
 
         <div className="preprint-export-config">
           <div className="preprint-stats-subsection">S3 Configuration</div>

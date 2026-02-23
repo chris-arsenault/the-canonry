@@ -24,7 +24,8 @@ import type { EraNarrativeRecord } from '../eraNarrativeTypes';
 import type { HistorianNote } from '../historianTypes';
 import { isNoteActive, noteDisplay } from '../historianTypes';
 import { resolveAnchorPhrase } from '../fuzzyAnchor';
-import type { ContentTreeState, ExportImageEntry } from './prePrintTypes';
+import type { ContentTreeState, ExportImageEntry, IdmlLayoutOptions } from './prePrintTypes';
+import { IDML_PAGE_PRESETS, DEFAULT_IDML_LAYOUT } from './prePrintTypes';
 import type { ImageMetadataRecord } from './prePrintStats';
 import { flattenForExport } from './contentTree';
 import {
@@ -60,17 +61,6 @@ import type {
 
 const DOM_VERSION = '8.0'; // CS4+ compatibility
 
-// Page geometry: 6×9″ trade paperback
-const PAGE_WIDTH = 432;     // 6 × 72pt
-const PAGE_HEIGHT = 648;    // 9 × 72pt
-const MARGIN_TOP = 54;      // 0.75″
-const MARGIN_BOTTOM = 54;   // 0.75″
-const MARGIN_INSIDE = 63;   // 0.875″ (gutter)
-const MARGIN_OUTSIDE = 45;  // 0.625″
-const TEXT_WIDTH = PAGE_WIDTH - MARGIN_INSIDE - MARGIN_OUTSIDE; // 324pt
-const TEXT_HEIGHT = PAGE_HEIGHT - MARGIN_TOP - MARGIN_BOTTOM;   // 540pt
-const LINES_PER_PAGE = Math.floor(TEXT_HEIGHT / 14); // ~38 lines at 14pt leading
-
 // Self IDs
 const ID_LAYER = 'uc5';
 const ID_SECTION = 'uc9';
@@ -85,10 +75,65 @@ const MASTERS = {
 
 type MasterKey = keyof typeof MASTERS;
 
-// Text frame position constants (in spread coordinates)
-const FRAME_TY = -(PAGE_HEIGHT / 2) + MARGIN_TOP;       // -270
-const RECTO_FRAME_TX = MARGIN_INSIDE;                     // 63
-const VERSO_FRAME_TX = -(PAGE_WIDTH - MARGIN_OUTSIDE);    // -387
+// =============================================================================
+// Resolved Layout — computed from IdmlLayoutOptions
+// =============================================================================
+
+interface ResolvedLayout {
+  pageWidth: number;
+  pageHeight: number;
+  marginTop: number;
+  marginBottom: number;
+  marginInside: number;
+  marginOutside: number;
+  textWidth: number;
+  textHeight: number;
+  linesPerPage: number;
+  frameTy: number;
+  rectoFrameTx: number;
+  versoFrameTx: number;
+  columnCount: number;
+  columnGutter: number;
+  fontFamily: string;
+  bodySize: number;
+  bodyLeading: number;
+  paragraphSpacing: number;
+}
+
+function resolveLayout(options?: IdmlLayoutOptions): ResolvedLayout {
+  const opts = options ?? DEFAULT_IDML_LAYOUT;
+  const preset = IDML_PAGE_PRESETS[opts.pagePreset] ?? IDML_PAGE_PRESETS['trade-6x9'];
+
+  const pageWidth = preset.widthIn * 72;
+  const pageHeight = preset.heightIn * 72;
+  const marginTop = preset.margins.top * 72;
+  const marginBottom = preset.margins.bottom * 72;
+  const marginInside = preset.margins.inside * 72;
+  const marginOutside = preset.margins.outside * 72;
+  const textWidth = pageWidth - marginInside - marginOutside;
+  const textHeight = pageHeight - marginTop - marginBottom;
+
+  return {
+    pageWidth,
+    pageHeight,
+    marginTop,
+    marginBottom,
+    marginInside,
+    marginOutside,
+    textWidth,
+    textHeight,
+    linesPerPage: Math.floor(textHeight / opts.bodyLeading),
+    frameTy: -(pageHeight / 2) + marginTop,
+    rectoFrameTx: marginInside,
+    versoFrameTx: -(pageWidth - marginOutside),
+    columnCount: opts.columnCount,
+    columnGutter: opts.columnGutter,
+    fontFamily: opts.fontFamily,
+    bodySize: opts.bodySize,
+    bodyLeading: opts.bodyLeading,
+    paragraphSpacing: opts.paragraphSpacing,
+  };
+}
 
 // =============================================================================
 // Types
@@ -122,7 +167,7 @@ interface ImagePlacement {
 // Page Count Estimation (per entry)
 // =============================================================================
 
-function estimateEntryPages(paragraphs: IcmlParagraph[], imageCount: number): number {
+function estimateEntryPages(paragraphs: IcmlParagraph[], imageCount: number, linesPerPage: number): number {
   let totalLines = 0;
 
   for (const para of paragraphs) {
@@ -167,7 +212,7 @@ function estimateEntryPages(paragraphs: IcmlParagraph[], imageCount: number): nu
   // Each image takes roughly 8 lines of space
   totalLines += imageCount * 8;
 
-  const estimated = Math.ceil(totalLines / LINES_PER_PAGE);
+  const estimated = Math.ceil(totalLines / linesPerPage);
   // Minimum 2 pages, add 30% buffer, round up to even for facing pages
   const buffered = Math.max(2, Math.ceil(estimated * 1.3));
   return buffered % 2 === 0 ? buffered : buffered + 1;
@@ -306,9 +351,30 @@ function buildIdmlParagraphStyle(def: ParagraphStyleDef): string {
     </ParagraphStyle>`;
 }
 
-function buildStylesXml(): string {
+/** Scale paragraph style definitions based on layout options. */
+function scaleParaStyles(defs: ParagraphStyleDef[], layout: ResolvedLayout): ParagraphStyleDef[] {
+  const sizeScale = layout.bodySize / 11;
+  const leadingScale = layout.bodyLeading / 14;
+  const sp = layout.paragraphSpacing;
+
+  return defs.map((def) => {
+    // Don't override Courier New / Segoe UI Symbol styles
+    const font = def.appliedFont === 'Courier New' ? 'Courier New' : layout.fontFamily;
+    return {
+      ...def,
+      pointSize: Math.round(def.pointSize * sizeScale * 10) / 10,
+      leading: Math.round(def.leading * leadingScale * 10) / 10,
+      spaceBefore: Math.round(def.spaceBefore * sp * 10) / 10,
+      spaceAfter: Math.round(def.spaceAfter * sp * 10) / 10,
+      appliedFont: font,
+    };
+  });
+}
+
+function buildStylesXml(layout: ResolvedLayout): string {
   const charStyles = CHARACTER_STYLE_DEFS.map(buildIdmlCharacterStyle);
-  const paraStyles = PARAGRAPH_STYLE_DEFS.map(buildIdmlParagraphStyle);
+  const scaledParaDefs = scaleParaStyles(PARAGRAPH_STYLE_DEFS, layout);
+  const paraStyles = scaledParaDefs.map(buildIdmlParagraphStyle);
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <idPkg:Styles xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"
@@ -328,7 +394,7 @@ ${charStyles.join('\n')}
         FirstLineIndent="0" LeftIndent="0" RightIndent="0"
         SpaceBefore="0" SpaceAfter="0">
       <Properties>
-        <AppliedFont type="string">Junicode</AppliedFont>
+        <AppliedFont type="string">${layout.fontFamily}</AppliedFont>
         <Leading type="unit">14.4</Leading>
       </Properties>
     </ParagraphStyle>
@@ -363,14 +429,18 @@ ${paraStyles.join('\n')}
 // File: Resources/Preferences.xml
 // =============================================================================
 
-function buildPreferencesXml(): string {
+function buildPreferencesXml(layout: ResolvedLayout): string {
+  const colPositions = layout.columnCount === 1
+    ? `0 ${layout.textWidth}`
+    : `0 ${(layout.textWidth - layout.columnGutter) / 2} ${(layout.textWidth + layout.columnGutter) / 2} ${layout.textWidth}`;
+
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <idPkg:Preferences xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"
     DOMVersion="${DOM_VERSION}">
 
   <DocumentPreference Self="DocumentPreference/"
-      PageHeight="${PAGE_HEIGHT}"
-      PageWidth="${PAGE_WIDTH}"
+      PageHeight="${layout.pageHeight}"
+      PageWidth="${layout.pageWidth}"
       PagesPerDocument="1"
       FacingPages="true"
       DocumentBleedTopOffset="0"
@@ -385,14 +455,14 @@ function buildPreferencesXml(): string {
       Intent="PrintIntent" />
 
   <MarginPreference Self="MarginPreference/"
-      ColumnCount="1"
-      ColumnGutter="12"
-      Top="${MARGIN_TOP}"
-      Bottom="${MARGIN_BOTTOM}"
-      Left="${MARGIN_INSIDE}"
-      Right="${MARGIN_OUTSIDE}"
+      ColumnCount="${layout.columnCount}"
+      ColumnGutter="${layout.columnGutter}"
+      Top="${layout.marginTop}"
+      Bottom="${layout.marginBottom}"
+      Left="${layout.marginInside}"
+      Right="${layout.marginOutside}"
       ColumnDirection="Horizontal"
-      ColumnsPositions="0 ${TEXT_WIDTH}" />
+      ColumnsPositions="${colPositions}" />
 
   <TextPreference Self="TextPreference/"
       SmartTextReflow="true"
@@ -417,7 +487,7 @@ function buildPreferencesXml(): string {
       Justification="LeftAlign" FirstLineIndent="0"
       LeftIndent="0" RightIndent="0" SpaceBefore="0" SpaceAfter="0">
     <Properties>
-      <AppliedFont type="string">Junicode</AppliedFont>
+      <AppliedFont type="string">${layout.fontFamily}</AppliedFont>
       <Leading type="unit">14.4</Leading>
     </Properties>
   </TextDefault>
@@ -430,8 +500,8 @@ function buildPreferencesXml(): string {
       StoryDirection="LeftToRightDirection" />
 
   <TextFramePreference Self="TextFramePreference/"
-      TextColumnCount="1"
-      TextColumnGutter="12"
+      TextColumnCount="${layout.columnCount}"
+      TextColumnGutter="${layout.columnGutter}"
       AutoSizingType="Off"
       FirstBaselineOffset="LeadingOffset"
       MinimumFirstBaselineOffset="0"
@@ -493,41 +563,49 @@ function buildGraphicXml(): string {
 // File: Resources/Fonts.xml
 // =============================================================================
 
-function buildFontsXml(): string {
+function buildFontsXml(fontFamily: string): string {
+  // Generate a safe XML ID from the font name
+  const fontId = 'di4a';
+  const safeFont = escapeXml(fontFamily);
+
+  // Build the primary font family declaration — InDesign resolves the actual
+  // font from what's installed on the machine. We declare all four styles.
+  const primaryFontFamily = `  <FontFamily Self="${fontId}" Name="${safeFont}">
+    <Font Self="${fontId}FontnRegular"
+        FontFamily="${safeFont}" Name="${safeFont}"
+        PostScriptName="${fontFamily.replace(/\s+/g, '-')}-Regular"
+        FontStyleName="Regular" FontType="OpenTypeTrueType"
+        WritingScript="0" FullName="${safeFont} Regular"
+        FullNameNative="${safeFont} Regular"
+        FontStyleNameNative="Regular" />
+    <Font Self="${fontId}FontnBold"
+        FontFamily="${safeFont}" Name="${safeFont} Bold"
+        PostScriptName="${fontFamily.replace(/\s+/g, '-')}-Bold"
+        FontStyleName="Bold" FontType="OpenTypeTrueType"
+        WritingScript="0" FullName="${safeFont} Bold"
+        FullNameNative="${safeFont} Bold"
+        FontStyleNameNative="Bold" />
+    <Font Self="${fontId}FontnItalic"
+        FontFamily="${safeFont}" Name="${safeFont} Italic"
+        PostScriptName="${fontFamily.replace(/\s+/g, '-')}-Italic"
+        FontStyleName="Italic" FontType="OpenTypeTrueType"
+        WritingScript="0" FullName="${safeFont} Italic"
+        FullNameNative="${safeFont} Italic"
+        FontStyleNameNative="Italic" />
+    <Font Self="${fontId}FontnBoldItalic"
+        FontFamily="${safeFont}" Name="${safeFont} Bold Italic"
+        PostScriptName="${fontFamily.replace(/\s+/g, '-')}-BoldItalic"
+        FontStyleName="Bold Italic" FontType="OpenTypeTrueType"
+        WritingScript="0" FullName="${safeFont} Bold Italic"
+        FullNameNative="${safeFont} Bold Italic"
+        FontStyleNameNative="Bold Italic" />
+  </FontFamily>`;
+
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <idPkg:Fonts xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"
     DOMVersion="${DOM_VERSION}">
 
-  <FontFamily Self="di4a" Name="Junicode">
-    <Font Self="di4aFontnRegular"
-        FontFamily="Junicode" Name="Junicode"
-        PostScriptName="Junicode-Regular"
-        FontStyleName="Regular" FontType="OpenTypeTrueType"
-        WritingScript="0" FullName="Junicode Regular"
-        FullNameNative="Junicode Regular"
-        FontStyleNameNative="Regular" />
-    <Font Self="di4aFontnBold"
-        FontFamily="Junicode" Name="Junicode Bold"
-        PostScriptName="Junicode-Bold"
-        FontStyleName="Bold" FontType="OpenTypeTrueType"
-        WritingScript="0" FullName="Junicode Bold"
-        FullNameNative="Junicode Bold"
-        FontStyleNameNative="Bold" />
-    <Font Self="di4aFontnItalic"
-        FontFamily="Junicode" Name="Junicode Italic"
-        PostScriptName="Junicode-Italic"
-        FontStyleName="Italic" FontType="OpenTypeTrueType"
-        WritingScript="0" FullName="Junicode Italic"
-        FullNameNative="Junicode Italic"
-        FontStyleNameNative="Italic" />
-    <Font Self="di4aFontnBoldItalic"
-        FontFamily="Junicode" Name="Junicode Bold Italic"
-        PostScriptName="Junicode-BoldItalic"
-        FontStyleName="Bold Italic" FontType="OpenTypeTrueType"
-        WritingScript="0" FullName="Junicode Bold Italic"
-        FullNameNative="Junicode Bold Italic"
-        FontStyleNameNative="Bold Italic" />
-  </FontFamily>
+${primaryFontFamily}
 
   <FontFamily Self="di4b" Name="Courier New">
     <Font Self="di4bFontnRegular"
@@ -575,7 +653,11 @@ function buildPathGeometry(width: number, height: number): string {
 // Master Spreads (4 masters: A through D)
 // =============================================================================
 
-function buildMasterSpreadXml(master: typeof MASTERS[MasterKey]): string {
+function buildMasterSpreadXml(master: typeof MASTERS[MasterKey], layout: ResolvedLayout): string {
+  const colPositions = layout.columnCount === 1
+    ? `0 ${layout.textWidth}`
+    : `0 ${(layout.textWidth - layout.columnGutter) / 2} ${(layout.textWidth + layout.columnGutter) / 2} ${layout.textWidth}`;
+
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <idPkg:MasterSpread xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"
     DOMVersion="${DOM_VERSION}">
@@ -586,27 +668,27 @@ function buildMasterSpreadXml(master: typeof MASTERS[MasterKey]): string {
       ItemTransform="1 0 0 1 0 0">
 
     <Page Self="${master.leftPage}"
-        GeometricBounds="0 0 ${PAGE_HEIGHT} ${PAGE_WIDTH}"
-        ItemTransform="1 0 0 1 ${-PAGE_WIDTH} ${-(PAGE_HEIGHT / 2)}"
+        GeometricBounds="0 0 ${layout.pageHeight} ${layout.pageWidth}"
+        ItemTransform="1 0 0 1 ${-layout.pageWidth} ${-(layout.pageHeight / 2)}"
         Name="L" AppliedMaster="n" OverrideList=""
         MasterPageTransform="1 0 0 1 0 0">
-      <MarginPreference ColumnCount="1" ColumnGutter="12"
-          Top="${MARGIN_TOP}" Bottom="${MARGIN_BOTTOM}"
-          Left="${MARGIN_OUTSIDE}" Right="${MARGIN_INSIDE}"
+      <MarginPreference ColumnCount="${layout.columnCount}" ColumnGutter="${layout.columnGutter}"
+          Top="${layout.marginTop}" Bottom="${layout.marginBottom}"
+          Left="${layout.marginOutside}" Right="${layout.marginInside}"
           ColumnDirection="Horizontal"
-          ColumnsPositions="0 ${TEXT_WIDTH}" />
+          ColumnsPositions="${colPositions}" />
     </Page>
 
     <Page Self="${master.rightPage}"
-        GeometricBounds="0 0 ${PAGE_HEIGHT} ${PAGE_WIDTH}"
-        ItemTransform="1 0 0 1 0 ${-(PAGE_HEIGHT / 2)}"
+        GeometricBounds="0 0 ${layout.pageHeight} ${layout.pageWidth}"
+        ItemTransform="1 0 0 1 0 ${-(layout.pageHeight / 2)}"
         Name="R" AppliedMaster="n" OverrideList=""
         MasterPageTransform="1 0 0 1 0 0">
-      <MarginPreference ColumnCount="1" ColumnGutter="12"
-          Top="${MARGIN_TOP}" Bottom="${MARGIN_BOTTOM}"
-          Left="${MARGIN_INSIDE}" Right="${MARGIN_OUTSIDE}"
+      <MarginPreference ColumnCount="${layout.columnCount}" ColumnGutter="${layout.columnGutter}"
+          Top="${layout.marginTop}" Bottom="${layout.marginBottom}"
+          Left="${layout.marginInside}" Right="${layout.marginOutside}"
           ColumnDirection="Horizontal"
-          ColumnsPositions="0 ${TEXT_WIDTH}" />
+          ColumnsPositions="${colPositions}" />
     </Page>
 
     <TextFrame Self="${master.leftFrame}"
@@ -618,9 +700,9 @@ function buildMasterSpreadXml(master: typeof MASTERS[MasterKey]): string {
         ItemLayer="${ID_LAYER}"
         Visible="true"
         Name="$ID/"
-        ItemTransform="1 0 0 1 ${VERSO_FRAME_TX} ${FRAME_TY}">
-${buildPathGeometry(TEXT_WIDTH, TEXT_HEIGHT)}
-      <TextFramePreference TextColumnCount="1" />
+        ItemTransform="1 0 0 1 ${layout.versoFrameTx} ${layout.frameTy}">
+${buildPathGeometry(layout.textWidth, layout.textHeight)}
+      <TextFramePreference TextColumnCount="${layout.columnCount}" />
     </TextFrame>
 
     <TextFrame Self="${master.rightFrame}"
@@ -632,9 +714,9 @@ ${buildPathGeometry(TEXT_WIDTH, TEXT_HEIGHT)}
         ItemLayer="${ID_LAYER}"
         Visible="true"
         Name="$ID/"
-        ItemTransform="1 0 0 1 ${RECTO_FRAME_TX} ${FRAME_TY}">
-${buildPathGeometry(TEXT_WIDTH, TEXT_HEIGHT)}
-      <TextFramePreference TextColumnCount="1" />
+        ItemTransform="1 0 0 1 ${layout.rectoFrameTx} ${layout.frameTy}">
+${buildPathGeometry(layout.textWidth, layout.textHeight)}
+      <TextFramePreference TextColumnCount="${layout.columnCount}" />
     </TextFrame>
 
   </MasterSpread>
@@ -931,14 +1013,18 @@ function buildPage(
   pageNumber: number,
   isRecto: boolean,
   masterId: string,
+  layout: ResolvedLayout,
 ): string {
-  const pageTx = isRecto ? 0 : -PAGE_WIDTH;
-  const pageTy = -(PAGE_HEIGHT / 2);
-  const leftMargin = isRecto ? MARGIN_INSIDE : MARGIN_OUTSIDE;
-  const rightMargin = isRecto ? MARGIN_OUTSIDE : MARGIN_INSIDE;
+  const pageTx = isRecto ? 0 : -layout.pageWidth;
+  const pageTy = -(layout.pageHeight / 2);
+  const leftMargin = isRecto ? layout.marginInside : layout.marginOutside;
+  const rightMargin = isRecto ? layout.marginOutside : layout.marginInside;
+  const colPositions = layout.columnCount === 1
+    ? `0 ${layout.textWidth}`
+    : `0 ${(layout.textWidth - layout.columnGutter) / 2} ${(layout.textWidth + layout.columnGutter) / 2} ${layout.textWidth}`;
 
   return `    <Page Self="${pageId}"
-        GeometricBounds="0 0 ${PAGE_HEIGHT} ${PAGE_WIDTH}"
+        GeometricBounds="0 0 ${layout.pageHeight} ${layout.pageWidth}"
         ItemTransform="1 0 0 1 ${pageTx} ${pageTy}"
         Name="${pageNumber}"
         AppliedMaster="${masterId}"
@@ -946,11 +1032,11 @@ function buildPage(
         MasterPageTransform="1 0 0 1 0 0"
         GridStartingPoint="TopOutside"
         TabOrder="">
-      <MarginPreference ColumnCount="1" ColumnGutter="12"
-          Top="${MARGIN_TOP}" Bottom="${MARGIN_BOTTOM}"
+      <MarginPreference ColumnCount="${layout.columnCount}" ColumnGutter="${layout.columnGutter}"
+          Top="${layout.marginTop}" Bottom="${layout.marginBottom}"
           Left="${leftMargin}" Right="${rightMargin}"
           ColumnDirection="Horizontal"
-          ColumnsPositions="0 ${TEXT_WIDTH}" />
+          ColumnsPositions="${colPositions}" />
     </Page>`;
 }
 
@@ -961,8 +1047,9 @@ function buildTextFrame(
   prevFrameId: string,
   nextFrameId: string,
   isRecto: boolean,
+  layout: ResolvedLayout,
 ): string {
-  const tx = isRecto ? RECTO_FRAME_TX : VERSO_FRAME_TX;
+  const tx = isRecto ? layout.rectoFrameTx : layout.versoFrameTx;
   return `    <TextFrame Self="${frameId}"
         ParentStory="${storyId}"
         PreviousTextFrame="${prevFrameId}"
@@ -972,16 +1059,14 @@ function buildTextFrame(
         ItemLayer="${ID_LAYER}"
         Visible="true"
         Name="$ID/"
-        ItemTransform="1 0 0 1 ${tx} ${FRAME_TY}">
-${buildPathGeometry(TEXT_WIDTH, TEXT_HEIGHT)}
-      <TextFramePreference TextColumnCount="1" />
+        ItemTransform="1 0 0 1 ${tx} ${layout.frameTy}">
+${buildPathGeometry(layout.textWidth, layout.textHeight)}
+      <TextFramePreference TextColumnCount="${layout.columnCount}" />
     </TextFrame>`;
 }
 
 /** Build an image Rectangle element with linked image. */
-function buildImageRectangle(imageId: string, filename: string, yOffset: number): string {
-  // Stack images at a fixed position on the pasteboard (recto side, below text area)
-  // Position doesn't matter much — designer will move them
+function buildImageRectangle(imageId: string, filename: string, yOffset: number, layout: ResolvedLayout): string {
   const imgWidth = 200;
   const imgHeight = 200;
 
@@ -990,7 +1075,7 @@ function buildImageRectangle(imageId: string, filename: string, yOffset: number)
         Visible="true"
         Name="${escapeXml(filename)}"
         AppliedObjectStyle="ObjectStyle/$ID/[Normal Graphics Frame]"
-        ItemTransform="1 0 0 1 ${PAGE_WIDTH + 20} ${-PAGE_HEIGHT / 2 + yOffset}">
+        ItemTransform="1 0 0 1 ${layout.pageWidth + 20} ${-layout.pageHeight / 2 + yOffset}">
 ${buildPathGeometry(imgWidth, imgHeight)}
       <Image Self="img_${imageId}_img" ItemTransform="1 0 0 1 0 0">
         <Link Self="link_${imageId}" LinkResourceURI="file:images/${escapeXml(filename)}"
@@ -1004,8 +1089,7 @@ ${buildPathGeometry(imgWidth, imgHeight)}
 }
 
 /** Build a callout text frame linked to a callout story. */
-function buildCalloutFrame(frameId: string, calloutStoryId: string, yOffset: number): string {
-  // Place callout frames on the pasteboard to the right of the page
+function buildCalloutFrame(frameId: string, calloutStoryId: string, yOffset: number, layout: ResolvedLayout): string {
   const calloutWidth = 200;
   const calloutHeight = 100;
 
@@ -1018,7 +1102,7 @@ function buildCalloutFrame(frameId: string, calloutStoryId: string, yOffset: num
         ItemLayer="${ID_LAYER}"
         Visible="true"
         Name="$ID/"
-        ItemTransform="1 0 0 1 ${PAGE_WIDTH + 20} ${-PAGE_HEIGHT / 2 + yOffset}">
+        ItemTransform="1 0 0 1 ${layout.pageWidth + 20} ${-layout.pageHeight / 2 + yOffset}">
 ${buildPathGeometry(calloutWidth, calloutHeight)}
       <TextFramePreference TextColumnCount="1" />
     </TextFrame>`;
@@ -1039,6 +1123,7 @@ function buildEntrySpreads(
   startPageNum: number,
   images: ImagePlacement[],
   calloutStories: { storyId: string }[],
+  layout: ResolvedLayout,
 ): { spreads: SpreadFile[]; pagesUsed: number } {
   const spreads: SpreadFile[] = [];
   const frameIds: string[] = [];
@@ -1070,8 +1155,8 @@ function buildEntrySpreads(
     const versoPrev = pageIdx > 0 ? frameIds[pageIdx - 1] : 'n';
     const versoNext = pageIdx + 1 < frameIds.length ? frameIds[pageIdx + 1] : 'n';
 
-    pagesXml += buildPage(versoPageId, versoPageNum, false, masterId);
-    framesXml += buildTextFrame(versoFrameId, storyId, versoPrev, versoNext, false);
+    pagesXml += buildPage(versoPageId, versoPageNum, false, masterId, layout);
+    framesXml += buildTextFrame(versoFrameId, storyId, versoPrev, versoNext, false, layout);
 
     if (spreadPageCount === 2) {
       // Recto page (right)
@@ -1081,21 +1166,21 @@ function buildEntrySpreads(
       const rectoPrev = versoFrameId;
       const rectoNext = pageIdx + 2 < frameIds.length ? frameIds[pageIdx + 2] : 'n';
 
-      pagesXml += '\n\n' + buildPage(rectoPageId, rectoPageNum, true, masterId);
-      framesXml += '\n\n' + buildTextFrame(rectoFrameId, storyId, rectoPrev, rectoNext, true);
+      pagesXml += '\n\n' + buildPage(rectoPageId, rectoPageNum, true, masterId, layout);
+      framesXml += '\n\n' + buildTextFrame(rectoFrameId, storyId, rectoPrev, rectoNext, true, layout);
     }
 
     // Add image rectangles and callout frames to the FIRST spread only
     if (isFirstSpread) {
       let yOffset = 0;
       for (const img of images) {
-        extrasXml += '\n\n' + buildImageRectangle(img.imageId, img.filename, yOffset);
+        extrasXml += '\n\n' + buildImageRectangle(img.imageId, img.filename, yOffset, layout);
         yOffset += 210; // Stack vertically with 10pt gap
       }
 
       for (let ci = 0; ci < calloutStories.length; ci++) {
         const cfId = `cf_${entryId}_${ci}`;
-        extrasXml += '\n\n' + buildCalloutFrame(cfId, calloutStories[ci].storyId, yOffset);
+        extrasXml += '\n\n' + buildCalloutFrame(cfId, calloutStories[ci].storyId, yOffset, layout);
         yOffset += 110;
       }
     }
@@ -1328,7 +1413,9 @@ export async function buildIdmlPackage(
   contentMaps: ContentMaps,
   imageMap: Map<string, ImageMetadataRecord>,
   referencedImages: Map<string, ExportImageEntry>,
+  layoutOptions?: IdmlLayoutOptions,
 ): Promise<Blob> {
+  const layout = resolveLayout(layoutOptions);
   const registerFn = createImageRegistrar(referencedImages, imageMap);
 
   const allStories: StoryFile[] = [];
@@ -1356,7 +1443,7 @@ export async function buildIdmlPackage(
 
       const masterId = MASTERS.D.spreadId; // folders use D-Encyclopedia master
       const { spreads, pagesUsed } = buildEntrySpreads(
-        entryId, storyId, masterId, 2, currentPageNum, [], []
+        entryId, storyId, masterId, 2, currentPageNum, [], [], layout
       );
       allSpreads.push(...spreads);
       currentPageNum += pagesUsed;
@@ -1439,11 +1526,11 @@ export async function buildIdmlPackage(
     }
 
     // Estimate pages and build spreads
-    const pageCount = estimateEntryPages(contentParas, images.length);
+    const pageCount = estimateEntryPages(contentParas, images.length, layout.linesPerPage);
     const masterId = MASTERS[masterKey].spreadId;
 
     const { spreads, pagesUsed } = buildEntrySpreads(
-      entryId, storyId, masterId, pageCount, currentPageNum, images, calloutStoryRefs
+      entryId, storyId, masterId, pageCount, currentPageNum, images, calloutStoryRefs, layout
     );
     allSpreads.push(...spreads);
     currentPageNum += pagesUsed;
@@ -1462,7 +1549,7 @@ export async function buildIdmlPackage(
   for (const key of masterKeys) {
     const master = MASTERS[key];
     const filename = `MasterSpreads/MasterSpread_${master.spreadId}.xml`;
-    zip.file(filename, buildMasterSpreadXml(master));
+    zip.file(filename, buildMasterSpreadXml(master, layout));
     masterSpreadFiles.push({ spreadId: master.spreadId, filename });
 
     // Master story
@@ -1476,9 +1563,9 @@ export async function buildIdmlPackage(
 
   // Resources
   zip.file('Resources/Graphic.xml', buildGraphicXml());
-  zip.file('Resources/Fonts.xml', buildFontsXml());
-  zip.file('Resources/Styles.xml', buildStylesXml());
-  zip.file('Resources/Preferences.xml', buildPreferencesXml());
+  zip.file('Resources/Fonts.xml', buildFontsXml(layout.fontFamily));
+  zip.file('Resources/Styles.xml', buildStylesXml(layout));
+  zip.file('Resources/Preferences.xml', buildPreferencesXml(layout));
 
   // Entry spreads
   for (const spread of allSpreads) {

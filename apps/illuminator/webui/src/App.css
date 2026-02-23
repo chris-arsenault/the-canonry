@@ -2854,6 +2854,27 @@ body {
   color: var(--text-secondary);
 }
 
+.preprint-export-select,
+.preprint-export-input {
+  padding: 3px 6px;
+  font-size: var(--text-xs);
+  background: var(--bg-primary);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 4px);
+  min-width: 140px;
+}
+
+.preprint-export-select:focus,
+.preprint-export-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.preprint-export-input {
+  min-width: 180px;
+}
+
 /* ============================================================================
    Chronicle Workspace
    ============================================================================ */

@@ -23,6 +23,7 @@ import type {
   ExportManifest,
   ExportImageEntry,
   S3ExportConfig,
+  IdmlLayoutOptions,
 } from './prePrintTypes';
 import { flattenForExport } from './contentTree';
 import { countWords } from '../db/staticPageRepository';
@@ -42,6 +43,7 @@ export interface ExportOptions {
   projectId: string;
   simulationRunId: string;
   s3Config: S3ExportConfig | null;
+  idmlLayout?: IdmlLayoutOptions;
 }
 
 export async function buildExportZip(options: ExportOptions): Promise<Blob> {
@@ -123,7 +125,7 @@ export async function buildExportZip(options: ExportOptions): Promise<Blob> {
 }
 
 export async function buildInDesignExportZip(options: ExportOptions): Promise<Blob> {
-  const { treeState, entities, chronicles, images, staticPages, eraNarratives } = options;
+  const { treeState, entities, chronicles, images, staticPages, eraNarratives, idmlLayout } = options;
 
   const entityMap = new Map(entities.map((e) => [e.id, e]));
   const chronicleMap = new Map(chronicles.map((c) => [c.chronicleId, c]));
@@ -140,6 +142,7 @@ export async function buildInDesignExportZip(options: ExportOptions): Promise<Bl
     { entityMap, chronicleMap, pageMap, narrativeMap },
     imageMap,
     referencedImages,
+    idmlLayout,
   );
 }
 
@@ -619,6 +622,9 @@ export function buildIdmlImageScript(options: ExportOptions): string {
 
   function addImage(imageId: string) {
     if (!imageId || seen.has(imageId)) return;
+    // Skip image IDs not present in metadata — they are likely malformed
+    // composite keys (e.g. chronicleId:imageRefId) that won't exist in S3
+    if (!imageMap.has(imageId)) return;
     seen.add(imageId);
     const ext = idmlExt(imageMap.get(imageId));
     imageEntries.push({ id: imageId, filename: `${imageId}${ext}` });
@@ -692,6 +698,9 @@ RAW_PREFIX="${s3Config.rawPrefix}"
 PROJECT_ID="${projectId}"
 REGION="${s3Config.region}"
 
+# Build S3 key prefix, filtering out empty segments
+S3_PREFIX=$(echo "\${BASE_PREFIX}/\${RAW_PREFIX}/\${PROJECT_ID}" | sed 's|/\\+|/|g; s|^/||; s|/$||')
+
 # --- Pre-flight checks ---
 if ! command -v aws &>/dev/null; then
   echo "ERROR: aws CLI is required but not installed."
@@ -701,7 +710,7 @@ fi
 
 mkdir -p "\${IMAGE_DIR}"
 
-echo "Downloading ${imageEntries.length} images from s3://\${BUCKET}/\${BASE_PREFIX}/\${RAW_PREFIX}/\${PROJECT_ID}/"
+echo "Downloading ${imageEntries.length} images from s3://\${BUCKET}/\${S3_PREFIX}/"
 echo "Region: \${REGION}"
 echo "Target: \${IMAGE_DIR}/"
 echo ""
@@ -720,7 +729,7 @@ download_image() {
     return
   fi
 
-  local S3_KEY="\${BASE_PREFIX}/\${RAW_PREFIX}/\${PROJECT_ID}/\${IMAGE_ID}"
+  local S3_KEY="\${S3_PREFIX}/\${IMAGE_ID}"
   echo "  GET  \${FILENAME}"
   if aws s3 cp "s3://\${BUCKET}/\${S3_KEY}" "\${DEST}" --region "\${REGION}" --quiet 2>/dev/null; then
     DOWNLOADED=$((DOWNLOADED + 1))
@@ -782,7 +791,10 @@ RAW_PREFIX=$(jq -r '.rawPrefix' "\${CONFIG_FILE}")
 PROJECT_ID=$(jq -r '.projectId' "\${CONFIG_FILE}")
 REGION=$(jq -r '.region' "\${CONFIG_FILE}")
 
-echo "Downloading images from s3://\${BUCKET}/\${BASE_PREFIX}/\${RAW_PREFIX}/\${PROJECT_ID}/"
+# Build S3 key prefix, filtering out empty segments
+S3_PREFIX=$(echo "\${BASE_PREFIX}/\${RAW_PREFIX}/\${PROJECT_ID}" | sed 's|/\\+|/|g; s|^/||; s|/$||')
+
+echo "Downloading images from s3://\${BUCKET}/\${S3_PREFIX}/"
 echo "Region: \${REGION}"
 
 TOTAL=0
@@ -799,7 +811,7 @@ jq -r '.images | keys[]' "\${MANIFEST_FILE}" | while read -r IMAGE_ID; do
     continue
   fi
 
-  S3_KEY="\${BASE_PREFIX}/\${RAW_PREFIX}/\${PROJECT_ID}/\${IMAGE_ID}"
+  S3_KEY="\${S3_PREFIX}/\${IMAGE_ID}"
   echo "  GET  \${IMAGE_ID}"
   aws s3 cp "s3://\${BUCKET}/\${S3_KEY}" "\${DEST}" --region "\${REGION}" --quiet || {
     echo "  FAIL \${IMAGE_ID}"
@@ -851,6 +863,8 @@ function registerImage(
 ): void {
   if (map.has(imageId)) return;
   const img = imageMap.get(imageId);
+  // Skip image IDs not present in metadata — malformed composite keys won't exist in S3
+  if (!img) return;
   const ext = getImageExt(img);
   map.set(imageId, {
     imageId,

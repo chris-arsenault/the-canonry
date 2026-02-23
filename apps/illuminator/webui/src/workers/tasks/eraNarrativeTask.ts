@@ -1161,7 +1161,9 @@ function parseEraNarrativeImageRefsResponse(
 
       const key = `${chronicleId}:${imageSource}:${imageRefId || ''}`;
       const available = availableMap.get(key);
-      const resolvedImageId = imageId || available?.imageId || '';
+      // Prefer the lookup — the LLM often returns the composite key (chronicleId:imageRefId)
+      // from the prompt listing instead of the actual S3 image ID
+      const resolvedImageId = available?.imageId || imageId || '';
 
       if (!resolvedImageId) {
         throw new Error(`chronicle_ref at index ${index} has no valid imageId`);

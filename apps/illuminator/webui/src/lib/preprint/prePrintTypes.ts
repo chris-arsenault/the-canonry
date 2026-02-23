@@ -165,6 +165,64 @@ export interface S3ExportConfig {
 export type ExportFormat = 'markdown' | 'indesign';
 
 // =============================================================================
+// IDML Layout Options
+// =============================================================================
+
+export interface IdmlPagePreset {
+  label: string;
+  widthIn: number;
+  heightIn: number;
+  margins: { top: number; bottom: number; inside: number; outside: number }; // inches
+}
+
+export interface IdmlLayoutOptions {
+  pagePreset: string;
+  fontFamily: string;
+  bodySize: number;
+  bodyLeading: number;
+  columnCount: number;
+  columnGutter: number;
+  paragraphSpacing: number;
+}
+
+export const IDML_PAGE_PRESETS: Record<string, IdmlPagePreset> = {
+  'trade-6x9': {
+    label: '6\u00d79\u2033 Trade Paperback',
+    widthIn: 6, heightIn: 9,
+    margins: { top: 0.75, bottom: 0.75, inside: 0.875, outside: 0.625 },
+  },
+  'coffee-10x10': {
+    label: '10\u00d710\u2033 Coffee Table',
+    widthIn: 10, heightIn: 10,
+    margins: { top: 1.0, bottom: 1.0, inside: 1.0, outside: 1.0 },
+  },
+  'coffee-9x12': {
+    label: '9\u00d712\u2033 Coffee Table',
+    widthIn: 9, heightIn: 12,
+    margins: { top: 1.0, bottom: 1.0, inside: 1.125, outside: 0.875 },
+  },
+};
+
+export const IDML_FONT_PRESETS = [
+  'Junicode',
+  'Adobe Garamond Pro',
+  'Adobe Caslon Pro',
+  'Baskerville',
+  'Palatino',
+  'Minion Pro',
+] as const;
+
+export const DEFAULT_IDML_LAYOUT: IdmlLayoutOptions = {
+  pagePreset: 'trade-6x9',
+  fontFamily: 'Junicode',
+  bodySize: 11,
+  bodyLeading: 14,
+  columnCount: 1,
+  columnGutter: 12,
+  paragraphSpacing: 1.0,
+};
+
+// =============================================================================
 // Page Layout Overrides
 // =============================================================================
 
