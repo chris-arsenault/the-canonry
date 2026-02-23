@@ -26,7 +26,7 @@ import type {
 } from './prePrintTypes';
 import { flattenForExport } from './contentTree';
 import { countWords } from '../db/staticPageRepository';
-import { buildBookIcml, buildInDesignSetupScript } from './icmlExport';
+import { buildIdmlPackage } from './idmlExport';
 
 // =============================================================================
 // Public API
@@ -123,9 +123,8 @@ export async function buildExportZip(options: ExportOptions): Promise<Blob> {
 }
 
 export async function buildInDesignExportZip(options: ExportOptions): Promise<Blob> {
-  const { treeState, entities, chronicles, images, staticPages, eraNarratives, projectId, simulationRunId, s3Config } = options;
+  const { treeState, entities, chronicles, images, staticPages, eraNarratives } = options;
 
-  const zip = new JSZip();
   const entityMap = new Map(entities.map((e) => [e.id, e]));
   const chronicleMap = new Map(chronicles.map((c) => [c.chronicleId, c]));
   const pageMap = new Map(staticPages.map((p) => [p.pageId, p]));
@@ -133,40 +132,15 @@ export async function buildInDesignExportZip(options: ExportOptions): Promise<Bl
   const imageMap = new Map(images.map((i) => [i.imageId, i]));
   const referencedImages = new Map<string, ExportImageEntry>();
 
-  // Build single ICML document with all content in tree order
-  const icml = buildBookIcml(
+  // Build a complete IDML package — opens directly in InDesign.
+  // IDML is already a ZIP internally, so we return the blob directly
+  // rather than wrapping it in another ZIP.
+  return buildIdmlPackage(
     treeState,
     { entityMap, chronicleMap, pageMap, narrativeMap },
     imageMap,
     referencedImages,
   );
-  zip.file('book.icml', icml);
-
-  // InDesign setup script — creates document, enables Smart Text Reflow,
-  // places book.icml so pages auto-generate
-  zip.file('setup-book.jsx', buildInDesignSetupScript());
-
-  // Manifest (same as markdown export)
-  const manifest = buildManifest(
-    treeState, entities, chronicles, staticPages, eraNarratives, images,
-    referencedImages, projectId, simulationRunId, s3Config
-  );
-  zip.file('manifest.json', JSON.stringify(manifest, null, 2));
-
-  // S3 download script
-  if (s3Config) {
-    zip.file('s3-config.json', JSON.stringify({
-      bucket: s3Config.bucket,
-      basePrefix: s3Config.basePrefix,
-      rawPrefix: s3Config.rawPrefix,
-      projectId,
-      region: s3Config.region,
-    }, null, 2));
-
-    zip.file('download-images.sh', buildDownloadScript());
-  }
-
-  return zip.generateAsync({ type: 'blob' });
 }
 
 // =============================================================================
@@ -614,7 +588,158 @@ function buildManifest(
 }
 
 // =============================================================================
-// Download Script
+// IDML Image Download Script
+// =============================================================================
+
+/**
+ * Generates a self-contained bash script that downloads all images referenced
+ * by the IDML export from S3. The script embeds the S3 config and image list
+ * directly — no manifest.json or s3-config.json needed.
+ *
+ * Place the script next to the .idml file and run it. It creates images/
+ * alongside the IDML so InDesign resolves the `file:images/...` links.
+ */
+export function buildIdmlImageScript(options: ExportOptions): string {
+  const { entities, chronicles, eraNarratives, images, projectId, s3Config } = options;
+  if (!s3Config) return '';
+
+  const imageMap = new Map(images.map((i) => [i.imageId, i]));
+  const seen = new Set<string>();
+  const imageEntries: { id: string; filename: string }[] = [];
+
+  // Match the extension logic used by idmlExport's collectEntryImages
+  // (defaults to .png when mimeType is unknown)
+  function idmlExt(img?: ImageMetadataRecord): string {
+    if (!img?.mimeType) return '.png';
+    if (img.mimeType.includes('png')) return '.png';
+    if (img.mimeType.includes('jpeg') || img.mimeType.includes('jpg')) return '.jpg';
+    if (img.mimeType.includes('webp')) return '.webp';
+    return '.png';
+  }
+
+  function addImage(imageId: string) {
+    if (!imageId || seen.has(imageId)) return;
+    seen.add(imageId);
+    const ext = idmlExt(imageMap.get(imageId));
+    imageEntries.push({ id: imageId, filename: `${imageId}${ext}` });
+  }
+
+  // Entity portraits
+  for (const entity of entities) {
+    const imageId = entity.enrichment?.image?.imageId;
+    if (imageId) addImage(imageId);
+  }
+
+  // Chronicle covers and scene images
+  for (const chronicle of chronicles) {
+    if (chronicle.coverImage?.generatedImageId && chronicle.coverImage.status === 'complete') {
+      addImage(chronicle.coverImage.generatedImageId);
+    }
+    if (chronicle.imageRefs?.refs) {
+      for (const ref of chronicle.imageRefs.refs) {
+        if (ref.type === 'prompt_request' && ref.status === 'complete' && ref.generatedImageId) {
+          addImage(ref.generatedImageId);
+        }
+      }
+    }
+  }
+
+  // Era narrative covers and inline refs
+  for (const narrative of eraNarratives) {
+    if (narrative.coverImage?.generatedImageId && narrative.coverImage?.status === 'complete') {
+      addImage(narrative.coverImage.generatedImageId);
+    }
+    if (narrative.imageRefs?.refs) {
+      for (const ref of narrative.imageRefs.refs) {
+        if (ref.type === 'prompt_request' && ref.status === 'complete' && ref.generatedImageId) {
+          addImage(ref.generatedImageId);
+        }
+        if (ref.type === 'chronicle_ref' && ref.imageId) {
+          addImage(ref.imageId);
+        }
+      }
+    }
+  }
+
+  if (imageEntries.length === 0) {
+    return `#!/usr/bin/env bash
+# No images referenced in this export.
+echo "No images to download."
+`;
+  }
+
+  const downloads = imageEntries
+    .map((e) => `download_image "${e.id}" "${e.filename}"`)
+    .join('\n');
+
+  return `#!/usr/bin/env bash
+# Download images from S3 for InDesign IDML import
+# Generated by Illuminator Pre-Print Export
+#
+# Place this script next to your .idml file, then run it.
+# It creates an images/ directory alongside the IDML file
+# so InDesign resolves the linked image paths automatically.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+IMAGE_DIR="\${SCRIPT_DIR}/images"
+
+# --- Embedded S3 Configuration ---
+BUCKET="${s3Config.bucket}"
+BASE_PREFIX="${s3Config.basePrefix}"
+RAW_PREFIX="${s3Config.rawPrefix}"
+PROJECT_ID="${projectId}"
+REGION="${s3Config.region}"
+
+# --- Pre-flight checks ---
+if ! command -v aws &>/dev/null; then
+  echo "ERROR: aws CLI is required but not installed."
+  echo "  Install: https://aws.amazon.com/cli/"
+  exit 1
+fi
+
+mkdir -p "\${IMAGE_DIR}"
+
+echo "Downloading ${imageEntries.length} images from s3://\${BUCKET}/\${BASE_PREFIX}/\${RAW_PREFIX}/\${PROJECT_ID}/"
+echo "Region: \${REGION}"
+echo "Target: \${IMAGE_DIR}/"
+echo ""
+
+DOWNLOADED=0
+SKIPPED=0
+FAILED=0
+
+download_image() {
+  local IMAGE_ID="\$1"
+  local FILENAME="\$2"
+  local DEST="\${IMAGE_DIR}/\${FILENAME}"
+
+  if [ -f "\${DEST}" ]; then
+    SKIPPED=$((SKIPPED + 1))
+    return
+  fi
+
+  local S3_KEY="\${BASE_PREFIX}/\${RAW_PREFIX}/\${PROJECT_ID}/\${IMAGE_ID}"
+  echo "  GET  \${FILENAME}"
+  if aws s3 cp "s3://\${BUCKET}/\${S3_KEY}" "\${DEST}" --region "\${REGION}" --quiet 2>/dev/null; then
+    DOWNLOADED=$((DOWNLOADED + 1))
+  else
+    echo "  FAIL \${FILENAME}"
+    FAILED=$((FAILED + 1))
+  fi
+}
+
+${downloads}
+
+echo ""
+echo "Done. Downloaded: \${DOWNLOADED}  Skipped: \${SKIPPED}  Failed: \${FAILED}"
+echo "Images directory: \${IMAGE_DIR}"
+`;
+}
+
+// =============================================================================
+// Markdown Download Script
 // =============================================================================
 
 function buildDownloadScript(): string {

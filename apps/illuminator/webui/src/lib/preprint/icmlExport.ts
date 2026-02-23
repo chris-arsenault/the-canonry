@@ -11,7 +11,7 @@
  */
 
 import type { PersistedEntity } from '../db/illuminatorDb';
-import type { ChronicleRecord, ChronicleImageRef } from '../chronicleTypes';
+import type { ChronicleRecord } from '../chronicleTypes';
 import type { ImageMetadataRecord } from './prePrintStats';
 import type { StaticPage } from '../staticPageTypes';
 import type { EraNarrativeRecord } from '../eraNarrativeTypes';
@@ -19,20 +19,19 @@ import type { HistorianNote } from '../historianTypes';
 import { isNoteActive, noteDisplay } from '../historianTypes';
 import { resolveAnchorPhrase } from '../fuzzyAnchor';
 import { resolveActiveContent } from '../db/eraNarrativeRepository';
-import type { ContentTreeState, ContentTreeNode, ExportImageEntry } from './prePrintTypes';
+import type { ContentTreeState, ExportImageEntry } from './prePrintTypes';
 import { flattenForExport } from './contentTree';
-import { countWords } from '../db/staticPageRepository';
 
 // =============================================================================
 // Types
 // =============================================================================
 
-interface IcmlRun {
+export interface IcmlRun {
   charStyle: string; // character style name, or '' for default
   text: string;
 }
 
-interface IcmlParagraph {
+export interface IcmlParagraph {
   paraStyle: string;
   runs: IcmlRun[];
 }
@@ -41,34 +40,37 @@ interface IcmlParagraph {
 // Constants — Character & Paragraph Style Names
 // =============================================================================
 
-const CS_NONE = '$ID/[No character style]';
-const CS_BOLD = 'Bold';
-const CS_ITALIC = 'Italic';
-const CS_BOLD_ITALIC = 'BoldItalic';
-const CS_CODE = 'Code';
+export const CS_NONE = '$ID/[No character style]';
+export const CS_BOLD = 'Bold';
+export const CS_ITALIC = 'Italic';
+export const CS_BOLD_ITALIC = 'BoldItalic';
+export const CS_CODE = 'Code';
+export const CS_SYMBOL = 'Symbol';
 
-const PS_SECTION_HEADING = 'SectionHeading';
-const PS_ERA_HEADING = 'EraHeading';
-const PS_ITEM_TITLE = 'ItemTitle';
-const PS_ITEM_SUBTITLE = 'ItemSubtitle';
-const PS_BODY = 'Body';
-const PS_BODY_FIRST = 'BodyFirst';
-const PS_HEADING1 = 'Heading1';
-const PS_HEADING2 = 'Heading2';
-const PS_HEADING3 = 'Heading3';
-const PS_BLOCKQUOTE = 'Blockquote';
-const PS_HISTORIAN_NOTE = 'HistorianNote';
-const PS_CAPTION = 'Caption';
-const PS_IMAGE_PLACEHOLDER = 'ImagePlaceholder';
-const PS_METADATA = 'Metadata';
-const PS_CAST_ENTRY = 'CastEntry';
-const PS_SEPARATOR = 'ItemSeparator';
+export const PS_SECTION_HEADING = 'SectionHeading';
+export const PS_ERA_HEADING = 'EraHeading';
+export const PS_ITEM_TITLE = 'ItemTitle';
+export const PS_ITEM_SUBTITLE = 'ItemSubtitle';
+export const PS_BODY = 'Body';
+export const PS_BODY_FIRST = 'BodyFirst';
+export const PS_HEADING1 = 'Heading1';
+export const PS_HEADING2 = 'Heading2';
+export const PS_HEADING3 = 'Heading3';
+export const PS_BLOCKQUOTE = 'Blockquote';
+export const PS_HISTORIAN_NOTE = 'HistorianNote';
+export const PS_CAPTION = 'Caption';
+export const PS_IMAGE_PLACEHOLDER = 'ImagePlaceholder';
+export const PS_METADATA = 'Metadata';
+export const PS_CAST_ENTRY = 'CastEntry';
+export const PS_SEPARATOR = 'ItemSeparator';
+export const PS_FOOTNOTE_TEXT = 'FootnoteText';
+export const PS_CALLOUT_BODY = 'CalloutBody';
 
 // =============================================================================
 // XML Helpers
 // =============================================================================
 
-function escapeXml(text: string): string {
+export function escapeXml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -105,7 +107,7 @@ function buildCharacterStyleDef(
   return `    <CharacterStyle ${attrs} />`;
 }
 
-interface ParagraphStyleDef {
+export interface ParagraphStyleDef {
   name: string;
   pointSize: number;
   leading: number;
@@ -117,6 +119,13 @@ interface ParagraphStyleDef {
   spaceBefore: number;
   spaceAfter: number;
   appliedFont: string;
+}
+
+export interface CharacterStyleDef {
+  name: string;
+  fontStyle: string;
+  appliedFont?: string;
+  position?: string;
 }
 
 function buildParagraphStyleDef(def: ParagraphStyleDef): string {
@@ -133,32 +142,43 @@ function buildParagraphStyleDef(def: ParagraphStyleDef): string {
     </ParagraphStyle>`;
 }
 
+/** Exported style definitions — shared between ICML and IDML generators */
+export const CS_FOOTNOTE_REF = 'FootnoteRef';
+
+export const CHARACTER_STYLE_DEFS: CharacterStyleDef[] = [
+  { name: CS_BOLD, fontStyle: 'Bold' },
+  { name: CS_ITALIC, fontStyle: 'Italic' },
+  { name: CS_BOLD_ITALIC, fontStyle: 'Bold Italic' },
+  { name: CS_CODE, fontStyle: 'Regular', appliedFont: 'Courier New' },
+  { name: CS_SYMBOL, fontStyle: 'Regular', appliedFont: 'Segoe UI Symbol' },
+  { name: CS_FOOTNOTE_REF, fontStyle: 'Regular', position: 'Superscript' },
+];
+
+export const PARAGRAPH_STYLE_DEFS: ParagraphStyleDef[] = [
+  { name: PS_SECTION_HEADING, pointSize: 28, leading: 34, fontStyle: 'Regular', justification: 'CenterAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 36, spaceAfter: 18, appliedFont: 'Junicode' },
+  { name: PS_ERA_HEADING, pointSize: 20, leading: 26, fontStyle: 'Regular', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 24, spaceAfter: 12, appliedFont: 'Junicode' },
+  { name: PS_ITEM_TITLE, pointSize: 16, leading: 20, fontStyle: 'Bold', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 18, spaceAfter: 4, appliedFont: 'Junicode' },
+  { name: PS_ITEM_SUBTITLE, pointSize: 10, leading: 14, fontStyle: 'Italic', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 0, spaceAfter: 8, appliedFont: 'Junicode' },
+  { name: PS_BODY, pointSize: 11, leading: 14, fontStyle: 'Regular', justification: 'LeftJustified', firstLineIndent: 18, leftIndent: 0, rightIndent: 0, spaceBefore: 0, spaceAfter: 4, appliedFont: 'Junicode' },
+  { name: PS_BODY_FIRST, pointSize: 11, leading: 14, fontStyle: 'Regular', justification: 'LeftJustified', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 0, spaceAfter: 4, appliedFont: 'Junicode' },
+  { name: PS_HEADING1, pointSize: 14, leading: 18, fontStyle: 'Bold', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 14, spaceAfter: 6, appliedFont: 'Junicode' },
+  { name: PS_HEADING2, pointSize: 12, leading: 16, fontStyle: 'Bold', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 10, spaceAfter: 4, appliedFont: 'Junicode' },
+  { name: PS_HEADING3, pointSize: 11, leading: 14, fontStyle: 'Bold Italic', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 8, spaceAfter: 4, appliedFont: 'Junicode' },
+  { name: PS_BLOCKQUOTE, pointSize: 10, leading: 13, fontStyle: 'Italic', justification: 'LeftJustified', firstLineIndent: 0, leftIndent: 24, rightIndent: 24, spaceBefore: 6, spaceAfter: 6, appliedFont: 'Junicode' },
+  { name: PS_HISTORIAN_NOTE, pointSize: 9, leading: 12, fontStyle: 'Regular', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 18, rightIndent: 0, spaceBefore: 4, spaceAfter: 4, appliedFont: 'Junicode' },
+  { name: PS_CAPTION, pointSize: 9, leading: 12, fontStyle: 'Italic', justification: 'CenterAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 4, spaceAfter: 8, appliedFont: 'Junicode' },
+  { name: PS_IMAGE_PLACEHOLDER, pointSize: 9, leading: 12, fontStyle: 'Regular', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 8, spaceAfter: 8, appliedFont: 'Courier New' },
+  { name: PS_METADATA, pointSize: 9, leading: 12, fontStyle: 'Regular', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 2, spaceAfter: 2, appliedFont: 'Junicode' },
+  { name: PS_CAST_ENTRY, pointSize: 10, leading: 13, fontStyle: 'Regular', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 18, rightIndent: 0, spaceBefore: 2, spaceAfter: 2, appliedFont: 'Junicode' },
+  { name: PS_SEPARATOR, pointSize: 11, leading: 20, fontStyle: 'Regular', justification: 'CenterAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 12, spaceAfter: 12, appliedFont: 'Junicode' },
+  { name: PS_FOOTNOTE_TEXT, pointSize: 8, leading: 10, fontStyle: 'Regular', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 0, spaceAfter: 2, appliedFont: 'Junicode' },
+  { name: PS_CALLOUT_BODY, pointSize: 10, leading: 13, fontStyle: 'Italic', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 12, rightIndent: 0, spaceBefore: 4, spaceAfter: 4, appliedFont: 'Junicode' },
+];
+
 function buildStyleDefinitions(): string {
   const charStyles = [
     buildCharacterStyleDef('[No character style]', ''),
-    buildCharacterStyleDef(CS_BOLD, 'Bold'),
-    buildCharacterStyleDef(CS_ITALIC, 'Italic'),
-    buildCharacterStyleDef(CS_BOLD_ITALIC, 'Bold Italic'),
-    buildCharacterStyleDef(CS_CODE, 'Regular', 'Courier New'),
-  ];
-
-  const paraStyles: ParagraphStyleDef[] = [
-    { name: PS_SECTION_HEADING, pointSize: 28, leading: 34, fontStyle: 'Regular', justification: 'CenterAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 36, spaceAfter: 18, appliedFont: 'Minion Pro' },
-    { name: PS_ERA_HEADING, pointSize: 20, leading: 26, fontStyle: 'Regular', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 24, spaceAfter: 12, appliedFont: 'Minion Pro' },
-    { name: PS_ITEM_TITLE, pointSize: 16, leading: 20, fontStyle: 'Bold', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 18, spaceAfter: 4, appliedFont: 'Minion Pro' },
-    { name: PS_ITEM_SUBTITLE, pointSize: 10, leading: 14, fontStyle: 'Italic', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 0, spaceAfter: 8, appliedFont: 'Minion Pro' },
-    { name: PS_BODY, pointSize: 11, leading: 14, fontStyle: 'Regular', justification: 'LeftJustified', firstLineIndent: 18, leftIndent: 0, rightIndent: 0, spaceBefore: 0, spaceAfter: 4, appliedFont: 'Minion Pro' },
-    { name: PS_BODY_FIRST, pointSize: 11, leading: 14, fontStyle: 'Regular', justification: 'LeftJustified', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 0, spaceAfter: 4, appliedFont: 'Minion Pro' },
-    { name: PS_HEADING1, pointSize: 14, leading: 18, fontStyle: 'Bold', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 14, spaceAfter: 6, appliedFont: 'Minion Pro' },
-    { name: PS_HEADING2, pointSize: 12, leading: 16, fontStyle: 'Bold', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 10, spaceAfter: 4, appliedFont: 'Minion Pro' },
-    { name: PS_HEADING3, pointSize: 11, leading: 14, fontStyle: 'Bold Italic', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 8, spaceAfter: 4, appliedFont: 'Minion Pro' },
-    { name: PS_BLOCKQUOTE, pointSize: 10, leading: 13, fontStyle: 'Italic', justification: 'LeftJustified', firstLineIndent: 0, leftIndent: 24, rightIndent: 24, spaceBefore: 6, spaceAfter: 6, appliedFont: 'Minion Pro' },
-    { name: PS_HISTORIAN_NOTE, pointSize: 9, leading: 12, fontStyle: 'Regular', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 18, rightIndent: 0, spaceBefore: 4, spaceAfter: 4, appliedFont: 'Minion Pro' },
-    { name: PS_CAPTION, pointSize: 9, leading: 12, fontStyle: 'Italic', justification: 'CenterAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 4, spaceAfter: 8, appliedFont: 'Minion Pro' },
-    { name: PS_IMAGE_PLACEHOLDER, pointSize: 9, leading: 12, fontStyle: 'Regular', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 8, spaceAfter: 8, appliedFont: 'Courier New' },
-    { name: PS_METADATA, pointSize: 9, leading: 12, fontStyle: 'Regular', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 2, spaceAfter: 2, appliedFont: 'Minion Pro' },
-    { name: PS_CAST_ENTRY, pointSize: 10, leading: 13, fontStyle: 'Regular', justification: 'LeftAlign', firstLineIndent: 0, leftIndent: 18, rightIndent: 0, spaceBefore: 2, spaceAfter: 2, appliedFont: 'Minion Pro' },
-    { name: PS_SEPARATOR, pointSize: 11, leading: 20, fontStyle: 'Regular', justification: 'CenterAlign', firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 12, spaceAfter: 12, appliedFont: 'Minion Pro' },
+    ...CHARACTER_STYLE_DEFS.map((cs) => buildCharacterStyleDef(cs.name, cs.fontStyle, cs.appliedFont, cs.position)),
   ];
 
   const lines: string[] = [];
@@ -167,7 +187,7 @@ function buildStyleDefinitions(): string {
   lines.push('  </RootCharacterStyleGroup>');
   lines.push('  <RootParagraphStyleGroup Self="rp_styles">');
   lines.push('    <ParagraphStyle Self="ParagraphStyle/$ID/NormalParagraphStyle" Name="[No paragraph style]" />');
-  for (const ps of paraStyles) lines.push(buildParagraphStyleDef(ps));
+  for (const ps of PARAGRAPH_STYLE_DEFS) lines.push(buildParagraphStyleDef(ps));
   lines.push('  </RootParagraphStyleGroup>');
   return lines.join('\n');
 }
@@ -198,7 +218,7 @@ function renderParagraph(para: IcmlParagraph): string {
   return lines.join('\n');
 }
 
-function renderParagraphs(paras: IcmlParagraph[]): string {
+export function renderParagraphs(paras: IcmlParagraph[]): string {
   if (paras.length === 0) return '';
   return paras.map(renderParagraph).join('\n    <Br/>\n');
 }
@@ -211,7 +231,7 @@ function renderParagraphs(paras: IcmlParagraph[]): string {
  * Parse inline markdown formatting into character style runs.
  * Handles: ***bold italic***, **bold**, *italic*, `code`
  */
-function parseInlineRuns(text: string): IcmlRun[] {
+export function parseInlineRuns(text: string): IcmlRun[] {
   const runs: IcmlRun[] = [];
   // Order matters: bold-italic before bold before italic
   const pattern = /(\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/g;
@@ -251,16 +271,52 @@ function parseInlineRuns(text: string): IcmlRun[] {
     runs.push({ charStyle: '', text });
   }
 
-  return runs;
+  // Split runs containing ☽ (U+263D) so the crescent gets the Symbol char style
+  // which maps to Segoe UI Symbol — Junicode doesn't have this glyph.
+  return splitSymbolRuns(runs);
+}
+
+/**
+ * Post-process runs: any ☽ characters get wrapped in the CS_SYMBOL character
+ * style so InDesign renders them from Segoe UI Symbol instead of the body font.
+ */
+function splitSymbolRuns(runs: IcmlRun[]): IcmlRun[] {
+  const SYMBOL_RE = /☽/g;
+  const result: IcmlRun[] = [];
+
+  for (const run of runs) {
+    if (!SYMBOL_RE.test(run.text)) {
+      result.push(run);
+      SYMBOL_RE.lastIndex = 0;
+      continue;
+    }
+    SYMBOL_RE.lastIndex = 0;
+
+    // Split on every ☽, preserving the surrounding text in the original style
+    let last = 0;
+    let m: RegExpExecArray | null;
+    while ((m = SYMBOL_RE.exec(run.text)) !== null) {
+      if (m.index > last) {
+        result.push({ charStyle: run.charStyle, text: run.text.slice(last, m.index) });
+      }
+      result.push({ charStyle: CS_SYMBOL, text: '☽' });
+      last = m.index + m[0].length;
+    }
+    if (last < run.text.length) {
+      result.push({ charStyle: run.charStyle, text: run.text.slice(last) });
+    }
+  }
+
+  return result;
 }
 
 /** Create a simple paragraph with a single default-style run */
-function plainPara(style: string, text: string): IcmlParagraph {
+export function plainPara(style: string, text: string): IcmlParagraph {
   return { paraStyle: style, runs: [{ charStyle: '', text }] };
 }
 
 /** Create a paragraph with inline markdown parsed into runs */
-function styledPara(style: string, text: string): IcmlParagraph {
+export function styledPara(style: string, text: string): IcmlParagraph {
   return { paraStyle: style, runs: parseInlineRuns(text) };
 }
 
@@ -293,7 +349,7 @@ function parseImageMarker(line: string): { path: string; caption: string } | nul
  * - Image markers (<!-- IMAGE: ... -->)
  * - Inline formatting (**bold**, *italic*, ***both***, `code`)
  */
-function markdownToIcmlParagraphs(markdown: string): IcmlParagraph[] {
+export function markdownToIcmlParagraphs(markdown: string): IcmlParagraph[] {
   if (!markdown || !markdown.trim()) return [];
 
   const paras: IcmlParagraph[] = [];
@@ -373,7 +429,7 @@ function markdownToIcmlParagraphs(markdown: string): IcmlParagraph[] {
 // Content Formatters
 // =============================================================================
 
-function getImageExt(image?: ImageMetadataRecord): string {
+export function getImageExt(image?: ImageMetadataRecord): string {
   if (!image?.mimeType) return '';
   if (image.mimeType.includes('png')) return '.png';
   if (image.mimeType.includes('jpeg') || image.mimeType.includes('jpg')) return '.jpg';
@@ -403,7 +459,7 @@ function resolveInsertPosition(
  * Insert image markers into content text and return annotated markdown.
  * Mirrors the logic from markdownExport.ts.
  */
-function annotateContentWithImages(
+export function annotateContentWithImages(
   content: string,
   imageRefs: { refs?: any[] } | undefined,
   imageMap: Map<string, ImageMetadataRecord>,
@@ -465,7 +521,7 @@ function annotateContentWithImages(
 }
 
 /** Convert an entity to ICML paragraphs */
-function entityToIcmlParagraphs(
+export function entityToIcmlParagraphs(
   entity: PersistedEntity,
   imageMap: Map<string, ImageMetadataRecord>,
   referencedImages: Map<string, ExportImageEntry>,
@@ -555,7 +611,7 @@ function entityToIcmlParagraphs(
 }
 
 /** Convert a chronicle to ICML paragraphs */
-function chronicleToIcmlParagraphs(
+export function chronicleToIcmlParagraphs(
   chronicle: ChronicleRecord,
   imageMap: Map<string, ImageMetadataRecord>,
   referencedImages: Map<string, ExportImageEntry>,
@@ -648,7 +704,7 @@ function chronicleToIcmlParagraphs(
 }
 
 /** Convert an era narrative to ICML paragraphs */
-function eraNarrativeToIcmlParagraphs(
+export function eraNarrativeToIcmlParagraphs(
   narrative: EraNarrativeRecord,
   imageMap: Map<string, ImageMetadataRecord>,
   referencedImages: Map<string, ExportImageEntry>,
@@ -696,7 +752,7 @@ function eraNarrativeToIcmlParagraphs(
 }
 
 /** Convert a static page to ICML paragraphs */
-function staticPageToIcmlParagraphs(page: StaticPage): IcmlParagraph[] {
+export function staticPageToIcmlParagraphs(page: StaticPage): IcmlParagraph[] {
   const paras: IcmlParagraph[] = [];
 
   // Title
@@ -715,7 +771,7 @@ function staticPageToIcmlParagraphs(page: StaticPage): IcmlParagraph[] {
 // Image Registration (mirrors markdownExport.ts pattern)
 // =============================================================================
 
-function createImageRegistrar(
+export function createImageRegistrar(
   referencedImages: Map<string, ExportImageEntry>,
   imageMap: Map<string, ImageMetadataRecord>,
 ) {
@@ -748,7 +804,7 @@ function createImageRegistrar(
 // Top-Level Assembly
 // =============================================================================
 
-interface ContentMaps {
+export interface ContentMaps {
   entityMap: Map<string, PersistedEntity>;
   chronicleMap: Map<string, ChronicleRecord>;
   pageMap: Map<string, StaticPage>;
@@ -756,16 +812,15 @@ interface ContentMaps {
 }
 
 /**
- * Build a complete ICML document from the content tree.
- * Walks the tree in order, emitting section/era headings for folders
- * and formatted content for items, separated by item separators.
+ * Walk the content tree and produce an array of styled paragraphs.
+ * Used by both ICML and IDML generators.
  */
-export function buildBookIcml(
+export function buildBookParagraphs(
   treeState: ContentTreeState,
   contentMaps: ContentMaps,
   imageMap: Map<string, ImageMetadataRecord>,
   referencedImages: Map<string, ExportImageEntry>,
-): string {
+): IcmlParagraph[] {
   const registerFn = createImageRegistrar(referencedImages, imageMap);
 
   const allParagraphs: IcmlParagraph[] = [];
@@ -774,14 +829,11 @@ export function buildBookIcml(
 
   for (const { node, depth } of flattened) {
     if (node.type === 'folder') {
-      // Add separator before switching sections (but not at the very start)
       if (prevWasContent) {
         allParagraphs.push(plainPara(PS_SEPARATOR, '* * *'));
         prevWasContent = false;
       }
 
-      // Depth 0 = top sections (Front Matter, Body, Back Matter)
-      // Depth 1+ = sub-sections (era folders, encyclopedia, etc.)
       const headingStyle = depth <= 0 ? PS_SECTION_HEADING : PS_ERA_HEADING;
       allParagraphs.push(plainPara(headingStyle, node.name));
       continue;
@@ -789,7 +841,6 @@ export function buildBookIcml(
 
     if (!node.contentId) continue;
 
-    // Add separator between content items within same section
     if (prevWasContent) {
       allParagraphs.push(plainPara(PS_SEPARATOR, '* * *'));
     }
@@ -824,7 +875,21 @@ export function buildBookIcml(
     }
   }
 
-  // Assemble the complete ICML document
+  return allParagraphs;
+}
+
+/**
+ * Build a complete ICML document from the content tree.
+ * Wraps the shared paragraph output in ICML document structure.
+ */
+export function buildBookIcml(
+  treeState: ContentTreeState,
+  contentMaps: ContentMaps,
+  imageMap: Map<string, ImageMetadataRecord>,
+  referencedImages: Map<string, ExportImageEntry>,
+): string {
+  const allParagraphs = buildBookParagraphs(treeState, contentMaps, imageMap, referencedImages);
+
   const parts: string[] = [];
   parts.push(ICML_HEADER);
   parts.push(buildStyleDefinitions());
@@ -832,149 +897,4 @@ export function buildBookIcml(
   parts.push(renderParagraphs(allParagraphs));
   parts.push(ICML_FOOTER);
   return parts.join('\n');
-}
-
-// =============================================================================
-// InDesign Setup Script (.jsx)
-// =============================================================================
-
-/**
- * Generate an ExtendScript (.jsx) that InDesign runs to:
- * 1. Create a new document with book dimensions
- * 2. Set up margins and Smart Text Reflow
- * 3. Add a primary text frame on the A-Master
- * 4. Place book.icml — pages auto-generate as text flows
- *
- * Usage: unzip the export, then in InDesign run File > Scripts > Browse
- * and select setup-book.jsx (or double-click it).
- */
-export function buildInDesignSetupScript(): string {
-  return `// InDesign ExtendScript — Auto-setup book from ICML
-// Generated by Illuminator Pre-Print Export
-//
-// Run this script from InDesign:
-//   File > Scripts > Browse > select this file
-//   (or double-click the .jsx file if InDesign is your handler)
-//
-// It will create a new document with book dimensions, enable Smart Text
-// Reflow, and place book.icml so all pages generate automatically.
-
-(function () {
-    var scriptFile = new File($.fileName);
-    var exportDir = scriptFile.parent;
-    var icmlFile = new File(exportDir + "/book.icml");
-
-    if (!icmlFile.exists) {
-        alert(
-            "book.icml not found.\\n\\n" +
-            "Make sure book.icml is in the same folder as this script:\\n" +
-            exportDir.fsName
-        );
-        return;
-    }
-
-    // --- Document setup ---
-    var doc = app.documents.add();
-
-    // Page size: 6 x 9 inches (standard trade paperback)
-    with (doc.documentPreferences) {
-        pageWidth = "6in";
-        pageHeight = "9in";
-        facingPages = true;
-        pagesPerDocument = 1;
-    }
-
-    // Margins
-    with (doc.marginPreferences) {
-        top = "0.75in";
-        bottom = "0.75in";
-        left = "0.875in";   // inside (gutter)
-        right = "0.625in";  // outside
-    }
-
-    // --- Smart Text Reflow ---
-    // This is the key setting: InDesign auto-adds pages as text overflows
-    with (doc.textPreferences) {
-        smartTextReflow = true;
-        limitToMasterTextFrames = true;
-        addPages = AddPageOptions.END_OF_DOCUMENT;
-        deleteEmptyPages = true;
-    }
-
-    // --- Master page text frame ---
-    var master = doc.masterSpreads.itemByName("A-Master");
-    var masterPages = master.pages;
-
-    for (var i = 0; i < masterPages.length; i++) {
-        var mp = masterPages[i];
-        var mt = mp.marginPreferences.top;
-        var mb = mp.marginPreferences.bottom;
-        var ml = mp.marginPreferences.left;
-        var mr = mp.marginPreferences.right;
-        var pw = doc.documentPreferences.pageWidth;
-        var ph = doc.documentPreferences.pageHeight;
-
-        var tf = mp.textFrames.add({
-            geometricBounds: [mt, ml, ph - mb, pw - mr]
-        });
-        tf.textFramePreferences.textColumnCount = 1;
-
-        // Tag as primary text frame so Smart Text Reflow uses it
-        try { tf.textFramePreferences.autoSizingType = AutoSizingTypeEnum.OFF; } catch(e) {}
-    }
-
-    // Thread the master page text frames together (for facing pages)
-    if (masterPages.length > 1) {
-        try {
-            var leftFrame = masterPages[0].textFrames[0];
-            var rightFrame = masterPages[1].textFrames[0];
-            leftFrame.nextTextFrame = rightFrame;
-        } catch(e) {}
-    }
-
-    // --- Place the ICML ---
-    // Override master items on first page so we can place into the frame
-    var firstPage = doc.pages[0];
-    try {
-        // Get all master text frames overridden onto page 1
-        var pageItems = firstPage.masterPageItems;
-        for (var j = pageItems.length - 1; j >= 0; j--) {
-            try { pageItems[j].override(firstPage); } catch(e) {}
-        }
-    } catch(e) {}
-
-    // Find the text frame on page 1 and place the ICML
-    var placed = false;
-    if (firstPage.textFrames.length > 0) {
-        firstPage.textFrames[0].place(icmlFile);
-        placed = true;
-    } else {
-        // Fallback: create a frame and place
-        var fb = firstPage.textFrames.add({
-            geometricBounds: [
-                doc.marginPreferences.top,
-                doc.marginPreferences.left,
-                doc.documentPreferences.pageHeight - doc.marginPreferences.bottom,
-                doc.documentPreferences.pageWidth - doc.marginPreferences.right
-            ]
-        });
-        fb.place(icmlFile);
-        placed = true;
-    }
-
-    if (placed) {
-        // Let Smart Text Reflow do its thing — force a recompose
-        try { doc.recompose(); } catch(e) {}
-
-        alert(
-            "Book placed successfully!\\n\\n" +
-            "Pages: " + doc.pages.length + "\\n" +
-            "Stories: " + doc.stories.length + "\\n\\n" +
-            "Paragraph and character styles from the ICML have been imported.\\n" +
-            "Edit them in the Paragraph Styles / Character Styles panels\\n" +
-            "to match your design."
-        );
-    }
-})();
-`;
 }
