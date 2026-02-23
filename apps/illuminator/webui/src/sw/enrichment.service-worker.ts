@@ -192,12 +192,21 @@ async function executeTask(task: WorkerTask, handleId: string): Promise<void> {
     ? { ...config!, llmCallSettings: task.llmCallSettings }
     : config!;
 
+  const onThinkingDelta = (delta: string) => {
+    safePostMessage(handleId, { type: 'thinking_delta', taskId: task.id, delta });
+  };
+  const onTextDelta = (delta: string) => {
+    safePostMessage(handleId, { type: 'text_delta', taskId: task.id, delta });
+  };
+
   try {
     const result = await executeEnrichmentTask(task, {
       config: taskConfig,
       llmClient: llmClient!,
       imageClient: imageClient!,
       isAborted: checkAborted,
+      onThinkingDelta,
+      onTextDelta,
     });
 
     if (!result.success) {
@@ -339,6 +348,13 @@ ctx.addEventListener('message', (event) => {
     case 'abort':
       log('debug', 'Abort received', { handleId, taskId: message.taskId });
       event.waitUntil(Promise.resolve(handleAbort(handleId, message.taskId)));
+      break;
+
+    case 'keepalive':
+      // Keepalive pings from the main thread create fresh events in the SW
+      // event loop, preventing the browser from terminating during long tasks
+      // (era narratives with extended thinking can run 5-10+ minutes).
+      event.waitUntil(Promise.resolve());
       break;
   }
 });

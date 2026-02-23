@@ -146,6 +146,8 @@ const COVER_IMAGE_CONFIG: Record<string, CoverImageConfig> = {
   'diplomatic-accord':    { scenePromptId: 'formal-tableau',     compositionStyleId: 'chronicle-tableau' },
   'treatise-powers':      { scenePromptId: 'document-artifact',   compositionStyleId: 'chronicle-document' },
   'sacred-text':          { scenePromptId: 'symbolic-abstract',  compositionStyleId: 'chronicle-symbolic' },
+  'creation-myth':        { scenePromptId: 'symbolic-abstract',  compositionStyleId: 'chronicle-symbolic' },
+  'origin-myth':          { scenePromptId: 'montage',            compositionStyleId: 'chronicle-overview' },
   'artisans-catalogue':   { scenePromptId: 'vignette-sequence',  compositionStyleId: 'chronicle-vignette' },
   'tavern-notices':       { scenePromptId: 'vignette-sequence',  compositionStyleId: 'chronicle-vignette' },
   'product-reviews':      { scenePromptId: 'vignette-sequence',  compositionStyleId: 'chronicle-vignette' },

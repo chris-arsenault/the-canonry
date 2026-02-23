@@ -6,8 +6,10 @@
  */
 
 import { useState, useMemo, useRef } from 'react';
+import { useEntityNavList } from '../lib/db/entitySelectors';
 
-export default function EntityLinkPicker({ entities, onSelect, onClose }) {
+export default function EntityLinkPicker({ onSelect, onClose }) {
+  const entities = useEntityNavList();
   const [search, setSearch] = useState('');
   const mouseDownOnOverlay = useRef(false);
 

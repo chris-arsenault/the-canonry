@@ -125,8 +125,7 @@
    =================== */
 
 .content {
-  display: flex;
-  gap: var(--spacing-xl);
+  display: flow-root;
 }
 
 .contentColumn {
@@ -136,10 +135,7 @@
 }
 
 .main {
-  flex: 1;
   min-width: 0;
-  max-width: var(--content-max-width, 740px);
-  margin: 0 auto;
 }
 
 /* ===================
@@ -148,14 +144,13 @@
 
 .infobox {
   width: 260px;
-  flex-shrink: 0;
+  float: right;
+  margin-left: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
   background-color: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  align-self: flex-start;
-  position: sticky;
-  top: var(--spacing-xl);
 }
 
 .infoboxInline {
@@ -370,6 +365,41 @@
   position: relative;
 }
 
+/* ===================
+   Sidenote Layout Engine
+   Absolutely positioned callout column in the right margin.
+   Used in flow mode when historian callouts exist.
+   On narrow viewports, falls back to inline callouts.
+   =================== */
+
+.sidenoteColumn {
+  position: absolute;
+  top: 0;
+  right: -260px;
+  width: 240px;
+}
+
+.sidenoteCallout {
+  position: absolute;
+  width: 100%;
+}
+
+/* Inline fallback: floated callouts for narrow viewports */
+.inlineCallouts {
+  display: none;
+}
+
+/* Wide viewports: sidenotes visible, inline hidden */
+/* Narrow viewports: sidenotes hidden, inline visible */
+@media (max-width: 1300px) {
+  .sidenoteColumn {
+    display: none;
+  }
+  .inlineCallouts {
+    display: contents;
+  }
+}
+
 .paragraph {
   font-size: var(--font-size-base);
   line-height: var(--line-height-relaxed);
@@ -474,47 +504,63 @@
 }
 
 /* ===================
-   Chronicles Section
+   Chronicle Gallery
    =================== */
 
-.chronicles {
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-md) var(--spacing-lg);
+.gallerySection {
   margin-bottom: var(--spacing-2xl);
 }
 
-.chroniclesTitle {
-  font-family: var(--font-family-display);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  margin-bottom: var(--spacing-sm);
+.galleryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-sm);
 }
 
-.chronicleItem {
-  font-size: var(--font-size-sm);
-  color: var(--color-accent);
+.galleryCard {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
   cursor: pointer;
-  padding: var(--spacing-xs) 0;
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+  text-align: left;
+  padding: 0;
+}
+
+.galleryCard:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  border-color: var(--color-accent);
+}
+
+.galleryImage {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  display: block;
+}
+
+.galleryPlaceholder {
+  width: 100%;
+  aspect-ratio: 3 / 2;
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  border: none;
-  background-color: transparent;
-  text-align: left;
-  transition: opacity var(--transition-fast);
-}
-
-.chronicleItem:hover {
-  opacity: 0.8;
-}
-
-.chronicleMeta {
-  font-family: var(--font-family-ui);
-  font-size: var(--font-size-xs);
+  justify-content: center;
+  background: var(--color-bg-tertiary, var(--color-bg-secondary));
   color: var(--color-text-muted);
+  font-size: 1.5rem;
+  opacity: 0.5;
+}
+
+.galleryTitle {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .moreText {
@@ -1046,5 +1092,89 @@
   width: 100%;
   height: 10px;
   margin-bottom: var(--spacing-sm);
+}
+
+/* ===================
+   Per-Page Layout Overrides
+   Applied via data attributes on the chronicle body wrapper
+   =================== */
+
+/* Content width overrides */
+.chronicleBody[data-content-width="narrow"] {
+  max-width: 52ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.chronicleBody[data-content-width="wide"] {
+  max-width: 90ch;
+}
+
+/* Text alignment overrides */
+.chronicleBody[data-text-align="center"] .markdownSection {
+  text-align: center;
+}
+
+.chronicleBody[data-text-align="center"] :global(.wmde-markdown) {
+  text-align: center !important;
+}
+
+.chronicleBody[data-text-align="justify"] .markdownSection {
+  text-align: justify;
+  hyphens: auto;
+}
+
+.chronicleBody[data-text-align="justify"] :global(.wmde-markdown) {
+  text-align: justify !important;
+  hyphens: auto;
+}
+
+/* ===================
+   Footnote List (annotationPosition: 'footnote')
+   Collected historian notes rendered at section bottom
+   =================== */
+
+.footnoteList {
+  margin: 1.5em 0 0;
+  padding: 1em 0 0;
+  border-top: 1px solid var(--color-border, #4a4035);
+  list-style: none;
+  counter-reset: footnote;
+}
+
+.footnoteItem {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 0 6px 12px;
+  border-left: 2px solid var(--color-border, #4a4035);
+  font-size: var(--font-size-sm, 13px);
+  line-height: 1.6;
+  color: var(--color-text-secondary, #c4b99a);
+  counter-increment: footnote;
+}
+
+.footnoteItem::before {
+  content: counter(footnote) ".";
+  flex-shrink: 0;
+  min-width: 1.5em;
+  font-weight: 700;
+  font-size: 11px;
+  font-family: var(--font-family-ui, system-ui, sans-serif);
+}
+
+.footnoteLabel {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: var(--font-family-ui, system-ui, sans-serif);
+  font-style: normal;
+}
+
+.footnoteText {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
 }
 

@@ -6,6 +6,8 @@
 
 **NEVER run `git checkout` to discard changes.** Not `git checkout -- <file>`, not `git checkout .`, not any form that overwrites working tree files. Multiple agents work in this repository concurrently — uncommitted changes in the working tree may belong to another agent, and discarding them destroys their work irreversibly. If you made an unwanted edit, reverse it with a targeted `Edit` tool call. Violations of this rule are unacceptable.
 
+**NEVER build this project.** Do not run `npm run build`, `npx vite build`, `npx tsc --noEmit`, or any other build/compile command. Builds are useless for verification in this codebase, waste time and tokens, and frequently crash the running HMR dev server. The dev server handles its own incremental compilation — you do not need to verify anything compiles.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview

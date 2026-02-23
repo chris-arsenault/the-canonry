@@ -322,6 +322,7 @@ export default function NarrativeTimeline({
             </text>
             {/* Markers */}
             {castMarkers!.map((marker) => {
+              if (typeof marker.createdAt !== 'number' || Number.isNaN(marker.createdAt)) return null;
               const x = scaleX(marker.createdAt);
               const shape = getCastMarkerShape(marker.entityKind);
               const color = getCastMarkerColor(marker.entityKind);

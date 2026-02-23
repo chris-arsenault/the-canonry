@@ -53,6 +53,8 @@ export async function runTextCall(options: LLMTextCallOptions): Promise<LLMTextC
     temperature: options.temperature,
     topP: options.topP,
     thinkingBudget: budget.thinkingBudget,
+    streamTimeout: options.callConfig.streamTimeout,
+    disableStreaming: options.callConfig.disableStreaming,
   });
 
   const usage = result.usage

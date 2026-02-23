@@ -9,7 +9,7 @@ import type { WorldEntity } from '@canonry/world-schema';
 import { db, type PersistedEntity } from './illuminatorDb';
 import type { EntityPatch } from '../entityRename';
 import { applyReplacements, type FieldReplacement } from '../entityRename';
-import type { EntityEnrichment } from '../enrichmentTypes';
+import type { EntityEnrichment, DescriptionChainDebug } from '../enrichmentTypes';
 import { resolveAnchorPhrase, extractWordsAroundIndex } from '../fuzzyAnchor';
 
 // ---------------------------------------------------------------------------
@@ -40,6 +40,41 @@ export async function seedEntities(
     simulationRunId,
   }));
   await db.entities.bulkPut(records);
+}
+
+// ---------------------------------------------------------------------------
+// Manual Creation
+// ---------------------------------------------------------------------------
+
+/**
+ * Create a single entity manually. Generates a collision-safe ID
+ * with a `manual_` prefix.
+ */
+export async function createEntity(
+  simulationRunId: string,
+  entity: Omit<WorldEntity, 'id' | 'createdAt' | 'updatedAt'>,
+): Promise<PersistedEntity> {
+  if (!simulationRunId) {
+    throw new Error('simulationRunId is required to create an entity');
+  }
+  const now = Date.now();
+  const id = `manual_${entity.kind}_${now}_${Math.random().toString(36).slice(2, 8)}`;
+  const record: PersistedEntity = {
+    ...entity,
+    id,
+    createdAt: now,
+    updatedAt: now,
+    simulationRunId,
+  };
+  await db.entities.put(record);
+  return record;
+}
+
+export async function deleteEntity(entityId: string): Promise<void> {
+  if (!entityId.startsWith('manual_')) {
+    throw new Error('Only manually-created entities can be deleted');
+  }
+  await db.entities.delete(entityId);
 }
 
 /**
@@ -93,6 +128,11 @@ export async function patchEntitiesFromHardState(
 
 export async function getEntity(entityId: string): Promise<PersistedEntity | undefined> {
   return db.entities.get(entityId);
+}
+
+export async function getEntitiesByIds(entityIds: string[]): Promise<PersistedEntity[]> {
+  const results = await db.entities.bulkGet(entityIds);
+  return results.filter((e): e is PersistedEntity => e !== undefined);
 }
 
 export async function getEntitiesForRun(simulationRunId: string): Promise<PersistedEntity[]> {
@@ -151,11 +191,12 @@ export async function applyRename(
   newName: string,
   entityPatches: EntityPatch[],
   simulationRunId: string,
+  addOldNameAsAlias?: boolean,
 ): Promise<string[]> {
   const updatedIds: string[] = [];
 
   await db.transaction('rw', db.entities, async () => {
-    // 1. Target entity: update name + slugAlias
+    // 1. Target entity: update name + slugAlias + optional text alias
     if (targetEntityId) {
       const target = await db.entities.get(targetEntityId);
       if (target) {
@@ -164,11 +205,21 @@ export async function applyRename(
           ? existingAliases
           : [...existingAliases, targetEntityId];
 
+        // Add old name to text aliases if requested (for wiki link resolution)
+        let textEnrichment = target.enrichment?.text;
+        if (addOldNameAsAlias && target.name && target.name !== newName && textEnrichment) {
+          const existingTextAliases = textEnrichment.aliases || [];
+          if (!existingTextAliases.includes(target.name)) {
+            textEnrichment = { ...textEnrichment, aliases: [...existingTextAliases, target.name] };
+          }
+        }
+
         await db.entities.update(targetEntityId, {
           name: newName,
           enrichment: {
             ...target.enrichment,
             slugAliases,
+            ...(textEnrichment ? { text: textEnrichment } : {}),
           },
         });
         updatedIds.push(targetEntityId);
@@ -265,6 +316,48 @@ export async function applyDescriptionResult(
     if (description !== undefined) updates.description = description;
 
     await db.entities.update(entityId, updates);
+  });
+}
+
+/**
+ * Apply a visual thesis result — updates only visual fields on enrichment.text,
+ * preserving existing aliases, description, and summary.
+ */
+export async function applyVisualThesisResult(
+  entityId: string,
+  visualThesis: string,
+  visualTraits: string[],
+  meta: {
+    generatedAt: number;
+    model: string;
+    estimatedCost?: number;
+    actualCost?: number;
+    inputTokens?: number;
+    outputTokens?: number;
+    chainDebug?: DescriptionChainDebug;
+  },
+): Promise<void> {
+  await db.transaction('rw', db.entities, async () => {
+    const entity = await db.entities.get(entityId);
+    if (!entity) return;
+    const existingText = entity.enrichment?.text;
+    await db.entities.update(entityId, {
+      enrichment: {
+        ...entity.enrichment,
+        text: {
+          aliases: existingText?.aliases || [],
+          visualThesis,
+          visualTraits,
+          generatedAt: meta.generatedAt,
+          model: meta.model,
+          estimatedCost: meta.estimatedCost,
+          actualCost: meta.actualCost,
+          inputTokens: meta.inputTokens,
+          outputTokens: meta.outputTokens,
+          chainDebug: meta.chainDebug,
+        },
+      },
+    });
   });
 }
 
@@ -397,6 +490,41 @@ export async function undoDescription(entityId: string): Promise<void> {
 }
 
 /**
+ * Restore a specific description history entry as the active description.
+ * The current description is pushed to history before the swap.
+ */
+export async function restoreDescriptionFromHistory(
+  entityId: string,
+  historyIndex: number,
+): Promise<void> {
+  await db.transaction('rw', db.entities, async () => {
+    const entity = await db.entities.get(entityId);
+    if (!entity) return;
+    const history = [...(entity.enrichment?.descriptionHistory || [])];
+    if (historyIndex < 0 || historyIndex >= history.length) return;
+
+    const selected = history[historyIndex];
+
+    // Push current description to history
+    if (entity.description) {
+      history.push({
+        description: entity.description,
+        replacedAt: Date.now(),
+        source: 'version-restore',
+      });
+    }
+
+    // Remove the selected entry from history
+    history.splice(historyIndex, 1);
+
+    await db.entities.update(entityId, {
+      description: selected.description,
+      enrichment: { ...entity.enrichment, descriptionHistory: history },
+    });
+  });
+}
+
+/**
  * Set chronicle backrefs on an entity.
  */
 export async function updateBackrefs(
@@ -426,8 +554,7 @@ export async function updateAliases(
   await db.transaction('rw', db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
-    const text = entity.enrichment?.text;
-    if (!text) return;
+    const text = entity.enrichment?.text || { aliases: [], visualTraits: [], generatedAt: 0, model: '' };
     await db.entities.update(entityId, {
       enrichment: { ...entity.enrichment, text: { ...text, aliases } },
     });
@@ -572,13 +699,16 @@ export async function revalidateBackrefs(
 export async function setHistorianNotes(
   entityId: string,
   notes: NonNullable<EntityEnrichment['historianNotes']>,
+  reinforcedFacts?: string[],
 ): Promise<void> {
   await db.transaction('rw', db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
-    await db.entities.update(entityId, {
-      enrichment: { ...entity.enrichment, historianNotes: notes },
-    });
+    const enrichment = { ...entity.enrichment, historianNotes: notes };
+    if (reinforcedFacts) {
+      enrichment.reinforcedFacts = reinforcedFacts;
+    }
+    await db.entities.update(entityId, { enrichment });
   });
 }
 
@@ -662,4 +792,39 @@ export async function resetEntitiesToPreBackportState(
 
 export async function deleteEntitiesForRun(simulationRunId: string): Promise<void> {
   await db.entities.where('simulationRunId').equals(simulationRunId).delete();
+}
+
+/**
+ * Bulk-convert all historian-edition history entries to 'legacy-copy-edit' source.
+ * Clears the historian-edition slate so entities can go through a fresh edition cycle.
+ *
+ * Returns the count of entities modified.
+ */
+export async function convertLongEditionsToLegacy(
+  entityIds: string[],
+): Promise<number> {
+  let modified = 0;
+  await db.transaction('rw', db.entities, async () => {
+    for (const entityId of entityIds) {
+      const entity = await db.entities.get(entityId);
+      if (!entity) continue;
+
+      const history = [...(entity.enrichment?.descriptionHistory || [])];
+      let changed = false;
+      for (let i = 0; i < history.length; i++) {
+        if (history[i].source === 'historian-edition') {
+          history[i] = { ...history[i], source: 'legacy-copy-edit' };
+          changed = true;
+        }
+      }
+
+      if (!changed) continue;
+
+      await db.entities.update(entityId, {
+        enrichment: { ...entity.enrichment, descriptionHistory: history },
+      });
+      modified++;
+    }
+  });
+  return modified;
 }

@@ -24,7 +24,8 @@ export type CostType =
   | 'historianEdition'     // Historian-voiced description synthesis
   | 'historianChronology' // Historian-assigned era year chronology
   | 'historianPrep'       // Historian reading notes for a chronicle
-  | 'eraNarrative';       // Era narrative chapter/thread generation
+  | 'eraNarrative'        // Era narrative chapter/thread generation
+  | 'chronicleQuickCheck'; // Quick check for unanchored entity references
 
 export interface CostRecord {
   id: string;

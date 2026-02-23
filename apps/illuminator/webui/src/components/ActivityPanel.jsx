@@ -8,6 +8,7 @@
  */
 
 import { useMemo, useState, useRef, useCallback } from 'react';
+import { useThinkingStore } from '../lib/db/thinkingStore';
 
 function formatDuration(ms) {
   if (ms < 1000) return `${ms}ms`;
@@ -56,6 +57,10 @@ function formatActivityError(item) {
 }
 
 function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
+  const streamEntry = useThinkingStore((s) => s.entries.get(item.id));
+  const hasStream = Boolean(streamEntry);
+  const openThinking = useThinkingStore((s) => s.openViewer);
+
   const duration = item.startedAt
     ? item.completedAt
       ? item.completedAt - item.startedAt
@@ -132,6 +137,23 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
           style={{ fontSize: '11px' }}
         >
           Retry
+        </button>
+      )}
+
+      {hasStream && (
+        <button
+          onClick={() => openThinking(item.id)}
+          className="illuminator-button-link"
+          style={{ fontSize: '11px' }}
+          title="View LLM stream (thinking + response)"
+        >
+          {streamEntry.isActive
+            ? streamEntry.text.length > 0
+              ? `${Math.round(streamEntry.text.length / 1000)}K`
+              : streamEntry.thinking.length > 0
+                ? 'Thinking'
+                : '...'
+            : 'Stream'}
         </button>
       )}
 

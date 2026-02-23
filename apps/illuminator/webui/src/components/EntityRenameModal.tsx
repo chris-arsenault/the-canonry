@@ -9,12 +9,17 @@
  */
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useEntityNavList } from '../lib/db/entitySelectors';
+import * as entityRepo from '../lib/db/entityRepository';
+import { useRelationships } from '../lib/db/relationshipSelectors';
+import { useNarrativeEvents } from '../lib/db/narrativeEventSelectors';
 import { generate } from 'name-forge';
 import { toCulture } from '../lib/chronicle/nameBank';
 import {
   scanForReferences,
   buildRenamePatches,
   applyChroniclePatches,
+  adjustReplacementForGrammar,
   type RenameMatch,
   type MatchDecision,
   type RenameScanResult,
@@ -62,11 +67,8 @@ type ModalMode = 'rename' | 'patch';
 
 interface EntityRenameModalProps {
   entityId: string;
-  entities: Entity[];
   cultures: CultureDefinition[];
   simulationRunId: string;
-  relationships?: Relationship[];
-  narrativeEvents?: ScanNarrativeEvent[];
   /** 'rename' = full rename flow, 'patch' = repair stale names in events */
   mode?: ModalMode;
   onApply: (manifest: {
@@ -74,6 +76,7 @@ interface EntityRenameModalProps {
     eventPatches: EventPatch[];
     targetEntityId: string | null;
     newName: string;
+    addOldNameAsAlias?: boolean;
   }) => void;
   onClose: () => void;
 }
@@ -136,8 +139,47 @@ function MatchRow({
   onChangeAction: (action: DecisionAction) => void;
   onChangeEditText: (text: string) => void;
 }) {
-  const replacementText =
+  const rawReplacementText =
     decision.action === 'edit' ? decision.editText : newName;
+
+  // Compute grammar-adjusted replacement for preview (text matches only)
+  const preview = useMemo(() => {
+    if (decision.action === 'reject' || decision.action === 'edit' || match.matchType === 'metadata') {
+      return {
+        ctxBefore: match.contextBefore,
+        strikethrough: match.matchedText,
+        replacement: rawReplacementText,
+        ctxAfter: match.contextAfter,
+      };
+    }
+    const adjusted = adjustReplacementForGrammar(
+      match.contextBefore, match.contextAfter,
+      match.position, match.matchedText, rawReplacementText,
+    );
+
+    const absorbedBefore = match.position - adjusted.position;
+    const absorbedAfter = adjusted.originalLength - match.matchedText.length - absorbedBefore;
+
+    let ctxBefore = match.contextBefore;
+    let strikethrough = match.matchedText;
+    let ctxAfter = match.contextAfter;
+
+    if (absorbedBefore > 0) {
+      ctxBefore = match.contextBefore.slice(0, match.contextBefore.length - absorbedBefore);
+      strikethrough = match.contextBefore.slice(match.contextBefore.length - absorbedBefore) + strikethrough;
+    }
+    if (absorbedAfter > 0) {
+      strikethrough = strikethrough + match.contextAfter.slice(0, absorbedAfter);
+      ctxAfter = match.contextAfter.slice(absorbedAfter);
+    }
+
+    return {
+      ctxBefore,
+      strikethrough,
+      replacement: adjusted.replacement,
+      ctxAfter,
+    };
+  }, [match, rawReplacementText, decision.action]);
 
   return (
     <div
@@ -185,7 +227,7 @@ function MatchRow({
         )}
       </div>
 
-      {/* Context snippet with diff */}
+      {/* Context snippet with diff (grammar-adjusted) */}
       <div
         style={{
           fontSize: '11px',
@@ -197,7 +239,7 @@ function MatchRow({
         }}
       >
         <span style={{ color: 'var(--text-muted)' }}>
-          {match.contextBefore}
+          {preview.ctxBefore}
         </span>
         <span
           style={{
@@ -207,7 +249,7 @@ function MatchRow({
             borderRadius: '2px',
           }}
         >
-          {match.matchedText}
+          {preview.strikethrough}
         </span>
         {decision.action !== 'reject' && (
           <span
@@ -217,11 +259,11 @@ function MatchRow({
               borderRadius: '2px',
             }}
           >
-            {replacementText}
+            {preview.replacement}
           </span>
         )}
         <span style={{ color: 'var(--text-muted)' }}>
-          {match.contextAfter}
+          {preview.ctxAfter}
         </span>
       </div>
 
@@ -486,23 +528,24 @@ function SourceSection({
 
 export default function EntityRenameModal({
   entityId,
-  entities,
   cultures,
   simulationRunId,
-  relationships,
-  narrativeEvents,
   mode = 'rename',
   onApply,
   onClose,
 }: EntityRenameModalProps) {
+  const navEntities = useEntityNavList();
+  const relationships = useRelationships();
+  const narrativeEvents = useNarrativeEvents();
   const entity = useMemo(
-    () => entities.find((e) => e.id === entityId),
-    [entities, entityId],
+    () => navEntities.find((e) => e.id === entityId),
+    [navEntities, entityId],
   );
 
   const isPatch = mode === 'patch';
 
   const [phase, setPhase] = useState<Phase>('input');
+  const [addOldNameAsAlias, setAddOldNameAsAlias] = useState(true);
   // In patch mode: newName = entity.name (current, correct), oldNameInput = user-entered stale name
   const [newName, setNewName] = useState(isPatch ? entity?.name || '' : '');
   const [oldNameInput, setOldNameInput] = useState(
@@ -563,7 +606,6 @@ export default function EntityRenameModal({
     console.log('[EntityRenameModal] handleScan starting', {
       scanOldName,
       newName,
-      entityCount: entities.length,
       narrativeEventCount: narrativeEvents?.length ?? 0,
     });
 
@@ -579,11 +621,14 @@ export default function EntityRenameModal({
     }
 
     try {
-      const chronicles = await getChroniclesForSimulation(simulationRunId);
+      const [chronicles, fullEntities] = await Promise.all([
+        getChroniclesForSimulation(simulationRunId),
+        entityRepo.getEntitiesForRun(simulationRunId),
+      ]);
       const result = await scanForReferences(
         entityId,
         scanOldName,
-        entities,
+        fullEntities,
         chronicles,
         relationships,
         narrativeEvents,
@@ -619,7 +664,7 @@ export default function EntityRenameModal({
       console.error('[EntityRename] Scan failed:', err);
       setPhase('input');
     }
-  }, [newName, oldNameInput, isPatch, scanOldName, entityId, entities, simulationRunId, relationships, narrativeEvents]);
+  }, [newName, oldNameInput, isPatch, scanOldName, entityId, simulationRunId, relationships, narrativeEvents]);
 
   // --- Decision handling ---
   const handleChangeAction = useCallback(
@@ -769,6 +814,7 @@ export default function EntityRenameModal({
         eventPatches: patches.eventPatches,
         targetEntityId: isPatch ? null : entityId,
         newName,
+        addOldNameAsAlias: isPatch ? false : addOldNameAsAlias,
       });
       setPhase('done');
     } catch (err) {
@@ -1086,6 +1132,24 @@ export default function EntityRenameModal({
                       </button>
                     )}
                   </div>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '11px',
+                      color: 'var(--text-secondary)',
+                      marginBottom: '8px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={addOldNameAsAlias}
+                      onChange={(e) => setAddOldNameAsAlias(e.target.checked)}
+                    />
+                    Add &ldquo;{entity.name}&rdquo; as alias (keeps wiki links working)
+                  </label>
                   <p
                     style={{
                       fontSize: '11px',

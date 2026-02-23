@@ -59,12 +59,17 @@ build_app "apps/archivist/webui"
 build_app "apps/chronicler/webui"
 build_app "apps/canonry/webui"
 
+# Ensure remote state bucket exists
+source "$REPO_ROOT/scripts/ensure-state-bucket.sh"
+
 # Deploy with Terraform
 # Terraform will:
 # 1. Upload all files to S3 with proper cache-control headers
 # 2. Automatically trigger CloudFront invalidation via action_trigger
 cd "$SCRIPT_DIR"
-terraform init
+terraform init \
+  -backend-config="bucket=${STATE_BUCKET}" \
+  -backend-config="region=${STATE_REGION}"
 terraform apply
 
 echo ""

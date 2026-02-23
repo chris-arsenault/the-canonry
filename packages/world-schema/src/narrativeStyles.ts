@@ -42,6 +42,16 @@ export type NarrativeFormat = 'story' | 'document';
  * Instead of dozens of structured fields that get fragmented in prompts,
  * we use a few rich text blocks that flow naturally into generation prompts.
  */
+/**
+ * Era narrative weight — determines how a chronicle using this style
+ * is weighted in era narrative prompt assembly.
+ *
+ * - 'structural': Defines the era's trajectory. These chronicles ARE the major events.
+ * - 'contextual': Provides institutional, political, or personal framing.
+ * - 'flavor': World texture. Color and atmosphere, not arc-defining.
+ */
+export type EraNarrativeWeight = 'structural' | 'contextual' | 'flavor';
+
 export interface StoryNarrativeStyle {
   format: 'story';
 
@@ -54,6 +64,8 @@ export interface StoryNarrativeStyle {
   description: string;
   /** Tags for categorization */
   tags?: string[];
+  /** How this style weights in era narrative assembly */
+  eraNarrativeWeight?: EraNarrativeWeight;
 
   // === Freeform Text Blocks (injected directly into prompts) ===
 
@@ -111,6 +123,7 @@ export const DEFAULT_NARRATIVE_STYLES: StoryNarrativeStyle[] = [
     name: 'Epic Drama',
     description: 'Grand narratives told as chronicle - we know how it ends, the question is how it came to this',
     tags: ['dramatic', 'high-stakes', 'retrospective'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: RETROSPECTIVE CHRONICLE
@@ -181,6 +194,7 @@ AVOID: The chronicler explaining what events "meant." Losses described at a dist
     name: 'Action Adventure',
     description: 'Race against time - each scene marked by how long remains, tension from the ticking clock',
     tags: ['action', 'countdown', 'urgent'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: COUNTDOWN
@@ -249,6 +263,7 @@ AVOID: Scenes where people stand and talk. Internal monologue. Reflection. Any s
     name: 'Romance',
     description: 'Two lives shown separately before they collide - the reader knows both before they know each other',
     tags: ['romantic', 'dual-POV', 'convergence'],
+    eraNarrativeWeight: 'contextual',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: PARALLEL CONVERGENCE
@@ -321,6 +336,7 @@ AVOID: Love at first sight without complication. External plot overwhelming the 
     name: 'Slice of Life',
     description: 'One continuous moment, no scene breaks - time unfolds without interruption',
     tags: ['quiet', 'continuous', 'immersive'],
+    eraNarrativeWeight: 'flavor',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: SINGLE EXTENDED SCENE
@@ -381,6 +397,7 @@ AVOID: Dramatic events. Conflict requiring resolution. Backstory dumps. Realizat
     name: 'Political Intrigue',
     description: 'Schemes unfold through sequential moves - each scene a chess move in a larger game',
     tags: ['political', 'machination', 'layered'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: SEQUENTIAL MACHINATION
@@ -464,6 +481,7 @@ AVOID: Mustache-twirling villains. Characters who state their true motives. Easy
     name: 'Rashomon',
     description: 'One pivotal moment told three times - each account complete, each contradictory, truth assembled by the reader',
     tags: ['multi-POV', 'unreliable', 'layered'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: THREE ACCOUNTS OF ONE MOMENT
@@ -530,6 +548,7 @@ AVOID: Omniscient resolution. One account being obviously correct. Witnesses ack
     name: 'Poetic/Lyrical',
     description: 'Circular structure - the ending returns to the opening image, transformed by what came between',
     tags: ['literary', 'circular', 'meditative'],
+    eraNarrativeWeight: 'flavor',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: CIRCULAR RETURN
@@ -605,6 +624,7 @@ AVOID: Plot mechanics. Explaining what images mean. Rushing to conclusion. Gener
     name: 'Dark Comedy',
     description: 'One disaster escalating through reasonable responses - the gap between catastrophe and procedure is the comedy',
     tags: ['comedy', 'escalation', 'deadpan'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: CASCADING CATASTROPHE
@@ -679,6 +699,7 @@ AVOID: Jokes. Punchlines. Winking at the audience. Characters being funny on pur
     name: 'Heroic Fantasy',
     description: 'The classic hero\'s journey in explicit three-act form - departure, ordeal, return',
     tags: ['heroic', 'three-act', 'mythic'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: CLASSIC THREE-ACT
@@ -748,6 +769,7 @@ AVOID: Irony. Deconstruction. Moral ambiguity. Anticlimactic endings. This is no
     name: 'Tragedy',
     description: 'Begin at the fall, then show how we got there - the ending is known, the tragedy is in the becoming',
     tags: ['tragic', 'non-linear', 'inevitable'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: ENDING FIRST - THEN FLASHBACK
@@ -826,6 +848,7 @@ AVOID: Redemption arcs. Last-minute saves. Villains to blame. The tragedy is tha
     name: 'Mystery/Suspense',
     description: 'Write the opening so it can be reread after the revelation - clues hidden in plain sight',
     tags: ['mystery', 'revelation', 'rereadable'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: REVELATION THAT REFRAMES
@@ -899,6 +922,7 @@ AVOID: Cheating. Clues the reader couldn't have noticed. Revelations that come f
     name: 'Treasure Hunt',
     description: 'The journey is the story - multiple trials, each testing something different, building to discovery',
     tags: ['quest', 'trials', 'adventure'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: QUEST WITH TRIALS
@@ -979,6 +1003,7 @@ AVOID: Easy victories. Luck over virtue. Anticlimactic discovery. Treasure that'
     name: 'Haunted Relic',
     description: 'Alternating past and present - the curse\'s origin and its current manifestation intercut',
     tags: ['horror', 'dual-timeline', 'curse'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: DUAL TIMELINE
@@ -1053,6 +1078,7 @@ AVOID: Jump scares. Gore without meaning. Easy cures. Heroes who don't suffer. T
     name: 'Lost Legacy',
     description: 'Multiple generations, no privileged present - the artifact is the protagonist, carrying meaning through time',
     tags: ['generational', 'mosaic', 'inheritance'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: GENERATIONAL MOSAIC
@@ -1124,6 +1150,7 @@ AVOID: Privileging one generation as "the real story." Sentimentality about ance
     name: 'Confession',
     description: 'A single voice justifying themselves to someone - judge, lover, god, or self. The reader sees what the speaker cannot.',
     tags: ['unreliable', 'first-person', 'intimate', 'self-deception'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: UNRELIABLE MONOLOGUE
@@ -1193,6 +1220,7 @@ AVOID: Making the speaker obviously villainous. Making the "truth" explicitly st
     name: 'Fable',
     description: 'History exaggerated into allegory - real events mythologized, real people made into archetypes, truth bent to serve a moral',
     tags: ['allegorical', 'mythologized', 'didactic', 'embellished'],
+    eraNarrativeWeight: 'flavor',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: ALLEGORICAL TALE
@@ -1261,6 +1289,7 @@ AVOID: Psychological complexity. Moral ambiguity (the fable has a clear lesson, 
     name: 'Trial & Judgment',
     description: 'Adversarial courtroom or tribunal - two sides construct opposing narratives from the same facts, judgment falls',
     tags: ['adversarial', 'formal', 'justice', 'multi-voice'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: ADVERSARIAL TRIBUNAL
@@ -1338,6 +1367,7 @@ AVOID: Clear-cut guilt or innocence. Perry Mason revelations. Courtroom drama cl
     name: 'Dreamscape',
     description: 'Surreal, psychedelic narrative where logic dissolves - images transform, identities merge, causality breaks',
     tags: ['surreal', 'psychedelic', 'non-linear', 'hallucinatory'],
+    eraNarrativeWeight: 'flavor',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: DISSOLVING LOGIC
@@ -1412,6 +1442,7 @@ AVOID: Plot. Causality. Rational explanations. Metaphors that are "explained" - 
     name: 'Apocalyptic Vision',
     description: 'Prophetic revelation of doom and transformation - cosmic scale, symbolic imagery, the end of one world and birth of another',
     tags: ['prophetic', 'apocalyptic', 'visionary', 'cosmic'],
+    eraNarrativeWeight: 'flavor',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: PROPHETIC REVELATION
@@ -1491,6 +1522,7 @@ AVOID: Nihilism. Destruction without meaning. Modern apocalyptic cliches (zombie
     name: 'Last Stand',
     description: 'War from the inside — a unit holding the line, the bonds between soldiers, the arithmetic of sacrifice. No heroes, no villains. Just duty and its cost.',
     tags: ['war', 'ensemble', 'visceral', 'sacrifice', 'ground-level'],
+    eraNarrativeWeight: 'structural',
     format: 'story',
 
     narrativeInstructions: `STRUCTURE: THE LINE HOLDS (OR BREAKS)
@@ -1577,6 +1609,163 @@ AVOID: Heroic speeches. Slow-motion deaths. The enemy as evil or monstrous — t
     pacing: {
       totalWordCount: { min: 1600, max: 2200 },
       sceneCount: { min: 4, max: 4 },
+    },
+  },
+
+  // ============================================================================
+  // 22. BREAKTHROUGH - Process of Making Structure
+  // ============================================================================
+  {
+    id: 'breakthrough',
+    name: 'Breakthrough',
+    description: 'The process of solving a problem that resists solution — tension from understanding, payoff from the thing working',
+    tags: ['innovation', 'craft', 'problem-solving', 'patient'],
+    eraNarrativeWeight: 'structural',
+    format: 'story',
+
+    narrativeInstructions: `STRUCTURE: THE MAKING
+This story is about the process of solving a hard problem. The tension is the problem itself, which resists understanding. The payoff is the thing working. The structure builds toward insight, not toward victory.
+
+=== SCENE 1: THE RESISTANCE ===
+The problem. What won't yield, what's been tried, why it matters. Not abstract — show the specific failure. The material that cracks. The instrument that reads wrong. The technique that should work and doesn't.
+
+Establish the maker's competence. This is not a story about someone learning the basics — it's about someone who has mastered everything available and hit the wall beyond mastery. The problem is genuinely hard. Show what others have tried and why it hasn't worked.
+
+End with the maker committed but not yet seeing.
+
+=== SCENE 2: THE WORKSHOP ===
+The space, the tools, the accumulated knowledge of predecessors. Show the iterative process — attempts that fail but teach something. A technique borrowed from an adjacent discipline. A variation that reveals an unexpected property.
+
+This scene is physical. Hands on materials. The smell of what they're working with. The temperature of the room. The specific feel of the tools. Competence as embodied knowledge — the body knows things the conscious mind hasn't articulated yet.
+
+At least one failure in this scene should reveal something the maker doesn't yet recognize as important. The reader may see it before the maker does.
+
+=== SCENE 3: THE SHIFT ===
+The realization arrives through the work, not despite it. Two things that were separate connect. A failure reinterpreted. A property noticed in passing that suddenly reorganizes everything.
+
+The shift should feel earned — it emerges from the accumulated attempts of Scene 2, not from luck or outside intervention. The maker sees the material differently because the failed attempts gave them enough information to see what was always there.
+
+=== SCENE 4: THE MAKING ===
+The actual construction. Detailed, physical, present. The maker working with the new understanding, translating insight into material form. Confident and precise, but with the particular intensity of someone doing something for the first time.
+
+Show the thing coming into being through accumulated, careful steps. Each step could still fail. The maker knows this and proceeds anyway, because the understanding is sound even if the execution is untested.
+
+=== SCENE 5: THE PROOF ===
+It works. Show what it does — not through explanation but through demonstration. The instrument reads correctly. The material holds. The technique produces what was promised.
+
+Show what this changes — what becomes possible that wasn't before. The proof earns weight from the accumulated difficulty that preceded it.`,
+
+    proseInstructions: `TONE: Patient, precise, physically grounded. Unhurried confidence, attention to material detail, the particular satisfaction of things fitting together.
+
+DIALOGUE: Sparse. Makers talk to themselves, to the material, to absent predecessors. When dialogue occurs between people, it is technical — specific, practical, about the problem at hand.
+
+DESCRIPTION: Material and sensory. What things feel like under the hands. The specific behavior of materials under specific conditions. The workshop described through what's in it and what those things do, not through atmosphere. Tools are named. Processes are shown.
+
+TECHNIQUE - EMBODIED KNOWLEDGE: The maker's expertise shows in their body — how they hold tools, what they notice automatically, the small adjustments they make without thinking. Competence is shown, not stated.
+
+TECHNIQUE - THE TEACHING FAILURE: Failed attempts that reveal something. Each failure should leave the reader (and eventually the maker) with more understanding than before. Failure is not defeat — it's data.
+
+TECHNIQUE - THE MATERIAL SPEAKS: Materials have properties that resist and reveal. The maker is in dialogue with the material, not imposing will on it. Good making is listening.
+
+AVOID: Montage. Time-skips that compress the work into a sentence — the work IS the story. Insight arriving from outside the process — from a dream, a stranger's hint, a convenient accident unrelated to the attempts. Speeches about the meaning of innovation or progress. The doubting colleague who exists to be proved wrong. The maker narrating their own thought process instead of working. Triumph music — if the ending feels like a victory lap, it has overshot.`,
+
+    eventInstructions: 'Events provide the problem or the context that makes the problem urgent. The event is why this breakthrough matters — what needs the thing being built. But the story is the making, not the event.',
+
+    craftPosture: `- Dwell in the process. The work earns its space by being specific and physical. Every step shown is a step the reader understands.
+- Failures are content, not obstacles to skip past. Each failed attempt reveals something.
+- The shift must be earned by what precedes it. If the insight doesn't emerge from the accumulated work, the story has cheated.
+- Restraint at the payoff. The proof lands because of what preceded it, not because the prose announces its importance.`,
+
+    titleGuidance: 'Name the thing made, the material worked, or the problem solved — concrete and specific. The register is workshop-practical, not grandiose. If the title sounds like what a maker would call their own work when describing it to a colleague, it fits. One to four words. No triumph announced; the title trusts the reader to understand what the making cost.',
+
+    roles: [
+      { role: 'maker', count: { min: 1, max: 2 }, description: 'The craftsperson, scholar, or engineer — defined by competence and attention. Not a hero; a person who knows their craft and has hit its limits' },
+      { role: 'the-problem', count: { min: 1, max: 1 }, description: 'What resists solution — a material property, a theoretical gap, a technique that should work and doesn\'t. The problem is the antagonist, and it is honest' },
+      { role: 'the-material', count: { min: 1, max: 1 }, description: 'What they work with — the substance or medium whose properties must be understood, not overcome' },
+      { role: 'witness', count: { min: 0, max: 1 }, description: 'Someone present for the proof who understands what it means' },
+    ],
+
+    pacing: {
+      totalWordCount: { min: 1400, max: 1800 },
+      sceneCount: { min: 4, max: 5 },
+    },
+  },
+
+  // ============================================================================
+  // 23. COMMON GROUND - Cross-Cultural Collaboration Structure
+  // ============================================================================
+  {
+    id: 'common-ground',
+    name: 'Common Ground',
+    description: 'Two cultures forced to work together build something neither could make alone — productive friction, provisional trust',
+    tags: ['cross-cultural', 'collaboration', 'friction', 'building'],
+    eraNarrativeWeight: 'structural',
+    format: 'story',
+
+    narrativeInstructions: `STRUCTURE: PRODUCTIVE FRICTION
+Two parties from different cultures must work together on something neither can accomplish alone. The cultural gap between them is both the obstacle and — eventually — the source of the innovation. This is not a story about people learning to like each other. It is a story about incompatible methods colliding until the collision produces something new.
+
+=== SCENE 1: THE NEED ===
+A problem that genuinely spans both cultures' domains. Not a contrivance — a real situation where one culture has knowledge the other lacks, and vice versa. Establish why neither party can solve this alone and why they must solve it together.
+
+Show both parties arriving with their own assumptions, their own methods, their own definitions of what "good work" looks like. The friction is methodological, not personal. They respect each other's competence while finding each other's approach fundamentally wrong.
+
+=== SCENE 2: THE FRICTION ===
+They attempt to work together and the cultural gap asserts itself. Different assumptions about hierarchy, about how knowledge is shared, about what constitutes proof. Specific misunderstandings — not comic relief but genuine collisions of worldview.
+
+One party's standard practice offends or baffles the other. A technique that one culture considers basic, the other considers dangerous or taboo. A piece of information that one party shares freely and the other believes should never have been spoken aloud.
+
+The collaboration threatens to fail. Not from bad faith — from genuine incompatibility. Both parties are doing their best. Their bests conflict.
+
+=== SCENE 3: THE TURN ===
+Something breaks through — and it should emerge from the friction itself, not despite the cultural difference but because of it. The gap between their approaches illuminates something neither could see from inside their own framework. The difference becomes generative. What one tradition lacks, the other supplies — not because they overlap, but because they don't.
+
+The turn is not "they realize they're not so different." They are different. They remain different. The turn is that the difference produces something.
+
+=== SCENE 4: THE WORK ===
+They build the thing together. Show the hybrid — techniques from both traditions, compromises that create something that belongs to neither tradition alone. The work is physical, specific, detailed.
+
+This is not smooth. There are still disagreements, still moments where one party grits their teeth at the other's approach. But the thing is taking shape, and the shape is new.
+
+=== SCENE 5: THE THING THEY MADE ===
+The result. Show what it does. Show that it works. Show that it contains elements from both traditions in a configuration neither tradition would have arrived at independently.
+
+The collaboration may or may not survive the project. The trust is provisional — earned for this work, not guaranteed for the next. But the thing they made is real, and it works.`,
+
+    proseInstructions: `TONE: Tense, earned, specific. The prose carries the effort of working across a divide — the particular exhaustion of being understood imperfectly and proceeding anyway.
+
+DIALOGUE: Heavy — this is a story told through conversation, negotiation, and misunderstanding. Both parties speak in their own cultural register. Translation failures are shown, not explained. When one party uses a term the other doesn't share, the gap is felt in the moment, not glossed by the narrator.
+
+DESCRIPTION: Two ways of seeing the same object or process. When both parties look at the same material, they notice different properties. When both assess the same result, they measure by different standards. Show this through what gets noticed and named — each culture's attention reveals its priorities.
+
+TECHNIQUE - THE GAP: Cultural difference is rendered through specific physical moments, not through narrated generalities. The gap lives in gesture, in what is touched and what is not touched, in what is said aloud and what is kept silent. Show the collision at the level of hands and habits.
+
+TECHNIQUE - THE HYBRID: When the two methods combine, show both contributing something irreplaceable. The result should be visibly composite — containing elements that are recognizably from each tradition, arranged in a way that belongs to neither.
+
+TECHNIQUE - PROVISIONAL TRUST: Trust is built through small acts, not declarations. One party takes a risk on the other's method. One party shares something they normally wouldn't. These moments are noted by the characters and not commented on. Trust accretes; it is not announced.
+
+AVOID: Resolution of cultural difference — they do not become the same, they do not discover secret commonality, they do not bond over shared values. One culture being right and the other learning from it — both contribute, both compromise, the result is neither's ideal. Characters explaining what the collaboration means. Narration that frames the work as a lesson about tolerance. Friction that evaporates once the turn arrives — the disagreements persist through the work and into the ending.`,
+
+    eventInstructions: 'Events provide the need — the problem that forces collaboration. The event should make both cultures\' involvement necessary, not optional. The urgency comes from the problem, not from time pressure.',
+
+    craftPosture: `- Let the friction breathe. Don't rush past the misunderstandings to get to the resolution. The friction IS the story.
+- Both cultures rendered with equal specificity and equal dignity. Neither is the viewpoint culture. Neither is the student.
+- The hybrid result is described with the same material attention as any other making — show what it's made of and how it works.
+- Provisional, not triumphant. The ending earns satisfaction, not celebration. The trust is real and it is limited.`,
+
+    titleGuidance: 'Name the thing built, the place where they met, or the problem they solved together. The register is practical and cross-cultural — the kind of name that gets used by both sides, possibly meaning slightly different things to each. If the title sounds like what historians call this collaboration when they cite it as precedent, it fits.',
+
+    roles: [
+      { role: 'party-a', count: { min: 1, max: 1 }, description: 'Representative of one culture — competent in their own tradition, genuinely baffled or frustrated by the other\'s approach' },
+      { role: 'party-b', count: { min: 1, max: 1 }, description: 'Representative of the other culture — equally competent, equally frustrated. Not the student; the counterpart' },
+      { role: 'the-need', count: { min: 1, max: 1 }, description: 'The problem that requires both cultures\' capabilities — a location, a material, a crisis that spans both domains' },
+      { role: 'the-work', count: { min: 1, max: 1 }, description: 'What they build together — the hybrid result, the thing that belongs to neither tradition alone' },
+      { role: 'catalyst', count: { min: 0, max: 1 }, description: 'What forces the collaboration — a shared threat, a resource neither controls, an authority that mandates cooperation' },
+    ],
+
+    pacing: {
+      totalWordCount: { min: 1600, max: 2200 },
+      sceneCount: { min: 4, max: 5 },
     },
   },
 ];

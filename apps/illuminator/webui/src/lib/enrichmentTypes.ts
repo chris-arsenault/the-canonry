@@ -9,7 +9,7 @@ import type { ChronicleFormat, ChronicleGenerationContext, ChronicleImageRefs, E
 import type { HistorianNote } from './historianTypes';
 import type { ResolvedLLMCallSettings } from './llmModelSettings';
 
-export type EnrichmentType = 'description' | 'image' | 'entityChronicle' | 'paletteExpansion' | 'dynamicsGeneration' | 'summaryRevision' | 'chronicleLoreBackport' | 'historianEdition' | 'historianReview' | 'historianChronology' | 'historianPrep' | 'eraNarrative';
+export type EnrichmentType = 'description' | 'visualThesis' | 'image' | 'entityChronicle' | 'paletteExpansion' | 'dynamicsGeneration' | 'summaryRevision' | 'chronicleLoreBackport' | 'historianEdition' | 'historianReview' | 'historianChronology' | 'historianPrep' | 'eraNarrative' | 'motifVariation' | 'factCoverage' | 'toneRanking' | 'bulkToneRanking';
 
 /**
  * Which image to display at a chronicle backref anchor in an entity description.
@@ -171,6 +171,8 @@ export interface EntityEnrichment {
   }>;
   /** Historian annotations — scholarly margin notes anchored to description text */
   historianNotes?: HistorianNote[];
+  /** Canon fact IDs that annotation guidance directed the historian to reinforce */
+  reinforcedFacts?: string[];
   /** Slug aliases from entity renames — old entity IDs that should still resolve in deep links */
   slugAliases?: string[];
 }
@@ -204,7 +206,7 @@ export interface EnrichmentTaskBase {
   // For chronicle image tasks
   imageRefId?: string;
   sceneDescription?: string;
-  imageType?: 'entity' | 'chronicle';
+  imageType?: 'entity' | 'chronicle' | 'era_narrative';
   /** Visual thesis per entity ID, for cover image scene generation */
   visualIdentities?: Record<string, string>;
   // For palette expansion tasks
@@ -251,7 +253,12 @@ export type EnrichmentTaskPayload =
       visualTraitsInstructions: string;
     })
   | (EnrichmentTaskBase & {
-      type: Exclude<EnrichmentType, 'description'>;
+      type: 'visualThesis';
+      visualThesisInstructions: string;
+      visualTraitsInstructions: string;
+    })
+  | (EnrichmentTaskBase & {
+      type: Exclude<EnrichmentType, 'description' | 'visualThesis'>;
     });
 
 /**
@@ -281,6 +288,7 @@ export type ChronicleStep =
   | 'combine'  // Combine all versions into a new draft
   | 'copy_edit' // Polish pass — trims, smooths voice, tightens prose without changing content
   | 'temporal_check' // Check if focal era / temporal narrative misalignment affected the output
+  | 'quick_check'    // Detect unanchored entity references (names not in cast or name bank)
   | 'validate'
   | 'edit'
   | 'summary'
@@ -416,6 +424,26 @@ export function applyEnrichmentResult(
       // Entity field updates - summary/description go directly on entity
       summary: lockedSummary ? undefined : result.summary,
       description: result.description,
+    };
+  }
+
+  if (type === 'visualThesis' && result.visualThesis) {
+    return {
+      enrichment: {
+        ...existing,
+        text: {
+          ...(existing.text || { aliases: [], visualTraits: [], generatedAt: 0, model: '' }),
+          visualThesis: result.visualThesis,
+          visualTraits: result.visualTraits || existing.text?.visualTraits || [],
+          generatedAt: result.generatedAt,
+          model: result.model,
+          estimatedCost: result.estimatedCost,
+          actualCost: result.actualCost,
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+          chainDebug: result.chainDebug,
+        },
+      },
     };
   }
 

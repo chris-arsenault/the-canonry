@@ -173,6 +173,19 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     keywords: ['synthwave', 'neon', 'retro-futuristic', 'vaporwave'],
     category: 'digital',
   },
+  {
+    id: 'cosmic-chrome',
+    name: 'Cosmic Chrome Mythology',
+    description: 'Monumental figures in polished liquid chrome against deep starfield void, with sacred geometry halos and iridescent mineral surfaces',
+    promptFragment:
+      'cosmic digital surrealism, figures rendered in polished liquid chrome with strong specular highlights, ' +
+      'self-luminous subjects against deep black starfield void, radiating sacred geometry halos and mandalas, ' +
+      'iridescent bismuth-crystal surface textures on landscape elements, ' +
+      'no ambient fill light, pure black shadows, rim lighting on metallic surfaces, ' +
+      'intricate gold filigree ornamentation on crowns and jewelry, monumental divine scale',
+    keywords: ['chrome', 'sacred-geometry', 'void', 'iridescent', 'monumental', 'metallic'],
+    category: 'digital',
+  },
 
   // ===========================
   // CAMERA

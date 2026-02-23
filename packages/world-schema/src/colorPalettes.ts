@@ -177,6 +177,22 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
   },
 
   // ==========================================================================
+  // Metallic / Void Palettes (1)
+  // ==========================================================================
+  {
+    id: 'void-iridescence',
+    name: 'Void & Iridescence',
+    description: 'Deep starfield black with electric cobalt, metallic gold, and oil-slick iridescent shifting surfaces',
+    swatchColors: ['#0A0A1A', '#0044FF', '#FFD700', '#00CED1', '#8B00FF'],
+    promptFragment:
+      'COLOR PALETTE: dominated by deep void black and starfield darkness, ' +
+      'electric cobalt blue and ultramarine as primary luminous color, ' +
+      'metallic gold and burnished amber accents on ornamentation, ' +
+      'iridescent oil-slick shifting cyan-green-purple on surfaces and ground planes, ' +
+      'self-luminous subjects against pure darkness, no mid-tone backgrounds',
+  },
+
+  // ==========================================================================
   // High-Contrast Pairs (4)
   // ==========================================================================
   {

@@ -40,6 +40,7 @@ export type {
   PacingConfig,
   NarrativeFormat,
   StoryNarrativeStyle,
+  EraNarrativeWeight,
 } from './narrativeStyles.js';
 export { DEFAULT_NARRATIVE_STYLES } from './narrativeStyles.js';
 

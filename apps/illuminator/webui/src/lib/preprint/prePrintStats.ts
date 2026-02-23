@@ -1,8 +1,9 @@
 /**
  * Pre-Print Stats Computation
  *
- * Pure computation module: takes entities, chronicles, images, and static pages,
- * returns a PrePrintStats object with all metrics a copy editor needs.
+ * Pure computation module: takes entities, chronicles, images, static pages,
+ * and era narratives, returns a PrePrintStats object with all metrics a
+ * copy editor needs.
  */
 
 import type { PersistedEntity } from '../db/illuminatorDb';
@@ -12,6 +13,7 @@ import type { ImageRecord, ImageAspect, ImageType } from '../imageTypes';
 /** Image metadata without blob — what getAllImages() returns */
 export type ImageMetadataRecord = Omit<ImageRecord, 'blob'> & { hasBlob: boolean };
 import type { StaticPage } from '../staticPageTypes';
+import type { EraNarrativeRecord } from '../eraNarrativeTypes';
 import type { HistorianNote, HistorianNoteType } from '../historianTypes';
 import type {
   PrePrintStats,
@@ -23,6 +25,7 @@ import type {
 } from './prePrintTypes';
 import type { ChronicleImageSize } from '../chronicleTypes';
 import { countWords } from '../db/staticPageRepository';
+import { resolveActiveContent } from '../db/eraNarrativeRepository';
 
 function countChars(text: string): number {
   return text.length;
@@ -34,9 +37,6 @@ function collectCaptions(chronicles: ChronicleRecord[]): string[] {
     if (!c.imageRefs?.refs) continue;
     for (const ref of c.imageRefs.refs) {
       if (ref.caption) captions.push(ref.caption);
-    }
-    if (c.coverImage?.sceneDescription) {
-      // Scene descriptions aren't captions per se, but they're image-related text
     }
   }
   return captions;
@@ -54,13 +54,17 @@ export function computePrePrintStats(
   entities: PersistedEntity[],
   chronicles: ChronicleRecord[],
   images: ImageMetadataRecord[],
-  staticPages: StaticPage[]
+  staticPages: StaticPage[],
+  eraNarratives: EraNarrativeRecord[]
 ): PrePrintStats {
   // Filter to publishable content
   const publishedChronicles = chronicles.filter(
     (c) => c.status === 'complete' || c.status === 'assembly_ready'
   );
   const publishedPages = staticPages.filter((p) => p.status === 'published');
+  const completedNarratives = eraNarratives.filter(
+    (n) => n.status === 'complete' || n.status === 'step_complete'
+  );
 
   // =========================================================================
   // Word & Character Counts
@@ -72,6 +76,12 @@ export function computePrePrintStats(
   const entitySummaryTexts = entities.map((e) => e.summary || '');
   const captionTexts = collectCaptions(publishedChronicles);
   const pageTexts = publishedPages.map((p) => p.content || '');
+
+  // Era narrative content from active version (with legacy fallback)
+  const narrativeTexts = completedNarratives.map((n) => {
+    const { content } = resolveActiveContent(n);
+    return content || '';
+  });
 
   // Historian notes: collect from both entities and chronicles
   const entityHistorianNotes: HistorianNote[] = [];
@@ -87,18 +97,22 @@ export function computePrePrintStats(
     }
   }
   const allHistorianNotes = [...entityHistorianNotes, ...chronicleHistorianNotes];
-  const historianNoteText = collectHistorianNoteTexts(allHistorianNotes);
 
   const sumWords = (texts: string[]) => texts.reduce((s, t) => s + countWords(t), 0);
   const sumChars = (texts: string[]) => texts.reduce((s, t) => s + countChars(t), 0);
+
+  const entityHistorianNoteText = collectHistorianNoteTexts(entityHistorianNotes);
+  const chronicleHistorianNoteText = collectHistorianNoteTexts(chronicleHistorianNotes);
 
   const wordBreakdown: WordCountBreakdown = {
     chronicleBody: sumWords(chronicleBodyTexts),
     chronicleSummaries: sumWords(chronicleSummaryTexts),
     entityDescriptions: sumWords(entityDescTexts),
     entitySummaries: sumWords(entitySummaryTexts),
+    eraNarrativeContent: sumWords(narrativeTexts),
     imageCaptions: sumWords(captionTexts),
-    historianNotes: countWords(historianNoteText),
+    historianNotesEntity: countWords(entityHistorianNoteText),
+    historianNotesChronicle: countWords(chronicleHistorianNoteText),
     staticPageContent: sumWords(pageTexts),
   };
 
@@ -107,8 +121,10 @@ export function computePrePrintStats(
     chronicleSummaries: sumChars(chronicleSummaryTexts),
     entityDescriptions: sumChars(entityDescTexts),
     entitySummaries: sumChars(entitySummaryTexts),
+    eraNarrativeContent: sumChars(narrativeTexts),
     imageCaptions: sumChars(captionTexts),
-    historianNotes: countChars(historianNoteText),
+    historianNotesEntity: countChars(entityHistorianNoteText),
+    historianNotesChronicle: countChars(chronicleHistorianNoteText),
     staticPageContent: sumChars(pageTexts),
   };
 
@@ -169,6 +185,7 @@ export function computePrePrintStats(
   // =========================================================================
 
   const entitiesWithImage = entities.filter((e) => e.enrichment?.image?.imageId).length;
+  const totalEras = entities.filter((e) => e.kind === 'era').length;
 
   const completeness: CompletenessStats = {
     entitiesTotal: entities.length,
@@ -183,6 +200,11 @@ export function computePrePrintStats(
     ).length,
     staticPagesTotal: staticPages.length,
     staticPagesPublished: publishedPages.length,
+    eraNarrativesTotal: totalEras,
+    eraNarrativesComplete: eraNarratives.filter((n) => n.status === 'complete').length,
+    eraNarrativesWithCoverImage: eraNarratives.filter(
+      (n) => n.coverImage?.status === 'complete'
+    ).length,
   };
 
   // =========================================================================

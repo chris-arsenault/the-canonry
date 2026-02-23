@@ -15,6 +15,10 @@ import {
   updateChronicleCoverImageStatus,
   updateChronicleImageRef,
 } from '../lib/db/chronicleRepository';
+import {
+  updateEraNarrativeCoverImageStatus,
+  updateEraNarrativeImageRefStatus,
+} from '../lib/db/eraNarrativeRepository';
 
 type ProcessedStatus = 'complete' | 'error';
 
@@ -48,7 +52,7 @@ export function useChronicleQueueWatcher(queue: QueueItem[]): void {
     const chronicleTasks = queue.filter((item) =>
       item.type === 'entityChronicle' ||
       item.type === 'historianPrep' ||
-      (item.type === 'image' && item.imageType === 'chronicle')
+      (item.type === 'image' && (item.imageType === 'chronicle' || item.imageType === 'era_narrative'))
     );
 
     const completedTasks = chronicleTasks.filter(
@@ -113,6 +117,38 @@ export function useChronicleQueueWatcher(queue: QueueItem[]): void {
           }
 
           chronicleIds.add(chronicleId);
+          continue;
+        }
+
+        // Era narrative images — chronicleId is repurposed as narrativeId
+        if (task.type === 'image' && task.imageType === 'era_narrative') {
+          const narrativeId = task.chronicleId;
+          if (!narrativeId || !task.imageRefId) continue;
+          const isCover = task.imageRefId === '__cover_image__';
+          const imageId = task.result?.imageId || '';
+
+          if (task.status === 'complete') {
+            if (!imageId) {
+              const error = 'Image generation returned no image id';
+              if (isCover) {
+                updates.push(updateEraNarrativeCoverImageStatus(narrativeId, 'failed', undefined, error));
+              } else {
+                updates.push(updateEraNarrativeImageRefStatus(narrativeId, task.imageRefId, 'failed', undefined, error));
+              }
+            } else if (isCover) {
+              updates.push(updateEraNarrativeCoverImageStatus(narrativeId, 'complete', imageId));
+            } else {
+              updates.push(updateEraNarrativeImageRefStatus(narrativeId, task.imageRefId, 'complete', imageId));
+            }
+          } else {
+            const error = task.error || 'Image generation failed';
+            if (isCover) {
+              updates.push(updateEraNarrativeCoverImageStatus(narrativeId, 'failed', undefined, error));
+            } else {
+              updates.push(updateEraNarrativeImageRefStatus(narrativeId, task.imageRefId, 'failed', undefined, error));
+            }
+          }
+          // No chronicle refresh needed — EraNarrativeViewer polls directly
           continue;
         }
 

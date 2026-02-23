@@ -497,6 +497,203 @@ function PerspectiveSynthesisViewer({ synthesis }) {
 }
 
 // ============================================================================
+// Fact Coverage Viewer (local)
+// ============================================================================
+
+const RATING_ORDER = ['integral', 'prevalent', 'mentioned', 'missing'];
+const RATING_STYLE = {
+  integral: { symbol: '\u25C6', color: '#10b981', label: 'integral' },
+  prevalent: { symbol: '\u25C7', color: '#3b82f6', label: 'prevalent' },
+  mentioned: { symbol: '\u00B7', color: '#f59e0b', label: 'mentioned' },
+  missing: { symbol: '\u25CB', color: 'var(--text-muted)', label: 'missing' },
+};
+
+function FactCoverageGrid({ report }) {
+  if (!report?.entries?.length) return null;
+
+  // Static order — 3 columns of 6
+  const entries = report.entries;
+  const cols = [entries.slice(0, 6), entries.slice(6, 12), entries.slice(12, 18)];
+
+  return (
+    <div
+      style={{
+        marginBottom: '16px',
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '8px',
+        padding: '12px 16px',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          Canon Facts
+        </span>
+        <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', gap: '10px' }}>
+          {RATING_ORDER.map((r) => (
+            <span key={r}><span style={{ color: RATING_STYLE[r].color, fontWeight: 600 }}>{RATING_STYLE[r].symbol}</span> {r}</span>
+          ))}
+          <span><span style={{ color: '#10b981' }}>yes</span>/<span style={{ color: 'var(--text-muted)' }}>no</span> = included</span>
+        </span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0 16px' }}>
+        {cols.map((col, ci) => (
+          <div key={ci}>
+            {col.map((entry) => {
+              const rs = RATING_STYLE[entry.rating] || RATING_STYLE.missing;
+              // Mismatch highlights
+              const bg = entry.wasFaceted && entry.rating === 'missing' ? 'rgba(239, 68, 68, 0.12)'
+                : entry.wasFaceted && entry.rating === 'mentioned' ? 'rgba(245, 158, 11, 0.12)'
+                : !entry.wasFaceted && (entry.rating === 'integral' || entry.rating === 'prevalent') ? 'rgba(16, 185, 129, 0.12)'
+                : undefined;
+              return (
+                <div
+                  key={entry.factId}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '3px 4px',
+                    fontSize: '11px',
+                    borderBottom: '1px solid var(--border-color)',
+                    background: bg,
+                    borderRadius: bg ? '3px' : undefined,
+                  }}
+                  title={entry.factText}
+                >
+                  <span style={{ color: rs.color, fontWeight: 600, flexShrink: 0 }}>{rs.symbol}</span>
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {entry.factId}
+                  </span>
+                  <span style={{
+                    flexShrink: 0,
+                    fontSize: '10px',
+                    color: entry.wasFaceted ? '#10b981' : 'var(--text-muted)',
+                  }}>
+                    {entry.wasFaceted ? 'yes' : 'no'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FactCoverageViewer({ report, generatedAt }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (!report?.entries?.length) return null;
+
+  const counts = { integral: 0, prevalent: 0, mentioned: 0, missing: 0 };
+  for (const e of report.entries) {
+    if (counts[e.rating] !== undefined) counts[e.rating]++;
+  }
+
+  const sorted = [...report.entries].sort(
+    (a, b) => RATING_ORDER.indexOf(a.rating) - RATING_ORDER.indexOf(b.rating),
+  );
+
+  return (
+    <div
+      style={{
+        marginBottom: '16px',
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '8px',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          padding: '12px 16px',
+          background: 'var(--bg-tertiary)',
+          borderBottom: isExpanded ? '1px solid var(--border-color)' : 'none',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          cursor: 'pointer',
+        }}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          {isExpanded ? '\u25BC' : '\u25B6'}
+        </span>
+        <span style={{ fontSize: '13px', fontWeight: 500 }}>
+          Fact Coverage
+        </span>
+        <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+          {RATING_ORDER.map((r) => (
+            counts[r] > 0 ? `${RATING_STYLE[r].symbol} ${counts[r]} ${r}` : null
+          )).filter(Boolean).join('  ')}
+        </span>
+      </div>
+
+      {isExpanded && (
+        <div style={{ padding: '12px 16px' }}>
+          {sorted.map((entry) => {
+            const style = RATING_STYLE[entry.rating] || RATING_STYLE.missing;
+            return (
+              <div
+                key={entry.factId}
+                style={{
+                  padding: '6px 0',
+                  borderBottom: '1px solid var(--border-color)',
+                  fontSize: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                  <span style={{ color: style.color, fontWeight: 600, flexShrink: 0 }} title={style.label}>
+                    {style.symbol}
+                  </span>
+                  <span
+                    style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      flex: 1,
+                    }}
+                    title={entry.factText}
+                  >
+                    {entry.factText}
+                  </span>
+                  {entry.wasFaceted && (
+                    <span
+                      style={{ color: '#8b7355', fontSize: '11px', flexShrink: 0 }}
+                      title="This fact was in the faceted set for this chronicle"
+                    >
+                      &#x2B21;
+                    </span>
+                  )}
+                </div>
+                {entry.evidence && (
+                  <div style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    fontStyle: 'italic',
+                    marginTop: '2px',
+                    marginLeft: '20px',
+                  }}>
+                    {entry.evidence}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {generatedAt && (
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '8px', textAlign: 'right' }}>
+              {report.model} &bull; ${report.actualCost.toFixed(4)} &bull; {new Date(generatedAt).toLocaleString()}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
 // Temporal Context Editor (local)
 // ============================================================================
 
@@ -571,7 +768,9 @@ function TemporalContextEditor({ item, eras, events, entities, onUpdateTemporalC
   const castMarkers = useMemo(() => {
     if (!item.roleAssignments || item.roleAssignments.length === 0) return [];
     const entryPointEntity = item.entrypointId ? entityMap.get(item.entrypointId) : null;
-    return prepareCastMarkers(item.roleAssignments, entityMap, entryPointEntity, null);
+    const markers = prepareCastMarkers(item.roleAssignments, entityMap, entryPointEntity, null);
+    // Filter out markers with missing createdAt (nav items don't carry it)
+    return markers.filter((m) => typeof m.createdAt === 'number' && !Number.isNaN(m.createdAt));
   }, [item.roleAssignments, item.entrypointId, entityMap]);
 
   const hasTimelineData = timelineEvents.length > 0 || castMarkers.length > 0;
@@ -670,7 +869,7 @@ function TemporalContextEditor({ item, eras, events, entities, onUpdateTemporalC
           </div>
 
           {/* Timeline visualization of selected events */}
-          {hasTimelineData && (
+          {hasTimelineData ? (
             <div style={{ marginTop: '16px' }}>
               <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '8px' }}>
                 SELECTED EVENTS TIMELINE ({timelineEvents.length} events)
@@ -685,6 +884,18 @@ function TemporalContextEditor({ item, eras, events, entities, onUpdateTemporalC
                 extent={timelineExtent}
                 castMarkers={castMarkers}
               />
+            </div>
+          ) : (
+            <div style={{
+              marginTop: '16px',
+              padding: '20px 16px',
+              background: 'var(--bg-secondary)',
+              borderRadius: '8px',
+              textAlign: 'center',
+              fontSize: '12px',
+              color: 'var(--text-muted)',
+            }}>
+              No events selected — timeline will appear after event curation
             </div>
           )}
 
@@ -823,6 +1034,13 @@ export default function ReferenceTab({
       )}
 
       <ExpandableSeedSection seed={seedData} defaultExpanded={false} />
+
+      {item.factCoverageReport && (
+        <>
+          <FactCoverageGrid report={item.factCoverageReport} />
+          <FactCoverageViewer report={item.factCoverageReport} generatedAt={item.factCoverageReportGeneratedAt} />
+        </>
+      )}
 
       <TemporalContextEditor
         item={item}

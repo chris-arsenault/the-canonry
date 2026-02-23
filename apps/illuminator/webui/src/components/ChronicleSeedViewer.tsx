@@ -14,6 +14,7 @@ export interface ChronicleSeedData {
   narrativeStyleName?: string;
   entrypointId?: string;
   entrypointName?: string;
+  narrativeDirection?: string;
   roleAssignments: ChronicleRoleAssignment[];
   selectedEventIds: string[];
   selectedRelationshipIds: string[];
@@ -134,6 +135,30 @@ export default function ChronicleSeedViewer({
             <span style={styles.fieldValue}>
               {seed.entrypointName || seed.entrypointId}
             </span>
+          </div>
+        )}
+        {seed.narrativeDirection && (
+          <div style={{ marginTop: '8px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+              Narrative Direction:
+            </div>
+            <div
+              style={{
+                fontSize: '12px',
+                lineHeight: 1.5,
+                color: 'var(--text-primary)',
+                padding: '8px 10px',
+                background: 'var(--bg-tertiary)',
+                borderRadius: '4px',
+                borderLeft: '3px solid var(--accent-color)',
+                whiteSpace: 'pre-wrap',
+                cursor: 'pointer',
+              }}
+              title="Click to copy"
+              onClick={() => navigator.clipboard.writeText(seed.narrativeDirection!)}
+            >
+              {seed.narrativeDirection}
+            </div>
           </div>
         )}
       </div>

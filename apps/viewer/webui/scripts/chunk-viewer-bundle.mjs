@@ -3,7 +3,6 @@ import { dirname, join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 
 const DEFAULT_INPUT = 'dist/bundles/default/bundle.json';
-const DEFAULT_TARGET_BYTES = 500_000;
 
 function parseArgs(argv) {
   const args = new Map();
@@ -20,13 +19,6 @@ function parseArgs(argv) {
     }
   }
   return args;
-}
-
-function normalizeTargetBytes(value) {
-  if (!value) return DEFAULT_TARGET_BYTES;
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_TARGET_BYTES;
-  return Math.floor(parsed);
 }
 
 function cloneBundle(bundle) {
@@ -117,47 +109,40 @@ async function applyImageOptimizations(coreBundle, outputDir) {
   return updated;
 }
 
-function chunkNarrativeHistory(items, targetBytes) {
-  const chunks = [];
-  let current = [];
-  let currentBytes = 2;
-  let minTick = null;
-  let maxTick = null;
+/**
+ * Group narrative events by participating entity.
+ * Each event appears in every entity's timeline via participantEffects[].entity.id.
+ * Returns a Map<entityId, NarrativeEvent[]> sorted by tick.
+ */
+function groupEventsByEntity(events) {
+  const byEntity = new Map();
 
-  const flush = () => {
-    if (!current.length) return;
-    chunks.push({ items: current, bytes: currentBytes, minTick, maxTick });
-    current = [];
-    currentBytes = 2;
-    minTick = null;
-    maxTick = null;
-  };
-
-  for (const item of items) {
-    const itemJson = JSON.stringify(item);
-    const itemBytes = Buffer.byteLength(itemJson, 'utf8');
-    const extraBytes = itemBytes + (current.length ? 1 : 0);
-    if (current.length && currentBytes + extraBytes > targetBytes) {
-      flush();
-    }
-    current.push(item);
-    currentBytes += extraBytes;
-    const tick = item?.tick;
-    if (Number.isFinite(tick)) {
-      minTick = minTick === null ? tick : Math.min(minTick, tick);
-      maxTick = maxTick === null ? tick : Math.max(maxTick, tick);
+  for (const event of events) {
+    if (!Array.isArray(event.participantEffects)) continue;
+    const seen = new Set();
+    for (const pe of event.participantEffects) {
+      const entityId = pe?.entity?.id;
+      if (!entityId || seen.has(entityId)) continue;
+      seen.add(entityId);
+      if (!byEntity.has(entityId)) {
+        byEntity.set(entityId, []);
+      }
+      byEntity.get(entityId).push(event);
     }
   }
 
-  flush();
-  return chunks;
+  // Sort each entity's events by tick
+  for (const events of byEntity.values()) {
+    events.sort((a, b) => (a.tick ?? 0) - (b.tick ?? 0));
+  }
+
+  return byEntity;
 }
 
 async function main() {
   const args = parseArgs(process.argv);
   const inputPath = resolve(process.cwd(), args.get('input') ?? DEFAULT_INPUT);
   const outputDir = resolve(process.cwd(), args.get('output') ?? dirname(inputPath));
-  const targetBytes = normalizeTargetBytes(args.get('target-bytes'));
 
   const raw = await readFile(inputPath, 'utf8');
   const bundle = JSON.parse(raw);
@@ -175,6 +160,48 @@ async function main() {
     }
   }
 
+  // Strip chronicle generation/editing metadata not needed for viewing
+  if (Array.isArray(coreBundle.chronicles)) {
+    const STRIP_CHRONICLE_FIELDS = [
+      'generationHistory',
+      'perspectiveSynthesis',
+      'generationUserPrompt',
+      'generationSystemPrompt',
+      'generationContext',
+      'temporalCheckReport',
+      'comparisonReport',
+    ];
+    for (const chronicle of coreBundle.chronicles) {
+      for (const field of STRIP_CHRONICLE_FIELDS) {
+        delete chronicle[field];
+      }
+    }
+  }
+
+  // Strip era narrative generation metadata not needed for viewing
+  // The export already projects to viewer-friendly format, but strip any
+  // remaining generation fields that may have leaked through
+  if (Array.isArray(coreBundle.eraNarratives)) {
+    const STRIP_NARRATIVE_FIELDS = [
+      'historianConfigJson',
+      'worldContext',
+      'error',
+      'prepBriefs',  // Full prep text — sourceChronicles has the IDs/titles already
+    ];
+    for (const narrative of coreBundle.eraNarratives) {
+      for (const field of STRIP_NARRATIVE_FIELDS) {
+        delete narrative[field];
+      }
+    }
+  }
+
+  // Strip image generation prompts (viewer only needs paths + metadata)
+  if (Array.isArray(coreBundle.imageData?.results)) {
+    for (const image of coreBundle.imageData.results) {
+      delete image.prompt;
+    }
+  }
+
   // Apply image optimizations if manifest exists
   const imagesOptimized = await applyImageOptimizations(coreBundle, outputDir);
 
@@ -184,48 +211,38 @@ async function main() {
   const coreFilename = `bundle.core.${coreHash}.json`;
   await writeFile(join(outputDir, coreFilename), coreJson, 'utf8');
 
-  // Process narrative history chunks with content hashes
-  const chunks = chunkNarrativeHistory(narrativeHistory, targetBytes);
-  const chunkDir = join(outputDir, 'chunks');
-  await mkdir(chunkDir, { recursive: true });
+  // Build per-entity timeline files for on-demand loading
+  const entityTimelines = groupEventsByEntity(narrativeHistory);
+  const timelineDir = join(outputDir, 'timelines');
+  await mkdir(timelineDir, { recursive: true });
 
-  const width = Math.max(3, String(Math.max(chunks.length - 1, 0)).length);
-  const files = [];
-  let totalChunkBytes = 0;
+  const timelineFiles = {};
+  let totalTimelineBytes = 0;
 
-  for (let index = 0; index < chunks.length; index += 1) {
-    const chunk = chunks[index];
-    const suffix = String(index).padStart(width, '0');
-    const payload = JSON.stringify(chunk.items);
-    const chunkHash = contentHash(payload);
-    const filename = `narrativeHistory-${suffix}.${chunkHash}.json`;
-    const relativePath = `chunks/${filename}`;
-    const chunkPath = join(chunkDir, filename);
-    await writeFile(chunkPath, payload, 'utf8');
-    totalChunkBytes += chunk.bytes;
-    files.push({
-      path: relativePath,
-      eventCount: chunk.items.length,
-      bytes: chunk.bytes,
-      minTick: chunk.minTick ?? undefined,
-      maxTick: chunk.maxTick ?? undefined,
-    });
+  for (const [entityId, events] of entityTimelines) {
+    const payload = JSON.stringify(events);
+    const hash = contentHash(payload);
+    const filename = `${entityId}.${hash}.json`;
+    await writeFile(join(timelineDir, filename), payload, 'utf8');
+    const bytes = Buffer.byteLength(payload, 'utf8');
+    totalTimelineBytes += bytes;
+    timelineFiles[entityId] = {
+      path: `timelines/${filename}`,
+      eventCount: events.length,
+    };
   }
 
   // Manifest uses no-store caching, contains hashed filenames for cache-busted assets
   const manifest = {
     format: 'viewer-bundle-manifest',
-    version: 4, // v4: content-hashed filenames for immutable caching
+    version: 6, // v6: per-entity timelines replace narrative chunks
     generatedAt: new Date().toISOString(),
     core: coreFilename,
     fallback: 'bundle.json',
-    chunks: {
-      narrativeHistory: {
-        targetBytes,
-        totalEvents: narrativeHistory.length,
-        totalBytes: totalChunkBytes,
-        files,
-      },
+    timelines: {
+      entityCount: entityTimelines.size,
+      totalEvents: narrativeHistory.length,
+      files: timelineFiles,
     },
     images: imagesOptimized > 0 ? {
       optimized: true,
@@ -242,8 +259,10 @@ async function main() {
   console.log(`Viewer bundle processed:`);
   console.log(`  - Original: ${(originalSize / 1024 / 1024).toFixed(2)} MB`);
   console.log(`  - Core: ${coreFilename} (${(coreSize / 1024).toFixed(0)} KB)`);
-  console.log(`  - Narrative chunks: ${files.length} files, ${(totalChunkBytes / 1024 / 1024).toFixed(2)} MB`);
+  console.log(`  - Entity timelines: ${entityTimelines.size} files, ${(totalTimelineBytes / 1024 / 1024).toFixed(2)} MB`);
   console.log(`  - Enrichment debug data stripped (kept aliases only)`);
+  console.log(`  - Chronicle generation metadata stripped`);
+  console.log(`  - Image generation prompts stripped`);
   if (imagesOptimized > 0) {
     console.log(`  - Images optimized: ${imagesOptimized} (WebP with thumbnails)`);
   }

@@ -1,6 +1,18 @@
+/**
+ * ChronicleNavItem — lightweight projection of ChronicleRecord for nav list rendering.
+ *
+ * Same two-layer pattern as entityNav.ts / entityStore.ts.
+ * See entityNav.ts for the full architectural documentation.
+ *
+ * Chronicles are lighter than entities (~3KB vs ~10KB per record), so the memory
+ * savings are less dramatic, but the pattern still matters for render performance:
+ * the nav list only re-renders when nav item fields change, not when the full
+ * record's heavy content (assembledContent, generationHistory, etc.) changes.
+ */
 import type { ChronicleRecord } from './chronicleRepository';
 import { isNoteActive } from '../historianTypes';
 import { deriveStatus } from '../../hooks/useChronicleGeneration';
+import { computeBackportProgress } from '../chronicleTypes';
 
 export interface ChronicleNavItem {
   id: string;
@@ -17,7 +29,8 @@ export interface ChronicleNavItem {
   perspectiveSynthesis: boolean;
   combineInstructions: boolean;
   coverImageComplete: boolean;
-  loreBackported: boolean;
+  backportDone: number;
+  backportTotal: number;
   historianNoteCount: number;
   lens?: { entityName: string };
   imageRefCompleteCount: number;
@@ -35,6 +48,10 @@ export interface ChronicleNavItem {
   hasTemporalNarrative: boolean;
   hasTemporalCheck: boolean;
   hasHistorianPrep: boolean;
+  hasSummary: boolean;
+  toneRanking?: [string, string, string];
+  assignedTone?: string;
+  eraNarrativeWeight?: 'structural' | 'contextual' | 'flavor';
 }
 
 export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
@@ -51,6 +68,8 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
       : '') ||
     'Untitled Chronicle';
 
+  const backportProgress = computeBackportProgress(record);
+
   return {
     id: record.chronicleId,
     chronicleId: record.chronicleId,
@@ -66,7 +85,8 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
     perspectiveSynthesis: !!record.perspectiveSynthesis,
     combineInstructions: !!record.combineInstructions,
     coverImageComplete: record.coverImage?.status === 'complete',
-    loreBackported: !!record.loreBackported,
+    backportDone: backportProgress.done,
+    backportTotal: backportProgress.total,
     historianNoteCount,
     lens: record.lens ? { entityName: record.lens.entityName } : undefined,
     imageRefCompleteCount:
@@ -90,5 +110,9 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
     hasTemporalNarrative: !!record.perspectiveSynthesis?.temporalNarrative,
     hasTemporalCheck: !!record.temporalCheckReport,
     hasHistorianPrep: !!record.historianPrep,
+    hasSummary: !!record.summary,
+    toneRanking: record.toneRanking?.ranking,
+    assignedTone: record.assignedTone,
+    eraNarrativeWeight: record.narrativeStyle?.eraNarrativeWeight,
   };
 }

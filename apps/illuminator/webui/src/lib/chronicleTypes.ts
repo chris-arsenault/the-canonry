@@ -7,7 +7,7 @@
 
 import type { NarrativeStyle } from '@canonry/world-schema';
 import type { ChronicleStep } from './enrichmentTypes';
-import type { HistorianNote } from './historianTypes';
+import type { HistorianNote, HistorianTone } from './historianTypes';
 
 // =============================================================================
 // Chronicle Plan - Output of Step 1
@@ -764,6 +764,110 @@ export interface ChronicleTemporalContext {
 }
 
 // =============================================================================
+// Quick Check - Unanchored entity reference detection
+// =============================================================================
+
+export interface QuickCheckSuspect {
+  /** The suspicious phrase found in the text */
+  phrase: string;
+  /** Brief surrounding context (sentence or clause) */
+  context: string;
+  /** LLM's reasoning for why this is suspicious */
+  reasoning: string;
+  /** Confidence: high = almost certainly unanchored, medium = ambiguous, low = might be fine */
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface QuickCheckReport {
+  /** List of suspicious references */
+  suspects: QuickCheckSuspect[];
+  /** Overall assessment: clean, minor, or flagged */
+  assessment: 'clean' | 'minor' | 'flagged';
+  /** Brief summary sentence */
+  summary: string;
+}
+
+// ============================================================================
+// Fact Coverage Analysis
+// ============================================================================
+
+export type FactCoverageRating = 'missing' | 'mentioned' | 'prevalent' | 'integral';
+
+export interface FactCoverageEntry {
+  factId: string;
+  factText: string;
+  rating: FactCoverageRating;
+  /** Brief evidence/reasoning from the LLM */
+  evidence: string;
+  /** Whether this fact was in the chronicle's faceted facts (post-perspective synthesis) */
+  wasFaceted: boolean;
+}
+
+export interface FactCoverageReport {
+  entries: FactCoverageEntry[];
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  actualCost: number;
+}
+
+/** An entity mentioned in chronicle text but not in the declared primary/secondary cast */
+export interface TertiaryCastEntry {
+  entityId: string;
+  name: string;
+  kind: string;
+  /** The exact text that was matched in the chronicle content */
+  matchedAs: string;
+  /** Start index of the match in the chronicle content */
+  matchStart?: number;
+  /** End index of the match in the chronicle content */
+  matchEnd?: number;
+  /** User has accepted this entity as tertiary cast (default true on detection) */
+  accepted: boolean;
+}
+
+// =============================================================================
+// Entity Backport Tracking
+// =============================================================================
+
+export interface EntityBackportEntry {
+  entityId: string;
+  status: 'backported' | 'not_needed';
+  updatedAt: number;
+}
+
+/**
+ * Compute backport progress for a chronicle.
+ * Total = roleAssignments + lens + accepted tertiary.
+ * Done = entities present in entityBackportStatus.
+ */
+export function computeBackportProgress(record: {
+  roleAssignments?: ChronicleRoleAssignment[];
+  lens?: NarrativeLens;
+  tertiaryCast?: TertiaryCastEntry[];
+  entityBackportStatus?: Record<string, EntityBackportEntry>;
+}): { done: number; total: number } {
+  const eligibleIds = new Set<string>();
+  for (const r of record.roleAssignments || []) {
+    eligibleIds.add(r.entityId);
+  }
+  if (record.lens) {
+    eligibleIds.add(record.lens.entityId);
+  }
+  for (const t of record.tertiaryCast || []) {
+    if (t.accepted) {
+      eligibleIds.add(t.entityId);
+    }
+  }
+  const statusMap = record.entityBackportStatus || {};
+  let done = 0;
+  for (const id of eligibleIds) {
+    if (statusMap[id]) done++;
+  }
+  return { done, total: eligibleIds.size };
+}
+
+// =============================================================================
 // Chronicle Record - Persisted chronicle data
 // =============================================================================
 
@@ -889,6 +993,18 @@ export interface ChronicleRecord {
   temporalCheckReport?: string;
   temporalCheckReportGeneratedAt?: number;
 
+  // Quick check report (user-triggered, detects unanchored entity references)
+  quickCheckReport?: QuickCheckReport;
+  quickCheckReportGeneratedAt?: number;
+
+  // Fact coverage analysis (canon fact presence ratings from Haiku)
+  factCoverageReport?: FactCoverageReport;
+  factCoverageReportGeneratedAt?: number;
+
+  // Tertiary cast — entities detected in text but not in declared cast (persisted on manual detect)
+  tertiaryCast?: TertiaryCastEntry[];
+  tertiaryCastDetectedAt?: number;
+
   // Refinements
   summary?: string;
   summaryGeneratedAt?: number;
@@ -926,11 +1042,27 @@ export interface ChronicleRecord {
    */
   narrativeDirection?: string;
 
-  /** Whether lore from this chronicle has been backported to cast entity descriptions */
-  loreBackported?: boolean;
+  /** Per-entity backport status tracking. Key = entityId. */
+  entityBackportStatus?: Record<string, EntityBackportEntry>;
 
   /** Historian annotations — scholarly margin notes anchored to chronicle text */
   historianNotes?: HistorianNote[];
+  /** Canon fact IDs that annotation guidance directed the historian to reinforce */
+  reinforcedFacts?: string[];
+  /** LLM prompts used to generate historian annotations (for review/export) */
+  historianReviewSystemPrompt?: string;
+  historianReviewUserPrompt?: string;
+
+  /** LLM-ranked tone preferences for historian annotations (Phase 1 result) */
+  toneRanking?: {
+    ranking: [HistorianTone, HistorianTone, HistorianTone];
+    rationale: string;
+    rationales?: Record<string, string>;
+    generatedAt: number;
+    actualCost?: number;
+  };
+  /** Algorithm/user-assigned tone for historian review (Phase 2 result) */
+  assignedTone?: HistorianTone;
 
   /** Historian's private reading notes — prep brief for era narrative input */
   historianPrep?: string;

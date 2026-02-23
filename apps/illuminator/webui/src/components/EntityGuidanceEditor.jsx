@@ -12,21 +12,22 @@
  * - Visual Thesis/Traits configuration (collapsible)
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { LocalTextArea } from '@penguin-tales/shared-components';
+import { useEntityNavList, useEntityNavItems } from '../lib/db/entitySelectors';
+import { useEntityStore } from '../lib/db/entityStore';
+import { useRelationshipsByEntity } from '../lib/db/relationshipSelectors';
 import {
   buildDescriptionPromptFromGuidance,
   buildImagePromptFromGuidance,
   createDefaultEntityGuidance,
   createDefaultCultureIdentities,
 } from '../lib/promptBuilders';
-import { buildEntityIndex, buildRelationshipIndex } from '../lib/worldData';
 import {
-  buildProminenceScale,
-  DEFAULT_PROMINENCE_DISTRIBUTION,
   prominenceLabelFromScale,
   prominenceThresholdFromScale,
 } from '@canonry/world-schema';
+import { useProminenceScale } from '../lib/db/indexSelectors';
 
 const TASK_TYPES = [
   { id: 'description', label: 'Description', icon: '📝' },
@@ -83,14 +84,14 @@ function calculateEntityAge(entity, simulationMetadata) {
   return 'new';
 }
 
-function resolveRelationships(entity, entityById, relationshipsByEntity) {
+function resolveRelationships(entity, entityNavMap, relationshipsByEntity) {
   const relationships = [];
   const links = relationshipsByEntity.get(entity?.id) || [];
   if (links.length === 0) return relationships;
 
   for (const link of links) {
     const targetId = link.src === entity.id ? link.dst : link.src;
-    const target = entityById.get(targetId);
+    const target = entityNavMap.get(targetId);
     if (target) {
       relationships.push({
         kind: link.kind,
@@ -115,13 +116,13 @@ function findCulturalPeers(entity, prominentByCulture) {
     .map((peer) => peer.name);
 }
 
-function findFactionMembers(entity, entityById, relationshipsByEntity, renownedThreshold) {
+function findFactionMembers(entity, entityNavMap, relationshipsByEntity, renownedThreshold) {
   if (entity?.kind !== 'faction') return [];
   const members = [];
   const links = relationshipsByEntity.get(entity.id) || [];
   for (const link of links) {
     if (link.kind !== 'member_of' || link.dst !== entity.id) continue;
-    const member = entityById.get(link.src);
+    const member = entityNavMap.get(link.src);
     if (member && member.prominence >= renownedThreshold) {
       members.push(member.name);
     }
@@ -132,14 +133,14 @@ function findFactionMembers(entity, entityById, relationshipsByEntity, renownedT
 function buildEntityContext(
   entity,
   prominentByCulture,
-  entityById,
+  entityNavMap,
   relationshipsByEntity,
   simulationMetadata,
   renownedThreshold
 ) {
-  const relationships = resolveRelationships(entity, entityById, relationshipsByEntity);
+  const relationships = resolveRelationships(entity, entityNavMap, relationshipsByEntity);
   const culturalPeers = findCulturalPeers(entity, prominentByCulture);
-  const factionMembers = findFactionMembers(entity, entityById, relationshipsByEntity, renownedThreshold);
+  const factionMembers = findFactionMembers(entity, entityNavMap, relationshipsByEntity, renownedThreshold);
 
   return {
     entity: {
@@ -254,16 +255,16 @@ export default function EntityGuidanceEditor({
   entityGuidance: externalEntityGuidance,
   onEntityGuidanceChange,
   worldContext,
-  entities = [],
-  relationships = [],
   worldSchema,
   simulationMetadata,
-  prominenceScale,
 }) {
+  const entities = useEntityNavList();
+  const entityNavItems = useEntityNavItems();
   const [selectedType, setSelectedType] = useState('description');
   const [selectedKind, setSelectedKind] = useState('npc');
   const [selectedEntityId, setSelectedEntityId] = useState('');
   const [showVisualSteps, setShowVisualSteps] = useState(false);
+  const [selectedFullEntity, setSelectedFullEntity] = useState(null);
 
   // Use external entity guidance or default
   const entityGuidance = useMemo(
@@ -286,26 +287,16 @@ export default function EntityGuidanceEditor({
     }
   }, [selectedKind, entityKinds]);
 
-  const effectiveProminenceScale = useMemo(() => {
-    if (prominenceScale) return prominenceScale;
-    const values = entities
-      .map((entity) => entity.prominence)
-      .filter((value) => typeof value === 'number' && Number.isFinite(value));
-    return buildProminenceScale(values, { distribution: DEFAULT_PROMINENCE_DISTRIBUTION });
-  }, [prominenceScale, entities]);
+  const prominenceScale = useProminenceScale();
   const notableThreshold = useMemo(
-    () => prominenceThresholdFromScale('recognized', effectiveProminenceScale),
-    [effectiveProminenceScale]
+    () => prominenceThresholdFromScale('recognized', prominenceScale),
+    [prominenceScale]
   );
   const renownedThreshold = useMemo(
-    () => prominenceThresholdFromScale('renowned', effectiveProminenceScale),
-    [effectiveProminenceScale]
+    () => prominenceThresholdFromScale('renowned', prominenceScale),
+    [prominenceScale]
   );
-  const entityById = useMemo(() => buildEntityIndex(entities), [entities]);
-  const relationshipsByEntity = useMemo(
-    () => buildRelationshipIndex(relationships),
-    [relationships]
-  );
+  const relationshipsByEntity = useRelationshipsByEntity();
   const prominentByCulture = useMemo(() => {
     const map = new Map();
     for (const entity of entities) {
@@ -330,15 +321,28 @@ export default function EntityGuidanceEditor({
       .slice(0, 10);
   }, [entities, selectedKind]);
 
-  const selectedEntity = useMemo(() => {
+  const selectedNavEntity = useMemo(() => {
     if (!selectedEntityId) return exampleEntities[0] || null;
     return entities.find((e) => e.id === selectedEntityId) || null;
   }, [selectedEntityId, entities, exampleEntities]);
 
+  // Load full entity for preview (needs description, tags, visualThesis, etc.)
+  useEffect(() => {
+    const entityId = selectedNavEntity?.id;
+    if (entityId) {
+      useEntityStore.getState().loadEntity(entityId).then(setSelectedFullEntity);
+    } else {
+      setSelectedFullEntity(null);
+    }
+  }, [selectedNavEntity?.id]);
+
+  // Use full entity for context building, fall back to nav entity for display
+  const selectedEntity = selectedFullEntity || selectedNavEntity;
+
   const selectedRelationships = useMemo(() => {
     if (!selectedEntity) return [];
-    return resolveRelationships(selectedEntity, entityById, relationshipsByEntity);
-  }, [selectedEntity, entityById, relationshipsByEntity]);
+    return resolveRelationships(selectedEntity, entityNavItems, relationshipsByEntity);
+  }, [selectedEntity, entityNavItems, relationshipsByEntity]);
 
   // Get current guidance for selected kind
   const currentGuidance = useMemo(() => {
@@ -358,7 +362,7 @@ export default function EntityGuidanceEditor({
     const entityContext = buildEntityContext(
       selectedEntity,
       prominentByCulture,
-      entityById,
+      entityNavItems,
       relationshipsByEntity,
       simulationMetadata,
       renownedThreshold
@@ -388,7 +392,7 @@ export default function EntityGuidanceEditor({
     selectedEntity,
     worldContext,
     prominentByCulture,
-    entityById,
+    entityNavItems,
     relationshipsByEntity,
     simulationMetadata,
     renownedThreshold,
@@ -566,7 +570,7 @@ export default function EntityGuidanceEditor({
             <div className="illuminator-preview-entity-info">
               <span className="illuminator-preview-entity-badge">{selectedEntity.kind}/{selectedEntity.subtype}</span>
               <span className="illuminator-preview-entity-badge">
-                {prominenceLabelFromScale(selectedEntity.prominence, effectiveProminenceScale)}
+                {prominenceLabelFromScale(selectedEntity.prominence, prominenceScale)}
               </span>
               <span className="illuminator-preview-entity-badge">{selectedEntity.culture || 'no culture'}</span>
               <span className="illuminator-preview-entity-badge">{calculateEntityAge(selectedEntity, simulationMetadata)}</span>

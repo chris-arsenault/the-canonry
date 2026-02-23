@@ -25,7 +25,8 @@ import type { SummaryRevisionRun } from '../summaryRevisionTypes';
 import type { DynamicsRun } from '../dynamicsGenerationTypes';
 import type { StaticPage, StaticPageStatus } from '../staticPageTypes';
 import type { StyleLibrary } from '@canonry/world-schema';
-import type { ContentTreeState } from '../preprint/prePrintTypes';
+import type { ContentTreeState, PageLayoutOverride } from '../preprint/prePrintTypes';
+import type { RunIndexRecord } from './indexTypes';
 
 // ---------------------------------------------------------------------------
 // Types — entities + events (v1)
@@ -111,6 +112,7 @@ export type {
   StyleLibrary,
   StyleLibraryRecord,
   ContentTreeState,
+  PageLayoutOverride,
   PersistedRelationship,
   SimulationSlotRecord,
   WorldSchemaRecord,
@@ -141,6 +143,8 @@ class IlluminatorDatabase extends Dexie {
   styleLibrary!: Table<StyleLibraryRecord, string>;
   contentTrees!: Table<ContentTreeState, [string, string]>;
   eraNarratives!: Table<EraNarrativeRecord, string>;
+  runIndexes!: Table<RunIndexRecord, string>;
+  pageLayouts!: Table<PageLayoutOverride, [string, string]>;
 
   constructor() {
     super('illuminator');
@@ -340,6 +344,61 @@ class IlluminatorDatabase extends Dexie {
 
       // New: era narratives
       eraNarratives: 'narrativeId, projectId, simulationRunId, eraId, status, createdAt',
+    });
+
+    // v9 — precomputed run-scoped indexes
+    this.version(9).stores({
+      // All existing tables (must redeclare)
+      entities: 'id, simulationRunId, kind, [simulationRunId+kind]',
+      narrativeEvents: 'id, simulationRunId',
+      chronicles: 'chronicleId, simulationRunId, projectId',
+      images: 'imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt',
+      costs: 'id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp',
+      traitPalettes: 'id, projectId, entityKind',
+      usedTraits: 'id, projectId, simulationRunId, entityKind, entityId',
+      historianRuns: 'runId, projectId, status, createdAt',
+      summaryRevisionRuns: 'runId, projectId, status, createdAt',
+      dynamicsRuns: 'runId, projectId, status, createdAt',
+      staticPages: 'pageId, projectId, slug, status, updatedAt',
+      styleLibrary: 'id',
+      imageBlobs: 'imageId',
+      contentTrees: '[projectId+simulationRunId]',
+      relationships: '[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind',
+      simulationSlots: '[projectId+slotIndex], projectId, slotIndex, simulationRunId',
+      worldSchemas: 'projectId',
+      coordinateStates: 'simulationRunId',
+      eraNarratives: 'narrativeId, projectId, simulationRunId, eraId, status, createdAt',
+
+      // New: precomputed run-scoped indexes
+      runIndexes: 'simulationRunId',
+    });
+
+    // v10 — per-page layout overrides
+    this.version(10).stores({
+      // All existing tables (must redeclare)
+      entities: 'id, simulationRunId, kind, [simulationRunId+kind]',
+      narrativeEvents: 'id, simulationRunId',
+      chronicles: 'chronicleId, simulationRunId, projectId',
+      images: 'imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt',
+      costs: 'id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp',
+      traitPalettes: 'id, projectId, entityKind',
+      usedTraits: 'id, projectId, simulationRunId, entityKind, entityId',
+      historianRuns: 'runId, projectId, status, createdAt',
+      summaryRevisionRuns: 'runId, projectId, status, createdAt',
+      dynamicsRuns: 'runId, projectId, status, createdAt',
+      staticPages: 'pageId, projectId, slug, status, updatedAt',
+      styleLibrary: 'id',
+      imageBlobs: 'imageId',
+      contentTrees: '[projectId+simulationRunId]',
+      relationships: '[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind',
+      simulationSlots: '[projectId+slotIndex], projectId, slotIndex, simulationRunId',
+      worldSchemas: 'projectId',
+      coordinateStates: 'simulationRunId',
+      eraNarratives: 'narrativeId, projectId, simulationRunId, eraId, status, createdAt',
+      runIndexes: 'simulationRunId',
+
+      // New: per-page layout overrides for pre-print
+      pageLayouts: '[simulationRunId+pageId], simulationRunId',
     });
   }
 }

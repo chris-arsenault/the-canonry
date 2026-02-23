@@ -17,7 +17,10 @@ export type HistorianTone =
   | 'weary'          // Resigned satire, black humor, aloof compassion
   | 'forensic'       // Cold, clinical, methodical — the historian as detective
   | 'elegiac'        // Mournful, lyrical, focused on loss and what's been forgotten
-  | 'cantankerous';  // Irritable, contrarian, perpetually annoyed by sloppy scholarship
+  | 'cantankerous'   // Irritable, contrarian, perpetually annoyed by sloppy scholarship
+  | 'rueful'         // Self-aware regret with a crooked smile, warmth in hindsight
+  | 'conspiratorial' // Whispering asides, sharing secrets with the reader
+  | 'bemused';       // Quietly puzzled and entertained by human absurdity
 
 // =============================================================================
 // Note Types
@@ -111,6 +114,25 @@ export function isHistorianConfigured(config: HistorianConfig): boolean {
 
 export type HistorianTargetType = 'entity' | 'chronicle' | 'chronology';
 
+export function computeNoteRange(
+  targetType: HistorianTargetType,
+  wordCount: number,
+): { min: number; max: number } {
+  if (targetType === 'entity') {
+    if (wordCount < 150) return { min: 1, max: 1 };
+    if (wordCount < 300) return { min: 1, max: 3 };
+    if (wordCount < 600) return { min: 2, max: 4 };
+    if (wordCount < 1200) return { min: 3, max: 6 };
+    return { min: 4, max: 8 };
+  }
+  // chronicle — calibrated for ~75w/note targeting ~25% annotation ratio
+  if (wordCount < 300) return { min: 1, max: 2 };
+  if (wordCount < 800) return { min: 2, max: 3 };
+  if (wordCount < 1500) return { min: 3, max: 5 };
+  if (wordCount < 3000) return { min: 5, max: 8 };
+  return { min: 8, max: 13 };
+}
+
 export type HistorianRunStatus =
   | 'pending'
   | 'generating'
@@ -152,6 +174,11 @@ export interface HistorianRun {
   /** Serialized historian config (persona definition) */
   historianConfigJson: string;
 
+  /** Final assembled system prompt sent to LLM (populated by worker) */
+  systemPrompt?: string;
+  /** Final assembled user prompt sent to LLM (populated by worker) */
+  userPrompt?: string;
+
   // Cost tracking
   inputTokens: number;
   outputTokens: number;
@@ -170,6 +197,7 @@ export interface HistorianLLMResponse {
     anchorPhrase: string;
     text: string;
     type: HistorianNoteType;
+    weight: 'major' | 'minor';
   }>;
 }
 

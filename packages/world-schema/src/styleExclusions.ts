@@ -70,6 +70,16 @@ export const DEFAULT_RANDOM_EXCLUSIONS: RandomExclusionRule[] = [
     compositions: ['logo-mark', 'badge-crest', 'scientific-drawing', 'schematic', 'display-case', 'field-study'],
     allow: [],
   },
+  {
+    reason: 'Cosmic chrome needs spatial depth and grandeur, clashes with flat/technical compositions',
+    styles: ['cosmic-chrome'],
+    compositions: [
+      'logo-mark', 'badge-crest', 'scientific-drawing', 'schematic',
+      'artifact-diagram', 'display-case', 'map-view',
+      'chronicle-document', 'chronicle-vignette',
+    ],
+    allow: [],
+  },
 ];
 
 // =============================================================================

@@ -3,6 +3,10 @@
  *
  * assembly_ready and complete statuses delegate to ChronicleWorkspace (tabbed UI).
  * validation_ready keeps its own inline layout since it's a different workflow.
+ *
+ * PROP CHAIN: ChroniclePanel → ChronicleReviewPanel (this file) → ChronicleWorkspace
+ * This file is the middle layer — it must destructure AND forward every prop that
+ * ChronicleWorkspace needs. When adding props, update all three files.
  */
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
@@ -181,6 +185,7 @@ export default function ChronicleReviewPanel({
   onCombineVersions,
   onCopyEdit,
   onTemporalCheck,
+  onQuickCheck,
   onCorrectSuggestions,
   onGenerateSummary,
   onGenerateTitle,
@@ -229,14 +234,19 @@ export default function ChronicleReviewPanel({
 
   // Historian review
   onHistorianReview,
+  onSetAssignedTone,
+  onDetectTone,
   isHistorianActive,
   onUpdateHistorianNote,
+  onGeneratePrep,
 
   // State
   isGenerating,
   refinements,
 
   // Data for refinements
+  simulationRunId,
+  worldSchema,
   entities,
   styleLibrary,
   cultures,
@@ -245,6 +255,7 @@ export default function ChronicleReviewPanel({
   worldContext,
   eras,
   events,
+  onNavigateToTab,
 }) {
   if (!item) return null;
 
@@ -267,6 +278,7 @@ export default function ChronicleReviewPanel({
         onCombineVersions={onCombineVersions}
         onCopyEdit={onCopyEdit}
         onTemporalCheck={onTemporalCheck}
+        onQuickCheck={onQuickCheck}
         onValidate={onValidate}
         onGenerateSummary={onGenerateSummary}
         onGenerateTitle={onGenerateTitle}
@@ -298,10 +310,15 @@ export default function ChronicleReviewPanel({
         onExport={onExport}
         onBackportLore={onBackportLore}
         onHistorianReview={onHistorianReview}
+        onSetAssignedTone={onSetAssignedTone}
+        onDetectTone={onDetectTone}
         isHistorianActive={isHistorianActive}
         onUpdateHistorianNote={onUpdateHistorianNote}
+        onGeneratePrep={onGeneratePrep}
         isGenerating={isGenerating}
         refinements={refinements}
+        simulationRunId={simulationRunId}
+        worldSchema={worldSchema}
         entities={entities}
         styleLibrary={styleLibrary}
         cultures={cultures}
@@ -309,6 +326,7 @@ export default function ChronicleReviewPanel({
         worldContext={worldContext}
         eras={eras}
         events={events}
+        onNavigateToTab={onNavigateToTab}
       />
     );
   }

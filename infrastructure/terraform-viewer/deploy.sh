@@ -50,17 +50,20 @@ sanity_check_dist() {
   fi
 }
 
-# Build remotes first, then the shell
-build_app "apps/archivist/webui"
-build_app "apps/chronicler/webui"
+# Build viewer (chronicler source is imported directly, no separate MFE build needed)
 build_app "apps/viewer/webui"
+
+# Ensure remote state bucket exists
+source "$REPO_ROOT/scripts/ensure-state-bucket.sh"
 
 # Deploy with Terraform
 # Terraform will:
 # 1. Upload all files to S3 with proper cache-control headers
 # 2. Automatically trigger CloudFront invalidation via action_trigger
 cd "$SCRIPT_DIR"
-terraform init
+terraform init \
+  -backend-config="bucket=${STATE_BUCKET}" \
+  -backend-config="region=${STATE_REGION}"
 terraform apply
 
 # Optimize S3 image variants (raw -> webp/thumb) based on manifest

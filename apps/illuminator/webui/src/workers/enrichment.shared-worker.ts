@@ -110,6 +110,13 @@ async function executeTask(task: WorkerTask, port: MessagePort): Promise<void> {
 
   safePostMessage(port, { type: 'started', taskId: task.id });
 
+  const onThinkingDelta = (delta: string) => {
+    safePostMessage(port, { type: 'thinking_delta', taskId: task.id, delta });
+  };
+  const onTextDelta = (delta: string) => {
+    safePostMessage(port, { type: 'text_delta', taskId: task.id, delta });
+  };
+
   try {
     let result;
 
@@ -118,6 +125,8 @@ async function executeTask(task: WorkerTask, port: MessagePort): Promise<void> {
       llmClient: llmClient!,
       imageClient: imageClient!,
       isAborted: checkAborted,
+      onThinkingDelta,
+      onTextDelta,
     });
 
     if (!result.success) {

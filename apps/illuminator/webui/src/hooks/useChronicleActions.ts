@@ -9,6 +9,7 @@
 import { useCallback } from 'react';
 import type { ChronicleGenerationContext, ChronicleSampling } from '../lib/chronicleTypes';
 import type { EnrichmentType, ChronicleStep } from '../lib/enrichmentTypes';
+import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
 import { useChronicleStore } from '../lib/db/chronicleStore';
 import type { ChronicleRecord } from '../lib/db/chronicleRepository';
 
@@ -38,27 +39,7 @@ export interface ChronicleMetadata {
   temporalContext?: unknown;
 }
 
-interface EnqueueItem {
-  entity: {
-    id: string;
-    name: string;
-    kind: string;
-    subtype: string;
-    prominence: string;
-    culture: string;
-    status: string;
-    description: string;
-    tags: Record<string, unknown>;
-  };
-  type: EnrichmentType;
-  prompt: string;
-  chronicleContext?: ChronicleGenerationContext;
-  chronicleStep?: ChronicleStep;
-  chronicleId?: string;
-  chronicleMetadata?: ChronicleMetadata;
-}
-
-type OnEnqueue = (items: EnqueueItem[]) => void;
+// OnEnqueue type removed — hooks now use getEnqueue() from enrichmentQueueBridge
 
 // ============================================================================
 // Helpers
@@ -132,7 +113,7 @@ function buildEntityRefFromRecord(chronicleId: string, chronicle: ChronicleRecor
 // Hook
 // ============================================================================
 
-export function useChronicleActions(onEnqueue: OnEnqueue) {
+export function useChronicleActions() {
   const getChronicle = useCallback(
     (chronicleId: string): ChronicleRecord | undefined =>
       useChronicleStore.getState().cache.get(chronicleId),
@@ -157,7 +138,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
       const chronicle = getChronicle(chronicleId);
       const entity = buildEntityRefFromContext(chronicleId, context, chronicle);
 
-      onEnqueue([
+      getEnqueue()([
         {
           entity,
           type: 'entityChronicle' as EnrichmentType,
@@ -169,7 +150,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         },
       ]);
     },
-    [onEnqueue, getChronicle],
+    [getChronicle],
   );
 
   const generateSummary = useCallback(
@@ -192,7 +173,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         return;
       }
 
-      onEnqueue([
+      getEnqueue()([
         {
           entity: buildEntityRefFromContext(chronicleId, context, chronicle),
           type: 'entityChronicle' as EnrichmentType,
@@ -203,7 +184,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         },
       ]);
     },
-    [onEnqueue, getChronicle],
+    [getChronicle],
   );
 
   const generateTitle = useCallback(
@@ -219,7 +200,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         return;
       }
 
-      onEnqueue([
+      getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
           type: 'entityChronicle' as EnrichmentType,
@@ -229,7 +210,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         },
       ]);
     },
-    [onEnqueue, getChronicle],
+    [getChronicle],
   );
 
   const generateImageRefs = useCallback(
@@ -252,7 +233,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         return;
       }
 
-      onEnqueue([
+      getEnqueue()([
         {
           entity: buildEntityRefFromContext(chronicleId, context, chronicle),
           type: 'entityChronicle' as EnrichmentType,
@@ -263,7 +244,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         },
       ]);
     },
-    [onEnqueue, getChronicle],
+    [getChronicle],
   );
 
   const regenerateWithSampling = useCallback(
@@ -282,7 +263,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         return;
       }
 
-      onEnqueue([
+      getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
           type: 'entityChronicle' as EnrichmentType,
@@ -292,7 +273,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         },
       ]);
     },
-    [onEnqueue, getChronicle],
+    [getChronicle],
   );
 
   const compareVersions = useCallback(
@@ -312,7 +293,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         return;
       }
 
-      onEnqueue([
+      getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
           type: 'entityChronicle' as EnrichmentType,
@@ -322,7 +303,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         },
       ]);
     },
-    [onEnqueue, getChronicle],
+    [getChronicle],
   );
 
   const combineVersions = useCallback(
@@ -342,7 +323,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         return;
       }
 
-      onEnqueue([
+      getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
           type: 'entityChronicle' as EnrichmentType,
@@ -352,7 +333,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         },
       ]);
     },
-    [onEnqueue, getChronicle],
+    [getChronicle],
   );
 
   const copyEdit = useCallback(
@@ -367,7 +348,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         return;
       }
 
-      onEnqueue([
+      getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
           type: 'entityChronicle' as EnrichmentType,
@@ -377,7 +358,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         },
       ]);
     },
-    [onEnqueue, getChronicle],
+    [getChronicle],
   );
 
   const temporalCheck = useCallback(
@@ -396,7 +377,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         return;
       }
 
-      onEnqueue([
+      getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
           type: 'entityChronicle' as EnrichmentType,
@@ -406,7 +387,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         },
       ]);
     },
-    [onEnqueue, getChronicle],
+    [getChronicle],
   );
 
   /**
@@ -434,7 +415,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         return;
       }
 
-      onEnqueue([
+      getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
           type: 'entityChronicle' as EnrichmentType,
@@ -445,7 +426,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         },
       ]);
     },
-    [onEnqueue, getChronicle],
+    [getChronicle],
   );
 
   /**
@@ -473,7 +454,7 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         return;
       }
 
-      onEnqueue([
+      getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
           type: 'entityChronicle' as EnrichmentType,
@@ -484,7 +465,32 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
         },
       ]);
     },
-    [onEnqueue, getChronicle],
+    [getChronicle],
+  );
+
+  const quickCheck = useCallback(
+    (chronicleId: string) => {
+      const chronicle = getChronicle(chronicleId);
+      if (!chronicle) {
+        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        return;
+      }
+      if (!chronicle.assembledContent && !chronicle.finalContent) {
+        console.error('[Chronicle] No content available for quick check');
+        return;
+      }
+
+      getEnqueue()([
+        {
+          entity: buildEntityRefFromRecord(chronicleId, chronicle),
+          type: 'entityChronicle' as EnrichmentType,
+          prompt: '',
+          chronicleStep: 'quick_check',
+          chronicleId,
+        },
+      ]);
+    },
+    [getChronicle],
   );
 
   return {
@@ -499,5 +505,6 @@ export function useChronicleActions(onEnqueue: OnEnqueue) {
     combineVersions,
     copyEdit,
     temporalCheck,
+    quickCheck,
   };
 }

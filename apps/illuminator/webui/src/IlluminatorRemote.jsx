@@ -29,24 +29,43 @@ import TraitPaletteSection from './components/TraitPaletteSection';
 import StyleLibraryEditor from './components/StyleLibraryEditor';
 import StaticPagesPanel from './components/StaticPagesPanel';
 import CoveragePanel from './components/CoveragePanel';
+import FinalEditTab from './components/FinalEditTab';
+import EntityCoveragePanel from './components/EntityCoveragePanel';
 import DynamicsGenerationModal from './components/DynamicsGenerationModal';
 import SummaryRevisionModal from './components/SummaryRevisionModal';
 import EntityRenameModal from './components/EntityRenameModal';
+import CreateEntityModal from './components/CreateEntityModal';
 import RevisionFilterModal from './components/RevisionFilterModal';
 import BackportConfigModal from './components/BackportConfigModal';
+import BulkBackportModal from './components/BulkBackportModal';
+import BulkHistorianModal from './components/BulkHistorianModal';
+import { getCallConfig as getLLMCallConfig } from './lib/llmModelSettings';
+import { useBulkHistorian } from './hooks/useBulkHistorian';
 import { useEnrichmentQueue } from './hooks/useEnrichmentQueue';
 import { useChronicleQueueWatcher } from './hooks/useChronicleQueueWatcher';
 import { useDynamicsGeneration } from './hooks/useDynamicsGeneration';
 import { useSummaryRevision } from './hooks/useSummaryRevision';
 import { useChronicleLoreBackport } from './hooks/useChronicleLoreBackport';
+import { useBulkBackport } from './hooks/useBulkBackport';
 import { useHistorianEdition } from './hooks/useHistorianEdition';
 import { useHistorianReview } from './hooks/useHistorianReview';
 import HistorianReviewModal from './components/HistorianReviewModal';
 import HistorianConfigEditor from './components/HistorianConfigEditor';
+import { ThinkingViewer } from './components/ThinkingViewer';
+import { FloatingPills } from './components/FloatingPills';
+import BulkToneRankingModal from './components/BulkToneRankingModal';
+import ToneAssignmentPreviewModal from './components/ToneAssignmentPreviewModal';
+import BulkChronicleAnnotationModal from './components/BulkChronicleAnnotationModal';
+import InterleavedAnnotationModal from './components/InterleavedAnnotationModal';
+import { useToneRankingStore } from './lib/db/toneRankingStore';
+import { useBulkChronicleAnnotationStore } from './lib/db/bulkChronicleAnnotationStore';
+import { useInterleavedAnnotationStore } from './lib/db/interleavedAnnotationStore';
+import { extractReinforcedFactIds } from './lib/db/historianRunHelpers';
 import PrePrintPanel from './components/PrePrintPanel';
-import { DEFAULT_HISTORIAN_CONFIG, isHistorianConfigured, isNoteActive } from './lib/historianTypes';
+import { DEFAULT_HISTORIAN_CONFIG, isHistorianConfigured } from './lib/historianTypes';
 import { getPublishedStaticPagesForProject } from './lib/db/staticPageRepository';
-import { getEntityUsageStats, getChronicle, getChroniclesForSimulation, updateChronicleLoreBackported, updateChronicleHistorianNotes, refreshEraSummariesInChronicles } from './lib/db/chronicleRepository';
+import { getEntityUsageStats, getChronicle, getChroniclesForSimulation, updateChronicleEntityBackportStatus, updateChronicleHistorianNotes, refreshEraSummariesInChronicles, repairFactCoverageWasFaceted, computeCorpusFactStrength } from './lib/db/chronicleRepository';
+import { computeBackportProgress } from './lib/chronicleTypes';
 import { useChronicleStore } from './lib/db/chronicleStore';
 import { useStyleLibrary } from './hooks/useStyleLibrary';
 import { useImageGenSettings } from './hooks/useImageGenSettings';
@@ -59,7 +78,6 @@ import {
   createDefaultCultureIdentities,
   buildProseHints,
 } from './lib/promptBuilders';
-import { buildEntityIndex, buildRelationshipIndex } from './lib/worldData';
 import { resolveStyleSelection } from './components/StyleSelector';
 import { exportImagePrompts, downloadImagePromptExport } from './lib/db/imageRepository';
 import { getResolvedLLMCallSettings } from './lib/llmModelSettings';
@@ -70,10 +88,28 @@ import * as slotRepo from './lib/db/slotRepository';
 import * as schemaRepo from './lib/db/schemaRepository';
 import * as coordinateStateRepo from './lib/db/coordinateStateRepository';
 import { useEntityStore } from './lib/db/entityStore';
+import { useIlluminatorModals } from './lib/db/modalStore';
+import { useIlluminatorConfigStore } from './lib/db/illuminatorConfigStore';
+import { useIndexStore } from './lib/db/indexStore';
+import { registerHistorianStarters } from './hooks/useHistorianActions';
+import { registerQueue } from './lib/db/enrichmentQueueBridge';
+import { useEnrichmentQueueStore } from './lib/db/enrichmentQueueStore';
+import { buildHistorianEditionContext, buildHistorianReviewContext, collectPreviousNotes, buildFactCoverageGuidance } from './lib/historianContextBuilders';
 import {
-  buildProminenceScale,
-  DEFAULT_PROMINENCE_DISTRIBUTION,
-  prominenceThresholdFromScale,
+  useProminenceScale,
+  useRenownedThreshold,
+  useEraTemporalInfo,
+  useEraTemporalInfoByKey,
+  useProminentByCulture,
+} from './lib/db/indexSelectors';
+import { useEntityNavList, useEntityNavItems } from './lib/db/entitySelectors';
+import { useRelationshipStore } from './lib/db/relationshipStore';
+import { useRelationships, useRelationshipsByEntity } from './lib/db/relationshipSelectors';
+import { useNarrativeEventStore } from './lib/db/narrativeEventStore';
+import { useNarrativeEvents } from './lib/db/narrativeEventSelectors';
+import { computeRunIndexes } from './lib/db/indexComputation';
+import { upsertRunIndexes } from './lib/db/indexRepository';
+import {
   prominenceLabelFromScale,
   getEntityEvents,
   getEntityEffects,
@@ -86,6 +122,29 @@ if (typeof window !== 'undefined') {
     exportImagePrompts,
     /** Download image prompt data as JSON file */
     downloadImagePromptExport,
+    /** Rebuild precomputed indexes for a simulation run from current Dexie entities */
+    async rebuildRunIndexes(simulationRunId) {
+      if (!simulationRunId) {
+        console.error('[rebuildRunIndexes] simulationRunId is required');
+        return;
+      }
+      const entities = await entityRepo.getEntitiesForRun(simulationRunId);
+      if (!entities.length) {
+        console.error('[rebuildRunIndexes] No entities found for run', simulationRunId);
+        return;
+      }
+      const record = computeRunIndexes(simulationRunId, entities);
+      await upsertRunIndexes(record);
+      const { useIndexStore: store } = await import('./lib/db/indexStore');
+      await store.getState().refresh();
+      console.log('[rebuildRunIndexes] Done', {
+        simulationRunId,
+        entityCount: entities.length,
+        eraCount: record.eraTemporalInfo.length,
+        cultureCount: Object.keys(record.prominentByCulture).length,
+      });
+    },
+    repairFactCoverageWasFaceted,
   };
 }
 
@@ -99,7 +158,8 @@ const TABS = [
   { id: 'entities', label: 'Entities' },     // 6. Main enrichment work
   { id: 'chronicle', label: 'Chronicle' },   // 7. Wiki-ready long-form content
   { id: 'coverage', label: 'Coverage' },     // 8. Fact usage tracking
-  { id: 'pages', label: 'Pages' },           // 9. Static pages (user-authored)
+  { id: 'finaledit', label: 'Final Edit' }, // 9. Corpus-wide editorial tools
+  { id: 'pages', label: 'Pages' },           // 10. Static pages (user-authored)
   { id: 'activity', label: 'Activity' },     // 10. Monitor queue
   { id: 'costs', label: 'Costs' },           // 11. Track spending
   { id: 'storage', label: 'Storage' },       // 12. Manage images
@@ -251,8 +311,11 @@ export default function IlluminatorRemote({
   });
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [chronicleRefreshTrigger, setChronicleRefreshTrigger] = useState(0);
-  // renameModal: { entityId, mode: 'rename' | 'patch' } | null
-  const [renameModal, setRenameModal] = useState(null);
+  // Modal state — from centralized store (children open via store actions directly)
+  const renameModal = useIlluminatorModals((s) => s.renameModal);
+  const createEntityModal = useIlluminatorModals((s) => s.createEntityModal);
+  const editEntityModal = useIlluminatorModals((s) => s.editEntityModal);
+  const imageSettingsOpen = useIlluminatorModals((s) => s.imageSettingsOpen);
 
   // Persist API keys when enabled
   useEffect(() => {
@@ -342,9 +405,6 @@ export default function IlluminatorRemote({
     compositionStyleId: imageGenSettings.compositionStyleId,
     colorPaletteId: imageGenSettings.colorPaletteId,
   }), [imageGenSettings.artisticStyleId, imageGenSettings.compositionStyleId, imageGenSettings.colorPaletteId]);
-
-  // Image settings drawer open state
-  const [imageSettingsOpen, setImageSettingsOpen] = useState(false);
 
   // Style library - loaded from IndexedDB or defaults from world-schema
   const {
@@ -467,10 +527,12 @@ export default function IlluminatorRemote({
     }, 300);
   }, [onHistorianConfigChange]);
 
-  // Entities with enrichment state
-  const [entities, setEntities] = useState([]);
-  const [narrativeEvents, setNarrativeEvents] = useState([]);
-  const [relationships, setRelationships] = useState([]);
+  // World data from Zustand stores (source: Dexie)
+  const navEntities = useEntityNavList();
+  const entityNavMap = useEntityNavItems();
+  const narrativeEvents = useNarrativeEvents();
+  const relationships = useRelationships();
+  const relationshipsByEntity = useRelationshipsByEntity();
   const [slotRecord, setSlotRecord] = useState(null);
   const [dataSyncStatus, setDataSyncStatus] = useState(null);
   const [isDataSyncing, setIsDataSyncing] = useState(false);
@@ -488,115 +550,36 @@ export default function IlluminatorRemote({
       const slot = await slotRepo.getSlot(projectId, activeSlotIndex);
       if (cancelled) return;
       setSlotRecord(slot || null);
-      setEntities([]);
-      setNarrativeEvents([]);
-      setRelationships([]);
       useEntityStore.getState().reset();
+      useIndexStore.getState().reset();
+      useNarrativeEventStore.getState().reset();
+      useRelationshipStore.getState().reset();
     })();
 
     return () => { cancelled = true; };
   }, [projectId, activeSlotIndex]);
 
-  const entityById = useMemo(() => buildEntityIndex(entities), [entities]);
-  const prominenceScale = useMemo(() => {
-    const values = entities
-      .map((entity) => entity.prominence)
-      .filter((value) => typeof value === 'number' && Number.isFinite(value));
-    return buildProminenceScale(values, { distribution: DEFAULT_PROMINENCE_DISTRIBUTION });
-  }, [entities]);
-  const renownedThreshold = useMemo(
-    () => prominenceThresholdFromScale('renowned', prominenceScale),
-    [prominenceScale]
-  );
-  const relationshipsByEntity = useMemo(
-    () => buildRelationshipIndex(relationships),
-    [relationships]
-  );
-  const currentEra = useMemo(() => {
+  const prominenceScale = useProminenceScale();
+  const renownedThreshold = useRenownedThreshold();
+  const [currentEra, setCurrentEra] = useState(null);
+  useEffect(() => {
     const eraId = slotRecord?.finalEraId;
-    if (!eraId) return null;
-    const eraEntity = entities.find(
+    if (!eraId) { setCurrentEra(null); return; }
+    const eraNav = navEntities.find(
       (entity) =>
         entity.kind === 'era' &&
         (entity.id === eraId || entity.eraId === eraId || entity.name === eraId)
     );
-    if (eraEntity) {
-      return {
-        name: eraEntity.name,
-        description: eraEntity.description,
-      };
-    }
-    return { name: eraId };
-  }, [slotRecord?.finalEraId, entities]);
-
-  // Build era temporal info for description prompts (same format as chronicle wizard)
-  // NOTE: Use era entity temporal data directly - do not compute ranges from history or ticks.
-  const eraTemporalInfo = useMemo(() => {
-    if (!entities?.length) return [];
-
-    const eraEntities = entities.filter((e) => e.kind === 'era' && e.temporal?.startTick != null);
-    if (eraEntities.length === 0) return [];
-
-    const sortedEras = [...eraEntities].sort(
-      (a, b) => a.temporal.startTick - b.temporal.startTick
-    );
-
-    const result = sortedEras.map((era, index) => {
-      const startTick = era.temporal.startTick;
-      const endTick = era.temporal.endTick ?? startTick;
-      const eraId = resolveEntityEraId(era) || era.id;
-      return {
-        id: eraId,
-        name: era.name,
-        summary: era.summary || '',
-        order: index,
-        startTick,
-        endTick,
-        duration: endTick - startTick,
-      };
+    if (!eraNav) { setCurrentEra({ name: eraId }); return; }
+    // Load full entity for description
+    useEntityStore.getState().loadEntity(eraNav.id).then((full) => {
+      setCurrentEra(full ? { name: full.name, description: full.description } : { name: eraNav.name });
     });
+  }, [slotRecord?.finalEraId, navEntities]);
 
-    console.log('[IlluminatorRemote] eraTemporalInfo built:', {
-      eraCount: result.length,
-      eraRanges: result.map(e => ({ id: e.id, name: e.name, start: e.startTick, end: e.endTick })),
-    });
-
-    return result;
-  }, [entities]);
-
-  const eraTemporalInfoByKey = useMemo(() => {
-    if (!eraTemporalInfo.length || !entities?.length) return new Map();
-
-    const byId = new Map(eraTemporalInfo.map((era) => [era.id, era]));
-    const map = new Map(byId);
-
-    for (const entity of entities) {
-      if (entity.kind !== 'era') continue;
-      const eraInfo = byId.get(entity.id);
-      if (!eraInfo) continue;
-      if (typeof entity.eraId === 'string' && entity.eraId) {
-        map.set(entity.eraId, eraInfo);
-      }
-    }
-
-    return map;
-  }, [entities, eraTemporalInfo]);
-
-  const prominentByCulture = useMemo(() => {
-    const map = new Map();
-    for (const entity of entities) {
-      if (!entity.culture) continue;
-      // Prominence at or above renowned
-      if (typeof entity.prominence !== 'number' || entity.prominence < renownedThreshold) continue;
-      const existing = map.get(entity.culture);
-      if (existing) {
-        existing.push(entity);
-      } else {
-        map.set(entity.culture, [entity]);
-      }
-    }
-    return map;
-  }, [entities, renownedThreshold]);
+  const eraTemporalInfo = useEraTemporalInfo();
+  const eraTemporalInfoByKey = useEraTemporalInfoByKey();
+  const prominentByCulture = useProminentByCulture();
 
   // Extract simulationRunId from slot metadata for content association
   const simulationRunId = slotRecord?.simulationRunId || undefined;
@@ -604,24 +587,62 @@ export default function IlluminatorRemote({
   const hasHardRelationships = Boolean(worldData?.relationships?.length);
   const hasHardEvents = Boolean(worldData?.narrativeHistory?.length);
 
-  // Shared helper: write to Dexie → reload local state → notify host
-  const reloadAndNotify = useCallback(async (invalidateIds, overrideRunId) => {
+  // Sync project-level config into the centralized store.
+  // Children (useHistorianActions, historianContextBuilders) read these imperatively.
+  useEffect(() => {
+    useIlluminatorConfigStore.getState().setConfig({
+      projectId: projectId || null,
+      simulationRunId: simulationRunId || null,
+      worldContext,
+      historianConfig,
+      entityGuidance,
+      cultureIdentities,
+    });
+  }, [projectId, simulationRunId, worldContext, historianConfig, entityGuidance, cultureIdentities]);
+
+  // Scoped reload helpers: fetch only the data that actually changed.
+  // Entity-only reload — the common case (enrichment, backport, CRUD, historian)
+  const reloadEntities = useCallback(async (invalidateIds, overrideRunId) => {
     const runId = overrideRunId ?? simulationRunId;
     if (!runId) return;
-    const [freshEntities, freshEvents, freshRelationships] = await Promise.all([
-      entityRepo.getEntitiesForRun(runId),
-      eventRepo.getNarrativeEventsForRun(runId),
-      relationshipRepo.getRelationshipsForRun(runId),
-    ]);
+    const store = useEntityStore.getState();
     if (invalidateIds?.length) {
-      const store = useEntityStore.getState();
-      for (const id of invalidateIds) store.invalidate(id);
+      await store.refreshEntities(invalidateIds);
+    } else {
+      await store.refreshAll();
     }
-    setEntities(freshEntities);
-    setNarrativeEvents(freshEvents);
-    setRelationships(freshRelationships);
     window.dispatchEvent(new CustomEvent('illuminator:worlddata-changed', {
-      detail: { simulationRunId: runId },
+      detail: { simulationRunId: runId, scope: 'entities' },
+    }));
+  }, [simulationRunId]);
+
+  // Entity + events reload — rename only (applies text patches to narrative events)
+  const reloadEntitiesAndEvents = useCallback(async (invalidateIds, overrideRunId) => {
+    const runId = overrideRunId ?? simulationRunId;
+    if (!runId) return;
+    const entityStore = useEntityStore.getState();
+    if (invalidateIds?.length) {
+      await entityStore.refreshEntities(invalidateIds);
+    } else {
+      await entityStore.refreshAll();
+    }
+    await useNarrativeEventStore.getState().refreshAll();
+    window.dispatchEvent(new CustomEvent('illuminator:worlddata-changed', {
+      detail: { simulationRunId: runId, scope: 'entities+events' },
+    }));
+  }, [simulationRunId]);
+
+  // Full reload — data sync only (seeds entities, events, AND relationships)
+  const reloadAll = useCallback(async (invalidateIds, overrideRunId) => {
+    const runId = overrideRunId ?? simulationRunId;
+    if (!runId) return;
+    await useEntityStore.getState().refreshAll();
+    await Promise.all([
+      useNarrativeEventStore.getState().refreshAll(),
+      useRelationshipStore.getState().refreshAll(),
+    ]);
+    window.dispatchEvent(new CustomEvent('illuminator:worlddata-changed', {
+      detail: { simulationRunId: runId, scope: 'all' },
     }));
   }, [simulationRunId]);
 
@@ -714,7 +735,23 @@ export default function IlluminatorRemote({
       const store = useEntityStore.getState();
       store.reset();
       await store.initialize(hardRunId);
-      await reloadAndNotify(undefined, hardRunId);
+
+      // Compute and persist run indexes from freshly seeded entities
+      const allEntities = await entityRepo.getEntitiesForRun(hardRunId);
+      const indexRecord = computeRunIndexes(hardRunId, allEntities);
+      await upsertRunIndexes(indexRecord);
+      const indexStore = useIndexStore.getState();
+      indexStore.reset();
+      await indexStore.initialize(hardRunId);
+
+      useNarrativeEventStore.getState().reset();
+      await useNarrativeEventStore.getState().initialize(hardRunId);
+      useRelationshipStore.getState().reset();
+      await useRelationshipStore.getState().initialize(hardRunId);
+
+      window.dispatchEvent(new CustomEvent('illuminator:worlddata-changed', {
+        detail: { simulationRunId: hardRunId, scope: 'all' },
+      }));
     } catch (err) {
       setDataSyncStatus({
         type: 'error',
@@ -723,24 +760,18 @@ export default function IlluminatorRemote({
     } finally {
       setIsDataSyncing(false);
     }
-  }, [activeSlotIndex, hasHardState, projectId, reloadAndNotify, slotRecord, worldData]);
+  }, [activeSlotIndex, hasHardState, projectId, slotRecord, worldData]);
 
   useEffect(() => {
     const handleEntitiesUpdated = (event) => {
       if (!simulationRunId) return;
       const ids = event?.detail?.entityIds;
-      reloadAndNotify(ids);
+      reloadEntities(ids);
     };
 
     window.addEventListener('entities-updated', handleEntitiesUpdated);
     return () => window.removeEventListener('entities-updated', handleEntitiesUpdated);
-  }, [reloadAndNotify, simulationRunId]);
-
-  // Handle assigning an existing image from the library to an entity
-  const handleAssignImage = useCallback(async (entityId, imageId, imageMetadata) => {
-    await entityRepo.assignImage(entityId, imageId, imageMetadata);
-    await reloadAndNotify([entityId]);
-  }, [reloadAndNotify]);
+  }, [reloadEntities, simulationRunId]);
 
   // Handle entity enrichment update from queue
   // output is ApplyEnrichmentOutput with { enrichment, summary?, description? }
@@ -749,43 +780,24 @@ export default function IlluminatorRemote({
       await entityRepo.applyImageResult(entityId, output.enrichment.image);
     } else if (output.enrichment?.entityChronicle) {
       await entityRepo.applyEntityChronicleResult(entityId, output.enrichment.entityChronicle);
+    } else if (output.enrichment?.text && !output.description) {
+      // Visual thesis only — no description change
+      await entityRepo.applyVisualThesisResult(entityId, output.enrichment.text.visualThesis, output.enrichment.text.visualTraits || [], {
+        generatedAt: output.enrichment.text.generatedAt,
+        model: output.enrichment.text.model,
+        estimatedCost: output.enrichment.text.estimatedCost,
+        actualCost: output.enrichment.text.actualCost,
+        inputTokens: output.enrichment.text.inputTokens,
+        outputTokens: output.enrichment.text.outputTokens,
+        chainDebug: output.enrichment.text.chainDebug,
+      });
     } else {
       await entityRepo.applyDescriptionResult(
         entityId, output.enrichment, output.summary, output.description,
       );
     }
-    await reloadAndNotify([entityId]);
-  }, [reloadAndNotify]);
-
-  // Undo last description change — pop from history
-  const handleUndoDescription = useCallback(async (entityId) => {
-    await entityRepo.undoDescription(entityId);
-    await reloadAndNotify([entityId]);
-  }, [reloadAndNotify]);
-
-  // Handle backref image config update
-  const handleUpdateBackrefs = useCallback(async (entityId, updatedBackrefs) => {
-    await entityRepo.updateBackrefs(entityId, updatedBackrefs);
-    await reloadAndNotify([entityId]);
-  }, [reloadAndNotify]);
-
-  // Handle alias update
-  const handleUpdateAliases = useCallback(async (entityId, aliases) => {
-    await entityRepo.updateAliases(entityId, aliases);
-    await reloadAndNotify([entityId]);
-  }, [reloadAndNotify]);
-
-  // Handle manual description edit
-  const handleUpdateDescription = useCallback(async (entityId, description) => {
-    await entityRepo.updateDescriptionManual(entityId, description);
-    await reloadAndNotify([entityId]);
-  }, [reloadAndNotify]);
-
-  // Handle manual summary edit
-  const handleUpdateSummary = useCallback(async (entityId, summary) => {
-    await entityRepo.updateSummaryManual(entityId, summary);
-    await reloadAndNotify([entityId]);
-  }, [reloadAndNotify]);
+    await reloadEntities([entityId]);
+  }, [reloadEntities]);
 
   // Refresh era summaries in all chronicle temporal contexts
   const handleRefreshEraSummaries = useCallback(async () => {
@@ -798,40 +810,26 @@ export default function IlluminatorRemote({
   }, [simulationRunId, eraTemporalInfo]);
 
   // Load from Dexie only (explicit import required to seed).
-  const entityStore = useEntityStore;
-
   useEffect(() => {
     if (!simulationRunId) return;
-    let cancelled = false;
 
     (async () => {
       try {
-        // Initialize zustand coordinator (loads entity ID list)
-        await entityStore.getState().initialize(simulationRunId);
-
-        const [dexieEntities, dexieEvents, dexieRelationships] = await Promise.all([
-          entityRepo.getEntitiesForRun(simulationRunId),
-          eventRepo.getNarrativeEventsForRun(simulationRunId),
-          relationshipRepo.getRelationshipsForRun(simulationRunId),
-        ]);
+        // Initialize all zustand stores from Dexie
+        await useEntityStore.getState().initialize(simulationRunId);
+        await useIndexStore.getState().initialize(simulationRunId);
+        await useNarrativeEventStore.getState().initialize(simulationRunId);
+        await useRelationshipStore.getState().initialize(simulationRunId);
 
         console.log('[Illuminator] Loaded from Dexie', {
-          entityCount: dexieEntities.length,
-          eventCount: dexieEvents.length,
-          relationshipCount: dexieRelationships.length,
+          entityCount: useEntityStore.getState().navItems.size,
+          eventCount: useNarrativeEventStore.getState().events.length,
+          relationshipCount: useRelationshipStore.getState().relationships.length,
         });
-
-        if (!cancelled) {
-          setEntities(dexieEntities);
-          setNarrativeEvents(dexieEvents);
-          setRelationships(dexieRelationships);
-        }
       } catch (err) {
         console.warn('[Illuminator] DAL load failed:', err);
       }
     })();
-
-    return () => { cancelled = true; };
   }, [simulationRunId]);
 
   // Queue management
@@ -846,6 +844,14 @@ export default function IlluminatorRemote({
     retry,
     clearCompleted,
   } = useEnrichmentQueue(handleEntityUpdate, projectId, simulationRunId);
+
+  // Register queue functions on the bridge (hooks call getEnqueue() imperatively)
+  registerQueue(enqueue, cancel);
+
+  // Sync queue state to the store for reactive reads by child components
+  useEffect(() => {
+    useEnrichmentQueueStore.getState().setQueue(queue, stats);
+  }, [queue, stats]);
 
   // Bridge chronicle-related queue completions to chronicle store refreshes
   useChronicleQueueWatcher(queue);
@@ -883,16 +889,15 @@ export default function IlluminatorRemote({
     };
   }, [slotRecord, currentEra]);
 
-  // Extract era entities for palette generation
-  const eraEntities = useMemo(() => {
-    return entities
-      .filter((e) => e.kind === 'era')
-      .map((e) => ({
-        id: e.id,
-        name: e.name,
-        description: e.description,
-      }));
-  }, [entities]);
+  // Extract era entities for palette generation (needs description from full entities)
+  const [eraEntities, setEraEntities] = useState([]);
+  useEffect(() => {
+    const eraNavs = navEntities.filter((e) => e.kind === 'era');
+    if (eraNavs.length === 0) { setEraEntities([]); return; }
+    useEntityStore.getState().loadEntities(eraNavs.map((e) => e.id)).then((fullEras) => {
+      setEraEntities(fullEras.map((e) => ({ id: e.id, name: e.name, description: e.description })));
+    });
+  }, [navEntities]);
 
   // Build subtypes by kind map for palette generation
   // Extract subtype IDs from Subtype objects ({ id, name } → id)
@@ -907,7 +912,7 @@ export default function IlluminatorRemote({
   }, [worldSchema?.entityKinds]);
 
   // Check if we have world data (from Dexie)
-  const hasWorldData = entities.length > 0;
+  const hasWorldData = navEntities.length > 0;
   const canImport = hasHardState;
 
   // Check if API keys are set
@@ -937,10 +942,10 @@ export default function IlluminatorRemote({
   // Build prompt for entity using EntityGuidance and CultureIdentities directly
   const buildPrompt = useCallback(
     (entity, type) => {
-      // Build relationships
+      // Build relationships (use nav items for name/kind resolution)
       const relationships = (relationshipsByEntity.get(entity.id) || []).slice(0, 8).map((rel) => {
         const targetId = rel.src === entity.id ? rel.dst : rel.src;
-        const target = entityById.get(targetId);
+        const target = entityNavMap.get(targetId);
         return {
           kind: rel.kind,
           targetName: target?.name || targetId,
@@ -972,7 +977,7 @@ export default function IlluminatorRemote({
           description: currentEra?.description,
         },
         entityAge: 'established',
-        culturalPeers: (prominentByCulture.get(entity.culture) || [])
+        culturalPeers: (prominentByCulture[entity.culture] || [])
           .filter((peer) => peer.id !== entity.id)
           .slice(0, 3)
           .map((peer) => peer.name),
@@ -992,8 +997,8 @@ export default function IlluminatorRemote({
 
         // Add events to entity context (use era name instead of tick)
         entityContext.events = entityEvents.map((e) => {
-          // Get era name from entity index (era field is an ID)
-          const eraEntity = entityById.get(e.era);
+          // Get era name from nav items (era field is an ID)
+          const eraEntity = entityNavMap.get(e.era);
           const eraName = eraEntity?.name || e.era;
           return {
             era: eraName,
@@ -1045,7 +1050,7 @@ export default function IlluminatorRemote({
       entityGuidance,
       cultureIdentities,
       relationshipsByEntity,
-      entityById,
+      entityNavMap,
       currentEra,
       narrativeEvents,
       prominentByCulture,
@@ -1162,17 +1167,15 @@ export default function IlluminatorRemote({
     submitFeedback: submitDynamicsFeedback,
     acceptDynamics,
     cancelGeneration: cancelDynamicsGeneration,
-  } = useDynamicsGeneration(enqueue, handleDynamicsAccepted);
+  } = useDynamicsGeneration(handleDynamicsAccepted);
 
   // Summary revision (batch entity summary/description revision)
-  const getEntityContextsForRevision = useCallback((entityIds) => {
-    return entityIds.map((id) => {
-      const entity = entityById.get(id);
-      if (!entity) return null;
-
+  const getEntityContextsForRevision = useCallback(async (entityIds) => {
+    const fullEntities = await useEntityStore.getState().loadEntities(entityIds);
+    return fullEntities.map((entity) => {
       const rels = (relationshipsByEntity.get(entity.id) || []).slice(0, 8).map((rel) => {
         const targetId = rel.src === entity.id ? rel.dst : rel.src;
-        const target = entityById.get(targetId);
+        const target = entityNavMap.get(targetId);
         return {
           kind: rel.kind,
           targetName: target?.name || targetId,
@@ -1200,17 +1203,18 @@ export default function IlluminatorRemote({
         description: entity.description || '',
         visualThesis: entity.enrichment?.text?.visualThesis || '',
         relationships: rels,
+        aliases: (entity.enrichment?.text?.aliases || []).filter(a => typeof a === 'string' && a.length >= 3),
         ...(existingAnchorPhrases.length > 0 ? { existingAnchorPhrases } : {}),
         ...(kindFocus ? { kindFocus } : {}),
       };
-    }).filter(Boolean);
-  }, [entityById, relationshipsByEntity, prominenceScale, entityGuidance]);
+    });
+  }, [entityNavMap, relationshipsByEntity, prominenceScale, entityGuidance]);
 
   const handleRevisionApplied = useCallback(async (patches, source = 'summary-revision') => {
     if (!patches?.length) return;
     const updatedIds = await entityRepo.applyRevisionPatches(patches, source);
-    await reloadAndNotify(updatedIds);
-  }, [reloadAndNotify]);
+    await reloadEntities(updatedIds);
+  }, [reloadEntities]);
 
   const {
     run: revisionRun,
@@ -1221,7 +1225,7 @@ export default function IlluminatorRemote({
     togglePatchDecision,
     applyAccepted: applyAcceptedPatches,
     cancelRevision,
-  } = useSummaryRevision(enqueue, getEntityContextsForRevision);
+  } = useSummaryRevision(getEntityContextsForRevision);
 
   // Revision filter modal state
   const [revisionFilter, setRevisionFilter] = useState({
@@ -1234,7 +1238,7 @@ export default function IlluminatorRemote({
   const handleOpenRevisionFilter = useCallback(async () => {
     if (!projectId || !simulationRunId) return;
 
-    const eligible = entities.filter((e) => e.summary && e.description && !e.lockedSummary);
+    const eligible = navEntities.filter((e) => e.hasDescription && !e.lockedSummary);
 
     let chronicleEntityIds = new Set();
     try {
@@ -1252,7 +1256,7 @@ export default function IlluminatorRemote({
       usedInChronicles,
       chronicleEntityIds,
     });
-  }, [projectId, simulationRunId, entities]);
+  }, [projectId, simulationRunId, navEntities]);
 
   const handleStartRevision = useCallback(async (excludeChronicleEntities) => {
     if (!projectId || !simulationRunId) return;
@@ -1285,17 +1289,23 @@ export default function IlluminatorRemote({
     // Build schema context
     const schemaContext = buildSchemaContext(worldSchema);
 
-    // Build entity contexts — exclude locked and optionally chronicle-used entities
-    const revisionEntities = entities
-      .filter((e) => {
-        if (!e.summary || !e.description || e.lockedSummary) return false;
-        if (excludeChronicleEntities && revisionFilter.chronicleEntityIds.has(e.id)) return false;
+    // Filter eligible entity IDs via lightweight nav items, then load full records from Dexie
+    const eligibleIds = navEntities
+      .filter((nav) => {
+        if (!nav.hasDescription || nav.lockedSummary) return false;
+        if (excludeChronicleEntities && revisionFilter.chronicleEntityIds.has(nav.id)) return false;
         return true;
       })
+      .map((nav) => nav.id);
+
+    const fullEntities = await useEntityStore.getState().loadEntities(eligibleIds);
+
+    const revisionEntities = fullEntities
+      .filter((e) => e.summary && e.description)
       .map((e) => {
         const rels = (relationshipsByEntity.get(e.id) || []).slice(0, 8).map((rel) => {
           const targetId = rel.src === e.id ? rel.dst : rel.src;
-          const target = entityById.get(targetId);
+          const target = entityNavMap.get(targetId);
           return {
             kind: rel.kind,
             targetName: target?.name || targetId,
@@ -1327,7 +1337,7 @@ export default function IlluminatorRemote({
       revisionGuidance: '',
       entities: revisionEntities,
     });
-  }, [projectId, simulationRunId, worldContext, worldSchema, entities, entityById, relationshipsByEntity, prominenceScale, startRevision, revisionFilter.chronicleEntityIds]);
+  }, [projectId, simulationRunId, worldContext, worldSchema, navEntities, entityNavMap, relationshipsByEntity, prominenceScale, startRevision, revisionFilter.chronicleEntityIds]);
 
   const handleAcceptRevision = useCallback(() => {
     const patches = applyAcceptedPatches();
@@ -1344,44 +1354,54 @@ export default function IlluminatorRemote({
     updateAnchorPhrase: updateBackportAnchorPhrase,
     applyAccepted: applyAcceptedBackportPatches,
     cancelBackport,
-  } = useChronicleLoreBackport(enqueue, getEntityContextsForRevision);
+  } = useChronicleLoreBackport(getEntityContextsForRevision);
 
-  // Backport config modal state
-  const [backportConfig, setBackportConfig] = useState(null);
-
-  const handleBackportLore = useCallback(async (chronicleId) => {
-    if (!projectId || !simulationRunId || !chronicleId) return;
+  // Shared context assembly for both single and bulk backport
+  const assembleContextForChronicle = useCallback(async (chronicleId) => {
+    if (!projectId || !simulationRunId || !chronicleId) return null;
 
     const chronicle = await getChronicle(chronicleId);
-    if (!chronicle?.finalContent) {
-      console.warn('[Backport] Chronicle not found or has no final content:', chronicleId);
-      return;
-    }
+    if (!chronicle?.finalContent) return null;
 
-    // Build entity contexts for the cast, merging in isPrimary from roleAssignments
     const roleAssignments = chronicle.roleAssignments || [];
     const castEntityIds = roleAssignments.map((r) => r.entityId);
-    const baseContexts = getEntityContextsForRevision(castEntityIds);
-    if (baseContexts.length === 0) {
-      console.warn('[Backport] No valid cast entities found for chronicle:', chronicleId);
-      return;
-    }
-    // Merge isPrimary from roleAssignments into entity contexts
+    const baseContexts = await getEntityContextsForRevision(castEntityIds);
+    if (baseContexts.length === 0) return null;
+
     const primarySet = new Set(roleAssignments.filter((r) => r.isPrimary).map((r) => r.entityId));
     const castContexts = baseContexts.map((ctx) => ({
       ...ctx,
       isPrimary: primarySet.has(ctx.id),
     }));
 
-    // Include lens entity if present (marked specially for different prompt treatment)
     if (chronicle.lens && !castEntityIds.includes(chronicle.lens.entityId)) {
-      const lensContexts = getEntityContextsForRevision([chronicle.lens.entityId]);
+      const lensContexts = await getEntityContextsForRevision([chronicle.lens.entityId]);
       if (lensContexts.length > 0) {
         castContexts.push({ ...lensContexts[0], isLens: true });
       }
     }
 
-    // Extract perspective synthesis output
+    const allContexts = [...castContexts];
+    const acceptedTertiary = (chronicle.tertiaryCast || []).filter(e => e.accepted);
+    if (acceptedTertiary.length > 0) {
+      const existingIds = new Set(allContexts.map(c => c.id));
+      const tertiaryFiltered = acceptedTertiary.filter(e => !existingIds.has(e.entityId));
+      const tertiaryIds = tertiaryFiltered.map(e => e.entityId);
+      if (tertiaryIds.length > 0) {
+        const tertiaryContexts = await getEntityContextsForRevision(tertiaryIds);
+        const tertiaryByEntityId = new Map(tertiaryFiltered.map(t => [t.entityId, t]));
+        for (const ctx of tertiaryContexts) {
+          const entry = tertiaryByEntityId.get(ctx.id);
+          const matchedAs = entry?.matchedAs;
+          allContexts.push({
+            ...ctx,
+            isTertiary: true,
+            ...(matchedAs && matchedAs !== ctx.name ? { chronicleName: matchedAs } : {}),
+          });
+        }
+      }
+    }
+
     let perspectiveSynthesisJson = '';
     const ps = chronicle.perspectiveSynthesis;
     if (ps) {
@@ -1396,21 +1416,61 @@ export default function IlluminatorRemote({
       });
     }
 
-    // Open config modal instead of starting immediately
-    setBackportConfig({
+    const perEntityStatus = {};
+    const chronicleBackportMap = chronicle.entityBackportStatus || {};
+    // Load full entities for backref checking (only those not already resolved via chronicle map)
+    const unresolvedIds = allContexts
+      .filter((ctx) => !chronicleBackportMap[ctx.id])
+      .map((ctx) => ctx.id);
+    const loadedEntities = unresolvedIds.length > 0
+      ? await useEntityStore.getState().loadEntities(unresolvedIds)
+      : [];
+    const loadedMap = new Map(loadedEntities.map((e) => [e.id, e]));
+
+    for (const ctx of allContexts) {
+      if (chronicleBackportMap[ctx.id]) {
+        perEntityStatus[ctx.id] = chronicleBackportMap[ctx.id].status;
+        continue;
+      }
+      const entity = loadedMap.get(ctx.id);
+      const hasBackref = (entity?.enrichment?.chronicleBackrefs || [])
+        .some(br => br.chronicleId === chronicleId);
+      if (hasBackref) {
+        perEntityStatus[ctx.id] = 'backported';
+      }
+    }
+
+    return {
       chronicleId,
       chronicleTitle: chronicle.title || 'Untitled Chronicle',
-      entities: castContexts,
+      entities: allContexts,
       chronicleText: chronicle.finalContent,
       perspectiveSynthesisJson,
-    });
+      perEntityStatus,
+    };
   }, [projectId, simulationRunId, getEntityContextsForRevision]);
+
+  // Backport config modal state
+  const [backportConfig, setBackportConfig] = useState(null);
+  const backportSentEntityIdsRef = useRef(null); // Track entity IDs sent in most recent backport
+
+  const handleBackportLore = useCallback(async (chronicleId) => {
+    const context = await assembleContextForChronicle(chronicleId);
+    if (!context) {
+      console.warn('[Backport] Could not assemble context for chronicle:', chronicleId);
+      return;
+    }
+    setBackportConfig(context);
+  }, [assembleContextForChronicle]);
 
   const handleBackportConfigStart = useCallback((selectedEntityIds, customInstructions) => {
     if (!backportConfig || !projectId || !simulationRunId) return;
 
     const selectedEntities = backportConfig.entities.filter(e => selectedEntityIds.includes(e.id));
     if (selectedEntities.length === 0) return;
+
+    // Track which entities were sent so handleAcceptBackport can mark them all
+    backportSentEntityIdsRef.current = selectedEntityIds;
 
     startBackport({
       projectId,
@@ -1428,76 +1488,142 @@ export default function IlluminatorRemote({
   const handleAcceptBackport = useCallback(async () => {
     const cId = backportChronicleId;
     const patches = applyAcceptedBackportPatches();
-    await handleRevisionApplied(patches, 'lore-backport');
+    if (!patches?.length) return;
 
-    // Revalidate backrefs + upsert new backref for this chronicle
+    // Apply revision patches + revalidate backrefs, then reload once
+    const updatedIds = await entityRepo.applyRevisionPatches(patches, 'lore-backport');
     if (cId) {
       await entityRepo.revalidateBackrefs(patches, { chronicleId: cId });
-      await reloadAndNotify(patches.map((p) => p.entityId));
-      // Mark chronicle as backported and refresh the chronicle list
-      updateChronicleLoreBackported(cId, true).then(() => {
+    }
+    await reloadEntities(updatedIds);
+
+    // Mark all sent entities as backported (not just those with patches —
+    // entities with no LLM changes are still "done" for this chronicle)
+    if (cId) {
+      const sentIds = backportSentEntityIdsRef.current || patches.map((p) => p.entityId);
+      const now = Date.now();
+      const entries = sentIds.map(id => ({
+        entityId: id,
+        status: 'backported',
+        updatedAt: now,
+      }));
+      updateChronicleEntityBackportStatus(cId, entries).then(() => {
         setChronicleRefreshTrigger((n) => n + 1);
       }).catch((err) => {
-        console.warn('[Backport] Failed to set loreBackported flag:', err);
+        console.warn('[Backport] Failed to set entity backport status:', err);
       });
+      backportSentEntityIdsRef.current = null;
     }
-  }, [applyAcceptedBackportPatches, handleRevisionApplied, backportChronicleId, reloadAndNotify]);
+  }, [applyAcceptedBackportPatches, backportChronicleId, reloadEntities]);
 
-  // ---- Auto-backport all chronicles ----
-  const [autoBackportQueue, setAutoBackportQueue] = useState(null); // { ids: string[], total: number } | null
-  const autoBackportRef = useRef(false); // tracks whether we're in auto-backport mode
-
-  const handleStartAutoBackport = useCallback(async () => {
-    if (!simulationRunId) return;
-    const allChronicles = await getChroniclesForSimulation(simulationRunId);
-    const eligible = allChronicles
-      .filter((c) => !c.loreBackported && c.finalContent)
-      .map((c) => c.chronicleId);
-    if (eligible.length === 0) {
-      alert('No chronicles eligible for backport (all already backported or unpublished).');
-      return;
-    }
-    console.log(`[Auto-Backport] Starting: ${eligible.length} chronicles eligible`, eligible);
-    autoBackportRef.current = true;
-    setAutoBackportQueue({ ids: eligible, total: eligible.length });
-    // Kick off the first one
-    await handleBackportLore(eligible[0]);
-  }, [simulationRunId, handleBackportLore]);
-
-  const handleCancelAutoBackport = useCallback(() => {
-    autoBackportRef.current = false;
-    setAutoBackportQueue(null);
-    cancelBackport();
-  }, [cancelBackport]);
-
-  // Watch backportRun — when results arrive in auto mode, accept and advance
-  useEffect(() => {
-    if (!autoBackportRef.current || !autoBackportQueue) return;
-    if (!backportRun) return;
-    const status = backportRun.status;
-    if (status !== 'batch_reviewing' && status !== 'run_reviewing') return;
-
-    // Auto-accept
-    console.log(`[Auto-Backport] Auto-accepting results for chronicle ${autoBackportQueue.ids[0]}`);
-    handleAcceptBackport();
-
-    // Advance to next
-    const remaining = autoBackportQueue.ids.slice(1);
-    if (remaining.length === 0) {
-      console.log('[Auto-Backport] Complete — all chronicles backported');
-      autoBackportRef.current = false;
-      setAutoBackportQueue(null);
-      return;
-    }
-    setAutoBackportQueue({ ids: remaining, total: autoBackportQueue.total });
-    // Delay to let state settle before starting next
-    setTimeout(() => {
-      if (autoBackportRef.current) {
-        console.log(`[Auto-Backport] Starting next: ${remaining[0]} (${remaining.length} remaining)`);
-        handleBackportLore(remaining[0]);
+  const handleMarkEntityNotNeeded = useCallback(async (entityIds) => {
+    if (!backportConfig?.chronicleId) return;
+    const now = Date.now();
+    const entries = entityIds.map(id => ({
+      entityId: id,
+      status: 'not_needed',
+      updatedAt: now,
+    }));
+    await updateChronicleEntityBackportStatus(backportConfig.chronicleId, entries);
+    // Update local modal state
+    setBackportConfig(prev => {
+      if (!prev) return null;
+      const updated = { ...prev.perEntityStatus };
+      for (const id of entityIds) {
+        updated[id] = 'not_needed';
       }
-    }, 1000);
-  }, [backportRun?.status, autoBackportQueue, handleAcceptBackport, handleBackportLore]);
+      return { ...prev, perEntityStatus: updated };
+    });
+    setChronicleRefreshTrigger((n) => n + 1);
+  }, [backportConfig]);
+
+  // ---- Bulk backport (multi-chronicle, chunked) ----
+
+  const applyBulkPatches = useCallback(async (patches, chronicleId, sentEntityIds) => {
+    if (patches.length > 0) {
+      // Apply revision patches + revalidate backrefs, then reload once
+      const updatedIds = await entityRepo.applyRevisionPatches(patches, 'lore-backport');
+      await entityRepo.revalidateBackrefs(patches, { chronicleId });
+      await reloadEntities(updatedIds);
+    }
+
+    // Mark all sent entities as backported on the chronicle record
+    const now = Date.now();
+    const entries = sentEntityIds.map(id => ({
+      entityId: id,
+      status: 'backported',
+      updatedAt: now,
+    }));
+    await updateChronicleEntityBackportStatus(chronicleId, entries);
+    setChronicleRefreshTrigger((n) => n + 1);
+  }, [reloadEntities]);
+
+  const getEligibleChronicleIds = useCallback(async (simRunId) => {
+    const allChronicles = await getChroniclesForSimulation(simRunId);
+    return allChronicles
+      .filter((c) => {
+        if (!c.finalContent) return false;
+        const progress = computeBackportProgress(c);
+        return progress.done < progress.total;
+      })
+      .map((c) => {
+        const progress = computeBackportProgress(c);
+        return {
+          chronicleId: c.chronicleId,
+          chronicleTitle: c.title || 'Untitled Chronicle',
+          pendingCount: progress.total - progress.done,
+        };
+      });
+  }, []);
+
+  const bulkBackportDeps = useMemo(() => ({
+    assembleContextForChronicle,
+    applyPatches: applyBulkPatches,
+    getEligibleChronicleIds,
+  }), [assembleContextForChronicle, applyBulkPatches, getEligibleChronicleIds]);
+
+  const {
+    progress: bulkBackportProgress,
+    isActive: isBulkBackportActive,
+    prepareBulkBackport,
+    confirmBulkBackport,
+    cancelBulkBackport,
+  } = useBulkBackport(bulkBackportDeps);
+
+  const [showBulkBackportModal, setShowBulkBackportModal] = useState(false);
+
+  const handleStartBulkBackport = useCallback(async () => {
+    if (!simulationRunId || !projectId) return;
+    setShowBulkBackportModal(true);
+    await prepareBulkBackport(simulationRunId, projectId);
+  }, [simulationRunId, projectId, prepareBulkBackport]);
+
+  // Close modal if prepare found nothing (progress stays idle)
+  useEffect(() => {
+    if (showBulkBackportModal && bulkBackportProgress.status === 'idle') {
+      // Small delay to avoid closing during the brief async gap
+      const timer = setTimeout(() => {
+        if (bulkBackportProgress.status === 'idle') {
+          setShowBulkBackportModal(false);
+          alert('No chronicles eligible for backport (all already backported or unpublished).');
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [showBulkBackportModal, bulkBackportProgress.status]);
+
+  const handleConfirmBulkBackport = useCallback(() => {
+    confirmBulkBackport();
+  }, [confirmBulkBackport]);
+
+  const handleCancelBulkBackport = useCallback(() => {
+    cancelBulkBackport();
+    setShowBulkBackportModal(false);
+  }, [cancelBulkBackport]);
+
+  const handleCloseBulkBackport = useCallback(() => {
+    setShowBulkBackportModal(false);
+  }, []);
 
   // Historian edition (historian-voiced description synthesis from full archive)
   const {
@@ -1507,36 +1633,67 @@ export default function IlluminatorRemote({
     togglePatchDecision: toggleHistorianEditionPatchDecision,
     applyAccepted: applyAcceptedHistorianEditionPatches,
     cancelHistorianEdition,
-  } = useHistorianEdition(enqueue);
+  } = useHistorianEdition();
 
-  // Entity rename / patch events
-  const handleStartRename = useCallback((entityId) => {
-    setRenameModal({ entityId, mode: 'rename' });
-  }, []);
-
-  const handleStartPatchEvents = useCallback((entityId) => {
-    setRenameModal({ entityId, mode: 'patch' });
-  }, []);
-
-  const handleRenameApplied = useCallback(async ({ entityPatches, eventPatches, targetEntityId, newName }) => {
+  const handleRenameApplied = useCallback(async ({ entityPatches, eventPatches, targetEntityId, newName, addOldNameAsAlias }) => {
     try {
       // 1. Write entity patches to Dexie (source of truth)
-      const updatedIds = await entityRepo.applyRename(targetEntityId, newName, entityPatches, simulationRunId);
+      const updatedIds = await entityRepo.applyRename(targetEntityId, newName, entityPatches, simulationRunId, addOldNameAsAlias);
 
       // 2. Write narrative event patches to Dexie
       if (eventPatches.length > 0) {
         await eventRepo.applyEventPatches(eventPatches, simulationRunId);
       }
 
-      // 3. Reload from Dexie + notify host
-      await reloadAndNotify(updatedIds);
+      // 3. Recompute indexes (rename changes prominentByCulture names)
+      const allEntities = await entityRepo.getEntitiesForRun(simulationRunId);
+      const indexRecord = computeRunIndexes(simulationRunId, allEntities);
+      await upsertRunIndexes(indexRecord);
+      await useIndexStore.getState().refreshAll();
+
+      // 4. Reload entities + events from Dexie (rename patches both)
+      await reloadEntitiesAndEvents(updatedIds);
     } catch (err) {
       console.error('[Illuminator] Rename persist failed:', err);
     }
 
-    setRenameModal(null);
+    useIlluminatorModals.getState().closeRename();
     setChronicleRefreshTrigger((n) => n + 1);
-  }, [simulationRunId, reloadAndNotify]);
+  }, [simulationRunId, reloadEntitiesAndEvents]);
+
+  // Manual entity creation
+  const handleCreateEntity = useCallback(async (entityData) => {
+    if (!simulationRunId) return;
+    try {
+      const created = await entityRepo.createEntity(simulationRunId, entityData);
+
+      // Recompute indexes (new entity may affect prominence distribution)
+      const allEntities = await entityRepo.getEntitiesForRun(simulationRunId);
+      const indexRecord = computeRunIndexes(simulationRunId, allEntities);
+      await upsertRunIndexes(indexRecord);
+      await useIndexStore.getState().refreshAll();
+
+      await reloadEntities([created.id]);
+    } catch (err) {
+      console.error('[Illuminator] Create entity failed:', err);
+    }
+    useIlluminatorModals.getState().closeCreateEntity();
+  }, [simulationRunId, reloadEntities]);
+
+  // Manual entity editing (manual_ entities only)
+  const handleEditEntity = useCallback(async (entityData) => {
+    if (!editEntityModal) return;
+    try {
+      await entityRepo.updateEntityFields(editEntityModal.id, {
+        ...entityData,
+        updatedAt: Date.now(),
+      });
+      await reloadEntities([editEntityModal.id]);
+    } catch (err) {
+      console.error('[Illuminator] Edit entity failed:', err);
+    }
+    useIlluminatorModals.getState().closeEditEntity();
+  }, [editEntityModal, reloadEntities]);
 
   // Historian review (scholarly annotations for entities and chronicles)
   const {
@@ -1546,285 +1703,51 @@ export default function IlluminatorRemote({
     toggleNoteDecision: toggleHistorianNoteDecision,
     applyAccepted: applyAcceptedHistorianNotes,
     cancelReview: cancelHistorianReview,
-  } = useHistorianReview(enqueue);
+  } = useHistorianReview();
 
-  // Configurable caps for historian voice-continuity sampling
-  const HISTORIAN_SAMPLING = useMemo(() => ({
-    maxTotal: 15,       // Total notes in the sample
-    maxPerTarget: 3,    // Max notes from any single entity/chronicle
-    relatedRatio: 0.3,  // Soft bias toward related entities/chronicles
-  }), []);
+  // Register historian start functions for useHistorianActions bridge
+  registerHistorianStarters({ startHistorianEdition, startHistorianReview });
 
-  // Collect previous historian notes for memory/continuity (sample from entities + chronicles)
-  const collectPreviousNotes = useCallback(async (options = {}) => {
-    const { maxTotal, maxPerTarget, relatedRatio } = HISTORIAN_SAMPLING;
-    const relatedEntityIds = new Set(options.relatedEntityIds || []);
-    const relatedChronicleIds = new Set(options.relatedChronicleIds || []);
-
-    const shuffleInPlace = (items) => {
-      for (let i = items.length - 1; i > 0; i -= 1) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [items[i], items[j]] = [items[j], items[i]];
-      }
-    };
-
-    const takeRandomSample = (items, count) => {
-      if (!items.length || count <= 0) return [];
-      if (items.length <= count) return [...items];
-      const copy = [...items];
-      shuffleInPlace(copy);
-      return copy.slice(0, count);
-    };
-
-    // Group enabled notes by stable target key
-    const byTarget = new Map();
-
-    const addNotesForTarget = (targetKey, targetMeta, notes) => {
-      if (!notes.length) return;
-      const mapped = notes.map((note, index) => ({
-        noteKey: note.noteId || `${targetKey}:${index}`,
-        targetKey,
-        targetType: targetMeta.type,
-        targetId: targetMeta.id,
-        targetName: targetMeta.name,
-        anchorPhrase: note.anchorPhrase,
-        text: note.text,
-        type: note.type,
-      }));
-      byTarget.set(targetKey, mapped);
-    };
-
-    // Entity notes
-    for (const entity of entities) {
-      const notes = (entity.enrichment?.historianNotes || []).filter(isNoteActive);
-      addNotesForTarget(`entity:${entity.id}`, {
-        type: 'entity',
-        id: entity.id,
-        name: entity.name,
-      }, notes);
-    }
-
-    // Chronicle notes
-    if (simulationRunId) {
-      const chronicleRecords = await getChroniclesForSimulation(simulationRunId);
-      for (const chronicle of chronicleRecords) {
-        const notes = (chronicle.historianNotes || []).filter(isNoteActive);
-        addNotesForTarget(`chronicle:${chronicle.chronicleId}`, {
-          type: 'chronicle',
-          id: chronicle.chronicleId,
-          name: chronicle.title || chronicle.chronicleId,
-        }, notes);
-      }
-    }
-
-    // Cap each target at maxPerTarget (randomized to avoid bias)
-    const cappedNotes = [];
-    for (const notes of byTarget.values()) {
-      const selected = notes.length > maxPerTarget
-        ? takeRandomSample(notes, maxPerTarget)
-        : notes.slice();
-      cappedNotes.push(...selected);
-    }
-
-    if (cappedNotes.length === 0) return [];
-
-    const total = Math.min(maxTotal, cappedNotes.length);
-    const relatedNotes = cappedNotes.filter((note) => {
-      if (note.targetType === 'entity') {
-        return relatedEntityIds.has(note.targetId);
-      }
-      if (note.targetType === 'chronicle') {
-        return relatedChronicleIds.has(note.targetId);
-      }
-      return false;
+  // Sync historian isActive flags to config store for reactive reads
+  useEffect(() => {
+    useIlluminatorConfigStore.getState().setConfig({
+      isHistorianEditionActive,
+      isHistorianActive,
     });
-
-    const relatedQuota = Math.min(relatedNotes.length, Math.round(total * relatedRatio));
-    const relatedSample = takeRandomSample(relatedNotes, relatedQuota);
-    const relatedKeys = new Set(relatedSample.map((note) => note.noteKey));
-    const remainingPool = cappedNotes.filter((note) => !relatedKeys.has(note.noteKey));
-    const remainingSample = takeRandomSample(remainingPool, total - relatedSample.length);
-
-    const finalSample = [...relatedSample, ...remainingSample];
-    shuffleInPlace(finalSample);
-
-    return finalSample.map((note) => ({
-      targetName: note.targetName,
-      anchorPhrase: note.anchorPhrase,
-      text: note.text,
-      type: note.type,
-    }));
-  }, [entities, HISTORIAN_SAMPLING, simulationRunId]);
-
-  // Historian edition — start a historian-voiced description synthesis
-  const handleHistorianEdition = useCallback(async (entityId, tone) => {
-    if (!projectId || !simulationRunId || !entityId) return;
-    if (!isHistorianConfigured(historianConfig)) return;
-
-    const entity = entityById.get(entityId);
-    if (!entity?.description) return;
-
-    // Build relationships (up to 12)
-    const rels = (relationshipsByEntity.get(entity.id) || []).slice(0, 12).map((rel) => {
-      const targetId = rel.src === entity.id ? rel.dst : rel.src;
-      const target = entityById.get(targetId);
-      return {
-        kind: rel.kind,
-        targetName: target?.name || targetId,
-        targetKind: target?.kind || 'unknown',
-      };
-    });
-
-    // Get neighbor summaries (up to 5)
-    const neighborSummaries = (relationshipsByEntity.get(entity.id) || []).slice(0, 5).map((rel) => {
-      const targetId = rel.src === entity.id ? rel.dst : rel.src;
-      const target = entityById.get(targetId);
-      if (!target) return null;
-      return {
-        name: target.name,
-        kind: target.kind,
-        summary: target.summary || target.description?.slice(0, 200) || '',
-      };
-    }).filter(Boolean);
-
-    // Gather chronicle summaries from backrefs
-    const chronicleSummaries = [];
-    const backrefs = entity.enrichment?.chronicleBackrefs || [];
-    for (const ref of backrefs) {
-      if (!ref.chronicleId) continue;
-      try {
-        const chronicle = await getChronicle(ref.chronicleId);
-        if (chronicle && chronicle.title) {
-          chronicleSummaries.push({
-            chronicleId: chronicle.chronicleId,
-            title: chronicle.title,
-            format: chronicle.format || '',
-            summary: chronicle.finalContent?.slice(0, 500) || '',
-          });
-        }
-      } catch (err) {
-        // Skip if chronicle not found
-      }
-    }
-
-    // Previous notes for voice continuity
-    const relatedEntityIds = new Set([entity.id]);
-    for (const rel of (relationshipsByEntity.get(entity.id) || [])) {
-      const targetId = rel.src === entity.id ? rel.dst : rel.src;
-      if (targetId) relatedEntityIds.add(targetId);
-    }
-    const previousNotes = await collectPreviousNotes({
-      relatedEntityIds: Array.from(relatedEntityIds),
-    });
-
-    startHistorianEdition({
-      projectId,
-      simulationRunId,
-      entityId: entity.id,
-      entityName: entity.name,
-      entityKind: entity.kind,
-      entitySubtype: entity.subtype || '',
-      entityCulture: entity.culture || '',
-      entityProminence: prominenceLabelFromScale(entity.prominence, prominenceScale),
-      description: entity.description,
-      summary: entity.summary || '',
-      descriptionHistory: entity.enrichment?.descriptionHistory || [],
-      chronicleSummaries,
-      relationships: rels,
-      neighborSummaries,
-      canonFacts: (worldContext.canonFactsWithMetadata || []).map((f) => f.text),
-      worldDynamics: (worldContext.worldDynamics || []).map((d) => d.text),
-      previousNotes,
-      historianConfig,
-      tone: tone || 'scholarly',
-    });
-  }, [projectId, simulationRunId, entityById, relationshipsByEntity, worldContext, historianConfig, prominenceScale, collectPreviousNotes, startHistorianEdition]);
+  }, [isHistorianEditionActive, isHistorianActive]);
 
   // Accept historian edition — apply the rewritten description
   const handleAcceptHistorianEdition = useCallback(async () => {
     const patches = applyAcceptedHistorianEditionPatches();
     if (!patches?.length) return;
 
-    await handleRevisionApplied(patches, 'historian-edition');
-
-    // Clear historian notes for the edited entity (edition subsumes them)
+    // Apply revision patches + clear historian notes, then reload once
+    const updatedIds = await entityRepo.applyRevisionPatches(patches, 'historian-edition');
     for (const patch of patches) {
       if (patch.entityId) {
         await entityRepo.setHistorianNotes(patch.entityId, []);
       }
     }
+    await reloadEntities(updatedIds);
+  }, [applyAcceptedHistorianEditionPatches, reloadEntities]);
 
-    // Reload to reflect cleared notes
-    await reloadAndNotify(patches.map((p) => p.entityId));
-  }, [applyAcceptedHistorianEditionPatches, handleRevisionApplied, reloadAndNotify]);
+  // Standalone result-application callbacks — used by both single-entity and bulk flows
+  const applyReviewNotesForEntity = useCallback(async (entityId, notes) => {
+    await entityRepo.setHistorianNotes(entityId, notes);
+  }, []);
 
-  const handleHistorianReview = useCallback(async (entityId, tone) => {
-    if (!projectId || !simulationRunId || !entityId) return;
-    if (!isHistorianConfigured(historianConfig)) return;
-
-    const entity = entityById.get(entityId);
-    if (!entity?.description) return;
-
-    // Build relationships
-    const rels = (relationshipsByEntity.get(entity.id) || []).slice(0, 12).map((rel) => {
-      const targetId = rel.src === entity.id ? rel.dst : rel.src;
-      const target = entityById.get(targetId);
-      return {
-        kind: rel.kind,
-        targetName: target?.name || targetId,
-        targetKind: target?.kind || 'unknown',
-      };
-    });
-
-    // Get neighbor summaries (from relationships)
-    const neighborSummaries = (relationshipsByEntity.get(entity.id) || []).slice(0, 5).map((rel) => {
-      const targetId = rel.src === entity.id ? rel.dst : rel.src;
-      const target = entityById.get(targetId);
-      if (!target) return null;
-      return {
-        name: target.name,
-        kind: target.kind,
-        summary: target.summary || target.description?.slice(0, 200) || '',
-      };
-    }).filter(Boolean);
-
-    // Assemble context
-    const contextJson = JSON.stringify({
-      entityId: entity.id,
-      entityName: entity.name,
-      entityKind: entity.kind,
-      entitySubtype: entity.subtype || '',
-      entityCulture: entity.culture || '',
-      entityProminence: prominenceLabelFromScale(entity.prominence, prominenceScale),
-      summary: entity.summary || '',
-      relationships: rels,
-      neighborSummaries,
-      canonFacts: (worldContext.canonFactsWithMetadata || []).map((f) => f.text),
-      worldDynamics: (worldContext.worldDynamics || []).map((d) => d.text),
-    });
-
-    const relatedEntityIds = new Set([entity.id]);
-    for (const rel of (relationshipsByEntity.get(entity.id) || [])) {
-      const targetId = rel.src === entity.id ? rel.dst : rel.src;
-      if (targetId) relatedEntityIds.add(targetId);
+  const applyEditionPatchesForEntity = useCallback(async (patches) => {
+    const updatedIds = await entityRepo.applyRevisionPatches(patches, 'historian-edition');
+    for (const patch of patches) {
+      if (patch.entityId) {
+        await entityRepo.setHistorianNotes(patch.entityId, []);
+      }
     }
-    const previousNotes = await collectPreviousNotes({
-      relatedEntityIds: Array.from(relatedEntityIds),
-    });
+    return updatedIds;
+  }, []);
 
-    startHistorianReview({
-      projectId,
-      simulationRunId,
-      targetType: 'entity',
-      targetId: entity.id,
-      targetName: entity.name,
-      sourceText: entity.description,
-      contextJson,
-      previousNotesJson: JSON.stringify(previousNotes),
-      historianConfig,
-      tone: tone || 'weary',
-    });
-  }, [projectId, simulationRunId, entityById, relationshipsByEntity, worldContext, historianConfig, prominenceScale, collectPreviousNotes, startHistorianReview]);
+  // Cache corpus fact strength for the session to avoid recomputing per-chronicle
+  const corpusStrengthCacheRef = useRef({ runId: null, strength: null });
 
   const handleChronicleHistorianReview = useCallback(async (chronicleId, tone) => {
     if (!projectId || !simulationRunId || !chronicleId) return;
@@ -1836,9 +1759,13 @@ export default function IlluminatorRemote({
     if (chronicle.status !== 'complete' || !chronicle.finalContent) return;
     const content = chronicle.finalContent;
 
-    // Build cast summaries
+    // Build cast summaries — load full entities for summary/description access
+    const castEntityIds = (chronicle.roleAssignments || []).map((ra) => ra.entityId).filter(Boolean);
+    const castFull = await useEntityStore.getState().loadEntities(castEntityIds);
+    const castMap = new Map(castFull.map((e) => [e.id, e]));
+
     const castSummaries = (chronicle.roleAssignments || []).slice(0, 10).map((ra) => {
-      const entity = entityById.get(ra.entityId);
+      const entity = castMap.get(ra.entityId);
       if (!entity) return null;
       return {
         name: entity.name,
@@ -1848,13 +1775,34 @@ export default function IlluminatorRemote({
     }).filter(Boolean);
 
     const cast = (chronicle.roleAssignments || []).map((ra) => {
-      const entity = entityById.get(ra.entityId);
+      const entity = castMap.get(ra.entityId);
       return {
         entityName: entity?.name || ra.entityId,
         role: ra.role,
         kind: entity?.kind || 'unknown',
       };
     });
+
+    // Compute fact coverage guidance if report exists
+    let factCoverageGuidance = undefined;
+    if (chronicle.factCoverageReport?.entries?.length) {
+      if (corpusStrengthCacheRef.current.runId !== simulationRunId) {
+        corpusStrengthCacheRef.current = {
+          runId: simulationRunId,
+          strength: await computeCorpusFactStrength(simulationRunId),
+        };
+      }
+      const constraintFactIds = new Set(
+        (worldContext.canonFactsWithMetadata || [])
+          .filter((f) => f.type === 'generation_constraint' || f.disabled)
+          .map((f) => f.id),
+      );
+      factCoverageGuidance = buildFactCoverageGuidance(
+        chronicle.factCoverageReport,
+        corpusStrengthCacheRef.current.strength,
+        constraintFactIds,
+      );
+    }
 
     const contextJson = JSON.stringify({
       chronicleId: chronicle.chronicleId,
@@ -1865,6 +1813,7 @@ export default function IlluminatorRemote({
       castSummaries,
       canonFacts: (worldContext.canonFactsWithMetadata || []).map((f) => f.text),
       worldDynamics: (worldContext.worldDynamics || []).map((d) => d.text),
+      factCoverageGuidance,
       temporalNarrative: chronicle.perspectiveSynthesis?.temporalNarrative || undefined,
       focalEra: chronicle.temporalContext?.focalEra
         ? { name: chronicle.temporalContext.focalEra.name, description: chronicle.temporalContext.focalEra.description }
@@ -1891,9 +1840,92 @@ export default function IlluminatorRemote({
       contextJson,
       previousNotesJson: JSON.stringify(previousNotes),
       historianConfig,
-      tone: tone || 'weary',
+      tone: tone || chronicle.assignedTone || 'weary',
     });
-  }, [projectId, simulationRunId, entityById, worldContext, historianConfig, collectPreviousNotes, startHistorianReview]);
+  }, [projectId, simulationRunId, worldContext, historianConfig, startHistorianReview]);
+
+  // Bulk historian (sequential annotation or copy-edit for all filtered entities)
+  const bulkHistorianDeps = useMemo(() => ({
+    buildReviewContext: buildHistorianReviewContext,
+    buildEditionContext: buildHistorianEditionContext,
+    applyReviewNotes: applyReviewNotesForEntity,
+    applyEditionPatches: applyEditionPatchesForEntity,
+    reloadEntities,
+    getEntityNav: (entityId) => entityNavMap.get(entityId),
+  }), [applyReviewNotesForEntity, applyEditionPatchesForEntity, reloadEntities, entityNavMap]);
+
+  const {
+    progress: bulkHistorianProgress,
+    isActive: isBulkHistorianActive,
+    prepareBulkHistorian,
+    confirmBulkHistorian,
+    cancelBulkHistorian,
+    setTone: setBulkHistorianTone,
+  } = useBulkHistorian(bulkHistorianDeps);
+
+  const [showBulkHistorianModal, setShowBulkHistorianModal] = useState(false);
+  const editionMaxTokens = useMemo(() => getLLMCallConfig('historian.edition').maxTokens, []);
+
+  const handleStartBulkHistorianReview = useCallback((eligibleEntityIds) => {
+    prepareBulkHistorian('review', 'scholarly', eligibleEntityIds);
+    setShowBulkHistorianModal(true);
+  }, [prepareBulkHistorian]);
+
+  const handleStartBulkHistorianEdition = useCallback((eligibleEntityIds, reEdition) => {
+    prepareBulkHistorian('edition', 'scholarly', eligibleEntityIds, reEdition);
+    setShowBulkHistorianModal(true);
+  }, [prepareBulkHistorian]);
+
+  const handleStartBulkHistorianClear = useCallback((eligibleEntityIds) => {
+    prepareBulkHistorian('clear', 'scholarly', eligibleEntityIds);
+    setShowBulkHistorianModal(true);
+  }, [prepareBulkHistorian]);
+
+  const handleConfirmBulkHistorian = useCallback(() => {
+    confirmBulkHistorian();
+  }, [confirmBulkHistorian]);
+
+  const handleCancelBulkHistorian = useCallback(() => {
+    cancelBulkHistorian();
+    setShowBulkHistorianModal(false);
+  }, [cancelBulkHistorian]);
+
+  const handleCloseBulkHistorian = useCallback(() => {
+    setShowBulkHistorianModal(false);
+  }, []);
+
+  // Close modal if prepare found no eligible entities
+  useEffect(() => {
+    if (showBulkHistorianModal && bulkHistorianProgress.status === 'idle') {
+      const timer = setTimeout(() => {
+        if (bulkHistorianProgress.status === 'idle') {
+          setShowBulkHistorianModal(false);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [showBulkHistorianModal, bulkHistorianProgress.status]);
+
+  // Tone Ranking — state lives in Zustand store, persists across tab switches
+  const toneRankingProgress = useToneRankingStore((s) => s.progress);
+  const confirmToneRanking = useToneRankingStore((s) => s.confirmToneRanking);
+  const cancelToneRanking = useToneRankingStore((s) => s.cancelToneRanking);
+  const closeToneRanking = useToneRankingStore((s) => s.closeToneRanking);
+  const toneAssignmentPreview = useToneRankingStore((s) => s.assignmentPreview);
+  const applyToneAssignment = useToneRankingStore((s) => s.applyAssignment);
+  const closeToneAssignment = useToneRankingStore((s) => s.closeAssignment);
+
+  // Bulk Chronicle Annotations — state lives in Zustand store
+  const bulkAnnotationProgress = useBulkChronicleAnnotationStore((s) => s.progress);
+  const confirmBulkAnnotation = useBulkChronicleAnnotationStore((s) => s.confirmAnnotation);
+  const cancelBulkAnnotation = useBulkChronicleAnnotationStore((s) => s.cancelAnnotation);
+  const closeBulkAnnotation = useBulkChronicleAnnotationStore((s) => s.closeAnnotation);
+
+  // Interleaved Annotation — Zustand store
+  const interleavedProgress = useInterleavedAnnotationStore((s) => s.progress);
+  const confirmInterleaved = useInterleavedAnnotationStore((s) => s.confirmInterleaved);
+  const cancelInterleaved = useInterleavedAnnotationStore((s) => s.cancelInterleaved);
+  const closeInterleaved = useInterleavedAnnotationStore((s) => s.closeInterleaved);
 
   const handleAcceptHistorianNotes = useCallback(async () => {
     const targetId = historianRun?.targetId;
@@ -1903,26 +1935,32 @@ export default function IlluminatorRemote({
 
     if (targetType === 'entity' && targetId) {
       await entityRepo.setHistorianNotes(targetId, notes);
-      await reloadAndNotify([targetId]);
+      await reloadEntities([targetId]);
     } else if (targetType === 'chronicle' && targetId) {
       try {
-        await updateChronicleHistorianNotes(targetId, notes);
+        const prompts = historianRun.systemPrompt && historianRun.userPrompt
+          ? { systemPrompt: historianRun.systemPrompt, userPrompt: historianRun.userPrompt }
+          : undefined;
+        const reinforcedFacts = historianRun.contextJson
+          ? extractReinforcedFactIds(historianRun.contextJson)
+          : undefined;
+        await updateChronicleHistorianNotes(targetId, notes, prompts, reinforcedFacts);
         await useChronicleStore.getState().refreshChronicle(targetId);
       } catch (err) {
         console.error('[Historian] Failed to save chronicle notes:', err);
       }
     }
-  }, [applyAcceptedHistorianNotes, historianRun, reloadAndNotify]);
+  }, [applyAcceptedHistorianNotes, historianRun, reloadEntities]);
 
   const handleUpdateHistorianNote = useCallback(async (targetType, targetId, noteId, updates) => {
     if (targetType === 'entity' && targetId) {
-      const entity = entities.find((e) => e.id === targetId);
+      const entity = await useEntityStore.getState().loadEntity(targetId);
       if (!entity?.enrichment?.historianNotes) return;
       const updatedNotes = entity.enrichment.historianNotes.map((n) =>
         n.noteId === noteId ? { ...n, ...updates } : n
       );
       await entityRepo.setHistorianNotes(targetId, updatedNotes);
-      await reloadAndNotify([targetId]);
+      await reloadEntities([targetId]);
     } else if (targetType === 'chronicle' && targetId) {
       try {
         const chronicle = await getChronicle(targetId);
@@ -1936,7 +1974,7 @@ export default function IlluminatorRemote({
         console.error('[Historian] Failed to update note:', err);
       }
     }
-  }, [entities, reloadAndNotify]);
+  }, [reloadEntities]);
 
   const handleEditHistorianNoteText = useCallback((noteId, newText) => {
     if (!historianRun) return;
@@ -1969,8 +2007,9 @@ export default function IlluminatorRemote({
     // Build schema context
     const schemaContext = buildSchemaContext(worldSchema);
 
-    // Build entity context for search execution
-    const entityContexts = entities.map((e) => ({
+    // Build entity context — load full entities from Dexie (needs description, tags)
+    const allEntities = await entityRepo.getEntitiesForRun(simulationRunId);
+    const entityContexts = allEntities.map((e) => ({
       id: e.id,
       name: e.name,
       kind: e.kind,
@@ -1988,8 +2027,8 @@ export default function IlluminatorRemote({
       dst: r.dst,
       kind: r.kind,
       weight: r.weight ?? r.strength,
-      srcName: entityById.get(r.src)?.name || r.src,
-      dstName: entityById.get(r.dst)?.name || r.dst,
+      srcName: entityNavMap.get(r.src)?.name || r.src,
+      dstName: entityNavMap.get(r.dst)?.name || r.dst,
     }));
 
     startDynamicsGeneration({
@@ -2000,7 +2039,7 @@ export default function IlluminatorRemote({
       entities: entityContexts,
       relationships: relationshipsPayload,
     });
-  }, [projectId, simulationRunId, worldSchema, entities, relationships, entityById, startDynamicsGeneration]);
+  }, [projectId, simulationRunId, worldSchema, entityNavMap, relationships, startDynamicsGeneration]);
 
   if (!hasWorldData) {
     return (
@@ -2099,7 +2138,7 @@ export default function IlluminatorRemote({
           <ImageSettingsTrigger
             settings={imageGenSettings}
             styleLibrary={styleLibrary}
-            onClick={() => setImageSettingsOpen(true)}
+            onClick={() => useIlluminatorModals.getState().openImageSettings()}
           />
         </div>
 
@@ -2193,11 +2232,6 @@ export default function IlluminatorRemote({
         {activeTab === 'entities' && (
           <div className="illuminator-content">
             <EntityBrowser
-              entities={entities}
-              queue={queue}
-              onEnqueue={enqueue}
-              onCancel={cancel}
-              onAssignImage={handleAssignImage}
               worldSchema={worldSchema}
               config={config}
               onConfigChange={updateConfig}
@@ -2205,23 +2239,13 @@ export default function IlluminatorRemote({
               getVisualConfig={getVisualConfig}
               styleLibrary={styleLibrary}
               imageGenSettings={imageGenSettings}
-              onOpenImageSettings={() => setImageSettingsOpen(true)}
-              prominenceScale={prominenceScale}
               onStartRevision={handleOpenRevisionFilter}
               isRevising={isRevisionActive}
-              onUpdateBackrefs={handleUpdateBackrefs}
-              onUndoDescription={handleUndoDescription}
-              onHistorianEdition={handleHistorianEdition}
-              isHistorianEditionActive={isHistorianEditionActive}
-              onHistorianReview={handleHistorianReview}
-              isHistorianActive={isHistorianActive}
-              historianConfigured={isHistorianConfigured(historianConfig)}
-              onUpdateHistorianNote={handleUpdateHistorianNote}
-              onRename={handleStartRename}
-              onPatchEvents={handleStartPatchEvents}
-              onUpdateAliases={handleUpdateAliases}
-              onUpdateDescription={handleUpdateDescription}
-              onUpdateSummary={handleUpdateSummary}
+              onBulkHistorianReview={handleStartBulkHistorianReview}
+              onBulkHistorianEdition={handleStartBulkHistorianEdition}
+              onBulkHistorianClear={handleStartBulkHistorianClear}
+              isBulkHistorianActive={isBulkHistorianActive}
+              onNavigateToTab={setActiveTab}
             />
           </div>
         )}
@@ -2230,9 +2254,6 @@ export default function IlluminatorRemote({
           <div className="illuminator-content">
             <ChroniclePanel
               worldData={worldData}
-              entities={entities}
-              relationships={relationships}
-              narrativeEvents={narrativeEvents}
               queue={queue}
               onEnqueue={enqueue}
               onCancel={cancel}
@@ -2245,18 +2266,18 @@ export default function IlluminatorRemote({
               entityGuidance={entityGuidance}
               cultureIdentities={cultureIdentities}
               onBackportLore={handleBackportLore}
-              autoBackportQueue={autoBackportQueue}
-              onStartAutoBackport={handleStartAutoBackport}
-              onCancelAutoBackport={handleCancelAutoBackport}
+              onStartBulkBackport={handleStartBulkBackport}
+              isBulkBackportActive={isBulkBackportActive}
               refreshTrigger={chronicleRefreshTrigger}
               imageModel={config.imageModel}
-              onOpenImageSettings={() => setImageSettingsOpen(true)}
+              onOpenImageSettings={() => useIlluminatorModals.getState().openImageSettings()}
               onHistorianReview={handleChronicleHistorianReview}
               isHistorianActive={isHistorianActive}
               historianConfigured={isHistorianConfigured(historianConfig)}
               historianConfig={historianConfig}
               onUpdateHistorianNote={handleUpdateHistorianNote}
               onRefreshEraSummaries={handleRefreshEraSummaries}
+              onNavigateToTab={setActiveTab}
             />
           </div>
         )}
@@ -2268,6 +2289,15 @@ export default function IlluminatorRemote({
               simulationRunId={simulationRunId}
               onWorldContextChange={updateWorldContext}
             />
+            <EntityCoveragePanel
+              simulationRunId={simulationRunId}
+            />
+          </div>
+        )}
+
+        {activeTab === 'finaledit' && (
+          <div className="illuminator-content">
+            <FinalEditTab />
           </div>
         )}
 
@@ -2275,7 +2305,6 @@ export default function IlluminatorRemote({
           <div className="illuminator-content">
             <StaticPagesPanel
               projectId={projectId}
-              entities={entities}
             />
           </div>
         )}
@@ -2298,11 +2327,8 @@ export default function IlluminatorRemote({
               entityGuidance={entityGuidance}
               onEntityGuidanceChange={updateEntityGuidance}
               worldContext={worldContext}
-              entities={entities}
-              relationships={relationships}
               worldSchema={worldSchema}
               simulationMetadata={simulationMetadata}
-              prominenceScale={prominenceScale}
             />
           </div>
         )}
@@ -2439,7 +2465,6 @@ export default function IlluminatorRemote({
         {activeTab === 'preprint' && (
           <div className="illuminator-content">
             <PrePrintPanel
-              entities={entities}
               projectId={projectId}
               simulationRunId={simulationRunId}
             />
@@ -2450,7 +2475,7 @@ export default function IlluminatorRemote({
       {/* Image Settings Drawer */}
       <ImageSettingsDrawer
         isOpen={imageSettingsOpen}
-        onClose={() => setImageSettingsOpen(false)}
+        onClose={() => useIlluminatorModals.getState().closeImageSettings()}
         settings={imageGenSettings}
         onSettingsChange={updateImageGenSettings}
         styleLibrary={styleLibrary}
@@ -2493,9 +2518,33 @@ export default function IlluminatorRemote({
         isOpen={backportConfig !== null}
         chronicleTitle={backportConfig?.chronicleTitle || ''}
         entities={backportConfig?.entities || []}
+        perEntityStatus={backportConfig?.perEntityStatus || {}}
         onStart={handleBackportConfigStart}
+        onMarkNotNeeded={handleMarkEntityNotNeeded}
         onCancel={() => setBackportConfig(null)}
       />
+
+      {/* Bulk Backport Progress Modal */}
+      {showBulkBackportModal && (
+        <BulkBackportModal
+          progress={bulkBackportProgress}
+          onConfirm={handleConfirmBulkBackport}
+          onCancel={handleCancelBulkBackport}
+          onClose={handleCloseBulkBackport}
+        />
+      )}
+
+      {/* Bulk Historian Modal */}
+      {showBulkHistorianModal && (
+        <BulkHistorianModal
+          progress={bulkHistorianProgress}
+          onConfirm={handleConfirmBulkHistorian}
+          onCancel={handleCancelBulkHistorian}
+          onClose={handleCloseBulkHistorian}
+          onChangeTone={setBulkHistorianTone}
+          editionMaxTokens={editionMaxTokens}
+        />
+      )}
 
       {/* Chronicle Lore Backport Review Modal */}
       <SummaryRevisionModal
@@ -2516,6 +2565,7 @@ export default function IlluminatorRemote({
         onAccept={handleAcceptHistorianEdition}
         onCancel={cancelHistorianEdition}
         getEntityContexts={getEntityContextsForRevision}
+        descriptionBaseline={historianEditionRun?.worldDynamicsContext}
       />
 
       {/* Historian Review Modal */}
@@ -2532,16 +2582,58 @@ export default function IlluminatorRemote({
       {renameModal && (
         <EntityRenameModal
           entityId={renameModal.entityId}
-          entities={entities}
           cultures={worldSchema?.cultures || []}
           simulationRunId={simulationRunId || ''}
-          relationships={relationships}
-          narrativeEvents={narrativeEvents}
           mode={renameModal.mode}
           onApply={handleRenameApplied}
-          onClose={() => setRenameModal(null)}
+          onClose={() => useIlluminatorModals.getState().closeRename()}
         />
       )}
+
+      {createEntityModal && (
+        <CreateEntityModal
+          worldSchema={worldSchema}
+          eras={eraTemporalInfo}
+          onSubmit={handleCreateEntity}
+          onClose={() => useIlluminatorModals.getState().closeCreateEntity()}
+        />
+      )}
+
+      {editEntityModal && (
+        <CreateEntityModal
+          worldSchema={worldSchema}
+          eras={eraTemporalInfo}
+          editEntity={editEntityModal}
+          onSubmit={handleEditEntity}
+          onClose={() => useIlluminatorModals.getState().closeEditEntity()}
+        />
+      )}
+
+      <BulkToneRankingModal
+        progress={toneRankingProgress}
+        onConfirm={confirmToneRanking}
+        onCancel={cancelToneRanking}
+        onClose={closeToneRanking}
+      />
+      <ToneAssignmentPreviewModal
+        preview={toneAssignmentPreview}
+        onApply={applyToneAssignment}
+        onClose={closeToneAssignment}
+      />
+      <BulkChronicleAnnotationModal
+        progress={bulkAnnotationProgress}
+        onConfirm={confirmBulkAnnotation}
+        onCancel={cancelBulkAnnotation}
+        onClose={closeBulkAnnotation}
+      />
+      <InterleavedAnnotationModal
+        progress={interleavedProgress}
+        onConfirm={confirmInterleaved}
+        onCancel={cancelInterleaved}
+        onClose={closeInterleaved}
+      />
+      <ThinkingViewer />
+      <FloatingPills onNavigate={setActiveTab} />
     </div>
   );
 }

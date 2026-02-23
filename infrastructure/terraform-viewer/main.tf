@@ -32,14 +32,6 @@ locals {
       path = "" # root
       dist = "${path.module}/../../apps/viewer/webui/dist"
     }
-    archivist = {
-      path = "archivist"
-      dist = "${path.module}/../../apps/archivist/webui/dist"
-    }
-    chronicler = {
-      path = "chronicler"
-      dist = "${path.module}/../../apps/chronicler/webui/dist"
-    }
   }
 
 }
@@ -242,15 +234,14 @@ resource "aws_s3_object" "app_assets" {
     ".map"   = "application/json"
   }, each.value.ext, "application/octet-stream")
 
-  # Critical: Proper cache headers to prevent stale content
-  # - HTML files: no-cache (always fetch fresh)
-  # - remoteEntry.js: no-cache (Module Federation entry points must be fresh)
-  # - Other assets: immutable with long cache (hashed filenames)
+  # Cache headers (browser-facing):
+  # - HTML: short browser cache; CloudFront min_ttl keeps it cached at the edge
+  #   until deploy invalidation clears it
+  # - bundle.manifest.json: short browser cache (discovery file, no content hash)
+  # - Content-hashed assets: immutable with 1-year cache
   cache_control = (
-    can(regex("\\.html$", each.value.key)) ? "no-cache, no-store, must-revalidate" :
-    can(regex("remoteEntry\\.js$", each.value.key)) ? "no-cache, no-store, must-revalidate" :
-    can(regex("bundles/.+\\.json$", each.value.key)) ? "public, max-age=31536000, immutable" :
-    can(regex("mf-manifest\\.json$", each.value.key)) ? "public, max-age=60" :
+    can(regex("\\.html$", each.value.key)) ? "public, max-age=120" :
+    can(regex("bundle\\.manifest\\.json$", each.value.key)) ? "public, max-age=120" :
     "public, max-age=31536000, immutable"
   )
 
@@ -343,7 +334,8 @@ resource "aws_cloudfront_distribution" "static_site" {
   }
 
   # Default behavior - serves viewer shell from root
-  # Respects Cache-Control headers from S3 (min_ttl=0 allows S3 to control caching)
+  # min_ttl forces CloudFront to cache at the edge until deploy invalidation,
+  # while the Cache-Control header (max-age=120 for HTML) controls browser caching.
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
@@ -357,49 +349,8 @@ resource "aws_cloudfront_distribution" "static_site" {
     }
 
     viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0     # Allow S3 Cache-Control to set minimum
-    default_ttl            = 86400 # Used only if S3 doesn't send Cache-Control
-    max_ttl                = 31536000
-    compress               = true
-  }
-
-  # Behaviors for MFE remotes - respect S3 Cache-Control headers
-  ordered_cache_behavior {
-    path_pattern     = "/archivist/*"
-    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = local.s3_origin_id
-
-    forwarded_values {
-      query_string = false
-      cookies {
-        forward = "none"
-      }
-    }
-
-    viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 86400
-    max_ttl                = 31536000
-    compress               = true
-  }
-
-  ordered_cache_behavior {
-    path_pattern     = "/chronicler/*"
-    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = local.s3_origin_id
-
-    forwarded_values {
-      query_string = false
-      cookies {
-        forward = "none"
-      }
-    }
-
-    viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 86400
+    min_ttl                = 31536000  # CloudFront caches until invalidation
+    default_ttl            = 31536000
     max_ttl                = 31536000
     compress               = true
   }

@@ -175,20 +175,25 @@ export const DEFAULT_PARCHMENT_CONFIG: ParchmentConfig = {
    as a repeating background with soft-light blend.
    ========================================= */
 
-export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG }: {
+export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG, prebakedUrl }: {
   className?: string;
   config?: ParchmentConfig;
+  /** Pre-baked tile URL — skips runtime canvas pipeline when provided */
+  prebakedUrl?: string;
 }) {
-  const [textureUrl, setTextureUrl] = useState<string | null>(null);
+  const [textureUrl, setTextureUrl] = useState<string | null>(prebakedUrl ?? null);
   const [prevUrl, setPrevUrl] = useState<string | null>(null);
 
   // Regenerate when processing params change — opacity is CSS-only
+  // Skip entirely when a prebaked tile is provided
   const genKey = JSON.stringify({
     br: config.blurRadius,
     ds: config.detailStrength,
   });
 
   useEffect(() => {
+    if (prebakedUrl) return;
+
     let cancelled = false;
 
     async function generate() {
@@ -220,21 +225,21 @@ export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG 
     generate();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [genKey]);
+  }, [prebakedUrl, genKey]);
 
-  // Revoke previous object URL to avoid memory leaks
+  // Revoke previous object URL to avoid memory leaks (only for generated URLs)
   useEffect(() => {
-    if (prevUrl && prevUrl !== textureUrl) {
+    if (prevUrl && prevUrl !== textureUrl && prevUrl !== prebakedUrl) {
       URL.revokeObjectURL(prevUrl);
     }
     setPrevUrl(textureUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textureUrl]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount (only for generated URLs)
   useEffect(() => {
     return () => {
-      if (textureUrl) URL.revokeObjectURL(textureUrl);
+      if (textureUrl && textureUrl !== prebakedUrl) URL.revokeObjectURL(textureUrl);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

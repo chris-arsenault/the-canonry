@@ -63,6 +63,8 @@ interface ChronologyChronicleEntry {
   isMultiEra: boolean;
   cast: Array<{ entityName: string; role: string; kind: string }>;
   events: Array<{ tick: number; headline: string }>;
+  /** Historian's private reading notes (preferred context source) */
+  prep?: string;
   summary?: string;
   openingText?: string;
 }
@@ -110,9 +112,10 @@ You are ordering the chronicles of ${era.eraName} (Year ${era.startTick} to Year
 
 ## Ordering Principles
 
-- Use the event years listed with each chronicle as evidence, but do not simply average them. Consider which events are the chronicle's narrative center of gravity.
+- **Narrative focus determines placement.** A chronicle's year is the year of its dramatic climax or resolution — the moment the account is fundamentally *about*. Background events, preambles, and aftermath are not the center of gravity.
+- **Reading notes are your best evidence.** When provided, your own reading notes capture what a chronicle is actually about. Trust them over raw event lists.
+- **Event lists are supplementary, not determinative.** Chronicles often reference preceding events for context. A chronicle about the fall of a city may mention the siege that began years earlier — the chronicle belongs at the fall, not the siege.
 - Consider narrative causality: which chronicles describe events that must precede or follow events in other chronicles?
-- Some chronicles span wide time ranges. Place them at the year of their primary action, not their earliest referenced event.
 - Two chronicles may share the same year if their events are truly contemporaneous.
 - Multi-era chronicles (marked as such) may reference events from other eras. Focus on where their focal narrative sits within this era.
 - The assigned year must be an integer within the era's time span (${era.startTick}–${era.endTick}).
@@ -174,18 +177,23 @@ Time span: Year ${era.startTick} to Year ${era.endTick} (${era.endTick - era.sta
       lines.push(`Cast: ${c.cast.map((r) => `${r.entityName} (${r.role})`).join(', ')}`);
     }
 
-    if (c.events.length > 0) {
-      const eventLines = c.events
-        .sort((a, b) => a.tick - b.tick)
-        .slice(0, 15) // Limit to 15 events per chronicle for token budget
-        .map((e) => `  Y${e.tick}: ${e.headline}`);
-      lines.push(`Events:\n${eventLines.join('\n')}`);
-    }
-
-    if (c.summary) {
+    // Narrative context first — this is the primary placement signal
+    if (c.prep) {
+      lines.push(`Reading notes: ${c.prep}`);
+    } else if (c.summary) {
       lines.push(`Summary: ${c.summary}`);
     } else if (c.openingText) {
       lines.push(`Opening: ${c.openingText}`);
+    }
+
+    // Event list: omit when prep is available (the prep already digests the events),
+    // include as supplementary evidence otherwise
+    if (!c.prep && c.events.length > 0) {
+      const eventLines = c.events
+        .sort((a, b) => a.tick - b.tick)
+        .slice(0, 15)
+        .map((e) => `  Y${e.tick}: ${e.headline}`);
+      lines.push(`Events:\n${eventLines.join('\n')}`);
     }
 
     return lines.join('\n');

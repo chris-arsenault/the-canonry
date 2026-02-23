@@ -2,23 +2,16 @@
  * ChronologyModal — Historian assigns chronological years to chronicles within an era.
  *
  * Two states:
- * 1. Setup: pick era + tone, kick off task
+ * 1. Setup: pick era, review chronicle list (with prep status), kick off task
  * 2. Review: see assignments, adjust years, apply
+ *
+ * Always uses scholarly tone. Prefers historian prep notes over summaries for context.
  */
 
 import { useState, useMemo, useCallback } from 'react';
 import { useChronicleStore } from '../lib/db/chronicleStore';
 import { batchUpdateChronicleEraYears } from '../lib/db/chronicleRepository';
 import { useHistorianChronology } from '../hooks/useHistorianChronology';
-
-const TONE_OPTIONS = [
-  { value: 'scholarly', label: 'Scholarly' },
-  { value: 'witty', label: 'Witty' },
-  { value: 'weary', label: 'Weary' },
-  { value: 'forensic', label: 'Forensic' },
-  { value: 'elegiac', label: 'Elegiac' },
-  { value: 'cantankerous', label: 'Cantankerous' },
-];
 
 export default function ChronologyModal({
   isOpen,
@@ -33,7 +26,6 @@ export default function ChronologyModal({
   onApplied,
 }) {
   const [selectedEraId, setSelectedEraId] = useState('');
-  const [tone, setTone] = useState('weary');
   const [expandedReasoning, setExpandedReasoning] = useState({});
 
   const {
@@ -45,29 +37,33 @@ export default function ChronologyModal({
     cancelChronology,
   } = useHistorianChronology(onEnqueue);
 
-  // Group chronicles by era and count
-  const eraChronicleCounts = useMemo(() => {
-    const counts = {};
-    for (const item of chronicleItems) {
-      const eraName = item.focalEraName || 'Unknown';
-      counts[eraName] = (counts[eraName] || 0) + 1;
-    }
-    return counts;
-  }, [chronicleItems]);
-
   // Build era options from wizardEras
   const eraOptions = useMemo(() => {
-    return wizardEras.map((era) => ({
-      id: era.id,
-      name: era.name,
-      startTick: era.startTick,
-      endTick: era.endTick,
-      count: eraChronicleCounts[era.name] || 0,
-    }));
-  }, [wizardEras, eraChronicleCounts]);
+    return wizardEras.map((era) => {
+      const eraChronicles = chronicleItems.filter((c) => c.focalEraName === era.name);
+      return {
+        id: era.id,
+        name: era.name,
+        startTick: era.startTick,
+        endTick: era.endTick,
+        count: eraChronicles.length,
+        preppedCount: eraChronicles.filter((c) => c.hasHistorianPrep).length,
+      };
+    });
+  }, [wizardEras, chronicleItems]);
 
   // Get chronicles for the selected era
   const selectedEra = eraOptions.find((e) => e.id === selectedEraId);
+
+  // Chronicles in the selected era for the list display
+  const selectedEraChronicles = useMemo(() => {
+    if (!selectedEra) return [];
+    const era = wizardEras.find((e) => e.id === selectedEraId);
+    if (!era) return [];
+    return chronicleItems
+      .filter((c) => c.focalEraName === era.name)
+      .sort((a, b) => (a.eraYear || 0) - (b.eraYear || 0) || a.name.localeCompare(b.name));
+  }, [selectedEra, selectedEraId, wizardEras, chronicleItems]);
 
   // Build context and start
   const handleStart = useCallback(async () => {
@@ -102,7 +98,7 @@ export default function ChronologyModal({
         kind: r.entityKind || '',
       }));
 
-      // Summary or opening text
+      // Prefer historian prep, then summary, then opening text
       const content = record.finalContent || record.assembledContent || '';
       const openingText = content.slice(0, 300).split(/\n\n/).slice(0, 2).join('\n\n');
 
@@ -114,8 +110,9 @@ export default function ChronologyModal({
         isMultiEra: record.temporalContext?.isMultiEra || false,
         cast,
         events,
-        summary: record.summary,
-        openingText: record.summary ? undefined : openingText,
+        prep: record.historianPrep || undefined,
+        summary: record.historianPrep ? undefined : record.summary,
+        openingText: (record.historianPrep || record.summary) ? undefined : openingText,
       });
     }
 
@@ -149,9 +146,9 @@ export default function ChronologyModal({
       eraName: era.name,
       contextJson,
       historianConfig,
-      tone,
+      tone: 'scholarly',
     });
-  }, [selectedEra, selectedEraId, wizardEras, chronicleItems, wizardEvents, projectId, simulationRunId, historianConfig, tone, startChronology]);
+  }, [selectedEra, selectedEraId, wizardEras, chronicleItems, wizardEvents, projectId, simulationRunId, historianConfig, startChronology]);
 
   // Apply assignments to chronicle records
   const handleApply = useCallback(async () => {
@@ -256,45 +253,91 @@ export default function ChronologyModal({
                   <option value="">Select an era...</option>
                   {eraOptions.map((era) => (
                     <option key={era.id} value={era.id}>
-                      {era.name} ({era.count} chronicles, Y{era.startTick}\u2013Y{era.endTick})
+                      {era.name} ({era.count} chronicles, Y{era.startTick}{'\u2013'}Y{era.endTick})
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>Tone</label>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {TONE_OPTIONS.map((t) => (
-                    <button
-                      key={t.value}
-                      onClick={() => setTone(t.value)}
-                      className="illuminator-button"
-                      style={{
-                        fontSize: '12px',
-                        padding: '4px 10px',
-                        background: tone === t.value ? 'var(--accent-primary)' : undefined,
-                        color: tone === t.value ? '#fff' : undefined,
-                      }}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
+              {/* Chronicle list for selected era */}
+              {selectedEra && selectedEraChronicles.length > 0 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    fontWeight: 600,
+                    marginBottom: '6px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}>
+                    <span>Chronicles ({selectedEraChronicles.length})</span>
+                    <span style={{ textTransform: 'none', fontWeight: 400 }}>
+                      {selectedEra.preppedCount}/{selectedEraChronicles.length} prepped
+                    </span>
+                  </div>
+                  <div style={{
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                  }}>
+                    {selectedEraChronicles.map((c, i) => (
+                      <div
+                        key={c.chronicleId}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '5px 12px',
+                          borderBottom: i < selectedEraChronicles.length - 1 ? '1px solid var(--border-color)' : 'none',
+                          fontSize: '12px',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            color: c.hasHistorianPrep ? '#8b7355' : 'var(--text-muted)',
+                            flexShrink: 0,
+                            width: '12px',
+                            textAlign: 'center',
+                          }}
+                          title={c.hasHistorianPrep ? 'Historian prep available' : 'No historian prep'}
+                        >
+                          {c.hasHistorianPrep ? '\u25C6' : '\u25C7'}
+                        </span>
+                        <span style={{
+                          flex: 1,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {c.name}
+                        </span>
+                        {c.eraYear != null && (
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                            Y{c.eraYear}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <button
                 onClick={handleStart}
-                disabled={!selectedEraId}
+                disabled={!selectedEraId || !selectedEra || selectedEra.count === 0}
                 className="illuminator-button"
                 style={{
                   width: '100%',
                   padding: '10px',
                   fontSize: '13px',
                   fontWeight: 600,
-                  background: selectedEraId ? 'var(--accent-primary)' : undefined,
-                  color: selectedEraId ? '#fff' : undefined,
-                  opacity: selectedEraId ? 1 : 0.5,
+                  background: selectedEraId && selectedEra?.count > 0 ? 'var(--accent-primary)' : undefined,
+                  color: selectedEraId && selectedEra?.count > 0 ? '#fff' : undefined,
+                  opacity: selectedEraId && selectedEra?.count > 0 ? 1 : 0.5,
                 }}
               >
                 Assign Years

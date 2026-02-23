@@ -24,18 +24,13 @@ import type {
   LoreRecord,
   DisambiguationEntry,
   Region,
-  ConfluxSummary,
-  ConfluxPageData,
-  ConvergenceResult,
-  EntityConvergence,
   NarrativeEvent,
-  HuddleType,
-  HuddleInstance,
   ImageAspect,
 } from '../types/world.ts';
 import type { ChronicleRecord } from './chronicleStorage.ts';
 import { getChronicleContent } from './chronicleStorage.ts';
 import type { StaticPage } from './staticPageStorage.ts';
+import type { EraNarrativeViewRecord } from './eraNarrativeStorage.ts';
 import { applyWikiLinks } from './entityLinking.ts';
 import {
   buildProminenceScale,
@@ -48,96 +43,7 @@ import { resolveAnchorPhrase } from './fuzzyAnchor.ts';
 // Re-export for backwards compatibility
 export { applyWikiLinks };
 
-import type { ChronicleBackref } from '../types/world.ts';
-
 const DEBUG_WIKI_BUILDER = import.meta.env?.DEV;
-
-/**
- * Resolve the image ID for a chronicle backref based on its imageSource config.
- *
- * - imageSource undefined (legacy): fallback to cover image
- * - imageSource null: no image
- * - { source: 'cover' }: chronicle cover image
- * - { source: 'image_ref', refId }: specific image ref from chronicle
- * - { source: 'entity', entityId }: entity portrait
- */
-function resolveBackrefImageId(
-  backref: ChronicleBackref,
-  chronicle: ChronicleRecord,
-  entities: HardState[],
-): string | null {
-  const { imageSource } = backref;
-
-  // Explicitly no image
-  if (imageSource === null) return null;
-
-  // Legacy fallback: use cover image
-  if (imageSource === undefined) {
-    if (chronicle.coverImage?.status === 'complete' && chronicle.coverImage.generatedImageId) {
-      return chronicle.coverImage.generatedImageId;
-    }
-    return null;
-  }
-
-  if (imageSource.source === 'cover') {
-    if (chronicle.coverImage?.status === 'complete' && chronicle.coverImage.generatedImageId) {
-      return chronicle.coverImage.generatedImageId;
-    }
-    return null;
-  }
-
-  if (imageSource.source === 'image_ref') {
-    const ref = chronicle.imageRefs?.refs?.find((r) => r.refId === imageSource.refId);
-    if (!ref) return null;
-    if (ref.type === 'prompt_request' && ref.status === 'complete' && ref.generatedImageId) {
-      return ref.generatedImageId;
-    }
-    if (ref.type === 'entity_ref' && ref.entityId) {
-      const entity = entities.find((e) => e.id === ref.entityId);
-      return entity?.enrichment?.image?.imageId || null;
-    }
-    return null;
-  }
-
-  if (imageSource.source === 'entity') {
-    const entity = entities.find((e) => e.id === imageSource.entityId);
-    return entity?.enrichment?.image?.imageId || null;
-  }
-
-  return null;
-}
-
-/**
- * Inject subtle footnote markers at chronicle backref anchor positions.
- * Each anchor phrase gets a superscript link to the source chronicle page.
- * If the anchor phrase isn't found in the text, it's silently skipped.
- */
-function injectBackrefFootnotes(
-  content: string,
-  backrefs: ChronicleBackref[],
-): string {
-  if (!backrefs.length) return content;
-
-  // Process backrefs in reverse order of position to avoid offset shifts
-  const positioned: Array<{ backref: ChronicleBackref; index: number; phraseLength: number }> = [];
-  for (const backref of backrefs) {
-    const resolved = resolveAnchorPhrase(backref.anchorPhrase, content);
-    if (resolved) {
-      positioned.push({ backref, index: resolved.index, phraseLength: resolved.phrase.length });
-    }
-  }
-  // Sort by position descending so insertions don't shift earlier indices
-  positioned.sort((a, b) => b.index - a.index);
-
-  let result = content;
-  for (const { backref, index, phraseLength } of positioned) {
-    const insertAt = index + phraseLength;
-    // Use wiki link syntax [[display|pageId]] which MarkdownSection already handles
-    const footnote = `<sup>[[↗|${backref.chronicleId}]]</sup>`;
-    result = result.slice(0, insertAt) + footnote + result.slice(insertAt);
-  }
-  return result;
-}
 
 /**
  * Chronicle image ref types (matching illuminator/chronicleTypes.ts)
@@ -325,7 +231,7 @@ export function buildPageIndex(
   chronicles: ChronicleRecord[] = [],
   staticPages: StaticPage[] = [],
   prominenceScale?: ProminenceScale,
-  confluxIndexOverride?: Map<string, ConfluxSummary>
+  eraNarratives: EraNarrativeViewRecord[] = [],
 ): WikiPageIndex {
   const resolvedProminenceScale = resolveProminenceScale(worldData, prominenceScale);
   const entries: PageIndexEntry[] = [];
@@ -340,6 +246,16 @@ export function buildPageIndex(
   // Note: loreIndex is not built here - it's only needed for full page builds (buildPageById)
   // Summary/description/aliases are now read directly from entity fields
 
+  // Build era narrative lookup: eraId -> narrative record
+  // Era entities that have completed narratives will be suppressed from the page index
+  // (their name/slug lookups will redirect to the era narrative page instead)
+  const eraNarrativeByEraId = new Map<string, EraNarrativeViewRecord>();
+  for (const narrative of eraNarratives) {
+    if (narrative.status === 'complete' && narrative.content) {
+      eraNarrativeByEraId.set(narrative.eraId, narrative);
+    }
+  }
+
   // Build entity index entries
   for (const entity of worldData.hardState) {
     // Summary and description are now directly on entity
@@ -351,6 +267,11 @@ export function buildPageIndex(
         .map((alias) => alias.trim())
         .filter(Boolean)
       : [];
+
+    // When an era has a completed narrative, suppress the era entity page:
+    // keep it in byId (for direct ID lookups) but exclude from entries/byName/bySlug
+    // so it doesn't appear in lists, search, or name-based link resolution.
+    const hasEraNarrative = entity.kind === 'era' && eraNarrativeByEraId.has(entity.id);
 
     const entry: PageIndexEntry = {
       id: entity.id,
@@ -368,15 +289,19 @@ export function buildPageIndex(
       lastUpdated: entity.updatedAt || entity.createdAt,
     };
 
-    entries.push(entry);
     byId.set(entry.id, entry);
-    byName.set(entity.name.toLowerCase(), entity.id);
 
-    // Index by slug for URL resolution (name slug + slug aliases from renames)
-    const nameSlug = slugify(entity.name);
-    if (nameSlug && !bySlug.has(nameSlug)) {
-      bySlug.set(nameSlug, entity.id);
+    if (!hasEraNarrative) {
+      entries.push(entry);
+      byName.set(entity.name.toLowerCase(), entity.id);
+
+      // Index by slug for URL resolution (name slug + slug aliases from renames)
+      const nameSlug = slugify(entity.name);
+      if (nameSlug && !bySlug.has(nameSlug)) {
+        bySlug.set(nameSlug, entity.id);
+      }
     }
+
     const slugAliases: string[] = (entity.enrichment as any)?.slugAliases || [];
     for (const sa of slugAliases) {
       if (sa && !bySlug.has(sa)) {
@@ -389,6 +314,46 @@ export function buildPageIndex(
       if (!byName.has(normalized) && !byAlias.has(normalized)) {
         byAlias.set(normalized, entity.id);
       }
+    }
+  }
+
+  // Build era narrative index entries
+  // These replace era entity pages: name/slug lookups resolve here instead
+  for (const narrative of eraNarrativeByEraId.values()) {
+    const narrativeSlug = `era-narrative/${slugify(narrative.eraName)}`;
+
+    const entry: PageIndexEntry = {
+      id: narrative.narrativeId,
+      title: narrative.eraName,
+      type: 'era_narrative',
+      slug: narrativeSlug,
+      summary: narrative.thesis || undefined,
+      categories: [],
+      eraNarrative: {
+        eraId: narrative.eraId,
+        tone: narrative.tone,
+        thesis: narrative.thesis,
+        sourceChronicleIds: narrative.sourceChronicles.map(s => s.chronicleId),
+      },
+      coverImageId: narrative.coverImage?.status === 'complete' && narrative.coverImage?.generatedImageId
+        ? narrative.coverImage.generatedImageId
+        : undefined,
+      linkedEntities: [], // Computed on full page build
+      lastUpdated: narrative.updatedAt,
+    };
+
+    entries.push(entry);
+    byId.set(entry.id, entry);
+
+    // Override name/slug to point to era narrative instead of era entity
+    byName.set(narrative.eraName.toLowerCase(), narrative.narrativeId);
+    if (narrativeSlug) {
+      bySlug.set(narrativeSlug, narrative.narrativeId);
+    }
+    // Also claim the bare era name slug so [[Era Name]] links work
+    const bareSlug = slugify(narrative.eraName);
+    if (bareSlug) {
+      bySlug.set(bareSlug, narrative.narrativeId);
     }
   }
 
@@ -417,6 +382,9 @@ export function buildPageIndex(
         selectedRelationshipIds: chronicle.selectedRelationshipIds,
         temporalContext: chronicle.temporalContext,
       },
+      coverImageId: chronicle.coverImage?.status === 'complete' && chronicle.coverImage?.generatedImageId
+        ? chronicle.coverImage.generatedImageId
+        : undefined,
       linkedEntities: chronicle.selectedEntityIds,
       lastUpdated: chronicle.acceptedAt || chronicle.updatedAt,
     };
@@ -607,58 +575,6 @@ export function buildPageIndex(
     }
   }
 
-  // Build conflux index entries from narrative history
-  const confluxIndex = confluxIndexOverride ?? buildConfluxIndex(worldData.narrativeHistory ?? []);
-  for (const [confluxId, summary] of confluxIndex) {
-    const confluxPageId = `conflux:${confluxId}`;
-    const entry: PageIndexEntry = {
-      id: confluxPageId,
-      title: summary.name,
-      type: 'conflux',
-      slug: `conflux/${slugify(confluxId)}`,
-      summary: summary.description || `${summary.manifestations} manifestations affecting ${summary.touchedEntityIds.length} entities`,
-      categories: ['conflux', `conflux-${summary.sourceType}`],
-      conflux: {
-        confluxId,
-        sourceType: summary.sourceType,
-        manifestations: summary.manifestations,
-        touchedCount: summary.touchedEntityIds.length,
-      },
-      linkedEntities: summary.touchedEntityIds,
-      lastUpdated: Date.now(),
-    };
-
-    entries.push(entry);
-    byId.set(entry.id, entry);
-  }
-
-  // Build huddle index entries from entity relationships (excludes historical by default)
-  const allRelationships = worldData.relationships ?? [];
-  const { huddleTypes } = buildHuddleIndex(worldData.hardState, allRelationships);
-  for (const [huddleTypeId, huddleType] of huddleTypes) {
-    const huddleTypePageId = `huddle-type:${huddleTypeId}`;
-    const entry: PageIndexEntry = {
-      id: huddleTypePageId,
-      title: huddleType.displayName,
-      type: 'huddle-type',
-      slug: `huddle/${slugify(huddleTypeId)}`,
-      summary: `${huddleType.instanceCount} ${huddleType.instanceCount === 1 ? 'huddle' : 'huddles'}, largest has ${huddleType.largestSize} ${huddleType.entityKind}s`,
-      categories: ['huddle', `huddle-${huddleType.entityKind}`],
-      huddleType: {
-        entityKind: huddleType.entityKind,
-        relationshipKind: huddleType.relationshipKind,
-        instanceCount: huddleType.instanceCount,
-        largestSize: huddleType.largestSize,
-        totalEntities: huddleType.totalEntities,
-      },
-      linkedEntities: [],
-      lastUpdated: Date.now(),
-    };
-
-    entries.push(entry);
-    byId.set(entry.id, entry);
-  }
-
   // Build disambiguation index: group pages by base name (after namespace prefix)
   const byBaseName = new Map<string, DisambiguationEntry[]>();
   for (const entry of entries) {
@@ -706,7 +622,8 @@ export function buildPageById(
   pageIndex: WikiPageIndex,
   chronicles: ChronicleRecord[] = [],
   staticPages: StaticPage[] = [],
-  prominenceScale?: ProminenceScale
+  prominenceScale?: ProminenceScale,
+  eraNarratives: EraNarrativeViewRecord[] = [],
 ): WikiPage | null {
   const resolvedProminenceScale = resolveProminenceScale(worldData, prominenceScale);
   let indexEntry = pageIndex.byId.get(pageId);
@@ -728,6 +645,13 @@ export function buildPageById(
     const entity = worldData.hardState.find(e => e.id === pageId);
     if (!entity) return null;
     return buildEntityPage(entity, worldData, loreIndex, imageIndex, aliasIndex, resolvedProminenceScale, chronicles);
+  }
+
+  // Era narrative page - long-form era synthesis
+  if (indexEntry.type === 'era_narrative') {
+    const narrative = eraNarratives.find(n => n.narrativeId === pageId);
+    if (!narrative) return null;
+    return buildEraNarrativePage(narrative, worldData, aliasIndex, pageIndex.byName);
   }
 
   // Chronicle page - look up in ChronicleRecords
@@ -777,19 +701,162 @@ export function buildPageById(
     return buildRegionPage(regionInfo.region, regionInfo.entityKind, worldData, aliasIndex);
   }
 
-  // Conflux page
-  if (indexEntry.type === 'conflux') {
-    const confluxId = pageId.replace('conflux:', '');
-    return buildConfluxPage(confluxId, worldData, pageIndex);
-  }
-
-  // Huddle type page
-  if (indexEntry.type === 'huddle-type') {
-    const huddleTypeId = pageId.replace('huddle-type:', '');
-    return buildHuddleTypePage(huddleTypeId, worldData);
-  }
-
   return null;
+}
+
+/**
+ * Build a single era narrative page from an EraNarrativeViewRecord.
+ * Long-form prose treated similarly to chronicle pages.
+ */
+function buildEraNarrativePage(
+  narrative: EraNarrativeViewRecord,
+  worldData: WorldState,
+  aliasIndex: Map<string, string>,
+  pageNameIndex?: Map<string, string>,
+): WikiPage {
+  const content = narrative.content;
+  const narrativeSlug = `era-narrative/${slugify(narrative.eraName)}`;
+
+  // Parse prose into sections (same approach as chronicles)
+  const { sections } = buildEraNarrativeSections(content);
+
+  // Attach image refs to sections — adapt era narrative refs to the chronicle ref shape
+  if (narrative.imageRefs?.refs) {
+    const adaptedRefs: ChronicleImageRef[] = narrative.imageRefs.refs
+      .map(ref => {
+        if (ref.type === 'chronicle_ref' && ref.imageId) {
+          // Chronicle ref already has imageId — present as a completed prompt_request
+          return {
+            refId: ref.refId,
+            anchorText: ref.anchorText,
+            anchorIndex: ref.anchorIndex,
+            size: ref.size as ChronicleImageRef['size'],
+            justification: ref.justification,
+            caption: ref.caption,
+            type: 'prompt_request' as const,
+            status: 'complete' as const,
+            generatedImageId: ref.imageId,
+          };
+        }
+        if (ref.type === 'prompt_request') {
+          return {
+            refId: ref.refId,
+            anchorText: ref.anchorText,
+            anchorIndex: ref.anchorIndex,
+            size: ref.size as ChronicleImageRef['size'],
+            justification: ref.justification,
+            caption: ref.caption,
+            type: 'prompt_request' as const,
+            sceneDescription: ref.sceneDescription,
+            status: ref.status as ChronicleImageRef['status'],
+            generatedImageId: ref.generatedImageId,
+          };
+        }
+        return null;
+      })
+      .filter((r): r is ChronicleImageRef => r !== null);
+
+    if (adaptedRefs.length > 0) {
+      attachImagesToSections(sections, adaptedRefs, worldData);
+    }
+  }
+
+  const linkableNames = buildLinkableNamesForBacklinks(worldData, pageNameIndex);
+  const linkedSections = sections.map(section => ({
+    ...section,
+    content: applyWikiLinks(section.content, linkableNames),
+  }));
+
+  const linkedEntities = extractLinkedEntities(linkedSections, worldData, aliasIndex, pageNameIndex);
+
+  // Source chronicles section
+  const sourceChronicleIds = narrative.sourceChronicles.map(s => s.chronicleId);
+
+  // Cover image
+  const coverImageId = narrative.coverImage?.status === 'complete' && narrative.coverImage?.generatedImageId
+    ? narrative.coverImage.generatedImageId
+    : undefined;
+
+  return {
+    id: narrative.narrativeId,
+    slug: narrativeSlug,
+    title: narrative.eraName,
+    type: 'era_narrative',
+    eraNarrative: {
+      eraId: narrative.eraId,
+      tone: narrative.tone,
+      thesis: narrative.thesis,
+      sourceChronicleIds,
+    },
+    content: {
+      sections,
+      summary: narrative.thesis || undefined,
+      coverImageId,
+    },
+    categories: [],
+    linkedEntities: Array.from(new Set(linkedEntities)),
+    images: [],
+    lastUpdated: narrative.updatedAt,
+  };
+}
+
+/**
+ * Parse era narrative prose into wiki sections.
+ * Splits on ## headings, similar to chronicle/static page parsing.
+ */
+function buildEraNarrativeSections(content: string): { sections: WikiSection[] } {
+  const trimmed = content.trim();
+  if (!trimmed) {
+    return { sections: [] };
+  }
+
+  let body = trimmed;
+  // Strip leading H1 if present (era name as title is shown separately)
+  if (body.startsWith('# ')) {
+    const lines = body.split('\n');
+    body = lines.slice(1).join('\n').trim();
+  }
+
+  const sections: WikiSection[] = [];
+  let currentHeading = 'Narrative';
+  let buffer: string[] = [];
+  let sectionIndex = 0;
+
+  const flush = () => {
+    const sectionBody = buffer.join('\n').trim();
+    if (!sectionBody) return;
+    sections.push({
+      id: `era-narrative-section-${sectionIndex}`,
+      heading: currentHeading,
+      level: 2,
+      content: sectionBody,
+    });
+    sectionIndex++;
+  };
+
+  for (const line of body.split('\n')) {
+    if (line.startsWith('## ')) {
+      flush();
+      currentHeading = line.replace(/^##\s+/, '').trim() || 'Narrative';
+      buffer = [];
+      continue;
+    }
+    buffer.push(line);
+  }
+
+  flush();
+
+  // If no sections were created (no ## headings), wrap entire content as one section
+  if (sections.length === 0 && body) {
+    sections.push({
+      id: 'era-narrative-section-0',
+      heading: 'Narrative',
+      level: 2,
+      content: body,
+    });
+  }
+
+  return { sections };
 }
 
 /**
@@ -1304,35 +1371,11 @@ function buildEntityPage(
       });
     }
   } else if (entity.description) {
-    // Use entity's description field (now stored directly on entity)
-    const backrefs = entity.enrichment?.chronicleBackrefs || [];
-
-    // Attach images from backref chronicles using per-backref config
-    const backrefImages: WikiSectionImage[] = [];
-    for (const backref of backrefs) {
-      const chronicle = chronicles.find(c => c.chronicleId === backref.chronicleId);
-      if (!chronicle) continue;
-
-      const imageId = resolveBackrefImageId(backref, chronicle, worldData.hardState);
-      if (imageId) {
-        backrefImages.push({
-          refId: `backref-${backref.chronicleId}`,
-          type: 'chronicle_image',
-          imageId,
-          anchorText: backref.anchorPhrase,
-          size: backref.imageSize || 'medium',
-          justification: backref.imageAlignment || 'left',
-          caption: chronicle.title,
-        });
-      }
-    }
-
     sections.push({
       id: `section-${sectionIndex++}`,
       heading: 'Overview',
       level: 2,
-      content: injectBackrefFootnotes(entity.description, backrefs),
-      images: backrefImages.length > 0 ? backrefImages : undefined,
+      content: entity.description,
     });
   }
 
@@ -1974,845 +2017,4 @@ function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-// ============================================================================
-// Conflux Functions - Build system/action activity pages
-// ============================================================================
-
-/**
- * Build an index of all confluxes (systems/actions) from narrative history.
- * Groups events by their causedBy.actionType and aggregates statistics.
- */
-export function buildConfluxIndex(
-  narrativeHistory: NarrativeEvent[]
-): Map<string, ConfluxSummary> {
-  const confluxMap = new Map<string, ConfluxSummary>();
-
-  for (const event of narrativeHistory) {
-    // Skip events without causedBy info
-    if (!event.causedBy?.actionType) continue;
-
-    // Skip failed action attempts - only count successful manifestations
-    // (failed actions still generate prominence change events, but shouldn't inflate frequency)
-    if (event.causedBy.success === false) continue;
-
-    // Parse the action type to get conflux ID and source type
-    // Format: "system:corruption_harm" or "action:cleanse_corruption" or "template:hero_emergence"
-    // May also have entity suffix: "system:corruption_harm:npc_123"
-    const actionType = event.causedBy.actionType;
-    let sourceType: 'system' | 'action' | 'template' = 'system';
-    let confluxId: string;
-
-    if (actionType.startsWith('system:')) {
-      sourceType = 'system';
-      confluxId = actionType.substring(7); // Remove "system:" prefix
-    } else if (actionType.startsWith('action:')) {
-      sourceType = 'action';
-      confluxId = actionType.substring(7); // Remove "action:" prefix
-    } else if (actionType.startsWith('template:')) {
-      sourceType = 'template';
-      confluxId = actionType.substring(9); // Remove "template:" prefix
-    } else {
-      // Assume it's a template ID without prefix
-      sourceType = 'template';
-      confluxId = actionType;
-    }
-
-    // Strip entity suffix if present (e.g., "corruption_harm:npc_123" -> "corruption_harm")
-    const colonIndex = confluxId.indexOf(':');
-    if (colonIndex > 0) {
-      confluxId = confluxId.substring(0, colonIndex);
-    }
-
-    // Get or create summary
-    let summary = confluxMap.get(confluxId);
-    if (!summary) {
-      summary = {
-        confluxId,
-        name: formatConfluxName(confluxId),
-        sourceType,
-        manifestations: 0,
-        touchedEntityIds: [],
-        effectCounts: {},
-        tagsAdded: [],
-        tagsRemoved: [],
-        relationshipsCreated: [],
-        relationshipsEnded: [],
-        tickRange: { first: event.tick, last: event.tick },
-      };
-      confluxMap.set(confluxId, summary);
-    }
-
-    // Update statistics
-    summary.manifestations++;
-    summary.tickRange.first = Math.min(summary.tickRange.first, event.tick);
-    summary.tickRange.last = Math.max(summary.tickRange.last, event.tick);
-
-    // Collect touched entities and effects from participantEffects
-    const touchedSet = new Set(summary.touchedEntityIds);
-    const tagsAddedSet = new Set(summary.tagsAdded);
-    const tagsRemovedSet = new Set(summary.tagsRemoved);
-    const relCreatedSet = new Set(summary.relationshipsCreated);
-    const relEndedSet = new Set(summary.relationshipsEnded);
-
-    for (const participant of event.participantEffects ?? []) {
-      touchedSet.add(participant.entity.id);
-
-      for (const effect of participant.effects ?? []) {
-        // Count effect types
-        summary.effectCounts[effect.type] = (summary.effectCounts[effect.type] || 0) + 1;
-
-        // Track tags
-        if (effect.type === 'tag_gained' && effect.tag) {
-          tagsAddedSet.add(effect.tag);
-        } else if (effect.type === 'tag_lost' && effect.tag) {
-          tagsRemovedSet.add(effect.tag);
-        }
-
-        // Track relationships
-        if (effect.type === 'relationship_formed' && effect.relationshipKind) {
-          relCreatedSet.add(effect.relationshipKind);
-        } else if (effect.type === 'relationship_ended' && effect.relationshipKind) {
-          relEndedSet.add(effect.relationshipKind);
-        }
-      }
-    }
-
-    summary.touchedEntityIds = Array.from(touchedSet);
-    summary.tagsAdded = Array.from(tagsAddedSet);
-    summary.tagsRemoved = Array.from(tagsRemovedSet);
-    summary.relationshipsCreated = Array.from(relCreatedSet);
-    summary.relationshipsEnded = Array.from(relEndedSet);
-  }
-
-  return confluxMap;
-}
-
-/**
- * Format a conflux ID into a display name.
- * e.g., "corruption_harm" -> "Corruption Harm"
- */
-function formatConfluxName(confluxId: string): string {
-  return confluxId
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-/**
- * Map internal source types to in-universe terminology:
- * - system → "Tide" (recurring background force)
- * - action → "Deed" (deliberate act by an entity)
- * - template → "Emergence" (things coming into being)
- */
-function getSourceTypeLabel(sourceType: string): string {
-  const labels: Record<string, string> = {
-    system: 'Tide',
-    action: 'Deed',
-    template: 'Emergence',
-  };
-  return labels[sourceType] || sourceType;
-}
-
-/**
- * Detect convergences between complementary confluxes.
- * A convergence exists when one conflux adds a tag/relationship that another removes.
- */
-export function detectConvergences(
-  confluxIndex: Map<string, ConfluxSummary>,
-  narrativeHistory: NarrativeEvent[]
-): ConvergenceResult[] {
-  const convergences: ConvergenceResult[] = [];
-  const processedPairs = new Set<string>();
-
-  const confluxes = Array.from(confluxIndex.values());
-
-  for (const confluxA of confluxes) {
-    for (const confluxB of confluxes) {
-      if (confluxA.confluxId === confluxB.confluxId) continue;
-
-      // Create a canonical pair key to avoid duplicates
-      const pairKey = [confluxA.confluxId, confluxB.confluxId].sort().join('|');
-      if (processedPairs.has(pairKey)) continue;
-
-      // Check for tag complementarity: A adds what B removes
-      const tagOverlap = confluxA.tagsAdded.filter(tag => confluxB.tagsRemoved.includes(tag));
-
-      // Check for relationship complementarity: A creates what B ends
-      const relOverlap = confluxA.relationshipsCreated.filter(rel =>
-        confluxB.relationshipsEnded.includes(rel)
-      );
-
-      if (tagOverlap.length > 0 || relOverlap.length > 0) {
-        processedPairs.add(pairKey);
-
-        // Find entities that went through both confluxes
-        const journeys = buildEntityJourneys(confluxA, confluxB, narrativeHistory);
-
-        if (journeys.length > 0) {
-          convergences.push({
-            confluxes: [confluxA.confluxId, confluxB.confluxId],
-            confluxNames: [confluxA.name, confluxB.name],
-            journeys,
-          });
-        }
-      }
-    }
-  }
-
-  return convergences;
-}
-
-/**
- * Build entity journeys through a pair of complementary confluxes.
- */
-function buildEntityJourneys(
-  confluxA: ConfluxSummary,
-  confluxB: ConfluxSummary,
-  narrativeHistory: NarrativeEvent[]
-): EntityConvergence[] {
-  // Find entities that appear in both confluxes
-  const sharedEntityIds = confluxA.touchedEntityIds.filter(id =>
-    confluxB.touchedEntityIds.includes(id)
-  );
-
-  if (sharedEntityIds.length === 0) return [];
-
-  // Group events by conflux
-  const eventsByConflux = new Map<string, NarrativeEvent[]>();
-
-  for (const event of narrativeHistory) {
-    if (!event.causedBy?.actionType) continue;
-
-    const actionType = event.causedBy.actionType;
-    let confluxId = actionType;
-
-    // Strip prefix
-    if (actionType.startsWith('system:')) confluxId = actionType.substring(7);
-    else if (actionType.startsWith('action:')) confluxId = actionType.substring(7);
-    else if (actionType.startsWith('template:')) confluxId = actionType.substring(9);
-
-    // Strip entity suffix
-    const colonIndex = confluxId.indexOf(':');
-    if (colonIndex > 0) confluxId = confluxId.substring(0, colonIndex);
-
-    if (!eventsByConflux.has(confluxId)) {
-      eventsByConflux.set(confluxId, []);
-    }
-    eventsByConflux.get(confluxId)!.push(event);
-  }
-
-  const confluxAEvents = eventsByConflux.get(confluxA.confluxId) ?? [];
-  const confluxBEvents = eventsByConflux.get(confluxB.confluxId) ?? [];
-
-  // Build journeys for shared entities
-  const journeys: EntityConvergence[] = [];
-
-  for (const entityId of sharedEntityIds) {
-    // Find events where this entity participated
-    const aEvents = confluxAEvents.filter(e =>
-      e.participantEffects?.some(p => p.entity.id === entityId)
-    );
-    const bEvents = confluxBEvents.filter(e =>
-      e.participantEffects?.some(p => p.entity.id === entityId)
-    );
-
-    if (aEvents.length > 0 || bEvents.length > 0) {
-      // Get entity name from first event
-      const firstEvent = aEvents[0] ?? bEvents[0];
-      const participant = firstEvent?.participantEffects?.find(p => p.entity.id === entityId);
-
-      journeys.push({
-        entityId,
-        entityName: participant?.entity.name ?? entityId,
-        entityKind: participant?.entity.kind ?? 'unknown',
-        confluxAEvents: aEvents.sort((a, b) => a.tick - b.tick),
-        confluxBEvents: bEvents.sort((a, b) => a.tick - b.tick),
-        complete: aEvents.length > 0 && bEvents.length > 0,
-      });
-    }
-  }
-
-  // Sort by complete (complete first), then by entity name
-  return journeys.sort((a, b) => {
-    if (a.complete !== b.complete) return a.complete ? -1 : 1;
-    return a.entityName.localeCompare(b.entityName);
-  });
-}
-
-/**
- * Build a conflux wiki page.
- */
-function buildConfluxPage(
-  confluxId: string,
-  worldData: WorldState,
-  _pageIndex: WikiPageIndex  // Kept for API consistency with other page builders
-): WikiPage | null {
-  const narrativeHistory = worldData.narrativeHistory ?? [];
-  const confluxIndex = buildConfluxIndex(narrativeHistory);
-
-  // Build entity lookup from hardState for resolving current names
-  // Narrative history stores snapshot names at event time, which may differ from
-  // the entity's current name. Using hardState names ensures link resolution works.
-  const entityById = new Map<string, HardState>();
-  for (const entity of worldData.hardState) {
-    entityById.set(entity.id, entity);
-  }
-  const summary = confluxIndex.get(confluxId);
-
-  if (!summary) return null;
-
-  // Detect convergences
-  const allConvergences = detectConvergences(confluxIndex, narrativeHistory);
-  const relevantConvergences = allConvergences.filter(
-    c => c.confluxes.includes(confluxId)
-  );
-
-  // Get events for this conflux
-  const events = narrativeHistory.filter(event => {
-    if (!event.causedBy?.actionType) return false;
-    const actionType = event.causedBy.actionType;
-    let parsedId = actionType;
-
-    if (actionType.startsWith('system:')) parsedId = actionType.substring(7);
-    else if (actionType.startsWith('action:')) parsedId = actionType.substring(7);
-    else if (actionType.startsWith('template:')) parsedId = actionType.substring(9);
-
-    const colonIndex = parsedId.indexOf(':');
-    if (colonIndex > 0) parsedId = parsedId.substring(0, colonIndex);
-
-    return parsedId === confluxId;
-  }).sort((a, b) => a.tick - b.tick);
-
-  // Count effects per entity
-  const entityEffectCounts = new Map<string, { id: string; name: string; kind: string; count: number }>();
-  for (const event of events) {
-    for (const participant of event.participantEffects ?? []) {
-      const existing = entityEffectCounts.get(participant.entity.id);
-      const effectCount = participant.effects?.length ?? 0;
-      if (existing) {
-        existing.count += effectCount;
-      } else {
-        entityEffectCounts.set(participant.entity.id, {
-          id: participant.entity.id,
-          name: participant.entity.name,
-          kind: participant.entity.kind,
-          count: effectCount,
-        });
-      }
-    }
-  }
-
-  // Top 10 most touched entities
-  // Use current names from hardState for link resolution, falling back to snapshot names
-  const mostTouched = Array.from(entityEffectCounts.values())
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10)
-    .map(e => {
-      const currentEntity = entityById.get(e.id);
-      return {
-        entityId: e.id,
-        // Use current name from hardState for link resolution
-        entityName: currentEntity?.name ?? e.name,
-        entityKind: currentEntity?.kind ?? e.kind,
-        effectCount: e.count,
-      };
-    });
-
-  // Find related confluxes (share entities)
-  const relatedConfluxes: ConfluxPageData['relatedConfluxes'] = [];
-  for (const [otherId, otherSummary] of confluxIndex) {
-    if (otherId === confluxId) continue;
-
-    const sharedCount = summary.touchedEntityIds.filter(id =>
-      otherSummary.touchedEntityIds.includes(id)
-    ).length;
-
-    if (sharedCount > 0) {
-      const hasConvergence = relevantConvergences.some(
-        c => c.confluxes.includes(otherId)
-      );
-
-      relatedConfluxes.push({
-        confluxId: otherId,
-        name: otherSummary.name,
-        sharedCount,
-        convergenceDetected: hasConvergence,
-      });
-    }
-  }
-
-  // Sort by shared count descending
-  relatedConfluxes.sort((a, b) => b.sharedCount - a.sharedCount);
-
-  // Build page data
-  const confluxData: ConfluxPageData = {
-    summary,
-    events,
-    relatedConfluxes,
-    mostTouched,
-    convergences: relevantConvergences,
-  };
-
-  // Build sections
-  const sections: WikiSection[] = [];
-
-  // Overview section
-  const effectSummary = Object.entries(summary.effectCounts)
-    .map(([type, count]) => `${count} ${type.replace(/_/g, ' ')}`)
-    .join(', ');
-
-  const sourceLabel = getSourceTypeLabel(summary.sourceType);
-  sections.push({
-    id: 'overview',
-    heading: 'Overview',
-    level: 2,
-    content: [
-      summary.description || `A ${sourceLabel.toLowerCase()} that has manifested ${summary.manifestations} times.`,
-      '',
-      `**Nature:** ${sourceLabel}`,
-      `**Active Period:** Tick ${summary.tickRange.first} - ${summary.tickRange.last}`,
-      `**Entities Touched:** ${summary.touchedEntityIds.length}`,
-      effectSummary ? `**Effects:** ${effectSummary}` : '',
-    ].filter(Boolean).join('\n'),
-  });
-
-  // Tags section (if any)
-  if (summary.tagsAdded.length > 0 || summary.tagsRemoved.length > 0) {
-    const tagLines: string[] = [];
-    if (summary.tagsAdded.length > 0) {
-      tagLines.push(`**Tags Added:** ${summary.tagsAdded.map(t => t.replace(/_/g, ' ')).join(', ')}`);
-    }
-    if (summary.tagsRemoved.length > 0) {
-      tagLines.push(`**Tags Removed:** ${summary.tagsRemoved.map(t => t.replace(/_/g, ' ')).join(', ')}`);
-    }
-
-    sections.push({
-      id: 'tags',
-      heading: 'Tag Effects',
-      level: 2,
-      content: tagLines.join('\n'),
-    });
-  }
-
-  // Relationships section (if any)
-  if (summary.relationshipsCreated.length > 0 || summary.relationshipsEnded.length > 0) {
-    const relLines: string[] = [];
-    if (summary.relationshipsCreated.length > 0) {
-      relLines.push(`**Relationships Created:** ${summary.relationshipsCreated.map(r => r.replace(/_/g, ' ')).join(', ')}`);
-    }
-    if (summary.relationshipsEnded.length > 0) {
-      relLines.push(`**Relationships Ended:** ${summary.relationshipsEnded.map(r => r.replace(/_/g, ' ')).join(', ')}`);
-    }
-
-    sections.push({
-      id: 'relationships',
-      heading: 'Relationship Effects',
-      level: 2,
-      content: relLines.join('\n'),
-    });
-  }
-
-  // Those Touched section
-  // Use [[EntityName|entityId]] format so links can be resolved by ID
-  // (some entities may exist in narrativeHistory but not in hardState)
-  if (mostTouched.length > 0) {
-    const touchedLines = mostTouched.map(e =>
-      `- [[${e.entityName}|${e.entityId}]] (${e.entityKind}) - ${e.effectCount} effects`
-    );
-
-    sections.push({
-      id: 'touched',
-      heading: 'Those Most Touched',
-      level: 2,
-      content: touchedLines.join('\n'),
-    });
-  }
-
-  // Related Forces section
-  if (relatedConfluxes.length > 0) {
-    const relatedLines = relatedConfluxes.slice(0, 10).map(r => {
-      const convergenceNote = r.convergenceDetected ? ' *(convergence detected)*' : '';
-      return `- **${r.name}** - ${r.sharedCount} shared entities${convergenceNote}`;
-    });
-
-    sections.push({
-      id: 'related',
-      heading: 'Related Forces',
-      level: 2,
-      content: relatedLines.join('\n'),
-    });
-  }
-
-  // Convergences section
-  if (relevantConvergences.length > 0) {
-    const convergenceLines: string[] = [];
-    for (const conv of relevantConvergences) {
-      const otherConflux = conv.confluxes.find(c => c !== confluxId);
-      const otherName = conv.confluxNames[conv.confluxes.indexOf(otherConflux!)];
-      const completeJourneys = conv.journeys.filter(j => j.complete);
-
-      convergenceLines.push(`### ${summary.name} ↔ ${otherName}`);
-      convergenceLines.push(`${completeJourneys.length} entities completed this convergence:`);
-      convergenceLines.push('');
-
-      for (const journey of completeJourneys.slice(0, 5)) {
-        const firstA = journey.confluxAEvents[0];
-        const firstB = journey.confluxBEvents[0];
-        // Use current name from hardState for link resolution, with ID fallback
-        const currentEntity = entityById.get(journey.entityId);
-        const entityName = currentEntity?.name ?? journey.entityName;
-        // Use [[EntityName|entityId]] format so links can be resolved by ID
-        convergenceLines.push(
-          `- [[${entityName}|${journey.entityId}]]: tick ${firstA?.tick ?? '?'} → tick ${firstB?.tick ?? '?'}`
-        );
-      }
-
-      if (completeJourneys.length > 5) {
-        convergenceLines.push(`- *...and ${completeJourneys.length - 5} more*`);
-      }
-      convergenceLines.push('');
-    }
-
-    sections.push({
-      id: 'convergences',
-      heading: 'Convergences',
-      level: 2,
-      content: convergenceLines.join('\n'),
-    });
-  }
-
-  return {
-    id: `conflux:${confluxId}`,
-    slug: `conflux/${slugify(confluxId)}`,
-    title: summary.name,
-    type: 'conflux',
-    conflux: confluxData,
-    content: {
-      sections,
-      summary: summary.description,
-    },
-    categories: ['conflux', `conflux-${summary.sourceType}`],
-    linkedEntities: summary.touchedEntityIds,
-    images: [],
-    timelineEvents: events,
-    lastUpdated: Date.now(),
-  };
-}
-
-// =============================================================================
-// HUDDLE DETECTION - Connected subgraphs of same-kind entities
-// =============================================================================
-
-/**
- * Format a huddle type ID into a human-readable display name.
- * E.g., "faction-allied_with" -> "Faction Alliances"
- */
-function formatHuddleTypeName(entityKind: string, relationshipKind: string): string {
-  // Capitalize and pluralize entity kind
-  const entityDisplay = entityKind.charAt(0).toUpperCase() + entityKind.slice(1);
-
-  // Convert relationship to noun form
-  const relDisplay = relationshipKind
-    .replace(/_/g, ' ')
-    .replace(/allied with/i, 'Alliances')
-    .replace(/trades with/i, 'Trade Networks')
-    .replace(/enemy of/i, 'Rivalries')
-    .replace(/member of/i, 'Memberships')
-    .replace(/parent of/i, 'Family Trees')
-    .replace(/worships/i, 'Worship Networks')
-    .replace(/accomplice of/i, 'Criminal Networks')
-    .replace(/protects/i, 'Protection Networks')
-    .replace(/mentors/i, 'Mentorship Chains');
-
-  // If no special case matched, use generic format
-  if (relDisplay === relationshipKind.replace(/_/g, ' ')) {
-    return `${entityDisplay} ${relDisplay.charAt(0).toUpperCase() + relDisplay.slice(1)} Huddles`;
-  }
-
-  return `${entityDisplay} ${relDisplay}`;
-}
-
-/**
- * Find connected components in a graph using BFS.
- * Returns array of components, each being an array of entity IDs.
- */
-function findConnectedComponents(
-  adjacencyList: Map<string, Set<string>>
-): string[][] {
-  const visited = new Set<string>();
-  const components: string[][] = [];
-
-  for (const nodeId of adjacencyList.keys()) {
-    if (visited.has(nodeId)) continue;
-
-    // BFS to find all nodes in this component
-    const component: string[] = [];
-    const queue: string[] = [nodeId];
-    visited.add(nodeId);
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      component.push(current);
-
-      const neighbors = adjacencyList.get(current) ?? new Set();
-      for (const neighbor of neighbors) {
-        if (!visited.has(neighbor)) {
-          visited.add(neighbor);
-          queue.push(neighbor);
-        }
-      }
-    }
-
-    components.push(component);
-  }
-
-  return components;
-}
-
-/**
- * Detect all huddles in the world graph.
- * A huddle is a connected subgraph where all nodes are the same entity kind
- * and all edges are the same relationship kind.
- *
- * By default, excludes historical relationships (only includes active ones).
- *
- * Returns a map of huddle type ID to HuddleType with instances.
- */
-export function buildHuddleIndex(
-  entities: HardState[],
-  relationships: Array<{ kind: string; src: string; dst: string; strength?: number; status?: 'active' | 'historical' }>,
-  options: { includeHistorical?: boolean } = {}
-): { huddleTypes: Map<string, HuddleType>; instances: Map<string, HuddleInstance[]> } {
-  const { includeHistorical = false } = options;
-  const entityById = new Map(entities.map(e => [e.id, e]));
-
-  // Group relationships by kind, filtering to same-kind entity pairs
-  const relsByKindAndEntityKind = new Map<string, {
-    entityKind: string;
-    edges: Array<{ src: string; dst: string; strength?: number }>;
-  }>();
-
-  for (const rel of relationships) {
-    // Skip historical relationships by default
-    if (!includeHistorical && rel.status === 'historical') continue;
-
-    const srcEntity = entityById.get(rel.src);
-    const dstEntity = entityById.get(rel.dst);
-
-    // Skip if entities don't exist or are different kinds
-    if (!srcEntity || !dstEntity) continue;
-    if (srcEntity.kind !== dstEntity.kind) continue;
-
-    const key = `${srcEntity.kind}-${rel.kind}`;
-
-    if (!relsByKindAndEntityKind.has(key)) {
-      relsByKindAndEntityKind.set(key, {
-        entityKind: srcEntity.kind,
-        edges: [],
-      });
-    }
-
-    relsByKindAndEntityKind.get(key)!.edges.push({
-      src: rel.src,
-      dst: rel.dst,
-      strength: rel.strength,
-    });
-  }
-
-  const huddleTypes = new Map<string, HuddleType>();
-  const instances = new Map<string, HuddleInstance[]>();
-
-  for (const [key, data] of relsByKindAndEntityKind) {
-    const [entityKind, relationshipKind] = key.split('-', 2);
-
-    // Build adjacency list (undirected graph)
-    const adjacencyList = new Map<string, Set<string>>();
-
-    for (const edge of data.edges) {
-      if (!adjacencyList.has(edge.src)) {
-        adjacencyList.set(edge.src, new Set());
-      }
-      if (!adjacencyList.has(edge.dst)) {
-        adjacencyList.set(edge.dst, new Set());
-      }
-      adjacencyList.get(edge.src)!.add(edge.dst);
-      adjacencyList.get(edge.dst)!.add(edge.src);
-    }
-
-    // Find connected components
-    const components = findConnectedComponents(adjacencyList);
-
-    // Filter to components with 3+ nodes (a huddle needs at least 3 to be interesting)
-    const significantComponents = components.filter(c => c.length >= 3);
-
-    if (significantComponents.length === 0) continue;
-
-    // Sort by size descending
-    significantComponents.sort((a, b) => b.length - a.length);
-
-    // Build huddle instances
-    const huddleInstances: HuddleInstance[] = significantComponents.map((component, index) => {
-      // Count edges within this component
-      const componentSet = new Set(component);
-      let edgeCount = 0;
-      for (const edge of data.edges) {
-        if (componentSet.has(edge.src) && componentSet.has(edge.dst)) {
-          edgeCount++;
-        }
-      }
-
-      // Calculate density (for undirected graph, max edges = n*(n-1)/2)
-      const maxEdges = (component.length * (component.length - 1)) / 2;
-      const density = maxEdges > 0 ? edgeCount / maxEdges : 0;
-
-      return {
-        id: `${key}-${index}`,
-        huddleTypeId: key,
-        size: component.length,
-        entityIds: component,
-        edgeCount,
-        density,
-      };
-    });
-
-    instances.set(key, huddleInstances);
-
-    // Build huddle type summary
-    const totalEntities = significantComponents.reduce((sum, c) => sum + c.length, 0);
-
-    huddleTypes.set(key, {
-      id: key,
-      entityKind,
-      relationshipKind,
-      displayName: formatHuddleTypeName(entityKind, relationshipKind),
-      instanceCount: significantComponents.length,
-      largestSize: significantComponents[0]?.length ?? 0,
-      totalEntities,
-    });
-  }
-
-  return { huddleTypes, instances };
-}
-
-/**
- * Build a huddle type wiki page showing all instances of a huddle type.
- */
-function buildHuddleTypePage(
-  huddleTypeId: string,
-  worldData: WorldState
-): WikiPage | null {
-  const allRelationships = worldData.relationships ?? [];
-  const { huddleTypes, instances } = buildHuddleIndex(worldData.hardState, allRelationships);
-
-  const huddleType = huddleTypes.get(huddleTypeId);
-  if (!huddleType) return null;
-
-  const huddleInstances = instances.get(huddleTypeId) ?? [];
-  const entityById = new Map(worldData.hardState.map(e => [e.id, e]));
-
-  // Build sections
-  const sections: WikiSection[] = [];
-
-  // Overview section
-  sections.push({
-    id: 'overview',
-    heading: 'Overview',
-    level: 2,
-    content: [
-      `A huddle of **${huddleType.entityKind}** entities connected by **${huddleType.relationshipKind.replace(/_/g, ' ')}** relationships.`,
-      '',
-      `**Huddles:** ${huddleType.instanceCount}`,
-      `**Largest Huddle:** ${huddleType.largestSize} entities`,
-      `**Total Entities:** ${huddleType.totalEntities}`,
-    ].join('\n'),
-  });
-
-  // Build sections for each huddle instance (largest first)
-  for (let i = 0; i < huddleInstances.length; i++) {
-    const instance = huddleInstances[i];
-
-    // Get entity details with connection counts
-    const entityDetails = instance.entityIds
-      .map(id => {
-        const entity = entityById.get(id);
-        if (!entity) return null;
-
-        // Count connections within this huddle (only active relationships)
-        let connectionCount = 0;
-        for (const rel of allRelationships) {
-          if (rel.status === 'historical') continue;
-          if (rel.kind !== huddleType.relationshipKind) continue;
-          const srcInHuddle = instance.entityIds.includes(rel.src);
-          const dstInHuddle = instance.entityIds.includes(rel.dst);
-          if ((rel.src === id && dstInHuddle) || (rel.dst === id && srcInHuddle)) {
-            connectionCount++;
-          }
-        }
-
-        return {
-          id: entity.id,
-          name: entity.name,
-          subtype: entity.subtype,
-          connectionCount,
-        };
-      })
-      .filter((e): e is NonNullable<typeof e> => e !== null)
-      .sort((a, b) => b.connectionCount - a.connectionCount);
-
-    // Build entity list
-    const entityLines = entityDetails.map(e =>
-      `| [[${e.name}]] | ${e.subtype || '-'} | ${e.connectionCount} |`
-    );
-
-    const densityPercent = (instance.density * 100).toFixed(1);
-
-    // Use the most connected entity's name for the section heading
-    const mostConnectedEntity = entityDetails[0];
-    const huddleName = mostConnectedEntity
-      ? `${mostConnectedEntity.name}'s Huddle`
-      : `Huddle ${i + 1}`;
-
-    sections.push({
-      id: `huddle-${i}`,
-      heading: huddleName,
-      level: 2,
-      content: [
-        `**Size:** ${instance.size} entities | **Connections:** ${instance.edgeCount} | **Density:** ${densityPercent}%`,
-        '',
-        '| Entity | Subtype | Connections |',
-        '|--------|---------|-------------|',
-        ...entityLines,
-      ].join('\n'),
-    });
-
-    // Only show first 5 instances in detail
-    if (i >= 4 && huddleInstances.length > 5) {
-      const remaining = huddleInstances.length - 5;
-      sections.push({
-        id: 'more-huddles',
-        heading: 'Additional Huddles',
-        level: 2,
-        content: `${remaining} more smaller huddles exist with 3+ entities each.`,
-      });
-      break;
-    }
-  }
-
-  // Collect all linked entities
-  const linkedEntities = huddleInstances.flatMap(inst => inst.entityIds);
-
-  return {
-    id: `huddle-type:${huddleTypeId}`,
-    slug: `huddle/${slugify(huddleTypeId)}`,
-    title: huddleType.displayName,
-    type: 'huddle-type',
-    content: {
-      sections,
-      summary: `${huddleType.instanceCount} ${huddleType.instanceCount === 1 ? 'huddle' : 'huddles'}, largest has ${huddleType.largestSize} ${huddleType.entityKind}s`,
-    },
-    categories: ['huddle', `huddle-${huddleType.entityKind}`],
-    linkedEntities: Array.from(new Set(linkedEntities)),
-    images: [],
-    lastUpdated: Date.now(),
-  };
-}
+// EOF — conflux and huddle functions removed (debugging tools, not shipped to viewer)

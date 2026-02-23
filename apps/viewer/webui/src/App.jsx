@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Fuse from 'fuse.js';
 import { useImageStore, CDNBackend } from '@penguin-tales/image-store';
-import { useNarrativeStore } from '@penguin-tales/narrative-store';
+import { useNarrativeStore, FetchBackend } from '@penguin-tales/narrative-store';
 import { getChronicles, getEntities, getSlotRecord, getStaticPages } from '@penguin-tales/world-store';
-import { overwriteWorldDataInDexie, appendNarrativeEventsToDexie } from './lib/illuminatorDbWriter.js';
-import ArchivistHost from './remotes/ArchivistHost.jsx';
-import ChroniclerHost from './remotes/ChroniclerHost.jsx';
+import { overwriteWorldDataInDexie } from './lib/illuminatorDbWriter.js';
+import ChroniclerRemote from '@chronicler/ChroniclerRemote.tsx';
+import parchmentTileUrl from '@chronicler/assets/textures/parchment-tile.jpg';
 
 /**
  * HeaderSearch - Independent search component for the header bar
@@ -210,91 +210,8 @@ function HeaderSearch({ projectId, slotIndex, dexieSeededAt, onNavigate }) {
   );
 }
 
-const VIEW_OPTIONS = [
-  { value: 'chronicler', label: 'Chronicler', icon: '📜', description: 'Wiki & Lore' },
-  { value: 'archivist', label: 'Archivist', icon: '🗺️', description: 'Graph Explorer' },
-];
-
-function ViewSelector({ value, onChange }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef(null);
-
-  const selectedOption = VIEW_OPTIONS.find(opt => opt.value === value) || VIEW_OPTIONS[0];
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
-
-  const handleSelect = (optionValue) => {
-    if (optionValue !== value) {
-      onChange(optionValue);
-    }
-    setIsOpen(false);
-  };
-
-  return (
-    <div className="view-selector" ref={containerRef}>
-      <button
-        type="button"
-        className={`view-selector-trigger ${isOpen ? 'open' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-      >
-        <span className="view-selector-icon">{selectedOption.icon}</span>
-        <span className="view-selector-label">{selectedOption.label}</span>
-        <span className="view-selector-caret" aria-hidden="true">
-          {isOpen ? '▴' : '▾'}
-        </span>
-      </button>
-      {isOpen && (
-        <div className="view-selector-dropdown" role="listbox">
-          {VIEW_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={`view-selector-option ${option.value === value ? 'selected' : ''}`}
-              onClick={() => handleSelect(option.value)}
-              role="option"
-              aria-selected={option.value === value}
-            >
-              <span className="view-selector-option-icon">{option.icon}</span>
-              <div className="view-selector-option-text">
-                <span className="view-selector-option-label">{option.label}</span>
-                <span className="view-selector-option-desc">{option.description}</span>
-              </div>
-              {option.value === value && (
-                <span className="view-selector-option-check">✓</span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 const DEFAULT_BUNDLE_PATH = 'bundles/default/bundle.json';
 const DEFAULT_BUNDLE_MANIFEST_PATH = 'bundles/default/bundle.manifest.json';
-const CHRONICLER_HASH_PREFIX = '#/page/';
-const ARCHIVIST_HASH_PREFIX = '#/entity/';
-
-function deriveViewFromHash(hash) {
-  if (!hash || hash === '#/' || hash === '#') return 'chronicler';
-  if (hash.startsWith(CHRONICLER_HASH_PREFIX)) return 'chronicler';
-  if (hash === '#/chronicler') return 'chronicler';
-  if (hash.startsWith(ARCHIVIST_HASH_PREFIX)) return 'archivist';
-  if (hash === '#/archivist') return 'archivist';
-  return 'chronicler';
-}
 
 function resolveBaseUrl() {
   const base = import.meta.env.BASE_URL || './';
@@ -375,54 +292,23 @@ async function fetchJson(url, { cache } = {}) {
   return response.json();
 }
 
-function extractChunkItems(payload) {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.items)) return payload.items;
-  return [];
-}
-
 export default function App() {
-  const [activeView, setActiveView] = useState(() => deriveViewFromHash(window.location.hash));
   const [bundle, setBundle] = useState(null);
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
   const [bundleRequestUrl, setBundleRequestUrl] = useState(() => resolveBundleUrl());
-  const [chunkPlan, setChunkPlan] = useState(null);
   const [dexieSeededAt, setDexieSeededAt] = useState(0);
   const loadSequence = useRef(0);
-  const chunkLoadStarted = useRef(false);
   const lastDexieIngestRef = useRef(null);
-  const lastChroniclerHashRef = useRef(
-    window.location.hash.startsWith(CHRONICLER_HASH_PREFIX) ? window.location.hash : null
-  );
 
-  // Requested page for Chronicler (set by cross-MFE navigation, cleared after use)
+  // Requested page for Chronicler (set by search or brand click, cleared after use)
   const [chroniclerRequestedPage, setChroniclerRequestedPage] = useState(null);
-
-  // Listen for cross-MFE navigation events (e.g., Archivist -> Chronicler)
-  useEffect(() => {
-    const handleCrossNavigation = (e) => {
-      const { tab, pageId } = e.detail || {};
-      if (tab === 'chronicler') {
-        if (pageId) {
-          setChroniclerRequestedPage(pageId);
-        }
-        setActiveView('chronicler');
-      } else if (tab === 'archivist') {
-        setActiveView('archivist');
-      }
-    };
-    window.addEventListener('canonry:navigate', handleCrossNavigation);
-    return () => window.removeEventListener('canonry:navigate', handleCrossNavigation);
-  }, []);
 
   const bundleManifestUrl = useMemo(() => resolveBundleManifestUrl(), []);
   const bundleFallbackUrl = useMemo(() => resolveBundleUrl(), []);
 
   const loadBundle = useCallback(async () => {
     const sequence = ++loadSequence.current;
-    chunkLoadStarted.current = false;
-    setChunkPlan(null);
     setStatus('loading');
     setError(null);
     useNarrativeStore.getState().reset();
@@ -456,27 +342,22 @@ export default function App() {
       setBundle(normalized);
       setStatus('ready');
 
-      const chunkFiles = Array.isArray(manifest?.chunks?.narrativeHistory?.files)
-        ? manifest.chunks.narrativeHistory.files
-        : [];
-      if (chunkFiles.length > 0) {
-        setChunkPlan({ baseUrl: manifestBaseUrl, files: chunkFiles });
-        // Initialize loading status for features that depend on complete narrative history
-        const totalExpected = manifest?.chunks?.narrativeHistory?.totalEvents ?? 0;
-        useNarrativeStore.getState().setStatus({
-          loading: true,
-          totalExpected,
-          chunksLoaded: 0,
-          chunksTotal: chunkFiles.length,
-        });
-      } else {
-        useNarrativeStore.getState().setStatus({
-          loading: false,
-          totalExpected: 0,
-          chunksLoaded: 0,
-          chunksTotal: 0,
-        });
+      // Configure on-demand per-entity timeline loading via FetchBackend
+      const timelineFiles = manifest?.timelines?.files;
+      if (timelineFiles && typeof timelineFiles === 'object') {
+        const backend = new FetchBackend(manifestBaseUrl, timelineFiles);
+        useNarrativeStore.getState().configureBackend(backend);
+        const simulationRunId = normalized.worldData?.metadata?.simulationRunId;
+        if (simulationRunId) {
+          useNarrativeStore.getState().setSimulationRunId(simulationRunId);
+        }
       }
+      useNarrativeStore.getState().setStatus({
+        loading: false,
+        totalExpected: manifest?.timelines?.totalEvents ?? 0,
+        chunksLoaded: 0,
+        chunksTotal: 0,
+      });
       return;
     } catch (err) {
       console.warn('Viewer: failed to load bundle manifest, falling back to bundle.json.', err);
@@ -542,6 +423,7 @@ export default function App() {
       worldData: bundle.worldData,
       chronicles: bundle.chronicles,
       staticPages: bundle.staticPages,
+      eraNarratives: bundle.eraNarratives,
     })
       .then(() => {
         setDexieSeededAt(Date.now());
@@ -551,120 +433,28 @@ export default function App() {
       });
   }, [bundle]);
 
-  // Load narrative history chunks after initial bundle is ready
-  // Note: bundle is intentionally NOT in the dependency array - we only want to start
-  // chunk loading once when chunkPlan becomes available, not restart when bundle updates
-  const bundleReady = bundle?.worldData != null;
-  useEffect(() => {
-    if (!chunkPlan || chunkLoadStarted.current) return;
-    if (!bundleReady) return;
-    if (!chunkPlan.files.length) return;
+  // Pre-compute filtered chronicles and static pages for direct handoff to Chronicler
+  // (bypasses Chronicler's IndexedDB read — data is already in memory from the bundle fetch)
+  const preloadedChronicles = useMemo(() => {
+    if (!bundle?.chronicles) return undefined;
+    return bundle.chronicles.filter(
+      (c) => c?.status === 'complete' && c.acceptedAt
+    );
+  }, [bundle]);
 
-    chunkLoadStarted.current = true;
-    const sequence = loadSequence.current;
+  const preloadedStaticPages = useMemo(() => {
+    if (!bundle?.staticPages) return undefined;
+    return bundle.staticPages.filter(
+      (p) => p?.status === 'published'
+    );
+  }, [bundle]);
 
-    const loadChunks = async () => {
-      let chunksLoaded = 0;
-      const chunksTotal = chunkPlan.files.length;
-      const simulationRunId = bundle?.worldData?.metadata?.simulationRunId;
-
-      for (const file of chunkPlan.files) {
-        // Only check sequence (not cancelled) - we want to complete loading even across re-renders
-        if (sequence !== loadSequence.current) return;
-        const chunkPath = typeof file?.path === 'string' ? file.path : null;
-        if (!chunkPath) continue;
-        const chunkUrl = resolveAssetUrl(chunkPath, chunkPlan.baseUrl);
-        try {
-          // Chunk files have content hash in filename - safe to cache aggressively
-          const response = await fetch(chunkUrl);
-          if (!response.ok) {
-            console.warn(`Viewer: narrativeHistory chunk fetch failed (${response.status}).`, chunkUrl);
-            chunksLoaded++;
-            continue;
-          }
-          const payload = await response.json();
-          const items = extractChunkItems(payload);
-          chunksLoaded++;
-          if (!items.length) continue;
-          if (sequence !== loadSequence.current) return;
-          useNarrativeStore.getState().ingestChunk(items);
-          if (simulationRunId) {
-            appendNarrativeEventsToDexie(simulationRunId, items).catch((err) => {
-              console.warn('[Viewer] Failed to persist narrative chunk:', err);
-            });
-          }
-
-          useNarrativeStore.getState().setStatus({ chunksLoaded });
-        } catch (chunkError) {
-          console.warn('Viewer: failed to load narrativeHistory chunk.', chunkError);
-          chunksLoaded++;
-          useNarrativeStore.getState().setStatus({ chunksLoaded });
-        }
-      }
-
-      // Mark loading complete
-      useNarrativeStore.getState().setStatus({
-        loading: false,
-        chunksLoaded: chunksTotal,
-        chunksTotal,
-      });
-
-    };
-
-    const scheduleIdle = window.requestIdleCallback
-      ? window.requestIdleCallback.bind(window)
-      : (cb) => window.setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 0 }), 250);
-    const idleHandle = scheduleIdle(() => {
-      loadChunks();
-    });
-
-    // Only cancel idle callback scheduling, not in-flight chunk loading
-    return () => {
-      window.cancelIdleCallback
-        ? window.cancelIdleCallback(idleHandle)
-        : window.clearTimeout(idleHandle);
-    };
-  }, [bundleReady, chunkPlan]);
-
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash;
-      if (hash.startsWith(CHRONICLER_HASH_PREFIX)) {
-        lastChroniclerHashRef.current = hash;
-      }
-      const nextView = deriveViewFromHash(hash);
-      if (nextView !== activeView) {
-        setActiveView(nextView);
-      }
-    };
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [activeView]);
-
-  const handleViewChange = useCallback((nextView) => {
-    if (nextView === activeView) return;
-
-    if (nextView === 'chronicler') {
-      if (window.location.hash.startsWith(CHRONICLER_HASH_PREFIX)) {
-        setActiveView(nextView);
-        return;
-      }
-      const targetHash = lastChroniclerHashRef.current || '#/chronicler';
-      if (window.location.hash !== targetHash) {
-        window.location.hash = targetHash;
-      } else {
-        setActiveView(nextView);
-      }
-      return;
-    }
-
-    if (window.location.hash !== '#/archivist') {
-      window.location.hash = '#/archivist';
-    } else {
-      setActiveView(nextView);
-    }
-  }, [activeView]);
+  const preloadedEraNarratives = useMemo(() => {
+    if (!bundle?.eraNarratives) return undefined;
+    return bundle.eraNarratives.filter(
+      (n) => n?.status === 'complete' && n.content
+    );
+  }, [bundle]);
 
   // Configure CDN image backend when bundle loads
   useEffect(() => {
@@ -729,13 +519,11 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <ViewSelector value={activeView} onChange={handleViewChange} />
         <button
           type="button"
           className="brand"
           onClick={() => {
             setChroniclerRequestedPage('home');
-            setActiveView('chronicler');
             window.location.hash = '#/';
           }}
         >
@@ -746,31 +534,24 @@ export default function App() {
           projectId={bundle.projectId}
           slotIndex={bundle.slot?.index ?? 0}
           dexieSeededAt={dexieSeededAt}
-          onNavigate={(pageId) => {
-            setChroniclerRequestedPage(pageId);
-            setActiveView('chronicler');
-          }}
+          onNavigate={setChroniclerRequestedPage}
         />
         <div className="header-spacer" />
       </header>
       <main className="app-main">
-        <div className="panel" style={{ display: activeView === 'archivist' ? 'block' : 'none' }}>
-          <ArchivistHost
+        <div className="panel chronicler-scope">
+          <ChroniclerRemote
             projectId={bundle.projectId}
-            slotIndex={bundle.slot?.index ?? 0}
-            dexieSeededAt={dexieSeededAt}
-          />
-        </div>
-        <div
-          className="panel chronicler-scope"
-          style={{ display: activeView === 'chronicler' ? 'block' : 'none' }}
-        >
-          <ChroniclerHost
-            projectId={bundle.projectId}
-            slotIndex={bundle.slot?.index ?? 0}
+            activeSlotIndex={bundle.slot?.index ?? 0}
             requestedPageId={chroniclerRequestedPage}
             onRequestedPageConsumed={() => setChroniclerRequestedPage(null)}
             dexieSeededAt={dexieSeededAt}
+            preloadedWorldData={bundle.worldData}
+            preloadedChronicles={preloadedChronicles}
+            preloadedStaticPages={preloadedStaticPages}
+            preloadedEraNarratives={preloadedEraNarratives}
+            prebakedParchmentUrl={parchmentTileUrl}
+            precomputedPageIndex={bundle.precomputedPageIndex}
           />
         </div>
       </main>

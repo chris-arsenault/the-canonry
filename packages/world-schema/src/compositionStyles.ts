@@ -465,6 +465,18 @@ export const DEFAULT_COMPOSITION_STYLES: CompositionStyle[] = [
       'web-like composition, interconnected nodes, thread lines linking elements, network structure, constellation arrangement, visible relationships between scattered focal points',
     targetCategory: 'concept',
   },
+  {
+    id: 'divine-monument',
+    name: 'Divine Monument',
+    description: 'Monumental bilaterally-symmetric figure filling the frame with sacred geometry behind and receding ground plane',
+    promptFragment:
+      'monumental composition, strong bilateral symmetry, figure fills or exceeds the frame implying cosmic scale, ' +
+      'radiating circular or mandala geometry behind the subject, ' +
+      'low or centered camera angle conveying reverence, ' +
+      'receding ground plane below providing depth, infinite void or starfield above, ' +
+      'vertical orientation with clear hierarchy: void, sacred geometry, figure, ground',
+    targetCategory: 'concept',
+  },
 
   // ===========================
   // EVENT compositions

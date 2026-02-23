@@ -11,6 +11,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { EnrichmentType } from '../lib/enrichmentTypes';
+import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
 import type {
   SummaryRevisionRun,
   SummaryRevisionPatch,
@@ -73,12 +74,6 @@ const POLL_INTERVAL_MS = 1500;
 // ============================================================================
 
 export function useChronicleLoreBackport(
-  onEnqueue: (items: Array<{
-    entity: { id: string; name: string; kind: string; subtype: string; prominence: string; culture: string; status: string; description: string; tags: Record<string, unknown> };
-    type: EnrichmentType;
-    prompt: string;
-    chronicleId?: string;
-  }>) => void,
   getEntityContexts: (entityIds: string[]) => RevisionEntityContext[],
 ): UseChronicleLoreBackportReturn {
   const [run, setRun] = useState<SummaryRevisionRun | null>(null);
@@ -111,13 +106,13 @@ export function useChronicleLoreBackport(
       tags: {},
     };
 
-    onEnqueue([{
+    getEnqueue()([{
       entity: sentinelEntity,
       type: 'chronicleLoreBackport' as EnrichmentType,
       prompt: JSON.stringify(batchEntityContexts),
       chronicleId: runId,
     }]);
-  }, [onEnqueue]);
+  }, []);
 
   // Poll IndexedDB for run state changes
   const startPolling = useCallback((runId: string) => {

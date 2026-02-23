@@ -31,6 +31,8 @@ export async function updateHistorianRun(
     | 'inputTokens'
     | 'outputTokens'
     | 'actualCost'
+    | 'systemPrompt'
+    | 'userPrompt'
   >>
 ): Promise<HistorianRun> {
   const run = await db.historianRuns.get(runId);
@@ -44,6 +46,8 @@ export async function updateHistorianRun(
   if (updates.inputTokens !== undefined) run.inputTokens = updates.inputTokens;
   if (updates.outputTokens !== undefined) run.outputTokens = updates.outputTokens;
   if (updates.actualCost !== undefined) run.actualCost = updates.actualCost;
+  if (updates.systemPrompt !== undefined) run.systemPrompt = updates.systemPrompt;
+  if (updates.userPrompt !== undefined) run.userPrompt = updates.userPrompt;
   run.updatedAt = Date.now();
 
   await db.historianRuns.put(run);

@@ -8,6 +8,10 @@ export interface TaskContext {
   llmClient: LLMClient;
   imageClient: ImageClient;
   isAborted: () => boolean;
+  /** Callback to forward thinking deltas to the UI */
+  onThinkingDelta?: (delta: string) => void;
+  /** Callback to forward text deltas to the UI */
+  onTextDelta?: (delta: string) => void;
 }
 
 export interface TaskHandler<TTask extends WorkerTask = WorkerTask> {
