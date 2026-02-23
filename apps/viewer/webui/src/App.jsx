@@ -3,7 +3,7 @@ import Fuse from 'fuse.js';
 import { useImageStore, CDNBackend } from '@penguin-tales/image-store';
 import { useNarrativeStore, FetchBackend } from '@penguin-tales/narrative-store';
 import { getChronicles, getEntities, getSlotRecord, getStaticPages } from '@penguin-tales/world-store';
-import { overwriteWorldDataInDexie } from './lib/illuminatorDbWriter.js';
+import { overwriteWorldDataInDexie } from './lib/illuminatorDbWriter';
 import ChroniclerRemote from '@chronicler/ChroniclerRemote.tsx';
 import parchmentTileUrl from '@chronicler/assets/textures/parchment-tile.jpg';
 
