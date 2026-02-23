@@ -93,6 +93,8 @@ import {
   listS3Prefixes,
   buildStorageImageUrl,
 } from './aws/awsS3';
+import { exportIndexedDbToS3, importIndexedDbFromS3 } from './aws/indexedDbSnapshot';
+import { pullImagesFromS3 } from './aws/s3ImagePull';
 
 /**
  * Extract loreData from enriched entities
@@ -645,6 +647,7 @@ export default function App() {
     summary: null,
     json: '',
   });
+  const [snapshotStatus, setSnapshotStatus] = useState({ state: 'idle', detail: '' });
   const exportCancelRef = useRef(false);
   const exportModalMouseDown = useRef(false);
   const awsModalMouseDown = useRef(false);
@@ -934,6 +937,74 @@ export default function App() {
       console.error('Failed to sync images:', err);
       setAwsStatus({ state: 'error', detail: err.message || 'Image sync failed.' });
     }
+  }, [s3Client, awsConfig]);
+
+  const handleExportSnapshot = useCallback(async () => {
+    if (!s3Client) return;
+    setSnapshotStatus({ state: 'working', detail: 'Starting export...' });
+    try {
+      const result = await exportIndexedDbToS3(s3Client, awsConfig, ({ detail }) => {
+        setSnapshotStatus({ state: 'working', detail });
+      });
+      setSnapshotStatus({
+        state: 'idle',
+        detail: `Exported ${result.dbCount} databases, ${result.storeCount} stores (${result.sizeMb} MB) to s3://${awsConfig.imageBucket}/${result.key}`,
+      });
+    } catch (err) {
+      console.error('Snapshot export failed:', err);
+      setSnapshotStatus({ state: 'error', detail: err.message || 'Export failed.' });
+    }
+  }, [s3Client, awsConfig]);
+
+  const handleImportSnapshot = useCallback(async () => {
+    if (!s3Client) return;
+    if (!window.confirm(
+      'This will REPLACE all local data (projects, runs, entities, chronicles, costs, etc.) with the snapshot from S3.\n\nImages are not included — use "Sync Images to S3" separately.\n\nThe page will reload after import. Continue?'
+    )) return;
+    setSnapshotStatus({ state: 'working', detail: 'Starting import...' });
+    try {
+      const result = await importIndexedDbFromS3(s3Client, awsConfig, ({ detail }) => {
+        setSnapshotStatus({ state: 'working', detail });
+      });
+      const warnSuffix = result.warnings?.length
+        ? ` (${result.warnings.length} warnings — check console)`
+        : '';
+      setSnapshotStatus({
+        state: 'idle',
+        detail: `Restored ${result.dbCount} databases, ${result.storeCount} stores, ${result.recordCount} records (snapshot from ${result.exportedAt})${warnSuffix}. Reloading...`,
+      });
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err) {
+      console.error('Snapshot import failed:', err);
+      setSnapshotStatus({ state: 'error', detail: err.message || 'Import failed.' });
+    }
+  }, [s3Client, awsConfig]);
+
+  const handlePullImages = useCallback(async () => {
+    const projectId = currentProjectRef.current?.id;
+    if (!s3Client) {
+      alert('Missing S3 client. Check Cognito configuration and login.');
+      return;
+    }
+    setAwsStatus({ state: 'working', detail: 'Pulling images from S3...' });
+    setAwsSyncProgress({ phase: 'scan', processed: 0, total: 0, uploaded: 0 });
+    try {
+      const result = await pullImagesFromS3({
+        s3: s3Client,
+        config: awsConfig,
+        projectId: projectId || null,
+        onProgress: ({ detail }) => {
+          setAwsStatus({ state: 'working', detail });
+        },
+      });
+      const parts = [`${result.downloaded} downloaded`, `${result.skipped} already local`];
+      if (result.errors) parts.push(`${result.errors} errors`);
+      setAwsStatus({ state: 'idle', detail: `Image pull complete: ${parts.join(', ')}.` });
+    } catch (err) {
+      console.error('Image pull failed:', err);
+      setAwsStatus({ state: 'error', detail: err.message || 'Image pull failed.' });
+    }
+    setAwsSyncProgress({ phase: 'idle', processed: 0, total: 0, uploaded: 0 });
   }, [s3Client, awsConfig]);
 
   const handleAwsPreviewUploads = useCallback(async () => {
@@ -2692,7 +2763,7 @@ export default function App() {
                     />
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: spacing.sm, marginTop: spacing.md }}>
+                <div style={{ display: 'flex', gap: spacing.sm, marginTop: spacing.md, flexWrap: 'wrap' }}>
                   <button className="btn-sm" onClick={handleAwsBrowsePrefixes}>
                     Browse Prefix
                   </button>
@@ -2705,6 +2776,20 @@ export default function App() {
                     onClick={handleAwsPreviewUploads}
                   >
                     Preview Uploads
+                  </button>
+                  <button
+                    className="btn-sm"
+                    disabled={!awsReady || awsStatus.state === 'working'}
+                    onClick={handlePullImages}
+                  >
+                    Pull Images from S3
+                  </button>
+                  <button
+                    className="btn-sm btn-sm-primary"
+                    disabled={!awsReady || awsStatus.state === 'working'}
+                    onClick={handleAwsSyncImages}
+                  >
+                    Push Images to S3
                   </button>
                 </div>
                 {awsBrowseState.loading && (
@@ -2738,6 +2823,38 @@ export default function App() {
                   />
                   <span>Use S3 images for viewer exports</span>
                 </label>
+              </div>
+
+              <div style={{ marginBottom: spacing.lg }}>
+                <div className="modal-title" style={{ fontSize: typography.sizeMd }}>Data Snapshot</div>
+                <div style={{ color: colors.textSecondary, marginTop: spacing.xs }}>
+                  Export/import all IndexedDB data (projects, runs, entities, chronicles, costs, styles, etc.) to S3. Images excluded — sync those separately.
+                </div>
+                <div style={{ display: 'flex', gap: spacing.sm, marginTop: spacing.md }}>
+                  <button
+                    className="btn-sm"
+                    disabled={!awsReady || snapshotStatus.state === 'working'}
+                    onClick={handleExportSnapshot}
+                  >
+                    Export to S3
+                  </button>
+                  <button
+                    className="btn-sm"
+                    disabled={!awsReady || snapshotStatus.state === 'working'}
+                    onClick={handleImportSnapshot}
+                  >
+                    Import from S3
+                  </button>
+                </div>
+                {snapshotStatus.detail && (
+                  <div style={{
+                    color: snapshotStatus.state === 'error' ? colors.danger : colors.textMuted,
+                    marginTop: spacing.sm,
+                    fontSize: typography.sizeSm,
+                  }}>
+                    {snapshotStatus.detail}
+                  </div>
+                )}
               </div>
 
               <div style={{ marginBottom: spacing.lg }}>
@@ -2792,13 +2909,6 @@ export default function App() {
             <div className="modal-actions">
               <button className="btn-sm" onClick={() => setAwsModalOpen(false)}>
                 Close
-              </button>
-              <button
-                className="btn-sm btn-sm-primary"
-                disabled={!awsReady || awsStatus.state === 'working'}
-                onClick={handleAwsSyncImages}
-              >
-                Sync Images to S3
               </button>
             </div>
           </div>
