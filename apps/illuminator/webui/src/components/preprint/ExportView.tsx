@@ -1,8 +1,10 @@
 /**
- * ExportView — Markdown ZIP export for print preparation.
+ * ExportView — Export for print preparation.
  *
- * Exports the content tree as a folder hierarchy of markdown files,
- * plus a manifest.json and download-images.sh script.
+ * Supports two formats:
+ * - Markdown ZIP: folder hierarchy of .md files with YAML frontmatter
+ * - InDesign ICML: single .icml file with all content in tree order,
+ *   carrying paragraph and character styles with typographic properties
  */
 
 import { useState, useCallback, useMemo } from 'react';
@@ -10,30 +12,59 @@ import type { PersistedEntity } from '../../lib/db/illuminatorDb';
 import type { ChronicleRecord } from '../../lib/chronicleTypes';
 import type { ImageMetadataRecord } from '../../lib/preprint/prePrintStats';
 import type { StaticPage } from '../../lib/staticPageTypes';
-import type { ContentTreeState, S3ExportConfig } from '../../lib/preprint/prePrintTypes';
-import { buildExportZip } from '../../lib/preprint/markdownExport';
+import type { EraNarrativeRecord } from '../../lib/eraNarrativeTypes';
+import type { ContentTreeState, S3ExportConfig, ExportFormat } from '../../lib/preprint/prePrintTypes';
+import { buildExportZip, buildInDesignExportZip } from '../../lib/preprint/markdownExport';
 
 interface ExportViewProps {
   entities: PersistedEntity[];
   chronicles: ChronicleRecord[];
   images: ImageMetadataRecord[];
   staticPages: StaticPage[];
+  eraNarratives: EraNarrativeRecord[];
   treeState: ContentTreeState | null;
   projectId: string;
   simulationRunId: string;
 }
+
+const FORMAT_DESCRIPTIONS: Record<ExportFormat, string> = {
+  markdown:
+    'Exports the content tree as a ZIP file containing markdown files in the folder hierarchy ' +
+    'you defined. Each entity, chronicle, era narrative, and static page becomes a markdown file with YAML ' +
+    'frontmatter. Includes a manifest.json with full metadata and a download-images.sh script ' +
+    'for pulling images from S3.',
+  indesign:
+    'Exports a single ICML file (InCopy Markup Language) containing the full book content in tree order. ' +
+    'Place in InDesign via File \u2192 Place \u2014 text flows through your frames with paragraph and character ' +
+    'styles pre-applied (Minion Pro, book-appropriate sizes and leading). Override styles in your InDesign ' +
+    'template to match your design. Image locations are marked with ImagePlaceholder paragraphs.',
+};
+
+const FORMAT_CONTENTS: Record<ExportFormat, { label: string; description: string }[]> = {
+  markdown: [
+    { label: 'manifest.json', description: 'Full metadata: stats, tree structure, image inventory' },
+    { label: 'Folder hierarchy', description: 'Matching your content tree structure' },
+    { label: 'Markdown files', description: 'YAML frontmatter + formatted content + historian notes' },
+  ],
+  indesign: [
+    { label: 'book.icml', description: 'Single ICML with all content, styled paragraph/character ranges' },
+    { label: 'manifest.json', description: 'Full metadata: stats, tree structure, image inventory' },
+  ],
+};
 
 export default function ExportView({
   entities,
   chronicles,
   images,
   staticPages,
+  eraNarratives,
   treeState,
   projectId,
   simulationRunId,
 }: ExportViewProps) {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
 
   // Read S3 config from localStorage (set by Canonry AWS panel)
   const s3Config = useMemo<S3ExportConfig | null>(() => {
@@ -60,21 +91,27 @@ export default function ExportView({
     setError(null);
 
     try {
-      const blob = await buildExportZip({
+      const exportOptions = {
         treeState,
         entities,
         chronicles,
         images,
         staticPages,
+        eraNarratives,
         projectId,
         simulationRunId,
         s3Config,
-      });
+      };
 
+      const blob = exportFormat === 'indesign'
+        ? await buildInDesignExportZip(exportOptions)
+        : await buildExportZip(exportOptions);
+
+      const suffix = exportFormat === 'indesign' ? 'indesign' : 'markdown';
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `preprint-export-${new Date().toISOString().slice(0, 10)}.zip`;
+      a.download = `preprint-${suffix}-${new Date().toISOString().slice(0, 10)}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -84,7 +121,7 @@ export default function ExportView({
     } finally {
       setExporting(false);
     }
-  }, [treeState, entities, chronicles, images, staticPages, projectId, simulationRunId, s3Config]);
+  }, [treeState, entities, chronicles, images, staticPages, eraNarratives, projectId, simulationRunId, s3Config, exportFormat]);
 
   if (!treeState) {
     return (
@@ -94,17 +131,55 @@ export default function ExportView({
     );
   }
 
+  const s3Contents = s3Config
+    ? [
+        { label: 's3-config.json', description: 'S3 bucket and prefix configuration' },
+        { label: 'download-images.sh', description: 'Bash script to pull images from S3 (requires aws CLI + jq)' },
+      ]
+    : [];
+
   return (
     <div className="preprint-export">
       <div className="illuminator-card">
         <div className="illuminator-card-header">
-          <h2 className="illuminator-card-title">Export to Markdown</h2>
+          <h2 className="illuminator-card-title">Export Format</h2>
         </div>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-md)', lineHeight: 1.5 }}>
-          Exports the content tree as a ZIP file containing markdown files in the folder hierarchy
-          you defined. Each entity, chronicle, and static page becomes a markdown file with YAML
-          frontmatter. Includes a manifest.json with full metadata and a download-images.sh script
-          for pulling images from S3.
+
+        <div className="preprint-export-format-selector">
+          <label
+            className={`preprint-export-format-option${exportFormat === 'markdown' ? ' active' : ''}`}
+          >
+            <input
+              type="radio"
+              name="exportFormat"
+              value="markdown"
+              checked={exportFormat === 'markdown'}
+              onChange={() => setExportFormat('markdown')}
+            />
+            <div className="preprint-export-format-label">
+              <strong>Markdown ZIP</strong>
+              <span>Folder hierarchy of .md files with YAML frontmatter</span>
+            </div>
+          </label>
+          <label
+            className={`preprint-export-format-option${exportFormat === 'indesign' ? ' active' : ''}`}
+          >
+            <input
+              type="radio"
+              name="exportFormat"
+              value="indesign"
+              checked={exportFormat === 'indesign'}
+              onChange={() => setExportFormat('indesign')}
+            />
+            <div className="preprint-export-format-label">
+              <strong>InDesign ICML</strong>
+              <span>Single styled file for Adobe InDesign</span>
+            </div>
+          </label>
+        </div>
+
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-md)', lineHeight: 1.5, marginTop: 'var(--space-md)' }}>
+          {FORMAT_DESCRIPTIONS[exportFormat]}
         </p>
 
         <div className="preprint-export-config">
@@ -146,7 +221,11 @@ export default function ExportView({
           onClick={handleExport}
           disabled={exporting}
         >
-          {exporting ? 'Exporting...' : 'Export ZIP'}
+          {exporting
+            ? 'Exporting...'
+            : exportFormat === 'indesign'
+              ? 'Export ICML Package'
+              : 'Export Markdown ZIP'}
         </button>
       </div>
 
@@ -158,11 +237,12 @@ export default function ExportView({
           The ZIP will contain:
         </p>
         <ul style={{ color: 'var(--text-secondary)', lineHeight: 1.8, paddingLeft: 'var(--space-lg)' }}>
-          <li><strong>manifest.json</strong> — Full metadata: stats, tree structure, image inventory</li>
-          {s3Config && <li><strong>s3-config.json</strong> — S3 bucket and prefix configuration</li>}
-          {s3Config && <li><strong>download-images.sh</strong> — Bash script to pull images from S3 (requires aws CLI + jq)</li>}
-          <li><strong>Folder hierarchy</strong> — Matching your content tree structure</li>
-          <li><strong>Markdown files</strong> — YAML frontmatter + formatted content + historian notes</li>
+          {FORMAT_CONTENTS[exportFormat].map((item) => (
+            <li key={item.label}><strong>{item.label}</strong> — {item.description}</li>
+          ))}
+          {s3Contents.map((item) => (
+            <li key={item.label}><strong>{item.label}</strong> — {item.description}</li>
+          ))}
         </ul>
       </div>
     </div>

@@ -11,12 +11,14 @@ import type { PersistedEntity } from '../lib/db/illuminatorDb';
 import type { ChronicleRecord } from '../lib/chronicleTypes';
 import type { ImageMetadataRecord } from '../lib/preprint/prePrintStats';
 import type { StaticPage } from '../lib/staticPageTypes';
+import type { EraNarrativeRecord } from '../lib/eraNarrativeTypes';
 import type { ContentTreeState } from '../lib/preprint/prePrintTypes';
 import { getChroniclesForSimulation } from '../lib/db/chronicleRepository';
 import { getAllImages } from '../lib/db/imageRepository';
 import { getStaticPagesForProject } from '../lib/db/staticPageRepository';
 import { loadTree, saveTree } from '../lib/db/contentTreeRepository';
 import { getEntitiesForRun } from '../lib/db/entityRepository';
+import { getEraNarrativesForSimulation } from '../lib/db/eraNarrativeRepository';
 import StatsView from './preprint/StatsView';
 import ContentTreeView from './preprint/ContentTreeView';
 import ExportView from './preprint/ExportView';
@@ -35,6 +37,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
   const [chronicles, setChronicles] = useState<ChronicleRecord[]>([]);
   const [allImages, setAllImages] = useState<ImageMetadataRecord[]>([]);
   const [staticPages, setStaticPages] = useState<StaticPage[]>([]);
+  const [eraNarratives, setEraNarratives] = useState<EraNarrativeRecord[]>([]);
   const [treeState, setTreeState] = useState<ContentTreeState | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,7 +55,8 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
       getStaticPagesForProject(projectId),
       loadTree(projectId, simulationRunId),
       getEntitiesForRun(simulationRunId),
-    ]).then(([chrons, allImgs, pages, tree, ents]) => {
+      getEraNarrativesForSimulation(simulationRunId),
+    ]).then(([chrons, allImgs, pages, tree, ents, narrs]) => {
       if (cancelled) return;
       setChronicles(chrons);
       // Keep project-scoped images; further filtering happens in memo below.
@@ -60,6 +64,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
       setStaticPages(pages);
       setTreeState(tree);
       setFullEntities(ents);
+      setEraNarratives(narrs);
       setLoading(false);
     });
 
@@ -73,6 +78,20 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
     },
     []
   );
+
+  // Era order map: eraId → sort index (by startTick)
+  const eraOrderMap = useMemo(() => {
+    const eraEntities = fullEntities.filter((e) => e.kind === 'era' && (e as any).temporal);
+    const sorted = [...eraEntities].sort(
+      (a, b) => ((a as any).temporal.startTick || 0) - ((b as any).temporal.startTick || 0)
+    );
+    const map = new Map<string, number>();
+    sorted.forEach((era, index) => {
+      const eraId = (era as any).eraId || era.id;
+      map.set(eraId, index);
+    });
+    return map;
+  }, [fullEntities]);
 
   const images = useMemo(() => {
     if (allImages.length === 0) return [];
@@ -102,9 +121,25 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
       }
     }
 
+    // Era narrative images
+    for (const narr of eraNarratives) {
+      if (narr.coverImage?.status === 'complete' && narr.coverImage.generatedImageId) {
+        referencedIds.add(narr.coverImage.generatedImageId);
+      }
+      if (narr.imageRefs?.refs) {
+        for (const ref of narr.imageRefs.refs) {
+          if (ref.type === 'chronicle_ref') {
+            referencedIds.add(ref.imageId);
+          } else if (ref.type === 'prompt_request' && ref.status === 'complete' && ref.generatedImageId) {
+            referencedIds.add(ref.generatedImageId);
+          }
+        }
+      }
+    }
+
     if (referencedIds.size === 0) return [];
     return allImages.filter((img) => referencedIds.has(img.imageId));
-  }, [allImages, navEntities, chronicles]);
+  }, [allImages, navEntities, chronicles, eraNarratives]);
 
   if (loading) {
     return (
@@ -149,6 +184,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
             chronicles={chronicles}
             images={images}
             staticPages={staticPages}
+            eraNarratives={eraNarratives}
           />
         )}
 
@@ -157,6 +193,8 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
             entities={fullEntities}
             chronicles={chronicles}
             staticPages={staticPages}
+            eraNarratives={eraNarratives}
+            eraOrderMap={eraOrderMap}
             treeState={treeState}
             projectId={projectId}
             simulationRunId={simulationRunId}
@@ -170,6 +208,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
             chronicles={chronicles}
             images={images}
             staticPages={staticPages}
+            eraNarratives={eraNarratives}
             treeState={treeState}
             projectId={projectId}
             simulationRunId={simulationRunId}

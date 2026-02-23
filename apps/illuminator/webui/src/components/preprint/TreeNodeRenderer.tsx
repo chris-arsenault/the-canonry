@@ -12,6 +12,7 @@ const TYPE_ICONS: Record<string, string> = {
   entity: '{}',
   chronicle: '\u2016',
   static_page: '[]',
+  era_narrative: '\u25C6',
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -19,6 +20,7 @@ const TYPE_LABELS: Record<string, string> = {
   entity: 'Entity',
   chronicle: 'Chronicle',
   static_page: 'Page',
+  era_narrative: 'Era Narrative',
 };
 
 interface NodeMeta {

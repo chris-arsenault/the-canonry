@@ -1,19 +1,29 @@
 /**
- * ContentTreeView — Hierarchical content ordering for book structure.
+ * ContentTreeView — Two-pane content ordering for book structure.
  *
- * Uses react-arborist for tree rendering with drag-and-drop.
- * Provides scaffold creation, folder management, and content item picker.
+ * Left pane: react-arborist tree with drag-and-drop reordering.
+ * Right pane: ContentPalette — filterable/sortable list of available content.
+ * Auto-populate button fills the tree in Chronicler's natural era order.
+ *
+ * Both panes share a single react-dnd DndProvider so palette items can be
+ * dragged directly onto the tree.
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { DndProvider, useDragDropManager, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Tree } from 'react-arborist';
-import type { MoveHandler, RenameHandler, CreateHandler, DeleteHandler } from 'react-arborist';
+import type { MoveHandler, RenameHandler, DeleteHandler } from 'react-arborist';
 import type { PersistedEntity } from '../../lib/db/illuminatorDb';
 import type { ChronicleRecord } from '../../lib/chronicleTypes';
 import type { StaticPage } from '../../lib/staticPageTypes';
+import type { EraNarrativeRecord } from '../../lib/eraNarrativeTypes';
 import type { ContentTreeState, ContentTreeNode, ContentNodeType } from '../../lib/preprint/prePrintTypes';
 import type { TreeNodeData } from './TreeNodeRenderer';
 import TreeNodeRenderer from './TreeNodeRenderer';
+import ContentPalette, { PALETTE_ITEM_TYPE } from './ContentPalette';
+import type { PaletteItemDragPayload } from './ContentPalette';
+import PageLayoutEditor from './PageLayoutEditor';
 import {
   createScaffold,
   addFolder,
@@ -22,86 +32,145 @@ import {
   addContentItem,
   getAllContentIds,
   toArboristData,
-  fromArboristData,
   findNode,
+  autoPopulateBody,
 } from '../../lib/preprint/contentTree';
+import { resolveActiveContent } from '../../lib/db/eraNarrativeRepository';
 import { countWords } from '../../lib/db/staticPageRepository';
 
 interface ContentTreeViewProps {
   entities: PersistedEntity[];
   chronicles: ChronicleRecord[];
   staticPages: StaticPage[];
+  eraNarratives: EraNarrativeRecord[];
+  eraOrderMap: Map<string, number>;
   treeState: ContentTreeState | null;
   projectId: string;
   simulationRunId: string;
   onTreeChange: (tree: ContentTreeState) => void;
 }
 
-interface ContentOption {
-  type: ContentNodeType;
-  contentId: string;
-  name: string;
-  subtitle: string;
+// ── Inner tree pane ──────────────────────────────────────────────────
+// Rendered inside the shared DndProvider so it can call useDragDropManager()
+// and useDrop().
+
+interface TreePaneProps {
+  enrichedData: TreeNodeData[];
+  treeRef: React.MutableRefObject<any>;
+  isSelectedFolder: boolean;
+  selectedNodeId: string | null;
+  treeState: ContentTreeState;
+  onTreeChange: (tree: ContentTreeState) => void;
+  onMove: MoveHandler<TreeNodeData>;
+  onRename: RenameHandler<TreeNodeData>;
+  onDelete: DeleteHandler<TreeNodeData>;
+  onSelect: (nodes: any[]) => void;
 }
+
+function TreePane({
+  enrichedData,
+  treeRef,
+  isSelectedFolder,
+  selectedNodeId,
+  treeState,
+  onTreeChange,
+  onMove,
+  onRename,
+  onDelete,
+  onSelect,
+}: TreePaneProps) {
+  const manager = useDragDropManager();
+  const treeContainerRef = useRef<HTMLDivElement>(null);
+  const [treeHeight, setTreeHeight] = useState(400);
+
+  // Measure container height for react-arborist (requires numeric height)
+  useEffect(() => {
+    const container = treeContainerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setTreeHeight(Math.max(200, Math.floor(entry.contentRect.height)));
+      }
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  // Drop target for palette items
+  const [{ isOver }, dropRef] = useDrop<PaletteItemDragPayload, void, { isOver: boolean }>({
+    accept: PALETTE_ITEM_TYPE,
+    drop: (item) => {
+      if (!selectedNodeId) return;
+      const target = findNode(treeState, selectedNodeId);
+      if (!target || target.type !== 'folder') return;
+      onTreeChange(addContentItem(treeState, selectedNodeId, item));
+    },
+    canDrop: () => isSelectedFolder,
+    collect: (monitor) => ({ isOver: monitor.isOver() }),
+  });
+
+  // Combine refs: one for ResizeObserver, one for react-dnd drop target
+  const combinedRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      treeContainerRef.current = node;
+      dropRef(node);
+    },
+    [dropRef]
+  );
+
+  return (
+    <div
+      className={`preprint-tree-container${isSelectedFolder ? ' drop-ready' : ''}${isOver && isSelectedFolder ? ' drop-hover' : ''}`}
+      ref={combinedRef}
+    >
+      <Tree
+        ref={treeRef}
+        data={enrichedData}
+        dndManager={manager}
+        onMove={onMove}
+        onRename={onRename}
+        onDelete={onDelete}
+        onSelect={onSelect}
+        openByDefault={true}
+        width="100%"
+        height={treeHeight}
+        indent={24}
+        rowHeight={32}
+        overscanCount={5}
+        disableDrag={false}
+        disableDrop={(args) => {
+          return args.parentNode !== null && args.parentNode.data.type !== 'folder';
+        }}
+      >
+        {TreeNodeRenderer}
+      </Tree>
+    </div>
+  );
+}
+
+// ── Main component ───────────────────────────────────────────────────
 
 export default function ContentTreeView({
   entities,
   chronicles,
   staticPages,
+  eraNarratives,
+  eraOrderMap,
   treeState,
   projectId,
   simulationRunId,
   onTreeChange,
 }: ContentTreeViewProps) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerFilter, setPickerFilter] = useState('');
   const [newFolderParent, setNewFolderParent] = useState<string | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
   const treeRef = useRef<any>(null);
 
-  // Build content options (filterable list of items to add to tree)
+  // Build set of used content IDs
   const usedIds = useMemo(
     () => (treeState ? getAllContentIds(treeState) : new Set<string>()),
     [treeState]
   );
-
-  const contentOptions = useMemo<ContentOption[]>(() => {
-    const opts: ContentOption[] = [];
-
-    for (const e of entities) {
-      if (!e.description || usedIds.has(e.id)) continue;
-      opts.push({
-        type: 'entity',
-        contentId: e.id,
-        name: e.name,
-        subtitle: `${e.kind}${e.subtype ? ' / ' + e.subtype : ''}`,
-      });
-    }
-
-    for (const c of chronicles) {
-      if (c.status !== 'complete' && c.status !== 'assembly_ready') continue;
-      if (usedIds.has(c.chronicleId)) continue;
-      opts.push({
-        type: 'chronicle',
-        contentId: c.chronicleId,
-        name: c.title || 'Untitled Chronicle',
-        subtitle: `${c.format} \u2022 ${c.focusType}`,
-      });
-    }
-
-    for (const p of staticPages) {
-      if (p.status !== 'published' || usedIds.has(p.pageId)) continue;
-      opts.push({
-        type: 'static_page',
-        contentId: p.pageId,
-        name: p.title,
-        subtitle: `${p.wordCount} words`,
-      });
-    }
-
-    return opts;
-  }, [entities, chronicles, staticPages, usedIds]);
 
   // Enrich tree nodes with metadata for display
   const enrichedData = useMemo<TreeNodeData[]>(() => {
@@ -110,6 +179,7 @@ export default function ContentTreeView({
     const entityMap = new Map(entities.map((e) => [e.id, e]));
     const chronicleMap = new Map(chronicles.map((c) => [c.chronicleId, c]));
     const pageMap = new Map(staticPages.map((p) => [p.pageId, p]));
+    const narrativeMap = new Map(eraNarratives.map((n) => [n.narrativeId, n]));
 
     function enrich(nodes: ContentTreeNode[]): TreeNodeData[] {
       return nodes.map((node) => {
@@ -149,6 +219,23 @@ export default function ContentTreeView({
               hasImage: true, // Pages don't require images
             };
           }
+        } else if (node.type === 'era_narrative' && node.contentId) {
+          const narr = narrativeMap.get(node.contentId);
+          if (narr) {
+            const { content } = resolveActiveContent(narr);
+            const imgCount =
+              (narr.coverImage?.generatedImageId ? 1 : 0) +
+              (narr.imageRefs?.refs?.filter((r) =>
+                r.type === 'chronicle_ref' ||
+                (r.type === 'prompt_request' && r.status === 'complete')
+              ).length || 0);
+            enriched.meta = {
+              wordCount: countWords(content || ''),
+              imageCount: imgCount,
+              hasDescription: !!content,
+              hasImage: !!narr.coverImage?.generatedImageId,
+            };
+          }
         }
 
         if (node.children) {
@@ -160,7 +247,7 @@ export default function ContentTreeView({
     }
 
     return enrich(toArboristData(treeState.nodes));
-  }, [treeState, entities, chronicles, staticPages]);
+  }, [treeState, entities, chronicles, staticPages, eraNarratives]);
 
   // Handlers
   const handleCreateScaffold = useCallback(() => {
@@ -171,23 +258,17 @@ export default function ContentTreeView({
   const handleMove: MoveHandler<TreeNodeData> = useCallback(
     ({ dragIds, parentId, index }) => {
       if (!treeState || dragIds.length === 0) return;
-      // For moves, reconstruct the full tree from arborist state
-      // react-arborist handles the reorder in its internal state,
-      // so we rebuild from the tree ref
       const api = treeRef.current;
       if (!api) return;
 
-      // Manually reconstruct: remove node, then insert at new parent+index
       let newState = treeState;
       for (const dragId of dragIds) {
         const node = findNode(newState, dragId);
         if (!node) continue;
-        // Remove from current location
         const { nodes: withoutNode } = {
           ...newState,
           nodes: removeNodeFromTree(newState.nodes, dragId),
         };
-        // Insert at new location
         if (parentId) {
           newState = {
             ...newState,
@@ -195,7 +276,6 @@ export default function ContentTreeView({
             updatedAt: Date.now(),
           };
         } else {
-          // Moving to root level
           const rootNodes = [...withoutNode];
           rootNodes.splice(index, 0, { ...node });
           newState = { ...newState, nodes: rootNodes, updatedAt: Date.now() };
@@ -234,30 +314,72 @@ export default function ContentTreeView({
   }, [treeState, newFolderParent, newFolderName, onTreeChange]);
 
   const handleAddContent = useCallback(
-    (option: ContentOption) => {
+    (item: { type: ContentNodeType; contentId: string; name: string }) => {
       if (!treeState || !selectedNodeId) return;
       const target = findNode(treeState, selectedNodeId);
       if (!target || target.type !== 'folder') return;
-      onTreeChange(
-        addContentItem(treeState, selectedNodeId, {
-          type: option.type,
-          contentId: option.contentId,
-          name: option.name,
-        })
-      );
-      setPickerOpen(false);
-      setPickerFilter('');
+      onTreeChange(addContentItem(treeState, selectedNodeId, item));
     },
     [treeState, selectedNodeId, onTreeChange]
   );
 
-  const filteredOptions = useMemo(() => {
-    if (!pickerFilter) return contentOptions;
-    const lower = pickerFilter.toLowerCase();
-    return contentOptions.filter(
-      (o) => o.name.toLowerCase().includes(lower) || o.subtitle.toLowerCase().includes(lower)
-    );
-  }, [contentOptions, pickerFilter]);
+  // Auto-populate
+  const handleAutoPopulate = useCallback(() => {
+    if (!treeState) return;
+
+    const bodyNode = treeState.nodes.find((n) => n.name === 'Body' && n.type === 'folder');
+    const backMatterNode = treeState.nodes.find((n) => n.name === 'Back Matter' && n.type === 'folder');
+    const hasExistingContent =
+      (bodyNode?.children?.length ?? 0) > 0 ||
+      (backMatterNode?.children?.some((c) => c.name === 'Encyclopedia') ?? false);
+
+    if (hasExistingContent) {
+      if (!confirm('Body and Back Matter already have content. Replace with auto-populated structure?')) return;
+    }
+
+    const chronicleInput = chronicles
+      .filter((c) => c.status === 'complete' || c.status === 'assembly_ready')
+      .map((c) => ({
+        chronicleId: c.chronicleId,
+        title: c.title || 'Untitled Chronicle',
+        status: c.status,
+        focalEraId: c.temporalContext?.focalEra?.id || (c as any).focalEra?.id,
+        focalEraName: c.temporalContext?.focalEra?.name || (c as any).focalEra?.name,
+        eraYear: c.eraYear,
+      }));
+
+    const narrativeInput = eraNarratives.map((n) => ({
+      narrativeId: n.narrativeId,
+      eraId: n.eraId,
+      eraName: n.eraName,
+      status: n.status,
+    }));
+
+    const entityInput = entities.map((e) => ({
+      id: e.id,
+      name: e.name,
+      kind: e.kind,
+      subtype: e.subtype,
+      culture: e.culture,
+      description: e.description,
+    }));
+
+    const pageInput = staticPages.map((p) => ({
+      pageId: p.pageId,
+      title: p.title,
+      status: p.status,
+    }));
+
+    const newTree = autoPopulateBody(treeState, {
+      chronicles: chronicleInput,
+      eraNarratives: narrativeInput,
+      entities: entityInput,
+      staticPages: pageInput,
+      eraOrder: eraOrderMap,
+    });
+
+    onTreeChange(newTree);
+  }, [treeState, chronicles, eraNarratives, entities, staticPages, eraOrderMap, onTreeChange]);
 
   // No tree yet: show scaffold button
   if (!treeState) {
@@ -279,75 +401,86 @@ export default function ContentTreeView({
 
   return (
     <div className="preprint-tree-layout">
-      <div className="preprint-tree-main">
-        <div className="preprint-tree-toolbar">
-          <button
-            className="preprint-action-button small"
-            disabled={!isSelectedFolder}
-            onClick={() => {
-              if (selectedNodeId) setNewFolderParent(selectedNodeId);
-            }}
-            title="Add folder to selected folder"
-          >
-            + Folder
-          </button>
-          <button
-            className="preprint-action-button small"
-            disabled={!isSelectedFolder}
-            onClick={() => setPickerOpen(true)}
-            title="Add content to selected folder"
-          >
-            + Content
-          </button>
-          <button
-            className="preprint-action-button small danger"
-            disabled={!selectedNodeId}
-            onClick={() => {
-              if (selectedNodeId && confirm('Delete this node and all children?')) {
-                onTreeChange(deleteNode(treeState, selectedNodeId));
-                setSelectedNodeId(null);
-              }
-            }}
-            title="Delete selected node"
-          >
-            Delete
-          </button>
-          <div style={{ flex: 1 }} />
-          <button
-            className="preprint-action-button small"
-            onClick={handleCreateScaffold}
-            title="Reset to default scaffold (replaces current tree)"
-          >
-            Reset Scaffold
-          </button>
-        </div>
-
-        <div className="preprint-tree-container">
-          <Tree
-            ref={treeRef}
-            data={enrichedData}
-            onMove={handleMove}
-            onRename={handleRename}
-            onDelete={handleDelete}
-            onSelect={(nodes) => {
-              setSelectedNodeId(nodes.length > 0 ? nodes[0]?.id ?? null : null);
-            }}
-            openByDefault={true}
-            width="100%"
-            height={600}
-            indent={24}
-            rowHeight={32}
-            overscanCount={5}
-            disableDrag={false}
-            disableDrop={(args) => {
-              // Only allow dropping into folders
-              return args.parentNode !== null && args.parentNode.data.type !== 'folder';
-            }}
-          >
-            {TreeNodeRenderer}
-          </Tree>
-        </div>
+      <div className="preprint-tree-toolbar">
+        <button
+          className="preprint-action-button small"
+          onClick={handleAutoPopulate}
+          title="Auto-populate Body and Encyclopedia from Chronicler's era ordering"
+        >
+          Auto-Populate
+        </button>
+        <button
+          className="preprint-action-button small"
+          disabled={!isSelectedFolder}
+          onClick={() => {
+            if (selectedNodeId) setNewFolderParent(selectedNodeId);
+          }}
+          title="Add folder to selected folder"
+        >
+          + Folder
+        </button>
+        <button
+          className="preprint-action-button small danger"
+          disabled={!selectedNodeId}
+          onClick={() => {
+            if (selectedNodeId && confirm('Delete this node and all children?')) {
+              onTreeChange(deleteNode(treeState, selectedNodeId));
+              setSelectedNodeId(null);
+            }
+          }}
+          title="Delete selected node"
+        >
+          Delete
+        </button>
+        <div style={{ flex: 1 }} />
+        <button
+          className="preprint-action-button small"
+          onClick={handleCreateScaffold}
+          title="Reset to default scaffold (replaces current tree)"
+        >
+          Reset Scaffold
+        </button>
       </div>
+
+      <DndProvider backend={HTML5Backend}>
+        <div className="preprint-tree-split">
+          <div className="preprint-tree-left">
+            <TreePane
+              enrichedData={enrichedData}
+              treeRef={treeRef}
+              isSelectedFolder={!!isSelectedFolder}
+              selectedNodeId={selectedNodeId}
+              treeState={treeState}
+              onTreeChange={onTreeChange}
+              onMove={handleMove}
+              onRename={handleRename}
+              onDelete={handleDelete}
+              onSelect={(nodes) => {
+                setSelectedNodeId(nodes.length > 0 ? nodes[0]?.id ?? null : null);
+              }}
+            />
+          </div>
+
+          <div className="preprint-tree-right">
+            <ContentPalette
+              entities={entities}
+              chronicles={chronicles}
+              staticPages={staticPages}
+              eraNarratives={eraNarratives}
+              usedIds={usedIds}
+              selectedFolderId={isSelectedFolder ? selectedNodeId : null}
+              onAddContent={handleAddContent}
+            />
+            {selectedNode && selectedNode.type !== 'folder' && selectedNode.contentId && (
+              <PageLayoutEditor
+                pageId={selectedNode.contentId}
+                pageName={selectedNode.name}
+                simulationRunId={simulationRunId}
+              />
+            )}
+          </div>
+        </div>
+      </DndProvider>
 
       {/* Add Folder Dialog */}
       {newFolderParent && (
@@ -376,48 +509,6 @@ export default function ContentTreeView({
                 disabled={!newFolderName.trim()}
               >
                 Create
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Content Picker */}
-      {pickerOpen && (
-        <div className="preprint-modal-overlay" onClick={() => setPickerOpen(false)}>
-          <div className="preprint-modal picker" onClick={(e) => e.stopPropagation()}>
-            <h3>Add Content</h3>
-            <input
-              type="text"
-              className="preprint-input"
-              placeholder="Search entities, chronicles, pages..."
-              value={pickerFilter}
-              autoFocus
-              onChange={(e) => setPickerFilter(e.target.value)}
-            />
-            <div className="preprint-picker-list">
-              {filteredOptions.length === 0 && (
-                <div style={{ padding: 'var(--space-sm)', color: 'var(--text-secondary)' }}>
-                  No available content. Items already in the tree or without published content are excluded.
-                </div>
-              )}
-              {filteredOptions.slice(0, 50).map((opt) => (
-                <button
-                  key={`${opt.type}-${opt.contentId}`}
-                  className="preprint-picker-item"
-                  onClick={() => handleAddContent(opt)}
-                >
-                  <span className="preprint-picker-item-icon">
-                    {opt.type === 'entity' ? '{}' : opt.type === 'chronicle' ? '\u2016' : '[]'}
-                  </span>
-                  <span className="preprint-picker-item-name">{opt.name}</span>
-                  <span className="preprint-picker-item-sub">{opt.subtitle}</span>
-                </button>
-              ))}
-            </div>
-            <div className="preprint-modal-actions">
-              <button className="preprint-action-button small" onClick={() => setPickerOpen(false)}>
-                Close
               </button>
             </div>
           </div>

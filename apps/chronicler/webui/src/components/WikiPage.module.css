@@ -1094,3 +1094,87 @@
   margin-bottom: var(--spacing-sm);
 }
 
+/* ===================
+   Per-Page Layout Overrides
+   Applied via data attributes on the chronicle body wrapper
+   =================== */
+
+/* Content width overrides */
+.chronicleBody[data-content-width="narrow"] {
+  max-width: 52ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.chronicleBody[data-content-width="wide"] {
+  max-width: 90ch;
+}
+
+/* Text alignment overrides */
+.chronicleBody[data-text-align="center"] .markdownSection {
+  text-align: center;
+}
+
+.chronicleBody[data-text-align="center"] :global(.wmde-markdown) {
+  text-align: center !important;
+}
+
+.chronicleBody[data-text-align="justify"] .markdownSection {
+  text-align: justify;
+  hyphens: auto;
+}
+
+.chronicleBody[data-text-align="justify"] :global(.wmde-markdown) {
+  text-align: justify !important;
+  hyphens: auto;
+}
+
+/* ===================
+   Footnote List (annotationPosition: 'footnote')
+   Collected historian notes rendered at section bottom
+   =================== */
+
+.footnoteList {
+  margin: 1.5em 0 0;
+  padding: 1em 0 0;
+  border-top: 1px solid var(--color-border, #4a4035);
+  list-style: none;
+  counter-reset: footnote;
+}
+
+.footnoteItem {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 0 6px 12px;
+  border-left: 2px solid var(--color-border, #4a4035);
+  font-size: var(--font-size-sm, 13px);
+  line-height: 1.6;
+  color: var(--color-text-secondary, #c4b99a);
+  counter-increment: footnote;
+}
+
+.footnoteItem::before {
+  content: counter(footnote) ".";
+  flex-shrink: 0;
+  min-width: 1.5em;
+  font-weight: 700;
+  font-size: 11px;
+  font-family: var(--font-family-ui, system-ui, sans-serif);
+}
+
+.footnoteLabel {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: var(--font-family-ui, system-ui, sans-serif);
+  font-style: normal;
+}
+
+.footnoteText {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+}
+

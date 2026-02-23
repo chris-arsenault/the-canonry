@@ -17,8 +17,8 @@ export interface WordCountBreakdown {
   chronicleBody: number;
   chronicleSummaries: number;
   entityDescriptions: number;
-  entityDescriptionsPreEdit: number;
   entitySummaries: number;
+  eraNarrativeContent: number;
   imageCaptions: number;
   historianNotesEntity: number;
   historianNotesChronicle: number;
@@ -29,8 +29,8 @@ export interface CharCountBreakdown {
   chronicleBody: number;
   chronicleSummaries: number;
   entityDescriptions: number;
-  entityDescriptionsPreEdit: number;
   entitySummaries: number;
+  eraNarrativeContent: number;
   imageCaptions: number;
   historianNotesEntity: number;
   historianNotesChronicle: number;
@@ -62,6 +62,9 @@ export interface CompletenessStats {
   chroniclesWithSceneImages: number;
   staticPagesTotal: number;
   staticPagesPublished: number;
+  eraNarrativesTotal: number;
+  eraNarrativesComplete: number;
+  eraNarrativesWithCoverImage: number;
 }
 
 export interface HistorianNoteStats {
@@ -87,7 +90,7 @@ export interface PrePrintStats {
 // Content Ordering Tree
 // =============================================================================
 
-export type ContentNodeType = 'folder' | 'entity' | 'chronicle' | 'static_page';
+export type ContentNodeType = 'folder' | 'entity' | 'chronicle' | 'static_page' | 'era_narrative';
 
 export interface ContentTreeNode {
   /** Unique ID for this node */
@@ -137,6 +140,7 @@ export interface ExportManifest {
     entityCount: number;
     chronicleCount: number;
     staticPageCount: number;
+    eraNarrativeCount: number;
     imageCount: number;
     historianNoteCount: number;
   };
@@ -156,4 +160,41 @@ export interface S3ExportConfig {
   basePrefix: string;
   rawPrefix: string;
   region: string;
+}
+
+export type ExportFormat = 'markdown' | 'indesign';
+
+// =============================================================================
+// Page Layout Overrides
+// =============================================================================
+
+export type LayoutMode = 'flow' | 'margin' | 'centered';
+export type AnnotationDisplay = 'full' | 'popout' | 'disabled';
+export type AnnotationPosition = 'sidenote' | 'inline' | 'footnote';
+export type ImageLayout = 'float' | 'margin' | 'block' | 'hidden';
+export type ContentWidth = 'narrow' | 'standard' | 'wide';
+export type TextAlign = 'left' | 'center' | 'justify';
+
+/**
+ * Per-page layout overrides stored separately from content.
+ * Applied at render time in the Chronicler to bypass the
+ * heuristic-based analyzeLayout() decisions.
+ *
+ * All fields except pageId, simulationRunId, updatedAt are optional.
+ * Undefined fields fall through to the engine defaults.
+ */
+export interface PageLayoutOverride {
+  pageId: string;
+  simulationRunId: string;
+
+  layoutMode?: LayoutMode;
+  annotationDisplay?: AnnotationDisplay;
+  annotationPosition?: AnnotationPosition;
+  imageLayout?: ImageLayout;
+  contentWidth?: ContentWidth;
+  dropcap?: boolean;
+  textAlign?: TextAlign;
+  customClass?: string;
+
+  updatedAt: number;
 }

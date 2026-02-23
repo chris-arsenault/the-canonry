@@ -12,9 +12,11 @@ import type { PersistedEntity } from '../db/illuminatorDb';
 import type { ChronicleRecord, ChronicleImageRef } from '../chronicleTypes';
 import type { ImageMetadataRecord } from './prePrintStats';
 import type { StaticPage } from '../staticPageTypes';
+import type { EraNarrativeRecord } from '../eraNarrativeTypes';
 import type { HistorianNote } from '../historianTypes';
 import { isNoteActive, noteDisplay } from '../historianTypes';
 import { resolveAnchorPhrase } from '../fuzzyAnchor';
+import { resolveActiveContent } from '../db/eraNarrativeRepository';
 import type {
   ContentTreeState,
   ContentTreeNode,
@@ -24,6 +26,7 @@ import type {
 } from './prePrintTypes';
 import { flattenForExport } from './contentTree';
 import { countWords } from '../db/staticPageRepository';
+import { buildBookIcml } from './icmlExport';
 
 // =============================================================================
 // Public API
@@ -35,18 +38,20 @@ export interface ExportOptions {
   chronicles: ChronicleRecord[];
   images: ImageMetadataRecord[];
   staticPages: StaticPage[];
+  eraNarratives: EraNarrativeRecord[];
   projectId: string;
   simulationRunId: string;
   s3Config: S3ExportConfig | null;
 }
 
 export async function buildExportZip(options: ExportOptions): Promise<Blob> {
-  const { treeState, entities, chronicles, images, staticPages, projectId, simulationRunId, s3Config } = options;
+  const { treeState, entities, chronicles, images, staticPages, eraNarratives, projectId, simulationRunId, s3Config } = options;
 
   const zip = new JSZip();
   const entityMap = new Map(entities.map((e) => [e.id, e]));
   const chronicleMap = new Map(chronicles.map((c) => [c.chronicleId, c]));
   const pageMap = new Map(staticPages.map((p) => [p.pageId, p]));
+  const narrativeMap = new Map(eraNarratives.map((n) => [n.narrativeId, n]));
   const imageMap = new Map(images.map((i) => [i.imageId, i]));
 
   // Collect all referenced image IDs for the manifest
@@ -81,6 +86,11 @@ export async function buildExportZip(options: ExportOptions): Promise<Blob> {
       if (page) {
         markdown = formatStaticPageMarkdown(page, entities);
       }
+    } else if (node.type === 'era_narrative') {
+      const narrative = narrativeMap.get(node.contentId);
+      if (narrative) {
+        markdown = formatEraNarrativeMarkdown(narrative, referencedImages, imageMap);
+      }
     }
 
     if (markdown) {
@@ -91,7 +101,50 @@ export async function buildExportZip(options: ExportOptions): Promise<Blob> {
 
   // Build manifest
   const manifest = buildManifest(
-    treeState, entities, chronicles, staticPages, images,
+    treeState, entities, chronicles, staticPages, eraNarratives, images,
+    referencedImages, projectId, simulationRunId, s3Config
+  );
+  zip.file('manifest.json', JSON.stringify(manifest, null, 2));
+
+  // S3 download script
+  if (s3Config) {
+    zip.file('s3-config.json', JSON.stringify({
+      bucket: s3Config.bucket,
+      basePrefix: s3Config.basePrefix,
+      rawPrefix: s3Config.rawPrefix,
+      projectId,
+      region: s3Config.region,
+    }, null, 2));
+
+    zip.file('download-images.sh', buildDownloadScript());
+  }
+
+  return zip.generateAsync({ type: 'blob' });
+}
+
+export async function buildInDesignExportZip(options: ExportOptions): Promise<Blob> {
+  const { treeState, entities, chronicles, images, staticPages, eraNarratives, projectId, simulationRunId, s3Config } = options;
+
+  const zip = new JSZip();
+  const entityMap = new Map(entities.map((e) => [e.id, e]));
+  const chronicleMap = new Map(chronicles.map((c) => [c.chronicleId, c]));
+  const pageMap = new Map(staticPages.map((p) => [p.pageId, p]));
+  const narrativeMap = new Map(eraNarratives.map((n) => [n.narrativeId, n]));
+  const imageMap = new Map(images.map((i) => [i.imageId, i]));
+  const referencedImages = new Map<string, ExportImageEntry>();
+
+  // Build single ICML document with all content in tree order
+  const icml = buildBookIcml(
+    treeState,
+    { entityMap, chronicleMap, pageMap, narrativeMap },
+    imageMap,
+    referencedImages,
+  );
+  zip.file('book.icml', icml);
+
+  // Manifest (same as markdown export)
+  const manifest = buildManifest(
+    treeState, entities, chronicles, staticPages, eraNarratives, images,
     referencedImages, projectId, simulationRunId, s3Config
   );
   zip.file('manifest.json', JSON.stringify(manifest, null, 2));
@@ -387,6 +440,90 @@ function formatStaticPageMarkdown(
   return lines.join('\n');
 }
 
+function formatEraNarrativeMarkdown(
+  narrative: EraNarrativeRecord,
+  referencedImages: Map<string, ExportImageEntry>,
+  imageMap: Map<string, ImageMetadataRecord>
+): string {
+  const lines: string[] = [];
+  const { content } = resolveActiveContent(narrative);
+
+  // Frontmatter
+  const coverImageId = narrative.coverImage?.generatedImageId;
+  lines.push('---');
+  lines.push(`title: ${yamlString(narrative.eraName)}`);
+  lines.push('type: era_narrative');
+  lines.push(`era_id: ${narrative.eraId}`);
+  lines.push(`tone: ${narrative.tone}`);
+  lines.push(`status: ${narrative.status}`);
+  lines.push(`word_count: ${countWords(content || '')}`);
+  lines.push(`has_cover_image: ${!!coverImageId && narrative.coverImage?.status === 'complete'}`);
+  if (coverImageId) lines.push(`cover_image_id: ${coverImageId}`);
+
+  if (narrative.threadSynthesis?.thesis) {
+    lines.push(`thesis: ${yamlString(narrative.threadSynthesis.thesis)}`);
+  }
+
+  if (narrative.threadSynthesis?.threads?.length) {
+    lines.push('threads:');
+    for (const t of narrative.threadSynthesis.threads) {
+      lines.push(`  - ${yamlString(t.name)}`);
+    }
+  }
+  lines.push('---');
+  lines.push('');
+
+  // Title
+  lines.push(`# ${narrative.eraName}`);
+  lines.push('');
+
+  // Thesis as epigraph
+  if (narrative.threadSynthesis?.thesis) {
+    lines.push(`*${narrative.threadSynthesis.thesis}*`);
+    lines.push('');
+  }
+
+  // Cover image
+  if (coverImageId && narrative.coverImage?.status === 'complete') {
+    registerImage(referencedImages, coverImageId, imageMap, 'cover');
+    const ext = getImageExt(imageMap.get(coverImageId));
+    lines.push(`![Cover](images/${coverImageId}${ext})`);
+    lines.push('');
+  }
+
+  // Narrative content with inline image markers
+  if (content) {
+    let annotatedContent = content;
+
+    if (narrative.imageRefs?.refs) {
+      const insertableRefs = narrative.imageRefs.refs.filter((r) => {
+        if (r.type === 'chronicle_ref') return true;
+        if (r.type === 'prompt_request' && r.status === 'complete' && r.generatedImageId) return true;
+        return false;
+      });
+
+      const insertions = insertableRefs.map((ref) => ({
+        ref,
+        insertAt: resolveInsertPosition(content, ref.anchorText, ref.anchorIndex),
+      })).sort((a, b) => b.insertAt - a.insertAt);
+
+      for (const { ref, insertAt } of insertions) {
+        const imgId = ref.type === 'chronicle_ref' ? ref.imageId : (ref as any).generatedImageId!;
+        registerImage(referencedImages, imgId, imageMap, 'chronicle');
+        const ext = getImageExt(imageMap.get(imgId));
+        const caption = ref.caption || '';
+        const marker = `\n\n<!-- IMAGE: images/${imgId}${ext} | size: ${ref.size} | float: ${ref.justification || 'none'} | caption: "${caption}" -->\n\n`;
+        annotatedContent = annotatedContent.slice(0, insertAt) + marker + annotatedContent.slice(insertAt);
+      }
+    }
+
+    lines.push(annotatedContent);
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
 // =============================================================================
 // Historian Notes
 // =============================================================================
@@ -410,6 +547,7 @@ function buildManifest(
   entities: PersistedEntity[],
   chronicles: ChronicleRecord[],
   staticPages: StaticPage[],
+  eraNarratives: EraNarrativeRecord[],
   images: ImageMetadataRecord[],
   referencedImages: Map<string, ExportImageEntry>,
   projectId: string,
@@ -420,15 +558,24 @@ function buildManifest(
     (c) => c.status === 'complete' || c.status === 'assembly_ready'
   );
   const publishedPages = staticPages.filter((p) => p.status === 'published');
+  const completedNarratives = eraNarratives.filter(
+    (n) => n.status === 'complete' || n.status === 'step_complete'
+  );
 
   const allHistorianNotes =
     entities.reduce((n, e) => n + (e.enrichment?.historianNotes?.length || 0), 0) +
     publishedChronicles.reduce((n, c) => n + (c.historianNotes?.length || 0), 0);
 
+  const narrativeWords = completedNarratives.reduce((s, n) => {
+    const { content } = resolveActiveContent(n);
+    return s + countWords(content || '');
+  }, 0);
+
   const totalWords =
     publishedChronicles.reduce((s, c) => s + countWords(c.finalContent || c.assembledContent || ''), 0) +
     entities.reduce((s, e) => s + countWords(e.description || '') + countWords(e.summary || ''), 0) +
-    publishedPages.reduce((s, p) => s + p.wordCount, 0);
+    publishedPages.reduce((s, p) => s + p.wordCount, 0) +
+    narrativeWords;
 
   const manifest: ExportManifest = {
     exportVersion: 1,
@@ -441,6 +588,7 @@ function buildManifest(
       entityCount: entities.length,
       chronicleCount: publishedChronicles.length,
       staticPageCount: publishedPages.length,
+      eraNarrativeCount: completedNarratives.length,
       imageCount: referencedImages.size,
       historianNoteCount: allHistorianNotes,
     },

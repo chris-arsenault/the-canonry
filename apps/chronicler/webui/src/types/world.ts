@@ -371,6 +371,28 @@ export interface WikiBacklink {
   context: string;
 }
 
+// Per-page layout override (mirrors illuminator's PageLayoutOverride)
+export type LayoutMode = 'flow' | 'margin' | 'centered';
+export type AnnotationDisplay = 'full' | 'popout' | 'disabled';
+export type AnnotationPosition = 'sidenote' | 'inline' | 'footnote';
+export type ImageLayout = 'float' | 'margin' | 'block' | 'hidden';
+export type ContentWidth = 'narrow' | 'standard' | 'wide';
+export type TextAlign = 'left' | 'center' | 'justify';
+
+export interface PageLayoutOverride {
+  pageId: string;
+  simulationRunId: string;
+  layoutMode?: LayoutMode;
+  annotationDisplay?: AnnotationDisplay;
+  annotationPosition?: AnnotationPosition;
+  imageLayout?: ImageLayout;
+  contentWidth?: ContentWidth;
+  dropcap?: boolean;
+  textAlign?: TextAlign;
+  customClass?: string;
+  updatedAt: number;
+}
+
 export type {
   CanonrySchemaSlice,
   CultureDefinition,
