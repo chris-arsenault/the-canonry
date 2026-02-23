@@ -34,10 +34,11 @@ const FORMAT_DESCRIPTIONS: Record<ExportFormat, string> = {
     'frontmatter. Includes a manifest.json with full metadata and a download-images.sh script ' +
     'for pulling images from S3.',
   indesign:
-    'Exports a single ICML file (InCopy Markup Language) containing the full book content in tree order. ' +
-    'Place in InDesign via File \u2192 Place \u2014 text flows through your frames with paragraph and character ' +
-    'styles pre-applied (Minion Pro, book-appropriate sizes and leading). Override styles in your InDesign ' +
-    'template to match your design. Image locations are marked with ImagePlaceholder paragraphs.',
+    'Exports an ICML file with the full book content plus a setup-book.jsx script. ' +
+    'Unzip, then run the script from InDesign (File \u2192 Scripts \u2192 Browse). ' +
+    'It creates a 6\u00d79\u2033 document with Smart Text Reflow, places the ICML, and auto-generates ' +
+    'all pages. Paragraph and character styles import with typographic defaults (Minion Pro) \u2014 ' +
+    'override them to match your design.',
 };
 
 const FORMAT_CONTENTS: Record<ExportFormat, { label: string; description: string }[]> = {
@@ -47,6 +48,7 @@ const FORMAT_CONTENTS: Record<ExportFormat, { label: string; description: string
     { label: 'Markdown files', description: 'YAML frontmatter + formatted content + historian notes' },
   ],
   indesign: [
+    { label: 'setup-book.jsx', description: 'InDesign script \u2014 run this to create the document and auto-place content with pages' },
     { label: 'book.icml', description: 'Single ICML with all content, styled paragraph/character ranges' },
     { label: 'manifest.json', description: 'Full metadata: stats, tree structure, image inventory' },
   ],

@@ -26,7 +26,7 @@ import type {
 } from './prePrintTypes';
 import { flattenForExport } from './contentTree';
 import { countWords } from '../db/staticPageRepository';
-import { buildBookIcml } from './icmlExport';
+import { buildBookIcml, buildInDesignSetupScript } from './icmlExport';
 
 // =============================================================================
 // Public API
@@ -141,6 +141,10 @@ export async function buildInDesignExportZip(options: ExportOptions): Promise<Bl
     referencedImages,
   );
   zip.file('book.icml', icml);
+
+  // InDesign setup script — creates document, enables Smart Text Reflow,
+  // places book.icml so pages auto-generate
+  zip.file('setup-book.jsx', buildInDesignSetupScript());
 
   // Manifest (same as markdown export)
   const manifest = buildManifest(
