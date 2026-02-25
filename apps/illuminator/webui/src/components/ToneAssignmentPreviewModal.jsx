@@ -10,6 +10,7 @@
 
 import { useState, useMemo } from "react";
 import { TONE_META } from "./HistorianToneSelector";
+import "./ToneAssignmentPreviewModal.css";
 
 const ANNOTATION_TONES = [
   "witty",
@@ -59,44 +60,13 @@ export default function ToneAssignmentPreviewModal({ preview, onApply, onClose }
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 10000,
-      }}
-    >
-      <div
-        style={{
-          background: "var(--bg-primary)",
-          borderRadius: "12px",
-          border: "1px solid var(--border-color)",
-          width: "680px",
-          maxWidth: "95vw",
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-        }}
-      >
+    <div className="tapm-overlay">
+      <div className="tapm-modal">
         {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-color)",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ margin: 0, fontSize: "16px" }}>Tone Assignment</h2>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+        <div className="tapm-header">
+          <div className="tapm-header-row">
+            <h2 className="tapm-title">Tone Assignment</h2>
+            <span className="tapm-subtitle">
               {entries.length} chronicles
               {shiftedCount > 0 && ` · ${shiftedCount} shifted`}
             </span>
@@ -104,84 +74,33 @@ export default function ToneAssignmentPreviewModal({ preview, onApply, onClose }
         </div>
 
         {/* Body */}
-        <div
-          style={{
-            padding: "20px",
-            overflowY: "auto",
-            flex: 1,
-            minHeight: 0,
-          }}
-        >
+        <div className="tapm-body">
           {/* Distribution chart */}
-          <div style={{ marginBottom: "20px" }}>
-            <div
-              style={{
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                fontWeight: 600,
-                marginBottom: "10px",
-              }}
-            >
-              Distribution
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div className="tapm-distribution">
+            <div className="tapm-section-label">Distribution</div>
+            <div className="tapm-chart">
               {ANNOTATION_TONES.map((tone) => {
                 const count = distribution[tone] || 0;
                 const meta = TONE_META[tone];
                 const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
                 return (
-                  <div key={tone} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div key={tone} className="tapm-chart-row">
                     <span
-                      style={{
-                        width: "16px",
-                        textAlign: "center",
-                        fontSize: "13px",
-                        color: TONE_COLORS[tone],
-                      }}
+                      className="tapm-chart-symbol"
+                      // eslint-disable-next-line local/no-inline-styles -- dynamic tone color from TONE_COLORS map
+                      style={{ color: TONE_COLORS[tone] }}
                     >
                       {meta?.symbol || "?"}
                     </span>
-                    <span
-                      style={{
-                        width: "90px",
-                        fontSize: "11px",
-                        color: "var(--text-secondary)",
-                      }}
-                    >
-                      {meta?.label || tone}
-                    </span>
-                    <div
-                      style={{
-                        flex: 1,
-                        height: "14px",
-                        borderRadius: "3px",
-                        background: "var(--bg-secondary)",
-                        overflow: "hidden",
-                      }}
-                    >
+                    <span className="tapm-chart-label">{meta?.label || tone}</span>
+                    <div className="tapm-chart-bar-track">
                       <div
-                        style={{
-                          height: "100%",
-                          borderRadius: "3px",
-                          background: TONE_COLORS[tone] || "#888",
-                          opacity: 0.7,
-                          width: `${pct}%`,
-                          transition: "width 0.2s ease",
-                        }}
+                        className="tapm-chart-bar-fill"
+                        // eslint-disable-next-line local/no-inline-styles -- dynamic tone color and computed width
+                        style={{ '--tapm-bar-color': TONE_COLORS[tone] || '#888', '--tapm-bar-width': `${pct}%`, background: 'var(--tapm-bar-color)', width: 'var(--tapm-bar-width)' }}
                       />
                     </div>
-                    <span
-                      style={{
-                        width: "24px",
-                        textAlign: "right",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        color: "var(--text-secondary)",
-                      }}
-                    >
-                      {count}
-                    </span>
+                    <span className="tapm-chart-count">{count}</span>
                   </div>
                 );
               })}
@@ -189,59 +108,18 @@ export default function ToneAssignmentPreviewModal({ preview, onApply, onClose }
           </div>
 
           {/* Chronicle list */}
-          <div
-            style={{
-              fontSize: "11px",
-              color: "var(--text-muted)",
-              textTransform: "uppercase",
-              fontWeight: 600,
-              marginBottom: "8px",
-            }}
-          >
-            Assignments
-          </div>
-          <div
-            style={{
-              border: "1px solid var(--border-color)",
-              borderRadius: "8px",
-              overflow: "hidden",
-            }}
-          >
-            {entries.map((entry, i) => (
+          <div className="tapm-section-label tapm-section-label--assignments">Assignments</div>
+          <div className="tapm-list">
+            {entries.map((entry) => (
               <div
                 key={entry.chronicleId}
-                style={{
-                  padding: "8px 12px",
-                  borderBottom: i < entries.length - 1 ? "1px solid var(--border-color)" : "none",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  background: entry.wasShifted ? "rgba(245, 158, 11, 0.05)" : undefined,
-                }}
+                className={`tapm-entry ${entry.wasShifted ? "tapm-entry--shifted" : ""}`}
               >
                 {/* Title */}
-                <div
-                  style={{
-                    flex: 1,
-                    fontSize: "12px",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    minWidth: 0,
-                  }}
-                >
-                  {entry.title}
-                </div>
+                <div className="tapm-entry-title">{entry.title}</div>
 
                 {/* Ranking display */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "2px",
-                    fontSize: "12px",
-                    flexShrink: 0,
-                  }}
-                >
+                <div className="tapm-ranking">
                   {entry.ranking.map((tone, rank) => {
                     const meta = TONE_META[tone];
                     const isAssigned = tone === entry.assignedTone;
@@ -249,20 +127,9 @@ export default function ToneAssignmentPreviewModal({ preview, onApply, onClose }
                       <span
                         key={rank}
                         title={`#${rank + 1}: ${meta?.label || tone}`}
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          borderRadius: "3px",
-                          fontSize: "11px",
-                          background: isAssigned ? TONE_COLORS[tone] : "transparent",
-                          color: isAssigned ? "#fff" : "var(--text-muted)",
-                          fontWeight: isAssigned ? 600 : 400,
-                          opacity: rank === 0 ? 1 : rank === 1 ? 0.7 : 0.4,
-                          cursor: "pointer",
-                        }}
+                        className={`tapm-rank-chip ${isAssigned ? "tapm-rank-chip--assigned" : "tapm-rank-chip--unassigned"}`}
+                        // eslint-disable-next-line local/no-inline-styles -- dynamic tone color and rank-based opacity
+                        style={{ '--tapm-chip-bg': isAssigned ? TONE_COLORS[tone] : 'transparent', background: 'var(--tapm-chip-bg)', opacity: rank === 0 ? 1 : rank === 1 ? 0.7 : 0.4 }}
                         onClick={() => handleToneChange(entry.chronicleId, tone)}
                       >
                         {meta?.symbol || "?"}
@@ -275,11 +142,7 @@ export default function ToneAssignmentPreviewModal({ preview, onApply, onClose }
                 {entry.wasShifted && (
                   <span
                     title="Shifted from rank 1 for distribution balance"
-                    style={{
-                      fontSize: "10px",
-                      color: "#f59e0b",
-                      flexShrink: 0,
-                    }}
+                    className="tapm-shifted-label"
                   >
                     shifted
                   </span>
@@ -290,27 +153,13 @@ export default function ToneAssignmentPreviewModal({ preview, onApply, onClose }
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "8px",
-            flexShrink: 0,
-          }}
-        >
-          <button
-            onClick={onClose}
-            className="illuminator-button"
-            style={{ padding: "6px 16px", fontSize: "12px" }}
-          >
+        <div className="tapm-footer">
+          <button onClick={onClose} className="illuminator-button tapm-footer-btn">
             Cancel
           </button>
           <button
             onClick={() => onApply(entries)}
-            className="illuminator-button illuminator-button-primary"
-            style={{ padding: "6px 16px", fontSize: "12px" }}
+            className="illuminator-button illuminator-button-primary tapm-footer-btn"
           >
             Apply ({entries.length} assignments)
           </button>

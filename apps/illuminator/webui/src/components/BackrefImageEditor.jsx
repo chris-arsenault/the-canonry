@@ -10,6 +10,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useImageUrls } from "../hooks/useImageUrl";
 import { getChronicle } from "../lib/db/chronicleRepository";
+import "./BackrefImageEditor.css";
 
 /**
  * Collect all displayable image IDs from a chronicle record.
@@ -104,34 +105,12 @@ function ImageThumbnail({ imageId, imageUrls, selected, onClick, label }) {
     <button
       onClick={onClick}
       title={label}
-      style={{
-        width: "60px",
-        height: "60px",
-        border: selected ? "2px solid #3b82f6" : "2px solid rgba(255,255,255,0.2)",
-        borderRadius: "6px",
-        padding: 0,
-        cursor: "pointer",
-        overflow: "hidden",
-        background: url ? "transparent" : "rgba(255,255,255,0.05)",
-        flexShrink: 0,
-      }}
+      className={`bie-thumbnail ${selected ? "bie-thumbnail--selected" : "bie-thumbnail--unselected"} ${url ? "bie-thumbnail--has-image" : "bie-thumbnail--placeholder"}`}
     >
       {url ? (
-        <img src={url} alt={label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        <img src={url} alt={label} className="bie-thumbnail-img" />
       ) : (
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "10px",
-            color: "rgba(255,255,255,0.4)",
-          }}
-        >
-          ...
-        </div>
+        <div className="bie-thumbnail-placeholder">...</div>
       )}
     </button>
   );
@@ -202,41 +181,18 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
 
   if (!chronicle) {
     return (
-      <div
-        style={{
-          padding: "8px",
-          color: "rgba(255,255,255,0.4)",
-          fontSize: "12px",
-          fontStyle: "italic",
-        }}
-      >
+      <div className="bie-row-missing">
         Chronicle not found: {backref.chronicleId.slice(0, 8)}...
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        padding: "12px",
-        background: "rgba(255,255,255,0.03)",
-        borderRadius: "6px",
-        marginBottom: "8px",
-      }}
-    >
+    <div className="bie-row">
       {/* Chronicle title + anchor */}
-      <div style={{ marginBottom: "8px" }}>
-        <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.9)", fontWeight: 500 }}>
-          {chronicle.title}
-        </div>
-        <div
-          style={{
-            fontSize: "11px",
-            color: "rgba(255,255,255,0.5)",
-            marginTop: "2px",
-            fontStyle: "italic",
-          }}
-        >
+      <div className="bie-row-header">
+        <div className="bie-row-title">{chronicle.title}</div>
+        <div className="bie-row-anchor">
           &ldquo;
           {backref.anchorPhrase.length > 80
             ? backref.anchorPhrase.slice(0, 80) + "..."
@@ -247,35 +203,14 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
 
       {/* Image picker */}
       {allImages.length > 0 && (
-        <div style={{ marginBottom: "8px" }}>
-          <div
-            style={{
-              fontSize: "10px",
-              color: "rgba(255,255,255,0.5)",
-              marginBottom: "4px",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
-            Image
-          </div>
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
+        <div className="bie-picker">
+          <div className="bie-section-label">Image</div>
+          <div className="bie-picker-grid">
             {/* None button */}
             <button
               onClick={handleSelectNone}
               title="No image"
-              style={{
-                width: "60px",
-                height: "60px",
-                border: isNone ? "2px solid #3b82f6" : "2px solid rgba(255,255,255,0.2)",
-                borderRadius: "6px",
-                padding: 0,
-                cursor: "pointer",
-                background: "rgba(255,255,255,0.05)",
-                color: isNone ? "#3b82f6" : "rgba(255,255,255,0.4)",
-                fontSize: "10px",
-                flexShrink: 0,
-              }}
+              className={`bie-none-btn ${isNone ? "bie-none-btn--selected" : "bie-none-btn--unselected"}`}
             >
               None
             </button>
@@ -300,32 +235,11 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
 
       {/* Size + Alignment controls (visible when image source is set, even while loading) */}
       {!isNone && (
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+        <div className="bie-controls">
           {/* Size */}
           <div>
-            <label
-              style={{
-                fontSize: "10px",
-                color: "rgba(255,255,255,0.5)",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                marginRight: "6px",
-              }}
-            >
-              Size
-            </label>
-            <select
-              value={currentSize}
-              onChange={handleSizeChange}
-              style={{
-                background: "rgba(255,255,255,0.1)",
-                border: "1px solid rgba(255,255,255,0.2)",
-                borderRadius: "4px",
-                color: "rgba(255,255,255,0.9)",
-                padding: "4px 8px",
-                fontSize: "12px",
-              }}
-            >
+            <label className="bie-control-label">Size</label>
+            <select value={currentSize} onChange={handleSizeChange} className="bie-size-select">
               <option value="small">Small</option>
               <option value="medium">Medium</option>
               <option value="large">Large</option>
@@ -335,50 +249,16 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
 
           {/* Alignment */}
           <div>
-            <label
-              style={{
-                fontSize: "10px",
-                color: "rgba(255,255,255,0.5)",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                marginRight: "6px",
-              }}
-            >
-              Align
-            </label>
+            <label className="bie-control-label">Align</label>
             <button
               onClick={() => handleAlignmentChange("left")}
-              style={{
-                background:
-                  currentAlignment === "left" ? "rgba(59,130,246,0.3)" : "rgba(255,255,255,0.1)",
-                border:
-                  currentAlignment === "left"
-                    ? "1px solid rgba(59,130,246,0.5)"
-                    : "1px solid rgba(255,255,255,0.2)",
-                borderRadius: "4px 0 0 4px",
-                color: "rgba(255,255,255,0.9)",
-                padding: "4px 10px",
-                fontSize: "12px",
-                cursor: "pointer",
-              }}
+              className={`bie-align-btn bie-align-btn--left ${currentAlignment === "left" ? "bie-align-btn--active" : "bie-align-btn--inactive"}`}
             >
               Left
             </button>
             <button
               onClick={() => handleAlignmentChange("right")}
-              style={{
-                background:
-                  currentAlignment === "right" ? "rgba(59,130,246,0.3)" : "rgba(255,255,255,0.1)",
-                border:
-                  currentAlignment === "right"
-                    ? "1px solid rgba(59,130,246,0.5)"
-                    : "1px solid rgba(255,255,255,0.2)",
-                borderRadius: "0 4px 4px 0",
-                color: "rgba(255,255,255,0.9)",
-                padding: "4px 10px",
-                fontSize: "12px",
-                cursor: "pointer",
-              }}
+              className={`bie-align-btn bie-align-btn--right ${currentAlignment === "right" ? "bie-align-btn--active" : "bie-align-btn--inactive"}`}
             >
               Right
             </button>
@@ -388,16 +268,7 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
 
       {/* Legacy indicator */}
       {isLegacy && allImages.length > 0 && (
-        <div
-          style={{
-            fontSize: "10px",
-            color: "rgba(255,255,255,0.3)",
-            marginTop: "4px",
-            fontStyle: "italic",
-          }}
-        >
-          Using default (cover image, medium, left)
-        </div>
+        <div className="bie-legacy-hint">Using default (cover image, medium, left)</div>
       )}
     </div>
   );
@@ -488,7 +359,7 @@ export default function BackrefImageEditor({
   if (backrefs.length === 0) return null;
 
   const rowsContent = (
-    <div style={{ marginTop: alwaysExpanded ? 0 : "8px" }}>
+    <div className={alwaysExpanded ? "bie-rows-container--expanded" : "bie-rows-container--collapsed"}>
       {backrefs.map((backref, i) => (
         <BackrefRow
           key={`${backref.chronicleId}-${i}`}
@@ -504,52 +375,20 @@ export default function BackrefImageEditor({
 
   if (alwaysExpanded) {
     return (
-      <div style={{ marginBottom: "16px" }}>
-        <div
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            marginBottom: "8px",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          Chronicle Images ({backrefs.length})
-        </div>
+      <div className="bie-wrapper">
+        <div className="bie-heading">Chronicle Images ({backrefs.length})</div>
         {rowsContent}
       </div>
     );
   }
 
   return (
-    <div style={{ marginBottom: "16px" }}>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          width: "100%",
-          background: "rgba(255, 255, 255, 0.05)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
-          borderRadius: "4px",
-          padding: "8px 10px",
-          color: "rgba(255, 255, 255, 0.8)",
-          fontSize: "12px",
-          cursor: "pointer",
-          textAlign: "left",
-        }}
-      >
-        <span
-          style={{
-            fontSize: "10px",
-            transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
-            transition: "transform 0.2s ease",
-          }}
-        >
+    <div className="bie-wrapper">
+      <button onClick={() => setExpanded(!expanded)} className="bie-toggle-btn">
+        <span className={`bie-toggle-arrow ${expanded ? "bie-toggle-arrow--expanded" : "bie-toggle-arrow--collapsed"}`}>
           ▶
         </span>
-        <span style={{ flex: 1 }}>Chronicle Images ({backrefs.length})</span>
+        <span className="bie-toggle-label">Chronicle Images ({backrefs.length})</span>
       </button>
       {expanded && rowsContent}
     </div>

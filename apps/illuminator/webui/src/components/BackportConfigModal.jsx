@@ -9,6 +9,7 @@
  */
 
 import { useState, useMemo } from "react";
+import "./BackportConfigModal.css";
 
 export default function BackportConfigModal({
   isOpen,
@@ -79,6 +80,13 @@ export default function BackportConfigModal({
     onMarkNotNeeded([entityId]);
   };
 
+  const progressColor =
+    doneCount === entities.length
+      ? "#10b981"
+      : doneCount > 0
+        ? "#f59e0b"
+        : "var(--text-muted)";
+
   const renderEntityRow = (e) => {
     const status = statusMap[e.id];
     const isLocked = !!status;
@@ -86,23 +94,11 @@ export default function BackportConfigModal({
     return (
       <div
         key={e.id}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          padding: "4px 0",
-          fontSize: "12px",
-          opacity: isLocked ? 0.6 : 1,
-        }}
+        className={`bcm-entity-row ${isLocked ? "bcm-entity-row--locked" : ""}`}
       >
         {isLocked ? (
           <span
-            style={{
-              width: "13px",
-              textAlign: "center",
-              fontSize: "11px",
-              color: status === "backported" ? "#10b981" : "var(--text-muted)",
-            }}
+            className={`bcm-status-icon ${status === "backported" ? "bcm-status-icon--done" : "bcm-status-icon--skipped"}`}
           >
             {status === "backported" ? "\u2713" : "\u2014"}
           </span>
@@ -111,49 +107,27 @@ export default function BackportConfigModal({
             type="checkbox"
             checked={selectedIds.has(e.id)}
             onChange={() => toggleEntity(e.id)}
-            style={{ cursor: "pointer" }}
+            className="bcm-checkbox"
           />
         )}
         <span
-          style={{ flex: 1, cursor: isLocked ? "default" : "pointer" }}
+          className={`bcm-entity-name ${isLocked ? "bcm-entity-name--locked" : "bcm-entity-name--clickable"}`}
           onClick={() => !isLocked && toggleEntity(e.id)}
         >
           {e.name}
-          <span style={{ color: "var(--text-muted)", marginLeft: "6px" }}>
+          <span className="bcm-entity-kind">
             {e.kind}
             {e.subtype ? ` / ${e.subtype}` : ""}
           </span>
         </span>
         {/* Status / action tags */}
         {status === "backported" && (
-          <span
-            style={{
-              fontSize: "9px",
-              padding: "1px 5px",
-              borderRadius: "3px",
-              background: "rgba(16, 185, 129, 0.15)",
-              color: "#10b981",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
+          <span className="bcm-tag bcm-tag--done">
             Done
           </span>
         )}
         {status === "not_needed" && (
-          <span
-            style={{
-              fontSize: "9px",
-              padding: "1px 5px",
-              borderRadius: "3px",
-              background: "rgba(107, 114, 128, 0.15)",
-              color: "var(--text-muted)",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
+          <span className="bcm-tag bcm-tag--skipped">
             Skipped
           </span>
         )}
@@ -164,54 +138,18 @@ export default function BackportConfigModal({
               handleMarkNotNeeded(e.id);
             }}
             title="Mark as no backport needed"
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--text-muted)",
-              cursor: "pointer",
-              fontSize: "10px",
-              padding: "1px 4px",
-              opacity: 0.7,
-            }}
-            onMouseEnter={(ev) => {
-              ev.currentTarget.style.opacity = "1";
-            }}
-            onMouseLeave={(ev) => {
-              ev.currentTarget.style.opacity = "0.7";
-            }}
+            className="bcm-skip-btn"
           >
             Skip
           </button>
         )}
         {e.isLens && (
-          <span
-            style={{
-              fontSize: "9px",
-              padding: "1px 5px",
-              borderRadius: "3px",
-              background: "rgba(139, 92, 246, 0.15)",
-              color: "#8b5cf6",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
+          <span className="bcm-tag bcm-tag--lens">
             Lens
           </span>
         )}
         {e.isTertiary && (
-          <span
-            style={{
-              fontSize: "9px",
-              padding: "1px 5px",
-              borderRadius: "3px",
-              background: "rgba(245, 158, 11, 0.15)",
-              color: "#f59e0b",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
+          <span className="bcm-tag bcm-tag--tertiary">
             Tertiary
           </span>
         )}
@@ -220,73 +158,19 @@ export default function BackportConfigModal({
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(0, 0, 0, 0.6)",
-      }}
-    >
-      <div
-        style={{
-          background: "var(--bg-primary)",
-          borderRadius: "12px",
-          border: "1px solid var(--border-color)",
-          width: "500px",
-          maxWidth: "95vw",
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-        }}
-      >
+    <div className="bcm-overlay">
+      <div className="bcm-dialog">
         {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-color)",
-            flexShrink: 0,
-          }}
-        >
-          <h2 style={{ margin: 0, fontSize: "16px" }}>Backport Lore to Cast</h2>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginTop: "4px",
-            }}
-          >
-            <p
-              style={{
-                margin: 0,
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                flex: 1,
-              }}
-            >
+        <div className="bcm-header">
+          <h2 className="bcm-title">Backport Lore to Cast</h2>
+          <div className="bcm-subtitle-row">
+            <p className="bcm-chronicle-title">
               {chronicleTitle}
             </p>
             <span
-              style={{
-                fontSize: "11px",
-                fontWeight: 500,
-                color:
-                  doneCount === entities.length
-                    ? "#10b981"
-                    : doneCount > 0
-                      ? "#f59e0b"
-                      : "var(--text-muted)",
-                whiteSpace: "nowrap",
-                marginLeft: "8px",
-              }}
+              className="bcm-progress"
+              // eslint-disable-next-line local/no-inline-styles -- dynamic progress color
+              style={{ '--bcm-progress-color': progressColor, color: 'var(--bcm-progress-color)' }}
             >
               {doneCount}/{entities.length} complete
             </span>
@@ -294,40 +178,19 @@ export default function BackportConfigModal({
         </div>
 
         {/* Body */}
-        <div style={{ padding: "16px 20px", overflowY: "auto", flex: 1, minHeight: 0 }}>
+        <div className="bcm-body">
           {/* Entity selection */}
-          <div style={{ marginBottom: "16px" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "8px",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "11px",
-                  color: "var(--text-muted)",
-                  textTransform: "uppercase",
-                  fontWeight: 600,
-                }}
-              >
+          <div className="bcm-section">
+            <div className="bcm-section-header">
+              <span className="bcm-section-label">
                 Entities ({selectedCount} selected
                 {pendingEntities.length < entities.length ? `, ${doneCount} done` : ""})
               </span>
-              <span style={{ display: "flex", gap: "8px" }}>
+              <span className="bcm-action-group">
                 {tertiaryEntities.length > 0 && (
                   <button
                     onClick={selectTertiaryOnly}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#8b5cf6",
-                      cursor: "pointer",
-                      fontSize: "11px",
-                      padding: 0,
-                    }}
+                    className="bcm-text-btn bcm-text-btn--tertiary"
                   >
                     Tertiary only
                   </button>
@@ -335,14 +198,7 @@ export default function BackportConfigModal({
                 {pendingEntities.length > 0 && (
                   <button
                     onClick={toggleAllPending}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "var(--accent-color)",
-                      cursor: "pointer",
-                      fontSize: "11px",
-                      padding: 0,
-                    }}
+                    className="bcm-text-btn bcm-text-btn--accent"
                   >
                     {allPendingSelected ? "Deselect all" : "Select all pending"}
                   </button>
@@ -350,45 +206,16 @@ export default function BackportConfigModal({
               </span>
             </div>
 
-            <div
-              style={{
-                background: "var(--bg-secondary)",
-                borderRadius: "6px",
-                padding: "8px 12px",
-                maxHeight: "240px",
-                overflowY: "auto",
-              }}
-            >
+            <div className="bcm-entity-list">
               {castEntities.map(renderEntityRow)}
               {lensEntities.length > 0 && castEntities.length > 0 && (
-                <div
-                  style={{
-                    borderTop: "1px solid var(--border-color)",
-                    marginTop: "4px",
-                    paddingTop: "4px",
-                  }}
-                />
+                <div className="bcm-divider" />
               )}
               {lensEntities.map(renderEntityRow)}
               {tertiaryEntities.length > 0 &&
                 (castEntities.length > 0 || lensEntities.length > 0) && (
-                  <div
-                    style={{
-                      borderTop: "1px solid var(--border-color)",
-                      marginTop: "4px",
-                      paddingTop: "4px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "9px",
-                        color: "var(--text-muted)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        fontWeight: 600,
-                        marginBottom: "2px",
-                      }}
-                    >
+                  <div className="bcm-divider">
+                    <div className="bcm-tertiary-label">
                       Tertiary Cast
                     </div>
                   </div>
@@ -399,16 +226,7 @@ export default function BackportConfigModal({
 
           {/* Custom instructions */}
           <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                fontWeight: 600,
-                marginBottom: "6px",
-              }}
-            >
+            <label className="bcm-instructions-label">
               Custom Instructions (optional)
             </label>
             <textarea
@@ -418,20 +236,9 @@ export default function BackportConfigModal({
                 'e.g. "This chronicle is a fable \u2014 treat its events as in-universe fiction, not canonical history. Backported lore should reference these events as legends, myths, or disputed accounts."'
               }
               rows={3}
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                fontSize: "12px",
-                background: "var(--bg-secondary)",
-                border: "1px solid var(--border-color)",
-                borderRadius: "6px",
-                color: "var(--text-primary)",
-                resize: "vertical",
-                fontFamily: "inherit",
-                boxSizing: "border-box",
-              }}
+              className="bcm-textarea"
             />
-            <p style={{ margin: "4px 0 0", fontSize: "10px", color: "var(--text-muted)" }}>
+            <p className="bcm-instructions-hint">
               These instructions will be injected as critical directives into the backport prompt.
               Use this for non-canonical chronicles (fables, prophecies, dreamscapes) or any special
               handling.
@@ -440,28 +247,17 @@ export default function BackportConfigModal({
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "12px 20px 16px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            gap: "8px",
-            justifyContent: "flex-end",
-            flexShrink: 0,
-          }}
-        >
+        <div className="bcm-footer">
           <button
             onClick={onCancel}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "6px 16px", fontSize: "12px" }}
+            className="illuminator-button illuminator-button-secondary bcm-footer-btn"
           >
             Cancel
           </button>
           <button
             onClick={() => onStart(Array.from(selectedIds), customInstructions.trim())}
             disabled={selectedCount === 0}
-            className="illuminator-button illuminator-button-primary"
-            style={{ padding: "6px 16px", fontSize: "12px" }}
+            className="illuminator-button illuminator-button-primary bcm-footer-btn"
           >
             Start Backport ({selectedCount} {selectedCount === 1 ? "entity" : "entities"})
           </button>

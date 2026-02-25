@@ -6,6 +6,7 @@
  */
 
 import { useState, useCallback } from "react";
+import "./HistorianConfigEditor.css";
 
 // ============================================================================
 // Tag/Chip Input (reusable for arrays of strings)
@@ -29,47 +30,18 @@ function TagInput({ value, onChange, placeholder }) {
   return (
     <div>
       <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "4px",
-          marginBottom: value.length > 0 ? "6px" : 0,
-        }}
+        className={`hce-tag-list${value.length > 0 ? " hce-tag-list--has-items" : ""}`}
       >
         {value.map((tag, i) => (
-          <span
-            key={i}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-              padding: "2px 8px",
-              background: "rgba(139, 115, 85, 0.12)",
-              border: "1px solid rgba(139, 115, 85, 0.25)",
-              borderRadius: "3px",
-              fontSize: "11px",
-              color: "var(--text-primary)",
-            }}
-          >
+          <span key={i} className="hce-tag">
             {tag}
-            <button
-              onClick={() => removeTag(i)}
-              style={{
-                background: "none",
-                border: "none",
-                color: "var(--text-muted)",
-                cursor: "pointer",
-                fontSize: "12px",
-                padding: 0,
-                lineHeight: 1,
-              }}
-            >
+            <button onClick={() => removeTag(i)} className="hce-tag-remove">
               ×
             </button>
           </span>
         ))}
       </div>
-      <div style={{ display: "flex", gap: "4px" }}>
+      <div className="hce-input-row">
         <input
           type="text"
           value={inputValue}
@@ -81,28 +53,12 @@ function TagInput({ value, onChange, placeholder }) {
             }
           }}
           placeholder={placeholder}
-          style={{
-            flex: 1,
-            padding: "4px 8px",
-            fontSize: "12px",
-            border: "1px solid var(--border-color)",
-            borderRadius: "4px",
-            background: "var(--bg-tertiary)",
-            color: "var(--text-primary)",
-          }}
+          className="hce-text-input"
         />
         <button
           onClick={addTag}
           disabled={!inputValue.trim()}
-          style={{
-            padding: "4px 10px",
-            fontSize: "11px",
-            border: "1px solid var(--border-color)",
-            borderRadius: "4px",
-            background: "var(--bg-tertiary)",
-            color: inputValue.trim() ? "var(--text-primary)" : "var(--text-muted)",
-            cursor: inputValue.trim() ? "pointer" : "not-allowed",
-          }}
+          className={`hce-add-btn ${inputValue.trim() ? "hce-add-btn--enabled" : "hce-add-btn--disabled"}`}
         >
           Add
         </button>
@@ -133,47 +89,14 @@ function ListEditor({ value, onChange, placeholder, itemPlaceholder }) {
   return (
     <div>
       {value.map((item, i) => (
-        <div
-          key={i}
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: "6px",
-            marginBottom: "4px",
-            padding: "6px 8px",
-            background: "var(--bg-tertiary)",
-            borderRadius: "4px",
-            border: "1px solid var(--border-color)",
-          }}
-        >
-          <span
-            style={{
-              flex: 1,
-              fontSize: "12px",
-              color: "var(--text-primary)",
-              lineHeight: "1.5",
-            }}
-          >
-            {item}
-          </span>
-          <button
-            onClick={() => removeItem(i)}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--text-muted)",
-              cursor: "pointer",
-              fontSize: "14px",
-              padding: "0 2px",
-              lineHeight: 1,
-              flexShrink: 0,
-            }}
-          >
+        <div key={i} className="hce-list-item">
+          <span className="hce-list-item-text">{item}</span>
+          <button onClick={() => removeItem(i)} className="hce-list-item-remove">
             ×
           </button>
         </div>
       ))}
-      <div style={{ display: "flex", gap: "4px", marginTop: value.length > 0 ? "6px" : 0 }}>
+      <div className={`hce-input-row${value.length > 0 ? " hce-input-row--has-items" : ""}`}>
         <input
           type="text"
           value={inputValue}
@@ -185,28 +108,12 @@ function ListEditor({ value, onChange, placeholder, itemPlaceholder }) {
             }
           }}
           placeholder={itemPlaceholder || placeholder}
-          style={{
-            flex: 1,
-            padding: "4px 8px",
-            fontSize: "12px",
-            border: "1px solid var(--border-color)",
-            borderRadius: "4px",
-            background: "var(--bg-tertiary)",
-            color: "var(--text-primary)",
-          }}
+          className="hce-text-input"
         />
         <button
           onClick={addItem}
           disabled={!inputValue.trim()}
-          style={{
-            padding: "4px 10px",
-            fontSize: "11px",
-            border: "1px solid var(--border-color)",
-            borderRadius: "4px",
-            background: "var(--bg-tertiary)",
-            color: inputValue.trim() ? "var(--text-primary)" : "var(--text-muted)",
-            cursor: inputValue.trim() ? "pointer" : "not-allowed",
-          }}
+          className={`hce-add-btn ${inputValue.trim() ? "hce-add-btn--enabled" : "hce-add-btn--disabled"}`}
         >
           Add
         </button>
@@ -221,29 +128,9 @@ function ListEditor({ value, onChange, placeholder, itemPlaceholder }) {
 
 function FieldLabel({ label, description }) {
   return (
-    <div style={{ marginBottom: "4px" }}>
-      <div
-        style={{
-          fontSize: "11px",
-          fontWeight: 600,
-          color: "var(--text-secondary)",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-        }}
-      >
-        {label}
-      </div>
-      {description && (
-        <div
-          style={{
-            fontSize: "10px",
-            color: "var(--text-muted)",
-            marginTop: "1px",
-          }}
-        >
-          {description}
-        </div>
-      )}
+    <div className="hce-field-label-wrap">
+      <div className="hce-field-label">{label}</div>
+      {description && <div className="hce-field-description">{description}</div>}
     </div>
   );
 }
@@ -281,30 +168,17 @@ export default function HistorianConfigEditor({ config, onChange }) {
   const isConfigured = config.name.trim().length > 0 && config.background.trim().length > 0;
 
   return (
-    <div style={{ padding: "16px", maxWidth: "600px" }}>
+    <div className="hce-root">
       {/* Header */}
-      <div
-        style={{
-          marginBottom: "20px",
-          paddingBottom: "12px",
-          borderBottom: "1px solid var(--border-color)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div
-            style={{
-              fontSize: "14px",
-              fontWeight: 600,
-              color: "var(--text-primary)",
-            }}
-          >
+      <div className="hce-header">
+        <div className="hce-header-top">
+          <div className="hce-header-title">
             Historian Persona
           </div>
           <button
             onClick={() => setReloadStatus("confirm")}
             disabled={reloadStatus === "loading"}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "4px 10px", fontSize: "11px" }}
+            className="illuminator-button illuminator-button-secondary hce-reload-btn"
             title="Reload historian config from the default project template"
           >
             {reloadStatus === "loading"
@@ -316,38 +190,21 @@ export default function HistorianConfigEditor({ config, onChange }) {
                   : "Reload Defaults"}
           </button>
         </div>
-        <div
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            marginTop: "4px",
-            lineHeight: "1.5",
-          }}
-        >
+        <div className="hce-header-description">
           Define the scholarly voice behind both <strong>annotations</strong> (margin notes —
           corrections, observations, asides) and <strong>copy edits</strong> (full description
           rewrites synthesized from the description archive). The same persona drives both
           operations in a consistent voice across all content.
         </div>
         {!isConfigured && (
-          <div
-            style={{
-              marginTop: "8px",
-              padding: "6px 10px",
-              background: "rgba(139, 115, 85, 0.1)",
-              border: "1px solid rgba(139, 115, 85, 0.25)",
-              borderRadius: "4px",
-              fontSize: "11px",
-              color: "#8b7355",
-            }}
-          >
+          <div className="hce-unconfigured-notice">
             Configure at least a name and background to enable historian annotations and copy edits.
           </div>
         )}
       </div>
 
       {/* Fields */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div className="hce-fields">
         {/* Name */}
         <div>
           <FieldLabel
@@ -359,15 +216,7 @@ export default function HistorianConfigEditor({ config, onChange }) {
             value={config.name}
             onChange={(e) => update("name", e.target.value)}
             placeholder="Enter the historian's name and title"
-            style={{
-              width: "100%",
-              padding: "6px 10px",
-              fontSize: "13px",
-              border: "1px solid var(--border-color)",
-              borderRadius: "4px",
-              background: "var(--bg-tertiary)",
-              color: "var(--text-primary)",
-            }}
+            className="hce-full-input"
           />
         </div>
 
@@ -381,18 +230,7 @@ export default function HistorianConfigEditor({ config, onChange }) {
             value={config.background}
             onChange={(e) => update("background", e.target.value)}
             placeholder="A seasoned archivist who has spent forty years cataloguing the histories of the realm. Has outlived most of the people described in these texts. Still shows up to work."
-            style={{
-              width: "100%",
-              minHeight: "80px",
-              padding: "6px 10px",
-              fontSize: "12px",
-              border: "1px solid var(--border-color)",
-              borderRadius: "4px",
-              background: "var(--bg-tertiary)",
-              color: "var(--text-primary)",
-              resize: "vertical",
-              lineHeight: "1.5",
-            }}
+            className="hce-textarea hce-textarea--bg"
           />
         </div>
 
@@ -432,18 +270,7 @@ export default function HistorianConfigEditor({ config, onChange }) {
             value={config.stance}
             onChange={(e) => update("stance", e.target.value)}
             placeholder='e.g., "Has read too many of these accounts to be surprised, but still occasionally moved by the human cost of events others reduce to dates and outcomes"'
-            style={{
-              width: "100%",
-              minHeight: "50px",
-              padding: "6px 10px",
-              fontSize: "12px",
-              border: "1px solid var(--border-color)",
-              borderRadius: "4px",
-              background: "var(--bg-tertiary)",
-              color: "var(--text-primary)",
-              resize: "vertical",
-              lineHeight: "1.5",
-            }}
+            className="hce-textarea hce-textarea--stance"
           />
         </div>
 
@@ -479,55 +306,29 @@ export default function HistorianConfigEditor({ config, onChange }) {
       {/* Reload confirmation modal */}
       {reloadStatus === "confirm" && (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(0, 0, 0, 0.6)",
-          }}
+          className="hce-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setReloadStatus(null);
           }}
         >
-          <div
-            style={{
-              background: "var(--bg-primary)",
-              borderRadius: "10px",
-              border: "1px solid var(--border-color)",
-              padding: "20px 24px",
-              maxWidth: "400px",
-              boxShadow: "0 16px 48px rgba(0, 0, 0, 0.3)",
-            }}
-          >
-            <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "8px" }}>
+          <div className="hce-modal-box">
+            <div className="hce-modal-title">
               Reload from Defaults?
             </div>
-            <div
-              style={{
-                fontSize: "12px",
-                color: "var(--text-muted)",
-                lineHeight: 1.6,
-                marginBottom: "16px",
-              }}
-            >
+            <div className="hce-modal-body">
               This will overwrite your current historian configuration with the default project
               template. Any edits you've made will be lost.
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+            <div className="hce-modal-actions">
               <button
                 onClick={() => setReloadStatus(null)}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "6px 14px", fontSize: "12px" }}
+                className="illuminator-button illuminator-button-secondary hce-modal-btn"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleReloadFromDefaults()}
-                className="illuminator-button"
-                style={{ padding: "6px 14px", fontSize: "12px" }}
+                className="illuminator-button hce-modal-btn"
               >
                 Reload
               </button>

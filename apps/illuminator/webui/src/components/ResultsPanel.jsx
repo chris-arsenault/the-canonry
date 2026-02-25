@@ -15,6 +15,7 @@ import {
   DEFAULT_PROMINENCE_DISTRIBUTION,
   prominenceLabelFromScale,
 } from "@canonry/world-schema";
+import "./ResultsPanel.css";
 
 function EntityResultCard({
   entity,
@@ -37,20 +38,10 @@ function EntityResultCard({
             src={imageTask.result.imageUrl}
             alt={entity.name}
             onClick={() => onPreviewImage(imageTask.result.imageUrl)}
-            style={{ cursor: "pointer" }}
+            className="rp-clickable-image"
           />
         ) : (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--text-muted)",
-              fontSize: "32px",
-            }}
-          >
+          <div className="rp-placeholder-icon">
             {entity.kind === "npc" && "&#x1F9D1;"}
             {entity.kind === "location" && "&#x1F3D4;"}
             {entity.kind === "faction" && "&#x1F6E1;"}
@@ -71,33 +62,32 @@ function EntityResultCard({
           <div className="illuminator-entity-description">
             {descriptionTask.result.summary && (
               <>
-                <div style={{ fontWeight: 600, marginBottom: "4px" }}>Summary</div>
+                <div className="rp-section-heading">Summary</div>
                 <div>{descriptionTask.result.summary}</div>
               </>
             )}
             {descriptionTask.result.description && (
               <>
-                <div style={{ fontWeight: 600, margin: "8px 0 4px" }}>Description</div>
+                <div className="rp-description-heading">Description</div>
                 <div>{descriptionTask.result.description}</div>
               </>
             )}
           </div>
         )}
         <div className="illuminator-entity-actions">
-          <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+          <label className="rp-select-label">
             <input
               type="checkbox"
               checked={selected}
               onChange={onToggleSelect}
               className="illuminator-checkbox"
             />
-            <span style={{ fontSize: "12px" }}>Select</span>
+            <span className="rp-select-label-text">Select</span>
           </label>
           {imageTask && (
             <button
               onClick={() => onRegenerate(`img_${entity.id}`)}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "4px 10px", fontSize: "11px" }}
+              className="illuminator-button illuminator-button-secondary rp-regen-btn"
             >
               Regenerate Image
             </button>
@@ -105,8 +95,7 @@ function EntityResultCard({
           {descriptionTask && (
             <button
               onClick={() => onRegenerate(`desc_${entity.id}`)}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "4px 10px", fontSize: "11px" }}
+              className="illuminator-button illuminator-button-secondary rp-regen-btn"
             >
               Regenerate Description
             </button>
@@ -121,48 +110,9 @@ function ImagePreviewModal({ imageUrl, onClose }) {
   if (!imageUrl) return null;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: "rgba(0, 0, 0, 0.9)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1000,
-        cursor: "pointer",
-      }}
-      onClick={onClose}
-    >
-      <img
-        src={imageUrl}
-        alt="Preview"
-        style={{
-          maxWidth: "90%",
-          maxHeight: "90%",
-          objectFit: "contain",
-          borderRadius: "8px",
-        }}
-      />
-      <button
-        onClick={onClose}
-        style={{
-          position: "absolute",
-          top: "20px",
-          right: "20px",
-          background: "rgba(255, 255, 255, 0.2)",
-          border: "none",
-          borderRadius: "50%",
-          width: "40px",
-          height: "40px",
-          color: "white",
-          fontSize: "20px",
-          cursor: "pointer",
-        }}
-      >
+    <div className="rp-preview-overlay" onClick={onClose}>
+      <img src={imageUrl} alt="Preview" className="rp-preview-image" />
+      <button onClick={onClose} className="rp-preview-close">
         ×
       </button>
     </div>
@@ -243,53 +193,43 @@ export default function ResultsPanel({ tasks, entities = [], onRegenerateTask })
       <div className="illuminator-card">
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Enrichment Results</h2>
-          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+          <span className="rp-autosave-note">
             Changes auto-save to current slot
           </span>
         </div>
 
         {enrichedEntities.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
+          <div className="rp-empty-state">
             No enrichment results yet. Run some tasks to see results here.
           </div>
         ) : (
           <>
             {/* Stats */}
-            <div
-              style={{
-                display: "flex",
-                gap: "16px",
-                marginBottom: "16px",
-                padding: "12px",
-                background: "var(--bg-tertiary)",
-                borderRadius: "4px",
-              }}
-            >
+            <div className="rp-stats-bar">
               <div>
-                <span style={{ fontSize: "18px", fontWeight: 600 }}>{enrichedEntities.length}</span>
-                <span style={{ fontSize: "12px", color: "var(--text-muted)", marginLeft: "6px" }}>
+                <span className="rp-stat-value">{enrichedEntities.length}</span>
+                <span className="rp-stat-label">
                   entities
                 </span>
               </div>
               <div>
-                <span style={{ fontSize: "18px", fontWeight: 600 }}>{totalDescriptions}</span>
-                <span style={{ fontSize: "12px", color: "var(--text-muted)", marginLeft: "6px" }}>
+                <span className="rp-stat-value">{totalDescriptions}</span>
+                <span className="rp-stat-label">
                   descriptions
                 </span>
               </div>
               <div>
-                <span style={{ fontSize: "18px", fontWeight: 600 }}>{totalImages}</span>
-                <span style={{ fontSize: "12px", color: "var(--text-muted)", marginLeft: "6px" }}>
+                <span className="rp-stat-value">{totalImages}</span>
+                <span className="rp-stat-label">
                   images
                 </span>
               </div>
 
-              <div style={{ marginLeft: "auto" }}>
+              <div className="rp-filter-wrapper">
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="illuminator-select"
-                  style={{ width: "140px" }}
+                  className="illuminator-select rp-filter-select"
                 >
                   <option value="all">All Types</option>
                   <option value="description">Descriptions</option>
@@ -319,23 +259,11 @@ export default function ResultsPanel({ tasks, entities = [], onRegenerateTask })
 
       {/* Selection actions */}
       {selectedEntities.size > 0 && (
-        <div
-          style={{
-            position: "sticky",
-            bottom: "16px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "12px 16px",
-            background: "var(--bg-secondary)",
-            border: "1px solid var(--accent-color)",
-            borderRadius: "6px",
-          }}
-        >
-          <span style={{ fontSize: "13px" }}>
+        <div className="rp-selection-bar">
+          <span className="rp-selection-count">
             {selectedEntities.size} entit{selectedEntities.size !== 1 ? "ies" : "y"} selected
           </span>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="rp-selection-actions">
             <button
               onClick={() => setSelectedEntities(new Set())}
               className="illuminator-button illuminator-button-secondary"

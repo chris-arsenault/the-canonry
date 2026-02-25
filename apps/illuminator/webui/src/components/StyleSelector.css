@@ -1,0 +1,35 @@
+.stsel-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stsel-compact-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.stsel-compact-select {
+  width: auto;
+  min-width: 120px;
+}
+
+.stsel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.stsel-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.stsel-description {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}

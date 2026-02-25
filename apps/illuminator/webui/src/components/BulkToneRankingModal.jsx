@@ -9,6 +9,7 @@
 
 import { useEffect } from "react";
 import { useFloatingPillStore } from "../lib/db/floatingPillStore";
+import "./BulkToneRankingModal.css";
 
 const PILL_ID = "bulk-tone-ranking";
 
@@ -55,45 +56,25 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
     progress.status === "cancelled" ||
     progress.status === "failed";
 
+  const statusClass =
+    progress.status === "complete"
+      ? "btrm-status--complete"
+      : progress.status === "failed"
+        ? "btrm-status--failed"
+        : progress.status === "cancelled"
+          ? "btrm-status--cancelled"
+          : "btrm-status--default";
+
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 10000,
-      }}
-    >
+    <div className="btrm-overlay">
       <div
-        style={{
-          background: "var(--bg-primary)",
-          borderRadius: "12px",
-          border: "1px solid var(--border-color)",
-          width: isConfirming ? "540px" : "480px",
-          maxWidth: "95vw",
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-        }}
+        className={`btrm-dialog ${isConfirming ? "btrm-dialog--confirming" : "btrm-dialog--processing"}`}
       >
         {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-color)",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ margin: 0, fontSize: "16px" }}>Tone Ranking</h2>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="btrm-header">
+          <div className="btrm-header-row">
+            <h2 className="btrm-title">Tone Ranking</h2>
+            <div className="btrm-header-actions">
               {!isConfirming && (
                 <button
                   onClick={() =>
@@ -110,27 +91,13 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
                       tabId: "chronicle",
                     })
                   }
-                  className="illuminator-button"
-                  style={{ padding: "2px 8px", fontSize: "11px" }}
+                  className="illuminator-button btrm-minimize-btn"
                   title="Minimize to pill"
                 >
                   ―
                 </button>
               )}
-              <span
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  color:
-                    progress.status === "complete"
-                      ? "#10b981"
-                      : progress.status === "failed"
-                        ? "#ef4444"
-                        : progress.status === "cancelled"
-                          ? "#f59e0b"
-                          : "var(--text-muted)",
-                }}
-              >
+              <span className={`btrm-status ${statusClass}`}>
                 {isConfirming && `${progress.totalChronicles} chronicles`}
                 {progress.status === "running" &&
                   (progress.processedChronicles > 0
@@ -145,70 +112,24 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
         </div>
 
         {/* Body */}
-        <div
-          style={{
-            padding: "20px",
-            overflowY: isConfirming ? "auto" : "visible",
-            flex: isConfirming ? 1 : undefined,
-            minHeight: 0,
-          }}
-        >
+        <div className={`btrm-body ${isConfirming ? "btrm-body--confirming" : ""}`}>
           {/* ---- Confirmation screen ---- */}
           {isConfirming && (
             <>
-              <div
-                style={{
-                  padding: "10px 12px",
-                  marginBottom: "12px",
-                  borderRadius: "8px",
-                  background: "var(--bg-secondary)",
-                  fontSize: "11px",
-                  color: "var(--text-secondary)",
-                  lineHeight: 1.5,
-                }}
-              >
+              <div className="btrm-info-box">
                 Chronicles are split into batches of ~35-45. Each batch gets its own LLM call so the
                 model maintains attention across all entries.
               </div>
 
               {/* Chronicle list */}
-              <div style={{ marginBottom: "12px" }}>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    textTransform: "uppercase",
-                    fontWeight: 600,
-                    marginBottom: "8px",
-                  }}
-                >
+              <div className="btrm-chronicle-section">
+                <div className="btrm-chronicle-heading">
                   Chronicles ({progress.chronicles.length})
                 </div>
 
-                <div
-                  style={{
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "8px",
-                    overflow: "hidden",
-                    maxHeight: "400px",
-                    overflowY: "auto",
-                  }}
-                >
-                  {progress.chronicles.map((chron, i) => (
-                    <div
-                      key={chron.chronicleId}
-                      style={{
-                        padding: "6px 12px",
-                        borderBottom:
-                          i < progress.chronicles.length - 1
-                            ? "1px solid var(--border-color)"
-                            : "none",
-                        fontSize: "12px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
+                <div className="btrm-chronicle-list">
+                  {progress.chronicles.map((chron) => (
+                    <div key={chron.chronicleId} className="btrm-chronicle-item">
                       {chron.title}
                     </div>
                   ))}
@@ -228,48 +149,29 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
                       ? Math.round((progress.processedChronicles / progress.totalChronicles) * 100)
                       : 0;
                   return (
-                    <div style={{ marginBottom: "16px" }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "baseline",
-                          marginBottom: "6px",
-                        }}
-                      >
-                        <span style={{ fontSize: "13px", fontWeight: 500 }}>
+                    <div className="btrm-progress-section">
+                      <div className="btrm-progress-header">
+                        <span className="btrm-progress-title">
                           {progress.currentTitle ||
                             `Ranking ${progress.totalChronicles} chronicles...`}
                         </span>
                         {progress.processedChronicles > 0 && (
-                          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                          <span className="btrm-progress-pct">
                             {pct}%
                           </span>
                         )}
                       </div>
 
                       {/* Progress bar */}
-                      <div
-                        style={{
-                          height: "8px",
-                          borderRadius: "4px",
-                          background: "var(--bg-secondary)",
-                          overflow: "hidden",
-                          marginBottom: "6px",
-                        }}
-                      >
+                      <div className="btrm-progress-bar-track">
                         <div
-                          style={{
-                            height: "100%",
-                            borderRadius: "4px",
-                            background: "#10b981",
-                            width: `${pct}%`,
-                            transition: "width 0.3s ease",
-                          }}
+                          className="btrm-progress-bar-fill"
+                          // eslint-disable-next-line local/no-inline-styles -- dynamic progress width
+                          style={{ width: `${pct}%` }}
                         />
                       </div>
 
-                      <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                      <div className="btrm-progress-count">
                         {progress.processedChronicles} / {progress.totalChronicles} chronicles
                         ranked
                       </div>
@@ -279,60 +181,27 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
 
               {/* Terminal state messages */}
               {progress.status === "complete" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(16, 185, 129, 0.1)",
-                    border: "1px solid rgba(16, 185, 129, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="btrm-terminal-msg btrm-terminal-msg--complete">
                   Ranked {progress.processedChronicles} of {progress.totalChronicles} chronicles.
                 </div>
               )}
 
               {progress.status === "cancelled" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(245, 158, 11, 0.1)",
-                    border: "1px solid rgba(245, 158, 11, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="btrm-terminal-msg btrm-terminal-msg--cancelled">
                   Cancelled after {progress.processedChronicles} of {progress.totalChronicles}{" "}
                   chronicles.
                 </div>
               )}
 
               {progress.status === "failed" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(239, 68, 68, 0.1)",
-                    border: "1px solid rgba(239, 68, 68, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="btrm-terminal-msg btrm-terminal-msg--failed">
                   {progress.error || "An unexpected error occurred."}
                 </div>
               )}
 
               {/* Cost */}
               {progress.totalCost > 0 && (
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    textAlign: "right",
-                  }}
-                >
+                <div className="btrm-cost">
                   Cost: ${progress.totalCost.toFixed(4)}
                 </div>
               )}
@@ -341,29 +210,18 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "8px",
-            flexShrink: 0,
-          }}
-        >
+        <div className="btrm-footer">
           {isConfirming && (
             <>
               <button
                 onClick={onCancel}
-                className="illuminator-button"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button btrm-footer-btn"
               >
                 Cancel
               </button>
               <button
                 onClick={onConfirm}
-                className="illuminator-button illuminator-button-primary"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button illuminator-button-primary btrm-footer-btn"
               >
                 Rank ({progress.totalChronicles} chronicles)
               </button>
@@ -372,8 +230,7 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
           {!isConfirming && !isTerminal && (
             <button
               onClick={onCancel}
-              className="illuminator-button"
-              style={{ padding: "6px 16px", fontSize: "12px" }}
+              className="illuminator-button btrm-footer-btn"
             >
               Cancel
             </button>
@@ -381,8 +238,7 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
           {isTerminal && (
             <button
               onClick={onClose}
-              className="illuminator-button"
-              style={{ padding: "6px 16px", fontSize: "12px" }}
+              className="illuminator-button btrm-footer-btn"
             >
               Close
             </button>

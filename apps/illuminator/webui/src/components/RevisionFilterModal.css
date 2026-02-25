@@ -1,0 +1,122 @@
+/* RevisionFilterModal — rfm- prefix */
+
+.rfm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.rfm-dialog {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  width: 440px;
+  max-width: 95vw;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Header */
+.rfm-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.rfm-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.rfm-subtitle {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Body */
+.rfm-body {
+  padding: 16px 20px;
+}
+
+.rfm-counts-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 16px;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+.rfm-count-label {
+  color: var(--text-secondary);
+}
+
+.rfm-count-value {
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.rfm-count-value--warning {
+  color: var(--warning-color, #f59e0b);
+}
+
+.rfm-count-value--muted {
+  color: var(--text-muted);
+}
+
+.rfm-count-label--total {
+  font-weight: 600;
+}
+
+/* Chronicle filter toggle */
+.rfm-filter-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.rfm-filter-checkbox {
+  margin-top: 2px;
+}
+
+.rfm-filter-title {
+  font-weight: 600;
+}
+
+.rfm-filter-description {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* No-entities warning */
+.rfm-warning {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border-left: 3px solid var(--warning-color, #f59e0b);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Footer */
+.rfm-footer {
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.rfm-footer-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+}

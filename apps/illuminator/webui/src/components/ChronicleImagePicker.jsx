@@ -10,13 +10,14 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { searchChronicleImages, loadImage } from "../lib/db/imageRepository";
+import "./ChronicleImagePicker.css";
 
 const PAGE_SIZE = 12;
 
 /**
  * Lazy-loading thumbnail that only loads the blob when visible.
  */
-function LazyThumbnail({ imageId, alt, style }) {
+function LazyThumbnail({ imageId, alt, className }) {
   const ref = useRef(null);
   const [url, setUrl] = useState(null);
   const urlRef = useRef(null);
@@ -50,35 +51,11 @@ function LazyThumbnail({ imageId, alt, style }) {
   }, [imageId]);
 
   return (
-    <div ref={ref} style={style}>
+    <div ref={ref} className={className}>
       {url ? (
-        <img
-          src={url}
-          alt={alt}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-          }}
-        />
+        <img src={url} alt={alt} className="cip-thumb-img" />
       ) : (
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--text-muted)",
-            fontSize: "11px",
-          }}
-        >
+        <div className="cip-thumb-loading">
           Loading...
         </div>
       )}
@@ -257,7 +234,7 @@ export default function ChronicleImagePicker({
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
     >
-      <div className="illuminator-modal" style={{ maxWidth: "800px", maxHeight: "85vh" }}>
+      <div className="illuminator-modal cip-modal">
         <div className="illuminator-modal-header">
           <h3>Select Existing Image</h3>
           <button onClick={handleClose} className="illuminator-modal-close">
@@ -265,27 +242,10 @@ export default function ChronicleImagePicker({
           </button>
         </div>
 
-        <div className="illuminator-modal-body" style={{ padding: "0" }}>
+        <div className="illuminator-modal-body cip-body">
           {/* Filters */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "20px",
-              padding: "12px 16px",
-              borderBottom: "1px solid var(--border-color)",
-              background: "var(--bg-tertiary)",
-            }}
-          >
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                fontSize: "12px",
-                cursor: "pointer",
-              }}
-            >
+          <div className="cip-filters">
+            <label className="cip-filter-label">
               <input
                 type="checkbox"
                 checked={filterByRef}
@@ -294,15 +254,7 @@ export default function ChronicleImagePicker({
               This ref only
             </label>
 
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                fontSize: "12px",
-                cursor: "pointer",
-              }}
-            >
+            <label className="cip-filter-label">
               <input
                 type="checkbox"
                 checked={filterByChronicle}
@@ -311,30 +263,24 @@ export default function ChronicleImagePicker({
               This chronicle only
             </label>
 
-            <span style={{ marginLeft: "auto", fontSize: "12px", color: "var(--text-muted)" }}>
+            <span className="cip-filter-count">
               {total} image{total !== 1 ? "s" : ""}
             </span>
           </div>
 
           {/* Image grid */}
-          <div style={{ padding: "16px", maxHeight: "450px", overflowY: "auto" }}>
+          <div className="cip-grid-area">
             {loading && images.length === 0 ? (
-              <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+              <div className="cip-empty-state">
                 Loading images...
               </div>
             ) : images.length === 0 ? (
-              <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+              <div className="cip-empty-state">
                 No images found. Try unchecking filters to see more.
               </div>
             ) : (
               <>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-                    gap: "12px",
-                  }}
-                >
+                <div className="cip-grid">
                   {images.map((img) => {
                     const isSelected = selectedImageId === img.imageId;
                     const isCurrent = currentImageId === img.imageId;
@@ -343,64 +289,23 @@ export default function ChronicleImagePicker({
                       <div
                         key={img.imageId}
                         onClick={() => setSelectedImageId(img.imageId)}
-                        style={{
-                          position: "relative",
-                          aspectRatio: "1",
-                          borderRadius: "8px",
-                          overflow: "hidden",
-                          cursor: "pointer",
-                          border: isSelected
-                            ? "3px solid #3b82f6"
-                            : isCurrent
-                              ? "3px solid #10b981"
-                              : "1px solid var(--border-color)",
-                          background: "var(--bg-tertiary)",
-                        }}
+                        className={`cip-image-card${isSelected ? " cip-image-card--selected" : isCurrent ? " cip-image-card--current" : ""}`}
                       >
                         <LazyThumbnail
                           imageId={img.imageId}
                           alt={img.sceneDescription || "Chronicle image"}
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: "100%",
-                          }}
+                          className="cip-thumb-container"
                         />
 
                         {/* Current indicator */}
                         {isCurrent && (
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: "4px",
-                              left: "4px",
-                              padding: "2px 6px",
-                              background: "#10b981",
-                              color: "white",
-                              fontSize: "9px",
-                              fontWeight: 600,
-                              borderRadius: "4px",
-                            }}
-                          >
+                          <div className="cip-current-badge">
                             Current
                           </div>
                         )}
 
                         {/* Date overlay */}
-                        <div
-                          style={{
-                            position: "absolute",
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            padding: "4px 6px",
-                            background: "linear-gradient(transparent, rgba(0,0,0,0.7))",
-                            fontSize: "10px",
-                            color: "white",
-                          }}
-                        >
+                        <div className="cip-date-overlay">
                           {formatDate(img.generatedAt)}
                         </div>
                       </div>
@@ -410,20 +315,11 @@ export default function ChronicleImagePicker({
 
                 {/* Load more button */}
                 {hasMore && (
-                  <div style={{ textAlign: "center", marginTop: "16px" }}>
+                  <div className="cip-load-more-wrapper">
                     <button
                       onClick={handleLoadMore}
                       disabled={loading}
-                      style={{
-                        padding: "8px 20px",
-                        background: "var(--bg-tertiary)",
-                        border: "1px solid var(--border-color)",
-                        borderRadius: "6px",
-                        color: "var(--text-secondary)",
-                        cursor: loading ? "not-allowed" : "pointer",
-                        opacity: loading ? 0.6 : 1,
-                        fontSize: "12px",
-                      }}
+                      className="cip-load-more-btn"
                     >
                       {loading ? "Loading..." : `Load More (${total - images.length} remaining)`}
                     </button>
@@ -435,43 +331,14 @@ export default function ChronicleImagePicker({
         </div>
 
         {/* Footer */}
-        <div
-          className="illuminator-modal-footer"
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "8px",
-            padding: "12px 16px",
-            borderTop: "1px solid var(--border-color)",
-          }}
-        >
-          <button
-            onClick={handleClose}
-            style={{
-              padding: "8px 16px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              color: "var(--text-secondary)",
-              cursor: "pointer",
-              fontSize: "12px",
-            }}
-          >
+        <div className="illuminator-modal-footer cip-footer">
+          <button onClick={handleClose} className="cip-cancel-btn">
             Cancel
           </button>
           <button
             onClick={handleSelect}
             disabled={!selectedImageId}
-            style={{
-              padding: "8px 16px",
-              background: selectedImageId ? "#3b82f6" : "var(--bg-tertiary)",
-              border: "none",
-              borderRadius: "6px",
-              color: selectedImageId ? "white" : "var(--text-muted)",
-              cursor: selectedImageId ? "pointer" : "not-allowed",
-              fontSize: "12px",
-              fontWeight: 500,
-            }}
+            className={`cip-select-btn ${selectedImageId ? "cip-select-btn--active" : "cip-select-btn--disabled"}`}
           >
             Select Image
           </button>

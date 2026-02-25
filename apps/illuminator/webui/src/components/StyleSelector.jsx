@@ -13,6 +13,7 @@
 
 import { useMemo } from "react";
 import { DEFAULT_RANDOM_EXCLUSIONS } from "@canonry/world-schema";
+import "./StyleSelector.css";
 
 const RANDOM_ID = "random";
 const NONE_ID = "none";
@@ -129,20 +130,12 @@ export default function StyleSelector({
 
   if (compact) {
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          flexWrap: "wrap",
-        }}
-      >
-        <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Style:</span>
+      <div className="stsel-compact">
+        <span className="stsel-compact-label">Style:</span>
         <select
           value={selectedArtisticStyleId || RANDOM_ID}
           onChange={(e) => onArtisticStyleChange(e.target.value || RANDOM_ID)}
-          className="illuminator-select"
-          style={{ width: "auto", minWidth: "120px" }}
+          className="illuminator-select stsel-compact-select"
           title={selectedArtistic?.description || "Select artistic style"}
         >
           <option value={RANDOM_ID}>Random</option>
@@ -157,8 +150,7 @@ export default function StyleSelector({
         <select
           value={selectedCompositionStyleId || RANDOM_ID}
           onChange={(e) => onCompositionStyleChange(e.target.value || RANDOM_ID)}
-          className="illuminator-select"
-          style={{ width: "auto", minWidth: "120px" }}
+          className="illuminator-select stsel-compact-select"
           title={selectedComposition?.description || "Select composition style"}
         >
           <option value={RANDOM_ID}>Random</option>
@@ -177,8 +169,7 @@ export default function StyleSelector({
         <select
           value={selectedColorPaletteId || RANDOM_ID}
           onChange={(e) => onColorPaletteChange(e.target.value || RANDOM_ID)}
-          className="illuminator-select"
-          style={{ width: "auto", minWidth: "120px" }}
+          className="illuminator-select stsel-compact-select"
           title={selectedColorPalette?.description || "Select color palette"}
         >
           <option value={RANDOM_ID}>Random</option>
@@ -194,23 +185,10 @@ export default function StyleSelector({
   }
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr 1fr",
-        gap: "12px",
-      }}
-    >
+    <div className="stsel-grid">
       {/* Artistic Style */}
       <div>
-        <label
-          style={{
-            display: "block",
-            fontSize: "12px",
-            color: "var(--text-muted)",
-            marginBottom: "4px",
-          }}
-        >
+        <label className="stsel-label">
           Artistic Style
         </label>
         <select
@@ -227,13 +205,7 @@ export default function StyleSelector({
           ))}
         </select>
         {selectedArtistic && (
-          <div
-            style={{
-              fontSize: "11px",
-              color: "var(--text-muted)",
-              marginTop: "4px",
-            }}
-          >
+          <div className="stsel-description">
             {selectedArtistic.description}
           </div>
         )}
@@ -241,14 +213,7 @@ export default function StyleSelector({
 
       {/* Composition Style */}
       <div>
-        <label
-          style={{
-            display: "block",
-            fontSize: "12px",
-            color: "var(--text-muted)",
-            marginBottom: "4px",
-          }}
-        >
+        <label className="stsel-label">
           Composition Style{entityKind && ` (for ${entityKind})`}
         </label>
         <select
@@ -269,13 +234,7 @@ export default function StyleSelector({
           ))}
         </select>
         {selectedComposition && (
-          <div
-            style={{
-              fontSize: "11px",
-              color: "var(--text-muted)",
-              marginTop: "4px",
-            }}
-          >
+          <div className="stsel-description">
             {selectedComposition.description}
           </div>
         )}
@@ -283,14 +242,7 @@ export default function StyleSelector({
 
       {/* Color Palette */}
       <div>
-        <label
-          style={{
-            display: "block",
-            fontSize: "12px",
-            color: "var(--text-muted)",
-            marginBottom: "4px",
-          }}
-        >
+        <label className="stsel-label">
           Color Palette
         </label>
         <select
@@ -307,13 +259,7 @@ export default function StyleSelector({
           ))}
         </select>
         {selectedColorPalette && (
-          <div
-            style={{
-              fontSize: "11px",
-              color: "var(--text-muted)",
-              marginTop: "4px",
-            }}
-          >
+          <div className="stsel-description">
             {selectedColorPalette.description}
           </div>
         )}

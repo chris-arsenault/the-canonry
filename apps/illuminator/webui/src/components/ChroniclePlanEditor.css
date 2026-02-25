@@ -1,0 +1,202 @@
+/* ChroniclePlanEditor.css — co-located styles for ChroniclePlanEditor.jsx */
+
+/* ── Shared card ── */
+.cpe-card {
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 16px;
+}
+
+/* ── Plan header ── */
+.cpe-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.cpe-plan-title-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.cpe-plan-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.cpe-format-badge {
+  font-size: 10px;
+  padding: 4px 8px;
+  color: white;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cpe-format-badge--document {
+  background: #059669;
+}
+
+.cpe-format-badge--story {
+  background: var(--accent-primary);
+}
+
+.cpe-summary-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.cpe-summary-item {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ── Section headings ── */
+.cpe-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* ── Info lines ── */
+.cpe-info-line {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.cpe-info-line--last {
+  margin-bottom: 0;
+}
+
+/* ── Lists ── */
+.cpe-list {
+  margin: 6px 0 0 16px;
+  font-size: 12px;
+}
+
+.cpe-ordered-list {
+  margin: 0 0 0 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ── No content message ── */
+.cpe-empty-msg {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Entity role card ── */
+.cpe-entity-card {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  margin-bottom: 8px;
+}
+
+.cpe-entity-name {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.cpe-entity-info {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ── Section card ── */
+.cpe-section-card {
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 12px;
+}
+
+.cpe-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cpe-section-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cpe-optional-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+.cpe-section-detail {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
+.cpe-section-detail--sm {
+  margin-top: 4px;
+}
+
+.cpe-section-detail--md {
+  margin-top: 6px;
+}
+
+/* ── Sections list heading ── */
+.cpe-sections-heading {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* ── Root layout ── */
+.cpe-root {
+  max-width: 900px;
+}
+
+/* ── Stats row ── */
+.cpe-stats-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.cpe-stat-box {
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ── Action bar ── */
+.cpe-action-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.cpe-btn {
+  padding: 10px 18px;
+  font-size: 13px;
+}
+
+.cpe-btn--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

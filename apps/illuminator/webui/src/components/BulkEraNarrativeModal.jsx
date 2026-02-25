@@ -12,35 +12,36 @@ import { useBulkEraNarrativeStore } from "../lib/db/bulkEraNarrativeStore";
 import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
 import { useThinkingStore } from "../lib/db/thinkingStore";
 import { useFloatingPillStore } from "../lib/db/floatingPillStore";
+import "./BulkEraNarrativeModal.css";
 const PILL_ID = "bulk-era-narrative";
 
 const ERA_NARRATIVE_TONES = [
-  { value: "witty", label: "Witty", symbol: "✶", description: "Sly, dry, finds the dark comic" },
+  { value: "witty", label: "Witty", symbol: "\u2736", description: "Sly, dry, finds the dark comic" },
   {
     value: "cantankerous",
     label: "Cantankerous",
-    symbol: "♯",
+    symbol: "\u266F",
     description: "Irritable energy, argues with the dead",
   },
   {
     value: "bemused",
     label: "Bemused",
-    symbol: "⁂",
+    symbol: "\u2042",
     description: "Puzzled and delighted by absurdity",
   },
-  { value: "defiant", label: "Defiant", symbol: "▲", description: "Proud of what was attempted" },
+  { value: "defiant", label: "Defiant", symbol: "\u25B2", description: "Proud of what was attempted" },
   {
     value: "sardonic",
     label: "Sardonic",
-    symbol: "◆",
+    symbol: "\u25C6",
     description: "Sharp irony, names the pattern",
   },
-  { value: "tender", label: "Tender", symbol: "◠", description: "Lingers on what survived" },
-  { value: "hopeful", label: "Hopeful", symbol: "☀", description: "Reads for what was seeded" },
+  { value: "tender", label: "Tender", symbol: "\u25E0", description: "Lingers on what survived" },
+  { value: "hopeful", label: "Hopeful", symbol: "\u2600", description: "Reads for what was seeded" },
   {
     value: "enthusiastic",
     label: "Enthusiastic",
-    symbol: "⚡",
+    symbol: "\u26A1",
     description: "Thrilled by scale and ambition",
   },
 ];
@@ -170,45 +171,34 @@ export default function BulkEraNarrativeModal({
     onClose();
   };
 
+  const statusColor =
+    progress.status === "complete"
+      ? "#10b981"
+      : progress.status === "failed"
+        ? "#ef4444"
+        : progress.status === "cancelled"
+          ? "#f59e0b"
+          : "var(--text-muted)";
+
+  const progressFillClass =
+    progress.status === "failed"
+      ? "benm-progress-fill benm-progress-fill--failed"
+      : progress.status === "cancelled"
+        ? "benm-progress-fill benm-progress-fill--cancelled"
+        : "benm-progress-fill benm-progress-fill--complete";
+
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 10000,
-      }}
-    >
+    <div className="benm-overlay">
       <div
-        style={{
-          background: "var(--bg-primary)",
-          borderRadius: "12px",
-          border: "1px solid var(--border-color)",
-          width: isConfirming ? "540px" : "560px",
-          maxWidth: "95vw",
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-        }}
+        className="benm-modal"
+        // eslint-disable-next-line local/no-inline-styles -- dynamic width based on confirming state
+        style={{ width: isConfirming ? "540px" : "560px" }}
       >
         {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-color)",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ margin: 0, fontSize: "16px" }}>Bulk Era Narrative</h2>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="benm-header">
+          <div className="benm-header-row">
+            <h2 className="benm-title">Bulk Era Narrative</h2>
+            <div className="benm-header-actions">
               {!isConfirming && (
                 <button
                   onClick={() =>
@@ -228,26 +218,16 @@ export default function BulkEraNarrativeModal({
                       tabId: "chronicle",
                     })
                   }
-                  className="illuminator-button"
-                  style={{ padding: "2px 8px", fontSize: "11px" }}
+                  className="illuminator-button benm-minimize-btn"
                   title="Minimize to pill"
                 >
                   {"\u2015"}
                 </button>
               )}
               <span
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  color:
-                    progress.status === "complete"
-                      ? "#10b981"
-                      : progress.status === "failed"
-                        ? "#ef4444"
-                        : progress.status === "cancelled"
-                          ? "#f59e0b"
-                          : "var(--text-muted)",
-                }}
+                className="benm-status-label"
+                // eslint-disable-next-line local/no-inline-styles -- dynamic color from status
+                style={{ color: statusColor }}
               >
                 {isConfirming && `${progress.totalEras} eras`}
                 {isRunning && "Processing..."}
@@ -261,93 +241,52 @@ export default function BulkEraNarrativeModal({
 
         {/* Body */}
         <div
+          className="benm-body"
+          // eslint-disable-next-line local/no-inline-styles -- dynamic overflow/flex based on confirming state
           style={{
-            padding: "20px",
             overflowY: isConfirming ? "auto" : "visible",
             flex: isConfirming ? 1 : undefined,
-            minHeight: 0,
           }}
         >
           {/* ---- Confirmation screen ---- */}
           {isConfirming && (
             <>
               {/* Era list with per-era tone */}
-              <div style={{ marginBottom: "12px" }}>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    textTransform: "uppercase",
-                    fontWeight: 600,
-                    marginBottom: "8px",
-                  }}
-                >
+              <div className="benm-era-section">
+                <div className="benm-section-label">
                   Eras ({progress.eras.length})
                 </div>
-                <div
-                  style={{
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "8px",
-                    overflow: "hidden",
-                    maxHeight: "400px",
-                    overflowY: "auto",
-                  }}
-                >
+                <div className="benm-era-list">
                   {progress.eras.map((era, i) => {
-                    const eraMeta = TONE_META[era.tone];
                     return (
                       <div
                         key={era.eraId}
+                        className="benm-era-row"
+                        // eslint-disable-next-line local/no-inline-styles -- dynamic border for last-child separation
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "6px 12px",
                           borderBottom:
                             i < progress.eras.length - 1 ? "1px solid var(--border-color)" : "none",
-                          fontSize: "12px",
                         }}
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            minWidth: 0,
-                            flex: 1,
-                          }}
-                        >
-                          <span
-                            style={{
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
+                        <div className="benm-era-row-info">
+                          <span className="benm-era-name">
                             {era.eraName}
                           </span>
                         </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            flexShrink: 0,
-                          }}
-                        >
-                          <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+                        <div className="benm-era-row-actions">
+                          <span className="benm-era-prepped">
                             {era.preppedCount}/{era.totalCount} prepped
                           </span>
                           {era.hasExisting && (
                             <span
-                              style={{ fontSize: "10px", color: "#3b82f6" }}
+                              className="benm-era-existing"
                               title="Has existing completed narrative"
                             >
                               {"\u2713"}
                             </span>
                           )}
                           {/* Per-era tone selector */}
-                          <div style={{ display: "flex", gap: "2px" }}>
+                          <div className="benm-tone-selector">
                             {TONE_OPTIONS.map((t) => {
                               const meta = TONE_META[t];
                               const selected = era.tone === t;
@@ -356,25 +295,7 @@ export default function BulkEraNarrativeModal({
                                   key={t}
                                   onClick={() => setEraTone(era.eraId, t)}
                                   title={meta?.label}
-                                  style={{
-                                    width: "18px",
-                                    height: "18px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    padding: 0,
-                                    borderRadius: "3px",
-                                    border: selected
-                                      ? "1px solid #8b7355"
-                                      : "1px solid transparent",
-                                    background: selected
-                                      ? "rgba(139, 115, 85, 0.15)"
-                                      : "transparent",
-                                    color: selected ? "#8b7355" : "var(--text-muted)",
-                                    cursor: "pointer",
-                                    fontSize: "10px",
-                                    lineHeight: 1,
-                                  }}
+                                  className={`benm-tone-btn ${selected ? "benm-tone-btn--selected" : "benm-tone-btn--default"}`}
                                 >
                                   {meta?.symbol}
                                 </button>
@@ -394,48 +315,24 @@ export default function BulkEraNarrativeModal({
           {!isConfirming && (
             <>
               {/* Progress bar */}
-              <div style={{ marginBottom: "16px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    marginBottom: "6px",
-                  }}
-                >
-                  <span style={{ fontSize: "13px", fontWeight: 500 }}>
+              <div className="benm-progress-section">
+                <div className="benm-progress-header">
+                  <span className="benm-progress-era-label">
                     Era {Math.min(progress.processedEras + 1, progress.totalEras)} /{" "}
                     {progress.totalEras}
                   </span>
-                  <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                  <span className="benm-progress-percent">
                     {globalPercent}%
                   </span>
                 </div>
-                <div
-                  style={{
-                    height: "8px",
-                    borderRadius: "4px",
-                    background: "var(--bg-secondary)",
-                    overflow: "hidden",
-                    marginBottom: "6px",
-                  }}
-                >
+                <div className="benm-progress-track">
                   <div
-                    style={{
-                      height: "100%",
-                      borderRadius: "4px",
-                      background:
-                        progress.status === "failed"
-                          ? "#ef4444"
-                          : progress.status === "cancelled"
-                            ? "#f59e0b"
-                            : "#10b981",
-                      width: `${globalPercent}%`,
-                      transition: "width 0.3s ease",
-                    }}
+                    className={progressFillClass}
+                    // eslint-disable-next-line local/no-inline-styles -- dynamic width from progress percentage
+                    style={{ width: `${globalPercent}%` }}
                   />
                 </div>
-                <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                <div className="benm-progress-counts">
                   {progress.processedEras} / {progress.totalEras} eras
                 </div>
               </div>
@@ -460,28 +357,12 @@ export default function BulkEraNarrativeModal({
                     : 0;
 
                   return (
-                    <div
-                      style={{
-                        padding: "12px",
-                        borderRadius: "8px",
-                        background: "var(--bg-secondary)",
-                        marginBottom: "12px",
-                      }}
-                    >
+                    <div className="benm-current-era">
                       {/* Era name + tone */}
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          fontWeight: 500,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          marginBottom: "10px",
-                        }}
-                      >
+                      <div className="benm-current-era-name">
                         {currentToneMeta && (
                           <span
-                            style={{ color: "#8b7355", fontSize: "13px" }}
+                            className="benm-current-era-tone"
                             title={currentToneMeta.label}
                           >
                             {currentToneMeta.symbol}
@@ -491,7 +372,7 @@ export default function BulkEraNarrativeModal({
                       </div>
 
                       {/* Step rows */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <div className="benm-steps">
                         {stepOrder.map((step, idx) => {
                           const isDone = idx < activeIdx;
                           const isActive = idx === activeIdx;
@@ -512,28 +393,18 @@ export default function BulkEraNarrativeModal({
 
                           return (
                             <div key={step}>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "8px",
-                                  fontSize: "11px",
-                                }}
-                              >
+                              <div className="benm-step-row">
                                 <span
-                                  style={{
-                                    color: iconColor,
-                                    width: "12px",
-                                    textAlign: "center",
-                                    fontWeight: 600,
-                                    fontSize: "10px",
-                                  }}
+                                  className="benm-step-icon"
+                                  // eslint-disable-next-line local/no-inline-styles -- dynamic color from step state
+                                  style={{ color: iconColor }}
                                 >
                                   {icon}
                                 </span>
                                 <span
+                                  className="benm-step-label"
+                                  // eslint-disable-next-line local/no-inline-styles -- dynamic color/weight from step state
                                   style={{
-                                    width: "52px",
                                     color: isPending
                                       ? "var(--text-muted)"
                                       : "var(--text-secondary)",
@@ -544,58 +415,31 @@ export default function BulkEraNarrativeModal({
                                 </span>
 
                                 {isActive && (
-                                  <div
-                                    style={{
-                                      flex: 1,
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: "10px",
-                                    }}
-                                  >
+                                  <div className="benm-step-active-content">
                                     {/* Mini progress bar */}
-                                    <div
-                                      style={{
-                                        flex: 1,
-                                        height: "4px",
-                                        borderRadius: "2px",
-                                        background: "var(--bg-primary)",
-                                        overflow: "hidden",
-                                      }}
-                                    >
+                                    <div className="benm-step-bar-track">
                                       <div
-                                        style={{
-                                          height: "100%",
-                                          borderRadius: "2px",
-                                          background: "#f59e0b",
-                                          width: `${barPercent}%`,
-                                          transition: "width 0.2s ease",
-                                        }}
+                                        className="benm-step-bar-fill"
+                                        // eslint-disable-next-line local/no-inline-styles -- dynamic width from word count
+                                        style={{ width: `${barPercent}%` }}
                                       />
                                     </div>
                                     {/* Live counters */}
-                                    <span
-                                      style={{
-                                        color: "var(--text-muted)",
-                                        fontVariantNumeric: "tabular-nums",
-                                        whiteSpace: "nowrap",
-                                      }}
-                                    >
+                                    <span className="benm-step-counters">
                                       {thinkingWords > 0 && (
                                         <span title="Thinking words received">
-                                          <span
-                                            style={{ color: "var(--text-muted)", opacity: 0.6 }}
-                                          >
+                                          <span className="benm-counter-thinking-label">
                                             T
                                           </span>{" "}
                                           {thinkingWords.toLocaleString()}
                                         </span>
                                       )}
                                       {thinkingWords > 0 && outputWords > 0 && (
-                                        <span style={{ margin: "0 6px", opacity: 0.3 }}>/</span>
+                                        <span className="benm-counter-separator">/</span>
                                       )}
                                       {outputWords > 0 && (
                                         <span title="Output words received">
-                                          <span style={{ color: "#f59e0b", opacity: 0.8 }}>O</span>{" "}
+                                          <span className="benm-counter-output-label">O</span>{" "}
                                           {outputWords.toLocaleString()}
                                         </span>
                                       )}
@@ -604,13 +448,7 @@ export default function BulkEraNarrativeModal({
                                 )}
 
                                 {isDone && (
-                                  <span
-                                    style={{
-                                      flex: 1,
-                                      fontSize: "10px",
-                                      color: "var(--text-muted)",
-                                    }}
-                                  >
+                                  <span className="benm-step-done">
                                     done
                                   </span>
                                 )}
@@ -625,16 +463,7 @@ export default function BulkEraNarrativeModal({
 
               {/* Terminal state messages */}
               {progress.status === "complete" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(16, 185, 129, 0.1)",
-                    border: "1px solid rgba(16, 185, 129, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="benm-terminal-msg benm-terminal-msg--complete">
                   Generated {progress.processedEras} era narratives.
                   {progress.totalWords > 0 && (
                     <span> {progress.totalWords.toLocaleString()} words total.</span>
@@ -643,47 +472,20 @@ export default function BulkEraNarrativeModal({
               )}
 
               {progress.status === "cancelled" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(245, 158, 11, 0.1)",
-                    border: "1px solid rgba(245, 158, 11, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="benm-terminal-msg benm-terminal-msg--cancelled">
                   Cancelled after processing {progress.processedEras} of {progress.totalEras} eras.
                 </div>
               )}
 
               {progress.status === "failed" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(239, 68, 68, 0.1)",
-                    border: "1px solid rgba(239, 68, 68, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="benm-terminal-msg benm-terminal-msg--failed">
                   {progress.error || "An unexpected error occurred."}
                 </div>
               )}
 
               {/* Cost + words */}
               {(progress.totalCost > 0 || progress.totalWords > 0) && (
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    textAlign: "right",
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    gap: "12px",
-                  }}
-                >
+                <div className="benm-stats">
                   {progress.totalWords > 0 && (
                     <span>{progress.totalWords.toLocaleString()} words</span>
                   )}
@@ -695,29 +497,18 @@ export default function BulkEraNarrativeModal({
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "8px",
-            flexShrink: 0,
-          }}
-        >
+        <div className="benm-footer">
           {isConfirming && (
             <>
               <button
                 onClick={handleCancel}
-                className="illuminator-button"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button benm-footer-btn"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirm}
-                className="illuminator-button illuminator-button-primary"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button illuminator-button-primary benm-footer-btn"
               >
                 Run All ({progress.totalEras} eras)
               </button>
@@ -726,8 +517,7 @@ export default function BulkEraNarrativeModal({
           {!isConfirming && !isTerminal && (
             <button
               onClick={handleCancel}
-              className="illuminator-button"
-              style={{ padding: "6px 16px", fontSize: "12px" }}
+              className="illuminator-button benm-footer-btn"
             >
               Cancel
             </button>
@@ -735,8 +525,7 @@ export default function BulkEraNarrativeModal({
           {isTerminal && (
             <button
               onClick={handleClose}
-              className="illuminator-button"
-              style={{ padding: "6px 16px", fontSize: "12px" }}
+              className="illuminator-button benm-footer-btn"
             >
               Close
             </button>

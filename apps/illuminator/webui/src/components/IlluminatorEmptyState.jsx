@@ -1,3 +1,5 @@
+import "./IlluminatorEmptyState.css";
+
 export default function IlluminatorEmptyState({ canImport, isDataSyncing, handleDataSync, dataSyncStatus }) {
   return (
     <div className="illuminator-empty-state">
@@ -16,7 +18,7 @@ export default function IlluminatorEmptyState({ canImport, isDataSyncing, handle
         )}
       </div>
       {canImport && (
-        <div style={{ display: "flex", gap: "10px", marginTop: "16px", flexWrap: "wrap" }}>
+        <div className="ies-import-actions">
           <button
             type="button"
             className="illuminator-btn illuminator-btn-primary"
@@ -37,11 +39,7 @@ export default function IlluminatorEmptyState({ canImport, isDataSyncing, handle
       )}
       {dataSyncStatus && (
         <div
-          style={{
-            marginTop: "12px",
-            fontSize: "12px",
-            color: dataSyncStatus.type === "error" ? "#ef4444" : "#10b981",
-          }}
+          className={`ies-sync-status ${dataSyncStatus.type === "error" ? "ies-sync-status--error" : "ies-sync-status--success"}`}
         >
           {dataSyncStatus.message}
         </div>

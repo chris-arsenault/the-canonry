@@ -1,0 +1,402 @@
+/* BulkHistorianModal — progress display for bulk historian annotation and copy-edit */
+
+/* Overlay backdrop */
+.bhm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+/* Modal container */
+.bhm-modal {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Header */
+.bhm-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.bhm-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bhm-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.bhm-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bhm-minimize-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.bhm-status-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Body */
+.bhm-body {
+  padding: 20px;
+  min-height: 0;
+}
+
+/* Tone cycling info box (review mode) */
+.bhm-tone-cycle-box {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.bhm-tone-cycle-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-right: 6px;
+}
+
+.bhm-tone-cycle-arrow {
+  margin: 0 4px;
+  color: var(--text-muted);
+}
+
+.bhm-tone-cycle-symbol {
+  color: #8b7355;
+}
+
+/* Tone picker (edition mode) */
+.bhm-tone-picker {
+  margin-bottom: 12px;
+}
+
+.bhm-section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.bhm-tone-options {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.bhm-tone-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.bhm-tone-btn--default {
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.bhm-tone-btn--selected {
+  border: 1px solid #8b7355;
+  background: rgba(139, 115, 85, 0.15);
+  color: #8b7355;
+  font-weight: 600;
+}
+
+.bhm-tone-btn-symbol {
+  font-size: 12px;
+}
+
+/* Entity list section */
+.bhm-entity-section {
+  margin-bottom: 12px;
+}
+
+.bhm-entity-section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.bhm-entity-list {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.bhm-entity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.bhm-entity-row-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.bhm-entity-tone-symbol {
+  font-size: 11px;
+  color: #8b7355;
+  flex-shrink: 0;
+}
+
+.bhm-entity-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bhm-entity-kind {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.bhm-entity-tokens {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* Token estimate summary */
+.bhm-token-summary {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.bhm-token-summary--ok {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.bhm-token-summary--over {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.bhm-token-limit-note {
+  margin-left: 8px;
+}
+
+.bhm-token-over-warning {
+  color: #ef4444;
+  margin-top: 2px;
+}
+
+/* Processing screen - Global progress */
+.bhm-progress-section {
+  margin-bottom: 20px;
+}
+
+.bhm-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.bhm-progress-entity-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.bhm-progress-percent {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Progress bar */
+.bhm-progress-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.bhm-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.bhm-progress-fill--complete {
+  background: #10b981;
+}
+
+.bhm-progress-fill--failed {
+  background: #ef4444;
+}
+
+.bhm-progress-fill--cancelled {
+  background: #f59e0b;
+}
+
+.bhm-progress-counts {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bhm-progress-failed-count {
+  color: #ef4444;
+  margin-left: 8px;
+}
+
+/* Current entity detail */
+.bhm-current-entity {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  margin-bottom: 16px;
+}
+
+.bhm-current-entity-name {
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bhm-current-entity-tone {
+  color: #8b7355;
+  font-size: 13px;
+}
+
+.bhm-current-entity-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Terminal state messages */
+.bhm-terminal-msg {
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.bhm-terminal-msg--complete {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.bhm-terminal-msg--cancelled {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.bhm-terminal-msg--failed {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.bhm-terminal-failed-inline {
+  color: #ef4444;
+}
+
+/* Failed entities list */
+.bhm-failed-section {
+  margin-bottom: 16px;
+}
+
+.bhm-failed-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.bhm-failed-list {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.bhm-failed-row {
+  padding: 6px 12px;
+  font-size: 11px;
+}
+
+.bhm-failed-name {
+  font-weight: 500;
+}
+
+.bhm-failed-error {
+  color: #ef4444;
+  margin-left: 8px;
+}
+
+/* Cost */
+.bhm-cost {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* Footer */
+.bhm-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.bhm-footer-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+}

@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import "./App.css";
+import "./IlluminatorRemote.css";
 import useApiKeys from "./hooks/useApiKeys";
 import useConfigSync from "./hooks/useConfigSync";
 import useWorldContextSync from "./hooks/useWorldContextSync";
@@ -167,7 +168,7 @@ export default function IlluminatorRemote({
           </div>
         )}
         {!apiKeys.hasRequiredKeys && activeTab === "entities" && (
-          <div style={{ padding: "12px 16px", marginBottom: "16px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "6px", fontSize: "13px" }}>
+          <div className="ilr-api-key-warning">
             Set your API keys in the sidebar to enable enrichment.
           </div>
         )}

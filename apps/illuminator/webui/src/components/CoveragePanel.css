@@ -1,0 +1,255 @@
+/* CoveragePanel — fact usage coverage across chronicles */
+
+/* Empty / loading state message */
+.cvp-empty-msg {
+  padding: 12px 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Header expand/collapse */
+.cvp-header-clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.cvp-expand-icon {
+  margin-right: 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.cvp-collapsed-subtitle {
+  margin-left: 8px;
+}
+
+/* Summary controls row */
+.cvp-summary-controls {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.cvp-summary-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+/* Fact header disabled state */
+.cvp-fact-header-disabled {
+  opacity: 0.4;
+}
+
+.cvp-fact-header-clickable {
+  cursor: pointer;
+}
+
+.cvp-fact-disabled-label {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+/* Fact cell disabled state */
+.cvp-cell-disabled {
+  opacity: 0.3;
+}
+
+/* Word Count Histogram */
+.cvp-histogram {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.cvp-histogram-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+
+.cvp-histogram-subtitle {
+  font-weight: 400;
+  text-transform: none;
+  margin-left: 8px;
+}
+
+.cvp-histogram-legend {
+  font-weight: 400;
+  text-transform: none;
+  margin-left: 12px;
+  font-size: 10px;
+}
+
+.cvp-histogram-legend-story {
+  color: #3b82f6;
+}
+
+.cvp-histogram-legend-document {
+  margin-left: 8px;
+  color: #f59e0b;
+}
+
+.cvp-histogram-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 60px;
+}
+
+.cvp-histogram-bucket {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.cvp-histogram-count {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.cvp-histogram-bar {
+  width: 100%;
+  border-radius: 2px;
+}
+
+.cvp-histogram-bar--empty {
+  background: var(--border-color);
+  opacity: 0.3;
+  min-height: 1px;
+}
+
+.cvp-histogram-bucket-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Fact Coverage Analysis section */
+.cvp-analysis {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.cvp-analysis-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+
+.cvp-analysis-subtitle {
+  font-weight: 400;
+  text-transform: none;
+  margin-left: 8px;
+}
+
+/* Global summary bar */
+.cvp-analysis-summary {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+/* Per-fact breakdown table */
+.cvp-analysis-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.cvp-analysis-table thead tr {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cvp-analysis-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cvp-analysis-th-fact {
+  text-align: left;
+  padding: 4px 8px 4px 0;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.cvp-analysis-th-integral {
+  text-align: center;
+  padding: 4px 6px;
+  color: #10b981;
+  font-weight: 500;
+}
+
+.cvp-analysis-th-prevalent {
+  text-align: center;
+  padding: 4px 6px;
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.cvp-analysis-th-mentioned {
+  text-align: center;
+  padding: 4px 6px;
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+.cvp-analysis-th-missing {
+  text-align: center;
+  padding: 4px 6px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.cvp-analysis-th-strength {
+  text-align: center;
+  padding: 4px 6px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.cvp-analysis-td-fact {
+  padding: 4px 8px 4px 0;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cvp-analysis-td-center {
+  text-align: center;
+  padding: 4px 6px;
+}
+
+.cvp-analysis-td-strength {
+  text-align: center;
+  padding: 4px 6px;
+  font-weight: 600;
+}
+
+/* Rating cell colors */
+.cvp-color-integral {
+  color: #10b981;
+}
+
+.cvp-color-prevalent {
+  color: #3b82f6;
+}
+
+.cvp-color-mentioned {
+  color: #f59e0b;
+}
+
+.cvp-color-primary {
+  color: var(--text-primary);
+}
+
+.cvp-color-muted {
+  color: var(--text-muted);
+}

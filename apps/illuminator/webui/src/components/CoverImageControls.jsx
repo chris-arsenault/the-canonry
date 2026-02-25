@@ -5,6 +5,7 @@
  */
 
 import { useImageUrl } from "../hooks/useImageUrl";
+import "./CoverImageControls.css";
 
 export function CoverImagePreview({ imageId, onImageClick }) {
   const { url, loading, error } = useImageUrl(imageId);
@@ -12,35 +13,22 @@ export function CoverImagePreview({ imageId, onImageClick }) {
   if (!imageId) return null;
 
   if (loading) {
-    return (
-      <div style={{ marginTop: "8px", fontSize: "11px", color: "var(--text-muted)" }}>
-        Loading image...
-      </div>
-    );
+    return <div className="cic-loading">Loading image...</div>;
   }
 
   if (error || !url) {
     return (
-      <div style={{ marginTop: "8px", fontSize: "11px", color: "#ef4444" }}>
-        Failed to load image{error ? `: ${error}` : ""}
-      </div>
+      <div className="cic-error">Failed to load image{error ? `: ${error}` : ""}</div>
     );
   }
 
   return (
-    <div style={{ marginTop: "10px" }}>
+    <div className="cic-preview-wrapper">
       <img
         src={url}
         alt="Cover image"
         onClick={onImageClick ? () => onImageClick(imageId, "Cover Image") : undefined}
-        style={{
-          maxWidth: "100%",
-          maxHeight: "300px",
-          borderRadius: "8px",
-          border: "1px solid var(--border-color)",
-          objectFit: "contain",
-          cursor: onImageClick ? "pointer" : undefined,
-        }}
+        className={`cic-preview-img${onImageClick ? " cic-preview-img--clickable" : ""}`}
       />
     </div>
   );
@@ -55,74 +43,50 @@ export function CoverImageControls({
   labelWeight = 500,
 }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: "13px", fontWeight: labelWeight }}>Cover Image</div>
-        <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+    <div className="cic-layout">
+      <div className="cic-info">
+        <div
+          className="cic-label"
+          // eslint-disable-next-line local/no-inline-styles -- dynamic fontWeight from prop
+          style={{ fontWeight: labelWeight }}
+        >
+          Cover Image
+        </div>
+        <div className="cic-description">
           Generate a montage-style cover image for this chronicle.
         </div>
-        {!item.coverImage && (
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
-            Not run yet
-          </div>
-        )}
+        {!item.coverImage && <div className="cic-status cic-status--empty">Not run yet</div>}
         {item.coverImage && item.coverImage.status === "pending" && (
-          <div style={{ fontSize: "11px", color: "#f59e0b", marginTop: "4px" }}>
+          <div className="cic-status cic-status--pending">
             Scene ready - click Generate Image to create
           </div>
         )}
         {item.coverImage && item.coverImage.status === "generating" && (
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
-            Generating image...
-          </div>
+          <div className="cic-status cic-status--generating">Generating image...</div>
         )}
         {item.coverImage && item.coverImage.status === "complete" && (
-          <div style={{ fontSize: "11px", color: "#10b981", marginTop: "4px" }}>Complete</div>
+          <div className="cic-status cic-status--complete">Complete</div>
         )}
         {item.coverImage && item.coverImage.status === "failed" && (
-          <div style={{ fontSize: "11px", color: "#ef4444", marginTop: "4px" }}>
+          <div className="cic-status cic-status--failed">
             Failed{item.coverImage.error ? `: ${item.coverImage.error}` : ""}
           </div>
         )}
         {item.coverImage?.sceneDescription && (
-          <div
-            style={{
-              fontSize: "11px",
-              color: "var(--text-secondary)",
-              marginTop: "6px",
-              fontStyle: "italic",
-              lineHeight: 1.4,
-              maxWidth: "500px",
-            }}
-          >
-            {item.coverImage.sceneDescription}
-          </div>
+          <div className="cic-scene-description">{item.coverImage.sceneDescription}</div>
         )}
         <CoverImagePreview
           imageId={item.coverImage?.generatedImageId}
           onImageClick={onImageClick}
         />
       </div>
-      <div
-        style={{ display: "flex", flexDirection: "column", gap: "8px", alignSelf: "flex-start" }}
-      >
-        <div style={{ display: "flex", gap: "8px" }}>
+      <div className="cic-actions">
+        <div className="cic-button-row">
           {onGenerateCoverImageScene && (
             <button
               onClick={onGenerateCoverImageScene}
               disabled={isGenerating}
-              style={{
-                padding: "8px 14px",
-                background: "var(--bg-tertiary)",
-                border: "1px solid var(--border-color)",
-                borderRadius: "6px",
-                color: "var(--text-secondary)",
-                cursor: isGenerating ? "not-allowed" : "pointer",
-                opacity: isGenerating ? 0.6 : 1,
-                fontSize: "12px",
-                height: "32px",
-                whiteSpace: "nowrap",
-              }}
+              className="cic-action-btn"
             >
               {item.coverImage ? "Regen Scene" : "Gen Scene"}
             </button>
@@ -135,18 +99,7 @@ export function CoverImageControls({
               <button
                 onClick={onGenerateCoverImage}
                 disabled={isGenerating}
-                style={{
-                  padding: "8px 14px",
-                  background: "var(--bg-tertiary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "6px",
-                  color: "var(--text-secondary)",
-                  cursor: isGenerating ? "not-allowed" : "pointer",
-                  opacity: isGenerating ? 0.6 : 1,
-                  fontSize: "12px",
-                  height: "32px",
-                  whiteSpace: "nowrap",
-                }}
+                className="cic-action-btn"
               >
                 {item.coverImage.status === "complete" ? "Regen Image" : "Gen Image"}
               </button>

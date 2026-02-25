@@ -1,0 +1,233 @@
+/* BackrefImageEditor - Entity-centric editor for chronicle backref images */
+
+/* === ImageThumbnail === */
+
+.bie-thumbnail {
+  width: 60px;
+  height: 60px;
+  border-radius: 6px;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.bie-thumbnail--selected {
+  border: 2px solid #3b82f6;
+}
+
+.bie-thumbnail--unselected {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.bie-thumbnail--has-image {
+  background: transparent;
+}
+
+.bie-thumbnail--placeholder {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.bie-thumbnail-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bie-thumbnail-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* === BackrefRow === */
+
+.bie-row-missing {
+  padding: 8px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.bie-row {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.bie-row-header {
+  margin-bottom: 8px;
+}
+
+.bie-row-title {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.bie-row-anchor {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
+  font-style: italic;
+}
+
+/* Image picker */
+
+.bie-picker {
+  margin-bottom: 8px;
+}
+
+.bie-section-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bie-picker-grid {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.bie-none-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 6px;
+  padding: 0;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.bie-none-btn--selected {
+  border: 2px solid #3b82f6;
+  color: #3b82f6;
+}
+
+.bie-none-btn--unselected {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Size + Alignment controls */
+
+.bie-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.bie-control-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 6px;
+}
+
+.bie-size-select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.bie-align-btn {
+  color: rgba(255, 255, 255, 0.9);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.bie-align-btn--left {
+  border-radius: 4px 0 0 4px;
+}
+
+.bie-align-btn--right {
+  border-radius: 0 4px 4px 0;
+}
+
+.bie-align-btn--active {
+  background: rgba(59, 130, 246, 0.3);
+  border: 1px solid rgba(59, 130, 246, 0.5);
+}
+
+.bie-align-btn--inactive {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Legacy indicator */
+
+.bie-legacy-hint {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* === BackrefImageEditor main === */
+
+.bie-wrapper {
+  margin-bottom: 16px;
+}
+
+.bie-rows-container--collapsed {
+  margin-top: 8px;
+}
+
+.bie-rows-container--expanded {
+  margin-top: 0;
+}
+
+.bie-heading {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bie-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 8px 10px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.bie-toggle-arrow {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.bie-toggle-arrow--expanded {
+  transform: rotate(90deg);
+}
+
+.bie-toggle-arrow--collapsed {
+  transform: rotate(0deg);
+}
+
+.bie-toggle-label {
+  flex: 1;
+}

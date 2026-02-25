@@ -1,5 +1,6 @@
 import { ImageSettingsTrigger } from "./ImageSettingsDrawer";
 import { useIlluminatorModals } from "../lib/db/modalStore";
+import "./IlluminatorSidebar.css";
 
 // Tabs ordered by workflow: setup -> work -> monitor -> manage
 const TABS = [
@@ -30,30 +31,12 @@ function NavButton({ tab, activeTab, setActiveTab, stats }) {
     >
       {tab.label}
       {tab.id === "activity" && stats.running > 0 && (
-        <span
-          style={{
-            marginLeft: "auto",
-            background: "#f59e0b",
-            color: "white",
-            padding: "2px 6px",
-            borderRadius: "10px",
-            fontSize: "10px",
-          }}
-        >
+        <span className="isb-badge isb-badge--running">
           {stats.running}
         </span>
       )}
       {tab.id === "activity" && stats.errored > 0 && stats.running === 0 && (
-        <span
-          style={{
-            marginLeft: "auto",
-            background: "#ef4444",
-            color: "white",
-            padding: "2px 6px",
-            borderRadius: "10px",
-            fontSize: "10px",
-          }}
-        >
+        <span className="isb-badge isb-badge--errored">
           {stats.errored}
         </span>
       )}
@@ -94,16 +77,7 @@ function ApiKeySection({
             placeholder="sk-..."
             className="illuminator-api-input"
           />
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              marginTop: "12px",
-              fontSize: "12px",
-              cursor: "pointer",
-            }}
-          >
+          <label className="isb-persist-label">
             <input
               type="checkbox"
               checked={persistApiKeys}
@@ -113,8 +87,7 @@ function ApiKeySection({
           </label>
           <button
             onClick={() => setShowApiKeyInput(false)}
-            className="illuminator-api-button active"
-            style={{ marginTop: "12px" }}
+            className="illuminator-api-button active isb-done-button"
           >
             Done
           </button>
@@ -145,10 +118,10 @@ export default function IlluminatorSidebar({
         ))}
       </nav>
 
-      <div style={{ flex: 1 }} />
+      <div className="isb-spacer" />
 
       {/* Image Settings trigger */}
-      <div style={{ padding: "0 8px", marginBottom: "4px" }}>
+      <div className="isb-image-settings">
         <ImageSettingsTrigger
           settings={imageGenSettings}
           styleLibrary={styleLibrary}

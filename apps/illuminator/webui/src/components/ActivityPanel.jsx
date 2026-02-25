@@ -9,6 +9,7 @@
 
 import { useMemo, useState, useRef, useCallback } from "react";
 import { useThinkingStore } from "../lib/db/thinkingStore";
+import "./ActivityPanel.css";
 
 function formatDuration(ms) {
   if (ms < 1000) return `${ms}ms`;
@@ -83,22 +84,18 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
   const hasDebug = Boolean(item.debug && (item.debug.request || item.debug.response));
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-        padding: "10px 12px",
-        borderBottom: "1px solid var(--border-color)",
-      }}
-    >
-      <span style={{ fontSize: "16px", ...statusStyles[item.status] }}>
+    <div className="ap-task-row">
+      <span
+        className="ap-task-status-icon"
+        // eslint-disable-next-line local/no-inline-styles -- dynamic status color from statusStyles map
+        style={{ '--ap-status-color': statusStyles[item.status].color }}
+      >
         {statusIcons[item.status]}
       </span>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 500, fontSize: "13px" }}>{item.entityName}</div>
-        <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+      <div className="ap-task-info">
+        <div className="ap-task-name">{item.entityName}</div>
+        <div className="ap-task-type">
           {item.type === "description"
             ? "Description"
             : item.type === "image"
@@ -109,7 +106,7 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
       </div>
 
       {duration !== null && (
-        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+        <span className="ap-task-duration">
           {formatDuration(duration)}
         </span>
       )}
@@ -117,8 +114,7 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
       {item.status === "queued" && onCancel && (
         <button
           onClick={() => onCancel(item.id)}
-          className="illuminator-button-link"
-          style={{ fontSize: "11px" }}
+          className="illuminator-button-link ap-task-action"
         >
           Cancel
         </button>
@@ -127,8 +123,7 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
       {item.status === "running" && onCancel && (
         <button
           onClick={() => onCancel(item.id)}
-          className="illuminator-button-link"
-          style={{ fontSize: "11px" }}
+          className="illuminator-button-link ap-task-action"
         >
           Cancel
         </button>
@@ -137,8 +132,7 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
       {item.status === "error" && onRetry && (
         <button
           onClick={() => onRetry(item.id)}
-          className="illuminator-button-link"
-          style={{ fontSize: "11px" }}
+          className="illuminator-button-link ap-task-action"
         >
           Retry
         </button>
@@ -147,8 +141,7 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
       {hasStream && (
         <button
           onClick={() => openThinking(item.id)}
-          className="illuminator-button-link"
-          style={{ fontSize: "11px" }}
+          className="illuminator-button-link ap-task-action"
           title="View LLM stream (thinking + response)"
         >
           {streamEntry.isActive
@@ -164,8 +157,7 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
       {hasDebug && onViewDebug && (
         <button
           onClick={() => onViewDebug(item)}
-          className="illuminator-button-link"
-          style={{ fontSize: "11px" }}
+          className="illuminator-button-link ap-task-action"
         >
           View Debug
         </button>
@@ -216,12 +208,11 @@ export default function ActivityPanel({
       <div className="illuminator-card">
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Activity</h2>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="ap-header-actions">
             {queue.length > 0 && (
               <button
                 onClick={onCancelAll}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "6px 12px", fontSize: "12px" }}
+                className="illuminator-button illuminator-button-secondary ap-header-btn"
               >
                 Cancel All
               </button>
@@ -229,8 +220,7 @@ export default function ActivityPanel({
             {stats.completed > 0 && (
               <button
                 onClick={onClearCompleted}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "6px 12px", fontSize: "12px" }}
+                className="illuminator-button illuminator-button-secondary ap-header-btn"
               >
                 Clear Completed
               </button>
@@ -239,60 +229,30 @@ export default function ActivityPanel({
         </div>
 
         {/* Stats */}
-        <div
-          style={{
-            display: "flex",
-            gap: "24px",
-            padding: "12px",
-            background: "var(--bg-tertiary)",
-            borderRadius: "4px",
-          }}
-        >
+        <div className="ap-stats-row">
           <div>
-            <span style={{ fontSize: "20px", fontWeight: 600 }}>{stats.queued}</span>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)", marginLeft: "6px" }}>
-              queued
-            </span>
+            <span className="ap-stat-value">{stats.queued}</span>
+            <span className="ap-stat-label">queued</span>
           </div>
           <div>
-            <span style={{ fontSize: "20px", fontWeight: 600, color: "#f59e0b" }}>
-              {stats.running}
-            </span>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)", marginLeft: "6px" }}>
-              running
-            </span>
+            <span className="ap-stat-value ap-stat-value--running">{stats.running}</span>
+            <span className="ap-stat-label">running</span>
           </div>
           <div>
-            <span style={{ fontSize: "20px", fontWeight: 600, color: "#10b981" }}>
-              {stats.completed}
-            </span>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)", marginLeft: "6px" }}>
-              completed
-            </span>
+            <span className="ap-stat-value ap-stat-value--completed">{stats.completed}</span>
+            <span className="ap-stat-label">completed</span>
           </div>
           <div>
-            <span style={{ fontSize: "20px", fontWeight: 600, color: "#ef4444" }}>
-              {stats.errored}
-            </span>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)", marginLeft: "6px" }}>
-              errors
-            </span>
+            <span className="ap-stat-value ap-stat-value--errors">{stats.errored}</span>
+            <span className="ap-stat-label">errors</span>
           </div>
         </div>
       </div>
 
       {/* Currently Running */}
       {running.length > 0 && (
-        <div className="illuminator-card" style={{ padding: 0 }}>
-          <div
-            style={{
-              padding: "12px",
-              borderBottom: "1px solid var(--border-color)",
-              fontWeight: 500,
-              fontSize: "13px",
-              background: "var(--bg-tertiary)",
-            }}
-          >
+        <div className="illuminator-card ap-section-card">
+          <div className="ap-section-header">
             Currently Running
           </div>
           {running.map((item) => (
@@ -303,30 +263,15 @@ export default function ActivityPanel({
 
       {/* Queued */}
       {queued.length > 0 && (
-        <div className="illuminator-card" style={{ padding: 0 }}>
-          <div
-            style={{
-              padding: "12px",
-              borderBottom: "1px solid var(--border-color)",
-              fontWeight: 500,
-              fontSize: "13px",
-              background: "var(--bg-tertiary)",
-            }}
-          >
+        <div className="illuminator-card ap-section-card">
+          <div className="ap-section-header">
             Queued ({queued.length})
           </div>
           {queued.slice(0, 10).map((item) => (
             <TaskRow key={item.id} item={item} onCancel={onCancel} onViewDebug={setDebugItem} />
           ))}
           {queued.length > 10 && (
-            <div
-              style={{
-                padding: "12px",
-                textAlign: "center",
-                color: "var(--text-muted)",
-                fontSize: "12px",
-              }}
-            >
+            <div className="ap-more-indicator">
               ... and {queued.length - 10} more
             </div>
           )}
@@ -335,17 +280,8 @@ export default function ActivityPanel({
 
       {/* Errors */}
       {errored.length > 0 && (
-        <div className="illuminator-card" style={{ padding: 0 }}>
-          <div
-            style={{
-              padding: "12px",
-              borderBottom: "1px solid var(--border-color)",
-              fontWeight: 500,
-              fontSize: "13px",
-              background: "var(--bg-tertiary)",
-              color: "#ef4444",
-            }}
-          >
+        <div className="illuminator-card ap-section-card">
+          <div className="ap-section-header ap-section-header--errors">
             Errors ({errored.length})
           </div>
           {errored.map((item) => {
@@ -354,14 +290,7 @@ export default function ActivityPanel({
               <div key={item.id}>
                 <TaskRow item={item} onRetry={onRetry} onViewDebug={setDebugItem} />
                 {activityError && (
-                  <div
-                    style={{
-                      padding: "8px 12px 12px 40px",
-                      fontSize: "11px",
-                      color: "#ef4444",
-                      background: "rgba(239, 68, 68, 0.1)",
-                    }}
-                  >
+                  <div className="ap-error-detail">
                     {activityError}
                   </div>
                 )}
@@ -373,16 +302,8 @@ export default function ActivityPanel({
 
       {/* Recent Completed */}
       {completed.length > 0 && (
-        <div className="illuminator-card" style={{ padding: 0 }}>
-          <div
-            style={{
-              padding: "12px",
-              borderBottom: "1px solid var(--border-color)",
-              fontWeight: 500,
-              fontSize: "13px",
-              background: "var(--bg-tertiary)",
-            }}
-          >
+        <div className="illuminator-card ap-section-card">
+          <div className="ap-section-header">
             Recent Completed
           </div>
           {completed.map((item) => (
@@ -394,7 +315,7 @@ export default function ActivityPanel({
       {/* Empty state */}
       {queue.length === 0 && (
         <div className="illuminator-card">
-          <div style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
+          <div className="ap-empty-state">
             No activity yet. Queue some enrichment tasks from the Entities tab.
           </div>
         </div>
@@ -406,18 +327,15 @@ export default function ActivityPanel({
           onMouseDown={handleOverlayMouseDown}
           onClick={handleOverlayClick}
         >
-          <div
-            className="illuminator-modal"
-            style={{ maxWidth: "900px", width: "90%", maxHeight: "85vh" }}
-          >
+          <div className="illuminator-modal ap-debug-modal">
             <div className="illuminator-modal-header">
               <h3>Network Debug</h3>
               <button onClick={() => setDebugItem(null)} className="illuminator-modal-close">
                 &times;
               </button>
             </div>
-            <div className="illuminator-modal-body" style={{ display: "grid", gap: "12px" }}>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+            <div className="illuminator-modal-body ap-debug-body">
+              <div className="ap-debug-entity-info">
                 {debugItem.entityName}
                 {debugItem.type === "description"
                   ? " · Description"
@@ -426,39 +344,23 @@ export default function ActivityPanel({
                     : " · Chronicle"}
               </div>
               <div>
-                <label
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
+                <label className="ap-debug-label">
                   Request (raw)
                 </label>
                 <textarea
-                  className="illuminator-textarea"
+                  className="illuminator-textarea ap-debug-request-textarea"
                   value={debugRequest}
                   readOnly
-                  style={{ minHeight: "140px" }}
                 />
               </div>
               <div>
-                <label
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
+                <label className="ap-debug-label">
                   Response (raw)
                 </label>
                 <textarea
-                  className="illuminator-textarea"
+                  className="illuminator-textarea ap-debug-response-textarea"
                   value={debugResponse}
                   readOnly
-                  style={{ minHeight: "160px" }}
                 />
               </div>
             </div>

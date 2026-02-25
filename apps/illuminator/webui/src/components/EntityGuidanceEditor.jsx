@@ -25,10 +25,11 @@ import {
 } from "../lib/promptBuilders";
 import { prominenceLabelFromScale, prominenceThresholdFromScale } from "@canonry/world-schema";
 import { useProminenceScale } from "../lib/db/indexSelectors";
+import "./EntityGuidanceEditor.css";
 
 const TASK_TYPES = [
-  { id: "description", label: "Description", icon: "📝" },
-  { id: "image", label: "Image", icon: "🖼️" },
+  { id: "description", label: "Description", icon: "\uD83D\uDCDD" },
+  { id: "image", label: "Image", icon: "\uD83D\uDDBC\uFE0F" },
 ];
 
 // Description sections (maps to KindGuidance fields)
@@ -554,7 +555,7 @@ export default function EntityGuidanceEditor({
                 className="illuminator-template-visual-steps-toggle"
                 onClick={() => setShowVisualSteps(!showVisualSteps)}
               >
-                <span>{showVisualSteps ? "▼" : "▶"}</span>
+                <span>{showVisualSteps ? "\u25BC" : "\u25B6"}</span>
                 <span>Visual Generation Steps</span>
                 <span className="illuminator-template-visual-steps-hint">
                   Configure thesis/traits prompts for this kind
@@ -590,8 +591,7 @@ export default function EntityGuidanceEditor({
             <select
               value={selectedEntityId}
               onChange={(e) => setSelectedEntityId(e.target.value)}
-              className="illuminator-select"
-              style={{ width: "auto", minWidth: "200px" }}
+              className="illuminator-select ege-preview-select"
             >
               <option value="">
                 {exampleEntities[0]?.name || "Example"} ({exampleEntities[0]?.subtype})
@@ -625,33 +625,21 @@ export default function EntityGuidanceEditor({
             </div>
 
             {selectedRelationships.length > 0 && (
-              <div
-                style={{
-                  marginTop: "12px",
-                  padding: "10px",
-                  background: "var(--bg-tertiary)",
-                  borderRadius: "4px",
-                  fontSize: "11px",
-                }}
-              >
-                <div style={{ fontWeight: 500, marginBottom: "6px", color: "var(--text-muted)" }}>
+              <div className="ege-relationships-box">
+                <div className="ege-relationships-heading">
                   Auto-detected relationships ({selectedRelationships.length}):
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                <div className="ege-relationships-list">
                   {selectedRelationships.slice(0, 6).map((rel, i) => (
                     <span
                       key={i}
-                      style={{
-                        padding: "2px 6px",
-                        background: "var(--bg-secondary)",
-                        borderRadius: "3px",
-                      }}
+                      className="ege-relationship-badge"
                     >
                       {rel.kind}: {rel.targetName}
                     </span>
                   ))}
                   {selectedRelationships.length > 6 && (
-                    <span style={{ opacity: 0.6 }}>+{selectedRelationships.length - 6} more</span>
+                    <span className="ege-relationships-more">+{selectedRelationships.length - 6} more</span>
                   )}
                 </div>
               </div>

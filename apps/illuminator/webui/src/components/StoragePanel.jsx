@@ -17,6 +17,7 @@ import {
 } from "../lib/db/imageRepository";
 import { downloadImagePromptExport } from "../lib/db/imageRepository";
 import ImageModal from "./ImageModal";
+import "./StoragePanel.css";
 
 const DEFAULT_PAGE_SIZE = 24;
 const PAGE_SIZE_OPTIONS = [24, 48, 96];
@@ -348,7 +349,7 @@ export default function StoragePanel({ projectId }) {
   if (loading) {
     return (
       <div className="illuminator-card">
-        <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+        <div className="storage-panel-loading">
           Loading storage data...
         </div>
       </div>
@@ -361,11 +362,10 @@ export default function StoragePanel({ projectId }) {
       <div className="illuminator-card">
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Image Storage</h2>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="storage-panel-header-actions">
             <button
               onClick={handleExportPrompts}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "4px 8px", fontSize: "11px" }}
+              className="illuminator-button illuminator-button-secondary storage-panel-compact-btn"
               disabled={exportingPrompts || stats.totalCount === 0}
               title="Export all image prompt data (original, refined, revised) as JSON for analysis"
             >
@@ -373,78 +373,44 @@ export default function StoragePanel({ projectId }) {
             </button>
             <button
               onClick={loadData}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "4px 8px", fontSize: "11px" }}
+              className="illuminator-button illuminator-button-secondary storage-panel-compact-btn"
             >
               Refresh
             </button>
           </div>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-            gap: "16px",
-            marginBottom: "16px",
-          }}
-        >
-          <div
-            style={{
-              padding: "12px",
-              background: "var(--bg-tertiary)",
-              borderRadius: "6px",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "24px", fontWeight: 600 }}>{stats.totalCount}</div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Total Images</div>
+        <div className="storage-panel-stats-grid">
+          <div className="storage-panel-stat-card">
+            <div className="storage-panel-stat-value">{stats.totalCount}</div>
+            <div className="storage-panel-stat-label">Total Images</div>
           </div>
-          <div
-            style={{
-              padding: "12px",
-              background: "var(--bg-tertiary)",
-              borderRadius: "6px",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "24px", fontWeight: 600 }}>{formatBytes(stats.totalSize)}</div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Total Size</div>
+          <div className="storage-panel-stat-card">
+            <div className="storage-panel-stat-value">{formatBytes(stats.totalSize)}</div>
+            <div className="storage-panel-stat-label">Total Size</div>
           </div>
-          <div
-            style={{
-              padding: "12px",
-              background: "var(--bg-tertiary)",
-              borderRadius: "6px",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "24px", fontWeight: 600 }}>
+          <div className="storage-panel-stat-card">
+            <div className="storage-panel-stat-value">
               {Object.keys(stats.byProject).length}
             </div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Projects</div>
+            <div className="storage-panel-stat-label">Projects</div>
           </div>
         </div>
 
         {/* Per-project breakdown */}
         {Object.keys(stats.byProject).length > 0 && (
-          <div style={{ marginTop: "12px" }}>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>
+          <div className="storage-panel-project-breakdown">
+            <div className="storage-panel-project-breakdown-title">
               Storage by Project
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            <div className="storage-panel-project-list">
               {Object.entries(stats.byProject).map(([pid, data]) => (
                 <div
                   key={pid}
-                  style={{
-                    padding: "6px 10px",
-                    background: "var(--bg-secondary)",
-                    borderRadius: "4px",
-                    fontSize: "11px",
-                  }}
+                  className="storage-panel-project-item"
                 >
-                  <span style={{ fontWeight: 500 }}>{pid.slice(0, 8)}...</span>
-                  <span style={{ color: "var(--text-muted)", marginLeft: "6px" }}>
+                  <span className="storage-panel-project-name">{pid.slice(0, 8)}...</span>
+                  <span className="storage-panel-project-stats">
                     {data.count} ({formatBytes(data.size)})
                   </span>
                 </div>
@@ -458,7 +424,7 @@ export default function StoragePanel({ projectId }) {
       <div className="illuminator-card">
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Browse Images</h2>
-          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+          <span className="storage-panel-browse-count">
             {filteredImages.length === 0
               ? "0 images"
               : `Showing ${showingFrom}-${showingTo} of ${filteredImages.length} images`}
@@ -466,12 +432,11 @@ export default function StoragePanel({ projectId }) {
         </div>
 
         {/* Filters */}
-        <div style={{ display: "flex", gap: "12px", marginBottom: "12px", alignItems: "center" }}>
+        <div className="storage-panel-filters-row">
           <select
             value={filterProject}
             onChange={(e) => setFilterProject(e.target.value)}
-            className="illuminator-select"
-            style={{ width: "auto", minWidth: "150px" }}
+            className="illuminator-select storage-panel-filter-select"
           >
             <option value="all">All Projects</option>
             {projectIds.map((pid) => (
@@ -481,13 +446,12 @@ export default function StoragePanel({ projectId }) {
             ))}
           </select>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Page size</span>
+          <div className="storage-panel-page-size-group">
+            <span className="storage-panel-page-size-label">Page size</span>
             <select
               value={pageSize}
               onChange={handlePageSizeChange}
-              className="illuminator-select"
-              style={{ width: "auto", minWidth: "80px" }}
+              className="illuminator-select storage-panel-page-size-select"
             >
               {PAGE_SIZE_OPTIONS.map((size) => (
                 <option key={size} value={size}>
@@ -498,35 +462,26 @@ export default function StoragePanel({ projectId }) {
           </div>
 
           {selectedIds.size > 0 && (
-            <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
-              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+            <div className="storage-panel-selection-actions">
+              <span className="storage-panel-selected-count">
                 {selectedIds.size} selected
               </span>
               <button
                 onClick={handleDownloadSelected}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 8px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary storage-panel-compact-btn"
                 disabled={downloadingIds.size > 0}
               >
                 {downloadingIds.size > 0 ? "Downloading..." : "Download"}
               </button>
               <button
                 onClick={handleDeleteSelected}
-                className="illuminator-button"
-                style={{
-                  padding: "4px 8px",
-                  fontSize: "11px",
-                  background: "#ef4444",
-                  color: "white",
-                  border: "none",
-                }}
+                className="illuminator-button storage-panel-delete-selected-btn"
               >
                 Delete
               </button>
               <button
                 onClick={clearSelection}
-                className="illuminator-button-link"
-                style={{ fontSize: "11px" }}
+                className="illuminator-button-link storage-panel-clear-btn"
               >
                 Clear
               </button>
@@ -536,52 +491,33 @@ export default function StoragePanel({ projectId }) {
 
         {/* Select all row */}
         {filteredImages.length > 0 && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "8px 0",
-              borderBottom: "1px solid var(--border-color)",
-              marginBottom: "12px",
-            }}
-          >
+          <div className="storage-panel-select-all-row">
             <input
               type="checkbox"
               checked={selectedIds.size === filteredImages.length && filteredImages.length > 0}
               onChange={(e) => (e.target.checked ? selectAll() : clearSelection())}
-              style={{ cursor: "pointer" }}
+              className="storage-panel-checkbox"
             />
-            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Select all</span>
+            <span className="storage-panel-select-all-label">Select all</span>
           </div>
         )}
 
         {totalPages > 1 && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "6px 0",
-              marginBottom: "12px",
-            }}
-          >
-            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+          <div className="storage-panel-pagination">
+            <span className="storage-panel-page-info">
               Page {currentPage + 1} of {totalPages}
             </span>
-            <div style={{ display: "flex", gap: "6px" }}>
+            <div className="storage-panel-page-btns">
               <button
                 onClick={handlePrevPage}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 8px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary storage-panel-compact-btn"
                 disabled={currentPage === 0}
               >
                 Prev
               </button>
               <button
                 onClick={handleNextPage}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 8px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary storage-panel-compact-btn"
                 disabled={currentPage + 1 >= totalPages}
               >
                 Next
@@ -592,56 +528,31 @@ export default function StoragePanel({ projectId }) {
 
         {/* Image grid */}
         {filteredImages.length === 0 ? (
-          <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+          <div className="storage-panel-empty">
             No images stored yet. Generate images in the Entities tab.
           </div>
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-              gap: "12px",
-            }}
-          >
+          <div className="storage-panel-image-grid">
             {visibleImages.map((img) => (
               <div
                 key={img.imageId}
-                style={{
-                  position: "relative",
-                  background: "var(--bg-tertiary)",
-                  borderRadius: "8px",
-                  overflow: "hidden",
-                  border: selectedIds.has(img.imageId)
-                    ? "2px solid var(--accent-color)"
-                    : "2px solid transparent",
-                }}
+                className="storage-panel-image-card"
+                data-selected={selectedIds.has(img.imageId)}
               >
                 {/* Checkbox */}
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "6px",
-                    left: "6px",
-                    zIndex: 1,
-                  }}
-                >
+                <div className="storage-panel-card-checkbox">
                   <input
                     type="checkbox"
                     checked={selectedIds.has(img.imageId)}
                     onChange={() => toggleSelect(img.imageId)}
-                    style={{ cursor: "pointer" }}
+                    className="storage-panel-checkbox"
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
 
                 {/* Thumbnail */}
                 <div
-                  style={{
-                    width: "100%",
-                    paddingTop: "100%",
-                    position: "relative",
-                    cursor: "pointer",
-                  }}
+                  className="storage-panel-thumbnail-container"
                   onClick={() =>
                     setImageModal({
                       open: true,
@@ -654,65 +565,38 @@ export default function StoragePanel({ projectId }) {
                     <img
                       src={thumbnailUrls[img.imageId]}
                       alt={img.entityName || img.imageId}
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
+                      className="storage-panel-thumbnail-img"
                     />
                   ) : (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "var(--text-muted)",
-                        fontSize: "11px",
-                      }}
-                    >
+                    <div className="storage-panel-thumbnail-placeholder">
                       Loading...
                     </div>
                   )}
                 </div>
 
                 {/* Info */}
-                <div style={{ padding: "8px" }}>
+                <div className="storage-panel-card-info">
                   <div
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 500,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
+                    className="storage-panel-card-name"
                     title={img.entityName}
                   >
                     {img.entityName || "Unknown"}
                   </div>
-                  <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>
-                    {img.entityKind} · {formatBytes(img.size || 0)}
+                  <div className="storage-panel-card-meta">
+                    {img.entityKind} &middot; {formatBytes(img.size || 0)}
                   </div>
-                  <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+                  <div className="storage-panel-card-meta">
                     {formatDate(img.generatedAt)}
                   </div>
 
                   {/* Actions */}
-                  <div style={{ display: "flex", gap: "4px", marginTop: "6px" }}>
+                  <div className="storage-panel-card-actions">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDownload(img.imageId, img.entityName);
                       }}
-                      className="illuminator-button illuminator-button-secondary"
-                      style={{ flex: 1, padding: "4px", fontSize: "10px" }}
+                      className="illuminator-button illuminator-button-secondary storage-panel-download-btn"
                       disabled={downloadingIds.has(img.imageId)}
                     >
                       {downloadingIds.has(img.imageId) ? "..." : "Download"}
@@ -722,17 +606,9 @@ export default function StoragePanel({ projectId }) {
                         e.stopPropagation();
                         handleDelete(img.imageId);
                       }}
-                      style={{
-                        padding: "4px 8px",
-                        fontSize: "10px",
-                        background: "transparent",
-                        border: "1px solid #ef4444",
-                        color: "#ef4444",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                      }}
+                      className="storage-panel-delete-btn"
                     >
-                      ×
+                      &times;
                     </button>
                   </div>
                 </div>

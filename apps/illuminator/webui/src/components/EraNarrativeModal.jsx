@@ -22,6 +22,7 @@ import {
   deleteEraNarrative,
   resolveActiveContent,
 } from "../lib/db/eraNarrativeRepository";
+import "./EraNarrativeModal.css";
 
 const PILL_ID = "era-narrative";
 
@@ -400,45 +401,18 @@ export default function EraNarrativeModal({
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1000,
-        background: "rgba(0, 0, 0, 0.5)",
-      }}
+      className="era-narr-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
       }}
     >
-      <div
-        style={{
-          background: "var(--bg-secondary)",
-          border: "1px solid var(--border-color)",
-          borderRadius: "12px",
-          width: "700px",
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-        }}
-      >
+      <div className="era-narr-modal">
         {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <span style={{ fontWeight: 600, fontSize: "15px" }}>
+        <div className="era-narr-header">
+          <span className="era-narr-header__title">
             {narrative?.eraName ? `Era Narrative: ${narrative.eraName}` : "Era Narrative"}
           </span>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div className="era-narr-header__actions">
             {isActive && !isComplete && (
               <button
                 onClick={() =>
@@ -450,50 +424,31 @@ export default function EraNarrativeModal({
                     tabId: "chronicle",
                   })
                 }
-                className="illuminator-button"
-                style={{ padding: "2px 8px", fontSize: "11px" }}
+                className="illuminator-button era-narr-header__minimize-btn"
                 title="Minimize to pill"
               >
                 ―
               </button>
             )}
-            <button
-              onClick={handleClose}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "18px",
-                color: "var(--text-muted)",
-                padding: "4px",
-              }}
-            >
+            <button onClick={handleClose} className="era-narr-header__close-btn">
               {"\u2715"}
             </button>
           </div>
         </div>
 
         {/* Body */}
-        <div style={{ padding: "20px", overflow: "auto", flex: 1 }}>
+        <div className="era-narr-body">
           {/* Setup */}
           {showSetup && (
             <>
-              <div style={{ marginBottom: "16px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "12px",
-                    color: "var(--text-muted)",
-                    marginBottom: "6px",
-                  }}
-                >
+              <div className="era-narr-field">
+                <label className="era-narr-label">
                   Era
                 </label>
                 <select
-                  className="illuminator-select"
+                  className="illuminator-select era-narr-select--full"
                   value={selectedEraId}
                   onChange={(e) => setSelectedEraId(e.target.value)}
-                  style={{ width: "100%", fontSize: "13px" }}
                 >
                   <option value="">Select an era...</option>
                   {eraOptions.map((era) => (
@@ -505,16 +460,7 @@ export default function EraNarrativeModal({
               </div>
 
               {selectedEra && selectedEra.preppedCount === 0 && (
-                <div
-                  style={{
-                    padding: "10px",
-                    marginBottom: "16px",
-                    background: "#fef3c7",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                    color: "#92400e",
-                  }}
-                >
+                <div className="era-narr-warning">
                   No chronicles in this era have historian prep briefs. Run Historian Prep first.
                 </div>
               )}
@@ -522,41 +468,20 @@ export default function EraNarrativeModal({
               {selectedEra &&
                 selectedEra.preppedCount > 0 &&
                 selectedEra.preppedCount < selectedEra.count && (
-                  <div
-                    style={{
-                      padding: "10px",
-                      marginBottom: "16px",
-                      background: "#fef3c7",
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      color: "#92400e",
-                    }}
-                  >
+                  <div className="era-narr-warning">
                     {selectedEra.count - selectedEra.preppedCount} chronicles are missing prep
                     briefs. The narrative will be based on {selectedEra.preppedCount} prepped
                     chronicles only.
                   </div>
                 )}
 
-              {/* Previous era thesis — continuity link */}
+              {/* Previous era thesis -- continuity link */}
               {previousEraThesis && (
-                <div
-                  style={{
-                    padding: "10px",
-                    marginBottom: "16px",
-                    background: "rgba(59, 130, 246, 0.08)",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                  }}
-                >
-                  <div
-                    style={{ color: "var(--text-muted)", marginBottom: "4px", fontSize: "11px" }}
-                  >
+                <div className="era-narr-thesis-link">
+                  <div className="era-narr-thesis-link__label">
                     Preceding volume thesis ({previousEraThesis.eraName})
                   </div>
-                  <div
-                    style={{ color: "var(--text-secondary)", fontStyle: "italic", lineHeight: 1.5 }}
-                  >
+                  <div className="era-narr-thesis-link__text">
                     {previousEraThesis.thesis}
                   </div>
                 </div>
@@ -564,29 +489,11 @@ export default function EraNarrativeModal({
 
               {/* Chronicle enumeration for selected era */}
               {eraChronicles.length > 0 && (
-                <div style={{ marginBottom: "16px" }}>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "12px",
-                      color: "var(--text-muted)",
-                      marginBottom: "6px",
-                    }}
-                  >
+                <div className="era-narr-field">
+                  <label className="era-narr-label">
                     Chronicles ({eraChronicles.length})
                   </label>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "2px",
-                      maxHeight: "200px",
-                      overflow: "auto",
-                      border: "1px solid var(--border-color)",
-                      borderRadius: "6px",
-                      padding: "4px",
-                    }}
-                  >
+                  <div className="era-narr-chronicle-list">
                     {eraChronicles.map((c) => {
                       const weight =
                         c.eraNarrativeWeight || narrativeWeightMap[c.narrativeStyleId] || null;
@@ -609,71 +516,41 @@ export default function EraNarrativeModal({
                       return (
                         <div
                           key={c.chronicleId}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            padding: "3px 6px",
-                            fontSize: "12px",
-                            background: "var(--bg-primary)",
-                            borderRadius: "4px",
-                            opacity: c.hasHistorianPrep ? 1 : 0.5,
-                          }}
+                          className="era-narr-chronicle-item"
+                          // eslint-disable-next-line local/no-inline-styles
+                          style={{ opacity: c.hasHistorianPrep ? 1 : 0.5 }}
                         >
                           <span
-                            style={{
-                              color: weightColor,
-                              fontSize: "10px",
-                              width: "14px",
-                              textAlign: "center",
-                            }}
+                            className="era-narr-chronicle-item__weight"
+                            // eslint-disable-next-line local/no-inline-styles
+                            style={{ color: weightColor }}
                             title={weight ? `Weight: ${weight}` : "No weight assigned"}
                           >
                             {weightSymbol}
                           </span>
                           <span
-                            style={{
-                              flex: 1,
-                              color: "var(--text-secondary)",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
+                            className="era-narr-chronicle-item__title"
                             title={c.title || c.name}
                           >
                             {c.title || c.name}
                           </span>
                           {c.eraYear != null && (
-                            <span
-                              style={{ color: "var(--text-muted)", fontSize: "11px" }}
-                              title="Era year"
-                            >
+                            <span className="era-narr-chronicle-item__year" title="Era year">
                               Y{c.eraYear}
                             </span>
                           )}
                           {c.narrativeStyleName && (
                             <span
-                              style={{
-                                color: "var(--text-muted)",
-                                fontSize: "11px",
-                                fontStyle: "italic",
-                                maxWidth: "100px",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
+                              className="era-narr-chronicle-item__style"
                               title={`Style: ${c.narrativeStyleName}`}
                             >
                               {c.narrativeStyleName}
                             </span>
                           )}
                           <span
-                            style={{
-                              color: c.hasHistorianPrep ? "#8b7355" : "var(--text-muted)",
-                              fontSize: "11px",
-                              width: "14px",
-                              textAlign: "center",
-                            }}
+                            className="era-narr-chronicle-item__prep"
+                            // eslint-disable-next-line local/no-inline-styles
+                            style={{ color: c.hasHistorianPrep ? "#8b7355" : "var(--text-muted)" }}
                             title={
                               c.hasHistorianPrep ? "Has historian prep brief" : "No prep brief"
                             }
@@ -689,18 +566,11 @@ export default function EraNarrativeModal({
 
               {/* Existing narratives for this era */}
               {existingNarratives.length > 0 && (
-                <div style={{ marginBottom: "16px" }}>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "12px",
-                      color: "var(--text-muted)",
-                      marginBottom: "6px",
-                    }}
-                  >
+                <div className="era-narr-field">
+                  <label className="era-narr-label">
                     Existing Narratives
                   </label>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <div className="era-narr-existing-list">
                     {existingNarratives.map((rec) => {
                       const stepLabel = { threads: "Threads", generate: "Draft", edit: "Edit" };
                       const statusIcon =
@@ -724,40 +594,28 @@ export default function EraNarrativeModal({
                         date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
                       const canResume = rec.status !== "complete";
                       return (
-                        <div
-                          key={rec.narrativeId}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "6px 10px",
-                            background: "var(--bg-primary)",
-                            border: "1px solid var(--border-color)",
-                            borderRadius: "6px",
-                            fontSize: "12px",
-                          }}
-                        >
-                          <span style={{ color: statusColor, fontWeight: 600 }} title={rec.status}>
+                        <div key={rec.narrativeId} className="era-narr-existing-item">
+                          {/* eslint-disable-next-line local/no-inline-styles */}
+                          <span className="era-narr-existing-item__status" style={{ color: statusColor }} title={rec.status}>
                             {statusIcon}
                           </span>
-                          <span style={{ flex: 1, color: "var(--text-secondary)" }}>
+                          <span className="era-narr-existing-item__step">
                             {rec.status === "complete"
                               ? "Complete"
                               : `${stepLabel[rec.currentStep] || rec.currentStep} step`}
                           </span>
-                          <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>
+                          <span className="era-narr-existing-item__time">
                             {timeStr}
                           </span>
                           {rec.totalActualCost > 0 && (
-                            <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>
+                            <span className="era-narr-existing-item__cost">
                               ${rec.totalActualCost.toFixed(3)}
                             </span>
                           )}
                           {canResume && (
                             <button
                               onClick={() => handleResume(rec.narrativeId)}
-                              className="illuminator-button"
-                              style={{ padding: "2px 8px", fontSize: "11px", fontWeight: 600 }}
+                              className="illuminator-button era-narr-existing-item__resume-btn"
                             >
                               Resume
                             </button>
@@ -765,20 +623,14 @@ export default function EraNarrativeModal({
                           {!canResume && (
                             <button
                               onClick={() => handleResume(rec.narrativeId)}
-                              className="illuminator-button"
-                              style={{ padding: "2px 8px", fontSize: "11px" }}
+                              className="illuminator-button era-narr-existing-item__view-btn"
                             >
                               View
                             </button>
                           )}
                           <button
                             onClick={() => handleDeleteExisting(rec.narrativeId)}
-                            className="illuminator-button"
-                            style={{
-                              padding: "2px 6px",
-                              fontSize: "11px",
-                              color: "var(--text-muted)",
-                            }}
+                            className="illuminator-button era-narr-existing-item__delete-btn"
                             title="Delete narrative"
                           >
                             {"\u2715"}
@@ -790,30 +642,17 @@ export default function EraNarrativeModal({
                 </div>
               )}
 
-              <div style={{ marginBottom: "20px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "12px",
-                    color: "var(--text-muted)",
-                    marginBottom: "6px",
-                  }}
-                >
+              <div className="era-narr-field--lg">
+                <label className="era-narr-label">
                   Tone
                 </label>
-                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                <div className="era-narr-tone-row">
                   {TONE_OPTIONS.map((t) => (
                     <button
                       key={t.value}
                       onClick={() => setTone(t.value)}
                       title={t.description}
-                      className="illuminator-button"
-                      style={{
-                        fontSize: "12px",
-                        padding: "4px 10px",
-                        background: tone === t.value ? "var(--accent-primary)" : undefined,
-                        color: tone === t.value ? "#fff" : undefined,
-                      }}
+                      className={`illuminator-button era-narr-tone-btn ${tone === t.value ? "era-narr-tone-btn--active" : ""}`}
                     >
                       {t.label}
                     </button>
@@ -822,69 +661,35 @@ export default function EraNarrativeModal({
               </div>
 
               {/* Arc Direction Override (optional) */}
-              <div style={{ marginBottom: "20px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "12px",
-                    color: "var(--text-muted)",
-                    marginBottom: "6px",
-                  }}
-                >
-                  Arc Direction <span style={{ fontStyle: "italic" }}>(optional)</span>
+              <div className="era-narr-field--lg">
+                <label className="era-narr-label">
+                  Arc Direction <span className="era-narr-label__optional">(optional)</span>
                 </label>
                 <textarea
                   value={arcDirection}
                   onChange={(e) => setArcDirection(e.target.value)}
                   placeholder="Override the era's narrative arc. When set, the historian's thesis, thread arcs, and register choices must honor this direction."
-                  style={{
-                    width: "100%",
-                    minHeight: "60px",
-                    maxHeight: "120px",
-                    padding: "8px",
-                    fontSize: "12px",
-                    lineHeight: 1.5,
-                    background: "var(--bg-primary)",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "6px",
-                    color: "var(--text-secondary)",
-                    resize: "vertical",
-                    fontFamily: "inherit",
-                  }}
+                  className="era-narr-textarea"
                 />
               </div>
 
-              <div style={{ display: "flex", gap: "8px" }}>
+              <div className="era-narr-start-row">
                 <button
                   onClick={handleStart}
                   disabled={!selectedEraId || !selectedEra || selectedEra.preppedCount === 0}
-                  className="illuminator-button"
-                  style={{
-                    flex: 1,
-                    padding: "10px",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    background:
-                      selectedEraId && selectedEra?.preppedCount > 0
-                        ? "var(--accent-primary)"
-                        : undefined,
-                    color: selectedEraId && selectedEra?.preppedCount > 0 ? "#fff" : undefined,
-                    opacity: selectedEraId && selectedEra?.preppedCount > 0 ? 1 : 0.5,
-                  }}
+                  className={`illuminator-button era-narr-start-btn ${selectedEraId && selectedEra?.preppedCount > 0 ? "era-narr-start-btn--primary" : ""}`}
+                  // eslint-disable-next-line local/no-inline-styles
+                  style={{ opacity: selectedEraId && selectedEra?.preppedCount > 0 ? 1 : 0.5 }}
                 >
                   Start Narrative
                 </button>
                 <button
                   onClick={handleStartHeadless}
                   disabled={!selectedEraId || !selectedEra || selectedEra.preppedCount === 0}
-                  className="illuminator-button"
+                  className="illuminator-button era-narr-headless-btn"
                   title="Run all steps without pausing for review"
-                  style={{
-                    padding: "10px 16px",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    opacity: selectedEraId && selectedEra?.preppedCount > 0 ? 1 : 0.5,
-                  }}
+                  // eslint-disable-next-line local/no-inline-styles
+                  style={{ opacity: selectedEraId && selectedEra?.preppedCount > 0 ? 1 : 0.5 }}
                 >
                   Run Headless
                 </button>
@@ -894,15 +699,13 @@ export default function EraNarrativeModal({
 
           {/* Generating */}
           {isGenerating && (
-            <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <div
-                style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "8px" }}
-              >
+            <div className="era-narr-generating">
+              <div className="era-narr-generating__status">
                 {narrative?.currentStep === "threads" && "Identifying narrative threads..."}
                 {narrative?.currentStep === "generate" && "Writing era narrative..."}
                 {narrative?.currentStep === "edit" && "Editing era narrative..."}
               </div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+              <div className="era-narr-generating__era">
                 {narrative?.eraName}
               </div>
             </div>
@@ -910,11 +713,11 @@ export default function EraNarrativeModal({
 
           {/* Failed */}
           {isFailed && (
-            <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <div style={{ fontSize: "14px", color: "#ef4444", marginBottom: "8px" }}>
+            <div className="era-narr-failed">
+              <div className="era-narr-failed__title">
                 Generation failed
               </div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
+              <div className="era-narr-failed__error">
                 {narrative?.error}
               </div>
               <button onClick={cancel} className="illuminator-button">
@@ -926,69 +729,42 @@ export default function EraNarrativeModal({
           {/* Thread Synthesis Review */}
           {showThreadReview && synthesis && (
             <>
-              <div style={{ marginBottom: "16px" }}>
-                <div style={{ fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>Thesis</div>
-                <div
-                  style={{ fontSize: "13px", color: "var(--text-secondary)", fontStyle: "italic" }}
-                >
+              <div className="era-narr-review-section">
+                <div className="era-narr-review-heading">Thesis</div>
+                <div className="era-narr-thesis-text">
                   {synthesis.thesis}
                 </div>
               </div>
 
-              <div style={{ marginBottom: "16px" }}>
-                <div style={{ fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+              <div className="era-narr-review-section">
+                <div className="era-narr-review-heading">
                   Threads ({synthesis.threads.length})
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div className="era-narr-thread-list">
                   {synthesis.threads.map((t) => (
-                    <div
-                      key={t.threadId}
-                      style={{
-                        padding: "8px 10px",
-                        background: "var(--bg-primary)",
-                        border: "1px solid var(--border-color)",
-                        borderRadius: "6px",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span style={{ fontSize: "13px", fontWeight: 500 }}>{t.name}</span>
+                    <div key={t.threadId} className="era-narr-thread-card">
+                      <div className="era-narr-thread-card__header">
+                        <span className="era-narr-thread-card__name">{t.name}</span>
                         {t.culturalActors?.length > 0 && (
-                          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                          <span className="era-narr-thread-card__actors">
                             [{t.culturalActors.join(", ")}]
                           </span>
                         )}
                         {t.register && (
-                          <span style={{ fontSize: "11px", color: "#8b7355", fontStyle: "italic" }}>
+                          <span className="era-narr-thread-card__register">
                             {t.register}
                           </span>
                         )}
                       </div>
-                      <div
-                        style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}
-                      >
+                      <div className="era-narr-thread-card__desc">
                         {t.description}
                       </div>
                       {t.material && (
-                        <details style={{ marginTop: "6px" }}>
-                          <summary
-                            style={{
-                              fontSize: "11px",
-                              color: "var(--text-muted)",
-                              cursor: "pointer",
-                            }}
-                          >
+                        <details className="era-narr-thread-card__material">
+                          <summary className="era-narr-thread-card__material-summary">
                             Material
                           </summary>
-                          <div
-                            style={{
-                              fontSize: "11px",
-                              color: "var(--text-secondary)",
-                              marginTop: "4px",
-                              lineHeight: 1.5,
-                              paddingLeft: "8px",
-                              borderLeft: "2px solid var(--border-color)",
-                            }}
-                          >
+                          <div className="era-narr-thread-card__material-body">
                             {t.material}
                           </div>
                         </details>
@@ -999,55 +775,28 @@ export default function EraNarrativeModal({
               </div>
 
               {synthesis.movements?.length > 0 && (
-                <div style={{ marginBottom: "16px" }}>
-                  <div style={{ fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                <div className="era-narr-review-section">
+                  <div className="era-narr-review-heading">
                     Movement Plan ({synthesis.movements.length} movements)
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <div className="era-narr-movement-list">
                     {synthesis.movements.map((m) => (
-                      <div
-                        key={m.movementIndex}
-                        style={{
-                          padding: "8px 10px",
-                          background: "var(--bg-primary)",
-                          border: "1px solid var(--border-color)",
-                          borderRadius: "4px",
-                          fontSize: "12px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}
-                        >
-                          <span style={{ fontWeight: 500 }}>Movement {m.movementIndex + 1}</span>
-                          <span style={{ color: "var(--text-muted)" }}>
+                      <div key={m.movementIndex} className="era-narr-movement-card">
+                        <div className="era-narr-movement-card__header">
+                          <span className="era-narr-movement-card__index">Movement {m.movementIndex + 1}</span>
+                          <span className="era-narr-movement-card__range">
                             Y{m.yearRange[0]}–Y{m.yearRange[1]}
                           </span>
                         </div>
-                        <div style={{ color: "var(--text-muted)", marginTop: "2px" }}>
+                        <div className="era-narr-movement-card__threads">
                           {m.threadFocus.map((id) => threadNameMap[id] || id).join(", ")}
                         </div>
                         {m.worldState && (
-                          <div
-                            style={{
-                              color: "var(--text-secondary)",
-                              marginTop: "4px",
-                              fontSize: "11px",
-                            }}
-                          >
+                          <div className="era-narr-movement-card__world-state">
                             {m.worldState}
                           </div>
                         )}
-                        <div
-                          style={{
-                            color: "var(--text-secondary)",
-                            marginTop: "4px",
-                            fontStyle: "italic",
-                          }}
-                        >
+                        <div className="era-narr-movement-card__beats">
                           {m.beats}
                         </div>
                       </div>
@@ -1057,48 +806,31 @@ export default function EraNarrativeModal({
               )}
 
               {synthesis.counterweight && (
-                <div style={{ marginBottom: "16px" }}>
-                  <div style={{ fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                <div className="era-narr-review-section">
+                  <div className="era-narr-review-heading">
                     Counterweight
                   </div>
-                  <div
-                    style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: 1.6 }}
-                  >
+                  <div className="era-narr-counterweight">
                     {synthesis.counterweight}
                   </div>
                 </div>
               )}
 
               {synthesis.strategicDynamics?.length > 0 && (
-                <div style={{ marginBottom: "16px" }}>
-                  <div style={{ fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                <div className="era-narr-review-section">
+                  <div className="era-narr-review-heading">
                     Strategic Dynamics ({synthesis.strategicDynamics.length})
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <div className="era-narr-dynamics-list">
                     {synthesis.strategicDynamics.map((sd, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          padding: "6px 10px",
-                          background: "var(--bg-primary)",
-                          border: "1px solid var(--border-color)",
-                          borderRadius: "4px",
-                          fontSize: "12px",
-                        }}
-                      >
-                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                      <div key={i} className="era-narr-dynamic-card">
+                        <div className="era-narr-dynamic-card__interaction">
                           {sd.interaction}{" "}
-                          <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>
+                          <span className="era-narr-dynamic-card__actors">
                             [{sd.actors?.join(", ")}]
                           </span>
                         </div>
-                        <div
-                          style={{
-                            color: "var(--text-secondary)",
-                            marginTop: "2px",
-                            lineHeight: 1.5,
-                          }}
-                        >
+                        <div className="era-narr-dynamic-card__text">
                           {sd.dynamic}
                         </div>
                       </div>
@@ -1108,28 +840,17 @@ export default function EraNarrativeModal({
               )}
 
               {synthesis.quotes?.length > 0 && (
-                <div style={{ marginBottom: "16px" }}>
-                  <div style={{ fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                <div className="era-narr-review-section">
+                  <div className="era-narr-review-heading">
                     Quotes ({synthesis.quotes.length})
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <div className="era-narr-quotes-list">
                     {synthesis.quotes.map((q, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          padding: "6px 10px",
-                          background: "var(--bg-primary)",
-                          border: "1px solid var(--border-color)",
-                          borderRadius: "4px",
-                          fontSize: "12px",
-                        }}
-                      >
-                        <div style={{ fontStyle: "italic", color: "var(--text-primary)" }}>
+                      <div key={i} className="era-narr-quote-card">
+                        <div className="era-narr-quote-card__text">
                           &ldquo;{q.text}&rdquo;
                         </div>
-                        <div
-                          style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}
-                        >
+                        <div className="era-narr-quote-card__origin">
                           {q.origin}. {q.context}
                         </div>
                       </div>
@@ -1139,8 +860,8 @@ export default function EraNarrativeModal({
               )}
 
               {synthesis.motifs?.length > 0 && (
-                <div style={{ marginBottom: "16px" }}>
-                  <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                <div className="era-narr-review-section">
+                  <div className="era-narr-motifs">
                     Motifs: {synthesis.motifs.join(", ")}
                   </div>
                 </div>
@@ -1151,100 +872,46 @@ export default function EraNarrativeModal({
           {/* Narrative Review */}
           {showNarrativeReview && (
             <>
-              <div
-                style={{
-                  marginBottom: "12px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ fontSize: "14px", fontWeight: 600 }}>Era Narrative</div>
-                <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+              <div className="era-narr-content-header">
+                <div className="era-narr-content-title">Era Narrative</div>
+                <span className="era-narr-content-meta">
                   {viewedWordCount.toLocaleString()} words
                 </span>
               </div>
-              <div
-                style={{
-                  padding: "16px",
-                  background: "var(--bg-primary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "6px",
-                  fontSize: "13px",
-                  lineHeight: "1.7",
-                  whiteSpace: "pre-wrap",
-                  maxHeight: "400px",
-                  overflow: "auto",
-                  color: "var(--text-secondary)",
-                }}
-              >
+              <div className="era-narr-content-viewer">
                 {viewedContent}
               </div>
             </>
-          )}
+          )}}
 
           {/* Edit Review */}
           {showEditReview && (
             <>
-              <div
-                style={{
-                  marginBottom: "12px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ fontSize: "14px", fontWeight: 600 }}>Era Narrative (edited)</div>
-                <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+              <div className="era-narr-content-header">
+                <div className="era-narr-content-title">Era Narrative (edited)</div>
+                <span className="era-narr-content-meta">
                   {viewedWordCount.toLocaleString()} words
                 </span>
               </div>
-              <div
-                style={{
-                  padding: "16px",
-                  background: "var(--bg-primary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "6px",
-                  fontSize: "13px",
-                  lineHeight: "1.7",
-                  whiteSpace: "pre-wrap",
-                  maxHeight: "400px",
-                  overflow: "auto",
-                  color: "var(--text-secondary)",
-                }}
-              >
+              <div className="era-narr-content-viewer">
                 {viewedContent}
               </div>
             </>
-          )}
+          )}}
 
           {/* Complete — Workspace View */}
           {isComplete && (
             <>
               {/* Version Selector */}
               {resolved.versions.length > 0 && (
-                <div
-                  style={{
-                    marginBottom: "12px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    flexWrap: "wrap",
-                  }}
-                >
+                <div className="era-narr-version-row">
                   <select
                     value={selectedVersionId || resolved.activeVersionId || ""}
                     onChange={(e) => {
                       setSelectedVersionId(e.target.value);
                       setConfirmingDeleteId(null);
                     }}
-                    className="illuminator-select"
-                    style={{
-                      width: "auto",
-                      minWidth: "240px",
-                      fontSize: "12px",
-                      padding: "4px 6px",
-                    }}
+                    className="illuminator-select era-narr-version-select"
                   >
                     {resolved.versions.map((v) => {
                       const date = new Date(v.generatedAt);
@@ -1263,16 +930,7 @@ export default function EraNarrativeModal({
 
                   {/* Active badge or Make Active button */}
                   {viewedVersion && viewedVersion.versionId === resolved.activeVersionId ? (
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        padding: "2px 8px",
-                        background: "rgba(16, 185, 129, 0.15)",
-                        color: "#10b981",
-                        borderRadius: "999px",
-                        fontWeight: 500,
-                      }}
-                    >
+                    <span className="era-narr-version-active-badge">
                       Active
                     </span>
                   ) : viewedVersion ? (
@@ -1281,8 +939,7 @@ export default function EraNarrativeModal({
                         setActiveVersion(viewedVersion.versionId);
                         setConfirmingDeleteId(null);
                       }}
-                      className="illuminator-button"
-                      style={{ padding: "2px 8px", fontSize: "11px" }}
+                      className="illuminator-button era-narr-version-make-active-btn"
                     >
                       Make Active
                     </button>
@@ -1306,14 +963,7 @@ export default function EraNarrativeModal({
                             }
                           }}
                           onBlur={() => setConfirmingDeleteId(null)}
-                          className="illuminator-button"
-                          style={{
-                            padding: "2px 8px",
-                            fontSize: "11px",
-                            background: isConfirming ? "#ef4444" : undefined,
-                            color: isConfirming ? "#fff" : "var(--text-muted)",
-                            borderColor: isConfirming ? "#ef4444" : undefined,
-                          }}
+                          className={`illuminator-button era-narr-version-delete-btn ${isConfirming ? "era-narr-version-delete-btn--confirming" : "era-narr-version-delete-btn--normal"}`}
                           title={isConfirming ? "Click again to confirm" : "Delete this version"}
                         >
                           {isConfirming ? "Confirm Delete" : "Delete"}
@@ -1324,18 +974,11 @@ export default function EraNarrativeModal({
               )}
 
               {/* Content header */}
-              <div
-                style={{
-                  marginBottom: "8px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ fontSize: "14px", fontWeight: 600 }}>
+              <div className="era-narr-content-header era-narr-content-header--mb8">
+                <div className="era-narr-content-title">
                   {narrative?.eraName || "Era Narrative"}
                 </div>
-                <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                <span className="era-narr-content-meta">
                   {viewedWordCount.toLocaleString()} words | $
                   {(narrative?.totalActualCost || 0).toFixed(4)}
                 </span>
@@ -1343,31 +986,11 @@ export default function EraNarrativeModal({
 
               {/* Content viewer */}
               {viewedContent ? (
-                <div
-                  style={{
-                    padding: "16px",
-                    background: "var(--bg-primary)",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "6px",
-                    fontSize: "13px",
-                    lineHeight: "1.7",
-                    whiteSpace: "pre-wrap",
-                    maxHeight: "400px",
-                    overflow: "auto",
-                    color: "var(--text-secondary)",
-                  }}
-                >
+                <div className="era-narr-content-viewer">
                   {viewedContent}
                 </div>
               ) : (
-                <div
-                  style={{
-                    padding: "20px",
-                    textAlign: "center",
-                    color: "var(--text-muted)",
-                    fontSize: "13px",
-                  }}
-                >
+                <div className="era-narr-no-content">
                   No content available
                 </div>
               )}
@@ -1377,19 +1000,11 @@ export default function EraNarrativeModal({
 
         {/* Footer */}
         {(showThreadReview || showNarrativeReview || showEditReview || isComplete) && (
-          <div
-            style={{
-              padding: "12px 20px",
-              borderTop: "1px solid var(--border-color)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+          <div className="era-narr-footer">
+            <div className="era-narr-footer__cost">
               {narrative?.totalActualCost ? `$${narrative.totalActualCost.toFixed(4)}` : ""}
             </div>
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div className="era-narr-footer__actions">
               {!isComplete && (
                 <button onClick={cancel} className="illuminator-button">
                   Cancel
@@ -1399,8 +1014,7 @@ export default function EraNarrativeModal({
               {showThreadReview && (
                 <button
                   onClick={advanceStep}
-                  className="illuminator-button"
-                  style={{ background: "var(--accent-primary)", color: "#fff", fontWeight: 600 }}
+                  className="illuminator-button era-narr-footer__primary-btn"
                 >
                   Generate Narrative
                 </button>
@@ -1413,8 +1027,7 @@ export default function EraNarrativeModal({
                   </button>
                   <button
                     onClick={advanceStep}
-                    className="illuminator-button"
-                    style={{ background: "var(--accent-primary)", color: "#fff", fontWeight: 600 }}
+                    className="illuminator-button era-narr-footer__primary-btn"
                   >
                     Copy Edit
                   </button>
@@ -1424,8 +1037,7 @@ export default function EraNarrativeModal({
               {showEditReview && (
                 <button
                   onClick={advanceStep}
-                  className="illuminator-button"
-                  style={{ background: "var(--accent-primary)", color: "#fff", fontWeight: 600 }}
+                  className="illuminator-button era-narr-footer__primary-btn"
                 >
                   Finish
                 </button>
@@ -1438,16 +1050,14 @@ export default function EraNarrativeModal({
                       setSelectedVersionId("");
                       rerunCopyEdit();
                     }}
-                    className="illuminator-button"
-                    style={{ fontWeight: 500 }}
+                    className="illuminator-button era-narr-footer__rerun-btn"
                     title="Re-run the copy edit pass on the latest version"
                   >
                     Re-run Copy Edit
                   </button>
                   <button
                     onClick={handleClose}
-                    className="illuminator-button"
-                    style={{ background: "var(--accent-primary)", color: "#fff", fontWeight: 600 }}
+                    className="illuminator-button era-narr-footer__primary-btn"
                   >
                     Close
                   </button>

@@ -1,0 +1,251 @@
+/* QuickCheckModal — prefix: qcm- */
+
+/* ---- HighlightMatch ---- */
+
+.qcm-highlight {
+  background: rgba(245, 158, 11, 0.25);
+  color: var(--text-primary);
+  font-weight: 600;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ---- EntitySearchPanel ---- */
+
+.qcm-search-panel {
+  margin-top: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.qcm-search-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.qcm-search-input {
+  flex: 1;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.qcm-search-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-muted);
+  padding: 2px 4px;
+}
+
+.qcm-search-results {
+  max-height: 200px;
+  overflow: auto;
+}
+
+.qcm-search-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 8px 4px;
+  text-align: center;
+}
+
+.qcm-search-result-item {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 11px;
+}
+
+.qcm-search-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.qcm-search-result-name {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.qcm-search-result-kind {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.qcm-search-match-row {
+  margin-top: 2px;
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.qcm-search-match-field {
+  font-size: 9px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.qcm-search-match-value {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.qcm-search-more {
+  font-size: 10px;
+  color: var(--text-muted);
+  padding: 4px;
+  text-align: center;
+}
+
+/* ---- SuspectCard ---- */
+
+.qcm-suspect-card {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--bg-primary);
+  border-radius: 0 6px 6px 0;
+  border: 1px solid var(--border-color);
+  border-left-width: 3px;
+  border-left-color: var(--qcm-confidence-color);
+}
+
+.qcm-suspect-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.qcm-suspect-phrase {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.qcm-suspect-confidence {
+  font-size: 10px;
+  color: var(--qcm-confidence-color);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.qcm-suspect-context {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.qcm-suspect-reasoning {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.qcm-suspect-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.qcm-suspect-action-btn {
+  padding: 3px 8px;
+  font-size: 10px;
+}
+
+/* ---- QuickCheckModal (main) ---- */
+
+.qcm-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.qcm-dialog {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  width: 650px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.qcm-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.qcm-header-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.qcm-header-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.qcm-assessment-label {
+  color: var(--qcm-assessment-color);
+}
+
+.qcm-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--text-muted);
+  padding: 4px;
+}
+
+.qcm-summary {
+  padding: 10px 20px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  line-height: 1.5;
+}
+
+.qcm-suspects-list {
+  flex: 1;
+  overflow: auto;
+  padding: 16px 20px;
+}
+
+.qcm-empty-message {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.qcm-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.qcm-footer-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+}

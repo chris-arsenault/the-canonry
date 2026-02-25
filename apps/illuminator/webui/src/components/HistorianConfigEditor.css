@@ -1,0 +1,246 @@
+/* HistorianConfigEditor - hce prefix */
+
+/* TagInput */
+.hce-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.hce-tag-list--has-items {
+  margin-bottom: 6px;
+}
+
+.hce-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(139, 115, 85, 0.12);
+  border: 1px solid rgba(139, 115, 85, 0.25);
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.hce-tag-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+  line-height: 1;
+}
+
+.hce-input-row {
+  display: flex;
+  gap: 4px;
+}
+
+.hce-input-row--has-items {
+  margin-top: 6px;
+}
+
+.hce-text-input {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.hce-add-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+}
+
+.hce-add-btn--enabled {
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.hce-add-btn--disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ListEditor */
+.hce-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 4px;
+  padding: 6px 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.hce-list-item-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.hce-list-item-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* FieldLabel */
+.hce-field-label-wrap {
+  margin-bottom: 4px;
+}
+
+.hce-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hce-field-description {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+/* Main Editor */
+.hce-root {
+  padding: 16px;
+  max-width: 600px;
+}
+
+.hce-header {
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.hce-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hce-header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.hce-reload-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.hce-header-description {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.hce-unconfigured-notice {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: rgba(139, 115, 85, 0.1);
+  border: 1px solid rgba(139, 115, 85, 0.25);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #8b7355;
+}
+
+.hce-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hce-full-input {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 13px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.hce-textarea {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.hce-textarea--bg {
+  min-height: 80px;
+}
+
+.hce-textarea--stance {
+  min-height: 50px;
+}
+
+/* Reload confirmation modal */
+.hce-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.hce-modal-box {
+  background: var(--bg-primary);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  padding: 20px 24px;
+  max-width: 400px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+}
+
+.hce-modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.hce-modal-body {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.hce-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.hce-modal-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+}

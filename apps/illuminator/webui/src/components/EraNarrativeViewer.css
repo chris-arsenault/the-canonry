@@ -1,0 +1,731 @@
+/* EraNarrativeViewer.css — co-located styles for EraNarrativeViewer.tsx */
+
+/* =========================================================================
+   Loading / Empty states
+   ========================================================================= */
+
+.era-narrative-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-muted);
+}
+
+/* =========================================================================
+   ChronicleRefThumbnail
+   ========================================================================= */
+
+.era-narrative-ref-thumb-loading {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.era-narrative-ref-thumb-empty {
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+.era-narrative-ref-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 3px;
+}
+
+/* =========================================================================
+   Root layout
+   ========================================================================= */
+
+.era-narrative-root {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+}
+
+/* =========================================================================
+   Header
+   ========================================================================= */
+
+.era-narrative-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.era-narrative-header__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.era-narrative-header__left {
+  flex: 1;
+}
+
+.era-narrative-header__title {
+  margin: 0 0 4px 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.era-narrative-header__actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.era-narrative-tone-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(217, 119, 6, 0.12);
+  color: #d97706;
+  font-weight: 500;
+}
+
+.era-narrative-word-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.era-narrative-export-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* =========================================================================
+   Version selector row
+   ========================================================================= */
+
+.era-narrative-version-row {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.era-narrative-version-select {
+  width: auto;
+  min-width: 240px;
+  font-size: 12px;
+  padding: 4px 6px;
+}
+
+.era-narrative-active-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.era-narrative-make-active-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.era-narrative-version-actions-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.era-narrative-insertion-toggle {
+  padding: 2px 8px;
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.era-narrative-rerun-btn {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* =========================================================================
+   Scene insertion
+   ========================================================================= */
+
+.era-narrative-insertion-wrap {
+  margin-bottom: 12px;
+}
+
+.era-narrative-insertion-textarea {
+  width: 100%;
+  height: 80px;
+  font-size: 11px;
+  resize: vertical;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 8px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* =========================================================================
+   Generating indicator
+   ========================================================================= */
+
+.era-narrative-generating {
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 6px;
+  font-size: 13px;
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.era-narrative-force-complete-btn {
+  background: none;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 4px;
+  color: #d97706;
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+/* =========================================================================
+   Prose panel
+   ========================================================================= */
+
+.era-narrative-prose {
+  padding: 20px 24px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  overflow: auto;
+  flex: 1 1 0;
+  min-height: 200px;
+}
+
+.era-narrative-prose-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+/* =========================================================================
+   Cover image section
+   ========================================================================= */
+
+.era-narrative-cover-section {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+/* =========================================================================
+   Image refs section
+   ========================================================================= */
+
+.era-narrative-image-refs-section {
+  margin-bottom: 16px;
+}
+
+.era-narrative-image-refs-empty {
+  padding: 12px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.era-narrative-image-refs-title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.era-narrative-image-refs-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.era-narrative-generate-btn {
+  padding: 8px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  height: 32px;
+  white-space: nowrap;
+}
+
+/* Chronicle ref images heading */
+.era-narrative-chronicle-refs-heading {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.era-narrative-chronicle-refs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.era-narrative-chronicle-ref-card {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.era-narrative-chronicle-ref-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.era-narrative-chronicle-ref-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.era-narrative-chronicle-ref-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.era-narrative-chronicle-ref-source-badge {
+  font-size: 10px;
+  padding: 1px 5px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.era-narrative-chronicle-ref-title {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.era-narrative-chronicle-ref-anchor {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.era-narrative-chronicle-ref-caption {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.era-narrative-chronicle-ref-size {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  align-self: center;
+}
+
+.era-narrative-chronicle-refs-section {
+  margin-bottom: 12px;
+}
+
+/* Regenerate button */
+.era-narrative-regen-row {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.era-narrative-regen-btn {
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+/* =========================================================================
+   Collapsible sections (threads, briefs)
+   ========================================================================= */
+
+.era-narrative-collapsible {
+  margin-bottom: 16px;
+}
+
+.era-narrative-collapsible__header {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.era-narrative-collapsible__header--open {
+  margin-bottom: 12px;
+}
+
+.era-narrative-collapsible__title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.era-narrative-collapsible__chevron {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* =========================================================================
+   Thread Synthesis
+   ========================================================================= */
+
+.era-narrative-synthesis {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Section heading (Thesis, Threads, Counterweight, etc.) */
+.era-narrative-section-heading {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.era-narrative-section-heading--mb6 {
+  margin-bottom: 6px;
+}
+
+/* Thesis */
+.era-narrative-thesis-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+  line-height: 1.6;
+}
+
+/* Thread cards */
+.era-narrative-thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.era-narrative-thread-card {
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.era-narrative-thread-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.era-narrative-thread-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.era-narrative-thread-register {
+  font-size: 11px;
+  color: #8b7355;
+  font-style: italic;
+}
+
+.era-narrative-thread-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.era-narrative-thread-arc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.era-narrative-thread-actors {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.era-narrative-thread-material-summary {
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.era-narrative-thread-material-body {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
+  padding-left: 10px;
+  border-left: 2px solid var(--border-color);
+}
+
+/* Counterweight */
+.era-narrative-counterweight-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Strategic dynamics */
+.era-narrative-sd-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.era-narrative-sd-card {
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.era-narrative-sd-interaction {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.era-narrative-sd-actors {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.era-narrative-sd-dynamic {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+/* Quotes */
+.era-narrative-quote-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.era-narrative-quote-card {
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.era-narrative-quote-text {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.era-narrative-quote-origin {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Movement plan */
+.era-narrative-movement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.era-narrative-movement-card {
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.era-narrative-movement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.era-narrative-movement-title {
+  font-weight: 500;
+}
+
+.era-narrative-movement-years {
+  color: var(--text-muted);
+}
+
+.era-narrative-movement-focus {
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.era-narrative-movement-beats {
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Motifs */
+.era-narrative-motifs-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Opening / Closing images */
+.era-narrative-images-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.era-narrative-image-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.era-narrative-image-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* =========================================================================
+   Source Briefs
+   ========================================================================= */
+
+.era-narrative-briefs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.era-narrative-brief-card {
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.era-narrative-brief-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.era-narrative-brief-title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.era-narrative-brief-year {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.era-narrative-brief-prep {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  max-height: 120px;
+  overflow: auto;
+}
+
+/* =========================================================================
+   Cost / Model footer
+   ========================================================================= */
+
+.era-narrative-footer {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-color);
+  margin-top: auto;
+}
+
+.era-narrative-footer__date {
+  margin-left: auto;
+}
+
+/* =========================================================================
+   Delete version button (dynamic state via CSS custom properties)
+   ========================================================================= */
+
+.era-narrative-delete-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.era-narrative-delete-btn--confirming {
+  background: #ef4444;
+  color: #fff;
+  border-color: #ef4444;
+}
+
+.era-narrative-delete-btn--idle {
+  color: var(--text-muted);
+}
+
+/* Material details (native <details>) */
+.era-narrative-thread-material-details {
+  margin-top: 6px;
+}

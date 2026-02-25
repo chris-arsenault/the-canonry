@@ -10,6 +10,7 @@
 import { useEffect } from "react";
 import { TONE_META } from "./HistorianToneSelector";
 import { useFloatingPillStore } from "../lib/db/floatingPillStore";
+import "./BulkHistorianModal.css";
 
 const TONE_CYCLE_ORDER = ["witty", "weary", "forensic", "elegiac", "cantankerous"];
 const PILL_ID = "bulk-historian";
@@ -65,45 +66,34 @@ export default function BulkHistorianModal({
 
   const title = isClear ? "Clear All Annotations" : isReview ? "Bulk Annotation" : "Bulk Copy Edit";
 
+  const statusColor =
+    progress.status === "complete"
+      ? "#10b981"
+      : progress.status === "failed"
+        ? "#ef4444"
+        : progress.status === "cancelled"
+          ? "#f59e0b"
+          : "var(--text-muted)";
+
+  const progressFillClass =
+    progress.status === "failed"
+      ? "bhm-progress-fill bhm-progress-fill--failed"
+      : progress.status === "cancelled"
+        ? "bhm-progress-fill bhm-progress-fill--cancelled"
+        : "bhm-progress-fill bhm-progress-fill--complete";
+
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 10000,
-      }}
-    >
+    <div className="bhm-overlay">
       <div
-        style={{
-          background: "var(--bg-primary)",
-          borderRadius: "12px",
-          border: "1px solid var(--border-color)",
-          width: isConfirming ? "540px" : "480px",
-          maxWidth: "95vw",
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-        }}
+        className="bhm-modal"
+        // eslint-disable-next-line local/no-inline-styles -- dynamic width based on confirming state
+        style={{ width: isConfirming ? "540px" : "480px" }}
       >
         {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-color)",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ margin: 0, fontSize: "16px" }}>{title}</h2>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="bhm-header">
+          <div className="bhm-header-row">
+            <h2 className="bhm-title">{title}</h2>
+            <div className="bhm-header-actions">
               {!isConfirming && (
                 <button
                   onClick={() =>
@@ -122,26 +112,16 @@ export default function BulkHistorianModal({
                             : "#ef4444",
                     })
                   }
-                  className="illuminator-button"
-                  style={{ padding: "2px 8px", fontSize: "11px" }}
+                  className="illuminator-button bhm-minimize-btn"
                   title="Minimize to pill"
                 >
                   ―
                 </button>
               )}
               <span
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  color:
-                    progress.status === "complete"
-                      ? "#10b981"
-                      : progress.status === "failed"
-                        ? "#ef4444"
-                        : progress.status === "cancelled"
-                          ? "#f59e0b"
-                          : "var(--text-muted)",
-                }}
+                className="bhm-status-label"
+                // eslint-disable-next-line local/no-inline-styles -- dynamic color from status
+                style={{ color: statusColor }}
               >
                 {isConfirming && `${progress.totalEntities} entities`}
                 {progress.status === "running" && "Processing..."}
@@ -155,11 +135,11 @@ export default function BulkHistorianModal({
 
         {/* Body */}
         <div
+          className="bhm-body"
+          // eslint-disable-next-line local/no-inline-styles -- dynamic overflow/flex based on confirming state
           style={{
-            padding: "20px",
             overflowY: isConfirming ? "auto" : "visible",
             flex: isConfirming ? 1 : undefined,
-            minHeight: 0,
           }}
         >
           {/* ---- Confirmation screen ---- */}
@@ -168,20 +148,8 @@ export default function BulkHistorianModal({
               {/* Tone section (not for clear) */}
               {isClear ? null : isReview ? (
                 /* Review mode: show tone cycling info */
-                <div
-                  style={{
-                    padding: "10px 12px",
-                    marginBottom: "12px",
-                    borderRadius: "8px",
-                    background: "var(--bg-secondary)",
-                    fontSize: "11px",
-                    color: "var(--text-secondary)",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  <span
-                    style={{ fontWeight: 600, color: "var(--text-primary)", marginRight: "6px" }}
-                  >
+                <div className="bhm-tone-cycle-box">
+                  <span className="bhm-tone-cycle-label">
                     Tones cycle:
                   </span>
                   {TONE_CYCLE_ORDER.map((t, i) => {
@@ -189,30 +157,22 @@ export default function BulkHistorianModal({
                     return (
                       <span key={t}>
                         {i > 0 && (
-                          <span style={{ margin: "0 4px", color: "var(--text-muted)" }}>
+                          <span className="bhm-tone-cycle-arrow">
                             &rarr;
                           </span>
                         )}
-                        <span style={{ color: "#8b7355" }}>{meta?.symbol}</span> {meta?.label}
+                        <span className="bhm-tone-cycle-symbol">{meta?.symbol}</span> {meta?.label}
                       </span>
                     );
                   })}
                 </div>
               ) : (
                 /* Edition mode: tone picker */
-                <div style={{ marginBottom: "12px" }}>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--text-muted)",
-                      textTransform: "uppercase",
-                      fontWeight: 600,
-                      marginBottom: "6px",
-                    }}
-                  >
+                <div className="bhm-tone-picker">
+                  <div className="bhm-section-label">
                     Historian Tone
                   </div>
-                  <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                  <div className="bhm-tone-options">
                     {TONE_CYCLE_ORDER.map((t) => {
                       const meta = TONE_META[t];
                       const isSelected = progress.tone === t;
@@ -220,25 +180,9 @@ export default function BulkHistorianModal({
                         <button
                           key={t}
                           onClick={() => onChangeTone(t)}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            padding: "4px 10px",
-                            borderRadius: "4px",
-                            border: isSelected
-                              ? "1px solid #8b7355"
-                              : "1px solid var(--border-color)",
-                            background: isSelected
-                              ? "rgba(139, 115, 85, 0.15)"
-                              : "var(--bg-secondary)",
-                            color: isSelected ? "#8b7355" : "var(--text-secondary)",
-                            cursor: "pointer",
-                            fontSize: "11px",
-                            fontWeight: isSelected ? 600 : 400,
-                          }}
+                          className={`bhm-tone-btn ${isSelected ? "bhm-tone-btn--selected" : "bhm-tone-btn--default"}`}
                         >
-                          <span style={{ fontSize: "12px" }}>{meta?.symbol}</span>
+                          <span className="bhm-tone-btn-symbol">{meta?.symbol}</span>
                           {meta?.label}
                         </button>
                       );
@@ -248,86 +192,50 @@ export default function BulkHistorianModal({
               )}
 
               {/* Entity list */}
-              <div style={{ marginBottom: "12px" }}>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    textTransform: "uppercase",
-                    fontWeight: 600,
-                    marginBottom: "8px",
-                  }}
-                >
+              <div className="bhm-entity-section">
+                <div className="bhm-entity-section-label">
                   Entities ({progress.entities.length})
                 </div>
 
-                <div
-                  style={{
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "8px",
-                    overflow: "hidden",
-                    maxHeight: "400px",
-                    overflowY: "auto",
-                  }}
-                >
+                <div className="bhm-entity-list">
                   {progress.entities.map((entity, i) => (
                     <div
                       key={entity.entityId}
+                      className="bhm-entity-row"
+                      // eslint-disable-next-line local/no-inline-styles -- dynamic border for last-child separation
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "6px 12px",
                         borderBottom:
                           i < progress.entities.length - 1
                             ? "1px solid var(--border-color)"
                             : "none",
-                        fontSize: "12px",
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          minWidth: 0,
-                          flex: 1,
-                        }}
-                      >
+                      <div className="bhm-entity-row-info">
                         {isReview && entity.tone && (
                           <span
-                            style={{ fontSize: "11px", color: "#8b7355", flexShrink: 0 }}
+                            className="bhm-entity-tone-symbol"
                             title={TONE_META[entity.tone]?.label || entity.tone}
                           >
                             {TONE_META[entity.tone]?.symbol}
                           </span>
                         )}
-                        <span
-                          style={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
+                        <span className="bhm-entity-name">
                           {entity.entityName}
                         </span>
-                        <span
-                          style={{ fontSize: "10px", color: "var(--text-muted)", flexShrink: 0 }}
-                        >
+                        <span className="bhm-entity-kind">
                           {entity.entityKind}
                           {entity.entitySubtype ? ` / ${entity.entitySubtype}` : ""}
                         </span>
                       </div>
                       {!isReview && entity.tokenEstimate > 0 && (
                         <span
+                          className="bhm-entity-tokens"
+                          // eslint-disable-next-line local/no-inline-styles -- dynamic color from token limit comparison
                           style={{
-                            fontSize: "10px",
-                            fontVariantNumeric: "tabular-nums",
                             color:
                               editionMaxTokens && entity.tokenEstimate > editionMaxTokens
                                 ? "#ef4444"
                                 : "var(--text-muted)",
-                            flexShrink: 0,
                           }}
                           title={`~${entity.tokenEstimate} tokens estimated from word count`}
                         >
@@ -353,30 +261,18 @@ export default function BulkHistorianModal({
                     : 0;
                   return (
                     <div
-                      style={{
-                        padding: "8px 12px",
-                        borderRadius: "6px",
-                        background:
-                          overCount > 0 ? "rgba(239, 68, 68, 0.08)" : "var(--bg-secondary)",
-                        border:
-                          overCount > 0
-                            ? "1px solid rgba(239, 68, 68, 0.2)"
-                            : "1px solid var(--border-color)",
-                        fontSize: "11px",
-                        color: "var(--text-secondary)",
-                        lineHeight: 1.6,
-                      }}
+                      className={`bhm-token-summary ${overCount > 0 ? "bhm-token-summary--over" : "bhm-token-summary--ok"}`}
                     >
                       <div>
                         Largest description: <strong>~{maxEst.toLocaleString()} tokens</strong>
                         {editionMaxTokens > 0 && (
-                          <span style={{ marginLeft: "8px" }}>
+                          <span className="bhm-token-limit-note">
                             (output limit: <strong>{editionMaxTokens.toLocaleString()}</strong>)
                           </span>
                         )}
                       </div>
                       {overCount > 0 && (
-                        <div style={{ color: "#ef4444", marginTop: "2px" }}>
+                        <div className="bhm-token-over-warning">
                           {overCount} {overCount === 1 ? "entity exceeds" : "entities exceed"} the
                           current output token limit — results may be truncated.
                         </div>
@@ -391,59 +287,30 @@ export default function BulkHistorianModal({
           {!isConfirming && (
             <>
               {/* Global progress */}
-              <div style={{ marginBottom: "20px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    marginBottom: "6px",
-                  }}
-                >
-                  <span style={{ fontSize: "13px", fontWeight: 500 }}>
+              <div className="bhm-progress-section">
+                <div className="bhm-progress-header">
+                  <span className="bhm-progress-entity-label">
                     Entity {Math.min(progress.processedEntities + 1, progress.totalEntities)} /{" "}
                     {progress.totalEntities}
                   </span>
-                  <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                  <span className="bhm-progress-percent">
                     {globalPercent}%
                   </span>
                 </div>
 
                 {/* Progress bar */}
-                <div
-                  style={{
-                    height: "8px",
-                    borderRadius: "4px",
-                    background: "var(--bg-secondary)",
-                    overflow: "hidden",
-                    marginBottom: "6px",
-                  }}
-                >
+                <div className="bhm-progress-track">
                   <div
-                    style={{
-                      height: "100%",
-                      borderRadius: "4px",
-                      background:
-                        progress.status === "failed"
-                          ? "#ef4444"
-                          : progress.status === "cancelled"
-                            ? "#f59e0b"
-                            : "#10b981",
-                      width: `${globalPercent}%`,
-                      transition: "width 0.3s ease",
-                    }}
+                    className={progressFillClass}
+                    // eslint-disable-next-line local/no-inline-styles -- dynamic width from progress percentage
+                    style={{ width: `${globalPercent}%` }}
                   />
                 </div>
 
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                  }}
-                >
+                <div className="bhm-progress-counts">
                   {progress.processedEntities} / {progress.totalEntities} entities
                   {progress.failedEntities.length > 0 && (
-                    <span style={{ color: "#ef4444", marginLeft: "8px" }}>
+                    <span className="bhm-progress-failed-count">
                       {progress.failedEntities.length} failed
                     </span>
                   )}
@@ -452,34 +319,16 @@ export default function BulkHistorianModal({
 
               {/* Current entity detail */}
               {progress.currentEntityName && !isTerminal && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "var(--bg-secondary)",
-                    marginBottom: "16px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 500,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
+                <div className="bhm-current-entity">
+                  <div className="bhm-current-entity-name">
                     {progress.currentEntityTone && TONE_META[progress.currentEntityTone] && (
-                      <span style={{ color: "#8b7355", fontSize: "13px" }}>
+                      <span className="bhm-current-entity-tone">
                         {TONE_META[progress.currentEntityTone].symbol}
                       </span>
                     )}
                     {progress.currentEntityName}
                   </div>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+                  <div className="bhm-current-entity-status">
                     {isClear
                       ? "Clearing annotations..."
                       : isReview
@@ -491,23 +340,14 @@ export default function BulkHistorianModal({
 
               {/* Terminal state messages */}
               {progress.status === "complete" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(16, 185, 129, 0.1)",
-                    border: "1px solid rgba(16, 185, 129, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="bhm-terminal-msg bhm-terminal-msg--complete">
                   {isClear
                     ? `Cleared annotations from ${progress.processedEntities} entities.`
                     : isReview
                       ? `Annotated ${progress.processedEntities} entities.`
                       : `Copy-edited ${progress.processedEntities} entities.`}
                   {progress.failedEntities.length > 0 && (
-                    <span style={{ color: "#ef4444" }}>
+                    <span className="bhm-terminal-failed-inline">
                       {" "}
                       {progress.failedEntities.length} failed.
                     </span>
@@ -516,73 +356,39 @@ export default function BulkHistorianModal({
               )}
 
               {progress.status === "cancelled" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(245, 158, 11, 0.1)",
-                    border: "1px solid rgba(245, 158, 11, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="bhm-terminal-msg bhm-terminal-msg--cancelled">
                   Cancelled after processing {progress.processedEntities} of{" "}
                   {progress.totalEntities} entities.
                 </div>
               )}
 
               {progress.status === "failed" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(239, 68, 68, 0.1)",
-                    border: "1px solid rgba(239, 68, 68, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="bhm-terminal-msg bhm-terminal-msg--failed">
                   {progress.error || "An unexpected error occurred."}
                 </div>
               )}
 
               {/* Failed entities list */}
               {isTerminal && progress.failedEntities.length > 0 && (
-                <div style={{ marginBottom: "16px" }}>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--text-muted)",
-                      textTransform: "uppercase",
-                      fontWeight: 600,
-                      marginBottom: "6px",
-                    }}
-                  >
+                <div className="bhm-failed-section">
+                  <div className="bhm-failed-label">
                     Failed ({progress.failedEntities.length})
                   </div>
-                  <div
-                    style={{
-                      border: "1px solid var(--border-color)",
-                      borderRadius: "8px",
-                      overflow: "hidden",
-                      maxHeight: "200px",
-                      overflowY: "auto",
-                    }}
-                  >
+                  <div className="bhm-failed-list">
                     {progress.failedEntities.map((f, i) => (
                       <div
                         key={f.entityId}
+                        className="bhm-failed-row"
+                        // eslint-disable-next-line local/no-inline-styles -- dynamic border for last-child separation
                         style={{
-                          padding: "6px 12px",
                           borderBottom:
                             i < progress.failedEntities.length - 1
                               ? "1px solid var(--border-color)"
                               : "none",
-                          fontSize: "11px",
                         }}
                       >
-                        <span style={{ fontWeight: 500 }}>{f.entityName}</span>
-                        <span style={{ color: "#ef4444", marginLeft: "8px" }}>{f.error}</span>
+                        <span className="bhm-failed-name">{f.entityName}</span>
+                        <span className="bhm-failed-error">{f.error}</span>
                       </div>
                     ))}
                   </div>
@@ -591,13 +397,7 @@ export default function BulkHistorianModal({
 
               {/* Cost */}
               {progress.totalCost > 0 && (
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    textAlign: "right",
-                  }}
-                >
+                <div className="bhm-cost">
                   Cost: ${progress.totalCost.toFixed(4)}
                 </div>
               )}
@@ -606,29 +406,18 @@ export default function BulkHistorianModal({
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "8px",
-            flexShrink: 0,
-          }}
-        >
+        <div className="bhm-footer">
           {isConfirming && (
             <>
               <button
                 onClick={onCancel}
-                className="illuminator-button"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button bhm-footer-btn"
               >
                 Cancel
               </button>
               <button
                 onClick={onConfirm}
-                className="illuminator-button illuminator-button-primary"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button illuminator-button-primary bhm-footer-btn"
               >
                 {isClear
                   ? `Clear Annotations (${progress.totalEntities} entities)`
@@ -641,8 +430,7 @@ export default function BulkHistorianModal({
           {!isConfirming && !isTerminal && (
             <button
               onClick={onCancel}
-              className="illuminator-button"
-              style={{ padding: "6px 16px", fontSize: "12px" }}
+              className="illuminator-button bhm-footer-btn"
             >
               Cancel
             </button>
@@ -650,8 +438,7 @@ export default function BulkHistorianModal({
           {isTerminal && (
             <button
               onClick={onClose}
-              className="illuminator-button"
-              style={{ padding: "6px 16px", fontSize: "12px" }}
+              className="illuminator-button bhm-footer-btn"
             >
               Close
             </button>

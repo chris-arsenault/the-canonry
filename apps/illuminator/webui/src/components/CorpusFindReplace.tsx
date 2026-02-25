@@ -12,6 +12,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import "./CorpusFindReplace.css";
 import {
   getChronicle,
   putChronicle,
@@ -217,89 +218,42 @@ function MatchRow({
   const diff = variant ? extractDiff(match.noteText!, variant) : null;
 
   return (
-    <div
-      style={{
-        padding: "6px 10px",
-        background: accepted ? "var(--bg-tertiary)" : "var(--bg-secondary)",
-        borderRadius: "4px",
-        border: "1px solid var(--border-color)",
-        opacity: accepted ? 1 : 0.5,
-        marginBottom: "3px",
-        display: "flex",
-        gap: "8px",
-        alignItems: "flex-start",
-      }}
-    >
+    <div className={`cfr-match-row ${accepted ? "cfr-match-row--accepted" : "cfr-match-row--rejected"}`}>
       <input
         type="checkbox"
         checked={accepted}
         onChange={onToggle}
-        style={{ marginTop: "3px", cursor: "pointer", flexShrink: 0 }}
+        className="cfr-match-checkbox"
       />
-      <div
-        style={{
-          fontSize: "11px",
-          lineHeight: "1.7",
-          fontFamily: diff ? undefined : "monospace",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          flex: 1,
-        }}
-      >
+      <div className={`cfr-match-body ${diff ? "" : "cfr-match-body--mono"}`}>
         {diff ? (
           <>
-            <span style={{ color: "var(--text-muted)", fontSize: "10px" }}>{diff.prefix}</span>
-            <span
-              style={{
-                background: accepted ? "rgba(239, 68, 68, 0.15)" : "rgba(139, 115, 85, 0.15)",
-                textDecoration: accepted ? "line-through" : "none",
-                padding: "1px 2px",
-                borderRadius: "2px",
-              }}
-            >
+            <span className="cfr-diff-context">{diff.prefix}</span>
+            <span className={`cfr-diff-old ${accepted ? "cfr-diff-old--accepted" : "cfr-diff-old--rejected"}`}>
               {diff.oldMiddle}
             </span>
             {accepted && (
               <>
                 {" "}
-                <span
-                  style={{
-                    background: "rgba(34, 197, 94, 0.2)",
-                    padding: "1px 2px",
-                    borderRadius: "2px",
-                  }}
-                >
+                <span className="cfr-diff-new">
                   {diff.newMiddle}
                 </span>
               </>
             )}
-            <span style={{ color: "var(--text-muted)", fontSize: "10px" }}>{diff.suffix}</span>
+            <span className="cfr-diff-context">{diff.suffix}</span>
           </>
         ) : (
           <>
-            <span style={{ color: "var(--text-muted)" }}>{match.contextBefore}</span>
-            <span
-              style={{
-                background: "rgba(239, 68, 68, 0.2)",
-                textDecoration: "line-through",
-                padding: "0 1px",
-                borderRadius: "2px",
-              }}
-            >
+            <span className="cfr-literal-context">{match.contextBefore}</span>
+            <span className="cfr-literal-old">
               {match.matchedText}
             </span>
             {accepted && (
-              <span
-                style={{
-                  background: "rgba(34, 197, 94, 0.2)",
-                  padding: "0 1px",
-                  borderRadius: "2px",
-                }}
-              >
+              <span className="cfr-literal-new">
                 {replace}
               </span>
             )}
-            <span style={{ color: "var(--text-muted)" }}>{match.contextAfter}</span>
+            <span className="cfr-literal-context">{match.contextAfter}</span>
           </>
         )}
       </div>
@@ -337,45 +291,25 @@ function SourceGroup({
   const acceptCount = matches.filter((m) => decisions[m.id]).length;
 
   return (
-    <div
-      style={{
-        marginBottom: "4px",
-        border: "1px solid var(--border-color)",
-        borderRadius: "6px",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        onClick={onToggleExpand}
-        style={{
-          padding: "8px 12px",
-          background: "var(--bg-secondary)",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          userSelect: "none",
-        }}
-      >
-        <span
-          style={{ fontSize: "10px", color: "var(--text-muted)", width: "10px", flexShrink: 0 }}
-        >
+    <div className="cfr-source-group">
+      <div onClick={onToggleExpand} className="cfr-source-header">
+        <span className="cfr-source-arrow">
           {expanded ? "\u25BC" : "\u25B6"}
         </span>
-        <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--text-primary)" }}>
+        <span className="cfr-source-label">
           {label}
         </span>
-        <span style={{ fontSize: "10px", color: "var(--text-muted)", marginLeft: "auto" }}>
+        <span className="cfr-source-count">
           {matches.length} {matches.length === 1 ? "match" : "matches"}
         </span>
         {acceptCount > 0 && (
-          <span style={{ fontSize: "10px", color: "#22c55e" }}>
+          <span className="cfr-source-accept-count">
             {acceptCount}
             {"\u2713"}
           </span>
         )}
         {matches.length - acceptCount > 0 && (
-          <span style={{ fontSize: "10px", color: "#ef4444" }}>
+          <span className="cfr-source-reject-count">
             {matches.length - acceptCount}
             {"\u2717"}
           </span>
@@ -386,14 +320,7 @@ function SourceGroup({
             onAcceptAll();
           }}
           title="Accept all in this group"
-          style={{
-            background: "none",
-            border: "none",
-            color: "#22c55e",
-            fontSize: "10px",
-            cursor: "pointer",
-            padding: "0 4px",
-          }}
+          className="cfr-source-btn cfr-source-btn--accept"
         >
           {"all\u2713"}
         </button>
@@ -403,20 +330,13 @@ function SourceGroup({
             onRejectAll();
           }}
           title="Reject all in this group"
-          style={{
-            background: "none",
-            border: "none",
-            color: "#ef4444",
-            fontSize: "10px",
-            cursor: "pointer",
-            padding: "0 4px",
-          }}
+          className="cfr-source-btn cfr-source-btn--reject"
         >
           {"all\u2717"}
         </button>
       </div>
       {expanded && (
-        <div style={{ padding: "6px 8px" }}>
+        <div className="cfr-source-matches">
           {matches.map((m) => (
             <MatchRow
               key={m.id}
@@ -462,17 +382,8 @@ function ContextSection({
 }) {
   const totalMatches = sourceGroups.reduce((sum, g) => sum + g.matches.length, 0);
   return (
-    <div style={{ marginBottom: "16px" }}>
-      <div
-        style={{
-          fontSize: "11px",
-          fontWeight: 600,
-          color: "var(--text-muted)",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-          marginBottom: "6px",
-        }}
-      >
+    <div className="cfr-context-section">
+      <div className="cfr-context-heading">
         {contextLabel} ({totalMatches})
       </div>
       {sourceGroups.map((group) => (
@@ -1251,26 +1162,16 @@ export default function CorpusFindReplace() {
   // ============================================================================
 
   return (
-    <div style={{ maxWidth: "800px" }}>
+    <div className="cfr-root">
       {/* Input phase */}
       {phase === "input" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="cfr-input-form">
           {/* Context checkboxes */}
           <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "10px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                marginBottom: "6px",
-                fontWeight: 600,
-              }}
-            >
+            <label className="cfr-field-label">
               Search in
             </label>
-            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+            <div className="cfr-checkbox-row">
               {(
                 [
                   "chronicleContent",
@@ -1280,22 +1181,12 @@ export default function CorpusFindReplace() {
                   "eraNarrativeContent",
                 ] as SearchContext[]
               ).map((ctx) => (
-                <label
-                  key={ctx}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    fontSize: "12px",
-                    cursor: "pointer",
-                    color: "var(--text-secondary)",
-                  }}
-                >
+                <label key={ctx} className="cfr-context-checkbox">
                   <input
                     type="checkbox"
                     checked={contexts.has(ctx)}
                     onChange={() => toggleContext(ctx)}
-                    style={{ cursor: "pointer" }}
+                    className="cfr-cursor-pointer"
                   />
                   {CONTEXT_LABELS[ctx]}
                 </label>
@@ -1305,17 +1196,7 @@ export default function CorpusFindReplace() {
 
           {/* Find / Replace inputs */}
           <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "10px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                marginBottom: "4px",
-                fontWeight: 600,
-              }}
-            >
+            <label className="cfr-field-label cfr-field-label--tight">
               Find
             </label>
             <input
@@ -1324,31 +1205,11 @@ export default function CorpusFindReplace() {
               onChange={(e) => setFind(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && find && contexts.size > 0 && handleScan()}
               placeholder="Text to find..."
-              style={{
-                width: "100%",
-                padding: "8px 12px",
-                fontSize: "13px",
-                background: "var(--bg-secondary)",
-                border: "1px solid var(--border-color)",
-                borderRadius: "6px",
-                color: "var(--text-primary)",
-                boxSizing: "border-box",
-                fontFamily: "inherit",
-              }}
+              className="cfr-text-input"
             />
           </div>
           <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "10px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                marginBottom: "4px",
-                fontWeight: 600,
-              }}
-            >
+            <label className="cfr-field-label cfr-field-label--tight">
               Replace with
             </label>
             <input
@@ -1356,49 +1217,23 @@ export default function CorpusFindReplace() {
               onChange={(e) => setReplace(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && find && contexts.size > 0 && handleScan()}
               placeholder="Replacement text..."
-              style={{
-                width: "100%",
-                padding: "8px 12px",
-                fontSize: "13px",
-                background: "var(--bg-secondary)",
-                border: "1px solid var(--border-color)",
-                borderRadius: "6px",
-                color: "var(--text-primary)",
-                boxSizing: "border-box",
-                fontFamily: "inherit",
-              }}
+              className="cfr-text-input"
             />
           </div>
 
           {/* Options row */}
-          <div style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "11px",
-                cursor: "pointer",
-                color: "var(--text-secondary)",
-              }}
-            >
+          <div className="cfr-options-row">
+            <label className="cfr-option-label">
               <input
                 type="checkbox"
                 checked={caseSensitive}
                 onChange={() => setCaseSensitive(!caseSensitive)}
-                style={{ cursor: "pointer" }}
+                className="cfr-cursor-pointer"
               />
               Case sensitive
             </label>
             <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "11px",
-                cursor: hasAnnotationContext ? "pointer" : "not-allowed",
-                color: hasAnnotationContext ? "var(--text-secondary)" : "var(--text-muted)",
-              }}
+              className={`cfr-option-label ${hasAnnotationContext ? "" : "cfr-option-label--disabled"}`}
               title={
                 hasAnnotationContext
                   ? "Use LLM to generate contextual replacements for annotation matches"
@@ -1410,22 +1245,17 @@ export default function CorpusFindReplace() {
                 checked={llmMode}
                 onChange={() => setLlmMode(!llmMode)}
                 disabled={!hasAnnotationContext}
-                style={{ cursor: hasAnnotationContext ? "pointer" : "not-allowed" }}
+                className={hasAnnotationContext ? "cfr-cursor-pointer" : "cfr-cursor-not-allowed"}
               />
               LLM-enhanced replace
             </label>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
+          <div className="cfr-actions-row">
             <button
               onClick={handleScan}
               disabled={!find || contexts.size === 0}
-              className="illuminator-button"
-              style={{
-                padding: "6px 20px",
-                fontSize: "12px",
-                opacity: find && contexts.size > 0 ? 1 : 0.5,
-              }}
+              className={`illuminator-button cfr-btn-find ${find && contexts.size > 0 ? "" : "cfr-btn-half-opacity"}`}
             >
               Find Matches
             </button>
@@ -1435,26 +1265,25 @@ export default function CorpusFindReplace() {
 
       {/* Scanning */}
       {phase === "scanning" && (
-        <div style={{ textAlign: "center", padding: "40px 0" }}>
-          <div style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "8px" }}>
+        <div className="cfr-phase-center">
+          <div className="cfr-phase-title">
             Scanning...
           </div>
           {scanProgress && (
-            <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>{scanProgress}</div>
+            <div className="cfr-phase-subtitle">{scanProgress}</div>
           )}
         </div>
       )}
 
       {/* Empty */}
       {phase === "empty" && (
-        <div style={{ textAlign: "center", padding: "30px 0" }}>
-          <div style={{ color: "var(--text-muted)", fontSize: "13px", marginBottom: "12px" }}>
+        <div className="cfr-empty-center">
+          <div className="cfr-empty-msg">
             No matches found for &ldquo;{find}&rdquo;
           </div>
           <button
             onClick={handleReset}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "6px 16px", fontSize: "12px" }}
+            className="illuminator-button illuminator-button-secondary cfr-btn-back"
           >
             Back
           </button>
@@ -1465,79 +1294,36 @@ export default function CorpusFindReplace() {
       {(phase === "preview" || phase === "review") && (
         <div>
           {/* Summary bar */}
-          <div
-            style={{
-              marginBottom: "12px",
-              padding: "8px 14px",
-              background: "var(--bg-secondary)",
-              borderRadius: "6px",
-              border: "1px solid var(--border-color)",
-              display: "flex",
-              gap: "12px",
-              alignItems: "center",
-              flexWrap: "wrap",
-              fontSize: "12px",
-            }}
-          >
+          <div className="cfr-summary-bar">
             <span>
               <strong>{find}</strong>
               {" \u2192 "}
               {llmMode && phase === "review" ? (
-                <em style={{ color: "var(--text-muted)" }}>contextual variants</em>
+                <em className="cfr-summary-em">contextual variants</em>
               ) : (
                 <strong>
-                  {replace || <em style={{ color: "var(--text-muted)" }}>(delete)</em>}
+                  {replace || <em className="cfr-summary-em">(delete)</em>}
                 </strong>
               )}
             </span>
-            <span style={{ color: "var(--text-muted)" }}>|</span>
-            <span style={{ color: "#22c55e" }}>{acceptCount} accept</span>
-            <span style={{ color: "#ef4444" }}>{matches.length - acceptCount} reject</span>
-            <span style={{ color: "var(--text-muted)" }}>/ {matches.length} total</span>
+            <span className="cfr-summary-muted">|</span>
+            <span className="cfr-summary-accept">{acceptCount} accept</span>
+            <span className="cfr-summary-reject">{matches.length - acceptCount} reject</span>
+            <span className="cfr-summary-muted">/ {matches.length} total</span>
             {phase === "review" && (
-              <span style={{ color: "var(--text-muted)" }}>({variants.size} variants)</span>
+              <span className="cfr-summary-muted">({variants.size} variants)</span>
             )}
-            <div style={{ flex: 1 }} />
-            <button
-              onClick={acceptAllMatches}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#22c55e",
-                fontSize: "10px",
-                cursor: "pointer",
-                textDecoration: "underline",
-              }}
-            >
+            <div className="cfr-summary-spacer" />
+            <button onClick={acceptAllMatches} className="cfr-summary-link cfr-summary-link--accept">
               Accept All
             </button>
-            <button
-              onClick={rejectAllMatches}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#ef4444",
-                fontSize: "10px",
-                cursor: "pointer",
-                textDecoration: "underline",
-              }}
-            >
+            <button onClick={rejectAllMatches} className="cfr-summary-link cfr-summary-link--reject">
               Reject All
             </button>
           </div>
 
           {error && (
-            <div
-              style={{
-                marginBottom: "12px",
-                padding: "8px 14px",
-                background: "rgba(239, 68, 68, 0.1)",
-                borderRadius: "6px",
-                border: "1px solid rgba(239, 68, 68, 0.3)",
-                fontSize: "11px",
-                color: "#ef4444",
-              }}
-            >
+            <div className="cfr-error-banner">
               {error}
             </div>
           )}
@@ -1560,21 +1346,17 @@ export default function CorpusFindReplace() {
           ))}
 
           {/* Footer actions */}
-          <div
-            style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "12px" }}
-          >
+          <div className="cfr-footer">
             <button
               onClick={handleReset}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "6px 16px", fontSize: "12px" }}
+              className="illuminator-button illuminator-button-secondary cfr-btn-back"
             >
               Back
             </button>
             {phase === "preview" && llmMode && hasAnnotationContext && (
               <button
                 onClick={handleGenerate}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button illuminator-button-secondary cfr-btn-back"
               >
                 Generate Variants (
                 {
@@ -1588,8 +1370,7 @@ export default function CorpusFindReplace() {
             <button
               onClick={handleApply}
               disabled={acceptCount === 0}
-              className="illuminator-button"
-              style={{ padding: "6px 20px", fontSize: "12px", opacity: acceptCount > 0 ? 1 : 0.5 }}
+              className={`illuminator-button cfr-btn-apply ${acceptCount > 0 ? "" : "cfr-btn-half-opacity"}`}
             >
               Apply ({acceptCount} {acceptCount === 1 ? "replacement" : "replacements"})
             </button>
@@ -1599,11 +1380,11 @@ export default function CorpusFindReplace() {
 
       {/* Generating */}
       {phase === "generating" && (
-        <div style={{ textAlign: "center", padding: "40px 0" }}>
-          <div style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "8px" }}>
+        <div className="cfr-phase-center">
+          <div className="cfr-phase-title">
             Generating contextual variants...
           </div>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+          <div className="cfr-phase-subtitle">
             {
               matches.filter(
                 (m) => m.context === "chronicleAnnotations" || m.context === "entityAnnotations"
@@ -1619,26 +1400,25 @@ export default function CorpusFindReplace() {
             LLM calls
           </div>
           {error && (
-            <div style={{ marginTop: "12px", fontSize: "12px", color: "#ef4444" }}>{error}</div>
+            <div className="cfr-error-inline">{error}</div>
           )}
         </div>
       )}
 
       {/* Applying / Done */}
       {(phase === "applying" || phase === "done") && (
-        <div style={{ textAlign: "center", padding: "40px 0" }}>
-          <div style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "8px" }}>
+        <div className="cfr-phase-center">
+          <div className="cfr-phase-title">
             {phase === "applying" ? "Applying replacements..." : "Replace Complete"}
           </div>
           {phase === "done" && (
             <>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "8px" }}>
+              <div className="cfr-done-msg">
                 {resultCount} replacement{resultCount !== 1 ? "s" : ""} applied.
               </div>
               <button
                 onClick={handleReset}
-                className="illuminator-button"
-                style={{ padding: "6px 20px", fontSize: "12px", marginTop: "16px" }}
+                className="illuminator-button cfr-btn-new-search"
               >
                 New Search
               </button>

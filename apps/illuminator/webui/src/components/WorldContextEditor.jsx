@@ -10,14 +10,7 @@
 
 import { useState, useCallback } from "react";
 import { LocalTextArea } from "@penguin-tales/shared-components";
-
-const DESCRIPTION_TEXTAREA_STYLE = Object.freeze({ minHeight: "100px", resize: "vertical" });
-const TONE_TEXTAREA_STYLE = Object.freeze({ minHeight: "80px", resize: "vertical" });
-const COMPACT_TEXTAREA_STYLE = Object.freeze({
-  minHeight: "60px",
-  resize: "vertical",
-  fontSize: "12px",
-});
+import "./WorldContextEditor.css";
 
 // ============================================================================
 // Canon Facts Editor
@@ -41,60 +34,23 @@ function FactCard({ fact, onUpdate, onRemove }) {
   const isDisabled = Boolean(fact.disabled);
 
   return (
-    <div
-      style={{
-        background: "var(--bg-tertiary)",
-        borderRadius: "6px",
-        border: "1px solid var(--border-color)",
-        marginBottom: "8px",
-        overflow: "hidden",
-        opacity: isDisabled ? 0.5 : 1,
-      }}
-    >
+    <div className={`wce-fact-card ${isDisabled ? "wce-fact-card--disabled" : ""}`}>
       {/* Header */}
       <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          padding: "10px 12px",
-          cursor: "pointer",
-        }}
+        className="wce-fact-header"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+        <span className="wce-fact-chevron">
           {isExpanded ? "▼" : "▶"}
         </span>
-        <span
-          style={{
-            fontSize: "11px",
-            fontFamily: "monospace",
-            color: "var(--accent-color)",
-            minWidth: "120px",
-          }}
-        >
+        <span className="wce-fact-id">
           {fact.id}
         </span>
-        <span
-          style={{
-            flex: 1,
-            fontSize: "12px",
-            color: "var(--text-secondary)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
+        <span className="wce-fact-preview">
           {fact.text}
         </span>
         <span
-          style={{
-            fontSize: "10px",
-            padding: "2px 6px",
-            background: isConstraint ? "var(--warning-bg, #4a3f00)" : "var(--bg-secondary)",
-            borderRadius: "4px",
-            color: isConstraint ? "var(--warning, #ffc107)" : "var(--text-muted)",
-          }}
+          className={`wce-fact-type-badge ${isConstraint ? "wce-fact-type-badge--constraint" : "wce-fact-type-badge--truth"}`}
           title={
             isConstraint
               ? "Meta-instruction (always verbatim)"
@@ -105,13 +61,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
         </span>
         {fact.required && !isConstraint && !isDisabled && (
           <span
-            style={{
-              fontSize: "10px",
-              padding: "2px 6px",
-              background: "var(--bg-secondary)",
-              borderRadius: "4px",
-              color: "var(--accent-color)",
-            }}
+            className="wce-fact-status-badge wce-fact-status-badge--required"
             title="Required fact (must be included in perspective facets)"
           >
             required
@@ -119,13 +69,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
         )}
         {isDisabled && (
           <span
-            style={{
-              fontSize: "10px",
-              padding: "2px 6px",
-              background: "var(--bg-secondary)",
-              borderRadius: "4px",
-              color: "var(--text-muted)",
-            }}
+            className="wce-fact-status-badge wce-fact-status-badge--disabled"
             title="Disabled — excluded from perspective synthesis and generation"
           >
             disabled
@@ -136,14 +80,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
             e.stopPropagation();
             onRemove();
           }}
-          style={{
-            background: "none",
-            border: "none",
-            color: "var(--danger)",
-            cursor: "pointer",
-            padding: "2px 6px",
-            fontSize: "14px",
-          }}
+          className="wce-remove-btn"
         >
           ×
         </button>
@@ -151,51 +88,27 @@ function FactCard({ fact, onUpdate, onRemove }) {
 
       {/* Expanded Details */}
       {isExpanded && (
-        <div
-          style={{
-            padding: "12px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-          }}
-        >
+        <div className="wce-fact-detail">
           <div>
-            <label
-              style={{
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                display: "block",
-                marginBottom: "4px",
-              }}
-            >
+            <label className="wce-field-label">
               Text
             </label>
             <LocalTextArea
               value={fact.text || ""}
               onChange={(value) => updateField("text", value)}
-              className="illuminator-input"
-              style={COMPACT_TEXTAREA_STYLE}
+              className="illuminator-input wce-textarea-compact"
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
+          <div className="wce-fact-detail-grid">
             <div>
-              <label
-                style={{
-                  fontSize: "11px",
-                  color: "var(--text-muted)",
-                  display: "block",
-                  marginBottom: "4px",
-                }}
-              >
+              <label className="wce-field-label">
                 Fact Type
               </label>
               <select
                 value={fact.type || "world_truth"}
                 onChange={(e) => updateField("type", e.target.value)}
-                className="illuminator-input"
-                style={{ fontSize: "12px" }}
+                className="illuminator-input wce-input-sm"
               >
                 <option value="world_truth">World Truth (faceted by perspective)</option>
                 <option value="generation_constraint">
@@ -204,42 +117,24 @@ function FactCard({ fact, onUpdate, onRemove }) {
               </select>
             </div>
             <div>
-              <label
-                style={{
-                  fontSize: "11px",
-                  color: "var(--text-muted)",
-                  display: "block",
-                  marginBottom: "4px",
-                }}
-              >
+              <label className="wce-field-label">
                 Required
               </label>
-              <label
-                style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px" }}
-              >
+              <label className="wce-checkbox-label">
                 <input
                   type="checkbox"
                   checked={Boolean(fact.required) && !isConstraint && !isDisabled}
                   onChange={(e) => updateField("required", e.target.checked)}
                   disabled={isConstraint || isDisabled}
                 />
-                <span style={{ color: "var(--text-secondary)" }}>Always include in facets</span>
+                <span className="wce-checkbox-text">Always include in facets</span>
               </label>
             </div>
             <div>
-              <label
-                style={{
-                  fontSize: "11px",
-                  color: "var(--text-muted)",
-                  display: "block",
-                  marginBottom: "4px",
-                }}
-              >
+              <label className="wce-field-label">
                 Disabled
               </label>
-              <label
-                style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px" }}
-              >
+              <label className="wce-checkbox-label">
                 <input
                   type="checkbox"
                   checked={isDisabled}
@@ -249,7 +144,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
                     onUpdate(next);
                   }}
                 />
-                <span style={{ color: "var(--text-secondary)" }}>Exclude from prompts</span>
+                <span className="wce-checkbox-text">Exclude from prompts</span>
               </label>
             </div>
           </div>
@@ -303,14 +198,13 @@ function FactsEditor({ facts, onChange }) {
           onRemove={() => handleRemoveFact(index)}
         />
       ))}
-      <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+      <div className="wce-add-row">
         <input
           type="text"
           value={newFactId}
           onChange={(e) => setNewFactId(e.target.value)}
           placeholder="new-fact-id"
-          className="illuminator-input"
-          style={{ flex: 1, fontSize: "12px" }}
+          className="illuminator-input wce-add-input"
           onKeyDown={(e) => e.key === "Enter" && handleAddFact()}
         />
         <button
@@ -347,74 +241,28 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
   };
 
   return (
-    <div
-      style={{
-        background: "var(--bg-tertiary)",
-        borderRadius: "6px",
-        border: "1px solid var(--border-color)",
-        marginBottom: "8px",
-        overflow: "hidden",
-      }}
-    >
+    <div className="wce-dynamic-card">
       {/* Header */}
       <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          padding: "10px 12px",
-          cursor: "pointer",
-        }}
+        className="wce-dynamic-header"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+        <span className="wce-dynamic-chevron">
           {isExpanded ? "▼" : "▶"}
         </span>
-        <span
-          style={{
-            fontSize: "11px",
-            fontFamily: "monospace",
-            color: "var(--accent-color)",
-            minWidth: "120px",
-          }}
-        >
+        <span className="wce-dynamic-id">
           {dynamic.id}
         </span>
-        <span
-          style={{
-            flex: 1,
-            fontSize: "12px",
-            color: "var(--text-secondary)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
+        <span className="wce-dynamic-preview">
           {dynamic.text}
         </span>
         {dynamic.cultures?.length > 0 && dynamic.cultures[0] !== "*" && (
-          <span
-            style={{
-              fontSize: "10px",
-              padding: "2px 6px",
-              background: "var(--bg-secondary)",
-              borderRadius: "4px",
-              color: "var(--text-muted)",
-            }}
-          >
+          <span className="wce-dynamic-scope-badge">
             {dynamic.cultures.length} culture{dynamic.cultures.length !== 1 ? "s" : ""}
           </span>
         )}
         {dynamic.kinds?.length > 0 && dynamic.kinds[0] !== "*" && (
-          <span
-            style={{
-              fontSize: "10px",
-              padding: "2px 6px",
-              background: "var(--bg-secondary)",
-              borderRadius: "4px",
-              color: "var(--text-muted)",
-            }}
-          >
+          <span className="wce-dynamic-scope-badge">
             {dynamic.kinds.length} kind{dynamic.kinds.length !== 1 ? "s" : ""}
           </span>
         )}
@@ -423,14 +271,7 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
             e.stopPropagation();
             onRemove();
           }}
-          style={{
-            background: "none",
-            border: "none",
-            color: "var(--danger)",
-            cursor: "pointer",
-            padding: "2px 6px",
-            fontSize: "14px",
-          }}
+          className="wce-remove-btn"
         >
           ×
         </button>
@@ -438,72 +279,40 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
 
       {/* Expanded Details */}
       {isExpanded && (
-        <div
-          style={{
-            padding: "12px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-          }}
-        >
+        <div className="wce-dynamic-detail">
           <div>
-            <label
-              style={{
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                display: "block",
-                marginBottom: "4px",
-              }}
-            >
+            <label className="wce-field-label">
               Dynamic Statement
             </label>
             <LocalTextArea
               value={dynamic.text || ""}
               onChange={(value) => updateField("text", value)}
-              className="illuminator-input"
-              style={COMPACT_TEXTAREA_STYLE}
+              className="illuminator-input wce-textarea-compact"
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+          <div className="wce-dynamic-detail-grid">
             <div>
-              <label
-                style={{
-                  fontSize: "11px",
-                  color: "var(--text-muted)",
-                  display: "block",
-                  marginBottom: "4px",
-                }}
-              >
+              <label className="wce-field-label">
                 Relevant Cultures (comma-separated, empty = always)
               </label>
               <input
                 type="text"
                 value={formatArray(dynamic.cultures)}
                 onChange={(e) => updateField("cultures", parseArray(e.target.value))}
-                className="illuminator-input"
-                style={{ fontSize: "12px" }}
+                className="illuminator-input wce-input-sm"
                 placeholder="e.g., nightshelf, aurora_stack"
               />
             </div>
             <div>
-              <label
-                style={{
-                  fontSize: "11px",
-                  color: "var(--text-muted)",
-                  display: "block",
-                  marginBottom: "4px",
-                }}
-              >
+              <label className="wce-field-label">
                 Relevant Kinds (comma-separated, empty = always)
               </label>
               <input
                 type="text"
                 value={formatArray(dynamic.kinds)}
                 onChange={(e) => updateField("kinds", parseArray(e.target.value))}
-                className="illuminator-input"
-                style={{ fontSize: "12px" }}
+                className="illuminator-input wce-input-sm"
                 placeholder="e.g., artifact, npc"
               />
             </div>
@@ -512,14 +321,7 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
           {/* Era Overrides */}
           {eras && eras.length > 0 && (
             <div>
-              <label
-                style={{
-                  fontSize: "11px",
-                  color: "var(--text-muted)",
-                  display: "block",
-                  marginBottom: "6px",
-                }}
-              >
+              <label className="wce-field-label wce-field-label--mb6">
                 Era Overrides (optional — adjust this dynamic for specific eras)
               </label>
               {Object.entries(dynamic.eraOverrides || {}).map(([eraId, override]) => {
@@ -527,37 +329,13 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
                 return (
                   <div
                     key={eraId}
-                    style={{
-                      background: "var(--bg-secondary)",
-                      borderRadius: "4px",
-                      padding: "8px 10px",
-                      marginBottom: "6px",
-                      border: "1px solid var(--border-color)",
-                    }}
+                    className="wce-override-card"
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        marginBottom: "6px",
-                      }}
-                    >
-                      <span
-                        style={{ fontSize: "11px", fontWeight: 500, color: "var(--accent-color)" }}
-                      >
+                    <div className="wce-override-header">
+                      <span className="wce-override-era-name">
                         {eraName}
                       </span>
-                      <label
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-muted)",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          marginLeft: "auto",
-                        }}
-                      >
+                      <label className="wce-override-replace-label">
                         <input
                           type="checkbox"
                           checked={override.replace}
@@ -578,14 +356,7 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
                             Object.keys(newOverrides).length > 0 ? newOverrides : undefined
                           );
                         }}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "var(--danger)",
-                          cursor: "pointer",
-                          padding: "2px 6px",
-                          fontSize: "13px",
-                        }}
+                        className="wce-remove-btn wce-remove-btn--sm"
                       >
                         ×
                       </button>
@@ -597,8 +368,7 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
                         newOverrides[eraId] = { ...override, text: value };
                         updateField("eraOverrides", newOverrides);
                       }}
-                      className="illuminator-input"
-                      style={{ ...COMPACT_TEXTAREA_STYLE, minHeight: "40px" }}
+                      className="illuminator-input wce-textarea-compact wce-textarea-compact--short"
                       placeholder={
                         override.replace
                           ? "Replacement text for this era..."
@@ -614,12 +384,11 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
                 const availableEras = eras.filter((e) => !existingEraIds.has(e.id));
                 if (availableEras.length === 0) return null;
                 return (
-                  <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                  <div className="wce-add-override-row">
                     <select
                       value={newOverrideEraId}
                       onChange={(e) => setNewOverrideEraId(e.target.value)}
-                      className="illuminator-input"
-                      style={{ flex: 1, fontSize: "12px" }}
+                      className="illuminator-input wce-add-override-select"
                     >
                       <option value="">Select era...</option>
                       {availableEras.map((era) => (
@@ -638,9 +407,8 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
                         updateField("eraOverrides", newOverrides);
                         setNewOverrideEraId("");
                       }}
-                      className="illuminator-button illuminator-button-secondary"
+                      className="illuminator-button illuminator-button-secondary wce-add-override-btn"
                       disabled={!newOverrideEraId}
-                      style={{ fontSize: "12px" }}
                     >
                       Add Override
                     </button>
@@ -691,14 +459,13 @@ function WorldDynamicsEditor({ dynamics, onChange, eras }) {
           eras={eras}
         />
       ))}
-      <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+      <div className="wce-add-row">
         <input
           type="text"
           value={newDynamicId}
           onChange={(e) => setNewDynamicId(e.target.value)}
           placeholder="new-dynamic-id"
-          className="illuminator-input"
-          style={{ flex: 1, fontSize: "12px" }}
+          className="illuminator-input wce-add-input"
           onKeyDown={(e) => e.key === "Enter" && handleAddDynamic()}
         />
         <button
@@ -723,32 +490,22 @@ function ToneFragmentsEditor({ fragments, onChange }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+    <div className="wce-tone-layout">
       {/* Core Tone */}
       <div>
-        <label style={{ fontSize: "12px", fontWeight: 500, display: "block", marginBottom: "6px" }}>
+        <label className="wce-tone-core-label">
           Core Tone (always included)
         </label>
         <LocalTextArea
           value={fragments?.core || ""}
           onChange={(value) => updateField("core", value)}
           placeholder="Core style principles that apply to all chronicles..."
-          className="illuminator-input"
-          style={{ minHeight: "200px", resize: "vertical", fontSize: "12px" }}
+          className="illuminator-input wce-textarea-core-tone"
         />
       </div>
 
       {/* Note about where other guidance lives */}
-      <div
-        style={{
-          fontSize: "11px",
-          color: "var(--text-muted)",
-          padding: "10px",
-          background: "var(--bg-tertiary)",
-          borderRadius: "4px",
-          border: "1px solid var(--border-color)",
-        }}
-      >
+      <div className="wce-tone-note">
         <strong>Note:</strong> Culture-specific prose guidance is now in{" "}
         <em>Identity → Descriptive → PROSE_STYLE</em>. Entity kind prose guidance is in{" "}
         <em>Guidance → [kind] → proseHint</em>. These are automatically assembled during perspective
@@ -781,15 +538,14 @@ function EditableList({ items, onChange, placeholder }) {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+      <div className="wce-editable-list-add">
         <input
           type="text"
           value={newItem}
           onChange={(e) => setNewItem(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="illuminator-input"
-          style={{ flex: 1 }}
+          className="illuminator-input wce-editable-list-add-input"
         />
         <button
           onClick={handleAdd}
@@ -799,30 +555,16 @@ function EditableList({ items, onChange, placeholder }) {
           Add
         </button>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+      <div className="wce-editable-list-items">
         {items.map((item, index) => (
           <div
             key={index}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "6px 10px",
-              background: "var(--bg-tertiary)",
-              borderRadius: "4px",
-              fontSize: "12px",
-            }}
+            className="wce-editable-list-item"
           >
-            <span style={{ flex: 1 }}>{item}</span>
+            <span className="wce-editable-list-item-text">{item}</span>
             <button
               onClick={() => handleRemove(index)}
-              style={{
-                background: "none",
-                border: "none",
-                color: "var(--danger)",
-                cursor: "pointer",
-                padding: "2px 6px",
-              }}
+              className="wce-editable-list-remove"
             >
               ×
             </button>
@@ -850,19 +592,11 @@ export default function WorldContextEditor({
   return (
     <div>
       {/* Info Banner */}
-      <div
-        style={{
-          padding: "12px 16px",
-          marginBottom: "16px",
-          background: "var(--bg-tertiary)",
-          borderRadius: "6px",
-          borderLeft: "3px solid var(--accent-color)",
-        }}
-      >
-        <div style={{ fontWeight: 500, marginBottom: "4px" }}>
+      <div className="wce-info-banner">
+        <div className="wce-info-banner__title">
           Entity context is built automatically
         </div>
-        <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+        <div className="wce-info-banner__desc">
           Relationships, cultural peers, faction members, and entity age are extracted from the
           simulation data. This panel only configures world-level context that applies to all
           entities.
@@ -892,8 +626,7 @@ export default function WorldContextEditor({
             value={worldContext.description || ""}
             onChange={(value) => updateField("description", value)}
             placeholder="Brief description of your world's setting, themes, and what makes it unique..."
-            className="illuminator-input"
-            style={DESCRIPTION_TEXTAREA_STYLE}
+            className="illuminator-input wce-textarea-description"
           />
         </div>
       </div>
@@ -903,7 +636,7 @@ export default function WorldContextEditor({
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Species Constraint</h2>
         </div>
-        <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "12px" }}>
+        <p className="wce-description-text">
           Rule for what species can appear in generated images. This is added as a SPECIES
           REQUIREMENT at the top of image prompts to ensure all depicted figures match your world's
           inhabitants.
@@ -913,23 +646,16 @@ export default function WorldContextEditor({
             value={worldContext.speciesConstraint || ""}
             onChange={(value) => updateField("speciesConstraint", value)}
             placeholder="e.g., All depicted figures must be penguins or orcas. No humans exist in this world."
-            className="illuminator-input"
-            style={TONE_TEXTAREA_STYLE}
+            className="illuminator-input wce-textarea-tone"
           />
         </div>
       </div>
 
       {/* World Context Configuration */}
-      <div
-        style={{
-          marginTop: "24px",
-          paddingTop: "24px",
-          borderTop: "2px solid var(--accent-color)",
-        }}
-      >
-        <div style={{ marginBottom: "16px" }}>
-          <h2 style={{ fontSize: "16px", fontWeight: 600, margin: 0 }}>Chronicle Generation</h2>
-          <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
+      <div className="wce-section-divider">
+        <div className="wce-section-header">
+          <h2 className="wce-section-title">Chronicle Generation</h2>
+          <p className="wce-section-subtitle">
             Tone and facts for chronicle generation. Chronicles use perspective synthesis to create
             focused, faceted views based on each chronicle's entity constellation.
           </p>
@@ -940,13 +666,13 @@ export default function WorldContextEditor({
           <div className="illuminator-card-header">
             <h2 className="illuminator-card-title">Canon Facts</h2>
           </div>
-          <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "12px" }}>
+          <p className="wce-description-text">
             World truths and generation constraints. Required facts must appear in perspective
             facets. Generation constraints are always included verbatim and never faceted.
           </p>
-          <div className="illuminator-form-group" style={{ marginBottom: "16px" }}>
+          <div className="illuminator-form-group wce-form-group-mb16">
             <label className="illuminator-label">Facet Range (optional)</label>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <div className="wce-facet-range-row">
               <input
                 type="number"
                 min="1"
@@ -967,10 +693,9 @@ export default function WorldContextEditor({
                   });
                 }}
                 placeholder="min (4)"
-                className="illuminator-input"
-                style={{ maxWidth: "100px" }}
+                className="illuminator-input wce-facet-range-input"
               />
-              <span style={{ color: "var(--text-muted)" }}>to</span>
+              <span className="wce-facet-range-separator">to</span>
               <input
                 type="number"
                 min="1"
@@ -991,11 +716,10 @@ export default function WorldContextEditor({
                   });
                 }}
                 placeholder="max (6)"
-                className="illuminator-input"
-                style={{ maxWidth: "100px" }}
+                className="illuminator-input wce-facet-range-input"
               />
             </div>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "6px" }}>
+            <div className="wce-facet-range-hint">
               Range of world-truth facts to facet. Required facts count toward this; min is raised
               to match required count if needed.
             </div>
@@ -1008,12 +732,9 @@ export default function WorldContextEditor({
 
         {/* World Dynamics */}
         <div className="illuminator-card">
-          <div
-            className="illuminator-card-header"
-            style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-          >
+          <div className="illuminator-card-header wce-dynamics-header">
             <h2 className="illuminator-card-title">World Dynamics</h2>
-            <div style={{ display: "flex", gap: "6px" }}>
+            <div className="wce-dynamics-actions">
               <button
                 onClick={() => {
                   const input = document.createElement("input");
@@ -1046,8 +767,7 @@ export default function WorldContextEditor({
                   };
                   input.click();
                 }}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 12px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary wce-dynamics-btn"
               >
                 Import JSON
               </button>
@@ -1065,8 +785,7 @@ export default function WorldContextEditor({
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
                   }}
-                  className="illuminator-button illuminator-button-secondary"
-                  style={{ padding: "4px 12px", fontSize: "11px" }}
+                  className="illuminator-button illuminator-button-secondary wce-dynamics-btn"
                 >
                   Export JSON
                 </button>
@@ -1075,15 +794,14 @@ export default function WorldContextEditor({
                 <button
                   onClick={onGenerateDynamics}
                   disabled={isGeneratingDynamics}
-                  className="illuminator-button illuminator-button-secondary"
-                  style={{ padding: "4px 12px", fontSize: "11px" }}
+                  className="illuminator-button illuminator-button-secondary wce-dynamics-btn"
                 >
                   {isGeneratingDynamics ? "Generating..." : "Generate from Lore"}
                 </button>
               )}
             </div>
           </div>
-          <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "12px" }}>
+          <p className="wce-description-text">
             Higher-level narrative context about inter-group forces and behaviors. These statements
             describe macro-level dynamics that individual relationships are expressions of.
             Optionally filter by culture or entity kind so they only appear in relevant chronicles.
@@ -1100,7 +818,7 @@ export default function WorldContextEditor({
           <div className="illuminator-card-header">
             <h2 className="illuminator-card-title">Tone Fragments</h2>
           </div>
-          <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "12px" }}>
+          <p className="wce-description-text">
             Composable tone guidance. Core is always included; culture and kind overlays are added
             based on the chronicle's entity constellation.
           </p>

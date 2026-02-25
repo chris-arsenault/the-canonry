@@ -40,6 +40,7 @@ import type { EnrichmentType } from "../lib/enrichmentTypes";
 import type { AvailableChronicleImage } from "../workers/tasks/eraNarrativeTask";
 import type { StyleInfo } from "../lib/promptBuilders";
 import type { ImageGenSettings } from "../hooks/useImageGenSettings";
+import "./EraNarrativeViewer.css";
 
 interface EraNarrativeViewerProps {
   narrativeId: string;
@@ -125,14 +126,14 @@ const SENTINEL_ENTITY = {
 // Thumbnail for chronicle_ref images
 function ChronicleRefThumbnail({ imageId }: { imageId: string }) {
   const { url, loading } = useImageUrl(imageId);
-  if (loading) return <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>...</span>;
-  if (!url) return <span style={{ fontSize: "16px", color: "var(--text-muted)" }}>—</span>;
+  if (loading) return <span className="era-narrative-ref-thumb-loading">...</span>;
+  if (!url) return <span className="era-narrative-ref-thumb-empty">&mdash;</span>;
   return (
     <img
       src={url}
       alt="Chronicle image"
       loading="lazy"
-      style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "3px" }}
+      className="era-narrative-ref-thumb-img"
     />
   );
 }
@@ -628,15 +629,7 @@ export default function EraNarrativeViewer({
 
   if (loading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "200px",
-          color: "var(--text-muted)",
-        }}
-      >
+      <div className="era-narrative-loading">
         Loading era narrative...
       </div>
     );
@@ -644,15 +637,7 @@ export default function EraNarrativeViewer({
 
   if (!record) {
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "200px",
-          color: "var(--text-muted)",
-        }}
-      >
+      <div className="era-narrative-loading">
         Era narrative not found
       </div>
     );
@@ -662,58 +647,28 @@ export default function EraNarrativeViewer({
   const isGenerating = record.status === "pending" || record.status === "generating";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "0", height: "100%" }}>
+    <div className="era-narrative-root">
       {/* Header */}
-      <div
-        style={{
-          marginBottom: "20px",
-          paddingBottom: "16px",
-          borderBottom: "1px solid var(--border-color)",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: "16px",
-          }}
-        >
-          <div style={{ flex: 1 }}>
-            <h2 style={{ margin: "0 0 4px 0", fontSize: "20px", fontWeight: 600 }}>
+      <div className="era-narrative-header">
+        <div className="era-narrative-header__row">
+          <div className="era-narrative-header__left">
+            <h2 className="era-narrative-header__title">
               {record.eraName}
             </h2>
           </div>
-          <div style={{ display: "flex", gap: "12px", alignItems: "center", flexShrink: 0 }}>
-            <span
-              style={{
-                fontSize: "11px",
-                padding: "3px 8px",
-                borderRadius: "4px",
-                background: "rgba(217, 119, 6, 0.12)",
-                color: "#d97706",
-                fontWeight: 500,
-              }}
-            >
+          <div className="era-narrative-header__actions">
+            <span className="era-narrative-tone-badge">
               {record.tone}
             </span>
             {viewedWordCount > 0 && (
-              <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+              <span className="era-narrative-word-count">
                 {viewedWordCount.toLocaleString()} words
               </span>
             )}
             <button
               onClick={handleExport}
               title="Export era narrative as JSON (threads, quotes, briefs, draft & edited versions)"
-              style={{
-                background: "none",
-                border: "1px solid var(--border-color)",
-                borderRadius: "4px",
-                padding: "3px 10px",
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                cursor: "pointer",
-              }}
+              className="era-narrative-export-btn"
             >
               Export
             </button>
@@ -723,23 +678,14 @@ export default function EraNarrativeViewer({
 
       {/* Version Selector + Actions */}
       {resolved.versions.length > 0 && !isGenerating && (
-        <div
-          style={{
-            marginBottom: "12px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            flexWrap: "wrap",
-          }}
-        >
+        <div className="era-narrative-version-row">
           <select
             value={selectedVersionId || resolved.activeVersionId || ""}
             onChange={(e) => {
               setSelectedVersionId(e.target.value);
               setConfirmingDeleteId(null);
             }}
-            className="illuminator-select"
-            style={{ width: "auto", minWidth: "240px", fontSize: "12px", padding: "4px 6px" }}
+            className="illuminator-select era-narrative-version-select"
           >
             {resolved.versions.map((v) => {
               const date = new Date(v.generatedAt);
@@ -758,16 +704,7 @@ export default function EraNarrativeViewer({
 
           {/* Active badge or Make Active button */}
           {viewedVersion && viewedVersion.versionId === resolved.activeVersionId ? (
-            <span
-              style={{
-                fontSize: "11px",
-                padding: "2px 8px",
-                background: "rgba(16, 185, 129, 0.15)",
-                color: "#10b981",
-                borderRadius: "999px",
-                fontWeight: 500,
-              }}
-            >
+            <span className="era-narrative-active-badge">
               Active
             </span>
           ) : viewedVersion ? (
@@ -776,8 +713,7 @@ export default function EraNarrativeViewer({
                 handleSetActiveVersion(viewedVersion.versionId);
                 setConfirmingDeleteId(null);
               }}
-              className="illuminator-button"
-              style={{ padding: "2px 8px", fontSize: "11px" }}
+              className="illuminator-button era-narrative-make-active-btn"
             >
               Make Active
             </button>
@@ -798,14 +734,7 @@ export default function EraNarrativeViewer({
                     }
                   }}
                   onBlur={() => setConfirmingDeleteId(null)}
-                  className="illuminator-button"
-                  style={{
-                    padding: "2px 8px",
-                    fontSize: "11px",
-                    background: isConfirming ? "#ef4444" : undefined,
-                    color: isConfirming ? "#fff" : "var(--text-muted)",
-                    borderColor: isConfirming ? "#ef4444" : undefined,
-                  }}
+                  className={`illuminator-button era-narrative-delete-btn ${isConfirming ? "era-narrative-delete-btn--confirming" : "era-narrative-delete-btn--idle"}`}
                   title={isConfirming ? "Click again to confirm" : "Delete this version"}
                 >
                   {isConfirming ? "Confirm Delete" : "Delete"}
@@ -813,19 +742,17 @@ export default function EraNarrativeViewer({
               );
             })()}
 
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px" }}>
+          <div className="era-narrative-version-actions-right">
             <button
               onClick={() => setShowInsertion((prev) => !prev)}
-              className="illuminator-button"
-              style={{ padding: "2px 8px", fontSize: "10px", opacity: 0.7 }}
+              className="illuminator-button era-narrative-insertion-toggle"
               title="Paste a scene or passage to weave into the narrative during copy edit"
             >
               {showInsertion ? "\u25BE Scene Insertion" : "\u25B8 Scene Insertion"}
             </button>
             <button
               onClick={handleRerunCopyEdit}
-              className="illuminator-button"
-              style={{ padding: "3px 10px", fontSize: "11px", fontWeight: 500 }}
+              className="illuminator-button era-narrative-rerun-btn"
               title="Re-run copy edit on the latest version"
             >
               Re-run Copy Edit
@@ -836,44 +763,19 @@ export default function EraNarrativeViewer({
 
       {/* Scene insertion textarea */}
       {showInsertion && !isGenerating && (
-        <div style={{ marginBottom: "12px" }}>
+        <div className="era-narrative-insertion-wrap">
           <textarea
             value={insertionText}
             onChange={(e) => setInsertionText(e.target.value)}
             placeholder="Paste a scene or passage to weave into the narrative during copy edit..."
-            style={{
-              width: "100%",
-              height: "80px",
-              fontSize: "11px",
-              resize: "vertical",
-              background: "var(--bg-primary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "4px",
-              padding: "8px",
-              color: "var(--text-secondary)",
-              lineHeight: 1.5,
-            }}
+            className="era-narrative-insertion-textarea"
           />
         </div>
       )}
 
       {/* Generating indicator */}
       {isGenerating && (
-        <div
-          style={{
-            padding: "12px 16px",
-            marginBottom: "12px",
-            background: "rgba(245, 158, 11, 0.08)",
-            border: "1px solid rgba(245, 158, 11, 0.2)",
-            borderRadius: "6px",
-            fontSize: "13px",
-            color: "#d97706",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "12px",
-          }}
-        >
+        <div className="era-narrative-generating">
           <span>
             {record.currentStep === "edit"
               ? "Running copy edit..."
@@ -882,15 +784,7 @@ export default function EraNarrativeViewer({
           <button
             onClick={handleForceComplete}
             title="Force status to complete (use if stuck)"
-            style={{
-              background: "none",
-              border: "1px solid rgba(245, 158, 11, 0.3)",
-              borderRadius: "4px",
-              color: "#d97706",
-              fontSize: "11px",
-              padding: "2px 8px",
-              cursor: "pointer",
-            }}
+            className="era-narrative-force-complete-btn"
           >
             Mark Complete
           </button>
@@ -899,48 +793,18 @@ export default function EraNarrativeViewer({
 
       {/* Narrative Prose — primary content */}
       {viewedContent ? (
-        <div
-          style={{
-            padding: "20px 24px",
-            background: "var(--bg-primary)",
-            border: "1px solid var(--border-color)",
-            borderRadius: "8px",
-            fontSize: "14px",
-            lineHeight: "1.75",
-            whiteSpace: "pre-wrap",
-            color: "var(--text-secondary)",
-            marginBottom: "20px",
-            overflow: "auto",
-            flex: "1 1 0",
-            minHeight: "200px",
-          }}
-        >
+        <div className="era-narrative-prose">
           {viewedContent}
         </div>
       ) : (
-        <div
-          style={{
-            padding: "24px",
-            textAlign: "center",
-            color: "var(--text-muted)",
-            marginBottom: "20px",
-          }}
-        >
+        <div className="era-narrative-prose-empty">
           No narrative content generated yet.
         </div>
       )}
 
       {/* Cover Image — shared CoverImageControls component */}
       {!isGenerating && (
-        <div
-          style={{
-            marginBottom: "16px",
-            padding: "12px 14px",
-            background: "var(--bg-secondary)",
-            border: "1px solid var(--border-color)",
-            borderRadius: "8px",
-          }}
-        >
+        <div className="era-narrative-cover-section">
           <CoverImageControls
             item={record}
             onGenerateCoverImageScene={handleGenerateCoverImageScene}
@@ -952,39 +816,19 @@ export default function EraNarrativeViewer({
 
       {/* Image Refs — Chronicle ref images (read-only) + ChronicleImagePanel for prompt_request refs */}
       {!isGenerating && (
-        <div style={{ marginBottom: "16px" }}>
+        <div className="era-narrative-image-refs-section">
           {/* Generate Image Refs button if none yet */}
           {!record.imageRefs && (
-            <div
-              style={{
-                padding: "12px 14px",
-                background: "var(--bg-secondary)",
-                border: "1px solid var(--border-color)",
-                borderRadius: "8px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
+            <div className="era-narrative-image-refs-empty">
               <div>
-                <div style={{ fontSize: "13px", fontWeight: 500 }}>Image References</div>
-                <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                <div className="era-narrative-image-refs-title">Image References</div>
+                <div className="era-narrative-image-refs-desc">
                   Place image references throughout the narrative (from chronicle images).
                 </div>
               </div>
               <button
                 onClick={handleGenerateImageRefs}
-                style={{
-                  padding: "8px 14px",
-                  background: "var(--bg-tertiary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "6px",
-                  color: "var(--text-secondary)",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  height: "32px",
-                  whiteSpace: "nowrap",
-                }}
+                className="era-narrative-generate-btn"
               >
                 Generate
               </button>
@@ -993,79 +837,29 @@ export default function EraNarrativeViewer({
 
           {/* Chronicle ref images — read-only display */}
           {chronicleRefImages.length > 0 && (
-            <div style={{ marginBottom: "12px" }}>
-              <div
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  color: "var(--text-muted)",
-                  marginBottom: "8px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}
-              >
+            <div className="era-narrative-chronicle-refs-section">
+              <div className="era-narrative-chronicle-refs-heading">
                 Chronicle Images ({chronicleRefImages.length})
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div className="era-narrative-chronicle-refs-list">
                 {chronicleRefImages.map((ref) => (
                   <div
                     key={ref.refId}
-                    style={{
-                      display: "flex",
-                      gap: "10px",
-                      padding: "10px 12px",
-                      background: "var(--bg-primary)",
-                      border: "1px solid var(--border-color)",
-                      borderRadius: "6px",
-                    }}
+                    className="era-narrative-chronicle-ref-card"
                   >
-                    <div
-                      style={{
-                        width: "48px",
-                        height: "48px",
-                        borderRadius: "4px",
-                        background: "var(--bg-tertiary)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        overflow: "hidden",
-                        flexShrink: 0,
-                      }}
-                    >
+                    <div className="era-narrative-chronicle-ref-thumb">
                       <ChronicleRefThumbnail imageId={ref.imageId} />
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          marginBottom: "2px",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: "10px",
-                            padding: "1px 5px",
-                            background: "rgba(59, 130, 246, 0.12)",
-                            color: "#3b82f6",
-                            borderRadius: "3px",
-                            fontWeight: 500,
-                          }}
-                        >
+                    <div className="era-narrative-chronicle-ref-body">
+                      <div className="era-narrative-chronicle-ref-header">
+                        <span className="era-narrative-chronicle-ref-source-badge">
                           {ref.imageSource === "cover" ? "Cover" : "Scene"}
                         </span>
-                        <span style={{ fontSize: "12px", fontWeight: 500 }}>
+                        <span className="era-narrative-chronicle-ref-title">
                           {ref.chronicleTitle}
                         </span>
                       </div>
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-muted)",
-                          fontStyle: "italic",
-                        }}
-                      >
+                      <div className="era-narrative-chronicle-ref-anchor">
                         anchor: &ldquo;
                         {ref.anchorText.length > 40
                           ? ref.anchorText.slice(0, 40) + "..."
@@ -1073,25 +867,12 @@ export default function EraNarrativeViewer({
                         &rdquo;
                       </div>
                       {ref.caption && (
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            color: "var(--text-secondary)",
-                            marginTop: "2px",
-                          }}
-                        >
+                        <div className="era-narrative-chronicle-ref-caption">
                           {ref.caption}
                         </div>
                       )}
                     </div>
-                    <div
-                      style={{
-                        fontSize: "10px",
-                        color: "var(--text-muted)",
-                        whiteSpace: "nowrap",
-                        alignSelf: "center",
-                      }}
-                    >
+                    <div className="era-narrative-chronicle-ref-size">
                       {ref.size}
                       {ref.justification ? ` ${ref.justification}` : ""}
                     </div>
@@ -1135,18 +916,10 @@ export default function EraNarrativeViewer({
 
           {/* Regenerate image refs button when already present */}
           {record.imageRefs && (
-            <div style={{ marginTop: "8px", display: "flex", justifyContent: "flex-end" }}>
+            <div className="era-narrative-regen-row">
               <button
                 onClick={handleGenerateImageRefs}
-                style={{
-                  padding: "6px 12px",
-                  background: "var(--bg-tertiary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "4px",
-                  color: "var(--text-secondary)",
-                  cursor: "pointer",
-                  fontSize: "11px",
-                }}
+                className="era-narrative-regen-btn"
               >
                 Regenerate Image Refs
               </button>
@@ -1157,134 +930,70 @@ export default function EraNarrativeViewer({
 
       {/* Thread Synthesis — collapsible */}
       {synthesis && (
-        <div style={{ marginBottom: "16px" }}>
+        <div className="era-narrative-collapsible">
           <div
             onClick={() => setShowThreads(!showThreads)}
-            style={{
-              cursor: "pointer",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "8px 0",
-              borderBottom: "1px solid var(--border-color)",
-              marginBottom: showThreads ? "12px" : "0",
-            }}
+            className={`era-narrative-collapsible__header ${showThreads ? "era-narrative-collapsible__header--open" : ""}`}
           >
-            <span style={{ fontSize: "13px", fontWeight: 600 }}>
+            <span className="era-narrative-collapsible__title">
               Thread Synthesis ({synthesis.threads.length} threads
               {synthesis.movements?.length ? `, ${synthesis.movements.length} movements` : ""})
             </span>
-            <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+            <span className="era-narrative-collapsible__chevron">
               {showThreads ? "\u25B4" : "\u25BE"}
             </span>
           </div>
 
           {showThreads && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div className="era-narrative-synthesis">
               {/* Thesis */}
               <div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    marginBottom: "4px",
-                    color: "var(--text-muted)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.04em",
-                  }}
-                >
+                <div className="era-narrative-section-heading">
                   Thesis
                 </div>
-                <div
-                  style={{
-                    fontSize: "13px",
-                    color: "var(--text-secondary)",
-                    fontStyle: "italic",
-                    lineHeight: 1.6,
-                  }}
-                >
+                <div className="era-narrative-thesis-text">
                   {synthesis.thesis}
                 </div>
               </div>
 
               {/* Threads */}
               <div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    marginBottom: "6px",
-                    color: "var(--text-muted)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.04em",
-                  }}
-                >
+                <div className="era-narrative-section-heading era-narrative-section-heading--mb6">
                   Threads
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div className="era-narrative-thread-list">
                   {synthesis.threads.map((t) => (
                     <div
                       key={t.threadId}
-                      style={{
-                        padding: "10px 12px",
-                        background: "var(--bg-primary)",
-                        border: "1px solid var(--border-color)",
-                        borderRadius: "6px",
-                      }}
+                      className="era-narrative-thread-card"
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span style={{ fontSize: "13px", fontWeight: 500 }}>{t.name}</span>
+                      <div className="era-narrative-thread-header">
+                        <span className="era-narrative-thread-name">{t.name}</span>
                         {t.register && (
-                          <span style={{ fontSize: "11px", color: "#8b7355", fontStyle: "italic" }}>
+                          <span className="era-narrative-thread-register">
                             {t.register}
                           </span>
                         )}
                       </div>
-                      <div
-                        style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}
-                      >
+                      <div className="era-narrative-thread-desc">
                         {t.description}
                       </div>
                       {t.arc && (
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "var(--text-secondary)",
-                            marginTop: "4px",
-                            fontStyle: "italic",
-                          }}
-                        >
+                        <div className="era-narrative-thread-arc">
                           {t.arc}
                         </div>
                       )}
                       {t.culturalActors?.length > 0 && (
-                        <div
-                          style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}
-                        >
+                        <div className="era-narrative-thread-actors">
                           Cultural actors: {t.culturalActors.join(", ")}
                         </div>
                       )}
                       {t.material && (
-                        <details style={{ marginTop: "6px" }}>
-                          <summary
-                            style={{
-                              fontSize: "11px",
-                              color: "var(--text-muted)",
-                              cursor: "pointer",
-                            }}
-                          >
+                        <details className="era-narrative-thread-material-details">
+                          <summary className="era-narrative-thread-material-summary">
                             Material
                           </summary>
-                          <div
-                            style={{
-                              fontSize: "12px",
-                              color: "var(--text-secondary)",
-                              marginTop: "4px",
-                              lineHeight: 1.5,
-                              paddingLeft: "10px",
-                              borderLeft: "2px solid var(--border-color)",
-                            }}
-                          >
+                          <div className="era-narrative-thread-material-body">
                             {t.material}
                           </div>
                         </details>
@@ -1297,21 +1006,10 @@ export default function EraNarrativeViewer({
               {/* Counterweight */}
               {synthesis.counterweight && (
                 <div>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      marginBottom: "4px",
-                      color: "var(--text-muted)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                    }}
-                  >
+                  <div className="era-narrative-section-heading">
                     Counterweight
                   </div>
-                  <div
-                    style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.6 }}
-                  >
+                  <div className="era-narrative-counterweight-text">
                     {synthesis.counterweight}
                   </div>
                 </div>
@@ -1320,55 +1018,22 @@ export default function EraNarrativeViewer({
               {/* Strategic Dynamics */}
               {synthesis.strategicDynamics && synthesis.strategicDynamics.length > 0 && (
                 <div>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      marginBottom: "6px",
-                      color: "var(--text-muted)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                    }}
-                  >
+                  <div className="era-narrative-section-heading era-narrative-section-heading--mb6">
                     Strategic Dynamics ({synthesis.strategicDynamics.length})
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <div className="era-narrative-sd-list">
                     {synthesis.strategicDynamics.map((sd, i) => (
                       <div
                         key={i}
-                        style={{
-                          padding: "8px 12px",
-                          background: "var(--bg-primary)",
-                          border: "1px solid var(--border-color)",
-                          borderRadius: "4px",
-                        }}
+                        className="era-narrative-sd-card"
                       >
-                        <div
-                          style={{
-                            fontSize: "13px",
-                            fontWeight: 600,
-                            color: "var(--text-primary)",
-                          }}
-                        >
+                        <div className="era-narrative-sd-interaction">
                           {sd.interaction}{" "}
-                          <span
-                            style={{
-                              fontWeight: 400,
-                              color: "var(--text-muted)",
-                              fontSize: "12px",
-                            }}
-                          >
+                          <span className="era-narrative-sd-actors">
                             [{sd.actors?.join(", ")}]
                           </span>
                         </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "var(--text-secondary)",
-                            marginTop: "4px",
-                            lineHeight: 1.5,
-                          }}
-                        >
+                        <div className="era-narrative-sd-dynamic">
                           {sd.dynamic}
                         </div>
                       </div>
@@ -1380,42 +1045,19 @@ export default function EraNarrativeViewer({
               {/* Quotes */}
               {synthesis.quotes && synthesis.quotes.length > 0 && (
                 <div>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      marginBottom: "6px",
-                      color: "var(--text-muted)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                    }}
-                  >
+                  <div className="era-narrative-section-heading era-narrative-section-heading--mb6">
                     Quotes ({synthesis.quotes.length})
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <div className="era-narrative-quote-list">
                     {synthesis.quotes.map((q, i) => (
                       <div
                         key={i}
-                        style={{
-                          padding: "8px 12px",
-                          background: "var(--bg-primary)",
-                          border: "1px solid var(--border-color)",
-                          borderRadius: "4px",
-                        }}
+                        className="era-narrative-quote-card"
                       >
-                        <div
-                          style={{
-                            fontSize: "13px",
-                            fontStyle: "italic",
-                            color: "var(--text-primary)",
-                            lineHeight: 1.5,
-                          }}
-                        >
+                        <div className="era-narrative-quote-text">
                           &ldquo;{q.text}&rdquo;
                         </div>
-                        <div
-                          style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}
-                        >
+                        <div className="era-narrative-quote-origin">
                           {q.origin}. {q.context}
                         </div>
                       </div>
@@ -1427,52 +1069,25 @@ export default function EraNarrativeViewer({
               {/* Movement Plan */}
               {synthesis.movements && synthesis.movements.length > 0 && (
                 <div>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      marginBottom: "6px",
-                      color: "var(--text-muted)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                    }}
-                  >
+                  <div className="era-narrative-section-heading era-narrative-section-heading--mb6">
                     Movement Plan
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <div className="era-narrative-movement-list">
                     {synthesis.movements.map((m) => (
                       <div
                         key={m.movementIndex}
-                        style={{
-                          padding: "8px 12px",
-                          background: "var(--bg-primary)",
-                          border: "1px solid var(--border-color)",
-                          borderRadius: "4px",
-                          fontSize: "12px",
-                        }}
+                        className="era-narrative-movement-card"
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}
-                        >
-                          <span style={{ fontWeight: 500 }}>Movement {m.movementIndex + 1}</span>
-                          <span style={{ color: "var(--text-muted)" }}>
+                        <div className="era-narrative-movement-header">
+                          <span className="era-narrative-movement-title">Movement {m.movementIndex + 1}</span>
+                          <span className="era-narrative-movement-years">
                             Y{m.yearRange[0]}&ndash;Y{m.yearRange[1]}
                           </span>
                         </div>
-                        <div style={{ color: "var(--text-muted)", marginTop: "2px" }}>
+                        <div className="era-narrative-movement-focus">
                           {m.threadFocus.map((id) => threadNameMap[id] || id).join(", ")}
                         </div>
-                        <div
-                          style={{
-                            color: "var(--text-secondary)",
-                            marginTop: "4px",
-                            fontStyle: "italic",
-                          }}
-                        >
+                        <div className="era-narrative-movement-beats">
                           {m.beats}
                         </div>
                       </div>
@@ -1484,19 +1099,10 @@ export default function EraNarrativeViewer({
               {/* Motifs */}
               {(synthesis.motifs?.length ?? 0) > 0 && (
                 <div>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      marginBottom: "4px",
-                      color: "var(--text-muted)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                    }}
-                  >
+                  <div className="era-narrative-section-heading">
                     Motifs
                   </div>
-                  <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                  <div className="era-narrative-motifs-text">
                     {(synthesis.motifs || []).join(" \u00B7 ")}
                   </div>
                 </div>
@@ -1504,47 +1110,23 @@ export default function EraNarrativeViewer({
 
               {/* Opening / Closing Images */}
               {(synthesis.openingImage || synthesis.closingImage) && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="era-narrative-images-grid">
                   {synthesis.openingImage && (
                     <div>
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-muted)",
-                          marginBottom: "4px",
-                        }}
-                      >
+                      <div className="era-narrative-image-label">
                         Opening Image
                       </div>
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          color: "var(--text-secondary)",
-                          fontStyle: "italic",
-                        }}
-                      >
+                      <div className="era-narrative-image-text">
                         {synthesis.openingImage}
                       </div>
                     </div>
                   )}
                   {synthesis.closingImage && (
                     <div>
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-muted)",
-                          marginBottom: "4px",
-                        }}
-                      >
+                      <div className="era-narrative-image-label">
                         Closing Image
                       </div>
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          color: "var(--text-secondary)",
-                          fontStyle: "italic",
-                        }}
-                      >
+                      <div className="era-narrative-image-text">
                         {synthesis.closingImage}
                       </div>
                     </div>
@@ -1558,66 +1140,37 @@ export default function EraNarrativeViewer({
 
       {/* Source Briefs — collapsible */}
       {record.prepBriefs.length > 0 && (
-        <div style={{ marginBottom: "16px" }}>
+        <div className="era-narrative-collapsible">
           <div
             onClick={() => setShowBriefs(!showBriefs)}
-            style={{
-              cursor: "pointer",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "8px 0",
-              borderBottom: "1px solid var(--border-color)",
-              marginBottom: showBriefs ? "12px" : "0",
-            }}
+            className={`era-narrative-collapsible__header ${showBriefs ? "era-narrative-collapsible__header--open" : ""}`}
           >
-            <span style={{ fontSize: "13px", fontWeight: 600 }}>
+            <span className="era-narrative-collapsible__title">
               Source Briefs ({record.prepBriefs.length} chronicles)
             </span>
-            <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+            <span className="era-narrative-collapsible__chevron">
               {showBriefs ? "\u25B4" : "\u25BE"}
             </span>
           </div>
 
           {showBriefs && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div className="era-narrative-briefs-list">
               {record.prepBriefs.map((brief) => (
                 <div
                   key={brief.chronicleId}
-                  style={{
-                    padding: "10px 12px",
-                    background: "var(--bg-primary)",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "6px",
-                  }}
+                  className="era-narrative-brief-card"
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    <span style={{ fontSize: "13px", fontWeight: 500 }}>
+                  <div className="era-narrative-brief-header">
+                    <span className="era-narrative-brief-title">
                       {brief.chronicleTitle}
                     </span>
                     {brief.eraYear != null && (
-                      <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                      <span className="era-narrative-brief-year">
                         Y{brief.eraYear}
                       </span>
                     )}
                   </div>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "var(--text-muted)",
-                      lineHeight: 1.5,
-                      whiteSpace: "pre-wrap",
-                      maxHeight: "120px",
-                      overflow: "auto",
-                    }}
-                  >
+                  <div className="era-narrative-brief-prep">
                     {brief.prep}
                   </div>
                 </div>
@@ -1628,18 +1181,7 @@ export default function EraNarrativeViewer({
       )}
 
       {/* Cost / Model Metadata */}
-      <div
-        style={{
-          display: "flex",
-          gap: "16px",
-          alignItems: "center",
-          padding: "8px 0",
-          fontSize: "11px",
-          color: "var(--text-muted)",
-          borderTop: "1px solid var(--border-color)",
-          marginTop: "auto",
-        }}
-      >
+      <div className="era-narrative-footer">
         {record.totalActualCost > 0 && (
           <span title="Total cost">${record.totalActualCost.toFixed(4)}</span>
         )}
@@ -1650,7 +1192,7 @@ export default function EraNarrativeViewer({
           <span title="Total output tokens">{record.totalOutputTokens.toLocaleString()} out</span>
         )}
         {synthesis && <span title="Thread synthesis model">{synthesis.model}</span>}
-        <span style={{ marginLeft: "auto" }}>
+        <span className="era-narrative-footer__date">
           {new Date(record.createdAt).toLocaleDateString()}
         </span>
       </div>

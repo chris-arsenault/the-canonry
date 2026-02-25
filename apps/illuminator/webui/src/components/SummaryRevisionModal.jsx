@@ -12,6 +12,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { diffWords } from "diff";
 import { resolveAnchorPhrase } from "../lib/fuzzyAnchor";
+import "./SummaryRevisionModal.css";
 
 // ============================================================================
 // Inline Diff View (word-level, git-style)
@@ -23,62 +24,22 @@ function InlineDiff({ current, proposed, label }) {
   const changes = diffWords(current || "", proposed);
 
   return (
-    <div style={{ marginBottom: "10px" }}>
-      <div
-        style={{
-          fontSize: "10px",
-          fontWeight: 600,
-          color: "var(--text-muted)",
-          marginBottom: "6px",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-        }}
-      >
+    <div className="srm-diff-section">
+      <div className="srm-diff-label">
         {label}
       </div>
-      <div
-        style={{
-          padding: "10px 12px",
-          background: "var(--bg-tertiary)",
-          borderRadius: "4px",
-          border: "1px solid var(--border-color)",
-          fontSize: "11px",
-          lineHeight: "1.8",
-          maxHeight: "300px",
-          overflow: "auto",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-        }}
-      >
+      <div className="srm-diff-content">
         {changes.map((part, i) => {
           if (part.added) {
             return (
-              <span
-                key={i}
-                style={{
-                  background: "rgba(34, 197, 94, 0.2)",
-                  color: "var(--text-primary)",
-                  borderRadius: "2px",
-                  padding: "0 1px",
-                  textDecoration: "none",
-                }}
-              >
+              <span key={i} className="srm-diff-added">
                 {part.value}
               </span>
             );
           }
           if (part.removed) {
             return (
-              <span
-                key={i}
-                style={{
-                  background: "rgba(239, 68, 68, 0.2)",
-                  color: "var(--text-secondary)",
-                  borderRadius: "2px",
-                  padding: "0 1px",
-                  textDecoration: "line-through",
-                }}
-              >
+              <span key={i} className="srm-diff-removed">
                 {part.value}
               </span>
             );
@@ -116,48 +77,23 @@ function AnchorPhraseEditor({ patch, onUpdate }) {
 
   if (editing) {
     return (
-      <div style={{ marginBottom: "10px" }}>
-        <div
-          style={{
-            fontSize: "10px",
-            fontWeight: 600,
-            color: "var(--text-muted)",
-            marginBottom: "4px",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
+      <div className="srm-anchor-section">
+        <div className="srm-anchor-label">
           Anchor Phrase
         </div>
-        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+        <div className="srm-anchor-edit-row">
           <input
             type="text"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            style={{
-              flex: 1,
-              padding: "4px 8px",
-              fontSize: "11px",
-              border: "1px solid var(--border-color)",
-              borderRadius: "4px",
-              background: "var(--bg-tertiary)",
-              color: "var(--text-primary)",
-            }}
+            className="srm-anchor-input"
           />
           <button
             onClick={() => {
               onUpdate(patch.entityId, value);
               setEditing(false);
             }}
-            style={{
-              padding: "3px 8px",
-              fontSize: "10px",
-              border: "1px solid var(--border-color)",
-              borderRadius: "4px",
-              background: "var(--bg-tertiary)",
-              color: "var(--text-primary)",
-              cursor: "pointer",
-            }}
+            className="srm-anchor-save-btn"
           >
             Save
           </button>
@@ -166,15 +102,7 @@ function AnchorPhraseEditor({ patch, onUpdate }) {
               setValue(patch.anchorPhrase || "");
               setEditing(false);
             }}
-            style={{
-              padding: "3px 8px",
-              fontSize: "10px",
-              border: "1px solid var(--border-color)",
-              borderRadius: "4px",
-              background: "var(--bg-tertiary)",
-              color: "var(--text-muted)",
-              cursor: "pointer",
-            }}
+            className="srm-anchor-cancel-btn"
           >
             Cancel
           </button>
@@ -184,56 +112,24 @@ function AnchorPhraseEditor({ patch, onUpdate }) {
   }
 
   return (
-    <div style={{ marginBottom: "10px" }}>
-      <div
-        style={{
-          fontSize: "10px",
-          fontWeight: 600,
-          color: "var(--text-muted)",
-          marginBottom: "4px",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-        }}
-      >
+    <div className="srm-anchor-section">
+      <div className="srm-anchor-label">
         Anchor Phrase
         {!phraseInDescription && (
-          <span style={{ color: "var(--warning, #f59e0b)", marginLeft: "6px", fontWeight: 400 }}>
+          <span className="srm-anchor-warning">
             not found in description
           </span>
         )}
       </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          padding: "4px 8px",
-          background: "var(--bg-tertiary)",
-          borderRadius: "4px",
-          border: "1px solid var(--border-color)",
-          fontSize: "11px",
-        }}
-      >
+      <div className="srm-anchor-display">
         <span
-          style={{
-            flex: 1,
-            fontStyle: "italic",
-            color: phraseInDescription ? "var(--text-primary)" : "var(--warning, #f59e0b)",
-          }}
+          className={`srm-anchor-phrase ${phraseInDescription ? "srm-anchor-phrase-found" : "srm-anchor-phrase-missing"}`}
         >
           &ldquo;{patch.anchorPhrase}&rdquo;
         </span>
         <button
           onClick={() => setEditing(true)}
-          style={{
-            padding: "2px 6px",
-            fontSize: "9px",
-            border: "1px solid var(--border-color)",
-            borderRadius: "3px",
-            background: "var(--bg-secondary)",
-            color: "var(--text-muted)",
-            cursor: "pointer",
-          }}
+          className="srm-anchor-edit-trigger"
         >
           Edit
         </button>
@@ -262,33 +158,21 @@ function PatchCard({
 
   return (
     <div
-      style={{
-        background: "var(--bg-secondary)",
-        borderRadius: "6px",
-        marginBottom: "6px",
-        borderLeft: `3px solid ${accepted !== false ? "var(--success-color, #22c55e)" : "var(--text-muted)"}`,
-        opacity: accepted === false ? 0.5 : 1,
-      }}
+      className="srm-patch-card"
+      data-accepted={accepted !== false}
     >
-      {/* Header — always visible */}
+      {/* Header -- always visible */}
       <div
         onClick={onToggleExpand}
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "8px 12px",
-          cursor: "pointer",
-          userSelect: "none",
-        }}
+        className="srm-patch-header"
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+        <div className="srm-patch-header-left">
+          <span className="srm-patch-expand-icon">
             {expanded ? "\u25BC" : "\u25B6"}
           </span>
-          <span style={{ fontWeight: 600, fontSize: "12px" }}>{patch.entityName}</span>
-          <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>{patch.entityKind}</span>
-          <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+          <span className="srm-patch-entity-name">{patch.entityName}</span>
+          <span className="srm-patch-entity-kind">{patch.entityKind}</span>
+          <span className="srm-patch-changes-label">
             {[hasSummaryChange && "summary", hasDescChange && "description"]
               .filter(Boolean)
               .join(" + ")}
@@ -299,15 +183,8 @@ function PatchCard({
             e.stopPropagation();
             onToggle(patch.entityId, accepted === false);
           }}
-          style={{
-            padding: "2px 8px",
-            fontSize: "10px",
-            borderRadius: "4px",
-            border: "1px solid var(--border-color)",
-            background: accepted !== false ? "var(--success-color, #22c55e)" : "var(--bg-tertiary)",
-            color: accepted !== false ? "#fff" : "var(--text-secondary)",
-            cursor: "pointer",
-          }}
+          className="srm-patch-toggle-btn"
+          data-accepted={accepted !== false}
         >
           {accepted !== false ? "Accepted" : "Rejected"}
         </button>
@@ -315,7 +192,7 @@ function PatchCard({
 
       {/* Expanded diff view */}
       {expanded && (
-        <div style={{ padding: "0 12px 10px" }}>
+        <div className="srm-patch-expanded">
           {hasSummaryChange && (
             <InlineDiff
               current={currentEntity?.summary || ""}
@@ -492,74 +369,35 @@ export default function SummaryRevisionModal({
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(0, 0, 0, 0.6)",
-      }}
-    >
-      <div
-        style={{
-          background: "var(--bg-primary)",
-          borderRadius: "12px",
-          border: "1px solid var(--border-color)",
-          width: "900px",
-          maxWidth: "95vw",
-          maxHeight: "90vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-        }}
-      >
+    <div className="srm-overlay">
+      <div className="srm-modal">
         {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-color)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexShrink: 0,
-          }}
-        >
+        <div className="srm-modal-header">
           <div>
-            <h2 style={{ margin: 0, fontSize: "16px" }}>
+            <h2 className="srm-modal-title">
               Batch Revision
               {currentBatch && !isRunReviewing && (
-                <span
-                  style={{
-                    fontWeight: 400,
-                    fontSize: "13px",
-                    color: "var(--text-muted)",
-                    marginLeft: "8px",
-                  }}
-                >
+                <span className="srm-modal-culture">
                   {currentBatch.culture}
                 </span>
               )}
             </h2>
-            <p style={{ margin: "4px 0 0", fontSize: "11px", color: "var(--text-muted)" }}>
+            <p className="srm-modal-subtitle">
               {isRunReviewing
                 ? `All ${totalBatches} batches complete. Review and apply patches.`
                 : `Batch ${run.currentBatchIndex + 1} of ${totalBatches}`}
               {completedBatches > 0 && !isRunReviewing && ` (${completedBatches} complete)`}
             </p>
           </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <div className="srm-modal-header-right">
             {run.totalActualCost > 0 && (
-              <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+              <span className="srm-modal-cost">
                 ${run.totalActualCost.toFixed(4)}
               </span>
             )}
             <button
               onClick={onCancel}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "4px 12px", fontSize: "12px" }}
+              className="illuminator-button illuminator-button-secondary srm-cancel-btn"
             >
               Cancel
             </button>
@@ -567,28 +405,14 @@ export default function SummaryRevisionModal({
         </div>
 
         {/* Scrollable content */}
-        <div
-          style={{
-            flex: 1,
-            overflow: "auto",
-            padding: "16px 20px",
-            minHeight: 0,
-          }}
-        >
+        <div className="srm-modal-scroll">
           {isGenerating && (
-            <div
-              style={{
-                padding: "40px 12px",
-                fontSize: "12px",
-                color: "var(--text-muted)",
-                textAlign: "center",
-              }}
-            >
-              <div style={{ marginBottom: "8px" }}>
+            <div className="srm-generating">
+              <div className="srm-generating-label">
                 Generating revisions for batch {run.currentBatchIndex + 1}...
               </div>
               {currentBatch && (
-                <div style={{ fontSize: "10px" }}>
+                <div className="srm-generating-detail">
                   {currentBatch.culture} ({currentBatch.entityIds.length} entities)
                 </div>
               )}
@@ -596,17 +420,7 @@ export default function SummaryRevisionModal({
           )}
 
           {isFailed && currentBatch?.error && (
-            <div
-              style={{
-                padding: "10px 12px",
-                background: "var(--bg-tertiary)",
-                borderRadius: "6px",
-                borderLeft: "3px solid var(--danger)",
-                fontSize: "12px",
-                color: "var(--danger)",
-                marginBottom: "8px",
-              }}
-            >
+            <div className="srm-error">
               {currentBatch.error}
             </div>
           )}
@@ -614,67 +428,29 @@ export default function SummaryRevisionModal({
           {/* Patches */}
           {allPatches.length > 0 && (
             <div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "10px",
-                }}
-              >
-                <span style={{ fontWeight: 600, fontSize: "13px" }}>
+              <div className="srm-patches-toolbar">
+                <span className="srm-patches-count">
                   {allPatches.length} entities revised
-                  <span
-                    style={{
-                      fontWeight: 400,
-                      fontSize: "11px",
-                      color: "var(--text-muted)",
-                      marginLeft: "8px",
-                    }}
-                  >
+                  <span className="srm-patches-accepted">
                     {acceptedCount} accepted
                   </span>
                 </span>
-                <div style={{ display: "flex", gap: "8px" }}>
+                <div className="srm-patches-actions">
                   <button
                     onClick={handleExport}
-                    style={{
-                      padding: "2px 8px",
-                      fontSize: "10px",
-                      border: "1px solid var(--border-color)",
-                      borderRadius: "4px",
-                      background: "var(--bg-tertiary)",
-                      color: "var(--text-secondary)",
-                      cursor: "pointer",
-                    }}
+                    className="srm-toolbar-btn"
                   >
                     Export
                   </button>
                   <button
                     onClick={expandAll}
-                    style={{
-                      padding: "2px 8px",
-                      fontSize: "10px",
-                      border: "1px solid var(--border-color)",
-                      borderRadius: "4px",
-                      background: "var(--bg-tertiary)",
-                      color: "var(--text-secondary)",
-                      cursor: "pointer",
-                    }}
+                    className="srm-toolbar-btn"
                   >
                     Expand all
                   </button>
                   <button
                     onClick={collapseAll}
-                    style={{
-                      padding: "2px 8px",
-                      fontSize: "10px",
-                      border: "1px solid var(--border-color)",
-                      borderRadius: "4px",
-                      background: "var(--bg-tertiary)",
-                      color: "var(--text-secondary)",
-                      cursor: "pointer",
-                    }}
+                    className="srm-toolbar-btn"
                   >
                     Collapse all
                   </button>
@@ -697,14 +473,7 @@ export default function SummaryRevisionModal({
           )}
 
           {(isBatchReviewing || isRunReviewing) && allPatches.length === 0 && (
-            <div
-              style={{
-                padding: "20px 12px",
-                fontSize: "12px",
-                color: "var(--text-muted)",
-                textAlign: "center",
-              }}
-            >
+            <div className="srm-no-patches">
               No changes suggested for this batch.
             </div>
           )}
@@ -713,30 +482,18 @@ export default function SummaryRevisionModal({
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "12px 20px 16px",
-            borderTop: "1px solid var(--border-color)",
-            flexShrink: 0,
-            display: "flex",
-            gap: "8px",
-            justifyContent: "flex-end",
-            alignItems: "center",
-          }}
-        >
+        <div className="srm-modal-footer">
           {isBatchReviewing && (
             <>
               <button
                 onClick={onAutoContine}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button illuminator-button-secondary srm-footer-btn"
               >
                 Auto-Continue All
               </button>
               <button
                 onClick={onContinue}
-                className="illuminator-button illuminator-button-primary"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button illuminator-button-primary srm-footer-btn"
               >
                 {run.currentBatchIndex + 1 < totalBatches
                   ? `Continue to Batch ${run.currentBatchIndex + 2}`
@@ -747,8 +504,7 @@ export default function SummaryRevisionModal({
           {isRunReviewing && (
             <button
               onClick={onAccept}
-              className="illuminator-button illuminator-button-primary"
-              style={{ padding: "6px 16px", fontSize: "12px" }}
+              className="illuminator-button illuminator-button-primary srm-footer-btn"
             >
               Apply Accepted ({acceptedCount})
             </button>

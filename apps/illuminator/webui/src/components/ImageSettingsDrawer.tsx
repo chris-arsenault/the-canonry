@@ -15,6 +15,7 @@ import {
   filterCompositionsForStyle,
 } from "@canonry/world-schema";
 import type { ImageGenSettings } from "../hooks/useImageGenSettings";
+import "./ImageSettingsDrawer.css";
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -144,31 +145,22 @@ function SpecialToggle({
   poolInfo?: string;
 }) {
   return (
-    <div style={{ display: "flex", gap: "4px", marginBottom: "8px", alignItems: "center" }}>
+    <div className="isd-special-toggle-row">
       {[
-        { id: RANDOM_ID, label: "⚄ Random" },
-        { id: NONE_ID, label: "— None" },
+        { id: RANDOM_ID, label: "\u2684 Random" },
+        { id: NONE_ID, label: "\u2014 None" },
       ].map((opt) => (
         <button
           key={opt.id}
           onClick={() => onChange(opt.id)}
-          style={{
-            padding: "3px 10px",
-            fontSize: "11px",
-            borderRadius: "4px",
-            border: "1px solid",
-            borderColor: value === opt.id ? "var(--accent-color)" : "var(--border-color)",
-            background: value === opt.id ? "rgba(168, 85, 247, 0.2)" : "transparent",
-            color: value === opt.id ? "var(--accent-color)" : "var(--text-muted)",
-            cursor: "pointer",
-            transition: "border-color 0.15s ease, background 0.15s ease, color 0.15s ease",
-          }}
+          className="isd-special-toggle-btn"
+          data-selected={value === opt.id}
         >
           {opt.label}
         </button>
       ))}
       {poolInfo && value === RANDOM_ID && (
-        <span style={{ fontSize: "10px", color: "var(--text-muted)", marginLeft: "4px" }}>
+        <span className="isd-pool-info">
           {poolInfo}
         </span>
       )}
@@ -192,70 +184,38 @@ function CollapsibleSection({
   badge?: string;
 }) {
   return (
-    <div style={{ marginBottom: "4px" }}>
+    <div className="isd-section">
       <button
         onClick={() => onToggle(sectionKey)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          width: "100%",
-          padding: "8px 0",
-          background: "none",
-          border: "none",
-          color: "var(--text-color)",
-          fontSize: "13px",
-          fontWeight: 600,
-          cursor: "pointer",
-          textAlign: "left",
-        }}
+        className="isd-section-btn"
       >
         <span
-          style={{
-            display: "inline-block",
-            width: "12px",
-            fontSize: "10px",
-            color: "var(--text-muted)",
-            transition: "transform 0.15s ease",
-            transform: collapsed ? "rotate(0deg)" : "rotate(90deg)",
-          }}
+          className="isd-section-chevron"
+          data-collapsed={String(collapsed)}
         >
-          ▶
+          &#9654;
         </span>
         {title}
         {badge && (
-          <span
-            style={{
-              marginLeft: "auto",
-              fontSize: "10px",
-              color: "var(--accent-color)",
-              padding: "1px 6px",
-              background: "rgba(168, 85, 247, 0.15)",
-              borderRadius: "3px",
-            }}
-          >
+          <span className="isd-section-badge">
             {badge}
           </span>
         )}
       </button>
-      {!collapsed && <div style={{ paddingLeft: "18px", paddingBottom: "8px" }}>{children}</div>}
+      {!collapsed && <div className="isd-section-content">{children}</div>}
     </div>
   );
 }
 
 function SwatchStrip({ colors }: { colors: string[] }) {
   return (
-    <div style={{ display: "flex", gap: "2px" }}>
+    <div className="isd-swatch-strip">
       {colors.map((color, i) => (
         <div
           key={i}
-          style={{
-            width: "14px",
-            height: "14px",
-            borderRadius: "3px",
-            background: color,
-            border: "1px solid rgba(255,255,255,0.15)",
-          }}
+          className="isd-swatch"
+          // eslint-disable-next-line local/no-inline-styles
+          style={{ '--swatch-bg': color, background: 'var(--swatch-bg)' } as React.CSSProperties}
         />
       ))}
     </div>
@@ -477,71 +437,30 @@ export default function ImageSettingsDrawer({
       {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0, 0, 0, 0.4)",
-          zIndex: 9998,
-        }}
+        className="isd-backdrop"
       />
 
       {/* Drawer */}
       <div
         ref={drawerRef}
         onClick={(e) => e.stopPropagation()}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: "200px",
-          bottom: 0,
-          width: "380px",
-          background: "var(--bg-primary)",
-          borderRight: "1px solid var(--border-color)",
-          zIndex: 9999,
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "4px 0 24px rgba(0, 0, 0, 0.3)",
-          overflow: "hidden",
-        }}
+        className="isd-drawer"
       >
         {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "12px 16px",
-            borderBottom: "1px solid var(--border-color)",
-            flexShrink: 0,
-          }}
-        >
-          <span style={{ fontSize: "14px", fontWeight: 600 }}>Image Settings</span>
+        <div className="isd-header">
+          <span className="isd-header-title">Image Settings</span>
           <button
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--text-muted)",
-              fontSize: "18px",
-              cursor: "pointer",
-              padding: "0 4px",
-              lineHeight: 1,
-            }}
+            className="isd-close-btn"
           >
-            ✕
+            &#10005;
           </button>
         </div>
 
         {/* Scrollable content */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: "12px 16px",
-          }}
-        >
+        <div className="isd-scroll">
           {!styleLibrary ? (
-            <div style={{ color: "var(--text-muted)", fontSize: "12px", padding: "12px 0" }}>
+            <div className="isd-loading">
               Loading styles...
             </div>
           ) : (
@@ -561,40 +480,13 @@ export default function ImageSettingsDrawer({
                 />
 
                 {/* Artistic category tabs */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "2px",
-                    marginBottom: "8px",
-                    flexWrap: "wrap",
-                  }}
-                >
+                <div className="isd-category-tabs">
                   {availableArtisticCategories.map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setActiveArtisticCategory(cat)}
-                      style={{
-                        padding: "3px 8px",
-                        fontSize: "10px",
-                        borderRadius: "3px",
-                        border: "1px solid",
-                        borderColor:
-                          activeArtisticCategory === cat
-                            ? "var(--accent-color)"
-                            : "var(--border-color)",
-                        background:
-                          activeArtisticCategory === cat
-                            ? "rgba(168, 85, 247, 0.15)"
-                            : "transparent",
-                        color:
-                          activeArtisticCategory === cat
-                            ? "var(--accent-color)"
-                            : "var(--text-muted)",
-                        cursor: "pointer",
-                        transition:
-                          "border-color 0.15s ease, background 0.15s ease, color 0.15s ease",
-                        fontWeight: activeArtisticCategory === cat ? 600 : 400,
-                      }}
+                      className="isd-category-tab"
+                      data-active={activeArtisticCategory === cat}
                     >
                       {ARTISTIC_CATEGORY_LABELS[cat] || cat}
                     </button>
@@ -602,15 +494,7 @@ export default function ImageSettingsDrawer({
                 </div>
 
                 {/* Artistic style list for active category */}
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "3px",
-                    maxHeight: "200px",
-                    overflowY: "auto",
-                  }}
-                >
+                <div className="isd-item-list">
                   {(groupedArtisticStyles.get(activeArtisticCategory) || []).map((style) => {
                     const isSelected = settings.artisticStyleId === style.id;
                     return (
@@ -618,42 +502,14 @@ export default function ImageSettingsDrawer({
                         key={style.id}
                         onClick={() => onSettingsChange({ artisticStyleId: style.id })}
                         title={style.promptFragment}
-                        style={{
-                          display: "flex",
-                          alignItems: "baseline",
-                          gap: "8px",
-                          padding: "5px 8px",
-                          borderRadius: "4px",
-                          border: "1px solid",
-                          borderColor: isSelected ? "var(--accent-color)" : "transparent",
-                          background: isSelected ? "rgba(168, 85, 247, 0.12)" : "transparent",
-                          cursor: "pointer",
-                          textAlign: "left",
-                          transition:
-                            "border-color 0.15s ease, background 0.15s ease, color 0.15s ease",
-                          width: "100%",
-                        }}
+                        className="isd-item-btn"
+                        data-selected={isSelected}
                       >
-                        <span
-                          style={{
-                            fontSize: "11px",
-                            fontWeight: 500,
-                            color: isSelected ? "var(--accent-color)" : "var(--text-color)",
-                            flexShrink: 0,
-                          }}
-                        >
+                        <span className="isd-item-name">
                           {style.name}
                         </span>
                         {style.description && (
-                          <span
-                            style={{
-                              fontSize: "10px",
-                              color: "var(--text-muted)",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
+                          <span className="isd-item-desc">
                             {style.description}
                           </span>
                         )}
@@ -663,7 +519,7 @@ export default function ImageSettingsDrawer({
                 </div>
               </CollapsibleSection>
 
-              <div style={{ borderTop: "1px solid var(--border-color)", margin: "4px 0" }} />
+              <div className="isd-divider" />
 
               {/* ─── Composition ─── */}
               <CollapsibleSection
@@ -680,40 +536,13 @@ export default function ImageSettingsDrawer({
                 />
 
                 {/* Category tabs */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "2px",
-                    marginBottom: "8px",
-                    flexWrap: "wrap",
-                  }}
-                >
+                <div className="isd-category-tabs">
                   {availableCompositionCategories.map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setActiveCompositionCategory(cat)}
-                      style={{
-                        padding: "3px 8px",
-                        fontSize: "10px",
-                        borderRadius: "3px",
-                        border: "1px solid",
-                        borderColor:
-                          activeCompositionCategory === cat
-                            ? "var(--accent-color)"
-                            : "var(--border-color)",
-                        background:
-                          activeCompositionCategory === cat
-                            ? "rgba(168, 85, 247, 0.15)"
-                            : "transparent",
-                        color:
-                          activeCompositionCategory === cat
-                            ? "var(--accent-color)"
-                            : "var(--text-muted)",
-                        cursor: "pointer",
-                        transition:
-                          "border-color 0.15s ease, background 0.15s ease, color 0.15s ease",
-                        fontWeight: activeCompositionCategory === cat ? 600 : 400,
-                      }}
+                      className="isd-category-tab"
+                      data-active={activeCompositionCategory === cat}
                     >
                       {COMPOSITION_CATEGORY_LABELS[cat] || cat}
                     </button>
@@ -721,15 +550,7 @@ export default function ImageSettingsDrawer({
                 </div>
 
                 {/* Composition list for active category */}
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "3px",
-                    maxHeight: "200px",
-                    overflowY: "auto",
-                  }}
-                >
+                <div className="isd-item-list">
                   {(groupedCompositions.get(activeCompositionCategory) || []).map((style) => {
                     const isSelected = settings.compositionStyleId === style.id;
                     return (
@@ -737,43 +558,14 @@ export default function ImageSettingsDrawer({
                         key={style.id}
                         onClick={() => onSettingsChange({ compositionStyleId: style.id })}
                         title={style.promptFragment}
-                        style={{
-                          display: "flex",
-                          alignItems: "baseline",
-                          gap: "8px",
-                          padding: "5px 8px",
-                          borderRadius: "4px",
-                          border: "1px solid",
-                          borderColor: isSelected ? "var(--accent-color)" : "transparent",
-                          background: isSelected ? "rgba(168, 85, 247, 0.12)" : "transparent",
-                          cursor: "pointer",
-                          textAlign: "left",
-                          transition:
-                            "border-color 0.15s ease, background 0.15s ease, color 0.15s ease",
-                          width: "100%",
-                        }}
+                        className="isd-item-btn"
+                        data-selected={isSelected}
                       >
-                        <span
-                          style={{
-                            fontSize: "11px",
-                            fontWeight: 500,
-                            color: isSelected ? "var(--accent-color)" : "var(--text-color)",
-                            flexShrink: 0,
-                            minWidth: "0",
-                          }}
-                        >
+                        <span className="isd-item-name-composition">
                           {style.name}
                         </span>
                         {style.description && (
-                          <span
-                            style={{
-                              fontSize: "10px",
-                              color: "var(--text-muted)",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
+                          <span className="isd-item-desc">
                             {style.description}
                           </span>
                         )}
@@ -783,7 +575,7 @@ export default function ImageSettingsDrawer({
                 </div>
               </CollapsibleSection>
 
-              <div style={{ borderTop: "1px solid var(--border-color)", margin: "4px 0" }} />
+              <div className="isd-divider" />
 
               {/* ─── Color Palette ─── */}
               <CollapsibleSection
@@ -799,25 +591,11 @@ export default function ImageSettingsDrawer({
                 />
 
                 {palettesByGroup.map((group) => (
-                  <div key={group.label} style={{ marginBottom: "8px" }}>
-                    <div
-                      style={{
-                        fontSize: "10px",
-                        color: "var(--text-muted)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        marginBottom: "4px",
-                      }}
-                    >
+                  <div key={group.label} className="isd-palette-group">
+                    <div className="isd-palette-group-label">
                       {group.label}
                     </div>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(3, 1fr)",
-                        gap: "4px",
-                      }}
-                    >
+                    <div className="isd-palette-grid">
                       {group.palettes.map((palette) => {
                         const isSelected = settings.colorPaletteId === palette.id;
                         return (
@@ -825,38 +603,15 @@ export default function ImageSettingsDrawer({
                             key={palette.id}
                             onClick={() => onSettingsChange({ colorPaletteId: palette.id })}
                             title={palette.description}
-                            style={{
-                              padding: "6px",
-                              borderRadius: "4px",
-                              border: "1px solid",
-                              borderColor: isSelected
-                                ? "var(--accent-color)"
-                                : "var(--border-color)",
-                              background: isSelected
-                                ? "rgba(168, 85, 247, 0.12)"
-                                : "var(--bg-tertiary)",
-                              cursor: "pointer",
-                              textAlign: "left",
-                              transition:
-                                "border-color 0.15s ease, background 0.15s ease, color 0.15s ease",
-                            }}
+                            className="isd-palette-btn"
+                            data-selected={isSelected}
                           >
                             {palette.swatchColors && palette.swatchColors.length > 0 && (
-                              <div style={{ marginBottom: "4px" }}>
+                              <div className="isd-palette-swatch-row">
                                 <SwatchStrip colors={palette.swatchColors} />
                               </div>
                             )}
-                            <div
-                              style={{
-                                fontSize: "10px",
-                                fontWeight: 500,
-                                color: isSelected ? "var(--accent-color)" : "var(--text-color)",
-                                lineHeight: 1.2,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
+                            <div className="isd-palette-name">
                               {palette.name}
                             </div>
                           </button>
@@ -867,7 +622,7 @@ export default function ImageSettingsDrawer({
                 ))}
               </CollapsibleSection>
 
-              <div style={{ borderTop: "1px solid var(--border-color)", margin: "4px 0" }} />
+              <div className="isd-divider" />
 
               {/* ─── Output Settings ─── */}
               <CollapsibleSection
@@ -877,36 +632,19 @@ export default function ImageSettingsDrawer({
                 onToggle={toggleSection}
               >
                 {/* Size - segmented buttons */}
-                <div style={{ marginBottom: "10px" }}>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--text-muted)",
-                      marginBottom: "4px",
-                    }}
-                  >
+                <div className="isd-output-group">
+                  <div className="isd-output-label">
                     Size
                   </div>
-                  <div style={{ display: "flex", gap: "3px", flexWrap: "wrap" }}>
+                  <div className="isd-output-btns">
                     {sizeOptions.map((opt) => {
                       const isSelected = settings.imageSize === opt.value;
                       return (
                         <button
                           key={opt.value}
                           onClick={() => onSettingsChange({ imageSize: opt.value })}
-                          style={{
-                            padding: "4px 10px",
-                            fontSize: "11px",
-                            borderRadius: "4px",
-                            border: "1px solid",
-                            borderColor: isSelected ? "var(--accent-color)" : "var(--border-color)",
-                            background: isSelected ? "rgba(168, 85, 247, 0.2)" : "transparent",
-                            color: isSelected ? "var(--accent-color)" : "var(--text-secondary)",
-                            cursor: "pointer",
-                            transition:
-                              "border-color 0.15s ease, background 0.15s ease, color 0.15s ease",
-                            fontWeight: isSelected ? 600 : 400,
-                          }}
+                          className="isd-output-btn"
+                          data-selected={isSelected}
                         >
                           {opt.label}
                         </button>
@@ -916,36 +654,19 @@ export default function ImageSettingsDrawer({
                 </div>
 
                 {/* Quality - segmented buttons */}
-                <div style={{ marginBottom: "10px" }}>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--text-muted)",
-                      marginBottom: "4px",
-                    }}
-                  >
+                <div className="isd-output-group">
+                  <div className="isd-output-label">
                     Quality
                   </div>
-                  <div style={{ display: "flex", gap: "3px", flexWrap: "wrap" }}>
+                  <div className="isd-output-btns">
                     {qualityOptions.map((opt) => {
                       const isSelected = settings.imageQuality === opt.value;
                       return (
                         <button
                           key={opt.value}
                           onClick={() => onSettingsChange({ imageQuality: opt.value })}
-                          style={{
-                            padding: "4px 10px",
-                            fontSize: "11px",
-                            borderRadius: "4px",
-                            border: "1px solid",
-                            borderColor: isSelected ? "var(--accent-color)" : "var(--border-color)",
-                            background: isSelected ? "rgba(168, 85, 247, 0.2)" : "transparent",
-                            color: isSelected ? "var(--accent-color)" : "var(--text-secondary)",
-                            cursor: "pointer",
-                            transition:
-                              "border-color 0.15s ease, background 0.15s ease, color 0.15s ease",
-                            fontWeight: isSelected ? 600 : 400,
-                          }}
+                          className="isd-output-btn"
+                          data-selected={isSelected}
                         >
                           {opt.label}
                         </button>
@@ -957,20 +678,13 @@ export default function ImageSettingsDrawer({
                 {/* Culture dropdown */}
                 {cultures && cultures.length > 0 && (
                   <div>
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        color: "var(--text-muted)",
-                        marginBottom: "4px",
-                      }}
-                    >
+                    <div className="isd-output-label">
                       Culture
                     </div>
                     <select
                       value={settings.selectedCultureId}
                       onChange={(e) => onSettingsChange({ selectedCultureId: e.target.value })}
-                      className="illuminator-select"
-                      style={{ width: "100%" }}
+                      className="illuminator-select isd-culture-select"
                     >
                       <option value="">Auto-detect</option>
                       {cultures.map((culture) => (
@@ -1017,36 +731,15 @@ export function ImageSettingsSummary({
   const swatchColors = currentPalette?.swatchColors;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        padding: "6px 12px",
-        background: "var(--bg-tertiary)",
-        borderRadius: "4px",
-        marginBottom: "12px",
-        flexWrap: "wrap",
-      }}
-    >
-      <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Image:</span>
-      <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
-        {artistic} · {composition} · {palette}
+    <div className="isd-summary">
+      <span className="isd-summary-label">Image:</span>
+      <span className="isd-summary-value">
+        {artistic} &middot; {composition} &middot; {palette}
       </span>
       {swatchColors && swatchColors.length > 0 && <SwatchStrip colors={swatchColors} />}
       <button
         onClick={onOpenSettings}
-        style={{
-          marginLeft: "auto",
-          padding: "2px 8px",
-          fontSize: "10px",
-          borderRadius: "3px",
-          border: "1px solid var(--border-color)",
-          background: "transparent",
-          color: "var(--accent-color)",
-          cursor: "pointer",
-          transition: "border-color 0.15s ease, background 0.15s ease, color 0.15s ease",
-        }}
+        className="isd-summary-settings-btn"
       >
         Settings
       </button>
@@ -1067,7 +760,7 @@ export function ImageSettingsTrigger({
 }) {
   const resolve = (id: string, list: Array<{ id: string; name: string }> | undefined) => {
     if (id === RANDOM_ID) return "Random";
-    if (id === NONE_ID) return "—";
+    if (id === NONE_ID) return "\u2014";
     return list?.find((s) => s.id === id)?.name || id;
   };
 
@@ -1079,43 +772,20 @@ export function ImageSettingsTrigger({
   return (
     <button
       onClick={onClick}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "4px",
-        width: "100%",
-        padding: "8px 10px",
-        background: "var(--bg-secondary)",
-        border: "1px solid var(--border-color)",
-        borderRadius: "4px",
-        color: "var(--text-secondary)",
-        fontSize: "11px",
-        cursor: "pointer",
-        transition: "border-color 0.15s ease, background 0.15s ease, color 0.15s ease",
-        textAlign: "left",
-      }}
+      className="isd-trigger"
       title="Open image generation settings"
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "6px", width: "100%" }}>
-        <span style={{ fontSize: "12px", fontWeight: 500 }}>Image Settings</span>
+      <div className="isd-trigger-header">
+        <span className="isd-trigger-title">Image Settings</span>
       </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          fontSize: "10px",
-          color: "var(--text-muted)",
-          overflow: "hidden",
-        }}
-      >
+      <div className="isd-trigger-detail">
         {swatchColors &&
         settings.colorPaletteId !== RANDOM_ID &&
         settings.colorPaletteId !== NONE_ID ? (
           <SwatchStrip colors={swatchColors.slice(0, 3)} />
         ) : null}
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {artistic} · {palette}
+        <span className="isd-trigger-text">
+          {artistic} &middot; {palette}
         </span>
       </div>
     </button>

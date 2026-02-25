@@ -12,6 +12,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import "./ChroniclePanel.css";
 import { useEntityNavList, useEntityNavItems } from "../lib/db/entitySelectors";
 import { getEntitiesForRun, resetEntitiesToPreBackportState } from "../lib/db/entityRepository";
 import { useRelationships } from "../lib/db/relationshipSelectors";
@@ -277,65 +278,36 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
   return (
     <div
       onClick={onClick}
-      style={{
-        padding: "12px 16px",
-        background: isSelected ? "var(--bg-tertiary)" : "var(--bg-secondary)",
-        border: `1px solid ${isSelected ? "var(--accent-primary)" : "var(--border-color)"}`,
-        borderRadius: "6px",
-        cursor: "pointer",
-        marginBottom: "8px",
-        transition: "all 0.15s",
-      }}
+      className={`chron-card ${isSelected ? "chron-card--selected" : "chron-card--default"}`}
     >
       {/* Title row with inline symbols */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: "8px",
-        }}
-      >
-        <span style={{ fontWeight: 500, fontSize: "14px", flex: 1 }}>
+      <div className="chron-card__title-row">
+        <span className="chron-card__name">
           {item.name}
           {inlineSymbols.map((sym, i) => (
             <span
               key={i}
               title={sym.title}
-              style={{ marginLeft: "5px", fontSize: "11px", color: sym.color, opacity: 0.85 }}
+              className="chron-card__symbol"
+              // eslint-disable-next-line local/no-inline-styles
+              style={{ color: sym.color }}
             >
               {sym.symbol}
             </span>
           ))}
         </span>
-        <span
-          style={{ fontSize: "11px", color: status.color, fontWeight: 500, whiteSpace: "nowrap" }}
-        >
+        {/* eslint-disable-next-line local/no-inline-styles */}
+        <span className="chron-card__status" style={{ color: status.color }}>
           {status.label}
         </span>
       </div>
 
       {/* Subtitle: era year + narrative style + numeric counts */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: "4px",
-        }}
-      >
-        <span
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
-        >
+      <div className="chron-card__subtitle">
+        <span className="chron-card__subtitle-left">
           {item.eraYear != null && (
             <span
-              style={{ color: "#8b7355", fontWeight: 500, fontStyle: "normal" }}
+              className="chron-card__era-year"
               title={`Year ${item.eraYear}${item.focalEraStartTick != null ? ` (era-relative: Y${item.eraYear - item.focalEraStartTick + 1})` : ""}`}
             >
               {"\u231B"} Y
@@ -344,30 +316,22 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
                 : item.eraYear}
             </span>
           )}
-          {styleName && <span style={{ fontStyle: "italic" }}>{styleName}</span>}
+          {styleName && <span className="chron-card__style-name">{styleName}</span>}
         </span>
         {(castCount > 0 || imageCount > 0) && (
-          <span
-            style={{
-              fontSize: "10px",
-              color: "var(--text-muted)",
-              display: "flex",
-              gap: "8px",
-              whiteSpace: "nowrap",
-            }}
-          >
+          <span className="chron-card__counts">
             {castCount > 0 && (
               <span
                 title={`${item.primaryCount || 0} primary, ${item.supportingCount || 0} supporting`}
               >
-                <span style={{ opacity: 0.6 }}>{"\u2630"}</span> {castCount}
+                <span className="chron-card__count-icon">{"\u2630"}</span> {castCount}
               </span>
             )}
             {imageCount > 0 && (
               <span
                 title={`${hasCover ? "Cover + " : ""}${sceneCount} scene image${sceneCount !== 1 ? "s" : ""}`}
               >
-                <span style={{ opacity: 0.6 }}>{"\u25A3"}</span> {imageCount}
+                <span className="chron-card__count-icon">{"\u25A3"}</span> {imageCount}
               </span>
             )}
           </span>
@@ -380,47 +344,18 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
 function AssembledContentViewer({ content, wordCount, onCopy }) {
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "16px",
-        }}
-      >
-        <div style={{ fontSize: "13px", color: "var(--text-muted)" }}>
+      <div className="chron-assembled__header">
+        <div className="chron-assembled__word-count">
           {wordCount.toLocaleString()} words
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button
-            onClick={onCopy}
-            style={{
-              padding: "6px 12px",
-              fontSize: "12px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
+        <div className="chron-assembled__actions">
+          <button onClick={onCopy} className="chron-assembled__copy-btn">
             Copy
           </button>
         </div>
       </div>
 
-      <div
-        style={{
-          padding: "20px",
-          background: "var(--bg-primary)",
-          border: "1px solid var(--border-color)",
-          borderRadius: "8px",
-          fontSize: "14px",
-          lineHeight: 1.8,
-          maxHeight: "600px",
-          overflow: "auto",
-          whiteSpace: "pre-wrap",
-        }}
-      >
+      <div className="chron-assembled__content">
         {content}
       </div>
     </div>
@@ -452,62 +387,34 @@ function EraNarrativeItemCard({ item, isSelected, onClick }) {
   return (
     <div
       onClick={onClick}
-      style={{
-        padding: "10px 12px",
-        background: isSelected ? "var(--bg-tertiary)" : "transparent",
-        borderTop: isSelected ? "1px solid #d97706" : "1px solid transparent",
-        borderRight: isSelected ? "1px solid #d97706" : "1px solid transparent",
-        borderBottom: isSelected ? "1px solid #d97706" : "1px solid transparent",
-        borderLeft: "3px solid #d97706",
-        borderRadius: "6px",
-        cursor: "pointer",
-        marginBottom: "4px",
-        transition: "background 0.1s",
-      }}
+      className={`chron-era-card ${isSelected ? "chron-era-card--selected" : "chron-era-card--default"}`}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: "8px",
-        }}
-      >
-        <span style={{ fontWeight: 500, fontSize: "13px", flex: 1, lineHeight: 1.3 }}>
+      <div className="chron-era-card__title-row">
+        <span className="chron-era-card__name">
           {item.name}
           {inlineSymbols.map((sym, i) => (
             <span
               key={i}
               title={sym.title}
-              style={{ marginLeft: "5px", fontSize: "10px", color: sym.color, opacity: 0.85 }}
+              className="chron-era-card__symbol"
+              // eslint-disable-next-line local/no-inline-styles
+              style={{ color: sym.color }}
             >
               {sym.symbol}
             </span>
           ))}
         </span>
         <span
-          style={{
-            fontSize: "10px",
-            color: statusColors[item.status] || "var(--text-muted)",
-            fontWeight: 500,
-            whiteSpace: "nowrap",
-          }}
+          className="chron-era-card__status"
+          // eslint-disable-next-line local/no-inline-styles
+          style={{ color: statusColors[item.status] || "var(--text-muted)" }}
         >
           {item.status === "complete" ? "Complete" : item.status}
         </span>
       </div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: "3px",
-          fontSize: "11px",
-          color: "var(--text-muted)",
-        }}
-      >
-        <span style={{ fontStyle: "italic" }}>{item.tone}</span>
-        <span style={{ display: "flex", gap: "8px" }}>
+      <div className="chron-era-card__subtitle">
+        <span className="chron-era-card__tone">{item.tone}</span>
+        <span className="chron-era-card__counts">
           {item.wordCount > 0 && (
             <span title={`${item.wordCount.toLocaleString()} words`}>
               {"\u270E"} {item.wordCount.toLocaleString()}
@@ -2374,39 +2281,26 @@ export default function ChroniclePanel({
   }, [chronicleItems]);
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <div className="chron-root">
       {/* Header */}
-      <div
-        style={{
-          padding: "16px",
-          borderBottom: "1px solid var(--border-color)",
-          background: "var(--bg-secondary)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="chron-header">
+        <div className="chron-header__row">
           <div>
-            <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 600 }}>Chronicles</h2>
-            <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "var(--text-muted)" }}>
+            <h2 className="chron-header__title">Chronicles</h2>
+            <p className="chron-header__subtitle">
               Generate long-form narrative content
             </p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+          <div className="chron-header__actions">
+            <span className="chron-header__count">
               {stats.complete} / {chronicleItems.length} complete
             </span>
             <button
               onClick={() => setShowWizard(true)}
               disabled={!styleLibrary || !navEntities?.length}
-              className="illuminator-button illuminator-button-primary"
-              style={{
-                padding: "8px 16px",
-                fontSize: "13px",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
+              className="illuminator-button illuminator-button-primary chron-header__new-btn"
             >
-              <span style={{ fontSize: "14px" }}>✨</span>
+              <span className="chron-header__new-icon">✨</span>
               New Chronicle
             </button>
           </div>
@@ -2414,26 +2308,8 @@ export default function ChroniclePanel({
       </div>
 
       {/* Sort / Filter / Group Bar */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "12px",
-          alignItems: "center",
-          padding: "10px 16px",
-          borderBottom: "1px solid var(--border-color)",
-          background: "var(--bg-primary)",
-        }}
-      >
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            fontSize: "12px",
-            color: "var(--text-muted)",
-          }}
-        >
+      <div className="chron-filter-bar">
+        <label className="chron-filter-bar__group-label">
           <input
             type="checkbox"
             checked={groupByType}
@@ -2442,13 +2318,12 @@ export default function ChroniclePanel({
           Group by type
         </label>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Sort:</span>
+        <div className="chron-filter-bar__field">
+          <span className="chron-filter-bar__label">Sort:</span>
           <select
-            className="illuminator-select"
+            className="illuminator-select chron-filter-bar__select chron-filter-bar__select--sort"
             value={sortMode}
             onChange={(e) => setSortMode(e.target.value)}
-            style={{ width: "auto", minWidth: "150px", fontSize: "12px", padding: "4px 6px" }}
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -2458,13 +2333,12 @@ export default function ChroniclePanel({
           </select>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Status:</span>
+        <div className="chron-filter-bar__field">
+          <span className="chron-filter-bar__label">Status:</span>
           <select
-            className="illuminator-select"
+            className="illuminator-select chron-filter-bar__select chron-filter-bar__select--status"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ width: "auto", minWidth: "140px", fontSize: "12px", padding: "4px 6px" }}
           >
             {STATUS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -2474,13 +2348,12 @@ export default function ChroniclePanel({
           </select>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Focus:</span>
+        <div className="chron-filter-bar__field">
+          <span className="chron-filter-bar__label">Focus:</span>
           <select
-            className="illuminator-select"
+            className="illuminator-select chron-filter-bar__select chron-filter-bar__select--focus"
             value={focusFilter}
             onChange={(e) => setFocusFilter(e.target.value)}
-            style={{ width: "auto", minWidth: "120px", fontSize: "12px", padding: "4px 6px" }}
           >
             {FOCUS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -2490,9 +2363,9 @@ export default function ChroniclePanel({
           </select>
         </div>
 
-        <div style={{ position: "relative", minWidth: "220px", flex: 1 }}>
+        <div className="chron-filter-bar__search">
           <input
-            className="illuminator-input"
+            className="illuminator-input chron-filter-bar__search-input"
             placeholder="Search cast by entity..."
             value={entitySearchQuery}
             onChange={(e) => {
@@ -2501,24 +2374,9 @@ export default function ChroniclePanel({
             }}
             onFocus={() => setShowEntitySuggestions(true)}
             onBlur={() => setTimeout(() => setShowEntitySuggestions(false), 100)}
-            style={{ width: "100%", fontSize: "12px", padding: "6px 8px" }}
           />
           {showEntitySuggestions && entitySuggestions.length > 0 && (
-            <div
-              style={{
-                position: "absolute",
-                top: "calc(100% + 4px)",
-                left: 0,
-                right: 0,
-                background: "var(--bg-secondary)",
-                border: "1px solid var(--border-color)",
-                borderRadius: "6px",
-                zIndex: 10,
-                maxHeight: "180px",
-                overflowY: "auto",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-              }}
-            >
+            <div className="chron-filter-bar__suggestions">
               {entitySuggestions.map((entity) => (
                 <div
                   key={entity.id}
@@ -2528,18 +2386,10 @@ export default function ChroniclePanel({
                     setEntitySearchSelectedId(entity.id);
                     setShowEntitySuggestions(false);
                   }}
-                  style={{
-                    padding: "6px 10px",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
+                  className="chron-filter-bar__suggestion-item"
                 >
-                  <span style={{ color: "var(--text-primary)" }}>{entity.name}</span>
-                  <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>
+                  <span className="chron-filter-bar__suggestion-name">{entity.name}</span>
+                  <span className="chron-filter-bar__suggestion-kind">
                     {entity.kind}
                   </span>
                 </div>
@@ -2550,59 +2400,21 @@ export default function ChroniclePanel({
       </div>
 
       {/* Collapsible Bulk Actions */}
-      <div
-        style={{
-          borderBottom: "1px solid var(--border-color)",
-          background: "var(--bg-primary)",
-        }}
-      >
+      <div className="chron-bulk">
         <button
           onClick={() => setShowBulkActions(!showBulkActions)}
-          style={{
-            width: "100%",
-            padding: "6px 16px",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            letterSpacing: "0.03em",
-          }}
+          className="chron-bulk__toggle"
         >
-          <span
-            style={{
-              fontSize: "9px",
-              transition: "transform 0.15s",
-              transform: showBulkActions ? "rotate(90deg)" : "none",
-            }}
-          >
+          <span className={`chron-bulk__toggle-arrow ${showBulkActions ? "chron-bulk__toggle-arrow--open" : ""}`}>
             &#9654;
           </span>
           Bulk Actions
         </button>
         {showBulkActions && (
-          <div
-            style={{
-              padding: "4px 16px 12px",
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "16px",
-            }}
-          >
+          <div className="chron-bulk__grid">
             {/* Validation */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <span
-                style={{
-                  fontSize: "10px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: "var(--text-muted)",
-                  fontWeight: 600,
-                }}
-              >
+            <div className="chron-bulk__section">
+              <span className="chron-bulk__section-label">
                 Validation
               </span>
               <button
@@ -2750,16 +2562,8 @@ export default function ChroniclePanel({
               </button>
             </div>
             {/* Historian Tone */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <span
-                style={{
-                  fontSize: "10px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: "var(--text-muted)",
-                  fontWeight: 600,
-                }}
-              >
+            <div className="chron-bulk__section">
+              <span className="chron-bulk__section-label">
                 Historian Tone
               </span>
               <button
@@ -2774,9 +2578,9 @@ export default function ChroniclePanel({
                 toneRankingProgress.status === "failed" ||
                 toneRankingProgress.status === "cancelled") && (
                 <div
+                  className="chron-bulk__status-text"
+                  // eslint-disable-next-line local/no-inline-styles
                   style={{
-                    fontSize: "11px",
-                    padding: "2px 0",
                     color:
                       toneRankingProgress.status === "complete"
                         ? "#10b981"
@@ -2809,16 +2613,8 @@ export default function ChroniclePanel({
               </button>
             </div>
             {/* Backport */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <span
-                style={{
-                  fontSize: "10px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: "var(--text-muted)",
-                  fontWeight: 600,
-                }}
-              >
+            <div className="chron-bulk__section">
+              <span className="chron-bulk__section-label">
                 Backport
               </span>
               <button
@@ -2845,16 +2641,8 @@ export default function ChroniclePanel({
               </button>
             </div>
             {/* Historian */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <span
-                style={{
-                  fontSize: "10px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: "var(--text-muted)",
-                  fontWeight: 600,
-                }}
-              >
+            <div className="chron-bulk__section">
+              <span className="chron-bulk__section-label">
                 Historian
               </span>
               <button
@@ -2926,22 +2714,14 @@ export default function ChroniclePanel({
                 Historian Prep
               </button>
               <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  fontSize: "10px",
-                  color: "var(--text-muted)",
-                  cursor: "pointer",
-                  marginTop: "-2px",
-                }}
+                className="chron-bulk__skip-label"
                 title="Skip chronicles that already have historian prep briefs"
               >
                 <input
                   type="checkbox"
                   checked={skipCompletedPrep}
                   onChange={(e) => setSkipCompletedPrep(e.target.checked)}
-                  style={{ margin: 0 }}
+                  className="chron-bulk__skip-checkbox"
                 />
                 Skip completed
               </label>
@@ -3041,41 +2821,25 @@ export default function ChroniclePanel({
       </div>
 
       {/* Main content area */}
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+      <div className="chron-main">
         {/* Left panel: Item list */}
         <div
           ref={navListRef}
-          style={{
-            width: "300px",
-            borderRight: "1px solid var(--border-color)",
-            overflow: "auto",
-            padding: "16px",
-          }}
+          className="chron-nav"
         >
           {filteredChronicleItems.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "32px", color: "var(--text-muted)" }}>
-              <div style={{ fontSize: "14px" }}>No chronicles match your filters</div>
-              <div style={{ fontSize: "12px", marginTop: "4px" }}>
+            <div className="chron-nav__empty">
+              <div className="chron-nav__empty-title">No chronicles match your filters</div>
+              <div className="chron-nav__empty-hint">
                 Adjust filters or clear search to see more.
               </div>
             </div>
           ) : groupByType && groupedChronicleItems ? (
             groupedChronicleItems.map((group) => (
-              <div key={group.label} style={{ marginBottom: "12px" }}>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    color: "var(--text-muted)",
-                    marginBottom: "6px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
+              <div key={group.label} className="chron-nav__group">
+                <div className="chron-nav__group-header">
                   <span>{group.label}</span>
-                  <span style={{ fontSize: "10px" }}>{group.items.length}</span>
+                  <span className="chron-nav__group-count">{group.items.length}</span>
                 </div>
                 {group.items.map((item) =>
                   item.itemType === "era_narrative" ? (
@@ -3118,12 +2882,7 @@ export default function ChroniclePanel({
           {navVisibleCount < filteredChronicleItems.length && (
             <div
               ref={navLoadMoreRef}
-              style={{
-                padding: "8px",
-                textAlign: "center",
-                fontSize: "11px",
-                color: "var(--text-muted)",
-              }}
+              className="chron-nav__load-more"
             >
               Loading more...
             </div>
@@ -3131,7 +2890,7 @@ export default function ChroniclePanel({
         </div>
 
         {/* Right panel: Selected item detail */}
-        <div style={{ flex: 1, overflow: "auto", padding: "24px" }}>
+        <div className="chron-detail">
           {isEraNarrativeSelected && selectedEraNarrativeId ? (
             <EraNarrativeViewer
               narrativeId={selectedEraNarrativeId}
@@ -3148,15 +2907,7 @@ export default function ChroniclePanel({
               worldContext={worldContext}
             />
           ) : !selectedItem ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-                color: "var(--text-muted)",
-              }}
-            >
+            <div className="chron-detail__empty">
               Select an item to begin generation
             </div>
           ) : (
@@ -3164,23 +2915,15 @@ export default function ChroniclePanel({
               {/* Pipeline stage content */}
               {/* Not started = generation failed before producing content */}
               {selectedItem.status === "not_started" && (
-                <div
-                  style={{
-                    padding: "24px",
-                    background: "rgba(239, 68, 68, 0.08)",
-                    border: "1px solid rgba(239, 68, 68, 0.3)",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <h3 style={{ margin: "0 0 8px 0", color: "#ef4444" }}>Generation Failed</h3>
-                  <p style={{ margin: "0 0 16px 0", color: "var(--text-secondary)" }}>
+                <div className="chron-detail__failed">
+                  <h3 className="chron-detail__failed-title">Generation Failed</h3>
+                  <p className="chron-detail__failed-msg">
                     {selectedItem.failureReason ||
                       "Chronicle generation failed before producing content."}
                   </p>
                   <button
                     onClick={handleRegenerate}
-                    className="illuminator-button illuminator-button-primary"
-                    style={{ padding: "10px 18px", fontSize: "13px" }}
+                    className="illuminator-button illuminator-button-primary chron-detail__failed-btn"
                   >
                     Delete &amp; Restart
                   </button>
@@ -3191,35 +2934,19 @@ export default function ChroniclePanel({
               {(selectedItem.status === "validating" ||
                 selectedItem.status === "editing" ||
                 selectedItem.status === "generating") && (
-                <div style={{ textAlign: "center", padding: "48px" }}>
-                  <div
-                    style={{
-                      width: "48px",
-                      height: "48px",
-                      margin: "0 auto 16px",
-                      border: "4px solid var(--bg-tertiary)",
-                      borderTopColor: "var(--accent-primary)",
-                      borderRadius: "50%",
-                      animation: "spin 1s linear infinite",
-                    }}
-                  />
-                  <h3 style={{ margin: "0 0 8px 0" }}>
+                <div className="chron-detail__progress">
+                  <div className="chron-detail__spinner" />
+                  <h3 className="chron-detail__progress-title">
                     {selectedItem.status === "validating" && "Validating Cohesion..."}
                     {selectedItem.status === "editing" && "Applying Suggestions..."}
                     {selectedItem.status === "generating" && "Generating Chronicle..."}
                   </h3>
-                  <div style={{ color: "var(--text-muted)" }}>
+                  <div className="chron-detail__progress-hint">
                     <p>Generation in progress. This typically takes 30-60 seconds.</p>
                   </div>
                   <button
                     onClick={() => cancelChronicle(selectedItem.chronicleId)}
-                    className="illuminator-button"
-                    style={{
-                      marginTop: "16px",
-                      padding: "8px 16px",
-                      fontSize: "13px",
-                      color: "var(--text-secondary)",
-                    }}
+                    className="illuminator-button chron-detail__cancel-btn"
                   >
                     Cancel
                   </button>
@@ -3227,23 +2954,15 @@ export default function ChroniclePanel({
               )}
 
               {selectedItem.status === "failed" && (
-                <div
-                  style={{
-                    padding: "24px",
-                    background: "rgba(239, 68, 68, 0.08)",
-                    border: "1px solid rgba(239, 68, 68, 0.3)",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <h3 style={{ margin: "0 0 8px 0", color: "#ef4444" }}>Generation Failed</h3>
-                  <p style={{ margin: "0 0 16px 0", color: "var(--text-secondary)" }}>
+                <div className="chron-detail__failed">
+                  <h3 className="chron-detail__failed-title">Generation Failed</h3>
+                  <p className="chron-detail__failed-msg">
                     {selectedItem.failureReason ||
                       "Chronicle generation failed. Please regenerate to try again."}
                   </p>
                   <button
                     onClick={handleRegenerate}
-                    className="illuminator-button illuminator-button-primary"
-                    style={{ padding: "10px 18px", fontSize: "13px" }}
+                    className="illuminator-button illuminator-button-primary chron-detail__failed-btn"
                   >
                     Regenerate
                   </button>
@@ -3381,69 +3100,20 @@ export default function ChroniclePanel({
 
       {/* Restart confirmation modal */}
       {showRestartModal && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(0, 0, 0, 0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-          onClick={handleRestartCancel}
-        >
-          <div
-            style={{
-              background: "var(--bg-primary)",
-              borderRadius: "12px",
-              padding: "24px",
-              maxWidth: "400px",
-              width: "90%",
-              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ margin: "0 0 12px 0", fontSize: "18px" }}>Restart Chronicle?</h3>
-            <p
-              style={{
-                margin: "0 0 20px 0",
-                color: "var(--text-secondary)",
-                fontSize: "14px",
-                lineHeight: 1.6,
-              }}
-            >
+        <div className="chron-modal-overlay" onClick={handleRestartCancel}>
+          <div className="chron-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="chron-modal__title">Restart Chronicle?</h3>
+            <p className="chron-modal__body">
               This will delete the current chronicle and open the wizard with the same settings. You
               can modify the settings before regenerating.
             </p>
-            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-              <button
-                onClick={handleRestartCancel}
-                style={{
-                  padding: "10px 20px",
-                  fontSize: "14px",
-                  background: "var(--bg-tertiary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                }}
-              >
+            <div className="chron-modal__actions">
+              <button onClick={handleRestartCancel} className="chron-modal__cancel-btn">
                 Cancel
               </button>
               <button
                 onClick={handleRestartConfirm}
-                style={{
-                  padding: "10px 20px",
-                  fontSize: "14px",
-                  background: "#dc2626",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                }}
+                className="chron-modal__danger-btn chron-modal__danger-btn--red"
               >
                 Delete & Restart
               </button>
@@ -3454,86 +3124,29 @@ export default function ChroniclePanel({
 
       {/* Reset Backport Flags confirmation modal */}
       {showResetBackportModal && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(0, 0, 0, 0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-          onClick={handleResetBackportCancel}
-        >
-          <div
-            style={{
-              background: "var(--bg-primary)",
-              borderRadius: "12px",
-              padding: "24px",
-              maxWidth: "450px",
-              width: "90%",
-              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ margin: "0 0 12px 0", fontSize: "18px" }}>Reset All Backports?</h3>
-            <p
-              style={{
-                margin: "0 0 16px 0",
-                color: "var(--text-secondary)",
-                fontSize: "14px",
-                lineHeight: 1.6,
-              }}
-            >
+        <div className="chron-modal-overlay" onClick={handleResetBackportCancel}>
+          <div className="chron-modal chron-modal--wide" onClick={(e) => e.stopPropagation()}>
+            <h3 className="chron-modal__title">Reset All Backports?</h3>
+            <p className="chron-modal__body--mb16">
               This will:
             </p>
-            <ul
-              style={{
-                margin: "0 0 16px 0",
-                paddingLeft: "20px",
-                color: "var(--text-secondary)",
-                fontSize: "13px",
-                lineHeight: 1.8,
-              }}
-            >
+            <ul className="chron-modal__list">
               <li>Clear per-entity backport status on all chronicles</li>
               <li>Restore entity descriptions to their pre-backport state</li>
               <li>Clear chronicle backref links from entities</li>
             </ul>
-            <p style={{ margin: "0 0 20px 0", color: "var(--text-muted)", fontSize: "13px" }}>
+            <p className="chron-modal__hint">
               Use this when you plan to regenerate chronicles and re-run backporting from scratch.
               Entity descriptions will be reverted to what they were before any lore backport was
               applied.
             </p>
-            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-              <button
-                onClick={handleResetBackportCancel}
-                style={{
-                  padding: "10px 20px",
-                  fontSize: "14px",
-                  background: "var(--bg-tertiary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                }}
-              >
+            <div className="chron-modal__actions">
+              <button onClick={handleResetBackportCancel} className="chron-modal__cancel-btn">
                 Cancel
               </button>
               <button
                 onClick={handleResetBackportConfirm}
-                style={{
-                  padding: "10px 20px",
-                  fontSize: "14px",
-                  background: "#f59e0b",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                }}
+                className="chron-modal__danger-btn chron-modal__danger-btn--amber"
               >
                 Reset All
               </button>
@@ -3545,22 +3158,7 @@ export default function ChroniclePanel({
       {/* Era Summary Refresh notification */}
       {eraSummaryRefreshResult && (
         <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            background: eraSummaryRefreshResult.success
-              ? "rgba(16, 185, 129, 0.95)"
-              : "rgba(239, 68, 68, 0.95)",
-            color: "white",
-            padding: "16px 24px",
-            borderRadius: "8px",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-            zIndex: 1001,
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-          }}
+          className={`chron-toast ${eraSummaryRefreshResult.success ? "chron-toast--success" : "chron-toast--error"}`}
           onClick={() => setEraSummaryRefreshResult(null)}
         >
           <span>
@@ -3570,15 +3168,7 @@ export default function ChroniclePanel({
                 : "All chronicle era summaries are already up to date"
               : `Error: ${eraSummaryRefreshResult.error}`}
           </span>
-          <button
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "white",
-              cursor: "pointer",
-              fontSize: "16px",
-            }}
-          >
+          <button className="chron-toast__close">
             &times;
           </button>
         </div>
@@ -3587,20 +3177,7 @@ export default function ChroniclePanel({
       {/* Temporal Check notification */}
       {temporalCheckResult && (
         <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            background: "rgba(16, 185, 129, 0.95)",
-            color: "white",
-            padding: "16px 24px",
-            borderRadius: "8px",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-            zIndex: 1001,
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-          }}
+          className="chron-toast chron-toast--success"
           onClick={() => setTemporalCheckResult(null)}
         >
           <span>
@@ -3608,15 +3185,7 @@ export default function ChroniclePanel({
               ? `Enqueued temporal checks for ${temporalCheckResult.count} chronicle${temporalCheckResult.count !== 1 ? "s" : ""}`
               : "No eligible chronicles (need temporal narrative + assembled content)"}
           </span>
-          <button
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "white",
-              cursor: "pointer",
-              fontSize: "16px",
-            }}
-          >
+          <button className="chron-toast__close">
             &times;
           </button>
         </div>
@@ -3625,20 +3194,7 @@ export default function ChroniclePanel({
       {/* Bulk Summary Result notification */}
       {bulkSummaryResult && (
         <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            background: "rgba(16, 185, 129, 0.95)",
-            color: "white",
-            padding: "16px 24px",
-            borderRadius: "8px",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-            zIndex: 1001,
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-          }}
+          className="chron-toast chron-toast--success"
           onClick={() => setBulkSummaryResult(null)}
         >
           <span>
@@ -3646,15 +3202,7 @@ export default function ChroniclePanel({
               ? `Enqueued summary generation for ${bulkSummaryResult.count} chronicle${bulkSummaryResult.count !== 1 ? "s" : ""}`
               : "No chronicles with missing summaries"}
           </span>
-          <button
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "white",
-              cursor: "pointer",
-              fontSize: "16px",
-            }}
-          >
+          <button className="chron-toast__close">
             &times;
           </button>
         </div>
@@ -3663,22 +3211,7 @@ export default function ChroniclePanel({
       {/* Reset Backport Result notification */}
       {resetBackportResult && (
         <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            background: resetBackportResult.success
-              ? "rgba(16, 185, 129, 0.95)"
-              : "rgba(239, 68, 68, 0.95)",
-            color: "white",
-            padding: "16px 24px",
-            borderRadius: "8px",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-            zIndex: 1001,
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-          }}
+          className={`chron-toast ${resetBackportResult.success ? "chron-toast--success" : "chron-toast--error"}`}
           onClick={() => setResetBackportResult(null)}
         >
           <span>
@@ -3686,15 +3219,7 @@ export default function ChroniclePanel({
               ? `Reset ${resetBackportResult.chronicleCount} chronicle${resetBackportResult.chronicleCount !== 1 ? "s" : ""}, restored ${resetBackportResult.entityCount} entit${resetBackportResult.entityCount !== 1 ? "ies" : "y"}`
               : `Error: ${resetBackportResult.error}`}
           </span>
-          <button
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "white",
-              cursor: "pointer",
-              fontSize: "16px",
-            }}
-          >
+          <button className="chron-toast__close">
             &times;
           </button>
         </div>
@@ -3703,22 +3228,7 @@ export default function ChroniclePanel({
       {/* Reconcile Backport Result notification */}
       {reconcileBackportResult && (
         <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            background: reconcileBackportResult.success
-              ? "rgba(16, 185, 129, 0.95)"
-              : "rgba(239, 68, 68, 0.95)",
-            color: "white",
-            padding: "16px 24px",
-            borderRadius: "8px",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-            zIndex: 1001,
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-          }}
+          className={`chron-toast ${reconcileBackportResult.success ? "chron-toast--success" : "chron-toast--error"}`}
           onClick={() => setReconcileBackportResult(null)}
         >
           <span>
@@ -3726,15 +3236,7 @@ export default function ChroniclePanel({
               ? `Reconciled ${reconcileBackportResult.count} chronicle${reconcileBackportResult.count !== 1 ? "s" : ""} from entity backrefs`
               : `Error: ${reconcileBackportResult.error}`}
           </span>
-          <button
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "white",
-              cursor: "pointer",
-              fontSize: "16px",
-            }}
-          >
+          <button className="chron-toast__close">
             &times;
           </button>
         </div>

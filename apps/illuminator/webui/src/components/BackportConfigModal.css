@@ -1,0 +1,266 @@
+/* BackportConfigModal — bcm- prefix */
+
+.bcm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.bcm-dialog {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  width: 500px;
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Header */
+.bcm-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.bcm-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.bcm-subtitle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.bcm-chronicle-title {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.bcm-progress {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+/* Body */
+.bcm-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.bcm-section {
+  margin-bottom: 16px;
+}
+
+.bcm-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.bcm-section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.bcm-action-group {
+  display: flex;
+  gap: 8px;
+}
+
+.bcm-text-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+}
+
+.bcm-text-btn--tertiary {
+  color: #8b5cf6;
+}
+
+.bcm-text-btn--accent {
+  color: var(--accent-color);
+}
+
+.bcm-entity-list {
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  padding: 8px 12px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+/* Entity row */
+.bcm-entity-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.bcm-entity-row--locked {
+  opacity: 0.6;
+}
+
+.bcm-status-icon {
+  width: 13px;
+  text-align: center;
+  font-size: 11px;
+}
+
+.bcm-status-icon--done {
+  color: #10b981;
+}
+
+.bcm-status-icon--skipped {
+  color: var(--text-muted);
+}
+
+.bcm-checkbox {
+  cursor: pointer;
+}
+
+.bcm-entity-name {
+  flex: 1;
+}
+
+.bcm-entity-name--clickable {
+  cursor: pointer;
+}
+
+.bcm-entity-name--locked {
+  cursor: default;
+}
+
+.bcm-entity-kind {
+  color: var(--text-muted);
+  margin-left: 6px;
+}
+
+/* Status tags */
+.bcm-tag {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bcm-tag--done {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.bcm-tag--skipped {
+  background: rgba(107, 114, 128, 0.15);
+  color: var(--text-muted);
+}
+
+.bcm-tag--lens {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+}
+
+.bcm-tag--tertiary {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.bcm-skip-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 1px 4px;
+  opacity: 0.7;
+}
+
+.bcm-skip-btn:hover {
+  opacity: 1;
+}
+
+/* Dividers */
+.bcm-divider {
+  border-top: 1px solid var(--border-color);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.bcm-tertiary-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+/* Custom instructions */
+.bcm-instructions-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.bcm-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.bcm-instructions-hint {
+  margin: 4px 0 0;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Footer */
+.bcm-footer {
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.bcm-footer-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+}

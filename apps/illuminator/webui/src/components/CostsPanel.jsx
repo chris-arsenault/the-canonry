@@ -19,6 +19,7 @@ import {
   summarizeCosts,
   clearAllCosts,
 } from "../lib/db/costRepository";
+import "./CostsPanel.css";
 
 function CostCard({ title, children }) {
   return (
@@ -33,17 +34,9 @@ function CostCard({ title, children }) {
 
 function CostRow({ label, value, isTotal, isEstimated }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        padding: "8px 0",
-        borderBottom: "1px solid var(--border-color)",
-        fontWeight: isTotal ? 600 : 400,
-      }}
-    >
+    <div className={`cpanel-row ${isTotal ? "cpanel-row--total" : ""}`}>
       <span>{label}</span>
-      <span style={{ fontFamily: "monospace" }}>
+      <span className="cpanel-row-value">
         {isEstimated && "~"}
         {formatCost(value)}
       </span>
@@ -208,7 +201,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
       {/* Current Simulation */}
       {simCategorized && (
         <CostCard title="Current Simulation">
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "12px" }}>
+          <div className="cpanel-section-hint">
             Costs from this simulation run.
           </div>
           <CostRow label="Text generations" value={simCategorized.text.actual} />
@@ -243,7 +236,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
       {/* Pending Queue */}
       {queueCosts.total > 0 && (
         <CostCard title="Pending Queue (Estimated)">
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "12px" }}>
+          <div className="cpanel-section-hint">
             Estimated costs for queued tasks not yet completed.
           </div>
           <CostRow label="Text generations" value={queueCosts.textEstimated} isEstimated />
@@ -260,7 +253,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
       {/* By Model */}
       {simulationCosts && Object.keys(simulationCosts.byModel).length > 0 && (
         <CostCard title="By Model (Simulation)">
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "12px" }}>
+          <div className="cpanel-section-hint">
             Cost breakdown by model used.
           </div>
           {Object.entries(simulationCosts.byModel)
@@ -274,7 +267,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
       {/* Project Total */}
       {projCategorized && (
         <CostCard title="Project Total">
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "12px" }}>
+          <div className="cpanel-section-hint">
             Accumulated costs for this project across all simulations.
           </div>
           <CostRow label="Text generations" value={projCategorized.text.actual} />
@@ -287,7 +280,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
       {/* All Time */}
       {allCategorized && (
         <CostCard title="All Time Total">
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "12px" }}>
+          <div className="cpanel-section-hint">
             Accumulated costs across all projects and sessions.
           </div>
           <CostRow label="Text generations" value={allCategorized.text.actual} />
@@ -301,8 +294,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
 
           <button
             onClick={handleClearHistory}
-            className="illuminator-button-link"
-            style={{ marginTop: "12px", fontSize: "11px" }}
+            className="illuminator-button-link cpanel-clear-button"
           >
             Clear History
           </button>
@@ -312,7 +304,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
       {/* Empty state */}
       {!simulationCosts && !allTimeCosts && queueCosts.total === 0 && (
         <CostCard title="Cost Tracking">
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "12px 0" }}>
+          <div className="cpanel-empty-hint">
             No costs recorded yet. Costs will appear here as you generate content.
           </div>
         </CostCard>

@@ -7,6 +7,7 @@
  */
 
 import { useState } from "react";
+import "./RevisionFilterModal.css";
 
 export default function RevisionFilterModal({
   isOpen,
@@ -22,93 +23,46 @@ export default function RevisionFilterModal({
   const available = excludeChronicle ? totalEligible - usedInChronicles : totalEligible;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(0, 0, 0, 0.6)",
-      }}
-    >
-      <div
-        style={{
-          background: "var(--bg-primary)",
-          borderRadius: "12px",
-          border: "1px solid var(--border-color)",
-          width: "440px",
-          maxWidth: "95vw",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-        }}
-      >
+    <div className="rfm-overlay">
+      <div className="rfm-dialog">
         {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-color)",
-          }}
-        >
-          <h2 style={{ margin: 0, fontSize: "16px" }}>Revise Entity Summaries</h2>
-          <p style={{ margin: "4px 0 0", fontSize: "11px", color: "var(--text-muted)" }}>
+        <div className="rfm-header">
+          <h2 className="rfm-title">Revise Entity Summaries</h2>
+          <p className="rfm-subtitle">
             Rewrite summaries and descriptions with full world context.
           </p>
         </div>
 
         {/* Body */}
-        <div style={{ padding: "16px 20px" }}>
+        <div className="rfm-body">
           {/* Counts */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr auto",
-              gap: "6px 16px",
-              fontSize: "12px",
-              marginBottom: "16px",
-            }}
-          >
-            <span style={{ color: "var(--text-secondary)" }}>Total eligible entities</span>
-            <span style={{ fontFamily: "monospace", fontWeight: 600 }}>{totalEligible}</span>
+          <div className="rfm-counts-grid">
+            <span className="rfm-count-label">Total eligible entities</span>
+            <span className="rfm-count-value">{totalEligible}</span>
 
-            <span style={{ color: "var(--text-secondary)" }}>Used in chronicles</span>
+            <span className="rfm-count-label">Used in chronicles</span>
             <span
-              style={{
-                fontFamily: "monospace",
-                fontWeight: 600,
-                color: usedInChronicles > 0 ? "var(--warning-color, #f59e0b)" : "var(--text-muted)",
-              }}
+              className={`rfm-count-value ${usedInChronicles > 0 ? "rfm-count-value--warning" : "rfm-count-value--muted"}`}
             >
               {usedInChronicles}
             </span>
 
-            <span style={{ fontWeight: 600 }}>Available for revision</span>
-            <span style={{ fontFamily: "monospace", fontWeight: 600 }}>{available}</span>
+            <span className="rfm-count-label rfm-count-label--total">Available for revision</span>
+            <span className="rfm-count-value">{available}</span>
           </div>
 
           {/* Chronicle filter toggle */}
           {usedInChronicles > 0 && (
-            <label
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "8px",
-                padding: "10px 12px",
-                background: "var(--bg-secondary)",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontSize: "12px",
-              }}
-            >
+            <label className="rfm-filter-toggle">
               <input
                 type="checkbox"
                 checked={excludeChronicle}
                 onChange={(e) => setExcludeChronicle(e.target.checked)}
-                style={{ marginTop: "2px" }}
+                className="rfm-filter-checkbox"
               />
               <div>
-                <div style={{ fontWeight: 600 }}>Exclude entities used in chronicles</div>
-                <div style={{ color: "var(--text-muted)", fontSize: "11px", marginTop: "2px" }}>
+                <div className="rfm-filter-title">Exclude entities used in chronicles</div>
+                <div className="rfm-filter-description">
                   Recommended. Prevents inconsistency between rewritten descriptions and existing
                   chronicle text.
                 </div>
@@ -117,44 +71,24 @@ export default function RevisionFilterModal({
           )}
 
           {available === 0 && (
-            <div
-              style={{
-                marginTop: "12px",
-                padding: "10px 12px",
-                background: "var(--bg-tertiary)",
-                borderRadius: "6px",
-                borderLeft: "3px solid var(--warning-color, #f59e0b)",
-                fontSize: "12px",
-                color: "var(--text-secondary)",
-              }}
-            >
+            <div className="rfm-warning">
               No entities available for revision with current filters.
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "12px 20px 16px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            gap: "8px",
-            justifyContent: "flex-end",
-          }}
-        >
+        <div className="rfm-footer">
           <button
             onClick={onCancel}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "6px 16px", fontSize: "12px" }}
+            className="illuminator-button illuminator-button-secondary rfm-footer-btn"
           >
             Cancel
           </button>
           <button
             onClick={() => onStart(excludeChronicle)}
             disabled={available === 0}
-            className="illuminator-button illuminator-button-primary"
-            style={{ padding: "6px 16px", fontSize: "12px" }}
+            className="illuminator-button illuminator-button-primary rfm-footer-btn"
           >
             Start Revision ({available} entities)
           </button>

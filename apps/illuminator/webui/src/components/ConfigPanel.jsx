@@ -11,6 +11,7 @@
 import LLMCallConfigPanel from "./LLMCallConfigPanel";
 import { LocalTextArea } from "@penguin-tales/shared-components";
 import { IMAGE_MODELS } from "../lib/imageSettings";
+import "./ConfigPanel.css";
 
 const DEFAULT_IMAGE_PROMPT_TEMPLATE = `Transform the structured prompt below into a single, coherent image prompt for {{modelName}}. Do NOT simply reformat—actively synthesize and reshape:
 
@@ -82,7 +83,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
           </select>
         </div>
 
-        <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+        <p className="cfgp-hint">
           Size and quality settings are in the Image Settings panel (sidebar).
         </p>
       </div>
@@ -91,11 +92,11 @@ export default function ConfigPanel({ config, onConfigChange }) {
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Multishot Prompting</h2>
         </div>
-        <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
+        <p className="cfgp-section-desc">
           Improve image generation by chaining multiple AI calls.
         </p>
 
-        <div className="illuminator-checkbox-group" style={{ marginBottom: "12px" }}>
+        <div className="illuminator-checkbox-group cfgp-checkbox-spacer">
           <input
             type="checkbox"
             id="requireDescription"
@@ -105,19 +106,12 @@ export default function ConfigPanel({ config, onConfigChange }) {
           />
           <label htmlFor="requireDescription">Require description before image</label>
         </div>
-        <p
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            marginBottom: "16px",
-            marginLeft: "24px",
-          }}
-        >
+        <p className="cfgp-checkbox-hint">
           Enforces description generation before image generation. The description will be included
           in the image prompt.
         </p>
 
-        <div className="illuminator-checkbox-group" style={{ marginBottom: "12px" }}>
+        <div className="illuminator-checkbox-group cfgp-checkbox-spacer">
           <input
             type="checkbox"
             id="useClaudeForImagePrompt"
@@ -127,20 +121,13 @@ export default function ConfigPanel({ config, onConfigChange }) {
           />
           <label htmlFor="useClaudeForImagePrompt">Use Claude to format image prompt</label>
         </div>
-        <p
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            marginBottom: "12px",
-            marginLeft: "24px",
-          }}
-        >
+        <p className="cfgp-checkbox-hint--tight">
           Sends the image prompt through Claude first to optimize it for the image model.
         </p>
 
         {config.useClaudeForImagePrompt && (
           <>
-            <div className="illuminator-form-group" style={{ marginLeft: "24px" }}>
+            <div className="illuminator-form-group cfgp-indented-group">
               <label className="illuminator-label">Global Image Rules</label>
               <LocalTextArea
                 value={config.globalImageRules || ""}
@@ -149,12 +136,12 @@ export default function ConfigPanel({ config, onConfigChange }) {
                 placeholder="SPECIES RULE: This world contains only [species]. Any figures depicted must be explicitly described as [species], never as humans or generic figures."
                 rows={4}
               />
-              <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+              <p className="cfgp-hint">
                 Domain-specific rules injected into all image prompts. Use this to enforce species,
                 setting constraints, or other world-specific requirements.
               </p>
             </div>
-            <div className="illuminator-form-group" style={{ marginLeft: "24px" }}>
+            <div className="illuminator-form-group cfgp-indented-group">
               <label className="illuminator-label">Entity image prompt template</label>
               <LocalTextArea
                 value={config.claudeImagePromptTemplate || DEFAULT_IMAGE_PROMPT_TEMPLATE}
@@ -162,13 +149,13 @@ export default function ConfigPanel({ config, onConfigChange }) {
                 className="illuminator-template-textarea"
                 placeholder={DEFAULT_IMAGE_PROMPT_TEMPLATE}
               />
-              <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+              <p className="cfgp-hint">
                 Used for entity portrait images. Use {"{{modelName}}"} for the image model name,{" "}
                 {"{{prompt}}"} for the original prompt, and {"{{globalImageRules}}"} for the global
                 rules above.
               </p>
             </div>
-            <div className="illuminator-form-group" style={{ marginLeft: "24px" }}>
+            <div className="illuminator-form-group cfgp-indented-group">
               <label className="illuminator-label">Chronicle image prompt template</label>
               <LocalTextArea
                 value={
@@ -179,7 +166,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
                 className="illuminator-template-textarea"
                 placeholder={DEFAULT_CHRONICLE_IMAGE_PROMPT_TEMPLATE}
               />
-              <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+              <p className="cfgp-hint">
                 Used for chronicle cover and scene images. Use {"{{modelName}}"} for the image model
                 name, {"{{prompt}}"} for the original prompt, and {"{{globalImageRules}}"} for the
                 global rules above.
@@ -196,20 +183,18 @@ export default function ConfigPanel({ config, onConfigChange }) {
 
         <div className="illuminator-form-group">
           <label className="illuminator-label">Parallel workers</label>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div className="cfgp-workers-row">
             <input
               type="range"
               min="1"
               max="8"
               value={config.numWorkers || 4}
               onChange={(e) => onConfigChange({ numWorkers: parseInt(e.target.value, 10) })}
-              style={{ flex: 1 }}
+              className="cfgp-range-input"
             />
-            <span style={{ minWidth: "24px", textAlign: "right", fontWeight: 500 }}>
-              {config.numWorkers || 4}
-            </span>
+            <span className="cfgp-worker-count">{config.numWorkers || 4}</span>
           </div>
-          <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+          <p className="cfgp-hint">
             Number of concurrent API calls. Higher = faster but may hit rate limits.
           </p>
         </div>
@@ -219,19 +204,12 @@ export default function ConfigPanel({ config, onConfigChange }) {
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">About</h2>
         </div>
-        <p style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.6 }}>
+        <p className="cfgp-about-text">
           Illuminator enriches your world simulation with LLM-generated content. Use the{" "}
           <strong>Entities</strong> tab to generate descriptions and images for entities. Use the{" "}
           <strong>Chronicle</strong> tab to generate multi-entity narratives and in-world documents.
         </p>
-        <p
-          style={{
-            fontSize: "12px",
-            color: "var(--text-muted)",
-            lineHeight: 1.6,
-            marginTop: "12px",
-          }}
-        >
+        <p className="cfgp-about-text--spaced">
           All enrichments are saved automatically to your current world slot.
         </p>
       </div>

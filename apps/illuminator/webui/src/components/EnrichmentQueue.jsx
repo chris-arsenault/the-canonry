@@ -15,6 +15,7 @@ import {
   prominenceLabelFromScale,
   prominenceThresholdFromScale,
 } from "@canonry/world-schema";
+import "./EnrichmentQueue.css";
 
 const PROMINENCE_LEVELS = ["forgotten", "marginal", "recognized", "renowned", "mythic"];
 
@@ -52,55 +53,25 @@ function EntityTaskGroup({
   const hasError = tasks.some((t) => t.status === "error");
 
   return (
-    <div
-      style={{
-        marginBottom: "8px",
-        border: "1px solid var(--border-color)",
-        borderRadius: "4px",
-        overflow: "hidden",
-      }}
-    >
-      <button
-        onClick={onToggleExpand}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          padding: "10px 12px",
-          background: "var(--bg-tertiary)",
-          border: "none",
-          color: "var(--text-color)",
-          cursor: "pointer",
-          textAlign: "left",
-        }}
-      >
-        <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>{expanded ? "▼" : "▶"}</span>
-        <span style={{ flex: 1 }}>
-          <span style={{ fontWeight: 500 }}>{entityName}</span>
-          <span style={{ fontSize: "11px", color: "var(--text-muted)", marginLeft: "8px" }}>
+    <div className="eq-group">
+      <button onClick={onToggleExpand} className="eq-group-header">
+        <span className="eq-group-arrow">{expanded ? "▼" : "▶"}</span>
+        <span className="eq-group-info">
+          <span className="eq-group-name">{entityName}</span>
+          <span className="eq-group-meta">
             {entityKind}/{entitySubtype} - {prominenceLabelFromScale(prominence, prominenceScale)}
           </span>
         </span>
-        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+        <span className="eq-group-count">
           {completedCount}/{tasks.length}
-          {hasError && <span style={{ color: "var(--danger)", marginLeft: "4px" }}>!</span>}
+          {hasError && <span className="eq-group-error">!</span>}
         </span>
       </button>
 
       {expanded && (
-        <div style={{ padding: "8px 12px", background: "var(--bg-secondary)" }}>
+        <div className="eq-group-tasks">
           {tasks.map((task) => (
-            <div
-              key={task.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "6px 0",
-                borderBottom: "1px solid var(--border-color)",
-              }}
-            >
+            <div key={task.id} className="eq-task-row">
               <input
                 type="checkbox"
                 checked={selectedTasks.has(task.id)}
@@ -108,25 +79,14 @@ function EntityTaskGroup({
                 className="illuminator-checkbox"
                 disabled={task.status === "running"}
               />
-              <span style={{ flex: 1, fontSize: "12px" }}>
+              <span className="eq-task-label">
                 {task.type === "description" && "Description"}
                 {task.type === "image" && "Image"}
                 {task.type === "entityChronicle" && "Chronicle"}
               </span>
               <TaskStatusBadge status={task.status} />
               {(task.status === "queued" || task.status === "error") && (
-                <button
-                  onClick={() => onRunTask(task.id)}
-                  style={{
-                    padding: "2px 8px",
-                    background: "var(--accent-color)",
-                    border: "none",
-                    borderRadius: "3px",
-                    color: "white",
-                    fontSize: "11px",
-                    cursor: "pointer",
-                  }}
-                >
+                <button onClick={() => onRunTask(task.id)} className="eq-task-run-btn">
                   {task.status === "error" ? "Retry" : "Run"}
                 </button>
               )}
@@ -243,7 +203,7 @@ export default function EnrichmentQueue({
       <div className="illuminator-card">
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Enrichment Queue</h2>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="eq-header-actions">
             <button
               onClick={onRunAll}
               className="illuminator-button"
@@ -255,48 +215,19 @@ export default function EnrichmentQueue({
         </div>
 
         {!hasRequiredKeys && (
-          <div
-            style={{
-              padding: "12px",
-              background: "rgba(245, 158, 11, 0.1)",
-              border: "1px solid rgba(245, 158, 11, 0.3)",
-              borderRadius: "4px",
-              marginBottom: "16px",
-              fontSize: "12px",
-              color: "var(--warning)",
-            }}
-          >
+          <div className="eq-api-warning">
             Set API keys in the sidebar to run enrichment tasks
           </div>
         )}
 
         {/* Filters */}
-        <div
-          style={{
-            display: "flex",
-            gap: "12px",
-            marginBottom: "16px",
-            padding: "12px",
-            background: "var(--bg-tertiary)",
-            borderRadius: "4px",
-          }}
-        >
+        <div className="eq-filters">
           <div>
-            <label
-              style={{
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                display: "block",
-                marginBottom: "4px",
-              }}
-            >
-              Entity Kind
-            </label>
+            <label className="eq-filter-label">Entity Kind</label>
             <select
               value={filterKind}
               onChange={(e) => setFilterKind(e.target.value)}
-              className="illuminator-select"
-              style={{ width: "120px" }}
+              className="illuminator-select eq-filter-select"
             >
               <option value="all">All</option>
               {entityKinds.map((kind) => (
@@ -308,21 +239,11 @@ export default function EnrichmentQueue({
           </div>
 
           <div>
-            <label
-              style={{
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                display: "block",
-                marginBottom: "4px",
-              }}
-            >
-              Prominence
-            </label>
+            <label className="eq-filter-label">Prominence</label>
             <select
               value={filterProminence}
               onChange={(e) => setFilterProminence(e.target.value)}
-              className="illuminator-select"
-              style={{ width: "120px" }}
+              className="illuminator-select eq-filter-select"
             >
               <option value="all">All</option>
               {PROMINENCE_LEVELS.map((level) => (
@@ -334,21 +255,11 @@ export default function EnrichmentQueue({
           </div>
 
           <div>
-            <label
-              style={{
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                display: "block",
-                marginBottom: "4px",
-              }}
-            >
-              Status
-            </label>
+            <label className="eq-filter-label">Status</label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="illuminator-select"
-              style={{ width: "120px" }}
+              className="illuminator-select eq-filter-select"
             >
               <option value="all">All</option>
               <option value="pending">Pending</option>
@@ -357,8 +268,8 @@ export default function EnrichmentQueue({
             </select>
           </div>
 
-          <div style={{ marginLeft: "auto", alignSelf: "flex-end" }}>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+          <div className="eq-filter-summary">
+            <span className="eq-filter-summary-text">
               {filteredGroups.length} entities, {tasks.length} tasks
             </span>
           </div>
@@ -380,32 +291,18 @@ export default function EnrichmentQueue({
           ))}
 
           {filteredGroups.length === 0 && (
-            <div style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
-              No tasks match current filters
-            </div>
+            <div className="eq-empty">No tasks match current filters</div>
           )}
         </div>
       </div>
 
       {/* Selection actions */}
       {selectedTasks.size > 0 && (
-        <div
-          style={{
-            position: "sticky",
-            bottom: "16px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "12px 16px",
-            background: "var(--bg-secondary)",
-            border: "1px solid var(--accent-color)",
-            borderRadius: "6px",
-          }}
-        >
-          <span style={{ fontSize: "13px" }}>
+        <div className="eq-selection-bar">
+          <span className="eq-selection-count">
             {selectedTasks.size} task{selectedTasks.size !== 1 ? "s" : ""} selected
           </span>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="eq-selection-actions">
             <button
               onClick={() => setSelectedTasks(new Set())}
               className="illuminator-button illuminator-button-secondary"

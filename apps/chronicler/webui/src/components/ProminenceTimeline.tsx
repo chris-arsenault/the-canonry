@@ -308,9 +308,9 @@ export default function ProminenceTimeline({
 
         {/* Tooltip - shows narrative description on hover */}
         {hoveredPoint && (
-          // eslint-disable-next-line local/no-inline-styles -- dynamic position from mouse event
           <div
             className={styles.tooltip}
+            // eslint-disable-next-line local/no-inline-styles -- dynamic position from mouse event
             style={{ '--tooltip-left': `${hoveredPoint.x + 10}px`, '--tooltip-top': `${hoveredPoint.y - 40}px` } as React.CSSProperties}
           >
             <div className={styles.tooltipValue}>

@@ -1,0 +1,299 @@
+/* BulkBackportModal — prefix: bbm- */
+
+.bbm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.bbm-dialog {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.bbm-dialog--confirming {
+  width: 540px;
+}
+
+.bbm-dialog--processing {
+  width: 480px;
+}
+
+.bbm-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.bbm-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bbm-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.bbm-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bbm-minimize-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.bbm-status {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.bbm-status--complete {
+  color: #10b981;
+}
+
+.bbm-status--failed {
+  color: #ef4444;
+}
+
+.bbm-status--cancelled {
+  color: #f59e0b;
+}
+
+.bbm-status--default {
+  color: var(--text-muted);
+}
+
+.bbm-body {
+  padding: 20px;
+}
+
+.bbm-body--confirming {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.bbm-body--processing {
+  min-height: 0;
+}
+
+.bbm-entity-section {
+  margin-bottom: 12px;
+}
+
+.bbm-entity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.bbm-section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.bbm-section-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bbm-entity-list {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bbm-entity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.bbm-entity-row--bordered {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.bbm-entity-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.bbm-entity-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bbm-entity-kind {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.bbm-entity-chr {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* --- Processing screen --- */
+
+.bbm-progress-section {
+  margin-bottom: 20px;
+}
+
+.bbm-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.bbm-progress-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.bbm-progress-percent {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.bbm-progress-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.bbm-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.bbm-progress-fill--failed {
+  background: #ef4444;
+}
+
+.bbm-progress-fill--cancelled {
+  background: #f59e0b;
+}
+
+.bbm-progress-fill--ok {
+  background: #10b981;
+}
+
+.bbm-progress-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bbm-chronicle-detail {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  margin-bottom: 16px;
+}
+
+.bbm-chronicle-title {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bbm-chronicle-batch-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.bbm-chronicle-entity-count {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Terminal status banners */
+
+.bbm-terminal-banner {
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.bbm-terminal-banner--complete {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.bbm-terminal-banner--cancelled {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.bbm-terminal-banner--failed {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.bbm-failed-inline {
+  color: #ef4444;
+}
+
+.bbm-cost {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* Footer */
+
+.bbm-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.bbm-footer-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+}

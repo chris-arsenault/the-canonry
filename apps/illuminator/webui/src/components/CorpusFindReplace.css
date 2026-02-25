@@ -1,0 +1,388 @@
+/* CorpusFindReplace.css — co-located styles for CorpusFindReplace.tsx */
+
+/* ── Layout ── */
+.cfr-root {
+  max-width: 800px;
+}
+
+/* ── Match row ── */
+.cfr-match-row {
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 3px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.cfr-match-row--accepted {
+  background: var(--bg-tertiary);
+  opacity: 1;
+}
+
+.cfr-match-row--rejected {
+  background: var(--bg-secondary);
+  opacity: 0.5;
+}
+
+.cfr-match-checkbox {
+  margin-top: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cfr-match-body {
+  font-size: 11px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  flex: 1;
+}
+
+.cfr-match-body--mono {
+  font-family: monospace;
+}
+
+.cfr-diff-context {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.cfr-diff-old {
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+.cfr-diff-old--accepted {
+  background: rgba(239, 68, 68, 0.15);
+  text-decoration: line-through;
+}
+
+.cfr-diff-old--rejected {
+  background: rgba(139, 115, 85, 0.15);
+  text-decoration: none;
+}
+
+.cfr-diff-new {
+  background: rgba(34, 197, 94, 0.2);
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+.cfr-literal-context {
+  color: var(--text-muted);
+}
+
+.cfr-literal-old {
+  background: rgba(239, 68, 68, 0.2);
+  text-decoration: line-through;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+.cfr-literal-new {
+  background: rgba(34, 197, 94, 0.2);
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+/* ── Source group ── */
+.cfr-source-group {
+  margin-bottom: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.cfr-source-header {
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.cfr-source-arrow {
+  font-size: 10px;
+  color: var(--text-muted);
+  width: 10px;
+  flex-shrink: 0;
+}
+
+.cfr-source-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cfr-source-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.cfr-source-accept-count {
+  font-size: 10px;
+  color: #22c55e;
+}
+
+.cfr-source-reject-count {
+  font-size: 10px;
+  color: #ef4444;
+}
+
+.cfr-source-btn {
+  background: none;
+  border: none;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.cfr-source-btn--accept {
+  color: #22c55e;
+}
+
+.cfr-source-btn--reject {
+  color: #ef4444;
+}
+
+.cfr-source-matches {
+  padding: 6px 8px;
+}
+
+/* ── Context section ── */
+.cfr-context-section {
+  margin-bottom: 16px;
+}
+
+.cfr-context-heading {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+/* ── Input phase ── */
+.cfr-input-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cfr-field-label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.cfr-field-label--tight {
+  margin-bottom: 4px;
+}
+
+.cfr-checkbox-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.cfr-context-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.cfr-text-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.cfr-options-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cfr-option-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.cfr-option-label--disabled {
+  cursor: not-allowed;
+  color: var(--text-muted);
+}
+
+.cfr-cursor-pointer {
+  cursor: pointer;
+}
+
+.cfr-cursor-not-allowed {
+  cursor: not-allowed;
+}
+
+.cfr-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.cfr-btn-find {
+  padding: 6px 20px;
+  font-size: 12px;
+}
+
+.cfr-btn-half-opacity {
+  opacity: 0.5;
+}
+
+/* ── Scanning / generating / applying phase ── */
+.cfr-phase-center {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.cfr-phase-title {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.cfr-phase-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Empty phase ── */
+.cfr-empty-center {
+  text-align: center;
+  padding: 30px 0;
+}
+
+.cfr-empty-msg {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.cfr-btn-back {
+  padding: 6px 16px;
+  font-size: 12px;
+}
+
+/* ── Summary bar (preview / review) ── */
+.cfr-summary-bar {
+  margin-bottom: 12px;
+  padding: 8px 14px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.cfr-summary-muted {
+  color: var(--text-muted);
+}
+
+.cfr-summary-em {
+  color: var(--text-muted);
+}
+
+.cfr-summary-accept {
+  color: #22c55e;
+}
+
+.cfr-summary-reject {
+  color: #ef4444;
+}
+
+.cfr-summary-spacer {
+  flex: 1;
+}
+
+.cfr-summary-link {
+  background: none;
+  border: none;
+  font-size: 10px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.cfr-summary-link--accept {
+  color: #22c55e;
+}
+
+.cfr-summary-link--reject {
+  color: #ef4444;
+}
+
+/* ── Error banner ── */
+.cfr-error-banner {
+  margin-bottom: 12px;
+  padding: 8px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-size: 11px;
+  color: #ef4444;
+}
+
+.cfr-error-inline {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #ef4444;
+}
+
+/* ── Footer actions ── */
+.cfr-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.cfr-btn-apply {
+  padding: 6px 20px;
+  font-size: 12px;
+}
+
+/* ── Done phase ── */
+.cfr-done-msg {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.cfr-btn-new-search {
+  padding: 6px 20px;
+  font-size: 12px;
+  margin-top: 16px;
+}

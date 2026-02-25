@@ -1,0 +1,371 @@
+/* EventsPanel.css — co-located styles for EventsPanel.jsx */
+
+/* ─── EventKindBadge ─── */
+.events-panel-kind-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+/* ─── SignificanceBar ─── */
+.events-panel-significance-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.events-panel-significance-track {
+  width: 60px;
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.events-panel-significance-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.events-panel-significance-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 32px;
+}
+
+/* ─── NarrativeTag ─── */
+.events-panel-narrative-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 10px;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  border-radius: 3px;
+}
+
+/* ─── StateChangeItem ─── */
+.events-panel-state-change {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 4px 0;
+}
+
+.events-panel-state-entity-name {
+  color: var(--text-muted);
+}
+
+.events-panel-state-field {
+  font-family: monospace;
+}
+
+.events-panel-state-old-value {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.events-panel-state-arrow {
+  color: var(--text-muted);
+}
+
+.events-panel-state-new-value {
+  font-weight: 500;
+}
+
+/* ─── EventCard ─── */
+.events-panel-card {
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.events-panel-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.events-panel-card-header-left {
+  flex: 1;
+}
+
+.events-panel-card-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.events-panel-card-tick {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.events-panel-card-headline {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Subject/Object row */
+.events-panel-card-subject {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.events-panel-card-entity-name {
+  font-weight: 500;
+}
+
+.events-panel-card-entity-kind {
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.events-panel-card-arrow {
+  color: var(--text-muted);
+  margin: 0 8px;
+}
+
+/* Tags row */
+.events-panel-card-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* Expanded section */
+.events-panel-card-expanded {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.events-panel-card-description {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.events-panel-card-state-changes {
+  margin-bottom: 12px;
+}
+
+.events-panel-card-state-changes-label {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--text-muted);
+}
+
+.events-panel-card-causality {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.events-panel-card-causality-label {
+  font-weight: 500;
+}
+
+/* Toggle button */
+.events-panel-card-toggle {
+  margin-top: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* ─── Empty state ─── */
+.events-panel-empty {
+  padding: 48px;
+  text-align: center;
+}
+
+.events-panel-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.events-panel-empty-title {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+}
+
+.events-panel-empty-text {
+  color: var(--text-muted);
+  max-width: 400px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.events-panel-empty-instructions {
+  margin-top: 24px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  max-width: 400px;
+  margin: 24px auto 0;
+  text-align: left;
+}
+
+.events-panel-empty-instructions-title {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.events-panel-empty-instructions-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+/* ─── Main panel layout ─── */
+.events-panel-root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Filter bar */
+.events-panel-filter-bar {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.events-panel-filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.events-panel-filter-count {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.events-panel-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.events-panel-filter-sort-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.events-panel-export-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.events-panel-export-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Filters row */
+.events-panel-filters-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.events-panel-significance-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.events-panel-filter-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.events-panel-significance-slider {
+  width: 100px;
+}
+
+.events-panel-significance-value {
+  font-size: 12px;
+  font-family: monospace;
+  min-width: 32px;
+}
+
+.events-panel-filter-select {
+  padding: 6px 10px;
+  font-size: 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+
+.events-panel-clear-filters-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+/* Events list */
+.events-panel-list {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+.events-panel-no-match {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-muted);
+}
+
+/* Load more */
+.events-panel-load-more-row {
+  text-align: center;
+  padding: 16px;
+}
+
+.events-panel-load-more-btn {
+  padding: 10px 24px;
+  font-size: 13px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.events-panel-load-more-remaining {
+  color: var(--text-muted);
+  margin-left: 8px;
+}

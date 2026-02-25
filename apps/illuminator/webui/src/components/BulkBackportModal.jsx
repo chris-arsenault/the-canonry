@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo } from "react";
 import { useFloatingPillStore } from "../lib/db/floatingPillStore";
+import "./BulkBackportModal.css";
 
 const PILL_ID = "bulk-backport";
 
@@ -60,45 +61,32 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
     [progress.chronicles]
   );
 
+  const statusClass =
+    progress.status === "complete"
+      ? "bbm-status--complete"
+      : progress.status === "failed"
+        ? "bbm-status--failed"
+        : progress.status === "cancelled"
+          ? "bbm-status--cancelled"
+          : "bbm-status--default";
+
+  const progressFillClass =
+    progress.status === "failed"
+      ? "bbm-progress-fill bbm-progress-fill--failed"
+      : progress.status === "cancelled"
+        ? "bbm-progress-fill bbm-progress-fill--cancelled"
+        : "bbm-progress-fill bbm-progress-fill--ok";
+
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 10000,
-      }}
-    >
+    <div className="bbm-overlay">
       <div
-        style={{
-          background: "var(--bg-primary)",
-          borderRadius: "12px",
-          border: "1px solid var(--border-color)",
-          width: isConfirming ? "540px" : "480px",
-          maxWidth: "95vw",
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-        }}
+        className={`bbm-dialog ${isConfirming ? "bbm-dialog--confirming" : "bbm-dialog--processing"}`}
       >
         {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-color)",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ margin: 0, fontSize: "16px" }}>Bulk Backport</h2>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="bbm-header">
+          <div className="bbm-header-row">
+            <h2 className="bbm-title">Bulk Backport</h2>
+            <div className="bbm-header-actions">
               {!isConfirming && (
                 <button
                   onClick={() =>
@@ -117,27 +105,13 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
                             : "#ef4444",
                     })
                   }
-                  className="illuminator-button"
-                  style={{ padding: "2px 8px", fontSize: "11px" }}
+                  className="illuminator-button bbm-minimize-btn"
                   title="Minimize to pill"
                 >
                   ―
                 </button>
               )}
-              <span
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  color:
-                    progress.status === "complete"
-                      ? "#10b981"
-                      : progress.status === "failed"
-                        ? "#ef4444"
-                        : progress.status === "cancelled"
-                          ? "#f59e0b"
-                          : "var(--text-muted)",
-                }}
-              >
+              <span className={`bbm-status ${statusClass}`}>
                 {isConfirming && `${progress.chronicles.length} chronicles`}
                 {progress.status === "running" && "Processing..."}
                 {progress.status === "complete" && "Complete"}
@@ -149,95 +123,37 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
         </div>
 
         {/* Body */}
-        <div
-          style={{
-            padding: "20px",
-            overflowY: isConfirming ? "auto" : "visible",
-            flex: isConfirming ? 1 : undefined,
-            minHeight: 0,
-          }}
-        >
+        <div className={`bbm-body ${isConfirming ? "bbm-body--confirming" : "bbm-body--processing"}`}>
           {/* ---- Confirmation screen ---- */}
           {isConfirming && progress.entitySummary && (
             <>
-              <div style={{ marginBottom: "12px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--text-muted)",
-                      textTransform: "uppercase",
-                      fontWeight: 600,
-                    }}
-                  >
+              <div className="bbm-entity-section">
+                <div className="bbm-entity-header">
+                  <span className="bbm-section-label">
                     Entities ({progress.entitySummary.length})
                   </span>
-                  <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                  <span className="bbm-section-meta">
                     {progress.totalEntities} updates across {progress.chronicles.length} chronicles
                   </span>
                 </div>
 
-                <div
-                  style={{
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "8px",
-                    overflow: "hidden",
-                  }}
-                >
+                <div className="bbm-entity-list">
                   {progress.entitySummary.map((entity, i) => (
                     <div
                       key={entity.entityId}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "6px 12px",
-                        borderBottom:
-                          i < progress.entitySummary.length - 1
-                            ? "1px solid var(--border-color)"
-                            : "none",
-                        fontSize: "12px",
-                      }}
+                      className={`bbm-entity-row ${i < progress.entitySummary.length - 1 ? "bbm-entity-row--bordered" : ""}`}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          minWidth: 0,
-                          flex: 1,
-                        }}
-                      >
-                        <span
-                          style={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
+                      <div className="bbm-entity-info">
+                        <span className="bbm-entity-name">
                           {entity.entityName}
                         </span>
-                        <span
-                          style={{ fontSize: "10px", color: "var(--text-muted)", flexShrink: 0 }}
-                        >
+                        <span className="bbm-entity-kind">
                           {entity.entityKind}
                           {entity.entitySubtype ? ` / ${entity.entitySubtype}` : ""}
                         </span>
                       </div>
                       <span
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-muted)",
-                          flexShrink: 0,
-                          marginLeft: "8px",
-                        }}
+                        className="bbm-entity-chr"
                         title={`${entity.chronicleCount} chronicle${entity.chronicleCount !== 1 ? "s" : ""} will update this entity`}
                       >
                         {entity.chronicleCount} chr
@@ -253,59 +169,28 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
           {!isConfirming && (
             <>
               {/* Global progress */}
-              <div style={{ marginBottom: "20px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    marginBottom: "6px",
-                  }}
-                >
-                  <span style={{ fontSize: "13px", fontWeight: 500 }}>
+              <div className="bbm-progress-section">
+                <div className="bbm-progress-header">
+                  <span className="bbm-progress-label">
                     Chronicle{" "}
                     {Math.min(progress.currentChronicleIndex + 1, progress.chronicles.length)} /{" "}
                     {progress.chronicles.length}
                   </span>
-                  <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                  <span className="bbm-progress-percent">
                     {globalPercent}%
                   </span>
                 </div>
 
                 {/* Global progress bar */}
-                <div
-                  style={{
-                    height: "8px",
-                    borderRadius: "4px",
-                    background: "var(--bg-secondary)",
-                    overflow: "hidden",
-                    marginBottom: "6px",
-                  }}
-                >
+                <div className="bbm-progress-track">
                   <div
-                    style={{
-                      height: "100%",
-                      borderRadius: "4px",
-                      background:
-                        progress.status === "failed"
-                          ? "#ef4444"
-                          : progress.status === "cancelled"
-                            ? "#f59e0b"
-                            : "#10b981",
-                      width: `${globalPercent}%`,
-                      transition: "width 0.3s ease",
-                    }}
+                    className={progressFillClass}
+                    // eslint-disable-next-line local/no-inline-styles -- dynamic width from JS percentage
+                    style={{ '--bbm-progress-width': `${globalPercent}%`, width: 'var(--bbm-progress-width)' }}
                   />
                 </div>
 
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                  }}
-                >
+                <div className="bbm-progress-stats">
                   <span>
                     {progress.processedEntities} / {realTotal || progress.totalEntities} entities
                   </span>
@@ -317,37 +202,13 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
 
               {/* Current chronicle detail */}
               {currentChronicle && !isTerminal && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "var(--bg-secondary)",
-                    marginBottom: "16px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 500,
-                      marginBottom: "8px",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
+                <div className="bbm-chronicle-detail">
+                  <div className="bbm-chronicle-title">
                     {currentChronicle.chronicleTitle}
                   </div>
 
                   {currentChronicle.totalBatches > 1 && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        fontSize: "11px",
-                        color: "var(--text-muted)",
-                        marginBottom: "4px",
-                      }}
-                    >
+                    <div className="bbm-chronicle-batch-info">
                       <span>
                         Batch{" "}
                         {Math.min(
@@ -364,7 +225,7 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
                   )}
 
                   {currentChronicle.totalBatches <= 1 && (
-                    <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                    <div className="bbm-chronicle-entity-count">
                       {currentChronicle.totalEntities} entities
                     </div>
                   )}
@@ -373,20 +234,11 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
 
               {/* Terminal state messages */}
               {progress.status === "complete" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(16, 185, 129, 0.1)",
-                    border: "1px solid rgba(16, 185, 129, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="bbm-terminal-banner bbm-terminal-banner--complete">
                   Backported {progress.processedEntities} entities across {completedChronicles}{" "}
                   chronicles.
                   {failedChronicles > 0 && (
-                    <span style={{ color: "#ef4444" }}>
+                    <span className="bbm-failed-inline">
                       {" "}
                       {failedChronicles} chronicle(s) failed.
                     </span>
@@ -395,45 +247,21 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
               )}
 
               {progress.status === "cancelled" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(245, 158, 11, 0.1)",
-                    border: "1px solid rgba(245, 158, 11, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="bbm-terminal-banner bbm-terminal-banner--cancelled">
                   Cancelled after processing {progress.processedEntities} entities across{" "}
                   {completedChronicles} chronicles.
                 </div>
               )}
 
               {progress.status === "failed" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(239, 68, 68, 0.1)",
-                    border: "1px solid rgba(239, 68, 68, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="bbm-terminal-banner bbm-terminal-banner--failed">
                   {progress.error || "An unexpected error occurred."}
                 </div>
               )}
 
               {/* Cost */}
               {progress.totalCost > 0 && (
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    textAlign: "right",
-                  }}
-                >
+                <div className="bbm-cost">
                   Cost: ${progress.totalCost.toFixed(4)}
                 </div>
               )}
@@ -442,29 +270,18 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "8px",
-            flexShrink: 0,
-          }}
-        >
+        <div className="bbm-footer">
           {isConfirming && (
             <>
               <button
                 onClick={onCancel}
-                className="illuminator-button"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button bbm-footer-btn"
               >
                 Cancel
               </button>
               <button
                 onClick={onConfirm}
-                className="illuminator-button illuminator-button-primary"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button illuminator-button-primary bbm-footer-btn"
               >
                 Start Backport ({progress.totalEntities} entities)
               </button>
@@ -473,8 +290,7 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
           {!isConfirming && !isTerminal && (
             <button
               onClick={onCancel}
-              className="illuminator-button"
-              style={{ padding: "6px 16px", fontSize: "12px" }}
+              className="illuminator-button bbm-footer-btn"
             >
               Cancel
             </button>
@@ -482,8 +298,7 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
           {isTerminal && (
             <button
               onClick={onClose}
-              className="illuminator-button"
-              style={{ padding: "6px 16px", fontSize: "12px" }}
+              className="illuminator-button bbm-footer-btn"
             >
               Close
             </button>

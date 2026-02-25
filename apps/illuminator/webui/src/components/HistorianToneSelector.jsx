@@ -6,6 +6,7 @@
  */
 
 import { useState, useRef, useEffect } from "react";
+import "./HistorianToneSelector.css";
 
 // ============================================================================
 // Tone Options
@@ -16,55 +17,55 @@ const TONE_OPTIONS = [
     value: "scholarly",
     label: "Scholarly",
     description: "Professional, measured, objective",
-    symbol: "◎",
+    symbol: "\u25CE",
   },
   {
     value: "witty",
     label: "Witty",
     description: "Sarcastic, playful, sly",
-    symbol: "✶",
+    symbol: "\u2736",
   },
   {
     value: "weary",
     label: "Weary",
     description: "Resigned satire, black humor",
-    symbol: "○",
+    symbol: "\u25CB",
   },
   {
     value: "forensic",
     label: "Forensic",
     description: "Clinical, methodical, cold",
-    symbol: "◈",
+    symbol: "\u25C8",
   },
   {
     value: "elegiac",
     label: "Elegiac",
     description: "Mournful, lyrical, grief",
-    symbol: "◇",
+    symbol: "\u25C7",
   },
   {
     value: "cantankerous",
     label: "Cantankerous",
     description: "Irritable, exacting, sharp",
-    symbol: "♯",
+    symbol: "\u266F",
   },
   {
     value: "rueful",
     label: "Rueful",
     description: "Self-aware regret, crooked smile",
-    symbol: "⌒",
+    symbol: "\u2312",
   },
   {
     value: "conspiratorial",
     label: "Conspiratorial",
     description: "Whispering asides, sharing secrets",
-    symbol: "⊘",
+    symbol: "\u2298",
   },
   {
     value: "bemused",
     label: "Bemused",
     description: "Puzzled, entertained by absurdity",
-    symbol: "⁂",
+    symbol: "\u2042",
   },
 ];
 
@@ -96,95 +97,40 @@ export default function HistorianToneSelector({ onSelect, disabled, hasNotes, st
   };
 
   return (
-    <div ref={containerRef} style={{ position: "relative", display: "inline-block", ...style }}>
+    <div
+      ref={containerRef}
+      className="htsel-container"
+      // eslint-disable-next-line local/no-inline-styles -- dynamic parent style passthrough
+      style={style}
+    >
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled}
         title="Select historian tone and generate annotations"
-        style={{
-          background: "var(--bg-tertiary)",
-          border: "1px solid var(--border-color)",
-          color: disabled ? "var(--text-muted)" : "var(--text-secondary)",
-          fontSize: "10px",
-          padding: "1px 6px",
-          borderRadius: "3px",
-          cursor: disabled ? "not-allowed" : "pointer",
-          textTransform: "none",
-          letterSpacing: "normal",
-          opacity: disabled ? 0.6 : 1,
-        }}
+        className={`htsel-trigger ${disabled ? "htsel-trigger--disabled" : ""}`}
       >
         {label || (hasNotes ? "Re-annotate" : "Historian")} ▾
       </button>
 
       {isOpen && (
-        <div
-          style={{
-            position: "absolute",
-            top: "calc(100% + 4px)",
-            left: 0,
-            background: "var(--bg-secondary)",
-            border: "1px solid var(--border-color)",
-            borderRadius: "4px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-            zIndex: 10000,
-            minWidth: "220px",
-            padding: "4px",
-          }}
-        >
-          <div
-            style={{
-              padding: "6px 8px 4px",
-              fontSize: "11px",
-              color: "var(--text-muted)",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              borderBottom: "1px solid var(--border-color)",
-              marginBottom: "4px",
-            }}
-          >
+        <div className="htsel-dropdown">
+          <div className="htsel-dropdown-header">
             Historian Tone
           </div>
           {TONE_OPTIONS.map((option) => (
             <button
               key={option.value}
               onClick={() => handleSelect(option.value)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                width: "100%",
-                padding: "6px 8px",
-                background: "transparent",
-                border: "none",
-                borderRadius: "3px",
-                cursor: "pointer",
-                textAlign: "left",
-                color: "inherit",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--bg-tertiary)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-              }}
+              className="htsel-option"
             >
-              <span
-                style={{
-                  fontSize: "13px",
-                  color: "#8b7355",
-                  width: "18px",
-                  textAlign: "center",
-                  flexShrink: 0,
-                }}
-              >
+              <span className="htsel-option-symbol">
                 {option.symbol}
               </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)" }}>
+              <div className="htsel-option-content">
+                <div className="htsel-option-label">
                   {option.label}
                 </div>
-                <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "1px" }}>
+                <div className="htsel-option-description">
                   {option.description}
                 </div>
               </div>

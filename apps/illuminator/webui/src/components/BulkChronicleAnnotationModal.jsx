@@ -7,6 +7,7 @@
 
 import { useEffect } from "react";
 import { useFloatingPillStore } from "../lib/db/floatingPillStore";
+import "./BulkChronicleAnnotationModal.css";
 
 const PILL_ID = "bulk-chronicle-annotation";
 
@@ -58,44 +59,17 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
   const withTones = progress.chronicles.filter((c) => c.assignedTone).length;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 10000,
-      }}
-    >
+    <div className="bcam-overlay">
       <div
-        style={{
-          background: "var(--bg-primary)",
-          borderRadius: "12px",
-          border: "1px solid var(--border-color)",
-          width: isConfirming ? "540px" : "480px",
-          maxWidth: "95vw",
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-        }}
+        className="bcam-dialog"
+        // eslint-disable-next-line local/no-inline-styles -- dynamic dialog width based on confirming state
+        style={{ '--bcam-dialog-width': isConfirming ? '540px' : '480px' }}
       >
         {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-color)",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ margin: 0, fontSize: "16px" }}>{title}</h2>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="bcam-header">
+          <div className="bcam-header-row">
+            <h2 className="bcam-title">{title}</h2>
+            <div className="bcam-header-actions">
               {!isConfirming && (
                 <button
                   onClick={() =>
@@ -115,26 +89,16 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
                       tabId: "chronicle",
                     })
                   }
-                  className="illuminator-button"
-                  style={{ padding: "2px 8px", fontSize: "11px" }}
+                  className="illuminator-button bcam-minimize-btn"
                   title="Minimize to pill"
                 >
                   ―
                 </button>
               )}
               <span
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  color:
-                    progress.status === "complete"
-                      ? "#10b981"
-                      : progress.status === "failed"
-                        ? "#ef4444"
-                        : progress.status === "cancelled"
-                          ? "#f59e0b"
-                          : "var(--text-muted)",
-                }}
+                className="bcam-status-label"
+                // eslint-disable-next-line local/no-inline-styles -- dynamic status color from progress.status
+                style={{ '--bcam-status-color': progress.status === "complete" ? "#10b981" : progress.status === "failed" ? "#ef4444" : progress.status === "cancelled" ? "#f59e0b" : "var(--text-muted)" }}
               >
                 {isConfirming && `${progress.totalChronicles} chronicles`}
                 {progress.status === "running" &&
@@ -149,27 +113,14 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
 
         {/* Body */}
         <div
-          style={{
-            padding: "20px",
-            overflowY: isConfirming ? "auto" : "visible",
-            flex: isConfirming ? 1 : undefined,
-            minHeight: 0,
-          }}
+          className="bcam-body"
+          // eslint-disable-next-line local/no-inline-styles -- dynamic overflow/flex based on confirming state
+          style={{ '--bcam-body-overflow': isConfirming ? 'auto' : 'visible', '--bcam-body-flex': isConfirming ? 1 : 'unset' }}
         >
           {/* ---- Confirmation screen ---- */}
           {isConfirming && (
             <>
-              <div
-                style={{
-                  padding: "10px 12px",
-                  marginBottom: "12px",
-                  borderRadius: "8px",
-                  background: "var(--bg-secondary)",
-                  fontSize: "11px",
-                  color: "var(--text-secondary)",
-                  lineHeight: 1.5,
-                }}
-              >
+              <div className="bcam-confirm-info">
                 {isClear ? (
                   <>
                     This will clear all historian annotations from {progress.totalChronicles}{" "}
@@ -182,7 +133,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
                     auto-applied (no manual review step). Chronicles processed sequentially — one
                     LLM call each.
                     {withTones < progress.totalChronicles && (
-                      <span style={{ color: "#f59e0b" }}>
+                      <span className="bcam-warning-text">
                         {" "}
                         {progress.totalChronicles - withTones} chronicle
                         {progress.totalChronicles - withTones !== 1 ? "s" : ""} have no assigned
@@ -190,7 +141,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
                       </span>
                     )}
                     {withNotes > 0 && (
-                      <span style={{ color: "#f59e0b" }}>
+                      <span className="bcam-warning-text">
                         {" "}
                         {withNotes} chronicle{withNotes !== 1 ? "s" : ""} already have annotations —
                         they will be replaced.
@@ -201,62 +152,22 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
               </div>
 
               {/* Chronicle list */}
-              <div style={{ marginBottom: "12px" }}>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    textTransform: "uppercase",
-                    fontWeight: 600,
-                    marginBottom: "8px",
-                  }}
-                >
+              <div className="bcam-chronicle-section">
+                <div className="bcam-chronicle-heading">
                   Chronicles ({progress.chronicles.length})
                 </div>
 
-                <div
-                  style={{
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "8px",
-                    overflow: "hidden",
-                    maxHeight: "400px",
-                    overflowY: "auto",
-                  }}
-                >
-                  {progress.chronicles.map((chron, i) => (
+                <div className="bcam-chronicle-list">
+                  {progress.chronicles.map((chron) => (
                     <div
                       key={chron.chronicleId}
-                      style={{
-                        padding: "6px 12px",
-                        borderBottom:
-                          i < progress.chronicles.length - 1
-                            ? "1px solid var(--border-color)"
-                            : "none",
-                        fontSize: "12px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
+                      className="bcam-chronicle-item"
                     >
-                      <span
-                        style={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          flex: 1,
-                        }}
-                      >
+                      <span className="bcam-chronicle-title">
                         {chron.title}
                       </span>
                       {!isClear && (
-                        <span
-                          style={{
-                            fontSize: "10px",
-                            color: "var(--text-muted)",
-                            marginLeft: "8px",
-                            flexShrink: 0,
-                          }}
-                        >
+                        <span className="bcam-chronicle-tone">
                           {chron.assignedTone || "weary"}
                           {chron.hasNotes ? " ✎" : ""}
                         </span>
@@ -278,67 +189,26 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
                       ? Math.round((progress.processedChronicles / progress.totalChronicles) * 100)
                       : 0;
                   return (
-                    <div style={{ marginBottom: "16px" }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "baseline",
-                          marginBottom: "6px",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: "13px",
-                            fontWeight: 500,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            flex: 1,
-                          }}
-                        >
+                    <div className="bcam-progress-section">
+                      <div className="bcam-progress-header">
+                        <span className="bcam-current-title">
                           {progress.currentTitle || (isClear ? "Clearing..." : "Annotating...")}
                         </span>
-                        <span
-                          style={{
-                            fontSize: "12px",
-                            color: "var(--text-muted)",
-                            marginLeft: "8px",
-                          }}
-                        >
+                        <span className="bcam-pct-label">
                           {pct}%
                         </span>
                       </div>
 
                       {/* Progress bar */}
-                      <div
-                        style={{
-                          height: "8px",
-                          borderRadius: "4px",
-                          background: "var(--bg-secondary)",
-                          overflow: "hidden",
-                          marginBottom: "6px",
-                        }}
-                      >
+                      <div className="bcam-progress-track">
                         <div
-                          style={{
-                            height: "100%",
-                            borderRadius: "4px",
-                            background: "#10b981",
-                            width: `${pct}%`,
-                            transition: "width 0.3s ease",
-                          }}
+                          className="bcam-progress-fill"
+                          // eslint-disable-next-line local/no-inline-styles -- dynamic progress bar width
+                          style={{ '--bcam-pct': `${pct}%` }}
                         />
                       </div>
 
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-muted)",
-                          display: "flex",
-                          justifyContent: "space-between",
-                        }}
-                      >
+                      <div className="bcam-progress-stats">
                         <span>
                           {progress.processedChronicles} / {progress.totalChronicles}{" "}
                           {isClear ? "cleared" : "annotated"}
@@ -353,16 +223,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
 
               {/* Terminal state messages */}
               {progress.status === "complete" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(16, 185, 129, 0.1)",
-                    border: "1px solid rgba(16, 185, 129, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="bcam-terminal-complete">
                   {isClear
                     ? `Cleared annotations from ${progress.processedChronicles} chronicle${progress.processedChronicles !== 1 ? "s" : ""}.`
                     : `Annotated ${progress.processedChronicles} of ${progress.totalChronicles} chronicles.`}
@@ -372,53 +233,28 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
               )}
 
               {progress.status === "cancelled" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(245, 158, 11, 0.1)",
-                    border: "1px solid rgba(245, 158, 11, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="bcam-terminal-cancelled">
                   Cancelled after {progress.processedChronicles} of {progress.totalChronicles}{" "}
                   chronicles.
                 </div>
               )}
 
               {progress.status === "failed" && (
-                <div
-                  style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    background: "rgba(239, 68, 68, 0.1)",
-                    border: "1px solid rgba(239, 68, 68, 0.2)",
-                    marginBottom: "16px",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="bcam-terminal-failed">
                   {progress.error || "An unexpected error occurred."}
                 </div>
               )}
 
               {/* Failed chronicles list */}
               {progress.failedChronicles.length > 0 && (
-                <div style={{ marginBottom: "12px" }}>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color: "#ef4444",
-                      fontWeight: 600,
-                      marginBottom: "4px",
-                    }}
-                  >
+                <div className="bcam-failed-section">
+                  <div className="bcam-failed-heading">
                     Failed ({progress.failedChronicles.length})
                   </div>
                   {progress.failedChronicles.map((f) => (
                     <div
                       key={f.chronicleId}
-                      style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "2px" }}
+                      className="bcam-failed-item"
                     >
                       {f.title}: {f.error}
                     </div>
@@ -428,13 +264,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
 
               {/* Cost */}
               {progress.totalCost > 0 && (
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    textAlign: "right",
-                  }}
-                >
+                <div className="bcam-cost">
                   Cost: ${progress.totalCost.toFixed(4)}
                 </div>
               )}
@@ -443,29 +273,18 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "8px",
-            flexShrink: 0,
-          }}
-        >
+        <div className="bcam-footer">
           {isConfirming && (
             <>
               <button
                 onClick={onCancel}
-                className="illuminator-button"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button bcam-footer-btn"
               >
                 Cancel
               </button>
               <button
                 onClick={onConfirm}
-                className="illuminator-button illuminator-button-primary"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button illuminator-button-primary bcam-footer-btn"
               >
                 {isClear
                   ? `Clear (${progress.totalChronicles} chronicles)`
@@ -476,8 +295,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
           {!isConfirming && !isTerminal && (
             <button
               onClick={onCancel}
-              className="illuminator-button"
-              style={{ padding: "6px 16px", fontSize: "12px" }}
+              className="illuminator-button bcam-footer-btn"
             >
               Cancel
             </button>
@@ -485,8 +303,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
           {isTerminal && (
             <button
               onClick={onClose}
-              className="illuminator-button"
-              style={{ padding: "6px 16px", fontSize: "12px" }}
+              className="illuminator-button bcam-footer-btn"
             >
               Close
             </button>

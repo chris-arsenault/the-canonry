@@ -1,0 +1,119 @@
+/* CoverImageControls — prefix: cic */
+
+/* ============================================================================
+   CoverImagePreview
+   ============================================================================ */
+
+.cic-loading {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cic-error {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #ef4444;
+}
+
+.cic-preview-wrapper {
+  margin-top: 10px;
+}
+
+.cic-preview-img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  object-fit: contain;
+}
+
+.cic-preview-img--clickable {
+  cursor: pointer;
+}
+
+/* ============================================================================
+   CoverImageControls
+   ============================================================================ */
+
+.cic-layout {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cic-info {
+  flex: 1;
+}
+
+.cic-label {
+  font-size: 13px;
+}
+
+.cic-description {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.cic-status {
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.cic-status--empty {
+  color: var(--text-muted);
+}
+
+.cic-status--pending {
+  color: #f59e0b;
+}
+
+.cic-status--generating {
+  color: var(--text-muted);
+}
+
+.cic-status--complete {
+  color: #10b981;
+}
+
+.cic-status--failed {
+  color: #ef4444;
+}
+
+.cic-scene-description {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  font-style: italic;
+  line-height: 1.4;
+  max-width: 500px;
+}
+
+.cic-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: flex-start;
+}
+
+.cic-button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.cic-action-btn {
+  padding: 8px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  height: 32px;
+  white-space: nowrap;
+}
+
+.cic-action-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

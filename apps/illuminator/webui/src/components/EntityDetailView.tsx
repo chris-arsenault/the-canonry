@@ -24,6 +24,7 @@ import HistoryCompressionPreviewModal from "./HistoryCompressionPreviewModal";
 import BackrefImageEditor from "./BackrefImageEditor";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import "./EntityDetailView.css";
 
 interface EntityEnrichment {
   text?: {
@@ -91,19 +92,11 @@ function formatCost(cost: number | undefined): string {
 function MetadataRow({ label, value }: { label: string; value: string | undefined | null }) {
   if (!value) return null;
   return (
-    <div style={{ marginBottom: "10px" }}>
-      <div
-        style={{
-          fontSize: "11px",
-          color: "var(--text-muted)",
-          marginBottom: "2px",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-        }}
-      >
+    <div className="edv-meta-row">
+      <div className="edv-meta-row__label">
         {label}
       </div>
-      <div style={{ fontSize: "13px", color: "var(--text-primary)", wordBreak: "break-word" }}>
+      <div className="edv-meta-row__value">
         {value}
       </div>
     </div>
@@ -123,54 +116,21 @@ function ExpandableSection({
   if (!content) return null;
 
   return (
-    <div style={{ marginBottom: "8px" }}>
+    <div className="edv-expandable">
       <button
         onClick={() => setExpanded(!expanded)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          width: "100%",
-          background: "var(--bg-tertiary)",
-          border: "1px solid var(--border-color)",
-          borderRadius: "4px",
-          padding: "6px 10px",
-          color: "var(--text-secondary)",
-          fontSize: "12px",
-          cursor: "pointer",
-          textAlign: "left",
-        }}
+        className="edv-expandable__toggle"
       >
-        <span
-          style={{
-            fontSize: "10px",
-            transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
-            transition: "transform 0.2s ease",
-          }}
-        >
+        <span className={`edv-expandable__arrow ${expanded ? "edv-expandable__arrow--open" : ""}`}>
           ▶
         </span>
-        <span style={{ flex: 1 }}>{title}</span>
+        <span className="edv-expandable__title">{title}</span>
         {charCount !== undefined && (
-          <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>{charCount} chars</span>
+          <span className="edv-expandable__chars">{charCount} chars</span>
         )}
       </button>
       {expanded && (
-        <div
-          style={{
-            marginTop: "6px",
-            padding: "10px",
-            background: "var(--bg-primary)",
-            borderRadius: "4px",
-            fontSize: "12px",
-            color: "var(--text-secondary)",
-            lineHeight: "1.5",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            maxHeight: "300px",
-            overflowY: "auto",
-          }}
-        >
+        <div className="edv-expandable__content">
           {content}
         </div>
       )}
@@ -185,31 +145,13 @@ function ExpandableSection({
 function VisualTraitsList({ traits }: { traits: string[] }) {
   if (!traits || traits.length === 0) return null;
   return (
-    <div style={{ marginBottom: "16px" }}>
-      <div
-        style={{
-          fontSize: "11px",
-          color: "var(--text-muted)",
-          marginBottom: "8px",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-        }}
-      >
+    <div className="edv-traits">
+      <div className="edv-traits__label">
         Visual Traits
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+      <div className="edv-traits__list">
         {traits.map((trait, i) => (
-          <span
-            key={i}
-            style={{
-              padding: "4px 10px",
-              background: "rgba(59, 130, 246, 0.15)",
-              border: "1px solid rgba(59, 130, 246, 0.25)",
-              borderRadius: "12px",
-              fontSize: "12px",
-              color: "var(--text-primary)",
-            }}
-          >
+          <span key={i} className="edv-traits__tag">
             {trait}
           </span>
         ))}
@@ -269,43 +211,22 @@ function AliasesList({
   if ((!aliases || aliases.length === 0) && !editable) return null;
 
   return (
-    <div style={{ marginBottom: "16px" }}>
-      <div
-        style={{
-          fontSize: "11px",
-          color: "var(--text-muted)",
-          marginBottom: "8px",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-        }}
-      >
+    <div className="edv-aliases">
+      <div className="edv-aliases__label">
         Aliases
         {editable && !adding && (
           <button
             onClick={() => setAdding(true)}
-            style={{
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              color: "var(--text-secondary)",
-              fontSize: "10px",
-              padding: "1px 6px",
-              borderRadius: "3px",
-              cursor: "pointer",
-              textTransform: "none",
-              letterSpacing: "normal",
-            }}
+            className="edv-aliases__add-btn"
           >
             + Add
           </button>
         )}
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
+      <div className="edv-aliases__list">
         {aliases.map((alias, i) =>
           editingIndex === i ? (
-            <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
+            <span key={i} className="edv-aliases__edit-wrap">
               <input
                 autoFocus
                 value={editValue}
@@ -318,32 +239,15 @@ function AliasesList({
                   }
                 }}
                 onBlur={handleSaveEdit}
-                style={{
-                  padding: "3px 8px",
-                  background: "var(--bg-primary)",
-                  border: "1px solid var(--accent-color)",
-                  borderRadius: "12px",
-                  fontSize: "12px",
-                  color: "var(--text-primary)",
-                  outline: "none",
-                  width: `${Math.max(editValue.length, 4) * 7.5 + 20}px`,
-                }}
+                className="edv-aliases__edit-input"
+                // eslint-disable-next-line local/no-inline-styles
+                style={{ width: `${Math.max(editValue.length, 4) * 7.5 + 20}px` }}
               />
             </span>
           ) : (
             <span
               key={i}
-              style={{
-                padding: "4px 10px",
-                background: "var(--bg-tertiary)",
-                borderRadius: "12px",
-                fontSize: "12px",
-                color: "var(--text-secondary)",
-                cursor: editable ? "pointer" : "default",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
+              className={`edv-aliases__tag ${editable ? "edv-aliases__tag--editable" : ""}`}
               onClick={() => handleStartEdit(i)}
               title={editable ? "Click to edit" : undefined}
             >
@@ -354,13 +258,7 @@ function AliasesList({
                     e.stopPropagation();
                     handleRemove(i);
                   }}
-                  style={{
-                    cursor: "pointer",
-                    color: "var(--text-muted)",
-                    fontSize: "10px",
-                    marginLeft: "2px",
-                    lineHeight: 1,
-                  }}
+                  className="edv-aliases__remove"
                   title="Remove alias"
                 >
                   ×
@@ -370,7 +268,7 @@ function AliasesList({
           )
         )}
         {adding && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
+          <span className="edv-aliases__edit-wrap">
             <input
               autoFocus
               value={addValue}
@@ -387,22 +285,15 @@ function AliasesList({
                 else setAdding(false);
               }}
               placeholder="New alias"
-              style={{
-                padding: "3px 8px",
-                background: "var(--bg-primary)",
-                border: "1px solid var(--accent-color)",
-                borderRadius: "12px",
-                fontSize: "12px",
-                color: "var(--text-primary)",
-                outline: "none",
-                width: `${Math.max(addValue.length, 8) * 7.5 + 20}px`,
-              }}
+              className="edv-aliases__edit-input"
+              // eslint-disable-next-line local/no-inline-styles
+              style={{ width: `${Math.max(addValue.length, 8) * 7.5 + 20}px` }}
             />
           </span>
         )}
       </div>
       {aliases.length === 0 && !adding && editable && (
-        <div style={{ fontSize: "12px", color: "var(--text-muted)", fontStyle: "italic" }}>
+        <div className="edv-aliases__empty">
           No aliases
         </div>
       )}
@@ -515,84 +406,39 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
 
   return (
     <>
-      <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+      <div className="edv">
         {/* Header bar */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "16px",
-            padding: "12px 16px",
-            background: "var(--bg-secondary)",
-            borderBottom: "1px solid var(--border-color)",
-            flexShrink: 0,
-          }}
-        >
-          <button
-            onClick={onBack}
-            style={{
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "4px",
-              color: "var(--text-secondary)",
-              padding: "6px 12px",
-              cursor: "pointer",
-              fontSize: "12px",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-          >
+        <div className="edv__header">
+          <button onClick={onBack} className="edv__back-btn">
             ← Back
           </button>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-primary)" }}>
+          <div className="edv__header-info">
+            <div className="edv__entity-name">
               {entity.name}
             </div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+            <div className="edv__entity-meta">
               {entity.kind}/{entity.subtype} ·{" "}
               {prominenceLabelFromScale(entity.prominence, prominenceScale)}
               {entity.culture && ` · ${entity.culture}`}
             </div>
           </div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Esc to go back</div>
+          <div className="edv__esc-hint">Esc to go back</div>
         </div>
 
         {/* Two-column body */}
-        <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+        <div className="edv__body">
           {/* Main content */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", minWidth: 0 }}>
+          <div className="edv__main">
             {/* Summary */}
             {(entity.summary || handleUpdateSummary) && (
-              <div style={{ marginBottom: "20px" }}>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    marginBottom: "6px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
-                >
+              <div className="edv__section">
+                <div className="edv__section-label">
                   Summary
                   {handleUpdateSummary && !editingSummary && (
                     <button
                       onClick={startEditSummary}
                       title="Edit summary"
-                      style={{
-                        background: "var(--bg-tertiary)",
-                        border: "1px solid var(--border-color)",
-                        color: "var(--text-secondary)",
-                        fontSize: "10px",
-                        padding: "1px 6px",
-                        borderRadius: "3px",
-                        cursor: "pointer",
-                        textTransform: "none",
-                        letterSpacing: "normal",
-                      }}
+                      className="edv__inline-btn"
                     >
                       Edit
                     </button>
@@ -614,34 +460,12 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                       }
                     }}
                     onBlur={saveSummary}
-                    style={{
-                      width: "100%",
-                      minHeight: "80px",
-                      fontSize: "15px",
-                      color: "var(--text-primary)",
-                      lineHeight: "1.6",
-                      margin: 0,
-                      padding: "8px",
-                      background: "var(--bg-primary)",
-                      border: "1px solid var(--accent-color)",
-                      borderRadius: "4px",
-                      resize: "vertical",
-                      fontFamily: "inherit",
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
+                    className="edv__summary-textarea"
                   />
                 ) : (
-                  <p
-                    style={{
-                      fontSize: "15px",
-                      color: "var(--text-primary)",
-                      lineHeight: "1.6",
-                      margin: 0,
-                    }}
-                  >
+                  <p className="edv__summary-text">
                     {entity.summary || (
-                      <span style={{ fontStyle: "italic", color: "var(--text-muted)" }}>
+                      <span className="edv__placeholder">
                         No summary
                       </span>
                     )}
@@ -652,31 +476,11 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
 
             {/* Visual Thesis */}
             {textEnrichment?.visualThesis && (
-              <div style={{ marginBottom: "20px" }}>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "rgba(139, 92, 246, 0.8)",
-                    marginBottom: "6px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}
-                >
+              <div className="edv__section">
+                <div className="edv__section-label edv__section-label--visual-thesis">
                   Visual Thesis
                 </div>
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "var(--text-primary)",
-                    lineHeight: "1.6",
-                    margin: 0,
-                    padding: "12px 16px",
-                    background: "rgba(139, 92, 246, 0.08)",
-                    border: "1px solid rgba(139, 92, 246, 0.2)",
-                    borderRadius: "8px",
-                    fontStyle: "italic",
-                  }}
-                >
+                <p className="edv__visual-thesis">
                   {textEnrichment.visualThesis}
                 </p>
               </div>
@@ -684,30 +488,11 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
 
             {/* Full Description */}
             {(entity.description || handleUpdateDescription) && (
-              <div style={{ marginBottom: "20px" }}>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    marginBottom: "6px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    flexWrap: "wrap",
-                  }}
-                >
+              <div className="edv__section">
+                <div className="edv__section-label edv__section-label--wrap">
                   Full Description
                   {historyLen > 0 && (
-                    <span
-                      style={{
-                        textTransform: "none",
-                        letterSpacing: "normal",
-                        fontSize: "10px",
-                        opacity: 0.7,
-                      }}
-                    >
+                    <span className="edv__version-hint">
                       v{historyLen + 1} ({historyLen} previous)
                     </span>
                   )}
@@ -715,17 +500,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                     <button
                       onClick={() => handleUndoDescription(entity.id)}
                       title={`Revert to previous version (from ${lastEntry?.source || "unknown"}, ${lastEntry?.replacedAt ? new Date(lastEntry.replacedAt).toLocaleDateString() : "unknown"})`}
-                      style={{
-                        background: "var(--bg-tertiary)",
-                        border: "1px solid var(--border-color)",
-                        color: "var(--text-secondary)",
-                        fontSize: "10px",
-                        padding: "1px 6px",
-                        borderRadius: "3px",
-                        cursor: "pointer",
-                        textTransform: "none",
-                        letterSpacing: "normal",
-                      }}
+                      className="edv__inline-btn"
                     >
                       ↩ Undo
                     </button>
@@ -734,17 +509,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                     <button
                       onClick={startEditDescription}
                       title="Edit description"
-                      style={{
-                        background: "var(--bg-tertiary)",
-                        border: "1px solid var(--border-color)",
-                        color: "var(--text-secondary)",
-                        fontSize: "10px",
-                        padding: "1px 6px",
-                        borderRadius: "3px",
-                        cursor: "pointer",
-                        textTransform: "none",
-                        letterSpacing: "normal",
-                      }}
+                      className="edv__inline-btn"
                     >
                       Edit
                     </button>
@@ -752,58 +517,28 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                   <button
                     onClick={() => openRename(entity.id)}
                     title="Rename this entity with full propagation across all references"
-                    style={{
-                      background: "var(--bg-tertiary)",
-                      border: "1px solid var(--border-color)",
-                      color: "var(--text-secondary)",
-                      fontSize: "10px",
-                      padding: "1px 6px",
-                      borderRadius: "3px",
-                      cursor: "pointer",
-                      textTransform: "none",
-                      letterSpacing: "normal",
-                    }}
+                    className="edv__inline-btn"
                   >
                     Rename
                   </button>
                   <button
                     onClick={() => openPatchEvents(entity.id)}
                     title="Repair stale names in narrative event history for this entity"
-                    style={{
-                      background: "var(--bg-tertiary)",
-                      border: "1px solid var(--border-color)",
-                      color: "var(--text-secondary)",
-                      fontSize: "10px",
-                      padding: "1px 6px",
-                      borderRadius: "3px",
-                      cursor: "pointer",
-                      textTransform: "none",
-                      letterSpacing: "normal",
-                    }}
+                    className="edv__inline-btn"
                   >
                     Patch Events
                   </button>
                 </div>
                 {historianConfigured && (
                   <>
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        color: "var(--text-muted)",
-                        marginBottom: "6px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                      }}
-                    >
+                    <div className="edv__section-label">
                       Historian
                       <HistorianToneSelector
                         onSelect={(tone: string) => handleHistorianEdition(entity.id, tone)}
                         disabled={isHistorianEditionActive}
                         label="Copy Edit"
                         hasNotes={false}
+                        // eslint-disable-next-line local/no-inline-styles
                         style={{ display: "inline-block" }}
                       />
                       {enrichment?.descriptionHistory?.some(
@@ -814,6 +549,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                           disabled={isHistorianEditionActive}
                           label="Re-Edit"
                           hasNotes={false}
+                          // eslint-disable-next-line local/no-inline-styles
                           style={{ display: "inline-block" }}
                         />
                       )}
@@ -824,6 +560,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                         hasNotes={
                           enrichment?.historianNotes && enrichment.historianNotes.length > 0
                         }
+                        // eslint-disable-next-line local/no-inline-styles
                         style={{ display: "inline-block" }}
                       />
                       {handleClearNotes &&
@@ -832,17 +569,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                           <button
                             onClick={() => handleClearNotes(entity.id)}
                             title="Remove all annotations from this entity"
-                            style={{
-                              background: "none",
-                              border: "1px solid var(--border-color)",
-                              color: "var(--text-muted)",
-                              fontSize: "10px",
-                              padding: "1px 6px",
-                              borderRadius: "3px",
-                              cursor: "pointer",
-                              textTransform: "none",
-                              letterSpacing: "normal",
-                            }}
+                            className="edv__inline-btn--ghost"
                           >
                             Clear Notes
                           </button>
@@ -879,112 +606,39 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                       }
                     }}
                     onBlur={saveDescription}
-                    style={{
-                      width: "100%",
-                      minHeight: "200px",
-                      fontSize: "14px",
-                      color: "var(--text-secondary)",
-                      lineHeight: "1.7",
-                      margin: 0,
-                      padding: "8px",
-                      background: "var(--bg-primary)",
-                      border: "1px solid var(--accent-color)",
-                      borderRadius: "4px",
-                      resize: "vertical",
-                      fontFamily: "inherit",
-                      whiteSpace: "pre-wrap",
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
+                    className="edv__desc-textarea"
                   />
                 ) : (
                   <>
                     {entity.description ? (
-                      <div
-                        style={{
-                          fontSize: "14px",
-                          color: "var(--text-secondary)",
-                          lineHeight: "1.7",
-                        }}
-                        className="entity-description-md"
-                      >
+                      <div className="edv__description entity-description-md">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
                             h2: ({ children }) => (
-                              <h2
-                                style={{
-                                  fontSize: "15px",
-                                  fontWeight: 600,
-                                  color: "var(--text-primary)",
-                                  margin: "16px 0 6px",
-                                  borderBottom: "1px solid var(--border-color)",
-                                  paddingBottom: "3px",
-                                }}
-                              >
-                                {children}
-                              </h2>
+                              <h2 className="edv__md-h2">{children}</h2>
                             ),
                             h3: ({ children }) => (
-                              <h3
-                                style={{
-                                  fontSize: "14px",
-                                  fontWeight: 600,
-                                  color: "var(--text-primary)",
-                                  margin: "12px 0 4px",
-                                }}
-                              >
-                                {children}
-                              </h3>
+                              <h3 className="edv__md-h3">{children}</h3>
                             ),
-                            p: ({ children }) => <p style={{ margin: "0 0 8px" }}>{children}</p>,
+                            p: ({ children }) => <p className="edv__md-p">{children}</p>,
                             ul: ({ children }) => (
-                              <ul style={{ margin: "4px 0 8px", paddingLeft: "20px" }}>
-                                {children}
-                              </ul>
+                              <ul className="edv__md-ul">{children}</ul>
                             ),
                             ol: ({ children }) => (
-                              <ol style={{ margin: "4px 0 8px", paddingLeft: "20px" }}>
-                                {children}
-                              </ol>
+                              <ol className="edv__md-ol">{children}</ol>
                             ),
                             li: ({ children }) => (
-                              <li style={{ marginBottom: "2px" }}>{children}</li>
+                              <li className="edv__md-li">{children}</li>
                             ),
                             table: ({ children }) => (
-                              <table
-                                style={{
-                                  borderCollapse: "collapse",
-                                  margin: "8px 0",
-                                  fontSize: "13px",
-                                  width: "100%",
-                                }}
-                              >
-                                {children}
-                              </table>
+                              <table className="edv__md-table">{children}</table>
                             ),
                             th: ({ children }) => (
-                              <th
-                                style={{
-                                  border: "1px solid var(--border-color)",
-                                  padding: "4px 8px",
-                                  textAlign: "left",
-                                  fontWeight: 600,
-                                  background: "var(--bg-tertiary)",
-                                }}
-                              >
-                                {children}
-                              </th>
+                              <th className="edv__md-th">{children}</th>
                             ),
                             td: ({ children }) => (
-                              <td
-                                style={{
-                                  border: "1px solid var(--border-color)",
-                                  padding: "4px 8px",
-                                }}
-                              >
-                                {children}
-                              </td>
+                              <td className="edv__md-td">{children}</td>
                             ),
                           }}
                         >
@@ -992,7 +646,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                         </ReactMarkdown>
                       </div>
                     ) : (
-                      <p style={{ fontStyle: "italic", color: "var(--text-muted)", margin: 0 }}>
+                      <p className="edv__no-desc">
                         No description
                       </p>
                     )}
@@ -1000,6 +654,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                       <HistorianMarginNotes
                         notes={enrichment.historianNotes}
                         sourceText={entity.description}
+                        // eslint-disable-next-line local/no-inline-styles
                         style={{ marginTop: "12px" }}
                         onUpdateNote={(noteId: string, updates: Record<string, unknown>) =>
                           handleUpdateHistorianNote("entity", entity.id, noteId, updates)
@@ -1023,12 +678,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
             {/* Chronicle Images */}
             {enrichment?.chronicleBackrefs && enrichment.chronicleBackrefs.length > 0 && (
               <>
-                <div
-                  style={{
-                    borderTop: "1px solid var(--border-color)",
-                    margin: "8px 0 16px 0",
-                  }}
-                />
+                <div className="edv__separator" />
                 <BackrefImageEditor
                   entity={entity}
                   entities={entities}
@@ -1040,33 +690,15 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
 
             {/* No enrichment fallback */}
             {!(entity.summary || entity.description) && (
-              <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+              <div className="edv__no-enrichment">
                 No description enrichment available. Queue a description task for this entity.
               </div>
             )}
           </div>
 
           {/* Sidebar */}
-          <div
-            style={{
-              width: "320px",
-              flexShrink: 0,
-              borderLeft: "1px solid var(--border-color)",
-              overflowY: "auto",
-              padding: "20px 16px",
-              background: "var(--bg-secondary)",
-            }}
-          >
-            <h4
-              style={{
-                margin: "0 0 16px 0",
-                fontSize: "13px",
-                fontWeight: 500,
-                color: "var(--text-primary)",
-                borderBottom: "1px solid var(--border-color)",
-                paddingBottom: "10px",
-              }}
-            >
+          <div className="edv__sidebar">
+            <h4 className="edv__sidebar-title">
               Entity Metadata
             </h4>
 
@@ -1079,16 +711,8 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
             {/* Description generation info */}
             {textEnrichment && (
               <>
-                <div style={{ borderTop: "1px solid var(--border-color)", margin: "12px 0" }} />
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    marginBottom: "10px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}
-                >
+                <div className="edv__sidebar-divider" />
+                <div className="edv__sidebar-section-label">
                   Description Generation
                 </div>
                 <MetadataRow label="Model" value={textEnrichment.model} />
@@ -1110,31 +734,16 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
             {/* Debug Info */}
             {(chainDebug || legacyDebug) && (
               <>
-                <div style={{ borderTop: "1px solid var(--border-color)", margin: "12px 0" }} />
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    marginBottom: "10px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}
-                >
+                <div className="edv__sidebar-divider" />
+                <div className="edv__sidebar-section-label">
                   Debug Info
                 </div>
 
                 {chainDebug && (
                   <>
                     {chainDebug.narrative && (
-                      <div style={{ marginBottom: "8px" }}>
-                        <div
-                          style={{
-                            fontSize: "10px",
-                            color: "rgba(59, 130, 246, 0.8)",
-                            marginBottom: "4px",
-                            fontWeight: 500,
-                          }}
-                        >
+                      <div className="edv__debug-step">
+                        <div className="edv__debug-step-label edv__debug-step-label--narrative">
                           Step 1: Narrative
                         </div>
                         <ExpandableSection
@@ -1150,15 +759,8 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                       </div>
                     )}
                     {chainDebug.thesis && (
-                      <div style={{ marginBottom: "8px" }}>
-                        <div
-                          style={{
-                            fontSize: "10px",
-                            color: "rgba(139, 92, 246, 0.8)",
-                            marginBottom: "4px",
-                            fontWeight: 500,
-                          }}
-                        >
+                      <div className="edv__debug-step">
+                        <div className="edv__debug-step-label edv__debug-step-label--thesis">
                           Step 2: Visual Thesis
                         </div>
                         <ExpandableSection
@@ -1174,15 +776,8 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                       </div>
                     )}
                     {chainDebug.traits && (
-                      <div style={{ marginBottom: "8px" }}>
-                        <div
-                          style={{
-                            fontSize: "10px",
-                            color: "rgba(34, 197, 94, 0.8)",
-                            marginBottom: "4px",
-                            fontWeight: 500,
-                          }}
-                        >
+                      <div className="edv__debug-step">
+                        <div className="edv__debug-step-label edv__debug-step-label--traits">
                           Step 3: Visual Traits
                         </div>
                         <ExpandableSection
@@ -1218,14 +813,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
             )}
 
             {!chainDebug && !legacyDebug && textEnrichment && (
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "var(--text-muted)",
-                  fontStyle: "italic",
-                  marginTop: "12px",
-                }}
-              >
+              <div className="edv__no-debug">
                 Debug info not available. This entity may have been enriched before debug
                 persistence was added.
               </div>

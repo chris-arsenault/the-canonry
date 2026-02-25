@@ -1,0 +1,281 @@
+/* BulkFactCoverageModal — prefix: bfc- */
+
+.bfc-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.bfc-dialog {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  width: var(--bfc-dialog-width, 480px);
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.bfc-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.bfc-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bfc-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.bfc-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bfc-minimize-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.bfc-status-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bfc-status-color, var(--text-muted));
+}
+
+.bfc-body {
+  padding: 20px;
+  min-height: 0;
+}
+
+.bfc-body--confirming {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.bfc-body--processing {
+  overflow-y: visible;
+}
+
+.bfc-confirm-info {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.bfc-list-section {
+  margin-bottom: 12px;
+}
+
+.bfc-section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.bfc-chronicle-list {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.bfc-chronicle-item {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bfc-chronicle-item:last-child {
+  border-bottom: none;
+}
+
+/* Processing screen */
+.bfc-progress-section {
+  margin-bottom: 20px;
+}
+
+.bfc-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.bfc-progress-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.bfc-progress-percent {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.bfc-progress-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.bfc-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--bfc-progress-bg, #10b981);
+  width: var(--bfc-progress-width, 0%);
+  transition: width 0.3s ease;
+}
+
+.bfc-progress-detail {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bfc-failed-count {
+  color: #ef4444;
+  margin-left: 8px;
+}
+
+/* Current chronicle */
+.bfc-current-item {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  margin-bottom: 16px;
+}
+
+.bfc-current-item-title {
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bfc-current-item-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Terminal state boxes */
+.bfc-terminal-complete {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.bfc-terminal-cancelled {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.bfc-terminal-failed {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.bfc-failed-inline {
+  color: #ef4444;
+}
+
+/* Failed chronicles list */
+.bfc-failed-section {
+  margin-bottom: 16px;
+}
+
+.bfc-failed-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.bfc-failed-list {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.bfc-failed-item {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 11px;
+}
+
+.bfc-failed-item:last-child {
+  border-bottom: none;
+}
+
+.bfc-failed-item-title {
+  font-weight: 500;
+}
+
+.bfc-failed-item-error {
+  color: #ef4444;
+  margin-left: 8px;
+}
+
+/* Cost */
+.bfc-cost {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* Footer */
+.bfc-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.bfc-footer-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+}

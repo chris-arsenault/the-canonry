@@ -1,0 +1,154 @@
+/* ProgressPanel - pp prefix */
+
+.pp-button-group {
+  display: flex;
+  gap: 8px;
+}
+
+.pp-abort-btn {
+  padding: 6px 16px;
+  background: var(--danger);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pp-key-warning {
+  padding: 12px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: var(--warning);
+}
+
+.pp-progress-section {
+  margin-bottom: 16px;
+}
+
+.pp-progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.pp-progress-completed {
+  color: var(--text-secondary);
+}
+
+.pp-progress-percent {
+  color: var(--text-muted);
+}
+
+.pp-current-task {
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.pp-current-task-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.pp-current-task-item {
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.pp-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.pp-stat-card {
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  text-align: center;
+}
+
+.pp-stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.pp-stat-label {
+  font-size: 11px;
+}
+
+.pp-stat-label--completed {
+  color: var(--success);
+}
+
+.pp-stat-label--running {
+  color: var(--arctic-ice);
+}
+
+.pp-stat-label--pending {
+  color: var(--text-muted);
+}
+
+.pp-stat-label--errors {
+  color: var(--danger);
+}
+
+.pp-stat-value--danger {
+  color: var(--danger);
+}
+
+.pp-error-title {
+  color: var(--danger);
+}
+
+.pp-error-list {
+  max-height: 200px;
+  overflow: auto;
+}
+
+.pp-error-item {
+  padding: 8px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.pp-error-item-name {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.pp-error-item-message {
+  color: var(--danger);
+  margin-top: 4px;
+}
+
+.pp-complete-section {
+  text-align: center;
+  padding: 24px;
+}
+
+.pp-complete-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.pp-complete-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.pp-complete-summary {
+  font-size: 13px;
+  color: var(--text-muted);
+}

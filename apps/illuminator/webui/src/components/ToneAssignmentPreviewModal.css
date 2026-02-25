@@ -1,0 +1,209 @@
+/* ToneAssignmentPreviewModal - Preview and edit corpus-wide tone assignments */
+
+/* === Modal overlay and container === */
+
+.tapm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.tapm-modal {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  width: 680px;
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* === Header === */
+
+.tapm-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.tapm-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tapm-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.tapm-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* === Body === */
+
+.tapm-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Distribution chart */
+
+.tapm-distribution {
+  margin-bottom: 20px;
+}
+
+.tapm-section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.tapm-section-label--assignments {
+  margin-bottom: 8px;
+}
+
+.tapm-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tapm-chart-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tapm-chart-symbol {
+  width: 16px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.tapm-chart-label {
+  width: 90px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.tapm-chart-bar-track {
+  flex: 1;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.tapm-chart-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  opacity: 0.7;
+  transition: width 0.2s ease;
+}
+
+.tapm-chart-count {
+  width: 24px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Assignments list */
+
+.tapm-list {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tapm-entry {
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tapm-entry:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tapm-entry--shifted {
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.tapm-entry-title {
+  flex: 1;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.tapm-ranking {
+  display: flex;
+  gap: 2px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.tapm-rank-chip {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.tapm-rank-chip--assigned {
+  color: #fff;
+  font-weight: 600;
+}
+
+.tapm-rank-chip--unassigned {
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.tapm-shifted-label {
+  font-size: 10px;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+/* === Footer === */
+
+.tapm-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tapm-footer-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+}

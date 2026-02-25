@@ -1,3 +1,4 @@
+import "./IlluminatorTabContent.css";
 import EntityBrowser from "./EntityBrowser";
 import ChroniclePanel from "./ChroniclePanel";
 import WorldContextEditor from "./WorldContextEditor";
@@ -211,10 +212,10 @@ function ConfigureTab(props) {
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Data Sync</h2>
         </div>
-        <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "12px" }}>
+        <p className="itc-sync-hint">
           Import simulation output into Dexie. This is manual by design.
         </p>
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        <div className="itc-sync-actions">
           <button
             type="button"
             className="illuminator-btn illuminator-btn-primary"
@@ -232,16 +233,12 @@ function ConfigureTab(props) {
             Overwrite from Hard State
           </button>
         </div>
-        <div style={{ marginTop: "10px", fontSize: "11px", color: "var(--text-muted)" }}>
+        <div className="itc-sync-summary">
           {props.hardStateSummary}
         </div>
         {props.dataSyncStatus && (
           <div
-            style={{
-              marginTop: "10px",
-              fontSize: "12px",
-              color: props.dataSyncStatus.type === "error" ? "#ef4444" : "#10b981",
-            }}
+            className={`itc-sync-status ${props.dataSyncStatus.type === "error" ? "itc-sync-status--error" : "itc-sync-status--success"}`}
           >
             {props.dataSyncStatus.message}
           </div>

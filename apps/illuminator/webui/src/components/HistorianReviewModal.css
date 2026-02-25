@@ -1,0 +1,286 @@
+/* HistorianReviewModal - hrm prefix */
+
+/* NoteCard */
+.hrm-note {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 0 4px 4px 0;
+}
+
+.hrm-note--accepted {
+  background: rgba(139, 115, 85, 0.08);
+  opacity: 1;
+}
+
+.hrm-note--rejected {
+  background: var(--bg-tertiary);
+  opacity: 0.5;
+}
+
+.hrm-note-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.hrm-note-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hrm-note-type-icon {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hrm-note-type-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hrm-note-toggle {
+  padding: 2px 8px;
+  font-size: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.hrm-note-toggle--accepted {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.hrm-note-toggle--rejected {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+.hrm-note-anchor {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-style: italic;
+}
+
+.hrm-note-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  resize: vertical;
+}
+
+.hrm-note-edit-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.hrm-note-edit-btn {
+  padding: 2px 8px;
+  font-size: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background: var(--bg-tertiary);
+  cursor: pointer;
+}
+
+.hrm-note-edit-btn--save {
+  color: var(--text-primary);
+}
+
+.hrm-note-edit-btn--cancel {
+  color: var(--text-muted);
+}
+
+.hrm-note-text {
+  font-size: 12px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  color: var(--text-primary);
+  line-height: 1.6;
+  cursor: text;
+}
+
+/* AnnotatedText */
+.hrm-annotated-text {
+  padding: 12px 14px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  font-size: 12px;
+  line-height: 1.8;
+  max-height: 400px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.hrm-anchor-span {
+  border-radius: 2px;
+  padding: 0 1px;
+  cursor: help;
+}
+
+.hrm-anchor-span--accepted {
+  text-decoration: none;
+  opacity: 1;
+}
+
+.hrm-anchor-span--rejected {
+  background: transparent;
+  border-bottom: 2px solid var(--border-color);
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.hrm-anchor-sup {
+  font-size: 9px;
+  font-weight: 700;
+  margin-left: 1px;
+}
+
+/* Main Modal */
+.hrm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hrm-modal {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.hrm-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hrm-modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.hrm-modal-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.hrm-modal-tone {
+  margin-left: 6px;
+  color: #8b7355;
+}
+
+.hrm-modal-cancel-btn {
+  padding: 4px 12px;
+  font-size: 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.hrm-modal-content {
+  flex: 1;
+  overflow: auto;
+  padding: 16px 20px;
+}
+
+.hrm-generating-message {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.hrm-failed-message {
+  text-align: center;
+  padding: 40px 0;
+  color: #ef4444;
+  font-size: 13px;
+}
+
+.hrm-review-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hrm-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hrm-modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.hrm-discard-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.hrm-apply-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.hrm-apply-btn--active {
+  background: #8b7355;
+  color: #fff;
+  cursor: pointer;
+}
+
+.hrm-apply-btn--disabled {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}

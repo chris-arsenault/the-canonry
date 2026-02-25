@@ -10,6 +10,7 @@
  */
 
 import { useState, useMemo, useCallback } from "react";
+import "./VisualIdentityPanel.css";
 
 /**
  * Generic editor for culture identity KVPs
@@ -119,7 +120,7 @@ function CultureIdentityEditor({
   return (
     <div className="illuminator-visual-identity-editor">
       {/* Culture selector with warning badges */}
-      <div className="illuminator-kind-selector" style={{ marginBottom: "12px" }}>
+      <div className="illuminator-kind-selector vip-kind-selector-spaced">
         {cultures.map((culture) => {
           const warnings = warningsByCulture[culture.id];
           return (
@@ -127,6 +128,7 @@ function CultureIdentityEditor({
               key={culture.id}
               onClick={() => setSelectedCulture(culture.id)}
               className={`illuminator-kind-button ${selectedCulture === culture.id ? "active" : ""} ${warnings ? "has-warning" : ""}`}
+              // eslint-disable-next-line local/no-inline-styles -- dynamic culture color
               style={{ borderLeft: `3px solid ${culture.color || "var(--accent-color)"}` }}
             >
               {culture.name || culture.id}
@@ -155,11 +157,10 @@ function CultureIdentityEditor({
                   <span className="illuminator-visual-identity-key">{key}</span>
                   <input
                     type="text"
-                    className={`illuminator-input ${isEmpty ? "warning" : ""}`}
+                    className={`illuminator-input vip-input-flex ${isEmpty ? "warning" : ""}`}
                     value={value}
                     onChange={(e) => handleUpdateEntry(key, e.target.value)}
                     placeholder={valuePlaceholder}
-                    style={{ flex: 1 }}
                   />
                   {deleteConfirm === key ? (
                     <div className="illuminator-delete-confirm">
@@ -178,18 +179,16 @@ function CultureIdentityEditor({
                         All
                       </button>
                       <button
-                        className="illuminator-button-link"
+                        className="illuminator-button-link vip-cancel-button"
                         onClick={() => setDeleteConfirm(null)}
-                        style={{ padding: "4px 6px" }}
                       >
                         x
                       </button>
                     </div>
                   ) : (
                     <button
-                      className="illuminator-button-link"
+                      className="illuminator-button-link vip-delete-button"
                       onClick={() => handleRequestDelete(key)}
-                      style={{ color: "var(--error-color)", padding: "4px 8px" }}
                       title="Delete"
                     >
                       x
@@ -204,19 +203,17 @@ function CultureIdentityEditor({
           <div className="illuminator-visual-identity-add">
             <input
               type="text"
-              className="illuminator-input"
+              className="illuminator-input vip-key-input"
               placeholder={keyPlaceholder}
               value={newKey}
               onChange={(e) => setNewKey(e.target.value.toUpperCase())}
-              style={{ width: "120px", textTransform: "uppercase" }}
             />
             <input
               type="text"
-              className="illuminator-input"
+              className="illuminator-input vip-input-flex"
               placeholder={valuePlaceholder}
               value={newValue}
               onChange={(e) => setNewValue(e.target.value)}
-              style={{ flex: 1 }}
             />
             <button
               className="illuminator-button"
@@ -228,10 +225,7 @@ function CultureIdentityEditor({
           </div>
 
           {allKeys.length > 0 && (
-            <div
-              className="illuminator-template-section-hint"
-              style={{ marginTop: "8px", fontSize: "11px" }}
-            >
+            <div className="illuminator-template-section-hint vip-hint-spaced">
               Adding a key creates entries across all cultures. Delete prompts for single or all
               cultures.
             </div>
@@ -278,7 +272,7 @@ function IdentityKeySelector({
 
   return (
     <div>
-      <div className="illuminator-kind-selector" style={{ marginBottom: "12px" }}>
+      <div className="illuminator-kind-selector vip-kind-selector-spaced">
         {entityKinds.map((kind) => {
           const count = keysByKind?.[kind.kind]?.length || 0;
           return (
@@ -288,7 +282,7 @@ function IdentityKeySelector({
               className={`illuminator-kind-button ${selectedKind === kind.kind ? "active" : ""}`}
             >
               {kind.description || kind.kind}
-              {count > 0 && <span style={{ marginLeft: "4px", opacity: 0.6 }}>({count})</span>}
+              {count > 0 && <span className="vip-kind-count">({count})</span>}
             </button>
           );
         })}
@@ -302,8 +296,7 @@ function IdentityKeySelector({
               <button
                 key={key}
                 onClick={() => handleToggleKey(key)}
-                className={`illuminator-kind-button ${isSelected ? "active" : ""}`}
-                style={{ textTransform: "uppercase", fontSize: "11px" }}
+                className={`illuminator-kind-button vip-key-button-uppercase ${isSelected ? "active" : ""}`}
               >
                 {isSelected ? "+ " : ""}
                 {key}

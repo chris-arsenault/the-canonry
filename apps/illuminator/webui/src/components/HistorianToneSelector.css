@@ -1,0 +1,92 @@
+.htsel-container {
+  position: relative;
+  display: inline-block;
+}
+
+.htsel-trigger {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.htsel-trigger:not(.htsel-trigger--disabled) {
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 1;
+}
+
+.htsel-trigger--disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.htsel-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  min-width: 220px;
+  padding: 4px;
+}
+
+.htsel-dropdown-header {
+  padding: 6px 8px 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 4px;
+}
+
+.htsel-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+
+.htsel-option:hover {
+  background: var(--bg-tertiary);
+}
+
+.htsel-option-symbol {
+  font-size: 13px;
+  color: #8b7355;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.htsel-option-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.htsel-option-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.htsel-option-description {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 1px;
+}

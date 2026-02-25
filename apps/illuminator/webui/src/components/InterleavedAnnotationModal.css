@@ -1,0 +1,338 @@
+/* InterleavedAnnotationModal — prefix: iam- */
+
+.iam-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.iam-dialog {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  width: var(--iam-dialog-width, 480px);
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.iam-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.iam-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.iam-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.iam-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iam-minimize-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.iam-status-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--iam-status-color, var(--text-muted));
+}
+
+.iam-body {
+  padding: 20px;
+  min-height: 0;
+}
+
+.iam-body--confirming {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.iam-body--processing {
+  overflow-y: visible;
+}
+
+.iam-confirm-info {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.iam-confirm-summary {
+  margin-top: 4px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.iam-worklist-section {
+  margin-bottom: 12px;
+}
+
+.iam-section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.iam-worklist {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.iam-work-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.iam-work-item:last-child {
+  border-bottom: none;
+}
+
+.iam-work-item--chronicle {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: transparent;
+}
+
+.iam-work-item--entity {
+  padding: 4px 12px 4px 28px;
+  font-size: 11px;
+  background: var(--bg-secondary);
+}
+
+.iam-work-item-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.iam-work-item-icon {
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.iam-work-item-icon--chronicle {
+  color: #6b8cae;
+}
+
+.iam-work-item-icon--entity {
+  color: #8b7355;
+}
+
+.iam-work-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iam-work-item-name--chronicle {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.iam-work-item-name--entity {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.iam-work-item-kind {
+  font-size: 9px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.iam-work-item-tone {
+  font-size: 10px;
+  color: #8b7355;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* Processing screen */
+.iam-progress-section {
+  margin-bottom: 20px;
+}
+
+.iam-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.iam-progress-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.iam-progress-percent {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.iam-progress-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.iam-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--iam-progress-bg, #10b981);
+  width: var(--iam-progress-width, 0%);
+  transition: width 0.3s ease;
+}
+
+.iam-progress-detail {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+}
+
+.iam-failed-count {
+  color: #ef4444;
+}
+
+/* Current item */
+.iam-current-item {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  margin-bottom: 16px;
+}
+
+.iam-current-item-header {
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iam-current-item-icon {
+  font-size: 10px;
+}
+
+.iam-current-item-tone {
+  color: #8b7355;
+  font-size: 13px;
+}
+
+.iam-current-item-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Terminal state boxes */
+.iam-terminal-complete {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.iam-terminal-cancelled {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.iam-terminal-failed {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.iam-failed-inline {
+  color: #ef4444;
+}
+
+/* Failed items list */
+.iam-failed-section {
+  margin-bottom: 16px;
+}
+
+.iam-failed-label {
+  font-size: 11px;
+  color: #ef4444;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.iam-failed-item {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+/* Cost */
+.iam-cost {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* Footer */
+.iam-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.iam-footer-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+}

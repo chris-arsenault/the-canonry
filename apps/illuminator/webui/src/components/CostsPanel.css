@@ -1,0 +1,35 @@
+.cpanel-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cpanel-row:last-child {
+  border-bottom: none;
+}
+
+.cpanel-row--total {
+  font-weight: 600;
+}
+
+.cpanel-row-value {
+  font-family: monospace;
+}
+
+.cpanel-section-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.cpanel-clear-button {
+  margin-top: 12px;
+  font-size: 11px;
+}
+
+.cpanel-empty-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 12px 0;
+}

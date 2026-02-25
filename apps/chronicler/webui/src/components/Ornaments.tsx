@@ -261,10 +261,10 @@ export function ParchmentTexture({
   const tileSize = WORK_SIZE * 2;
 
   return (
-    // eslint-disable-next-line local/no-inline-styles -- dynamic texture URL and opacity from canvas pipeline
     <div
       aria-hidden
       className={`${className ?? ""} ${ornStyles.parchmentTexture}`}
+      // eslint-disable-next-line local/no-inline-styles -- dynamic texture URL and opacity from canvas pipeline
       style={{
         '--parchment-url': `url(${textureUrl})`,
         '--parchment-size': `${tileSize}px ${tileSize}px`,

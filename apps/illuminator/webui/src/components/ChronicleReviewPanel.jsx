@@ -15,6 +15,7 @@ import CohesionReportViewer from "./CohesionReportViewer";
 import ImageModal from "./ImageModal";
 import ChronicleWorkspace from "./chronicle-workspace/ChronicleWorkspace";
 import ChronicleVersionSelector from "./chronicle-workspace/ChronicleVersionSelector";
+import "./ChronicleReviewPanel.css";
 
 // ============================================================================
 // Perspective Synthesis Viewer (kept for validation_ready)
@@ -36,32 +37,16 @@ function PerspectiveSynthesisViewer({ synthesis }) {
     synthesis.constellation;
 
   return (
-    <div
-      style={{
-        marginBottom: "16px",
-        background: "var(--bg-secondary)",
-        border: "1px solid var(--border-color)",
-        borderRadius: "8px",
-        overflow: "hidden",
-      }}
-    >
+    <div className="crp-synth">
       <div
-        style={{
-          padding: "12px 16px",
-          background: "var(--bg-tertiary)",
-          borderBottom: isExpanded ? "1px solid var(--border-color)" : "none",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          cursor: "pointer",
-        }}
+        className={`crp-synth-header ${isExpanded ? "crp-synth-header--expanded" : ""}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+        <span className="crp-synth-toggle">
           {isExpanded ? "\u25BC" : "\u25B6"}
         </span>
-        <span style={{ fontSize: "13px", fontWeight: 500 }}>Perspective Synthesis</span>
-        <span style={{ fontSize: "11px", color: "var(--text-muted)", marginLeft: "auto" }}>
+        <span className="crp-synth-title">Perspective Synthesis</span>
+        <span className="crp-synth-meta">
           {synthesis.facets?.length || 0} facets &bull; {synthesis.entityDirectives?.length || 0}{" "}
           directives &bull; {synthesis.suggestedMotifs?.length || 0} motifs &bull;{" "}
           {formatCost(synthesis.actualCost)}
@@ -69,38 +54,18 @@ function PerspectiveSynthesisViewer({ synthesis }) {
       </div>
 
       {isExpanded && (
-        <div style={{ padding: "16px" }}>
+        <div className="crp-synth-body">
           {hasInputData && (
-            <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+            <div className="crp-synth-tabs">
               <button
                 onClick={() => setActiveTab("output")}
-                style={{
-                  padding: "6px 14px",
-                  fontSize: "12px",
-                  fontWeight: activeTab === "output" ? 600 : 400,
-                  background:
-                    activeTab === "output" ? "var(--accent-primary)" : "var(--bg-tertiary)",
-                  color: activeTab === "output" ? "white" : "var(--text-secondary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                }}
+                className={`crp-synth-tab ${activeTab === "output" ? "crp-synth-tab--active" : "crp-synth-tab--inactive"}`}
               >
                 LLM Output
               </button>
               <button
                 onClick={() => setActiveTab("input")}
-                style={{
-                  padding: "6px 14px",
-                  fontSize: "12px",
-                  fontWeight: activeTab === "input" ? 600 : 400,
-                  background:
-                    activeTab === "input" ? "var(--accent-primary)" : "var(--bg-tertiary)",
-                  color: activeTab === "input" ? "white" : "var(--text-secondary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                }}
+                className={`crp-synth-tab ${activeTab === "input" ? "crp-synth-tab--active" : "crp-synth-tab--inactive"}`}
               >
                 LLM Input
               </button>
@@ -109,45 +74,21 @@ function PerspectiveSynthesisViewer({ synthesis }) {
           {activeTab === "output" && (
             <>
               {synthesis.constellationSummary && (
-                <div style={{ marginBottom: "16px" }}>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 500,
-                      color: "var(--text-muted)",
-                      marginBottom: "4px",
-                    }}
-                  >
+                <div className="crp-synth-section">
+                  <div className="crp-synth-section-label">
                     CONSTELLATION SUMMARY
                   </div>
-                  <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                  <div className="crp-synth-section-text">
                     {synthesis.constellationSummary}
                   </div>
                 </div>
               )}
               {synthesis.brief && (
-                <div style={{ marginBottom: "16px" }}>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 500,
-                      color: "var(--text-muted)",
-                      marginBottom: "4px",
-                    }}
-                  >
+                <div className="crp-synth-section">
+                  <div className="crp-synth-section-label">
                     PERSPECTIVE BRIEF
                   </div>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      lineHeight: 1.6,
-                      color: "var(--text-primary)",
-                      padding: "12px",
-                      background: "var(--bg-tertiary)",
-                      borderRadius: "6px",
-                      whiteSpace: "pre-wrap",
-                    }}
-                  >
+                  <div className="crp-synth-block">
                     {synthesis.brief}
                   </div>
                 </div>
@@ -155,44 +96,16 @@ function PerspectiveSynthesisViewer({ synthesis }) {
             </>
           )}
           {activeTab === "input" && synthesis.coreTone && (
-            <div style={{ marginBottom: "16px" }}>
-              <div
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 500,
-                  color: "var(--text-muted)",
-                  marginBottom: "4px",
-                }}
-              >
+            <div className="crp-synth-section">
+              <div className="crp-synth-section-label">
                 CORE TONE
               </div>
-              <div
-                style={{
-                  fontSize: "12px",
-                  lineHeight: 1.6,
-                  color: "var(--text-primary)",
-                  padding: "12px",
-                  background: "var(--bg-tertiary)",
-                  borderRadius: "6px",
-                  whiteSpace: "pre-wrap",
-                }}
-              >
+              <div className="crp-synth-block">
                 {synthesis.coreTone}
               </div>
             </div>
           )}
-          <div
-            style={{
-              fontSize: "11px",
-              color: "var(--text-muted)",
-              display: "flex",
-              gap: "16px",
-              flexWrap: "wrap",
-              borderTop: "1px solid var(--border-color)",
-              paddingTop: "12px",
-              marginTop: "8px",
-            }}
-          >
+          <div className="crp-synth-footer">
             <span>Model: {synthesis.model}</span>
             <span>
               Tokens: {synthesis.inputTokens} in / {synthesis.outputTokens} out
@@ -216,36 +129,20 @@ function AssembledContentViewer({ content, wordCount, onCopy, compareContent, co
   }, [content, compareContent]);
 
   return (
-    <div
-      style={{
-        background: "var(--bg-secondary)",
-        border: "1px solid var(--border-color)",
-        borderRadius: "8px",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          padding: "12px 16px",
-          background: "var(--bg-tertiary)",
-          borderBottom: "1px solid var(--border-color)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+    <div className="crp-acv">
+      <div className="crp-acv-header">
+        <span className="crp-acv-word-count">
           {wordCount.toLocaleString()} words
           {diffParts && (
-            <span style={{ marginLeft: "8px" }}>
+            <span className="crp-acv-diff-label">
               &mdash; diff vs {compareLabel}
-              <span style={{ marginLeft: "6px", color: "rgba(34, 197, 94, 0.8)" }}>
+              <span className="crp-acv-diff-added">
                 +
                 {diffParts
                   .filter((p) => p.added)
                   .reduce((n, p) => n + p.value.split(/\s+/).filter(Boolean).length, 0)}
               </span>
-              <span style={{ marginLeft: "4px", color: "rgba(239, 68, 68, 0.8)" }}>
+              <span className="crp-acv-diff-removed">
                 -
                 {diffParts
                   .filter((p) => p.removed)
@@ -256,41 +153,19 @@ function AssembledContentViewer({ content, wordCount, onCopy, compareContent, co
         </span>
         <button
           onClick={onCopy}
-          style={{
-            padding: "4px 12px",
-            fontSize: "11px",
-            background: "var(--bg-primary)",
-            border: "1px solid var(--border-color)",
-            borderRadius: "4px",
-            cursor: "pointer",
-            color: "var(--text-secondary)",
-          }}
+          className="crp-acv-copy-btn"
         >
           Copy
         </button>
       </div>
-      <div
-        style={{
-          padding: "20px",
-          maxHeight: "500px",
-          overflowY: "auto",
-          fontSize: "14px",
-          lineHeight: 1.7,
-          whiteSpace: "pre-wrap",
-          color: "var(--text-primary)",
-        }}
-      >
+      <div className="crp-acv-content">
         {diffParts
           ? diffParts.map((part, i) => {
               if (part.added)
                 return (
                   <span
                     key={i}
-                    style={{
-                      background: "rgba(34, 197, 94, 0.2)",
-                      borderRadius: "2px",
-                      padding: "0 1px",
-                    }}
+                    className="crp-acv-diff-part--added"
                   >
                     {part.value}
                   </span>
@@ -299,13 +174,7 @@ function AssembledContentViewer({ content, wordCount, onCopy, compareContent, co
                 return (
                   <span
                     key={i}
-                    style={{
-                      background: "rgba(239, 68, 68, 0.2)",
-                      color: "var(--text-secondary)",
-                      borderRadius: "2px",
-                      padding: "0 1px",
-                      textDecoration: "line-through",
-                    }}
+                    className="crp-acv-diff-part--removed"
                   >
                     {part.value}
                   </span>
@@ -687,19 +556,11 @@ function ValidationReadyView({
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "12px" }}>
+      <div className="crp-export-row">
         {onExport && (
           <button
             onClick={onExport}
-            style={{
-              padding: "8px 16px",
-              fontSize: "12px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "4px",
-              cursor: "pointer",
-              color: "var(--text-secondary)",
-            }}
+            className="crp-export-btn"
             title="Export chronicle with full generation context as JSON"
           >
             Export
@@ -741,18 +602,9 @@ function ValidationReadyView({
         />
       )}
       {item.assembledContent && (
-        <div style={{ marginTop: "24px" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: "12px",
-              marginBottom: "16px",
-              flexWrap: "wrap",
-            }}
-          >
-            <h3 style={{ margin: 0, fontSize: "16px" }}>Preview</h3>
+        <div className="crp-preview-section">
+          <div className="crp-preview-header">
+            <h3 className="crp-preview-title">Preview</h3>
             <ChronicleVersionSelector
               versions={versions}
               selectedVersionId={selectedVersionId}

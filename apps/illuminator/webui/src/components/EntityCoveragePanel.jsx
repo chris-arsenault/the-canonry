@@ -18,6 +18,7 @@ import { useNarrativeEvents } from "../lib/db/narrativeEventSelectors";
 import { getEntitiesForRun } from "../lib/db/entityRepository";
 import { getChroniclesForSimulation } from "../lib/db/chronicleRepository";
 import { computeAllStoryPotentials, scoreToRating } from "../lib/chronicle/storyPotential";
+import "./EntityCoveragePanel.css";
 
 // ============================================================================
 // Constants
@@ -100,21 +101,14 @@ function ProminenceDots({ value }) {
     dots.push(
       <span
         key={i}
-        style={{
-          display: "inline-block",
-          width: "5px",
-          height: "5px",
-          borderRadius: "50%",
-          background: i < n ? "var(--text-secondary)" : "rgba(148,163,184,0.25)",
-          marginRight: "2px",
-        }}
+        className={`ecp-prominence-dot ${i < n ? "ecp-prominence-dot--filled" : "ecp-prominence-dot--empty"}`}
       />
     );
   }
   return (
     <span
       title={`Prominence: ${prominenceLabel(value)} (${Number(value).toFixed(1)})`}
-      style={{ display: "inline-flex", alignItems: "center" }}
+      className="ecp-prominence-wrap"
     >
       {dots}
     </span>
@@ -125,7 +119,7 @@ function RatioIndicator({ ratio, expected }) {
   if (expected === 0) {
     return (
       <span
-        style={{ color: "var(--text-muted)", fontSize: "10px" }}
+        className="ecp-ratio-muted"
         title="No backrefs expected at this prominence"
       >
         —
@@ -135,7 +129,9 @@ function RatioIndicator({ ratio, expected }) {
   const color = ratio < 0.5 ? "#ef4444" : ratio < 1.0 ? "#f59e0b" : "#22c55e";
   return (
     <span
-      style={{ color, fontSize: "10px", fontWeight: 600 }}
+      className="ecp-ratio-value"
+      // eslint-disable-next-line local/no-inline-styles
+      style={{ '--ecp-ratio-color': color, color: 'var(--ecp-ratio-color)' }}
       title={`Ratio: ${ratio.toFixed(2)} (${expected} expected)`}
     >
       {ratio.toFixed(1)}x
@@ -148,7 +144,7 @@ function SignificanceStars({ value }) {
   return (
     <span
       title={`Significance: ${(value * 100).toFixed(0)}%`}
-      style={{ fontSize: "10px", color: "#f59e0b", letterSpacing: "-1px" }}
+      className="ecp-sig-stars"
     >
       {"★".repeat(stars)}
       {"☆".repeat(5 - stars)}
@@ -158,11 +154,11 @@ function SignificanceStars({ value }) {
 
 function CoverageIndicator({ covered }) {
   return covered ? (
-    <span style={{ color: "#22c55e", fontSize: "11px" }} title="Covered in at least one chronicle">
+    <span className="ecp-coverage-covered" title="Covered in at least one chronicle">
       ●
     </span>
   ) : (
-    <span style={{ color: "#ef4444", fontSize: "11px" }} title="Not in any chronicle">
+    <span className="ecp-coverage-uncovered" title="Not in any chronicle">
       ○
     </span>
   );
@@ -172,30 +168,14 @@ function StatusDot({ active, label }) {
   return (
     <span
       title={label}
-      style={{
-        display: "inline-block",
-        width: "8px",
-        height: "8px",
-        borderRadius: "50%",
-        background: active ? "#22c55e" : "rgba(148,163,184,0.3)",
-        border: active ? "none" : "1px solid rgba(148,163,184,0.4)",
-      }}
+      className={`ecp-status-dot ${active ? "ecp-status-dot--active" : "ecp-status-dot--inactive"}`}
     />
   );
 }
 
 function SectionToolbar({ children }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: "8px",
-        padding: "8px 16px",
-        borderBottom: "1px solid var(--border-color)",
-        flexWrap: "wrap",
-        alignItems: "center",
-      }}
-    >
+    <div className="ecp-section-toolbar">
       {children}
     </div>
   );
@@ -206,14 +186,7 @@ function FilterSelect({ value, onChange, options, label }) {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      style={{
-        background: "var(--bg-primary)",
-        color: "var(--text-primary)",
-        border: "1px solid var(--border-color)",
-        borderRadius: "4px",
-        padding: "3px 6px",
-        fontSize: "11px",
-      }}
+      className="ecp-filter-select"
       title={label}
     >
       {options.map((opt) => (
@@ -227,40 +200,20 @@ function FilterSelect({ value, onChange, options, label }) {
 
 function SectionHeader({ sectionId, expanded, onToggle, label, description, underutilCount }) {
   return (
-    <div
-      onClick={onToggle}
-      style={{
-        display: "flex",
-        alignItems: "baseline",
-        gap: "8px",
-        padding: "10px 16px",
-        cursor: "pointer",
-        userSelect: "none",
-      }}
-    >
-      <span style={{ fontSize: "10px", color: "var(--text-muted)", flexShrink: 0 }}>
+    <div onClick={onToggle} className="ecp-section-header">
+      <span className="ecp-section-arrow">
         {expanded ? "\u25BC" : "\u25B6"}
       </span>
-      <span
-        style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-color)", flexShrink: 0 }}
-      >
+      <span className="ecp-section-label">
         {label}
       </span>
       {underutilCount > 0 && (
-        <span style={{ fontSize: "10px", color: "#f59e0b", flexShrink: 0 }}>
+        <span className="ecp-section-underutil">
           {underutilCount} underutilized
         </span>
       )}
       {!expanded && description && (
-        <span
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
+        <span className="ecp-section-desc">
           {description}
         </span>
       )}
@@ -668,7 +621,7 @@ function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expa
           options={SUGGESTION_MIN_SIG_OPTIONS}
           label="Min significance"
         />
-        <span style={{ marginLeft: "auto", fontSize: "10px", color: "var(--text-muted)" }}>
+        <span className="ecp-auto-count">
           {actionGroups.length} action types
         </span>
       </SectionToolbar>
@@ -705,6 +658,7 @@ function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expa
             return (
               <React.Fragment key={g.action}>
                 <tr
+                  // eslint-disable-next-line local/no-inline-styles
                   style={{ cursor: g.uncovered > 0 ? "pointer" : "default" }}
                   onClick={() =>
                     g.uncovered > 0 && setExpandedAction(isDetailExpanded ? null : g.action)
@@ -715,38 +669,30 @@ function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expa
                       : "All events covered"
                   }
                 >
-                  <td
-                    style={{
-                      width: "16px",
-                      textAlign: "center",
-                      fontSize: "10px",
-                      color: "var(--text-muted)",
-                    }}
-                  >
+                  <td className="ecp-expand-td">
                     {g.uncovered > 0 ? (isDetailExpanded ? "\u25BC" : "\u25B6") : ""}
                   </td>
                   <td className="ec-name">{g.action}</td>
                   <td className="ec-right">{g.total}</td>
-                  <td className="ec-right" style={{ color: "#22c55e" }}>
+                  <td className="ec-right ecp-color-green">
                     {g.covered}
                   </td>
                   <td className="ec-right">
                     {g.uncovered > 0 ? (
-                      <span style={{ fontWeight: 600, color: "#ef4444" }}>{g.uncovered}</span>
+                      <span className="ecp-font-bold ecp-color-red">{g.uncovered}</span>
                     ) : (
-                      <span style={{ color: "var(--text-muted)" }}>0</span>
+                      <span className="ecp-color-muted">0</span>
                     )}
                   </td>
                   <td className="ec-right">
                     <span
-                      style={{
-                        color:
-                          g.coverageRate === 1
-                            ? "#22c55e"
-                            : g.coverageRate >= 0.5
-                              ? "#f59e0b"
-                              : "#ef4444",
-                      }}
+                      className={
+                        g.coverageRate === 1
+                          ? "ecp-color-green"
+                          : g.coverageRate >= 0.5
+                            ? "ecp-color-amber"
+                            : "ecp-color-red"
+                      }
                     >
                       {(g.coverageRate * 100).toFixed(0)}%
                     </span>
@@ -757,7 +703,7 @@ function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expa
                 </tr>
                 {isDetailExpanded && (
                   <tr>
-                    <td colSpan={7} style={{ padding: 0 }}>
+                    <td colSpan={7} className="ecp-expand-detail-td">
                       <SuggestionActionDetail
                         group={g}
                         entityMap={entityMap}
@@ -801,19 +747,12 @@ function SuggestionActionDetail({ group, entityMap, eraNameMap, entityUsage }) {
   }
 
   return (
-    <div style={{ background: "var(--bg-secondary)", borderTop: "1px solid var(--border-color)" }}>
-      <div style={{ padding: "8px 16px 8px 32px" }}>
-        <div
-          style={{
-            fontSize: "11px",
-            fontWeight: 600,
-            color: "var(--text-secondary)",
-            marginBottom: "6px",
-          }}
-        >
+    <div className="ecp-detail-wrap">
+      <div className="ecp-detail-inner">
+        <div className="ecp-detail-heading">
           {group.uncovered} uncovered event{group.uncovered !== 1 ? "s" : ""}
           {group.covered > 0 && (
-            <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>
+            <span className="ecp-detail-covered-note">
               {" "}
               ({group.covered} already covered)
             </span>
@@ -840,53 +779,23 @@ function SuggestionActionDetail({ group, entityMap, eraNameMap, entityUsage }) {
           }
 
           return (
-            <div
-              key={event.id}
-              style={{
-                marginBottom: "8px",
-                padding: "6px 8px",
-                border: "1px solid var(--border-color)",
-                borderRadius: "4px",
-                background: "var(--bg-primary)",
-              }}
-            >
+            <div key={event.id} className="ecp-event-card">
               {/* Event headline row */}
-              <div
-                style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "4px" }}
-              >
-                <span
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    color: "var(--text-color)",
-                    flex: 1,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                  title={headline}
-                >
+              <div className="ecp-event-headline-row">
+                <span className="ecp-event-headline" title={headline}>
                   {headline}
                 </span>
                 <SignificanceStars value={event.significance} />
-                <span
-                  style={{ fontSize: "10px", color: "var(--text-muted)", flexShrink: 0 }}
-                  title={`Era: ${eraName}`}
-                >
+                <span className="ecp-event-era" title={`Era: ${eraName}`}>
                   {eraName}
                 </span>
               </div>
               {/* Entity list */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 10px" }}>
+              <div className="ecp-entity-list">
                 {involved.map((ent) => (
                   <span
                     key={ent.id}
-                    style={{
-                      fontSize: "11px",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "3px",
-                    }}
+                    className="ecp-entity-chip"
                     title={[
                       `${ent.name} (${ent.kind})`,
                       ent.culture ? `Culture: ${ent.culture}` : null,
@@ -898,17 +807,17 @@ function SuggestionActionDetail({ group, entityMap, eraNameMap, entityUsage }) {
                       .join("\n")}
                   >
                     {ent.role === "subject" ? (
-                      <span style={{ color: "#60a5fa", fontSize: "9px" }}>◆</span>
+                      <span className="ecp-entity-icon-subject">◆</span>
                     ) : (
-                      <span style={{ color: "var(--text-muted)", fontSize: "9px" }}>○</span>
+                      <span className="ecp-entity-icon-participant">○</span>
                     )}
-                    <span style={{ color: "var(--text-color)" }}>{ent.name}</span>
-                    <span style={{ color: "var(--text-muted)", fontSize: "10px" }}>{ent.kind}</span>
+                    <span className="ecp-entity-name">{ent.name}</span>
+                    <span className="ecp-entity-kind">{ent.kind}</span>
                     <ProminenceDots value={ent.prominence} />
                     {ent.chronicleAppearances === 0 ? (
-                      <span style={{ color: "#a855f7", fontSize: "9px" }}>new</span>
+                      <span className="ecp-entity-new">new</span>
                     ) : (
-                      <span style={{ color: "var(--text-muted)", fontSize: "9px" }}>
+                      <span className="ecp-entity-appearances">
                         ☰{ent.chronicleAppearances}
                       </span>
                     )}
@@ -1005,15 +914,7 @@ function BackrefsSection({ entities, expanded }) {
           options={PROMINENCE_OPTIONS}
           label="Prominence"
         />
-        <label
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-          }}
-        >
+        <label className="ecp-checkbox-label">
           <input
             type="checkbox"
             checked={descOnly}
@@ -1021,7 +922,7 @@ function BackrefsSection({ entities, expanded }) {
           />
           Has description
         </label>
-        <span style={{ marginLeft: "auto", fontSize: "10px", color: "var(--text-muted)" }}>
+        <span className="ecp-auto-count">
           {rows.length} entities
         </span>
       </SectionToolbar>
@@ -1174,15 +1075,7 @@ function HistorySection({ entities, expanded }) {
           options={PROMINENCE_OPTIONS}
           label="Prominence"
         />
-        <label
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-          }}
-        >
+        <label className="ecp-checkbox-label">
           <input
             type="checkbox"
             checked={divergentOnly}
@@ -1190,7 +1083,7 @@ function HistorySection({ entities, expanded }) {
           />
           Backrefs but no history
         </label>
-        <span style={{ marginLeft: "auto", fontSize: "10px", color: "var(--text-muted)" }}>
+        <span className="ecp-auto-count">
           {rows.length} entities
         </span>
       </SectionToolbar>
@@ -1240,13 +1133,13 @@ function HistorySection({ entities, expanded }) {
               <td className="ec-right">
                 {r.divergence > 0 ? (
                   <span
-                    style={{ color: "#f59e0b", fontWeight: 600 }}
+                    className="ecp-divergence-warning"
                     title={`${r.divergence} more backrefs than history revisions`}
                   >
                     +{r.divergence}
                   </span>
                 ) : (
-                  <span style={{ color: "var(--text-muted)" }}>—</span>
+                  <span className="ecp-color-muted">—</span>
                 )}
               </td>
               <td
@@ -1370,7 +1263,7 @@ function CultureSection({ entities, cultureRoles, cultureEntities, entityUsage, 
           options={kindOptions}
           label="Entity kind"
         />
-        <span style={{ marginLeft: "auto", fontSize: "10px", color: "var(--text-muted)" }}>
+        <span className="ecp-auto-count">
           {rows.length} cultures
         </span>
       </SectionToolbar>
@@ -1406,11 +1299,11 @@ function CultureSection({ entities, cultureRoles, cultureEntities, entityUsage, 
                 ☰ {r.entityCount}
               </td>
               <td>
-                <span style={{ color: "#60a5fa" }} title={`${r.primaryCount} primary roles`}>
+                <span className="ecp-color-blue" title={`${r.primaryCount} primary roles`}>
                   ◆{r.primaryCount}
                 </span>{" "}
                 <span
-                  style={{ color: "var(--text-muted)" }}
+                  className="ecp-color-muted"
                   title={`${r.supportingCount} supporting roles`}
                 >
                   ○{r.supportingCount}
@@ -1419,33 +1312,30 @@ function CultureSection({ entities, cultureRoles, cultureEntities, entityUsage, 
               <td className="ec-right">
                 {r.totalRoles > 0 ? (
                   <span
-                    style={{
-                      fontWeight: 600,
-                      color:
-                        r.primaryRatio < 0.2
-                          ? "#ef4444"
-                          : r.primaryRatio < 0.4
-                            ? "#f59e0b"
-                            : "#22c55e",
-                    }}
+                    className={`ecp-font-bold ${
+                      r.primaryRatio < 0.2
+                        ? "ecp-color-red"
+                        : r.primaryRatio < 0.4
+                          ? "ecp-color-amber"
+                          : "ecp-color-green"
+                    }`}
                     title={`Primary ratio: ${(r.primaryRatio * 100).toFixed(0)}%`}
                   >
                     {(r.primaryRatio * 100).toFixed(0)}%
                   </span>
                 ) : (
-                  <span style={{ color: "var(--text-muted)" }}>—</span>
+                  <span className="ecp-color-muted">—</span>
                 )}
               </td>
               <td className="ec-right">
                 <span
-                  style={{
-                    color:
-                      r.appearanceRate < 0.3
-                        ? "#ef4444"
-                        : r.appearanceRate < 0.6
-                          ? "#f59e0b"
-                          : "#22c55e",
-                  }}
+                  className={
+                    r.appearanceRate < 0.3
+                      ? "ecp-color-red"
+                      : r.appearanceRate < 0.6
+                        ? "ecp-color-amber"
+                        : "ecp-color-green"
+                  }
                   title={`${r.appearedCount}/${r.entityCount} entities appeared in chronicles`}
                 >
                   {(r.appearanceRate * 100).toFixed(0)}%
@@ -1711,7 +1601,7 @@ function EventsSection({ events, eventCoverage, expanded }) {
           options={SIGNIFICANCE_OPTIONS}
           label="Min significance"
         />
-        <span style={{ marginLeft: "auto", fontSize: "10px", color: "var(--text-muted)" }}>
+        <span className="ecp-auto-count">
           {viewMode === "events" ? `${rows.length} events` : `${freqRows.length} types`}
         </span>
       </SectionToolbar>
@@ -1815,26 +1705,20 @@ function EventsSection({ events, eventCoverage, expanded }) {
                     {r.key}
                   </td>
                   <td className="ec-right">
-                    <span
-                      style={{
-                        fontWeight: r.count <= 2 ? 600 : 400,
-                        color: r.count <= 2 ? "#f59e0b" : undefined,
-                      }}
-                    >
+                    <span className={r.count <= 2 ? "ecp-rare-count" : undefined}>
                       {r.count}
                     </span>
                   </td>
                   <td className="ec-right">{r.coveredCount}</td>
                   <td className="ec-right">
                     <span
-                      style={{
-                        color:
-                          r.coverageRate === 0
-                            ? "#ef4444"
-                            : r.coverageRate < 0.5
-                              ? "#f59e0b"
-                              : "#22c55e",
-                      }}
+                      className={
+                        r.coverageRate === 0
+                          ? "ecp-color-red"
+                          : r.coverageRate < 0.5
+                            ? "ecp-color-amber"
+                            : "ecp-color-green"
+                      }
                     >
                       {(r.coverageRate * 100).toFixed(0)}%
                     </span>
@@ -2037,15 +1921,7 @@ function PotentialSection({ entities, narrativeEvents, relationships, entityUsag
           options={MIN_POTENTIAL_OPTIONS}
           label="Min potential"
         />
-        <label
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-          }}
-        >
+        <label className="ecp-checkbox-label">
           <input
             type="checkbox"
             checked={zeroOnly}
@@ -2053,7 +1929,7 @@ function PotentialSection({ entities, narrativeEvents, relationships, entityUsag
           />
           Zero appearances
         </label>
-        <span style={{ marginLeft: "auto", fontSize: "10px", color: "var(--text-muted)" }}>
+        <span className="ecp-auto-count">
           {rows.length} entities
         </span>
       </SectionToolbar>
@@ -2090,7 +1966,7 @@ function PotentialSection({ entities, narrativeEvents, relationships, entityUsag
                 <td className="ec-muted">{r.entity.kind}</td>
                 <td>
                   <span
-                    style={{ color: "#f59e0b", letterSpacing: "-1px" }}
+                    className="ecp-potential-stars"
                     title={`Story potential: ${(r.score * 100).toFixed(0)}%`}
                   >
                     {"●".repeat(rating)}
@@ -2101,20 +1977,17 @@ function PotentialSection({ entities, narrativeEvents, relationships, entityUsag
                   {r.usage.total}
                 </td>
                 <td>
-                  <span style={{ color: "#60a5fa" }} title={`${r.usage.primary} as primary`}>
+                  <span className="ecp-color-blue" title={`${r.usage.primary} as primary`}>
                     ◆{r.usage.primary}
                   </span>{" "}
                   <span
-                    style={{ color: "var(--text-muted)" }}
+                    className="ecp-color-muted"
                     title={`${r.usage.supporting} as supporting`}
                   >
                     ○{r.usage.supporting}
                   </span>
                   {r.neverPrimary && (
-                    <span
-                      style={{ fontSize: "9px", color: "#a855f7", marginLeft: "4px" }}
-                      title="Never primary"
-                    >
+                    <span className="ecp-never-primary" title="Never primary">
                       !
                     </span>
                   )}
@@ -2122,13 +1995,13 @@ function PotentialSection({ entities, narrativeEvents, relationships, entityUsag
                 <td className="ec-right">
                   {r.gap > 0.2 ? (
                     <span
-                      style={{ color: "#f59e0b", fontWeight: 600 }}
+                      className="ecp-divergence-warning"
                       title={`Gap: ${(r.gap * 100).toFixed(0)}%`}
                     >
                       ↑{(r.gap * 100).toFixed(0)}%
                     </span>
                   ) : (
-                    <span style={{ color: "var(--text-muted)" }}>—</span>
+                    <span className="ecp-color-muted">—</span>
                   )}
                 </td>
               </tr>
@@ -2218,15 +2091,7 @@ function ErasSection({
   return (
     <div>
       <SectionToolbar>
-        <label
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-          }}
-        >
+        <label className="ecp-checkbox-label">
           <input
             type="checkbox"
             checked={uncoveredOnly}
@@ -2234,7 +2099,7 @@ function ErasSection({
           />
           Uncovered only
         </label>
-        <span style={{ marginLeft: "auto", fontSize: "10px", color: "var(--text-muted)" }}>
+        <span className="ecp-auto-count">
           {rows.length} eras
         </span>
       </SectionToolbar>
@@ -2270,14 +2135,14 @@ function ErasSection({
               </td>
               <td>
                 <span
-                  style={{ color: r.chronicleCount === 0 ? "#ef4444" : "#22c55e" }}
+                  className={r.chronicleCount === 0 ? "ecp-color-red" : "ecp-color-green"}
                   title={`${r.chronicleCount} chronicles`}
                 >
                   ◇{r.chronicleCount}
                 </span>
                 {r.completedCount > 0 && (
                   <span
-                    style={{ color: "var(--text-muted)", marginLeft: "4px" }}
+                    className="ecp-era-completed"
                     title={`${r.completedCount} completed`}
                   >
                     ✓{r.completedCount}
@@ -2285,7 +2150,7 @@ function ErasSection({
                 )}
                 {r.backportedCount > 0 && (
                   <span
-                    style={{ color: "var(--text-muted)", marginLeft: "4px" }}
+                    className="ecp-era-completed"
                     title={`${r.backportedCount} backported`}
                   >
                     ⇄{r.backportedCount}
@@ -2426,7 +2291,7 @@ function IntegrationSection({ entities, entityBackportedCount, expanded }) {
           options={GAP_FILTER_OPTIONS}
           label="Gap type"
         />
-        <span style={{ marginLeft: "auto", fontSize: "10px", color: "var(--text-muted)" }}>
+        <span className="ecp-auto-count">
           {rows.length} entities
         </span>
       </SectionToolbar>
@@ -2460,7 +2325,7 @@ function IntegrationSection({ entities, entityBackportedCount, expanded }) {
                 <ProminenceDots value={r.entity.prominence} />
               </td>
               <td>
-                <span style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                <span className="ecp-status-dot-row">
                   <StatusDot
                     active={r.hasDescription}
                     label={r.hasDescription ? "Has description" : "Missing description"}
@@ -2488,11 +2353,9 @@ function IntegrationSection({ entities, entityBackportedCount, expanded }) {
                 </span>
               </td>
               <td
-                className="ec-right"
-                style={{
-                  color:
-                    r.gapScore >= 3 ? "#ef4444" : r.gapScore >= 2 ? "#f59e0b" : "var(--text-muted)",
-                }}
+                className={`ec-right ${
+                  r.gapScore >= 3 ? "ecp-color-red" : r.gapScore >= 2 ? "ecp-color-amber" : "ecp-color-muted"
+                }`}
               >
                 {r.gapScore}/5
               </td>
@@ -2575,23 +2438,22 @@ export default function EntityCoveragePanel({ simulationRunId }) {
   // Before calculation — show button
   if (!analysisData) {
     return (
-      <div style={{ marginTop: "16px" }}>
+      <div className="ecp-pre-calc">
         <div className="illuminator-card">
-          <div style={{ padding: "16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-color)" }}>
+          <div className="ecp-pre-calc-inner">
+            <div className="ecp-pre-calc-header">
+              <span className="ecp-pre-calc-title">
                 Entity Coverage Analysis
               </span>
             </div>
-            <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "8px 0 12px" }}>
+            <p className="ecp-pre-calc-desc">
               Analyzes coverage gaps across entities, chronicles, events, and relationships. Loads
               full entity data on demand.
             </p>
             <button
               onClick={handleCalculate}
               disabled={calculating}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "8px 16px", fontSize: "12px" }}
+              className="illuminator-button illuminator-button-secondary ecp-btn-pad-sm"
             >
               {calculating ? "Calculating..." : "Calculate Statistics"}
             </button>
@@ -2749,21 +2611,20 @@ export default function EntityCoveragePanel({ simulationRunId }) {
   };
 
   return (
-    <div style={{ marginTop: "16px" }}>
-      <div className="illuminator-card" style={{ marginBottom: "8px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 16px" }}>
-          <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-color)" }}>
+    <div className="ecp-wrapper">
+      <div className="illuminator-card ecp-header-card">
+        <div className="ecp-header-bar">
+          <span className="ecp-header-title">
             Entity Coverage Analysis
           </span>
-          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+          <span className="ecp-header-stats">
             {analysis.nonEraEntities.length} entities, {analysis.activeChronicles.length}{" "}
             chronicles, {safeEvents.length} events
           </span>
           <button
             onClick={handleCalculate}
             disabled={calculating}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "4px 10px", fontSize: "11px", marginLeft: "auto" }}
+            className="illuminator-button illuminator-button-secondary ecp-recalc-btn"
             title="Reload data from database and recalculate all statistics"
           >
             {calculating ? "Recalculating..." : "Recalculate"}

@@ -1,0 +1,64 @@
+/* ConfigPanel — prefix: cfgp */
+
+.cfgp-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.cfgp-section-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.cfgp-checkbox-spacer {
+  margin-bottom: 12px;
+}
+
+.cfgp-checkbox-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  margin-left: 24px;
+}
+
+.cfgp-checkbox-hint--tight {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  margin-left: 24px;
+}
+
+.cfgp-indented-group {
+  margin-left: 24px;
+}
+
+.cfgp-workers-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cfgp-range-input {
+  flex: 1;
+}
+
+.cfgp-worker-count {
+  min-width: 24px;
+  text-align: right;
+  font-weight: 500;
+}
+
+.cfgp-about-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.cfgp-about-text--spaced {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-top: 12px;
+}

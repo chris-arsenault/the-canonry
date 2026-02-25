@@ -24,6 +24,7 @@ import { ImageSettingsSummary } from "./ImageSettingsDrawer";
 import { useImageUrl } from "../hooks/useImageUrl";
 import { formatCost } from "../lib/costEstimation";
 import { prominenceLabelFromScale, prominenceThresholdFromScale } from "@canonry/world-schema";
+import "./EntityBrowser.css";
 // imageSettings imports removed - size/quality now in ImageSettingsDrawer
 
 // Highlight matching substring within text for search results
@@ -55,15 +56,7 @@ function HighlightMatch({ text, query, truncate = 0, matchIndex }) {
   return (
     <>
       {before}
-      <span
-        style={{
-          background: "rgba(245, 158, 11, 0.25)",
-          color: "var(--text-primary)",
-          fontWeight: 600,
-          borderRadius: "2px",
-          padding: "0 1px",
-        }}
-      >
+      <span className="eb-highlight">
         {match}
       </span>
       {after}
@@ -97,17 +90,7 @@ function ImageThumbnail({ imageId, alt, onClick }) {
   const placeholder = (text, title) => (
     <div
       ref={containerRef}
-      style={{
-        width: "80px",
-        height: "80px",
-        borderRadius: "4px",
-        background: "var(--bg-tertiary)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "var(--text-muted)",
-        fontSize: "10px",
-      }}
+      className="eb-thumb"
       title={title}
     >
       {text}
@@ -118,16 +101,11 @@ function ImageThumbnail({ imageId, alt, onClick }) {
   if (error || !url) return placeholder("No image", error || "Image not found");
 
   return (
-    <div ref={containerRef} style={{ cursor: "pointer" }} onClick={() => onClick(imageId, alt)}>
+    <div ref={containerRef} className="eb-thumb--clickable" onClick={() => onClick(imageId, alt)}>
       <img
         src={url}
         alt={alt}
-        style={{
-          width: "80px",
-          height: "80px",
-          objectFit: "cover",
-          borderRadius: "4px",
-        }}
+        className="eb-thumb__img"
       />
     </div>
   );
@@ -156,15 +134,6 @@ function prominenceAtLeast(prominence, minProminence, scale) {
 }
 
 function EnrichmentStatusBadge({ status, label, cost }) {
-  const styles = {
-    missing: { background: "var(--bg-tertiary)", color: "var(--text-muted)" },
-    queued: { background: "#3b82f6", color: "white" },
-    running: { background: "#f59e0b", color: "white" },
-    complete: { background: "#10b981", color: "white" },
-    error: { background: "#ef4444", color: "white" },
-    disabled: { background: "var(--bg-tertiary)", color: "var(--text-muted)", opacity: 0.5 },
-  };
-
   const icons = {
     missing: "○",
     queued: "◷",
@@ -175,21 +144,10 @@ function EnrichmentStatusBadge({ status, label, cost }) {
   };
 
   return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "4px",
-        padding: "2px 8px",
-        borderRadius: "4px",
-        fontSize: "11px",
-        fontWeight: 500,
-        ...styles[status],
-      }}
-    >
+    <span className={`eb-badge eb-badge--${status}`}>
       <span>{icons[status]}</span>
       <span>{label}</span>
-      {cost !== undefined && <span style={{ opacity: 0.8, marginLeft: "2px" }}>{cost}</span>}
+      {cost !== undefined && <span className="eb-badge__cost">{cost}</span>}
     </span>
   );
 }
@@ -219,50 +177,26 @@ function EntityRow({
   prominenceScale,
 }) {
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "32px 1fr auto",
-        gap: "12px",
-        padding: "12px",
-        borderBottom: "1px solid var(--border-color)",
-        alignItems: "start",
-      }}
-    >
+    <div className="eb-row">
       {/* Checkbox */}
-      <div style={{ paddingTop: "2px" }}>
+      <div className="eb-row__checkbox">
         <input
           type="checkbox"
           checked={selected}
           onChange={onToggleSelect}
-          style={{ cursor: "pointer" }}
         />
       </div>
 
       {/* Entity info */}
       <div>
         <div
-          style={{
-            fontWeight: 500,
-            marginBottom: "4px",
-            cursor: "pointer",
-            color: "var(--accent-color)",
-          }}
+          className="eb-row__name"
           onClick={onEntityClick}
           title="Click to view entity details"
         >
           {entity.name}
         </div>
-        <div
-          style={{
-            fontSize: "12px",
-            color: "var(--text-muted)",
-            marginBottom: "8px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
+        <div className="eb-row__meta">
           <span>
             {entity.kind}/{entity.subtype} ·{" "}
             {prominenceLabelFromScale(entity.prominence, prominenceScale)}
@@ -271,10 +205,7 @@ function EntityRow({
           {entity.historianEditionCount > 0 && (
             <span
               title={`${entity.historianEditionCount} historian edition${entity.historianEditionCount !== 1 ? "s" : ""}`}
-              style={{
-                color: entity.historianEditionCount >= 2 ? "#10b981" : "#f59e0b",
-                fontSize: "10px",
-              }}
+              className={entity.historianEditionCount >= 2 ? "eb-row__edition-count eb-row__edition-count--many" : "eb-row__edition-count eb-row__edition-count--few"}
             >
               {"\u270E"}
               {entity.historianEditionCount}
@@ -286,8 +217,7 @@ function EntityRow({
                 e.stopPropagation();
                 onEditEntity(entity);
               }}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "2px 8px", fontSize: "10px" }}
+              className="illuminator-button illuminator-button-secondary eb-row__btn-sm"
               title="Edit entity attributes"
             >
               Edit
@@ -299,8 +229,7 @@ function EntityRow({
                 e.stopPropagation();
                 onDeleteEntity(entity);
               }}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "2px 8px", fontSize: "10px", color: "#ef4444" }}
+              className="illuminator-button illuminator-button-secondary eb-row__btn-sm eb-row__btn-sm--danger"
               title="Delete this manually-created entity"
             >
               Delete
@@ -309,21 +238,11 @@ function EntityRow({
         </div>
 
         {/* Content row: description and image side by side */}
-        <div style={{ display: "flex", gap: "12px" }}>
+        <div className="eb-row__content">
           {/* Description preview if exists */}
           {entity.summary && (
             <div
-              style={{
-                flex: 1,
-                fontSize: "12px",
-                color: "var(--text-secondary)",
-                padding: "8px",
-                background: "var(--bg-tertiary)",
-                borderRadius: "4px",
-                maxHeight: "80px",
-                overflow: "hidden",
-                cursor: "pointer",
-              }}
+              className="eb-row__summary"
               onClick={onEntityClick}
               title="Click to view entity details"
             >
@@ -339,15 +258,14 @@ function EntityRow({
       </div>
 
       {/* Actions */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px", alignItems: "flex-end" }}>
+      <div className="eb-row__actions">
         {/* Description status and action */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="eb-row__action-group">
           <EnrichmentStatusBadge status={descStatus} label="Desc" cost={descCost} />
           {descStatus === "missing" && (
             <button
               onClick={onQueueDesc}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "4px 8px", fontSize: "11px" }}
+              className="illuminator-button illuminator-button-secondary eb-row__action-btn"
             >
               Queue
             </button>
@@ -355,8 +273,7 @@ function EntityRow({
           {(descStatus === "queued" || descStatus === "running") && (
             <button
               onClick={onCancelDesc}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "4px 8px", fontSize: "11px" }}
+              className="illuminator-button illuminator-button-secondary eb-row__action-btn"
             >
               Cancel
             </button>
@@ -364,8 +281,7 @@ function EntityRow({
           {descStatus === "error" && (
             <button
               onClick={onQueueDesc}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "4px 8px", fontSize: "11px" }}
+              className="illuminator-button illuminator-button-secondary eb-row__action-btn"
             >
               Retry
             </button>
@@ -373,8 +289,7 @@ function EntityRow({
           {descStatus === "complete" && (
             <button
               onClick={onQueueDesc}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "4px 8px", fontSize: "11px" }}
+              className="illuminator-button illuminator-button-secondary eb-row__action-btn"
               title="Regenerate description"
             >
               Regen
@@ -384,13 +299,12 @@ function EntityRow({
 
         {/* Visual thesis status and action — only show when description exists */}
         {descStatus === "complete" && (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div className="eb-row__action-group">
             <EnrichmentStatusBadge status={thesisStatus} label="Thesis" />
             {(thesisStatus === "missing" || thesisStatus === "complete") && (
               <button
                 onClick={onQueueThesis}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 8px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary eb-row__action-btn"
                 title={
                   thesisStatus === "complete"
                     ? "Regenerate visual thesis & traits"
@@ -403,8 +317,7 @@ function EntityRow({
             {(thesisStatus === "queued" || thesisStatus === "running") && (
               <button
                 onClick={onCancelThesis}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 8px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary eb-row__action-btn"
               >
                 Cancel
               </button>
@@ -412,8 +325,7 @@ function EntityRow({
             {thesisStatus === "error" && (
               <button
                 onClick={onQueueThesis}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 8px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary eb-row__action-btn"
               >
                 Retry
               </button>
@@ -422,28 +334,26 @@ function EntityRow({
         )}
 
         {/* Image status and action */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+        <div className="eb-row__action-group eb-row__action-group--wrap">
           <EnrichmentStatusBadge
             status={canQueueImage ? imgStatus : "disabled"}
             label="Image"
             cost={canQueueImage ? imgCost : undefined}
           />
           {needsDescription && (
-            <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>Needs desc first</span>
+            <span className="eb-row__needs-desc">Needs desc first</span>
           )}
           {canQueueImage && imgStatus === "missing" && (
             <>
               <button
                 onClick={onQueueImg}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 8px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary eb-row__action-btn"
               >
                 Queue
               </button>
               <button
                 onClick={onAssignImage}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 8px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary eb-row__action-btn"
                 title="Assign existing image from library"
               >
                 Assign
@@ -453,8 +363,7 @@ function EntityRow({
           {canQueueImage && (imgStatus === "queued" || imgStatus === "running") && (
             <button
               onClick={onCancelImg}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "4px 8px", fontSize: "11px" }}
+              className="illuminator-button illuminator-button-secondary eb-row__action-btn"
             >
               Cancel
             </button>
@@ -463,15 +372,13 @@ function EntityRow({
             <>
               <button
                 onClick={onQueueImg}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 8px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary eb-row__action-btn"
               >
                 Retry
               </button>
               <button
                 onClick={onAssignImage}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 8px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary eb-row__action-btn"
                 title="Assign existing image from library"
               >
                 Assign
@@ -482,16 +389,14 @@ function EntityRow({
             <>
               <button
                 onClick={onQueueImg}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 8px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary eb-row__action-btn"
                 title="Regenerate image"
               >
                 Regen
               </button>
               <button
                 onClick={onAssignImage}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 8px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary eb-row__action-btn"
                 title="Assign different image from library"
               >
                 Assign
@@ -1262,18 +1167,17 @@ export default function EntityBrowser({
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+    <div className="eb">
       {/* Filters and Settings Card - fixed header */}
-      <div className="illuminator-card" style={{ flexShrink: 0 }}>
+      <div className="illuminator-card eb__settings-card">
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Entities</h2>
-          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+          <span className="eb__entity-count">
             {filteredNavItems.length} of {navEntities.length} entities
           </span>
           <button
             onClick={openCreateEntity}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "4px 10px", fontSize: "11px", marginLeft: "8px" }}
+            className="illuminator-button illuminator-button-secondary eb__add-entity-btn"
             title="Create a new entity manually"
           >
             + Add Entity
@@ -1281,8 +1185,8 @@ export default function EntityBrowser({
         </div>
 
         {/* Entity search bar */}
-        <div style={{ position: "relative", marginBottom: "10px" }}>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <div className="eb__search-wrap">
+          <div className="eb__search-row">
             <input
               ref={searchInputRef}
               type="text"
@@ -1308,25 +1212,9 @@ export default function EntityBrowser({
                   ? "Search names, aliases, summaries, descriptions\u2026"
                   : "Search names, aliases\u2026"
               }
-              className="illuminator-select"
-              style={{
-                flex: 1,
-                padding: "6px 10px",
-                fontSize: "12px",
-                boxSizing: "border-box",
-              }}
+              className="illuminator-select eb__search-input"
             />
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-            >
+            <label className="eb__search-text-label">
               <input
                 type="checkbox"
                 checked={searchText}
@@ -1336,43 +1224,14 @@ export default function EntityBrowser({
             </label>
           </div>
           {searchOpen && searchQuery.trim().length >= 2 && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                marginTop: "4px",
-                background: "var(--bg-primary)",
-                border: "1px solid var(--border-color)",
-                borderRadius: "8px",
-                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
-                zIndex: 200,
-                maxHeight: "400px",
-                overflowY: "auto",
-              }}
-            >
+            <div className="eb__search-dropdown">
               {searchResults.length === 0 ? (
-                <div
-                  style={{
-                    padding: "16px",
-                    textAlign: "center",
-                    color: "var(--text-muted)",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="eb__search-empty">
                   No matches
                 </div>
               ) : (
                 <>
-                  <div
-                    style={{
-                      padding: "6px 12px",
-                      fontSize: "10px",
-                      color: "var(--text-muted)",
-                      borderBottom: "1px solid var(--border-color)",
-                    }}
-                  >
+                  <div className="eb__search-count">
                     {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
                   </div>
                   {searchResults.map(({ entity, matches }) => {
@@ -1381,33 +1240,11 @@ export default function EntityBrowser({
                       <div
                         key={entity.id}
                         onClick={() => handleSearchSelect(entity.id)}
-                        style={{
-                          padding: "8px 12px",
-                          cursor: "pointer",
-                          borderBottom: "1px solid var(--border-color)",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "var(--bg-tertiary)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "transparent";
-                        }}
+                        className="eb__search-result"
                       >
-                        <div
-                          style={{
-                            fontSize: "13px",
-                            color: "var(--text-primary)",
-                            marginBottom: "2px",
-                          }}
-                        >
+                        <div className="eb__search-result-name">
                           <HighlightMatch text={entity.name} query={q} />
-                          <span
-                            style={{
-                              marginLeft: "6px",
-                              fontSize: "10px",
-                              color: "var(--text-muted)",
-                            }}
-                          >
+                          <span className="eb__search-result-kind">
                             {entity.kind}
                             {entity.subtype ? `/${entity.subtype}` : ""}
                           </span>
@@ -1415,24 +1252,8 @@ export default function EntityBrowser({
                         {matches
                           .filter((m) => m.field !== "name")
                           .map((m, i) => (
-                            <div
-                              key={i}
-                              style={{
-                                fontSize: "11px",
-                                color: "var(--text-muted)",
-                                marginTop: "1px",
-                              }}
-                            >
-                              <span
-                                style={{
-                                  fontSize: "9px",
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.04em",
-                                  marginRight: "6px",
-                                  color: "var(--text-muted)",
-                                  opacity: 0.7,
-                                }}
-                              >
+                            <div key={i} className="eb__search-match-row">
+                              <span className="eb__search-match-field">
                                 {m.field}
                               </span>
                               <HighlightMatch
@@ -1454,7 +1275,7 @@ export default function EntityBrowser({
           )}
           {searchOpen && (
             <div
-              style={{ position: "fixed", inset: 0, zIndex: 199 }}
+              className="eb__search-backdrop"
               onClick={() => {
                 setSearchOpen(false);
               }}
@@ -1463,14 +1284,7 @@ export default function EntityBrowser({
         </div>
 
         {/* Compact filters grid */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-            gap: "8px",
-            marginBottom: "12px",
-          }}
-        >
+        <div className="eb__filters">
           <select
             value={filters.kind}
             onChange={(e) => setFilters((prev) => ({ ...prev, kind: e.target.value }))}
@@ -1536,16 +1350,7 @@ export default function EntityBrowser({
             <option value="configured">Configured</option>
           </select>
 
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "12px",
-              cursor: "pointer",
-              padding: "6px 8px",
-            }}
-          >
+          <label className="eb__hide-completed-label">
             <input
               type="checkbox"
               checked={hideCompleted}
@@ -1556,24 +1361,12 @@ export default function EntityBrowser({
         </div>
 
         {/* Enrichment Settings - inline */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "16px",
-            padding: "8px 12px",
-            background: "var(--bg-tertiary)",
-            borderRadius: "4px",
-            marginBottom: "12px",
-            flexWrap: "wrap",
-          }}
-        >
-          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Image threshold:</span>
+        <div className="eb__enrichment-settings">
+          <span className="eb__enrichment-label">Image threshold:</span>
           <select
             value={config.minProminenceForImage}
             onChange={(e) => onConfigChange({ minProminenceForImage: e.target.value })}
-            className="illuminator-select"
-            style={{ width: "auto", minWidth: "100px" }}
+            className="illuminator-select eb__enrichment-select"
           >
             {PROMINENCE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -1581,7 +1374,7 @@ export default function EntityBrowser({
               </option>
             ))}
           </select>
-          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+          <span className="eb__enrichment-hint">
             Only entities at or above this prominence can have images generated
           </span>
         </div>
@@ -1594,49 +1387,27 @@ export default function EntityBrowser({
         />
 
         {/* Min Event Significance for Descriptions */}
-        <div style={{ marginBottom: "12px" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "4px",
-              fontSize: "12px",
-              color: "var(--text-secondary)",
-            }}
-          >
+        <div className="eb__event-significance">
+          <label className="eb__event-significance-label">
             Min Event Importance (for descriptions)
           </label>
           <select
             value={config.minEventSignificance ?? 0.25}
             onChange={(e) => onConfigChange({ minEventSignificance: parseFloat(e.target.value) })}
-            style={{
-              width: "100%",
-              padding: "6px 8px",
-              borderRadius: "4px",
-              border: "1px solid var(--border-color)",
-              background: "var(--bg-primary)",
-              color: "var(--text-primary)",
-              fontSize: "13px",
-            }}
+            className="eb__event-significance-select"
           >
             <option value={0}>All (&gt;0%)</option>
             <option value={0.25}>Low (&gt;25%)</option>
             <option value={0.5}>Medium (&gt;50%)</option>
             <option value={0.75}>High (&gt;75%)</option>
           </select>
-          <span
-            style={{
-              fontSize: "11px",
-              color: "var(--text-muted)",
-              display: "block",
-              marginTop: "4px",
-            }}
-          >
+          <span className="eb__event-significance-hint">
             Include events above this significance in description prompts
           </span>
         </div>
 
         {/* Quick actions */}
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <div className="eb__quick-actions">
           <button
             onClick={queueAllMissingDescriptions}
             className="illuminator-button illuminator-button-secondary"
@@ -1756,81 +1527,60 @@ export default function EntityBrowser({
 
       {/* Selection actions - fixed */}
       {selectedIds.size > 0 && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            padding: "12px 16px",
-            marginBottom: "16px",
-            background: "var(--bg-secondary)",
-            border: "1px solid var(--accent-color)",
-            borderRadius: "6px",
-            flexWrap: "wrap",
-            flexShrink: 0,
-          }}
-        >
-          <span style={{ fontSize: "13px" }}>{selectedIds.size} selected</span>
+        <div className="eb__selection-bar">
+          <span className="eb__selection-count">{selectedIds.size} selected</span>
           <button
             onClick={queueSelectedDescriptions}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "6px 12px", fontSize: "12px" }}
+            className="illuminator-button illuminator-button-secondary eb__selection-btn"
             title="Queue missing descriptions"
           >
             Queue Desc
           </button>
           <button
             onClick={queueSelectedImages}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "6px 12px", fontSize: "12px" }}
+            className="illuminator-button illuminator-button-secondary eb__selection-btn"
             title="Queue missing images"
           >
             Queue Img
           </button>
           <button
             onClick={regenSelectedDescriptions}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "6px 12px", fontSize: "12px" }}
+            className="illuminator-button illuminator-button-secondary eb__selection-btn"
             title="Regenerate existing descriptions"
           >
             Regen Desc
           </button>
           <button
             onClick={regenSelectedImages}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "6px 12px", fontSize: "12px" }}
+            className="illuminator-button illuminator-button-secondary eb__selection-btn"
             title="Regenerate existing images"
           >
             Regen Img
           </button>
           <button
             onClick={downloadSelectedDebug}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "6px 12px", fontSize: "12px" }}
+            className="illuminator-button illuminator-button-secondary eb__selection-btn"
             title="Download debug request/response data for selected entities"
           >
             Download Debug
           </button>
           <button
             onClick={downloadSelectedEditions}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "6px 12px", fontSize: "12px" }}
+            className="illuminator-button illuminator-button-secondary eb__selection-btn"
             title="Export pre-historian, legacy, and active description versions + annotations for selected entities"
           >
             Export Editions
           </button>
           <button
             onClick={downloadSelectedAnnotations}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "6px 12px", fontSize: "12px" }}
+            className="illuminator-button illuminator-button-secondary eb__selection-btn"
             title="Export historian annotations for selected entities (name, kind, prominence)"
           >
             Export Annotations
           </button>
           <button
             onClick={clearSelection}
-            className="illuminator-button-link"
-            style={{ marginLeft: "auto" }}
+            className="illuminator-button-link eb__selection-clear"
           >
             Clear
           </button>
@@ -1845,35 +1595,21 @@ export default function EntityBrowser({
           onBack={() => setSelectedEntityId(null)}
         />
       ) : (
-        <div
-          className="illuminator-card"
-          style={{ padding: 0, flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
-        >
+        <div className="illuminator-card eb__list-card">
           {/* Header row - sticky */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              padding: "8px 12px",
-              borderBottom: "1px solid var(--border-color)",
-              background: "var(--bg-tertiary)",
-              flexShrink: 0,
-            }}
-          >
+          <div className="eb__list-header">
             <input
               type="checkbox"
               checked={selectedIds.size === filteredNavItems.length && filteredNavItems.length > 0}
               onChange={(e) => (e.target.checked ? selectAll() : clearSelection())}
-              style={{ cursor: "pointer" }}
             />
-            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Select all</span>
+            <span className="eb__list-header-label">Select all</span>
           </div>
 
           {/* Entity rows - scrollable container with progressive rendering */}
-          <div ref={entityListRef} style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+          <div ref={entityListRef} className="eb__list-scroll">
             {filteredNavItems.length === 0 ? (
-              <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+              <div className="eb__list-empty">
                 No entities match the current filters.
               </div>
             ) : (
@@ -1926,14 +1662,7 @@ export default function EntityBrowser({
                   );
                 })}
                 {visibleCount < filteredNavItems.length && (
-                  <div
-                    style={{
-                      padding: "16px",
-                      textAlign: "center",
-                      color: "var(--text-muted)",
-                      fontSize: "12px",
-                    }}
-                  >
+                  <div className="eb__list-loading">
                     Loading more... ({visibleCount} of {filteredNavItems.length})
                   </div>
                 )}

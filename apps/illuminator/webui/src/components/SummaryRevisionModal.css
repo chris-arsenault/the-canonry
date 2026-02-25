@@ -1,0 +1,369 @@
+/* SummaryRevisionModal.css — co-located styles for SummaryRevisionModal.jsx */
+
+/* ─── InlineDiff ─── */
+.srm-diff-section {
+  margin-bottom: 10px;
+}
+
+.srm-diff-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.srm-diff-content {
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  font-size: 11px;
+  line-height: 1.8;
+  max-height: 300px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.srm-diff-added {
+  background: rgba(34, 197, 94, 0.2);
+  color: var(--text-primary);
+  border-radius: 2px;
+  padding: 0 1px;
+  text-decoration: none;
+}
+
+.srm-diff-removed {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--text-secondary);
+  border-radius: 2px;
+  padding: 0 1px;
+  text-decoration: line-through;
+}
+
+/* ─── AnchorPhraseEditor ─── */
+.srm-anchor-section {
+  margin-bottom: 10px;
+}
+
+.srm-anchor-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.srm-anchor-warning {
+  color: var(--warning, #f59e0b);
+  margin-left: 6px;
+  font-weight: 400;
+}
+
+.srm-anchor-edit-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.srm-anchor-input {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.srm-anchor-save-btn {
+  padding: 3px 8px;
+  font-size: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.srm-anchor-cancel-btn {
+  padding: 3px 8px;
+  font-size: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.srm-anchor-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  font-size: 11px;
+}
+
+.srm-anchor-phrase {
+  flex: 1;
+  font-style: italic;
+}
+
+.srm-anchor-phrase-found {
+  color: var(--text-primary);
+}
+
+.srm-anchor-phrase-missing {
+  color: var(--warning, #f59e0b);
+}
+
+.srm-anchor-edit-trigger {
+  padding: 2px 6px;
+  font-size: 9px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* ─── PatchCard ─── */
+.srm-patch-card {
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.srm-patch-card[data-accepted="true"] {
+  border-left: 3px solid var(--success-color, #22c55e);
+  opacity: 1;
+}
+
+.srm-patch-card[data-accepted="false"] {
+  border-left: 3px solid var(--text-muted);
+  opacity: 0.5;
+}
+
+.srm-patch-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.srm-patch-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.srm-patch-expand-icon {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.srm-patch-entity-name {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.srm-patch-entity-kind {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.srm-patch-changes-label {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.srm-patch-toggle-btn {
+  padding: 2px 8px;
+  font-size: 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+}
+
+.srm-patch-toggle-btn[data-accepted="true"] {
+  background: var(--success-color, #22c55e);
+  color: #fff;
+}
+
+.srm-patch-toggle-btn[data-accepted="false"] {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.srm-patch-expanded {
+  padding: 0 12px 10px;
+}
+
+/* ─── Modal overlay ─── */
+.srm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.srm-modal {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  width: 900px;
+  max-width: 95vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Header */
+.srm-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.srm-modal-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.srm-modal-culture {
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.srm-modal-subtitle {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.srm-modal-header-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.srm-modal-cost {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.srm-cancel-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+/* Scrollable content */
+.srm-modal-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 16px 20px;
+  min-height: 0;
+}
+
+/* Generating state */
+.srm-generating {
+  padding: 40px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.srm-generating-label {
+  margin-bottom: 8px;
+}
+
+.srm-generating-detail {
+  font-size: 10px;
+}
+
+/* Error */
+.srm-error {
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border-left: 3px solid var(--danger);
+  font-size: 12px;
+  color: var(--danger);
+  margin-bottom: 8px;
+}
+
+/* Patches toolbar */
+.srm-patches-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.srm-patches-count {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.srm-patches-accepted {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.srm-patches-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.srm-toolbar-btn {
+  padding: 2px 8px;
+  font-size: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* Empty patches */
+.srm-no-patches {
+  padding: 20px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Footer */
+.srm-modal-footer {
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.srm-footer-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+}

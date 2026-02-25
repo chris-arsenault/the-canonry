@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import IlluminatorRemote from "./IlluminatorRemote";
 import "./App.css";
+import "./main.css";
 import { exportImagePrompts, downloadImagePromptExport } from "./lib/db/imageRepository";
 import { repairFactCoverageWasFaceted } from "./lib/db/chronicleRepository";
 
@@ -151,7 +152,7 @@ const mockWorldData = Object.freeze({
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <div style={{ height: "100vh", backgroundColor: "#1e1e2e" }}>
+    <div className="main-dev-shell">
       <IlluminatorRemote
         projectId="mock-project"
         schema={mockSchema}

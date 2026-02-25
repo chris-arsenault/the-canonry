@@ -12,11 +12,12 @@ import {
   loadImage,
   formatBytes,
 } from "../lib/db/imageRepository";
+import "./ImagePickerModal.css";
 
 /**
  * Lazy-loading thumbnail that only loads the blob when visible via IntersectionObserver.
  */
-function LazyThumbnail({ imageId, alt, style }) {
+function LazyThumbnail({ imageId, alt, className }) {
   const ref = useRef(null);
   const [url, setUrl] = useState(null);
   const urlRef = useRef(null);
@@ -50,35 +51,15 @@ function LazyThumbnail({ imageId, alt, style }) {
   }, [imageId]);
 
   return (
-    <div ref={ref} style={style}>
+    <div ref={ref} className={className}>
       {url ? (
         <img
           src={url}
           alt={alt}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-          }}
+          className="ipm-thumbnail-img"
         />
       ) : (
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--text-muted)",
-            fontSize: "11px",
-          }}
-        >
+        <div className="ipm-thumbnail-placeholder">
           Loading...
         </div>
       )}
@@ -222,7 +203,7 @@ export default function ImagePickerModal({
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
     >
-      <div className="illuminator-modal" style={{ maxWidth: "900px", maxHeight: "85vh" }}>
+      <div className="illuminator-modal ipm-modal">
         <div className="illuminator-modal-header">
           <h3>Select Image from Library</h3>
           <button onClick={handleClose} className="illuminator-modal-close">
@@ -230,27 +211,11 @@ export default function ImagePickerModal({
           </button>
         </div>
 
-        <div className="illuminator-modal-body" style={{ padding: "0" }}>
+        <div className="illuminator-modal-body ipm-body">
           {/* Filters */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "12px",
-              padding: "16px",
-              borderBottom: "1px solid var(--border-color)",
-              background: "var(--bg-tertiary)",
-            }}
-          >
+          <div className="ipm-filters">
             <div>
-              <label
-                style={{
-                  fontSize: "11px",
-                  color: "var(--text-muted)",
-                  display: "block",
-                  marginBottom: "4px",
-                }}
-              >
+              <label className="ipm-filter-label">
                 Search
               </label>
               <input
@@ -258,27 +223,18 @@ export default function ImagePickerModal({
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 placeholder="Name or prompt..."
-                className="illuminator-input"
-                style={{ width: "160px" }}
+                className="illuminator-input ipm-search-input"
               />
             </div>
 
             <div>
-              <label
-                style={{
-                  fontSize: "11px",
-                  color: "var(--text-muted)",
-                  display: "block",
-                  marginBottom: "4px",
-                }}
-              >
+              <label className="ipm-filter-label">
                 Entity Kind
               </label>
               <select
                 value={filterKind}
                 onChange={(e) => setFilterKind(e.target.value)}
-                className="illuminator-select"
-                style={{ width: "auto", minWidth: "120px" }}
+                className="illuminator-select ipm-filter-select"
               >
                 <option value="all">All Kinds</option>
                 {filterOptions.kinds.map((kind) => (
@@ -290,21 +246,13 @@ export default function ImagePickerModal({
             </div>
 
             <div>
-              <label
-                style={{
-                  fontSize: "11px",
-                  color: "var(--text-muted)",
-                  display: "block",
-                  marginBottom: "4px",
-                }}
-              >
+              <label className="ipm-filter-label">
                 Culture
               </label>
               <select
                 value={filterCulture}
                 onChange={(e) => setFilterCulture(e.target.value)}
-                className="illuminator-select"
-                style={{ width: "auto", minWidth: "120px" }}
+                className="illuminator-select ipm-filter-select"
               >
                 <option value="all">All Cultures</option>
                 {filterOptions.cultures.map((culture) => (
@@ -316,21 +264,13 @@ export default function ImagePickerModal({
             </div>
 
             <div>
-              <label
-                style={{
-                  fontSize: "11px",
-                  color: "var(--text-muted)",
-                  display: "block",
-                  marginBottom: "4px",
-                }}
-              >
+              <label className="ipm-filter-label">
                 Model
               </label>
               <select
                 value={filterModel}
                 onChange={(e) => setFilterModel(e.target.value)}
-                className="illuminator-select"
-                style={{ width: "auto", minWidth: "120px" }}
+                className="illuminator-select ipm-filter-select"
               >
                 <option value="all">All Models</option>
                 {filterOptions.models.map((model) => (
@@ -341,31 +281,25 @@ export default function ImagePickerModal({
               </select>
             </div>
 
-            <div style={{ marginLeft: "auto", alignSelf: "flex-end" }}>
-              <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+            <div className="ipm-filter-count-wrapper">
+              <span className="ipm-filter-count">
                 {images.length} images
               </span>
             </div>
           </div>
 
           {/* Image grid */}
-          <div style={{ padding: "16px", maxHeight: "500px", overflowY: "auto" }}>
+          <div className="ipm-grid-container">
             {loading ? (
-              <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+              <div className="ipm-loading">
                 Loading images...
               </div>
             ) : images.length === 0 ? (
-              <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+              <div className="ipm-empty">
                 No images found. Try adjusting the filters or generate some images first.
               </div>
             ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-                  gap: "12px",
-                }}
-              >
+              <div className="ipm-grid">
                 {images.map((img) => {
                   const isSelected = selectedImageId === img.imageId;
                   const isCurrent = currentImageId === img.imageId;
@@ -374,36 +308,11 @@ export default function ImagePickerModal({
                     <div
                       key={img.imageId}
                       onClick={() => setSelectedImageId(img.imageId)}
-                      style={{
-                        position: "relative",
-                        background: "var(--bg-tertiary)",
-                        borderRadius: "8px",
-                        overflow: "hidden",
-                        cursor: "pointer",
-                        border: isSelected
-                          ? "2px solid var(--accent-color)"
-                          : isCurrent
-                            ? "2px solid var(--success)"
-                            : "2px solid transparent",
-                        opacity: isCurrent ? 0.7 : 1,
-                      }}
+                      className={`ipm-card ${isSelected ? "ipm-card--selected" : ""} ${isCurrent ? "ipm-card--current" : ""}`}
                     >
                       {/* Current badge */}
                       {isCurrent && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: "6px",
-                            right: "6px",
-                            zIndex: 1,
-                            padding: "2px 6px",
-                            background: "var(--success)",
-                            color: "white",
-                            borderRadius: "3px",
-                            fontSize: "9px",
-                            fontWeight: 600,
-                          }}
-                        >
+                        <div className="ipm-current-badge">
                           CURRENT
                         </div>
                       )}
@@ -412,50 +321,29 @@ export default function ImagePickerModal({
                       <LazyThumbnail
                         imageId={img.imageId}
                         alt={img.entityName || img.imageId}
-                        style={{
-                          width: "100%",
-                          paddingTop: "100%",
-                          position: "relative",
-                        }}
+                        className="ipm-thumbnail-wrapper"
                       />
 
                       {/* Info */}
-                      <div style={{ padding: "8px" }}>
+                      <div className="ipm-card-info">
                         <div
-                          style={{
-                            fontSize: "11px",
-                            fontWeight: 500,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
+                          className="ipm-card-name"
                           title={img.entityName}
                         >
                           {img.entityName || "Unknown"}
                         </div>
-                        <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+                        <div className="ipm-card-meta">
                           {img.entityKind}
                           {img.entityCulture && ` · ${img.entityCulture}`}
                         </div>
-                        <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+                        <div className="ipm-card-meta">
                           {formatDate(img.generatedAt)} · {formatBytes(img.size || 0)}
                         </div>
 
                         {/* Prompt preview */}
                         {(img.finalPrompt || img.originalPrompt) && (
                           <div
-                            style={{
-                              marginTop: "6px",
-                              padding: "4px 6px",
-                              background: "rgba(0,0,0,0.2)",
-                              borderRadius: "4px",
-                              fontSize: "9px",
-                              color: "var(--text-muted)",
-                              maxHeight: expandedPrompt === img.imageId ? "200px" : "40px",
-                              overflow: "hidden",
-                              cursor: "pointer",
-                              transition: "max-height 0.2s ease",
-                            }}
+                            className={`ipm-card-prompt ${expandedPrompt === img.imageId ? "ipm-card-prompt--expanded" : "ipm-card-prompt--collapsed"}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               setExpandedPrompt(
@@ -477,10 +365,7 @@ export default function ImagePickerModal({
         </div>
 
         {/* Footer */}
-        <div
-          className="illuminator-modal-footer"
-          style={{ padding: "16px", borderTop: "1px solid var(--border-color)" }}
-        >
+        <div className="illuminator-modal-footer ipm-footer">
           <button onClick={handleClose} className="illuminator-btn">
             Cancel
           </button>

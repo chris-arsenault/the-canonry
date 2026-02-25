@@ -12,6 +12,7 @@
 import { useState, useCallback, useRef } from "react";
 import { LocalTextArea } from "@penguin-tales/shared-components";
 import { SCENE_PROMPT_TEMPLATES, getCoverImageConfig } from "../lib/coverImageStyles";
+import "./StyleLibraryEditor.css";
 
 /**
  * Generate a unique ID for a new style
@@ -163,7 +164,7 @@ function StyleEditModal({ style, type, onSave, onCancel }) {
               rows={3}
               placeholder="e.g., oil painting style, rich textures, visible brushstrokes"
             />
-            <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+            <p className="style-editor-hint">
               This text will be injected into the image generation prompt.
             </p>
           </div>
@@ -178,7 +179,7 @@ function StyleEditModal({ style, type, onSave, onCancel }) {
                 className="illuminator-input"
                 placeholder="e.g., traditional, classical, painterly"
               />
-              <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+              <p className="style-editor-hint">
                 Comma-separated keywords for categorization.
               </p>
             </div>
@@ -248,65 +249,31 @@ function NarrativeStyleCard({ style, compositionStyles, onEdit, onDelete }) {
       {style.description && (
         <div className="illuminator-style-card-description">{style.description}</div>
       )}
-      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "8px" }}>
+      <div className="style-editor-badge-row">
         {/* Type badge */}
-        <span
-          style={{
-            fontSize: "10px",
-            padding: "2px 6px",
-            background: isDocument ? "#059669" : "var(--accent-primary)",
-            color: "white",
-            borderRadius: "4px",
-          }}
-        >
+        <span className={`style-editor-badge ${isDocument ? "style-editor-badge--document" : "style-editor-badge--story"}`}>
           {isDocument ? "document" : "story"}
         </span>
         {/* Word count badge */}
-        <span
-          style={{
-            fontSize: "10px",
-            padding: "2px 6px",
-            background: "var(--bg-tertiary)",
-            borderRadius: "4px",
-          }}
-        >
+        <span className="style-editor-badge">
           {wordCountMin}-{wordCountMax} words
         </span>
         {/* Scenes badge for story styles */}
         {!isDocument && (
-          <span
-            style={{
-              fontSize: "10px",
-              padding: "2px 6px",
-              background: "var(--bg-tertiary)",
-              borderRadius: "4px",
-            }}
-          >
+          <span className="style-editor-badge">
             {style.pacing?.sceneCount?.min || 3}-{style.pacing?.sceneCount?.max || 5} scenes
           </span>
         )}
         {/* Roles badge */}
         {style.roles?.length > 0 && (
-          <span
-            style={{
-              fontSize: "10px",
-              padding: "2px 6px",
-              background: "var(--bg-tertiary)",
-              borderRadius: "4px",
-            }}
-          >
+          <span className="style-editor-badge">
             {style.roles.length} roles
           </span>
         )}
         {/* Cover image scene prompt badge */}
         {sceneTemplate && (
           <span
-            style={{
-              fontSize: "10px",
-              padding: "2px 6px",
-              background: "var(--bg-tertiary)",
-              borderRadius: "4px",
-            }}
+            className="style-editor-badge"
             title={`Cover scene: ${sceneTemplate.name}`}
           >
             cover: {sceneTemplate.name}
@@ -315,19 +282,12 @@ function NarrativeStyleCard({ style, compositionStyles, onEdit, onDelete }) {
       </div>
       {/* Instructions preview */}
       {instructionsPreview && (
-        <div
-          style={{
-            marginTop: "8px",
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            fontStyle: "italic",
-          }}
-        >
+        <div className="style-editor-instructions-preview">
           {instructionsPreview}
         </div>
       )}
       {style.tags?.length > 0 && (
-        <div className="illuminator-style-card-keywords" style={{ marginTop: "8px" }}>
+        <div className="illuminator-style-card-keywords style-editor-tags-row">
           {style.tags.map((tag) => (
             <span key={tag} className="illuminator-style-keyword">
               {tag}
@@ -348,44 +308,24 @@ function CoverImageConfigSection({ styleId, compositionStyles }) {
   const coverComposition = compositionStyles?.find((c) => c.id === coverConfig.compositionStyleId);
 
   return (
-    <div style={{ marginBottom: "16px" }}>
-      <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>
+    <div className="style-editor-cover-section">
+      <div className="style-editor-cover-label">
         Cover Image
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "8px",
-        }}
-      >
-        <div
-          style={{
-            padding: "10px",
-            background: "var(--bg-tertiary)",
-            borderRadius: "6px",
-            border: "1px solid var(--border-color)",
-          }}
-        >
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>
+      <div className="style-editor-cover-grid">
+        <div className="style-editor-cover-card">
+          <div className="style-editor-cover-card-label">
             Scene Prompt
           </div>
-          <div style={{ fontSize: "13px", fontWeight: 500 }}>
+          <div className="style-editor-cover-card-value">
             {sceneTemplate?.name || coverConfig.scenePromptId}
           </div>
         </div>
-        <div
-          style={{
-            padding: "10px",
-            background: "var(--bg-tertiary)",
-            borderRadius: "6px",
-            border: "1px solid var(--border-color)",
-          }}
-        >
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>
+        <div className="style-editor-cover-card">
+          <div className="style-editor-cover-card-label">
             Composition
           </div>
-          <div style={{ fontSize: "13px", fontWeight: 500 }}>
+          <div className="style-editor-cover-card-value">
             {coverComposition?.name || coverConfig.compositionStyleId}
           </div>
         </div>
@@ -416,16 +356,7 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
     >
-      <div
-        className="illuminator-modal"
-        style={{
-          maxWidth: "700px",
-          maxHeight: "80vh",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
+      <div className="illuminator-modal style-editor-modal-wide">
         <div className="illuminator-modal-header">
           <h3>Document Style: {style.name}</h3>
           <button onClick={onCancel} className="illuminator-modal-close">
@@ -433,18 +364,18 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
           </button>
         </div>
 
-        <div className="illuminator-modal-body" style={{ flex: 1, overflow: "auto" }}>
+        <div className="illuminator-modal-body style-editor-modal-body-scroll">
           {/* Basic info */}
-          <div style={{ marginBottom: "16px" }}>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "4px" }}>
+          <div className="style-editor-detail-section">
+            <div className="style-editor-detail-label">
               Description
             </div>
             <div>{style.description || "(none)"}</div>
           </div>
 
           {/* Word count */}
-          <div style={{ marginBottom: "16px" }}>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "4px" }}>
+          <div className="style-editor-detail-section">
+            <div className="style-editor-detail-label">
               Word Count
             </div>
             <div>
@@ -454,21 +385,11 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
 
           {/* Document instructions */}
           {style.documentInstructions && (
-            <div style={{ marginBottom: "16px" }}>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "4px" }}>
+            <div className="style-editor-detail-section">
+              <div className="style-editor-detail-label">
                 Document Instructions
               </div>
-              <div
-                style={{
-                  fontSize: "13px",
-                  background: "var(--bg-tertiary)",
-                  padding: "12px",
-                  borderRadius: "6px",
-                  whiteSpace: "pre-wrap",
-                  maxHeight: "300px",
-                  overflow: "auto",
-                }}
-              >
+              <div className="style-editor-preformatted">
                 {style.documentInstructions}
               </div>
             </div>
@@ -476,19 +397,11 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
 
           {/* Event instructions */}
           {style.eventInstructions && (
-            <div style={{ marginBottom: "16px" }}>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "4px" }}>
+            <div className="style-editor-detail-section">
+              <div className="style-editor-detail-label">
                 Event Instructions
               </div>
-              <div
-                style={{
-                  fontSize: "13px",
-                  background: "var(--bg-tertiary)",
-                  padding: "12px",
-                  borderRadius: "6px",
-                  whiteSpace: "pre-wrap",
-                }}
-              >
+              <div className="style-editor-preformatted style-editor-preformatted--compact">
                 {style.eventInstructions}
               </div>
             </div>
@@ -496,36 +409,24 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
 
           {/* Roles */}
           {style.roles?.length > 0 && (
-            <div style={{ marginBottom: "16px" }}>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>
+            <div className="style-editor-detail-section">
+              <div className="style-editor-detail-label style-editor-detail-label--mb8">
                 Roles ({style.roles.length})
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div className="style-editor-roles-list">
                 {style.roles.map((role, i) => (
                   <div
                     key={role.role || i}
-                    style={{
-                      padding: "12px",
-                      background: "var(--bg-tertiary)",
-                      borderRadius: "6px",
-                      border: "1px solid var(--border-color)",
-                    }}
+                    className="style-editor-role-card"
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginBottom: "4px",
-                      }}
-                    >
-                      <div style={{ fontWeight: 500 }}>{role.role}</div>
-                      <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                    <div className="style-editor-role-header">
+                      <div className="style-editor-role-name">{role.role}</div>
+                      <div className="style-editor-role-count">
                         {role.count?.min || 0}-{role.count?.max || 1}
                       </div>
                     </div>
                     {role.description && (
-                      <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                      <div className="style-editor-role-desc">
                         {role.description}
                       </div>
                     )}
@@ -541,10 +442,10 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
           {/* Tags */}
           {style.tags?.length > 0 && (
             <div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "4px" }}>
+              <div className="style-editor-detail-label">
                 Tags
               </div>
-              <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+              <div className="style-editor-tags-flex">
                 {style.tags.map((tag) => (
                   <span key={tag} className="illuminator-style-keyword">
                     {tag}
@@ -554,17 +455,7 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
             </div>
           )}
 
-          <div
-            style={{
-              marginTop: "24px",
-              padding: "12px",
-              background: "rgba(234, 179, 8, 0.1)",
-              border: "1px solid rgba(234, 179, 8, 0.3)",
-              borderRadius: "6px",
-              fontSize: "12px",
-              color: "var(--text-secondary)",
-            }}
-          >
+          <div className="style-editor-readonly-notice">
             Document styles are pre-defined and cannot be edited in the UI. To customize, create a
             new story-format style or edit the style library JSON directly.
           </div>
@@ -608,6 +499,7 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
   if (style?.format === "document") {
     return (
       <DocumentStyleViewModal
+        // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
         style={style}
         compositionStyles={compositionStyles}
         onCancel={onCancel}
@@ -742,16 +634,7 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
     >
-      <div
-        className="illuminator-modal"
-        style={{
-          maxWidth: "800px",
-          maxHeight: "85vh",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
+      <div className="illuminator-modal style-editor-modal-extra-wide">
         <div className="illuminator-modal-header">
           <h3>{isNew ? "Add" : "Edit"} Narrative Style</h3>
           <button onClick={onCancel} className="illuminator-modal-close">
@@ -760,30 +643,12 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
         </div>
 
         {/* Tab bar */}
-        <div
-          style={{
-            display: "flex",
-            borderBottom: "1px solid var(--border-color)",
-            background: "var(--bg-secondary)",
-          }}
-        >
+        <div className="style-editor-tab-bar">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: "8px 16px",
-                border: "none",
-                background: activeTab === tab.id ? "var(--bg-primary)" : "transparent",
-                borderBottom:
-                  activeTab === tab.id
-                    ? "2px solid var(--accent-primary)"
-                    : "2px solid transparent",
-                color: activeTab === tab.id ? "var(--text-primary)" : "var(--text-muted)",
-                cursor: "pointer",
-                fontSize: "12px",
-                fontWeight: activeTab === tab.id ? 600 : 400,
-              }}
+              className={`style-editor-tab ${activeTab === tab.id ? "style-editor-tab--active" : ""}`}
             >
               {tab.label}
             </button>
@@ -792,9 +657,9 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
 
         <form
           onSubmit={handleSubmit}
-          style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }}
+          className="style-editor-form-scroll"
         >
-          <div className="illuminator-modal-body" style={{ flex: 1, overflow: "auto" }}>
+          <div className="illuminator-modal-body style-editor-modal-body-scroll">
             {/* Basic Tab */}
             {activeTab === "basic" && (
               <>
@@ -828,56 +693,52 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
                     className="illuminator-input"
                     placeholder="e.g., dramatic, conflict, emotional"
                   />
-                  <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+                  <p className="style-editor-hint">
                     Comma-separated tags for categorization.
                   </p>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="style-editor-pacing-grid">
                   <div className="illuminator-form-group">
                     <label className="illuminator-label">Word Count</label>
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <div className="style-editor-range-row">
                       <input
                         type="number"
                         min="100"
                         step="100"
                         value={formData.wordCountMin}
                         onChange={(e) => handleChange("wordCountMin", e.target.value)}
-                        className="illuminator-input"
-                        style={{ width: "80px" }}
+                        className="illuminator-input style-editor-input-sm"
                       />
-                      <span style={{ color: "var(--text-muted)" }}>to</span>
+                      <span className="style-editor-range-separator">to</span>
                       <input
                         type="number"
                         min="100"
                         step="100"
                         value={formData.wordCountMax}
                         onChange={(e) => handleChange("wordCountMax", e.target.value)}
-                        className="illuminator-input"
-                        style={{ width: "80px" }}
+                        className="illuminator-input style-editor-input-sm"
                       />
                     </div>
                   </div>
                   <div className="illuminator-form-group">
                     <label className="illuminator-label">Scene Count</label>
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <div className="style-editor-range-row">
                       <input
                         type="number"
                         min="1"
                         max="20"
                         value={formData.sceneCountMin}
                         onChange={(e) => handleChange("sceneCountMin", e.target.value)}
-                        className="illuminator-input"
-                        style={{ width: "60px" }}
+                        className="illuminator-input style-editor-input-xs"
                       />
-                      <span style={{ color: "var(--text-muted)" }}>to</span>
+                      <span className="style-editor-range-separator">to</span>
                       <input
                         type="number"
                         min="1"
                         max="20"
                         value={formData.sceneCountMax}
                         onChange={(e) => handleChange("sceneCountMax", e.target.value)}
-                        className="illuminator-input"
-                        style={{ width: "60px" }}
+                        className="illuminator-input style-editor-input-xs"
                       />
                     </div>
                   </div>
@@ -920,7 +781,7 @@ Scene Types:
 - The Climax: Peak confrontation where everything comes together
 - The Resolution: Show the changed world and transformed characters"`}
                   />
-                  <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+                  <p className="style-editor-hint">
                     Freeform instructions for plot structure, scenes, and dramatic beats.
                   </p>
                 </div>
@@ -933,7 +794,7 @@ Scene Types:
                     rows={3}
                     placeholder="How to incorporate events from the world data into the narrative. E.g., 'Use events as dramatic turning points. Higher significance events should be climactic moments...'"
                   />
-                  <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+                  <p className="style-editor-hint">
                     Optional guidance for how world events should be woven into the story.
                   </p>
                 </div>
@@ -967,7 +828,7 @@ Pacing: Build tension steadily. Allow quiet moments to breathe.
 World Elements: Integrate locations and cultural practices naturally.
 Avoid: modern slang, breaking fourth wall, rushed emotional beats."`}
                   />
-                  <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+                  <p className="style-editor-hint">
                     Freeform instructions for tone, dialogue, description, and writing style.
                   </p>
                 </div>
@@ -977,8 +838,8 @@ Avoid: modern slang, breaking fourth wall, rushed emotional beats."`}
             {/* Roles Tab */}
             {activeTab === "roles" && (
               <>
-                <div style={{ marginBottom: "12px" }}>
-                  <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "8px" }}>
+                <div className="style-editor-roles-info">
+                  <p className="style-editor-roles-info-text">
                     Define the narrative roles for this style. The AI will assign characters to
                     these roles.
                   </p>
@@ -986,23 +847,16 @@ Avoid: modern slang, breaking fourth wall, rushed emotional beats."`}
                 {formData.roles.map((role, index) => (
                   <div
                     key={index}
-                    style={{
-                      padding: "12px",
-                      background: "var(--bg-tertiary)",
-                      borderRadius: "6px",
-                      marginBottom: "8px",
-                      border: "1px solid var(--border-color)",
-                    }}
+                    className="style-editor-role-edit-card"
                   >
-                    <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                      <div style={{ flex: 1 }}>
+                    <div className="style-editor-role-edit-row">
+                      <div className="style-editor-role-edit-fields">
                         <input
                           type="text"
                           value={role.role}
                           onChange={(e) => handleUpdateRole(index, "role", e.target.value)}
-                          className="illuminator-input"
+                          className="illuminator-input style-editor-input-role-name"
                           placeholder="Role name (e.g., protagonist)"
-                          style={{ marginBottom: "8px" }}
                         />
                         <input
                           type="text"
@@ -1012,32 +866,29 @@ Avoid: modern slang, breaking fourth wall, rushed emotional beats."`}
                           placeholder="Role description"
                         />
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <div className="style-editor-role-edit-counts">
                         <input
                           type="number"
                           min="0"
                           max="10"
                           value={role.count.min}
                           onChange={(e) => handleUpdateRole(index, "min", e.target.value)}
-                          className="illuminator-input"
-                          style={{ width: "50px" }}
+                          className="illuminator-input style-editor-input-count"
                         />
-                        <span style={{ color: "var(--text-muted)" }}>-</span>
+                        <span className="style-editor-range-separator">-</span>
                         <input
                           type="number"
                           min="0"
                           max="10"
                           value={role.count.max}
                           onChange={(e) => handleUpdateRole(index, "max", e.target.value)}
-                          className="illuminator-input"
-                          style={{ width: "50px" }}
+                          className="illuminator-input style-editor-input-count"
                         />
                       </div>
                       <button
                         type="button"
                         onClick={() => handleRemoveRole(index)}
-                        className="illuminator-btn-icon illuminator-btn-danger"
-                        style={{ padding: "4px 8px" }}
+                        className="illuminator-btn-icon illuminator-btn-danger style-editor-role-remove-btn"
                       >
                         X
                       </button>
@@ -1047,8 +898,7 @@ Avoid: modern slang, breaking fourth wall, rushed emotional beats."`}
                 <button
                   type="button"
                   onClick={handleAddRole}
-                  className="illuminator-btn"
-                  style={{ fontSize: "12px" }}
+                  className="illuminator-btn style-editor-add-role-btn"
                 >
                   + Add Role
                 </button>
@@ -1201,7 +1051,7 @@ export default function StyleLibraryEditor({
   if (loading) {
     return (
       <div className="illuminator-card">
-        <p style={{ color: "var(--text-muted)", textAlign: "center" }}>Loading style library...</p>
+        <p className="style-editor-loading">Loading style library...</p>
       </div>
     );
   }
@@ -1210,10 +1060,10 @@ export default function StyleLibraryEditor({
     <div>
       {/* Status bar */}
       <div className="illuminator-card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="style-editor-status-row">
           <div>
-            <span style={{ fontWeight: 500 }}>Style Library</span>
-            <span style={{ marginLeft: "8px", fontSize: "12px", color: "var(--text-muted)" }}>
+            <span className="style-editor-status-label">Style Library</span>
+            <span className="style-editor-status-sublabel">
               {isCustom ? "(customized)" : "(defaults)"}
             </span>
           </div>
@@ -1221,8 +1071,7 @@ export default function StyleLibraryEditor({
             {!confirmReset && (
               <button
                 onClick={() => setConfirmReset(true)}
-                className="illuminator-btn"
-                style={{ fontSize: "12px" }}
+                className="illuminator-btn style-editor-btn-sm"
                 title={
                   isCustom ? "Reload defaults and discard custom styles" : "Reload default styles"
                 }
@@ -1231,23 +1080,21 @@ export default function StyleLibraryEditor({
               </button>
             )}
             {confirmReset && (
-              <span style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+              <span className="style-editor-confirm-row">
+                <span className="style-editor-confirm-text">
                   {isCustom
                     ? "Reload defaults and discard custom styles?"
                     : "Reload default styles?"}
                 </span>
                 <button
                   onClick={handleReset}
-                  className="illuminator-btn illuminator-btn-danger"
-                  style={{ fontSize: "12px" }}
+                  className="illuminator-btn illuminator-btn-danger style-editor-btn-sm"
                 >
                   Yes, Reload
                 </button>
                 <button
                   onClick={() => setConfirmReset(false)}
-                  className="illuminator-btn"
-                  style={{ fontSize: "12px" }}
+                  className="illuminator-btn style-editor-btn-sm"
                 >
                   Cancel
                 </button>
@@ -1262,26 +1109,18 @@ export default function StyleLibraryEditor({
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">
             Artistic Styles
-            <span
-              style={{
-                fontWeight: 400,
-                fontSize: "14px",
-                color: "var(--text-muted)",
-                marginLeft: "8px",
-              }}
-            >
+            <span className="style-editor-section-count">
               ({styleLibrary.artisticStyles.length})
             </span>
           </h2>
           <button
             onClick={handleAddArtistic}
-            className="illuminator-btn illuminator-btn-primary"
-            style={{ fontSize: "12px" }}
+            className="illuminator-btn illuminator-btn-primary style-editor-btn-sm"
           >
             + Add Style
           </button>
         </div>
-        <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
+        <p className="style-editor-description">
           Artistic styles define the visual rendering approach (e.g., oil painting, watercolor,
           digital art).
         </p>
@@ -1290,6 +1129,7 @@ export default function StyleLibraryEditor({
           {styleLibrary.artisticStyles.map((style) => (
             <StyleCard
               key={style.id}
+              // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
               style={style}
               type="artistic"
               onEdit={handleEditArtistic}
@@ -1299,7 +1139,7 @@ export default function StyleLibraryEditor({
         </div>
 
         {styleLibrary.artisticStyles.length === 0 && (
-          <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "20px" }}>
+          <p className="style-editor-empty">
             No artistic styles defined. Add one to get started.
           </p>
         )}
@@ -1310,26 +1150,18 @@ export default function StyleLibraryEditor({
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">
             Composition Styles
-            <span
-              style={{
-                fontWeight: 400,
-                fontSize: "14px",
-                color: "var(--text-muted)",
-                marginLeft: "8px",
-              }}
-            >
+            <span className="style-editor-section-count">
               ({styleLibrary.compositionStyles.length})
             </span>
           </h2>
           <button
             onClick={handleAddComposition}
-            className="illuminator-btn illuminator-btn-primary"
-            style={{ fontSize: "12px" }}
+            className="illuminator-btn illuminator-btn-primary style-editor-btn-sm"
           >
             + Add Style
           </button>
         </div>
-        <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
+        <p className="style-editor-description">
           Composition styles define framing and visual arrangement (e.g., portrait, establishing
           shot, action scene).
         </p>
@@ -1338,6 +1170,7 @@ export default function StyleLibraryEditor({
           {styleLibrary.compositionStyles.map((style) => (
             <StyleCard
               key={style.id}
+              // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
               style={style}
               type="composition"
               onEdit={handleEditComposition}
@@ -1347,7 +1180,7 @@ export default function StyleLibraryEditor({
         </div>
 
         {styleLibrary.compositionStyles.length === 0 && (
-          <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "20px" }}>
+          <p className="style-editor-empty">
             No composition styles defined. Add one to get started.
           </p>
         )}
@@ -1358,26 +1191,18 @@ export default function StyleLibraryEditor({
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">
             Narrative Styles
-            <span
-              style={{
-                fontWeight: 400,
-                fontSize: "14px",
-                color: "var(--text-muted)",
-                marginLeft: "8px",
-              }}
-            >
+            <span className="style-editor-section-count">
               ({styleLibrary.narrativeStyles.length})
             </span>
           </h2>
           <button
             onClick={handleAddNarrative}
-            className="illuminator-btn illuminator-btn-primary"
-            style={{ fontSize: "12px" }}
+            className="illuminator-btn illuminator-btn-primary style-editor-btn-sm"
           >
             + Add Style
           </button>
         </div>
-        <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
+        <p className="style-editor-description">
           Narrative styles define story structure, character selection, and prose tone for chronicle
           generation.
         </p>
@@ -1386,6 +1211,7 @@ export default function StyleLibraryEditor({
           {styleLibrary.narrativeStyles.map((style) => (
             <NarrativeStyleCard
               key={style.id}
+              // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
               style={style}
               compositionStyles={styleLibrary.compositionStyles}
               onEdit={handleEditNarrative}
@@ -1395,7 +1221,7 @@ export default function StyleLibraryEditor({
         </div>
 
         {styleLibrary.narrativeStyles.length === 0 && (
-          <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "20px" }}>
+          <p className="style-editor-empty">
             No narrative styles defined. Add one to get started.
           </p>
         )}
@@ -1406,19 +1232,12 @@ export default function StyleLibraryEditor({
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">
             Cover Image Scene Prompts
-            <span
-              style={{
-                fontWeight: 400,
-                fontSize: "14px",
-                color: "var(--text-muted)",
-                marginLeft: "8px",
-              }}
-            >
+            <span className="style-editor-section-count">
               ({SCENE_PROMPT_TEMPLATES.length})
             </span>
           </h2>
         </div>
-        <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
+        <p className="style-editor-description">
           Scene prompt templates direct the LLM on what kind of cover image scene to describe. Each
           narrative style maps to one of these templates.
         </p>
@@ -1432,7 +1251,7 @@ export default function StyleLibraryEditor({
               <div className="illuminator-style-card-prompt">
                 <strong>Framing:</strong> {template.framing}
               </div>
-              <div className="illuminator-style-card-prompt" style={{ marginTop: "8px" }}>
+              <div className="illuminator-style-card-prompt style-editor-scene-prompt-instructions">
                 <strong>Instructions:</strong> {template.instructions}
               </div>
             </div>
@@ -1443,6 +1262,7 @@ export default function StyleLibraryEditor({
       {/* Edit Modal for Artistic/Composition */}
       {editingStyle && (editingType === "artistic" || editingType === "composition") && (
         <StyleEditModal
+          // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
           style={editingStyle}
           type={editingType}
           onSave={handleSaveStyle}
@@ -1453,6 +1273,7 @@ export default function StyleLibraryEditor({
       {/* Edit Modal for Narrative */}
       {editingStyle && editingType === "narrative" && (
         <NarrativeStyleEditModal
+          // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
           style={editingStyle}
           compositionStyles={styleLibrary.compositionStyles}
           onSave={handleSaveStyle}

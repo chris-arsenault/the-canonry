@@ -7,6 +7,7 @@
  */
 
 import { useState, useMemo } from "react";
+import "./QuickCheckModal.css";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -61,15 +62,7 @@ function HighlightMatch({ text, query, truncate = 0, matchIndex }) {
   return (
     <>
       {before}
-      <span
-        style={{
-          background: "rgba(245, 158, 11, 0.25)",
-          color: "var(--text-primary)",
-          fontWeight: 600,
-          borderRadius: "2px",
-          padding: "0 1px",
-        }}
-      >
+      <span className="qcm-highlight">
         {match}
       </span>
       {after}
@@ -146,86 +139,42 @@ function EntitySearchPanel({ entities, initialQuery, onClose }) {
   const results = useMemo(() => searchEntities(entities, query), [entities, query]);
 
   return (
-    <div
-      style={{
-        marginTop: "8px",
-        background: "var(--bg-secondary)",
-        border: "1px solid var(--border-color)",
-        borderRadius: "6px",
-        padding: "8px",
-      }}
-    >
-      <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
+    <div className="qcm-search-panel">
+      <div className="qcm-search-row">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search entities..."
           autoFocus
-          style={{
-            flex: 1,
-            background: "var(--bg-primary)",
-            border: "1px solid var(--border-color)",
-            borderRadius: "4px",
-            padding: "4px 8px",
-            fontSize: "11px",
-            color: "var(--text-primary)",
-            outline: "none",
-          }}
+          className="qcm-search-input"
         />
         <button
           onClick={onClose}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: "14px",
-            color: "var(--text-muted)",
-            padding: "2px 4px",
-          }}
+          className="qcm-search-close-btn"
           title="Close search"
         >
           {"\u2715"}
         </button>
       </div>
 
-      <div style={{ maxHeight: "200px", overflow: "auto" }}>
+      <div className="qcm-search-results">
         {query.trim().length < 2 ? (
-          <div
-            style={{
-              fontSize: "11px",
-              color: "var(--text-muted)",
-              padding: "8px 4px",
-              textAlign: "center",
-            }}
-          >
+          <div className="qcm-search-hint">
             Type at least 2 characters to search
           </div>
         ) : results.length === 0 ? (
-          <div
-            style={{
-              fontSize: "11px",
-              color: "var(--text-muted)",
-              padding: "8px 4px",
-              textAlign: "center",
-            }}
-          >
+          <div className="qcm-search-hint">
             No matching entities found
           </div>
         ) : (
           results.slice(0, 10).map(({ entity, matches }) => (
             <div
               key={entity.id}
-              style={{
-                padding: "5px 6px",
-                borderBottom: "1px solid var(--border-color)",
-                fontSize: "11px",
-              }}
+              className="qcm-search-result-item"
             >
-              <div
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}
-              >
-                <span style={{ fontWeight: 600, fontSize: "12px" }}>
+              <div className="qcm-search-result-header">
+                <span className="qcm-search-result-name">
                   {matches.some((m) => m.field === "name") ? (
                     <HighlightMatch
                       text={entity.name}
@@ -236,7 +185,7 @@ function EntitySearchPanel({ entities, initialQuery, onClose }) {
                     entity.name
                   )}
                 </span>
-                <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+                <span className="qcm-search-result-kind">
                   {entity.kind}
                   {entity.subtype ? ` / ${entity.subtype}` : ""}
                 </span>
@@ -247,24 +196,12 @@ function EntitySearchPanel({ entities, initialQuery, onClose }) {
                 .map((m, j) => (
                   <div
                     key={j}
-                    style={{
-                      marginTop: "2px",
-                      display: "flex",
-                      gap: "4px",
-                      alignItems: "baseline",
-                    }}
+                    className="qcm-search-match-row"
                   >
-                    <span
-                      style={{
-                        fontSize: "9px",
-                        textTransform: "uppercase",
-                        opacity: 0.7,
-                        flexShrink: 0,
-                      }}
-                    >
+                    <span className="qcm-search-match-field">
                       {m.field}
                     </span>
-                    <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
+                    <span className="qcm-search-match-value">
                       <HighlightMatch
                         text={m.value}
                         query={query}
@@ -278,14 +215,7 @@ function EntitySearchPanel({ entities, initialQuery, onClose }) {
           ))
         )}
         {results.length > 10 && (
-          <div
-            style={{
-              fontSize: "10px",
-              color: "var(--text-muted)",
-              padding: "4px",
-              textAlign: "center",
-            }}
-          >
+          <div className="qcm-search-more">
             +{results.length - 10} more results
           </div>
         )}
@@ -303,66 +233,31 @@ function SuspectCard({ suspect, entities, onCreateEntity }) {
 
   return (
     <div
-      style={{
-        padding: "10px 12px",
-        marginBottom: "8px",
-        background: "var(--bg-primary)",
-        borderRadius: "0 6px 6px 0",
-        border: "1px solid var(--border-color)",
-        borderLeftWidth: "3px",
-        borderLeftColor: CONFIDENCE_COLORS[suspect.confidence] || "#6b7280",
-      }}
+      className="qcm-suspect-card"
+      // eslint-disable-next-line local/no-inline-styles -- dynamic confidence color from JS map
+      style={{ '--qcm-confidence-color': CONFIDENCE_COLORS[suspect.confidence] || '#6b7280' }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "4px",
-        }}
-      >
-        <span style={{ fontWeight: 600, fontSize: "13px" }}>&ldquo;{suspect.phrase}&rdquo;</span>
-        <span
-          style={{
-            fontSize: "10px",
-            color: CONFIDENCE_COLORS[suspect.confidence] || "#6b7280",
-            textTransform: "uppercase",
-            fontWeight: 600,
-          }}
-        >
+      <div className="qcm-suspect-header">
+        <span className="qcm-suspect-phrase">&ldquo;{suspect.phrase}&rdquo;</span>
+        <span className="qcm-suspect-confidence">
           {suspect.confidence}
         </span>
       </div>
       {suspect.context && (
-        <div
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            fontStyle: "italic",
-            marginBottom: "4px",
-            lineHeight: "1.4",
-          }}
-        >
+        <div className="qcm-suspect-context">
           ...{suspect.context}...
         </div>
       )}
-      <div
-        style={{
-          fontSize: "12px",
-          color: "var(--text-secondary)",
-          lineHeight: "1.4",
-        }}
-      >
+      <div className="qcm-suspect-reasoning">
         {suspect.reasoning}
       </div>
 
       {/* Action buttons */}
-      <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
+      <div className="qcm-suspect-actions">
         {entities && (
           <button
             onClick={() => setSearchOpen(!searchOpen)}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "3px 8px", fontSize: "10px" }}
+            className="illuminator-button illuminator-button-secondary qcm-suspect-action-btn"
             title="Search entity database for this reference"
           >
             {searchOpen ? "Close Search" : "Search"}
@@ -371,8 +266,7 @@ function SuspectCard({ suspect, entities, onCreateEntity }) {
         {onCreateEntity && (
           <button
             onClick={() => onCreateEntity(suspect.phrase)}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "3px 8px", fontSize: "10px" }}
+            className="illuminator-button illuminator-button-secondary qcm-suspect-action-btn"
             title="Create a new entity from this reference"
           >
             + Create
@@ -403,47 +297,24 @@ export default function QuickCheckModal({ report, entities, onCreateEntity, onCl
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1000,
-        background: "rgba(0, 0, 0, 0.5)",
-      }}
+      className="qcm-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div
-        style={{
-          background: "var(--bg-secondary)",
-          border: "1px solid var(--border-color)",
-          borderRadius: "12px",
-          width: "650px",
-          maxHeight: "80vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-        }}
-      >
+      <div className="qcm-dialog">
         {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+        <div className="qcm-header">
           <div>
-            <div style={{ fontSize: "14px", fontWeight: 600 }}>
+            <div className="qcm-header-title">
               Quick Check — Unanchored References
             </div>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
-              <span style={{ color: ASSESSMENT_COLORS[assessment] || "var(--text-muted)" }}>
+            <div className="qcm-header-subtitle">
+              <span
+                className="qcm-assessment-label"
+                // eslint-disable-next-line local/no-inline-styles -- dynamic assessment color from JS map
+                style={{ '--qcm-assessment-color': ASSESSMENT_COLORS[assessment] || 'var(--text-muted)' }}
+              >
                 {ASSESSMENT_LABELS[assessment] || assessment}
               </span>{" "}
               &bull; {suspects.length} suspect{suspects.length !== 1 ? "s" : ""}
@@ -451,43 +322,21 @@ export default function QuickCheckModal({ report, entities, onCreateEntity, onCl
           </div>
           <button
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "18px",
-              color: "var(--text-muted)",
-              padding: "4px",
-            }}
+            className="qcm-close-btn"
           >
             {"\u2715"}
           </button>
         </div>
 
         {/* Summary */}
-        <div
-          style={{
-            padding: "10px 20px",
-            fontSize: "12px",
-            color: "var(--text-secondary)",
-            borderBottom: "1px solid var(--border-color)",
-            lineHeight: "1.5",
-          }}
-        >
+        <div className="qcm-summary">
           {summary}
         </div>
 
         {/* Suspects list */}
-        <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
+        <div className="qcm-suspects-list">
           {suspects.length === 0 ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "40px 0",
-                color: "var(--text-muted)",
-                fontSize: "13px",
-              }}
-            >
+            <div className="qcm-empty-message">
               No unanchored references detected.
             </div>
           ) : (
@@ -503,18 +352,10 @@ export default function QuickCheckModal({ report, entities, onCreateEntity, onCl
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
-        >
+        <div className="qcm-footer">
           <button
             onClick={onClose}
-            className="illuminator-button"
-            style={{ padding: "6px 16px", fontSize: "12px" }}
+            className="illuminator-button qcm-footer-btn"
           >
             Dismiss
           </button>

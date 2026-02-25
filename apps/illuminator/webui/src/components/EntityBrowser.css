@@ -1,0 +1,480 @@
+/* EntityBrowser.css - Extracted from inline styles */
+
+/* ==========================================================================
+   HighlightMatch
+   ========================================================================== */
+
+.eb-highlight {
+  background: rgba(245, 158, 11, 0.25);
+  color: var(--text-primary);
+  font-weight: 600;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ==========================================================================
+   ImageThumbnail
+   ========================================================================== */
+
+.eb-thumb {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.eb-thumb--clickable {
+  cursor: pointer;
+}
+
+.eb-thumb__img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   EnrichmentStatusBadge
+   ========================================================================== */
+
+.eb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.eb-badge--missing {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+.eb-badge--queued {
+  background: #3b82f6;
+  color: white;
+}
+
+.eb-badge--running {
+  background: #f59e0b;
+  color: white;
+}
+
+.eb-badge--complete {
+  background: #10b981;
+  color: white;
+}
+
+.eb-badge--error {
+  background: #ef4444;
+  color: white;
+}
+
+.eb-badge--disabled {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.eb-badge__cost {
+  opacity: 0.8;
+  margin-left: 2px;
+}
+
+/* ==========================================================================
+   EntityRow
+   ========================================================================== */
+
+.eb-row {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+  align-items: start;
+}
+
+.eb-row__checkbox {
+  padding-top: 2px;
+}
+
+.eb-row__checkbox input {
+  cursor: pointer;
+}
+
+.eb-row__name {
+  font-weight: 500;
+  margin-bottom: 4px;
+  cursor: pointer;
+  color: var(--accent-color);
+}
+
+.eb-row__meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eb-row__edition-count {
+  font-size: 10px;
+}
+
+.eb-row__edition-count--many {
+  color: #10b981;
+}
+
+.eb-row__edition-count--few {
+  color: #f59e0b;
+}
+
+/* Inline action buttons that also use .illuminator-button get padding/font overrides */
+.eb-row__btn-sm {
+  padding: 2px 8px;
+  font-size: 10px;
+}
+
+.eb-row__btn-sm--danger {
+  color: #ef4444;
+}
+
+/* Content row: description and image side by side */
+.eb-row__content {
+  display: flex;
+  gap: 12px;
+}
+
+.eb-row__summary {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  max-height: 80px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+/* Actions column */
+.eb-row__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.eb-row__action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eb-row__action-group--wrap {
+  flex-wrap: wrap;
+}
+
+.eb-row__needs-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.eb-row__action-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+/* ==========================================================================
+   EntityBrowser - Main layout
+   ========================================================================== */
+
+.eb {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.eb__entity-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.eb__add-entity-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  margin-left: 8px;
+}
+
+/* Search bar */
+.eb__search-wrap {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.eb__search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.eb__search-input {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 12px;
+  box-sizing: border-box;
+}
+
+.eb__search-text-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Search dropdown */
+.eb__search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 200;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.eb__search-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.eb__search-count {
+  padding: 6px 12px;
+  font-size: 10px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.eb__search-result {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.eb__search-result:hover {
+  background: var(--bg-tertiary);
+}
+
+.eb__search-result-name {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.eb__search-result-kind {
+  margin-left: 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.eb__search-match-row {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.eb__search-match-field {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: 6px;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.eb__search-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+}
+
+/* Filters grid */
+.eb__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.eb__hide-completed-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+
+/* Enrichment settings bar */
+.eb__enrichment-settings {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.eb__enrichment-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.eb__enrichment-select {
+  width: auto;
+  min-width: 100px;
+}
+
+.eb__enrichment-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Min Event Significance */
+.eb__event-significance {
+  margin-bottom: 12px;
+}
+
+.eb__event-significance-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.eb__event-significance-select {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.eb__event-significance-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 4px;
+}
+
+/* Quick actions */
+.eb__quick-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Selection actions bar */
+.eb__selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-color);
+  border-radius: 6px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.eb__selection-count {
+  font-size: 13px;
+}
+
+.eb__selection-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.eb__selection-clear {
+  margin-left: auto;
+}
+
+/* Entity list card */
+.eb__list-card {
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header row */
+.eb__list-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+}
+
+.eb__list-header input {
+  cursor: pointer;
+}
+
+.eb__list-header-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Scrollable entity list */
+.eb__list-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.eb__list-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.eb__list-loading {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Settings card shrink */
+.eb__settings-card {
+  flex-shrink: 0;
+}

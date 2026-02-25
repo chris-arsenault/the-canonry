@@ -9,6 +9,7 @@
 
 import { useMemo, useState, useCallback } from "react";
 import { resolveAnchorPhrase } from "../lib/fuzzyAnchor";
+import "./HistorianMarginNotes.css";
 
 // ============================================================================
 // Note Type Metadata
@@ -46,28 +47,13 @@ function AnchorEditor({ anchorPhrase, sourceText, onSave, onCancel }) {
   }, [value, sourceText]);
 
   return (
-    <div
-      style={{
-        padding: "6px 0",
-        borderTop: "1px solid rgba(139, 115, 85, 0.15)",
-        marginTop: "4px",
-      }}
-    >
-      <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+    <div className="hmn-anchor-editor">
+      <div className="hmn-anchor-editor-row">
         <input
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          style={{
-            flex: 1,
-            fontSize: "11px",
-            padding: "3px 6px",
-            border: "1px solid var(--border-color)",
-            borderRadius: "3px",
-            background: "var(--bg-primary)",
-            color: "var(--text-primary)",
-            fontFamily: "inherit",
-          }}
+          className="hmn-anchor-input"
           autoFocus
           onKeyDown={(e) => {
             if (e.key === "Enter" && resolved) {
@@ -80,41 +66,17 @@ function AnchorEditor({ anchorPhrase, sourceText, onSave, onCancel }) {
         <button
           onClick={() => resolved && onSave(resolved.phrase)}
           disabled={!resolved}
-          style={{
-            fontSize: "10px",
-            padding: "2px 8px",
-            border: "1px solid var(--border-color)",
-            borderRadius: "3px",
-            background: resolved ? "#8b7355" : "transparent",
-            color: resolved ? "#fff" : "var(--text-muted)",
-            cursor: resolved ? "pointer" : "default",
-            opacity: resolved ? 1 : 0.5,
-          }}
+          className={`hmn-anchor-save-btn${resolved ? " hmn-anchor-save-btn--resolved" : ""}`}
         >
           Save
         </button>
-        <button
-          onClick={onCancel}
-          style={{
-            fontSize: "10px",
-            padding: "2px 8px",
-            border: "1px solid var(--border-color)",
-            borderRadius: "3px",
-            background: "transparent",
-            color: "var(--text-secondary)",
-            cursor: "pointer",
-          }}
-        >
+        <button onClick={onCancel} className="hmn-anchor-cancel-btn">
           Cancel
         </button>
       </div>
       {/* Resolution status */}
       <div
-        style={{
-          fontSize: "10px",
-          marginTop: "3px",
-          color: resolved ? "#5b7a5e" : "#c0392b",
-        }}
+        className={`hmn-anchor-status ${resolved ? "hmn-anchor-status--resolved" : "hmn-anchor-status--unresolved"}`}
       >
         {!value.trim()
           ? ""
@@ -161,86 +123,40 @@ function NoteItem({ note, sourceText, onUpdateNote }) {
 
   return (
     <div
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: "8px",
-        padding: "6px 10px",
-        background: isDisabled ? "rgba(139, 115, 85, 0.03)" : "rgba(139, 115, 85, 0.08)",
-        borderLeft: `3px solid ${isDisabled ? "var(--border-color)" : meta.color}`,
-        borderRadius: "0 4px 4px 0",
-        opacity: isDisabled ? 0.5 : 1,
-        marginBottom: "4px",
-        transition: "opacity 0.15s",
-      }}
+      className={`hmn-note-item${isDisabled ? " hmn-note-item--disabled" : ""}`}
+      // eslint-disable-next-line local/no-inline-styles -- dynamic border-left color from note type metadata
+      style={{ borderLeft: `3px solid ${isDisabled ? "var(--border-color)" : meta.color}` }}
     >
       {/* Display mode toggle */}
       {onUpdateNote && (
         <button
           onClick={cycleDisplay}
           title={`${DISPLAY_LABELS[display]} \u2014 click to cycle (full \u2192 popout \u2192 disabled)`}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: "13px",
-            padding: 0,
-            color: isDisabled ? "#8b735560" : meta.color,
-            lineHeight: 1,
-            flexShrink: 0,
-            marginTop: "2px",
-          }}
+          className="hmn-display-toggle"
+          // eslint-disable-next-line local/no-inline-styles -- dynamic color from note type metadata
+          style={{ color: isDisabled ? "#8b735560" : meta.color }}
         >
           {DISPLAY_ICONS[display]}
         </button>
       )}
 
       {/* Note content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="hmn-note-content">
         {/* Type label + anchor + edit button */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: "6px",
-            marginBottom: "2px",
-          }}
-        >
+        <div className="hmn-note-header">
           <span
-            style={{
-              fontSize: "9px",
-              fontWeight: 700,
-              color: meta.color,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              flexShrink: 0,
-              opacity: isDisabled ? 0.6 : 1,
-            }}
+            className={`hmn-type-label${isDisabled ? " hmn-type-label--disabled" : ""}`}
+            // eslint-disable-next-line local/no-inline-styles -- dynamic color from note type metadata
+            style={{ color: meta.color }}
           >
             {meta.icon} {meta.label}
           </span>
           {display !== "full" && (
-            <span
-              style={{
-                fontSize: "9px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-              }}
-            >
-              {DISPLAY_LABELS[display]}
-            </span>
+            <span className="hmn-display-label">{DISPLAY_LABELS[display]}</span>
           )}
           <span
             onClick={() => !editingAnchor && setEditingAnchor(true)}
-            style={{
-              fontSize: "10px",
-              color: anchorMissing ? "#ef4444" : "var(--text-muted)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              flex: 1,
-              cursor: onUpdateNote ? "pointer" : "default",
-            }}
+            className={`hmn-anchor-text ${anchorMissing ? "hmn-anchor-text--missing" : "hmn-anchor-text--normal"} ${onUpdateNote ? "hmn-anchor-text--editable" : "hmn-anchor-text--readonly"}`}
             title={`Anchor: "${note.anchorPhrase}"${anchorMissing ? " (not found in source text)" : ""}${onUpdateNote ? " — click to edit" : ""}`}
           >
             "{note.anchorPhrase}"
@@ -249,15 +165,7 @@ function NoteItem({ note, sourceText, onUpdateNote }) {
 
         {/* Anchor not found warning */}
         {anchorMissing && !editingAnchor && (
-          <div
-            style={{
-              fontSize: "11px",
-              color: "#ef4444",
-              marginTop: "4px",
-            }}
-          >
-            Anchor text not found in source
-          </div>
+          <div className="hmn-anchor-warning">Anchor text not found in source</div>
         )}
 
         {/* Anchor editor */}
@@ -272,14 +180,7 @@ function NoteItem({ note, sourceText, onUpdateNote }) {
 
         {/* Note text */}
         <div
-          style={{
-            fontSize: "12px",
-            fontFamily: 'Georgia, "Times New Roman", serif',
-            fontStyle: "italic",
-            color: isDisabled ? "var(--text-muted)" : "var(--text-secondary)",
-            lineHeight: "1.5",
-            cursor: "pointer",
-          }}
+          className={`hmn-note-text ${isDisabled ? "hmn-note-text--disabled" : "hmn-note-text--active"}`}
           onClick={() => setExpanded(!expanded)}
         >
           {expanded || note.text.length <= 120 ? note.text : note.text.slice(0, 120) + "\u2026"}
@@ -315,34 +216,11 @@ export default function HistorianMarginNotes({ notes, sourceText, style, onUpdat
   if (counts.disabled > 0) summaryParts.push(`${counts.disabled} disabled`);
 
   return (
+    // eslint-disable-next-line local/no-inline-styles -- dynamic style prop passed from parent
     <div style={style}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          marginBottom: "6px",
-        }}
-      >
-        <span
-          style={{
-            fontSize: "11px",
-            fontWeight: 600,
-            color: "#8b7355",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          Historian Notes
-        </span>
-        <span
-          style={{
-            fontSize: "10px",
-            color: "var(--text-muted)",
-          }}
-        >
-          {summaryParts.join(", ")}
-        </span>
+      <div className="hmn-header">
+        <span className="hmn-title">Historian Notes</span>
+        <span className="hmn-summary">{summaryParts.join(", ")}</span>
       </div>
 
       {/* All notes in original order — no regrouping */}

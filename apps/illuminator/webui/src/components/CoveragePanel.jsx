@@ -6,6 +6,7 @@
 
 import { useMemo, useEffect, useState, useCallback } from "react";
 import { getChroniclesForSimulation } from "../lib/db/chronicleRepository";
+import "./CoveragePanel.css";
 
 const STORAGE_KEY = "illuminator:coverageChronicleToggles";
 
@@ -38,9 +39,9 @@ const sortChronicles = (a, b) => {
 
 const HISTOGRAM_BUCKETS = [
   { label: "<300", min: 0, max: 299 },
-  { label: "300–800", min: 300, max: 799 },
-  { label: "800–1.5k", min: 800, max: 1499 },
-  { label: "1.5k–3k", min: 1500, max: 2999 },
+  { label: "300\u2013800", min: 300, max: 799 },
+  { label: "800\u20131.5k", min: 800, max: 1499 },
+  { label: "1.5k\u20133k", min: 1500, max: 2999 },
   { label: "3k+", min: 3000, max: Infinity },
 ];
 
@@ -61,29 +62,18 @@ function WordCountHistogram({ chronicles }) {
   if (!chronicles.length) return null;
 
   return (
-    <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border-color)" }}>
-      <div
-        style={{
-          fontSize: "11px",
-          fontWeight: 600,
-          color: "var(--text-muted)",
-          textTransform: "uppercase",
-          letterSpacing: "0.04em",
-          marginBottom: "10px",
-        }}
-      >
+    <div className="cvp-histogram">
+      <div className="cvp-histogram-title">
         Word Count Distribution
-        <span style={{ fontWeight: 400, textTransform: "none", marginLeft: "8px" }}>
+        <span className="cvp-histogram-subtitle">
           {chronicles.length} chronicles
         </span>
-        <span
-          style={{ fontWeight: 400, textTransform: "none", marginLeft: "12px", fontSize: "10px" }}
-        >
-          <span style={{ color: "#3b82f6" }}>■</span> story
-          <span style={{ marginLeft: "8px", color: "#f59e0b" }}>■</span> document
+        <span className="cvp-histogram-legend">
+          <span className="cvp-histogram-legend-story">{"\u25A0"}</span> story
+          <span className="cvp-histogram-legend-document">{"\u25A0"}</span> document
         </span>
       </div>
-      <div style={{ display: "flex", alignItems: "flex-end", gap: "6px", height: "60px" }}>
+      <div className="cvp-histogram-bars">
         {data.buckets.map((bucket) => {
           const total = bucket.story + bucket.document;
           const height = total > 0 ? Math.max(4, Math.round((total / data.maxCount) * 56)) : 0;
@@ -91,32 +81,26 @@ function WordCountHistogram({ chronicles }) {
           return (
             <div
               key={bucket.label}
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "2px",
-              }}
+              className="cvp-histogram-bucket"
             >
               {total > 0 && (
-                <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>{total}</span>
+                <span className="cvp-histogram-count">{total}</span>
               )}
               <div
                 title={`${bucket.label}: ${bucket.story} story, ${bucket.document} document`}
+                className={`cvp-histogram-bar ${total === 0 ? "cvp-histogram-bar--empty" : ""}`}
+                // eslint-disable-next-line local/no-inline-styles -- dynamic height/gradient from computed data
                 style={{
-                  width: "100%",
                   height: `${height}px`,
-                  borderRadius: "2px",
                   background:
                     total === 0
-                      ? "var(--border-color)"
+                      ? undefined
                       : `linear-gradient(to top, #3b82f6 ${storyPct}%, #f59e0b ${storyPct}%)`,
-                  minHeight: total > 0 ? "4px" : "1px",
-                  opacity: total === 0 ? 0.3 : 1,
+                  minHeight: total > 0 ? "4px" : undefined,
+                  opacity: total === 0 ? undefined : 1,
                 }}
               />
-              <span style={{ fontSize: "9px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+              <span className="cvp-histogram-bucket-label">
                 {bucket.label}
               </span>
             </div>
@@ -348,7 +332,7 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Coverage</h2>
         </div>
-        <div style={{ padding: "12px 16px", color: "var(--text-muted)", fontSize: "12px" }}>
+        <div className="cvp-empty-msg">
           No active simulation run.
         </div>
       </div>
@@ -361,7 +345,7 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Coverage</h2>
         </div>
-        <div style={{ padding: "12px 16px", color: "var(--text-muted)", fontSize: "12px" }}>
+        <div className="cvp-empty-msg">
           Loading chronicles...
         </div>
       </div>
@@ -375,7 +359,7 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
           <h2 className="illuminator-card-title">Coverage</h2>
           <span className="illuminator-card-subtitle">Perspective synthesis fact coverage</span>
         </div>
-        <div style={{ padding: "12px 16px", color: "var(--text-muted)", fontSize: "12px" }}>
+        <div className="cvp-empty-msg">
           No canon facts configured. Add facts in the Context tab to enable coverage tracking.
         </div>
       </div>
@@ -385,16 +369,15 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
   return (
     <div className="illuminator-card">
       <div
-        className="illuminator-card-header"
+        className="illuminator-card-header cvp-header-clickable"
         onClick={() => setExpanded((prev) => !prev)}
-        style={{ cursor: "pointer", userSelect: "none" }}
       >
-        <span style={{ marginRight: "8px", fontSize: "10px", color: "var(--text-muted)" }}>
+        <span className="cvp-expand-icon">
           {expanded ? "\u25BC" : "\u25B6"}
         </span>
         <h2 className="illuminator-card-title">Lore Coverage</h2>
         {!expanded && (
-          <span className="illuminator-card-subtitle" style={{ marginLeft: "8px" }}>
+          <span className="illuminator-card-subtitle cvp-collapsed-subtitle">
             {chronicleCount} chronicles, {facts.length - disabledFactCount} facts
             {unusedFacts > 0 ? `, ${unusedFacts} unused` : ""}
           </span>
@@ -423,17 +406,15 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
                 <strong>Constraints excluded</strong>: {constraintCount}
               </div>
             )}
-            <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
+            <div className="cvp-summary-controls">
               <button
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 10px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary cvp-summary-btn"
                 onClick={enableAll}
               >
                 Count all
               </button>
               <button
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 10px", fontSize: "11px" }}
+                className="illuminator-button illuminator-button-secondary cvp-summary-btn"
                 onClick={disableAll}
               >
                 Count none
@@ -450,18 +431,17 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
                   {facts.map((fact) => (
                     <th
                       key={fact.id}
-                      title={`${fact.id}${fact.text ? `: ${fact.text}` : ""}${fact.required ? " (required)" : ""}${fact.disabled ? " (disabled — click to enable)" : " (click to disable)"}`}
+                      title={`${fact.id}${fact.text ? `: ${fact.text}` : ""}${fact.required ? " (required)" : ""}${fact.disabled ? " (disabled \u2014 click to enable)" : " (click to disable)"}`}
                       onClick={onWorldContextChange ? () => toggleFact(fact.id) : undefined}
-                      style={onWorldContextChange ? { cursor: "pointer" } : undefined}
+                      className={onWorldContextChange ? "cvp-fact-header-clickable" : undefined}
                     >
                       <div
-                        className="illuminator-coverage-fact-header"
-                        style={fact.disabled ? { opacity: 0.4 } : undefined}
+                        className={`illuminator-coverage-fact-header ${fact.disabled ? "cvp-fact-header-disabled" : ""}`}
                       >
                         <span className="illuminator-coverage-fact-id">{fact.id}</span>
                         {fact.required && <span className="illuminator-coverage-required">R</span>}
                         {fact.disabled && (
-                          <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>off</span>
+                          <span className="cvp-fact-disabled-label">off</span>
                         )}
                       </div>
                     </th>
@@ -477,7 +457,7 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
                   {facts.map((fact) => (
                     <td
                       key={`total-${fact.id}`}
-                      style={fact.disabled ? { opacity: 0.3 } : undefined}
+                      className={fact.disabled ? "cvp-cell-disabled" : undefined}
                     >
                       {factTotals.get(fact.id) || 0}
                     </td>
@@ -497,7 +477,7 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
                         </div>
                         <div className="illuminator-coverage-chronicle-meta">
                           {chronicle.chronicleId}
-                          {!hasSynthesis && " • no synthesis"}
+                          {!hasSynthesis && " \u2022 no synthesis"}
                         </div>
                       </td>
                       <td className="illuminator-coverage-toggle-col">
@@ -511,7 +491,7 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
                       {facts.map((fact) => (
                         <td
                           key={`${chronicle.chronicleId}-${fact.id}`}
-                          style={fact.disabled ? { opacity: 0.3 } : undefined}
+                          className={fact.disabled ? "cvp-cell-disabled" : undefined}
                         >
                           {row.facetIds.has(fact.id) ? (
                             <span className="illuminator-coverage-hit" />
@@ -540,25 +520,16 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
 
           {/* Fact Coverage Analysis Stats */}
           {coverageStats && (
-            <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border-color)" }}>
-              <div
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  color: "var(--text-muted)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                  marginBottom: "10px",
-                }}
-              >
+            <div className="cvp-analysis">
+              <div className="cvp-analysis-title">
                 Fact Coverage Analysis
-                <span style={{ fontWeight: 400, textTransform: "none", marginLeft: "8px" }}>
+                <span className="cvp-analysis-subtitle">
                   {coverageStats.chroniclesAnalyzed} chronicles analyzed
                 </span>
               </div>
 
               {/* Global summary bar */}
-              <div style={{ display: "flex", gap: "16px", fontSize: "12px", marginBottom: "12px" }}>
+              <div className="cvp-analysis-summary">
                 {[
                   { key: "integral", color: "#10b981" },
                   { key: "prevalent", color: "#3b82f6" },
@@ -571,76 +542,38 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
                       ? Math.round((count / coverageStats.totalEntries) * 100)
                       : 0;
                   return (
-                    <span key={key} style={{ color }}>
+                    <span
+                      key={key}
+                      // eslint-disable-next-line local/no-inline-styles -- dynamic color from rating type config
+                      style={{ color }}
+                    >
                       <strong>{pct}%</strong> {key}{" "}
-                      <span style={{ color: "var(--text-muted)" }}>({count})</span>
+                      <span className="cvp-color-muted">({count})</span>
                     </span>
                   );
                 })}
               </div>
 
               {/* Per-fact breakdown table */}
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
+              <table className="cvp-analysis-table">
                 <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border-color)" }}>
-                    <th
-                      style={{
-                        textAlign: "left",
-                        padding: "4px 8px 4px 0",
-                        color: "var(--text-muted)",
-                        fontWeight: 500,
-                      }}
-                    >
+                  <tr>
+                    <th className="cvp-analysis-th-fact">
                       Fact
                     </th>
-                    <th
-                      style={{
-                        textAlign: "center",
-                        padding: "4px 6px",
-                        color: "#10b981",
-                        fontWeight: 500,
-                      }}
-                    >
+                    <th className="cvp-analysis-th-integral">
                       Integral
                     </th>
-                    <th
-                      style={{
-                        textAlign: "center",
-                        padding: "4px 6px",
-                        color: "#3b82f6",
-                        fontWeight: 500,
-                      }}
-                    >
+                    <th className="cvp-analysis-th-prevalent">
                       Prevalent
                     </th>
-                    <th
-                      style={{
-                        textAlign: "center",
-                        padding: "4px 6px",
-                        color: "#f59e0b",
-                        fontWeight: 500,
-                      }}
-                    >
+                    <th className="cvp-analysis-th-mentioned">
                       Mentioned
                     </th>
-                    <th
-                      style={{
-                        textAlign: "center",
-                        padding: "4px 6px",
-                        color: "var(--text-muted)",
-                        fontWeight: 500,
-                      }}
-                    >
+                    <th className="cvp-analysis-th-missing">
                       Missing
                     </th>
-                    <th
-                      style={{
-                        textAlign: "center",
-                        padding: "4px 6px",
-                        color: "var(--text-muted)",
-                        fontWeight: 500,
-                      }}
-                    >
+                    <th className="cvp-analysis-th-strength">
                       Strength
                     </th>
                   </tr>
@@ -658,62 +591,29 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
                     const strengthColor =
                       strength >= 60 ? "#10b981" : strength >= 30 ? "#f59e0b" : "#ef4444";
                     return (
-                      <tr key={fact.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                      <tr key={fact.id}>
                         <td
-                          style={{
-                            padding: "4px 8px 4px 0",
-                            maxWidth: "200px",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
+                          className="cvp-analysis-td-fact"
                           title={fact.text}
                         >
                           {fact.id}
                         </td>
-                        <td
-                          style={{
-                            textAlign: "center",
-                            padding: "4px 6px",
-                            color: agg.integral > 0 ? "#10b981" : "var(--text-muted)",
-                          }}
-                        >
+                        <td className={`cvp-analysis-td-center ${agg.integral > 0 ? "cvp-color-integral" : "cvp-color-muted"}`}>
                           {agg.integral}
                         </td>
-                        <td
-                          style={{
-                            textAlign: "center",
-                            padding: "4px 6px",
-                            color: agg.prevalent > 0 ? "#3b82f6" : "var(--text-muted)",
-                          }}
-                        >
+                        <td className={`cvp-analysis-td-center ${agg.prevalent > 0 ? "cvp-color-prevalent" : "cvp-color-muted"}`}>
                           {agg.prevalent}
                         </td>
-                        <td
-                          style={{
-                            textAlign: "center",
-                            padding: "4px 6px",
-                            color: agg.mentioned > 0 ? "#f59e0b" : "var(--text-muted)",
-                          }}
-                        >
+                        <td className={`cvp-analysis-td-center ${agg.mentioned > 0 ? "cvp-color-mentioned" : "cvp-color-muted"}`}>
                           {agg.mentioned}
                         </td>
-                        <td
-                          style={{
-                            textAlign: "center",
-                            padding: "4px 6px",
-                            color: agg.missing > 0 ? "var(--text-primary)" : "var(--text-muted)",
-                          }}
-                        >
+                        <td className={`cvp-analysis-td-center ${agg.missing > 0 ? "cvp-color-primary" : "cvp-color-muted"}`}>
                           {agg.missing}
                         </td>
                         <td
-                          style={{
-                            textAlign: "center",
-                            padding: "4px 6px",
-                            fontWeight: 600,
-                            color: strengthColor,
-                          }}
+                          className="cvp-analysis-td-strength"
+                          // eslint-disable-next-line local/no-inline-styles -- dynamic color from computed strength score
+                          style={{ color: strengthColor }}
                         >
                           {strength}%
                         </td>

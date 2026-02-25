@@ -1,0 +1,372 @@
+/* StyleLibraryEditor.css — co-located styles for StyleLibraryEditor.jsx */
+
+/* =========================================================================
+   Shared small-text patterns
+   ========================================================================= */
+
+.style-editor-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.style-editor-description {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.style-editor-empty {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 20px;
+}
+
+.style-editor-loading {
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* =========================================================================
+   NarrativeStyleCard — badges and metadata
+   ========================================================================= */
+
+.style-editor-badge-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.style-editor-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+.style-editor-badge--document {
+  background: #059669;
+  color: white;
+}
+
+.style-editor-badge--story {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.style-editor-instructions-preview {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.style-editor-tags-row {
+  margin-top: 8px;
+}
+
+/* =========================================================================
+   CoverImageConfigSection
+   ========================================================================= */
+
+.style-editor-cover-section {
+  margin-bottom: 16px;
+}
+
+.style-editor-cover-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.style-editor-cover-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.style-editor-cover-card {
+  padding: 10px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.style-editor-cover-card-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.style-editor-cover-card-value {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* =========================================================================
+   DocumentStyleViewModal
+   ========================================================================= */
+
+.style-editor-modal-wide {
+  max-width: 700px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.style-editor-modal-body-scroll {
+  flex: 1;
+  overflow: auto;
+}
+
+.style-editor-detail-section {
+  margin-bottom: 16px;
+}
+
+.style-editor-detail-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.style-editor-detail-label--mb8 {
+  margin-bottom: 8px;
+}
+
+.style-editor-preformatted {
+  font-size: 13px;
+  background: var(--bg-tertiary);
+  padding: 12px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow: auto;
+}
+
+.style-editor-preformatted--compact {
+  max-height: none;
+}
+
+/* Roles list in document view */
+.style-editor-roles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.style-editor-role-card {
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.style-editor-role-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.style-editor-role-name {
+  font-weight: 500;
+}
+
+.style-editor-role-count {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.style-editor-role-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Tags row in document view */
+.style-editor-tags-flex {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* Read-only notice */
+.style-editor-readonly-notice {
+  margin-top: 24px;
+  padding: 12px;
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* =========================================================================
+   NarrativeStyleEditModal
+   ========================================================================= */
+
+.style-editor-modal-extra-wide {
+  max-width: 800px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tab bar */
+.style-editor-tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.style-editor-tab {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.style-editor-tab--active {
+  background: var(--bg-primary);
+  border-bottom-color: var(--accent-primary);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Form layout in modal */
+.style-editor-form-scroll {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Pacing grid */
+.style-editor-pacing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.style-editor-range-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.style-editor-range-separator {
+  color: var(--text-muted);
+}
+
+.style-editor-input-sm {
+  width: 80px;
+}
+
+.style-editor-input-xs {
+  width: 60px;
+}
+
+.style-editor-input-count {
+  width: 50px;
+}
+
+/* Roles tab */
+.style-editor-roles-info {
+  margin-bottom: 12px;
+}
+
+.style-editor-roles-info-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.style-editor-role-edit-card {
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.style-editor-role-edit-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.style-editor-role-edit-fields {
+  flex: 1;
+}
+
+.style-editor-role-edit-counts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.style-editor-input-role-name {
+  margin-bottom: 8px;
+}
+
+.style-editor-role-remove-btn {
+  padding: 4px 8px;
+}
+
+.style-editor-add-role-btn {
+  font-size: 12px;
+}
+
+/* Scene prompt card — extra margin */
+.style-editor-scene-prompt-instructions {
+  margin-top: 8px;
+}
+
+/* =========================================================================
+   Main component — status bar and section headers
+   ========================================================================= */
+
+.style-editor-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.style-editor-status-label {
+  font-weight: 500;
+}
+
+.style-editor-status-sublabel {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.style-editor-confirm-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.style-editor-confirm-text {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.style-editor-btn-sm {
+  font-size: 12px;
+}
+
+/* Section title count */
+.style-editor-section-count {
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}

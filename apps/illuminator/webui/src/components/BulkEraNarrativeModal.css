@@ -1,0 +1,359 @@
+/* BulkEraNarrativeModal — bulk era narrative pipeline progress */
+
+/* Overlay backdrop */
+.benm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+/* Modal container */
+.benm-modal {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Header */
+.benm-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.benm-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.benm-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.benm-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.benm-minimize-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.benm-status-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Body */
+.benm-body {
+  padding: 20px;
+  min-height: 0;
+}
+
+/* Section label */
+.benm-section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* Era list section */
+.benm-era-section {
+  margin-bottom: 12px;
+}
+
+.benm-era-list {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.benm-era-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.benm-era-row-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.benm-era-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.benm-era-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.benm-era-prepped {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.benm-era-existing {
+  font-size: 10px;
+  color: #3b82f6;
+}
+
+/* Per-era tone selector */
+.benm-tone-selector {
+  display: flex;
+  gap: 2px;
+}
+
+.benm-tone-btn {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.benm-tone-btn--default {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.benm-tone-btn--selected {
+  border: 1px solid #8b7355;
+  background: rgba(139, 115, 85, 0.15);
+  color: #8b7355;
+}
+
+/* Progress section */
+.benm-progress-section {
+  margin-bottom: 16px;
+}
+
+.benm-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.benm-progress-era-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.benm-progress-percent {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Progress bar */
+.benm-progress-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.benm-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.benm-progress-fill--complete {
+  background: #10b981;
+}
+
+.benm-progress-fill--failed {
+  background: #ef4444;
+}
+
+.benm-progress-fill--cancelled {
+  background: #f59e0b;
+}
+
+.benm-progress-counts {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Current era detail */
+.benm-current-era {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  margin-bottom: 12px;
+}
+
+.benm-current-era-name {
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.benm-current-era-tone {
+  color: #8b7355;
+  font-size: 13px;
+}
+
+/* Step rows */
+.benm-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.benm-step-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.benm-step-icon {
+  width: 12px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 10px;
+}
+
+.benm-step-label {
+  width: 52px;
+}
+
+.benm-step-active-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Mini progress bar in step */
+.benm-step-bar-track {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.benm-step-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: #f59e0b;
+  transition: width 0.2s ease;
+}
+
+/* Live counters */
+.benm-step-counters {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.benm-counter-thinking-label {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.benm-counter-separator {
+  margin: 0 6px;
+  opacity: 0.3;
+}
+
+.benm-counter-output-label {
+  color: #f59e0b;
+  opacity: 0.8;
+}
+
+.benm-step-done {
+  flex: 1;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Terminal state messages */
+.benm-terminal-msg {
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.benm-terminal-msg--complete {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.benm-terminal-msg--cancelled {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.benm-terminal-msg--failed {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Cost + words */
+.benm-stats {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Footer */
+.benm-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.benm-footer-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+}
