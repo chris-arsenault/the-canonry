@@ -25,7 +25,6 @@ import { useEntityNavList, useEntityNavItems } from "./lib/db/entitySelectors";
 import { useRelationships, useRelationshipsByEntity } from "./lib/db/relationshipSelectors";
 import { useNarrativeEvents } from "./lib/db/narrativeEventSelectors";
 import { useProminenceScale } from "./lib/db/indexSelectors";
-import { isHistorianConfigured } from "./lib/historianTypes";
 import { exportImagePrompts, downloadImagePromptExport } from "./lib/db/imageRepository";
 import { repairFactCoverageWasFaceted } from "./lib/db/chronicleRepository";
 import { computeRunIndexes } from "./lib/db/indexComputation";
@@ -63,44 +62,43 @@ function useIlluminatorFlows({
   worldSchema, entityGuidance, reloadEntities, setChronicleRefreshTrigger,
   historianConfig, updateWorldContext,
 }) {
-  const revision = useRevisionFlow({
+  const revisionFlow = useRevisionFlow({
     projectId, simulationRunId, navEntities, entityNavMap,
     relationshipsByEntity, prominenceScale, worldContext, worldSchema,
     entityGuidance, reloadEntities,
   });
-  const backport = useBackportFlow({
+  const backportFlow = useBackportFlow({
     projectId, simulationRunId,
-    getEntityContextsForRevision: revision.getEntityContextsForRevision,
+    getEntityContextsForRevision: revisionFlow.getEntityContextsForRevision,
     reloadEntities, setChronicleRefreshTrigger,
   });
-  const historian = useHistorianCallbacks({
+  const historianFlow = useHistorianCallbacks({
     projectId, simulationRunId, worldContext, historianConfig,
     reloadEntities, entityNavMap,
   });
-  const dynamics = useDynamicsFlow({
+  const dynamicsFlow = useDynamicsFlow({
     projectId, simulationRunId, worldContext,
     worldSchema, entityNavMap, relationships, updateWorldContext,
   });
-  return { ...revision, ...backport, ...historian, ...dynamics };
+  return { revisionFlow, backportFlow, historianFlow, dynamicsFlow };
 }
 
 function buildSharedProps({
-  projectId, slot, activeTab, setActiveTab, worldData, worldContext, updateWorldContext,
-  guidance, historianConfig, updateHistorianConfig, config, updateConfig,
-  buildPrompt, getVisualConfig, navEntities, entityNavMap,
+  activeTab, setActiveTab, worldData, updateWorldContext,
+  guidance, updateHistorianConfig, config, updateConfig,
+  buildPrompt, getVisualConfig,
   chronicleRefreshTrigger, setChronicleRefreshTrigger, setup, dataSync, flows, apiKeys,
 }) {
   return {
-    projectId, simulationRunId: slot.simulationRunId, activeTab, setActiveTab,
-    worldData, worldContext, updateWorldContext,
-    entityGuidance: guidance.entityGuidance, updateEntityGuidance: guidance.updateEntityGuidance,
-    cultureIdentities: guidance.cultureIdentities, updateCultureIdentities: guidance.updateCultureIdentities,
-    historianConfig, updateHistorianConfig, config, updateConfig,
-    buildPrompt, getVisualConfig, navEntities, entityNavMap,
-    eraTemporalInfo: slot.eraTemporalInfo,
+    activeTab, setActiveTab, worldData,
+    updateWorldContext,
+    updateEntityGuidance: guidance.updateEntityGuidance,
+    updateCultureIdentities: guidance.updateCultureIdentities,
+    updateHistorianConfig, config, updateConfig,
+    buildPrompt, getVisualConfig,
     chronicleRefreshTrigger, setChronicleRefreshTrigger,
-    historianConfigured: isHistorianConfigured(historianConfig),
-    ...setup, ...dataSync, ...flows, ...apiKeys,
+    ...setup, ...dataSync, ...apiKeys,
+    ...flows,
   };
 }
 
@@ -156,7 +154,7 @@ export default function IlluminatorRemote({
     return <IlluminatorEmptyState canImport={setup.canImport} isDataSyncing={dataSync.isDataSyncing} handleDataSync={dataSync.handleDataSync} dataSyncStatus={dataSync.dataSyncStatus} />;
   }
   const sharedProps = buildSharedProps({
-    projectId, slot, activeTab, setActiveTab, worldData, worldContext, updateWorldContext, guidance, historianConfig, updateHistorianConfig, config, updateConfig, buildPrompt, getVisualConfig, navEntities, entityNavMap, chronicleRefreshTrigger, setChronicleRefreshTrigger, setup, dataSync, flows, apiKeys,
+    activeTab, setActiveTab, worldData, updateWorldContext, guidance, updateHistorianConfig, config, updateConfig, buildPrompt, getVisualConfig, chronicleRefreshTrigger, setChronicleRefreshTrigger, setup, dataSync, flows, apiKeys,
   });
   return (
     <div className="illuminator-container">

@@ -154,6 +154,34 @@ Not all data changes require reloading everything. Three reload scopes exist:
 | Entities + Events | `reloadEntitiesAndEvents()` | After rename (events reference entity names) |
 | Full | `reloadAll()` | After data sync, bulk operations |
 
+### IlluminatorConfigStore (`illuminatorConfigStore.ts`)
+
+One-way sync store for project-level configuration. IlluminatorRemote writes via `setConfig()` in a `useEffect`; child components and hooks read only.
+
+| Field | Description |
+|---|---|
+| `projectId` | Current project ID |
+| `simulationRunId` | Current simulation run |
+| `worldContext` | Canon facts, world dynamics |
+| `historianConfig` | Historian persona definition |
+| `entityGuidance` | Entity description/image prompt guidance |
+| `cultureIdentities` | Culture-specific identity configs |
+| `isHistorianEditionActive` | Whether a historian edition run is active |
+| `isHistorianActive` | Whether a historian review is active |
+
+**Access pattern:** Children read directly via `useIlluminatorConfigStore(s => s.projectId)`. These values are NOT passed as props — see ADR-002.
+
+### EnrichmentQueueStore (`enrichmentQueueStore.ts`)
+
+Reactive mirror of the enrichment worker queue. `useIlluminatorSetup` syncs `queue` and `stats` from the `useEnrichmentQueue` hook into this store via `useEffect`.
+
+| Field | Description |
+|---|---|
+| `queue` | QueueItem[] — full queue for status lookups |
+| `stats` | QueueStats — pre-computed counts (queued, running, completed, errored) |
+
+**Access pattern:** Components read via `useEnrichmentQueueStore(s => s.queue)`. Enqueue/cancel actions are separate (via `enrichmentQueueBridge`).
+
 ## Key Design Decisions
 
 1. **No useState for world data.** All world data flows through Zustand stores. This prevents the dual-sovereignty problem where both Dexie and React state claim to be the source of truth.
@@ -165,3 +193,7 @@ Not all data changes require reloading everything. Three reload scopes exist:
 4. **Derived indexes inside stores.** The `byEntity` relationship index is computed inside RelationshipStore when data loads. Components use `useRelationshipsByEntity()` instead of running their own `useMemo`.
 
 5. **Granular selectors.** Each store exposes focused selectors so components subscribe to exactly the data they need. A component that only needs one entity subscribes via `useEntity(id)` and doesn't re-render when other entities change.
+
+6. **Store-first data access.** Child components read store-available values directly from Zustand selectors instead of receiving them as props from the parent. The parent writes to stores; children read from stores. Mutation callbacks (e.g., `updateWorldContext`) remain as props because they propagate changes to external Module Federation consumers. See ADR-002.
+
+7. **Grouped workflow flow objects.** The four workflow flows (revision, backport, historian, dynamics) are passed as grouped domain objects (`revisionFlow`, `backportFlow`, `historianFlow`, `dynamicsFlow`) rather than flat-spreading ~60 properties. Components destructure only the flow groups they need. See ADR-003.

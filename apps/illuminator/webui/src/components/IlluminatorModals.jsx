@@ -15,6 +15,8 @@ import InterleavedAnnotationModal from "./InterleavedAnnotationModal";
 import { ThinkingViewer } from "./ThinkingViewer";
 import { FloatingPills } from "./FloatingPills";
 import { useIlluminatorModals } from "../lib/db/modalStore";
+import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
+import { useEraTemporalInfo } from "../lib/db/indexSelectors";
 import { useToneRankingStore } from "../lib/db/toneRankingStore";
 import { useBulkChronicleAnnotationStore } from "../lib/db/bulkChronicleAnnotationStore";
 import { useInterleavedAnnotationStore } from "../lib/db/interleavedAnnotationStore";
@@ -34,131 +36,112 @@ function ImageSettingsSection({ imageGenSettings, updateImageGenSettings, styleL
   );
 }
 
-function DynamicsSection({ dynamicsRun, isDynamicsActive, submitDynamicsFeedback, acceptDynamics, cancelDynamicsGeneration }) {
+function DynamicsSection({ dynamicsFlow }) {
   return (
     <DynamicsGenerationModal
-      run={dynamicsRun}
-      isActive={isDynamicsActive}
-      onSubmitFeedback={submitDynamicsFeedback}
-      onAccept={acceptDynamics}
-      onCancel={cancelDynamicsGeneration}
+      run={dynamicsFlow.dynamicsRun}
+      isActive={dynamicsFlow.isDynamicsActive}
+      onSubmitFeedback={dynamicsFlow.submitDynamicsFeedback}
+      onAccept={dynamicsFlow.acceptDynamics}
+      onCancel={dynamicsFlow.cancelDynamicsGeneration}
     />
   );
 }
 
-function RevisionSection({
-  revisionFilter, setRevisionFilter, handleStartRevision,
-  revisionRun, isRevisionActive, continueToNextBatch, autoContineAllRevision,
-  togglePatchDecision, handleAcceptRevision, cancelRevision, getEntityContextsForRevision,
-}) {
+function RevisionSection({ revisionFlow }) {
   return (
     <>
       <RevisionFilterModal
-        isOpen={revisionFilter.open}
-        totalEligible={revisionFilter.totalEligible}
-        usedInChronicles={revisionFilter.usedInChronicles}
-        onStart={handleStartRevision}
-        onCancel={() => setRevisionFilter((prev) => ({ ...prev, open: false }))}
+        isOpen={revisionFlow.revisionFilter.open}
+        totalEligible={revisionFlow.revisionFilter.totalEligible}
+        usedInChronicles={revisionFlow.revisionFilter.usedInChronicles}
+        onStart={revisionFlow.handleStartRevision}
+        onCancel={() => revisionFlow.setRevisionFilter((prev) => ({ ...prev, open: false }))}
       />
       <SummaryRevisionModal
-        run={revisionRun}
-        isActive={isRevisionActive}
-        onContinue={continueToNextBatch}
-        onAutoContine={autoContineAllRevision}
-        onTogglePatch={togglePatchDecision}
-        onAccept={handleAcceptRevision}
-        onCancel={cancelRevision}
-        getEntityContexts={getEntityContextsForRevision}
+        run={revisionFlow.revisionRun}
+        isActive={revisionFlow.isRevisionActive}
+        onContinue={revisionFlow.continueToNextBatch}
+        onAutoContine={revisionFlow.autoContineAllRevision}
+        onTogglePatch={revisionFlow.togglePatchDecision}
+        onAccept={revisionFlow.handleAcceptRevision}
+        onCancel={revisionFlow.cancelRevision}
+        getEntityContexts={revisionFlow.getEntityContextsForRevision}
       />
     </>
   );
 }
 
-function BackportSection({
-  backportConfig, setBackportConfig, handleBackportConfigStart, handleMarkEntityNotNeeded,
-  backportRun, isBackportActive, toggleBackportPatchDecision,
-  handleAcceptBackport, cancelBackport, getEntityContextsForRevision, updateBackportAnchorPhrase,
-  showBulkBackportModal, bulkBackportProgress,
-  handleConfirmBulkBackport, handleCancelBulkBackport, handleCloseBulkBackport,
-}) {
+function BackportSection({ backportFlow, revisionFlow }) {
   return (
     <>
       <BackportConfigModal
-        isOpen={backportConfig !== null}
-        chronicleTitle={backportConfig?.chronicleTitle || ""}
-        entities={backportConfig?.entities || []}
-        perEntityStatus={backportConfig?.perEntityStatus || {}}
-        onStart={handleBackportConfigStart}
-        onMarkNotNeeded={handleMarkEntityNotNeeded}
-        onCancel={() => setBackportConfig(null)}
+        isOpen={backportFlow.backportConfig !== null}
+        chronicleTitle={backportFlow.backportConfig?.chronicleTitle || ""}
+        entities={backportFlow.backportConfig?.entities || []}
+        perEntityStatus={backportFlow.backportConfig?.perEntityStatus || {}}
+        onStart={backportFlow.handleBackportConfigStart}
+        onMarkNotNeeded={backportFlow.handleMarkEntityNotNeeded}
+        onCancel={() => backportFlow.setBackportConfig(null)}
       />
-      {showBulkBackportModal && (
+      {backportFlow.showBulkBackportModal && (
         <BulkBackportModal
-          progress={bulkBackportProgress}
-          onConfirm={handleConfirmBulkBackport}
-          onCancel={handleCancelBulkBackport}
-          onClose={handleCloseBulkBackport}
+          progress={backportFlow.bulkBackportProgress}
+          onConfirm={backportFlow.handleConfirmBulkBackport}
+          onCancel={backportFlow.handleCancelBulkBackport}
+          onClose={backportFlow.handleCloseBulkBackport}
         />
       )}
       <SummaryRevisionModal
-        run={backportRun}
-        isActive={isBackportActive}
-        onTogglePatch={toggleBackportPatchDecision}
-        onAccept={handleAcceptBackport}
-        onCancel={cancelBackport}
-        getEntityContexts={getEntityContextsForRevision}
-        onUpdateAnchorPhrase={updateBackportAnchorPhrase}
+        run={backportFlow.backportRun}
+        isActive={backportFlow.isBackportActive}
+        onTogglePatch={backportFlow.toggleBackportPatchDecision}
+        onAccept={backportFlow.handleAcceptBackport}
+        onCancel={backportFlow.cancelBackport}
+        getEntityContexts={revisionFlow.getEntityContextsForRevision}
+        onUpdateAnchorPhrase={backportFlow.updateBackportAnchorPhrase}
       />
     </>
   );
 }
 
-function HistorianSection({
-  historianEditionRun, isHistorianEditionActive, toggleHistorianEditionPatchDecision,
-  handleAcceptHistorianEdition, cancelHistorianEdition, getEntityContextsForRevision,
-  historianRun, isHistorianActive, toggleHistorianNoteDecision,
-  handleEditHistorianNoteText, handleAcceptHistorianNotes, cancelHistorianReview,
-  showBulkHistorianModal, bulkHistorianProgress,
-  handleConfirmBulkHistorian, handleCancelBulkHistorian, handleCloseBulkHistorian,
-  setBulkHistorianTone, editionMaxTokens,
-}) {
+function HistorianSection({ historianFlow, revisionFlow }) {
   return (
     <>
-      {showBulkHistorianModal && (
+      {historianFlow.showBulkHistorianModal && (
         <BulkHistorianModal
-          progress={bulkHistorianProgress}
-          onConfirm={handleConfirmBulkHistorian}
-          onCancel={handleCancelBulkHistorian}
-          onClose={handleCloseBulkHistorian}
-          onChangeTone={setBulkHistorianTone}
-          editionMaxTokens={editionMaxTokens}
+          progress={historianFlow.bulkHistorianProgress}
+          onConfirm={historianFlow.handleConfirmBulkHistorian}
+          onCancel={historianFlow.handleCancelBulkHistorian}
+          onClose={historianFlow.handleCloseBulkHistorian}
+          onChangeTone={historianFlow.setBulkHistorianTone}
+          editionMaxTokens={historianFlow.editionMaxTokens}
         />
       )}
       <SummaryRevisionModal
-        run={historianEditionRun}
-        isActive={isHistorianEditionActive}
-        onTogglePatch={toggleHistorianEditionPatchDecision}
-        onAccept={handleAcceptHistorianEdition}
-        onCancel={cancelHistorianEdition}
-        getEntityContexts={getEntityContextsForRevision}
-        descriptionBaseline={historianEditionRun?.worldDynamicsContext}
+        run={historianFlow.historianEditionRun}
+        isActive={historianFlow.isHistorianEditionActive}
+        onTogglePatch={historianFlow.toggleHistorianEditionPatchDecision}
+        onAccept={historianFlow.handleAcceptHistorianEdition}
+        onCancel={historianFlow.cancelHistorianEdition}
+        getEntityContexts={revisionFlow.getEntityContextsForRevision}
+        descriptionBaseline={historianFlow.historianEditionRun?.worldDynamicsContext}
       />
       <HistorianReviewModal
-        run={historianRun}
-        isActive={isHistorianActive}
-        onToggleNote={toggleHistorianNoteDecision}
-        onEditNoteText={handleEditHistorianNoteText}
-        onAccept={handleAcceptHistorianNotes}
-        onCancel={cancelHistorianReview}
+        run={historianFlow.historianRun}
+        isActive={historianFlow.isHistorianActive}
+        onToggleNote={historianFlow.toggleHistorianNoteDecision}
+        onEditNoteText={historianFlow.handleEditHistorianNoteText}
+        onAccept={historianFlow.handleAcceptHistorianNotes}
+        onCancel={historianFlow.cancelHistorianReview}
       />
     </>
   );
 }
 
-function EntityModals({
-  worldSchema, simulationRunId, handleRenameApplied,
-  eraTemporalInfo, handleCreateEntity, handleEditEntity,
-}) {
+function EntityModals({ worldSchema, handleRenameApplied, handleCreateEntity, handleEditEntity }) {
+  const simulationRunId = useIlluminatorConfigStore((s) => s.simulationRunId);
+  const eraTemporalInfo = useEraTemporalInfo();
   const renameModal = useIlluminatorModals((s) => s.renameModal);
   const createEntityModal = useIlluminatorModals((s) => s.createEntityModal);
   const editEntityModal = useIlluminatorModals((s) => s.editEntityModal);
@@ -243,18 +226,29 @@ function ToneAndAnnotationModals() {
 /**
  * Orchestrator component for all Illuminator modal dialogs.
  *
- * Each sub-component destructures only the props it needs from
- * the shared props bag, so we spread the full bag to each.
+ * Flow objects (revisionFlow, backportFlow, etc.) are passed as grouped props
+ * rather than flat-spreading ~100 properties.
  */
-export default function IlluminatorModals(props) {
+export default function IlluminatorModals({ revisionFlow, backportFlow, historianFlow, dynamicsFlow, ...props }) {
   return (
     <>
-      <ImageSettingsSection {...props} />
-      <DynamicsSection {...props} />
-      <RevisionSection {...props} />
-      <BackportSection {...props} />
-      <HistorianSection {...props} />
-      <EntityModals {...props} />
+      <ImageSettingsSection
+        imageGenSettings={props.imageGenSettings}
+        updateImageGenSettings={props.updateImageGenSettings}
+        styleLibrary={props.styleLibrary}
+        worldSchema={props.worldSchema}
+        config={props.config}
+      />
+      <DynamicsSection dynamicsFlow={dynamicsFlow} />
+      <RevisionSection revisionFlow={revisionFlow} />
+      <BackportSection backportFlow={backportFlow} revisionFlow={revisionFlow} />
+      <HistorianSection historianFlow={historianFlow} revisionFlow={revisionFlow} />
+      <EntityModals
+        worldSchema={props.worldSchema}
+        handleRenameApplied={props.handleRenameApplied}
+        handleCreateEntity={props.handleCreateEntity}
+        handleEditEntity={props.handleEditEntity}
+      />
       <ToneAndAnnotationModals />
       <ThinkingViewer />
       <FloatingPills onNavigate={props.setActiveTab} />

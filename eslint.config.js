@@ -7,6 +7,7 @@ import jsxA11y from "eslint-plugin-jsx-a11y";
 import sonarjs from "eslint-plugin-sonarjs";
 import prettier from "eslint-config-prettier";
 import tseslint from "typescript-eslint";
+import maxJsxProps from "./eslint-rules/max-jsx-props.js";
 
 export default tseslint.config(
   {
@@ -89,6 +90,7 @@ export default tseslint.config(
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
       "jsx-a11y": jsxA11y,
+      local: { rules: { "max-jsx-props": maxJsxProps } },
     },
     languageOptions: {
       globals: {
@@ -112,6 +114,7 @@ export default tseslint.config(
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
       "no-unused-vars": "off",
+      "local/max-jsx-props": ["warn", { max: 12 }],
     },
   },
 

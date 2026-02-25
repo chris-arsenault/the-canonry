@@ -17,8 +17,11 @@ import HistorianConfigEditor from "./HistorianConfigEditor";
 import PrePrintPanel from "./PrePrintPanel";
 import { isHistorianConfigured } from "../lib/historianTypes";
 import { useIlluminatorModals } from "../lib/db/modalStore";
+import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
+import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
+import { useEraTemporalInfo } from "../lib/db/indexSelectors";
 
-function renderEntitiesTab(props) {
+function EntitiesTab({ revisionFlow, historianFlow, ...props }) {
   return (
     <div className="illuminator-content">
       <EntityBrowser
@@ -29,45 +32,47 @@ function renderEntitiesTab(props) {
         getVisualConfig={props.getVisualConfig}
         styleLibrary={props.styleLibrary}
         imageGenSettings={props.imageGenSettings}
-        onStartRevision={props.handleOpenRevisionFilter}
-        isRevising={props.isRevisionActive}
-        onBulkHistorianReview={props.onBulkHistorianReview}
-        onBulkHistorianEdition={props.onBulkHistorianEdition}
-        onBulkHistorianClear={props.onBulkHistorianClear}
-        isBulkHistorianActive={props.isBulkHistorianActive}
+        onStartRevision={revisionFlow.handleOpenRevisionFilter}
+        isRevising={revisionFlow.isRevisionActive}
+        onBulkHistorianReview={historianFlow.handleStartBulkHistorianReview}
+        onBulkHistorianEdition={historianFlow.handleStartBulkHistorianEdition}
+        onBulkHistorianClear={historianFlow.handleStartBulkHistorianClear}
+        isBulkHistorianActive={historianFlow.isBulkHistorianActive}
         onNavigateToTab={props.setActiveTab}
       />
     </div>
   );
 }
 
-function renderChronicleTab(props) {
+function ChronicleTab({ backportFlow, historianFlow, ...props }) {
+  const { projectId, simulationRunId, worldContext, entityGuidance, cultureIdentities, historianConfig } = useIlluminatorConfigStore();
+  const queue = useEnrichmentQueueStore((s) => s.queue);
   return (
     <div className="illuminator-content">
       <ChroniclePanel
         worldData={props.worldData}
-        queue={props.queue}
+        queue={queue}
         onEnqueue={props.enqueue}
         onCancel={props.cancel}
-        worldContext={props.worldContext}
-        projectId={props.projectId}
-        simulationRunId={props.simulationRunId}
+        worldContext={worldContext}
+        projectId={projectId}
+        simulationRunId={simulationRunId}
         buildPrompt={props.buildPrompt}
         styleLibrary={props.styleLibrary}
         imageGenSettings={props.imageGenSettings}
-        entityGuidance={props.entityGuidance}
-        cultureIdentities={props.cultureIdentities}
-        onBackportLore={props.handleBackportLore}
-        onStartBulkBackport={props.handleStartBulkBackport}
-        isBulkBackportActive={props.isBulkBackportActive}
+        entityGuidance={entityGuidance}
+        cultureIdentities={cultureIdentities}
+        onBackportLore={backportFlow.handleBackportLore}
+        onStartBulkBackport={backportFlow.handleStartBulkBackport}
+        isBulkBackportActive={backportFlow.isBulkBackportActive}
         refreshTrigger={props.chronicleRefreshTrigger}
         imageModel={props.config.imageModel}
         onOpenImageSettings={() => useIlluminatorModals.getState().openImageSettings()}
-        onHistorianReview={props.handleChronicleHistorianReview}
-        isHistorianActive={props.isHistorianActive}
-        historianConfigured={isHistorianConfigured(props.historianConfig)}
-        historianConfig={props.historianConfig}
-        onUpdateHistorianNote={props.handleUpdateHistorianNote}
+        onHistorianReview={historianFlow.handleChronicleHistorianReview}
+        isHistorianActive={historianFlow.isHistorianActive}
+        historianConfigured={isHistorianConfigured(historianConfig)}
+        historianConfig={historianConfig}
+        onUpdateHistorianNote={historianFlow.handleUpdateHistorianNote}
         onRefreshEraSummaries={props.handleRefreshEraSummaries}
         onNavigateToTab={props.setActiveTab}
       />
@@ -75,40 +80,44 @@ function renderChronicleTab(props) {
   );
 }
 
-function renderCoverageTab(props) {
+function CoverageTab(props) {
+  const { worldContext, simulationRunId } = useIlluminatorConfigStore();
   return (
     <div className="illuminator-content">
       <CoveragePanel
-        worldContext={props.worldContext}
-        simulationRunId={props.simulationRunId}
+        worldContext={worldContext}
+        simulationRunId={simulationRunId}
         onWorldContextChange={props.updateWorldContext}
       />
-      <EntityCoveragePanel simulationRunId={props.simulationRunId} />
+      <EntityCoveragePanel simulationRunId={simulationRunId} />
     </div>
   );
 }
 
-function renderContextTab(props) {
+function ContextTab({ dynamicsFlow, ...props }) {
+  const worldContext = useIlluminatorConfigStore((s) => s.worldContext);
+  const eraTemporalInfo = useEraTemporalInfo();
   return (
     <div className="illuminator-content">
       <WorldContextEditor
-        worldContext={props.worldContext}
+        worldContext={worldContext}
         onWorldContextChange={props.updateWorldContext}
-        eras={props.eraTemporalInfo}
-        onGenerateDynamics={props.handleGenerateDynamics}
-        isGeneratingDynamics={props.isDynamicsActive}
+        eras={eraTemporalInfo}
+        onGenerateDynamics={dynamicsFlow.handleGenerateDynamics}
+        isGeneratingDynamics={dynamicsFlow.isDynamicsActive}
       />
     </div>
   );
 }
 
-function renderGuidanceTab(props) {
+function GuidanceTab(props) {
+  const { worldContext, entityGuidance } = useIlluminatorConfigStore();
   return (
     <div className="illuminator-content">
       <EntityGuidanceEditor
-        entityGuidance={props.entityGuidance}
+        entityGuidance={entityGuidance}
         onEntityGuidanceChange={props.updateEntityGuidance}
-        worldContext={props.worldContext}
+        worldContext={worldContext}
         worldSchema={props.worldSchema}
         simulationMetadata={props.simulationMetadata}
       />
@@ -116,20 +125,21 @@ function renderGuidanceTab(props) {
   );
 }
 
-function renderIdentityTab(props) {
+function IdentityTab(props) {
+  const cultureIdentities = useIlluminatorConfigStore((s) => s.cultureIdentities);
   return (
     <div className="illuminator-content">
       <VisualIdentityPanel
         cultures={props.worldSchema?.cultures || []}
         entityKinds={props.worldSchema?.entityKinds || []}
-        cultureIdentities={props.cultureIdentities}
+        cultureIdentities={cultureIdentities}
         onCultureIdentitiesChange={props.updateCultureIdentities}
       />
     </div>
   );
 }
 
-function renderStylesTab(props) {
+function StylesTab(props) {
   return (
     <div className="illuminator-content">
       <StyleLibraryEditor
@@ -152,12 +162,13 @@ function renderStylesTab(props) {
   );
 }
 
-function renderActivityTab(props) {
+function ActivityTab(props) {
+  const { queue, stats } = useEnrichmentQueueStore();
   return (
     <div className="illuminator-content">
       <ActivityPanel
-        queue={props.queue}
-        stats={props.stats}
+        queue={queue}
+        stats={stats}
         onCancel={props.cancel}
         onRetry={props.retry}
         onCancelAll={props.cancelAll}
@@ -167,13 +178,15 @@ function renderActivityTab(props) {
   );
 }
 
-function renderTraitsTab(props) {
+function TraitsTab(props) {
+  const { projectId, simulationRunId, worldContext } = useIlluminatorConfigStore();
+  const queue = useEnrichmentQueueStore((s) => s.queue);
   return (
     <div className="illuminator-content">
       <TraitPaletteSection
-        projectId={props.projectId}
-        simulationRunId={props.simulationRunId}
-        worldContext={props.worldContext?.description || ""}
+        projectId={projectId}
+        simulationRunId={simulationRunId}
+        worldContext={worldContext?.description || ""}
         entityKinds={(props.worldSchema?.entityKinds || []).map((k) => k.kind)}
         subtypesByKind={props.subtypesByKind}
         eras={props.eraEntities}
@@ -183,14 +196,14 @@ function renderTraitsTab(props) {
           visualIdentity: c.visualIdentity,
         }))}
         enqueue={props.enqueue}
-        queue={props.queue}
+        queue={queue}
         isWorkerReady={props.isWorkerReady}
       />
     </div>
   );
 }
 
-function renderConfigureTab(props) {
+function ConfigureTab(props) {
   return (
     <div className="illuminator-content">
       <ConfigPanel config={props.config} onConfigChange={props.updateConfig} worldSchema={props.worldSchema} />
@@ -238,7 +251,7 @@ function renderConfigureTab(props) {
   );
 }
 
-function renderFinalEditTab() {
+function FinalEditTabWrapper() {
   return (
     <div className="illuminator-content">
       <FinalEditTab />
@@ -246,66 +259,72 @@ function renderFinalEditTab() {
   );
 }
 
-function renderPagesTab(props) {
+function PagesTab() {
+  const projectId = useIlluminatorConfigStore((s) => s.projectId);
   return (
     <div className="illuminator-content">
-      <StaticPagesPanel projectId={props.projectId} />
+      <StaticPagesPanel projectId={projectId} />
     </div>
   );
 }
 
-function renderCostsTab(props) {
+function CostsTab() {
+  const { projectId, simulationRunId } = useIlluminatorConfigStore();
+  const queue = useEnrichmentQueueStore((s) => s.queue);
   return (
     <div className="illuminator-content">
-      <CostsPanel queue={props.queue} projectId={props.projectId} simulationRunId={props.simulationRunId} />
+      <CostsPanel queue={queue} projectId={projectId} simulationRunId={simulationRunId} />
     </div>
   );
 }
 
-function renderStorageTab(props) {
+function StorageTab() {
+  const projectId = useIlluminatorConfigStore((s) => s.projectId);
   return (
     <div className="illuminator-content">
-      <StoragePanel projectId={props.projectId} />
+      <StoragePanel projectId={projectId} />
     </div>
   );
 }
 
-function renderHistorianTab(props) {
+function HistorianTab(props) {
+  const historianConfig = useIlluminatorConfigStore((s) => s.historianConfig);
   return (
     <div className="illuminator-content">
-      <HistorianConfigEditor config={props.historianConfig} onChange={props.updateHistorianConfig} />
+      <HistorianConfigEditor config={historianConfig} onChange={props.updateHistorianConfig} />
     </div>
   );
 }
 
-function renderPreprintTab(props) {
+function PreprintTab() {
+  const { projectId, simulationRunId } = useIlluminatorConfigStore();
   return (
     <div className="illuminator-content">
-      <PrePrintPanel projectId={props.projectId} simulationRunId={props.simulationRunId} />
+      <PrePrintPanel projectId={projectId} simulationRunId={simulationRunId} />
     </div>
   );
 }
 
-const TAB_RENDERERS = {
-  entities: renderEntitiesTab,
-  chronicle: renderChronicleTab,
-  coverage: renderCoverageTab,
-  finaledit: renderFinalEditTab,
-  pages: renderPagesTab,
-  context: renderContextTab,
-  guidance: renderGuidanceTab,
-  identity: renderIdentityTab,
-  styles: renderStylesTab,
-  activity: renderActivityTab,
-  costs: renderCostsTab,
-  storage: renderStorageTab,
-  traits: renderTraitsTab,
-  configure: renderConfigureTab,
-  historian: renderHistorianTab,
-  preprint: renderPreprintTab,
+const TAB_COMPONENTS = {
+  entities: EntitiesTab,
+  chronicle: ChronicleTab,
+  coverage: CoverageTab,
+  finaledit: FinalEditTabWrapper,
+  pages: PagesTab,
+  context: ContextTab,
+  guidance: GuidanceTab,
+  identity: IdentityTab,
+  styles: StylesTab,
+  activity: ActivityTab,
+  costs: CostsTab,
+  storage: StorageTab,
+  traits: TraitsTab,
+  configure: ConfigureTab,
+  historian: HistorianTab,
+  preprint: PreprintTab,
 };
 
 export default function IlluminatorTabContent({ activeTab, ...props }) {
-  const renderer = TAB_RENDERERS[activeTab];
-  return renderer ? renderer(props) : null;
+  const TabComponent = TAB_COMPONENTS[activeTab];
+  return TabComponent ? <TabComponent {...props} /> : null;
 }
