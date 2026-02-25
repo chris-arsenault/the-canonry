@@ -8,7 +8,7 @@ dist/
 deliveries/
 testArchive/
 .env
-**/webui/.__mf__temp/
+.__mf__temp/
 .terraform/
 .terraform.lock.hcl
 *.tfstate
