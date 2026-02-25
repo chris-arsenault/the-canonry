@@ -10,7 +10,7 @@
  * See CHRONICLE_DESIGN.md for architecture documentation.
  */
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import ChronicleImagePanel from "./ChronicleImagePanel";
 import { ExpandableSeedSection } from "./ChronicleSeedViewer";
 import "./CohesionReportViewer.css";
@@ -50,13 +50,18 @@ function ScoreGauge({ score }) {
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           transform="rotate(-90 60 60)"
-          className="crv-gauge__progress"
+          className="crv-gauge-progress"
         />
       </svg>
-      <div className="crv-gauge__label">
+      <div className="crv-gauge-label">
         {/* eslint-disable-next-line local/no-inline-styles */}
-        <div className="crv-gauge__score" style={{ '--crv-gauge-color': getColor(), color: 'var(--crv-gauge-color)' }}>{score}</div>
-        <div className="crv-gauge__max">/ 100</div>
+        <div
+          className="crv-gauge-score"
+          style={{ "--crv-gauge-color": getColor(), color: "var(--crv-gauge-color)" }}
+        >
+          {score}
+        </div>
+        <div className="crv-gauge-max">/ 100</div>
       </div>
     </div>
   );
@@ -66,28 +71,24 @@ function CheckItem({ label, check, isSection = false }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className={`crv-check ${!check.pass ? "crv-check--fail" : ""}`}>
+    <div className={`crv-check ${!check.pass ? "crv-check-fail" : ""}`}>
       <div
-        className={`crv-check__header ${check.notes ? "crv-check__header--clickable" : ""}`}
+        className={`crv-check-header ${check.notes ? "crv-check-header-clickable" : ""}`}
         onClick={() => check.notes && setExpanded(!expanded)}
       >
-        <div className="crv-check__left">
-          <span className={`crv-check__icon ${check.pass ? "crv-check__icon--pass" : "crv-check__icon--fail"}`}>
+        <div className="crv-check-left">
+          <span
+            className={`crv-check-icon ${check.pass ? "crv-check-icon-pass" : "crv-check-icon-fail"}`}
+          >
             {check.pass ? "✓" : "✕"}
           </span>
-          <span className={`crv-check__label ${isSection ? "crv-check__label--section" : ""}`}>{label}</span>
-        </div>
-        {check.notes && (
-          <span className="crv-check__toggle">
-            {expanded ? "▾" : "▸"}
+          <span className={`crv-check-label ${isSection ? "crv-check-label-section" : ""}`}>
+            {label}
           </span>
-        )}
-      </div>
-      {expanded && check.notes && (
-        <div className="crv-check__notes">
-          {check.notes}
         </div>
-      )}
+        {check.notes && <span className="crv-check-toggle">{expanded ? "▾" : "▸"}</span>}
+      </div>
+      {expanded && check.notes && <div className="crv-check-notes">{check.notes}</div>}
     </div>
   );
 }
@@ -96,21 +97,21 @@ function IssueCard({ issue, sectionTitle }) {
   const isCritical = issue.severity === "critical";
 
   return (
-    <div className={`crv-issue ${isCritical ? "crv-issue--critical" : ""}`}>
-      <div className="crv-issue__header">
-        <span className={`crv-issue__severity ${isCritical ? "crv-issue__severity--critical" : "crv-issue__severity--minor"}`}>
+    <div className={`crv-issue ${isCritical ? "crv-issue-critical" : ""}`}>
+      <div className="crv-issue-header">
+        <span
+          className={`crv-issue-severity ${isCritical ? "crv-issue-severity-critical" : "crv-issue-severity-minor"}`}
+        >
           {issue.severity}
         </span>
-        <span className="crv-issue__meta">
+        <span className="crv-issue-meta">
           {issue.checkType}
           {sectionTitle && ` • ${sectionTitle}`}
         </span>
       </div>
-      <div className="crv-issue__description">
-        {issue.description}
-      </div>
+      <div className="crv-issue-description">{issue.description}</div>
       {issue.suggestion && (
-        <div className="crv-issue__suggestion">
+        <div className="crv-issue-suggestion">
           <strong>Suggestion:</strong> {issue.suggestion}
         </div>
       )}
@@ -182,11 +183,7 @@ export default function CohesionReportViewer({
   }, [report]);
 
   if (!report) {
-    return (
-      <div className="crv__empty">
-        No validation report available.
-      </div>
-    );
+    return <div className="crv-empty">No validation report available.</div>;
   }
 
   const statusStyle = STATUS_STYLES[assessment?.status || "needs_revision"];
@@ -198,40 +195,44 @@ export default function CohesionReportViewer({
   const summaryState = refinements?.summary || {};
   const imageRefsState = refinements?.imageRefs || {};
 
-  const disabledClass = (condition) => (condition ? "crv__btn--disabled" : "");
+  const disabledClass = (condition) => (condition ? "crv-btn-disabled" : "");
 
   return (
     <div className="crv">
       {/* Header with score and actions */}
-      <div className="crv__header">
-        <div className="crv__header-left">
+      <div className="crv-header">
+        <div className="crv-header-left">
           <ScoreGauge score={report.overallScore} />
           <div>
             {/* eslint-disable-next-line local/no-inline-styles */}
-            <div className="crv__status-badge" style={{ '--crv-status-bg': statusStyle.bg, '--crv-status-color': statusStyle.color, background: 'var(--crv-status-bg)', color: 'var(--crv-status-color)' }}>
+            <div
+              className="crv-status-badge"
+              style={{
+                "--crv-status-bg": statusStyle.bg,
+                "--crv-status-color": statusStyle.color,
+                background: "var(--crv-status-bg)",
+                color: "var(--crv-status-color)",
+              }}
+            >
               {statusStyle.label}
             </div>
-            <div className="crv__issue-count">
+            <div className="crv-issue-count">
               {assessment?.criticalIssueCount || 0} critical issues •{" "}
               {assessment?.minorIssueCount || 0} minor issues
             </div>
-            <div className="crv__edit-version">
-              Edit version: {editVersion}
-            </div>
+            <div className="crv-edit-version">Edit version: {editVersion}</div>
             {assessment?.failedChecks.length > 0 && (
-              <div className="crv__failed-checks">
-                Failed: {assessment.failedChecks.join(", ")}
-              </div>
+              <div className="crv-failed-checks">Failed: {assessment.failedChecks.join(", ")}</div>
             )}
           </div>
         </div>
 
-        <div className="crv__actions">
+        <div className="crv-actions">
           {onCorrectSuggestions && (
             <button
               onClick={onCorrectSuggestions}
               disabled={isGenerating || !hasIssues}
-              className={`crv__btn crv__btn--secondary ${disabledClass(isGenerating || !hasIssues)}`}
+              className={`crv-btn crv-btn-secondary ${disabledClass(isGenerating || !hasIssues)}`}
               title={!hasIssues ? "No issues to correct" : "Apply remediation suggestions"}
             >
               ✎ Correct Suggestions
@@ -240,16 +241,19 @@ export default function CohesionReportViewer({
           <button
             onClick={onRegenerate}
             disabled={isGenerating}
-            className={`crv__btn crv__btn--secondary ${disabledClass(isGenerating)}`}
+            className={`crv-btn crv-btn-secondary ${disabledClass(isGenerating)}`}
           >
             ⟳ Regenerate All
           </button>
           <button
             onClick={onAccept}
             disabled={isGenerating}
-            className={`crv__btn crv__btn--primary ${disabledClass(isGenerating)}`}
+            className={`crv-btn crv-btn-primary ${disabledClass(isGenerating)}`}
             // eslint-disable-next-line local/no-inline-styles
-            style={{ '--crv-accept-bg': report.overallScore >= 60 ? 'var(--accent-primary)' : '#f59e0b', background: 'var(--crv-accept-bg)' }}
+            style={{
+              "--crv-accept-bg": report.overallScore >= 60 ? "var(--accent-primary)" : "#f59e0b",
+              background: "var(--crv-accept-bg)",
+            }}
           >
             {report.overallScore >= 60 ? "Accept Chronicle ✓" : "Accept with Issues ⚠"}
           </button>
@@ -257,15 +261,15 @@ export default function CohesionReportViewer({
       </div>
 
       {isValidationStale && (
-        <div className="crv__stale-warning">
-          <div className="crv__stale-text">
+        <div className="crv-stale-warning">
+          <div className="crv-stale-text">
             Validation is stale after edits. Revalidate to refresh the report.
           </div>
           {onRevalidate && (
             <button
               onClick={onRevalidate}
               disabled={isGenerating}
-              className={`crv__btn crv__btn--small ${disabledClass(isGenerating)}`}
+              className={`crv-btn crv-btn-small ${disabledClass(isGenerating)}`}
             >
               Revalidate
             </button>
@@ -273,45 +277,35 @@ export default function CohesionReportViewer({
         </div>
       )}
 
-      <div className="crv__refinements">
-        <div className="crv__refinements-title">
-          Optional Refinements
-        </div>
-        <div className="crv__refinements-list">
+      <div className="crv-refinements">
+        <div className="crv-refinements-title">Optional Refinements</div>
+        <div className="crv-refinements-list">
           {/* Summary */}
-          <div className="crv__refinement-row">
+          <div className="crv-refinement-row">
             <div>
-              <div className="crv__refinement-name">Add Summary</div>
-              <div className="crv__refinement-desc">
+              <div className="crv-refinement-name">Add Summary</div>
+              <div className="crv-refinement-desc">
                 Generate a short summary for chronicle listings.
               </div>
               {summaryState.generatedAt && (
-                <div className="crv__refinement-status">
+                <div className="crv-refinement-status">
                   Done - {formatTimestamp(summaryState.generatedAt)}
                   {summaryState.model ? ` - ${summaryState.model}` : ""}
                 </div>
               )}
               {summaryIndicator && summaryState.generatedAt && (
-                <div className="crv__refinement-status--tight">
-                  {summaryIndicator}
-                </div>
+                <div className="crv-refinement-status-tight">{summaryIndicator}</div>
               )}
               {!summaryState.generatedAt && !summaryState.running && (
-                <div className="crv__refinement-status">
-                  Not run yet
-                </div>
+                <div className="crv-refinement-status">Not run yet</div>
               )}
-              {summaryState.running && (
-                <div className="crv__refinement-status">
-                  Running...
-                </div>
-              )}
+              {summaryState.running && <div className="crv-refinement-status">Running...</div>}
             </div>
             {onGenerateSummary && (
               <button
                 onClick={onGenerateSummary}
                 disabled={isGenerating || summaryState.running}
-                className={`crv__btn crv__btn--generate ${disabledClass(isGenerating || summaryState.running)}`}
+                className={`crv-btn crv-btn-generate ${disabledClass(isGenerating || summaryState.running)}`}
               >
                 {summaryState.generatedAt ? "Regenerate" : "Generate"}
               </button>
@@ -319,39 +313,31 @@ export default function CohesionReportViewer({
           </div>
 
           {/* 3. Image Refs - finds image placement opportunities in the narrative */}
-          <div className="crv__refinement-row">
-            <div className="crv__refinement-content">
-              <div className="crv__refinement-name">Add Image Refs</div>
-              <div className="crv__refinement-desc">
+          <div className="crv-refinement-row">
+            <div className="crv-refinement-content">
+              <div className="crv-refinement-name">Add Image Refs</div>
+              <div className="crv-refinement-desc">
                 Generate image placement suggestions for this chronicle.
               </div>
               {imageRefsState.generatedAt && (
-                <div className="crv__refinement-status">
+                <div className="crv-refinement-status">
                   Done - {formatTimestamp(imageRefsState.generatedAt)}
                   {imageRefsState.model ? ` - ${imageRefsState.model}` : ""}
                 </div>
               )}
               {imageRefsIndicator && imageRefsState.generatedAt && (
-                <div className="crv__refinement-status--tight">
-                  {imageRefsIndicator}
-                </div>
+                <div className="crv-refinement-status-tight">{imageRefsIndicator}</div>
               )}
               {!imageRefsState.generatedAt && !imageRefsState.running && (
-                <div className="crv__refinement-status">
-                  Not run yet
-                </div>
+                <div className="crv-refinement-status">Not run yet</div>
               )}
-              {imageRefsState.running && (
-                <div className="crv__refinement-status">
-                  Running...
-                </div>
-              )}
+              {imageRefsState.running && <div className="crv-refinement-status">Running...</div>}
             </div>
             {onGenerateImageRefs && (
               <button
                 onClick={onGenerateImageRefs}
                 disabled={isGenerating || imageRefsState.running}
-                className={`crv__btn crv__btn--generate ${disabledClass(isGenerating || imageRefsState.running)}`}
+                className={`crv-btn crv-btn-generate ${disabledClass(isGenerating || imageRefsState.running)}`}
               >
                 {imageRefsState.generatedAt ? "Regenerate" : "Generate"}
               </button>
@@ -360,7 +346,7 @@ export default function CohesionReportViewer({
 
           {/* Show ChronicleImagePanel when imageRefs are available */}
           {imageRefs && entityMap && (
-            <div className="crv__image-panel-wrap">
+            <div className="crv-image-panel-wrap">
               <ChronicleImagePanel
                 imageRefs={imageRefs}
                 entities={entityMap}
@@ -386,16 +372,18 @@ export default function CohesionReportViewer({
       {seedData && <ExpandableSeedSection seed={seedData} defaultExpanded={false} />}
 
       {/* Tabs */}
-      <div className="crv__tabs">
+      <div className="crv-tabs">
         {["summary", "checks", "issues"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`crv__tab ${activeTab === tab ? "crv__tab--active" : ""}`}
+            className={`crv-tab ${activeTab === tab ? "crv-tab-active" : ""}`}
           >
             {tab}
             {tab === "issues" && report.issues.length > 0 && (
-              <span className={`crv__tab-badge ${assessment?.criticalIssueCount > 0 ? "crv__tab-badge--critical" : "crv__tab-badge--minor"}`}>
+              <span
+                className={`crv-tab-badge ${assessment?.criticalIssueCount > 0 ? "crv-tab-badge-critical" : "crv-tab-badge-minor"}`}
+              >
                 {report.issues.length}
               </span>
             )}
@@ -405,85 +393,85 @@ export default function CohesionReportViewer({
 
       {/* Tab content */}
       {activeTab === "summary" && (
-        <div className="crv__panel">
-          <h3 className="crv__panel-title">Validation Summary</h3>
+        <div className="crv-panel">
+          <h3 className="crv-panel-title">Validation Summary</h3>
 
-          <div className="crv__summary-grid">
-            <div className="crv__summary-card">
+          <div className="crv-summary-grid">
+            <div className="crv-summary-card">
               {/* eslint-disable-next-line local/no-inline-styles */}
-              <div className="crv__summary-card-icon" style={{ '--crv-check-color': report.checks.plotStructure.pass ? '#10b981' : '#ef4444', color: 'var(--crv-check-color)' }}>
+              <div
+                className="crv-summary-card-icon"
+                style={{
+                  "--crv-check-color": report.checks.plotStructure.pass ? "#10b981" : "#ef4444",
+                  color: "var(--crv-check-color)",
+                }}
+              >
                 {report.checks.plotStructure.pass ? "✓" : "✕"}
               </div>
-              <div className="crv__summary-card-label">
-                Structure
-              </div>
+              <div className="crv-summary-card-label">Structure</div>
             </div>
-            <div className="crv__summary-card">
+            <div className="crv-summary-card">
               {/* eslint-disable-next-line local/no-inline-styles */}
-              <div className="crv__summary-card-icon" style={{ '--crv-check-color': report.checks.entityConsistency.pass ? '#10b981' : '#ef4444', color: 'var(--crv-check-color)' }}>
+              <div
+                className="crv-summary-card-icon"
+                style={{
+                  "--crv-check-color": report.checks.entityConsistency.pass ? "#10b981" : "#ef4444",
+                  color: "var(--crv-check-color)",
+                }}
+              >
                 {report.checks.entityConsistency.pass ? "✓" : "✕"}
               </div>
-              <div className="crv__summary-card-label">
-                Entity Consistency
-              </div>
+              <div className="crv-summary-card-label">Entity Consistency</div>
             </div>
-            <div className="crv__summary-card">
+            <div className="crv-summary-card">
               {/* eslint-disable-next-line local/no-inline-styles */}
-              <div className="crv__summary-card-icon" style={{ '--crv-check-color': report.checks.resolution.pass ? '#10b981' : '#ef4444', color: 'var(--crv-check-color)' }}>
+              <div
+                className="crv-summary-card-icon"
+                style={{
+                  "--crv-check-color": report.checks.resolution.pass ? "#10b981" : "#ef4444",
+                  color: "var(--crv-check-color)",
+                }}
+              >
                 {report.checks.resolution.pass ? "✓" : "✕"}
               </div>
-              <div className="crv__summary-card-label">
-                Resolution
-              </div>
+              <div className="crv-summary-card-label">Resolution</div>
             </div>
           </div>
 
           {report.checks.plotStructure.notes && (
-            <div className="crv__notes-section">
-              <div className="crv__notes-label">
-                Structure Notes:
-              </div>
-              <div className="crv__notes-text">
-                {report.checks.plotStructure.notes}
-              </div>
+            <div className="crv-notes-section">
+              <div className="crv-notes-label">Structure Notes:</div>
+              <div className="crv-notes-text">{report.checks.plotStructure.notes}</div>
             </div>
           )}
 
           {report.checks.themeExpression.notes && (
             <div>
-              <div className="crv__notes-label">
-                Theme Expression:
-              </div>
-              <div className="crv__notes-text">
-                {report.checks.themeExpression.notes}
-              </div>
+              <div className="crv-notes-label">Theme Expression:</div>
+              <div className="crv-notes-text">{report.checks.themeExpression.notes}</div>
             </div>
           )}
         </div>
       )}
 
       {activeTab === "checks" && (
-        <div className="crv__checks-panel">
+        <div className="crv-checks-panel">
           <CheckItem label="Structure" check={report.checks.plotStructure} />
           <CheckItem label="Entity Consistency" check={report.checks.entityConsistency} />
           <CheckItem label="Resolution" check={report.checks.resolution} />
           <CheckItem label="Factual Accuracy" check={report.checks.factualAccuracy} />
           <CheckItem label="Theme Expression" check={report.checks.themeExpression} />
 
-          <div className="crv__section-goals-header">
+          <div className="crv-section-goals-header">
             Section Goals ({report.checks.sectionGoals.filter((sg) => sg.pass).length}/
             {report.checks.sectionGoals.length} passed)
           </div>
           {report.checks.sectionGoals.map((sg) => (
-            <div key={sg.sectionId} className="crv__section-goal-row">
-              <div className="crv__section-goal-check">
+            <div key={sg.sectionId} className="crv-section-goal-row">
+              <div className="crv-section-goal-check">
                 <CheckItem label={resolveSectionLabel(sg.sectionId)} check={sg} isSection />
               </div>
-              {!sg.pass && (
-                <span className="crv__section-goal-label">
-                  Needs revision
-                </span>
-              )}
+              {!sg.pass && <span className="crv-section-goal-label">Needs revision</span>}
             </div>
           ))}
         </div>
@@ -492,16 +480,16 @@ export default function CohesionReportViewer({
       {activeTab === "issues" && (
         <div>
           {report.issues.length === 0 ? (
-            <div className="crv__no-issues">
-              <div className="crv__no-issues-icon">🎉</div>
-              <div className="crv__no-issues-text">No issues found!</div>
+            <div className="crv-no-issues">
+              <div className="crv-no-issues-icon">🎉</div>
+              <div className="crv-no-issues-text">No issues found!</div>
             </div>
           ) : (
             <>
               {/* Critical issues first */}
               {report.issues.filter((i) => i.severity === "critical").length > 0 && (
-                <div className="crv__issues-group">
-                  <h4 className="crv__issues-heading crv__issues-heading--critical">
+                <div className="crv-issues-group">
+                  <h4 className="crv-issues-heading crv-issues-heading-critical">
                     Critical Issues ({report.issues.filter((i) => i.severity === "critical").length}
                     )
                   </h4>
@@ -522,7 +510,7 @@ export default function CohesionReportViewer({
               {/* Minor issues */}
               {report.issues.filter((i) => i.severity === "minor").length > 0 && (
                 <div>
-                  <h4 className="crv__issues-heading crv__issues-heading--minor">
+                  <h4 className="crv-issues-heading crv-issues-heading-minor">
                     Minor Issues ({report.issues.filter((i) => i.severity === "minor").length})
                   </h4>
                   {report.issues

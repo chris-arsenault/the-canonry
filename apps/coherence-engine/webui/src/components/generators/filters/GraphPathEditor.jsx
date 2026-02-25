@@ -2,11 +2,11 @@
  * GraphPathEditor - Edit a graph path assertion for filtering
  */
 
-import React, { useState } from 'react';
-import { PATH_CHECK_TYPES, PATH_CONSTRAINT_TYPES } from '../constants';
-import { ReferenceDropdown, NumberInput } from '../../shared';
-import { PathStepEditor } from './PathStepEditor';
-import { PathConstraintEditor } from './PathConstraintEditor';
+import React, { useState } from "react";
+import { PATH_CHECK_TYPES, PATH_CONSTRAINT_TYPES } from "../constants";
+import { ReferenceDropdown, NumberInput } from "../../shared";
+import { PathStepEditor } from "./PathStepEditor";
+import { PathConstraintEditor } from "./PathConstraintEditor";
 
 /**
  * @param {Object} props
@@ -18,7 +18,7 @@ import { PathConstraintEditor } from './PathConstraintEditor';
 export function GraphPathEditor({ assert, onChange, schema, availableRefs }) {
   const [showConstraintMenu, setShowConstraintMenu] = useState(false);
 
-  const assertion = assert || { check: 'exists', path: [] };
+  const assertion = assert || { check: "exists", path: [] };
 
   const updateAssertion = (field, value) => {
     onChange({ ...assertion, [field]: value });
@@ -26,44 +26,45 @@ export function GraphPathEditor({ assert, onChange, schema, availableRefs }) {
 
   const addStep = () => {
     // Create with empty required fields - validation will flag them
-    const newStep = { via: '', direction: '', targetKind: '', targetSubtype: '' };
-    updateAssertion('path', [...(assertion.path || []), newStep]);
+    const newStep = { via: "", direction: "", targetKind: "", targetSubtype: "" };
+    updateAssertion("path", [...(assertion.path || []), newStep]);
   };
 
   const updateStep = (index, updated) => {
     const newPath = [...(assertion.path || [])];
     newPath[index] = updated;
-    updateAssertion('path', newPath);
+    updateAssertion("path", newPath);
   };
 
   const removeStep = (index) => {
-    updateAssertion('path', (assertion.path || []).filter((_, i) => i !== index));
+    updateAssertion(
+      "path",
+      (assertion.path || []).filter((_, i) => i !== index)
+    );
   };
 
   const addConstraint = (type) => {
     const newConstraint = { type };
-    if (type === 'has_relationship' || type === 'lacks_relationship') {
-      newConstraint.direction = 'any';
+    if (type === "has_relationship" || type === "lacks_relationship") {
+      newConstraint.direction = "any";
     }
-    updateAssertion('where', [...(assertion.where || []), newConstraint]);
+    updateAssertion("where", [...(assertion.where || []), newConstraint]);
     setShowConstraintMenu(false);
   };
 
   const updateConstraint = (index, updated) => {
     const newWhere = [...(assertion.where || [])];
     newWhere[index] = updated;
-    updateAssertion('where', newWhere);
+    updateAssertion("where", newWhere);
   };
 
   const removeConstraint = (index) => {
     const newWhere = (assertion.where || []).filter((_, i) => i !== index);
-    updateAssertion('where', newWhere.length > 0 ? newWhere : undefined);
+    updateAssertion("where", newWhere.length > 0 ? newWhere : undefined);
   };
 
   // Collect variables from path steps for constraint references
-  const pathVars = (assertion.path || [])
-    .filter(s => s.as)
-    .map(s => s.as);
+  const pathVars = (assertion.path || []).filter((s) => s.as).map((s) => s.as);
   const allRefs = [...(availableRefs || []), ...pathVars];
 
   return (
@@ -73,17 +74,17 @@ export function GraphPathEditor({ assert, onChange, schema, availableRefs }) {
         <div>
           <label className="label label-tiny">Check Type</label>
           <ReferenceDropdown
-            value={assertion.check || 'exists'}
-            onChange={(v) => updateAssertion('check', v)}
+            value={assertion.check || "exists"}
+            onChange={(v) => updateAssertion("check", v)}
             options={PATH_CHECK_TYPES}
           />
         </div>
-        {(assertion.check === 'count_min' || assertion.check === 'count_max') && (
+        {(assertion.check === "count_min" || assertion.check === "count_max") && (
           <div>
             <label className="label label-tiny">Count</label>
             <NumberInput
               value={assertion.count ?? 1}
-              onChange={(v) => updateAssertion('count', v ?? 1)}
+              onChange={(v) => updateAssertion("count", v ?? 1)}
               min={0}
               integer
               className="input input-compact"
@@ -94,9 +95,7 @@ export function GraphPathEditor({ assert, onChange, schema, availableRefs }) {
 
       {/* Path steps */}
       <div>
-        <label className="label label-tiny">
-          Path Steps (traverse relationships)
-        </label>
+        <label className="label label-tiny">Path Steps (traverse relationships)</label>
         <div className="path-steps-list">
           {(assertion.path || []).map((step, index) => (
             <PathStepEditor
@@ -110,7 +109,7 @@ export function GraphPathEditor({ assert, onChange, schema, availableRefs }) {
           ))}
           {(assertion.path || []).length < 2 && (
             <button onClick={addStep} className="button button-add-step">
-              + Add Step {(assertion.path || []).length === 0 ? '(required)' : '(optional)'}
+              + Add Step {(assertion.path || []).length === 0 ? "(required)" : "(optional)"}
             </button>
           )}
         </div>
@@ -118,9 +117,7 @@ export function GraphPathEditor({ assert, onChange, schema, availableRefs }) {
 
       {/* Where constraints */}
       <div>
-        <label className="label label-tiny">
-          Where Constraints (optional)
-        </label>
+        <label className="label label-tiny">Where Constraints (optional)</label>
         <div className="path-constraints-list">
           {(assertion.where || []).map((constraint, index) => (
             <PathConstraintEditor
@@ -132,7 +129,7 @@ export function GraphPathEditor({ assert, onChange, schema, availableRefs }) {
               availableRefs={allRefs}
             />
           ))}
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: "relative" }}>
             <button
               onClick={() => setShowConstraintMenu(!showConstraintMenu)}
               className="button button-add-constraint"

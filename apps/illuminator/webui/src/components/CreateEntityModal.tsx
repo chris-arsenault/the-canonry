@@ -9,7 +9,7 @@
  * Edit mode is only available for manually-created entities (id starts with manual_).
  */
 
-import { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import type { WorldEntity, EntityKindDefinition, CultureDefinition } from "@canonry/world-schema";
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
 import ChronicleImagePanel from "../ChronicleImagePanel";
 import ChronicleImagePicker from "../ChronicleImagePicker";
 import { useImageUrl } from "../../hooks/useImageUrl";
@@ -37,9 +38,7 @@ function ImageRefVersionWarning({
 
   return (
     <div className="itab-version-warning">
-      <div className="itab-version-warning-title">
-        ⚠ Image refs generated for different version
-      </div>
+      <div className="itab-version-warning-title">⚠ Image refs generated for different version</div>
       <div className="itab-version-warning-desc">
         Image refs were generated for <strong>{sourceLabel}</strong>, but the active version is{" "}
         <strong>{targetLabel}</strong>. Some anchor texts may no longer match.
@@ -47,7 +46,7 @@ function ImageRefVersionWarning({
       <button
         onClick={onAnalyzeCompatibility}
         disabled={isAnalyzing}
-        className={`itab-analyze-btn ${isAnalyzing ? "itab-analyze-btn--disabled" : "itab-analyze-btn--enabled"}`}
+        className={`itab-analyze-btn ${isAnalyzing ? "itab-analyze-btn-disabled" : "itab-analyze-btn-enabled"}`}
       >
         {isAnalyzing ? "Analyzing..." : "Analyze Compatibility"}
       </button>
@@ -112,17 +111,18 @@ function ImageRefCompatibilityResults({
           return (
             <div key={refAnalysis.refId} className="itab-compat-row">
               <div className="itab-compat-ref-info">
-                <div className="itab-compat-ref-label">
-                  {getRefLabel(refAnalysis.refId)}
-                </div>
-                <div className="itab-compat-ref-reason">
-                  {refAnalysis.reason}
-                </div>
+                <div className="itab-compat-ref-label">{getRefLabel(refAnalysis.refId)}</div>
+                <div className="itab-compat-ref-reason">{refAnalysis.reason}</div>
               </div>
               <span
                 className="itab-compat-badge"
                 // eslint-disable-next-line local/no-inline-styles -- dynamic color from recommendation map
-                style={{ '--itab-badge-bg': `${recStyle.color}20`, '--itab-badge-color': recStyle.color, background: 'var(--itab-badge-bg)', color: 'var(--itab-badge-color)' }}
+                style={{
+                  "--itab-badge-bg": `${recStyle.color}20`,
+                  "--itab-badge-color": recStyle.color,
+                  background: "var(--itab-badge-bg)",
+                  color: "var(--itab-badge-color)",
+                }}
               >
                 {recStyle.badge}
               </span>
@@ -148,7 +148,7 @@ function ImageRefCompatibilityResults({
           <button
             onClick={onApply}
             disabled={isApplying}
-            className={`itab-apply-btn ${isApplying ? "itab-apply-btn--disabled" : "itab-apply-btn--enabled"}`}
+            className={`itab-apply-btn ${isApplying ? "itab-apply-btn-disabled" : "itab-apply-btn-enabled"}`}
           >
             {isApplying ? "Applying..." : "Apply Selections"}
           </button>
@@ -168,19 +168,11 @@ function CoverImagePreview({ imageId, onImageClick }) {
   if (!imageId) return null;
 
   if (loading) {
-    return (
-      <div className="itab-cover-loading">
-        Loading image...
-      </div>
-    );
+    return <div className="itab-cover-loading">Loading image...</div>;
   }
 
   if (error || !url) {
-    return (
-      <div className="itab-cover-error">
-        Failed to load image{error ? `: ${error}` : ""}
-      </div>
-    );
+    return <div className="itab-cover-error">Failed to load image{error ? `: ${error}` : ""}</div>;
   }
 
   return (
@@ -189,7 +181,7 @@ function CoverImagePreview({ imageId, onImageClick }) {
         src={url}
         alt="Cover image"
         onClick={onImageClick ? () => onImageClick(imageId, "Cover Image") : undefined}
-        className={`itab-cover-img ${onImageClick ? "itab-cover-img--clickable" : ""}`}
+        className={`itab-cover-img ${onImageClick ? "itab-cover-img-clickable" : ""}`}
       />
     </div>
   );
@@ -314,32 +306,28 @@ export default function ImagesTab({
                 Generate a montage-style cover image for this chronicle.
               </div>
               {!item.coverImage && (
-                <div className="itab-cover-status itab-cover-status--default">
-                  Not run yet
-                </div>
+                <div className="itab-cover-status itab-cover-status-default">Not run yet</div>
               )}
               {item.coverImage && item.coverImage.status === "pending" && (
-                <div className="itab-cover-status itab-cover-status--pending">
+                <div className="itab-cover-status itab-cover-status-pending">
                   Scene ready - click Generate Image to create
                 </div>
               )}
               {item.coverImage && item.coverImage.status === "generating" && (
-                <div className="itab-cover-status itab-cover-status--generating">
+                <div className="itab-cover-status itab-cover-status-generating">
                   Generating image...
                 </div>
               )}
               {item.coverImage && item.coverImage.status === "complete" && (
-                <div className="itab-cover-status itab-cover-status--complete">Complete</div>
+                <div className="itab-cover-status itab-cover-status-complete">Complete</div>
               )}
               {item.coverImage && item.coverImage.status === "failed" && (
-                <div className="itab-cover-status itab-cover-status--failed">
+                <div className="itab-cover-status itab-cover-status-failed">
                   Failed{item.coverImage.error ? `: ${item.coverImage.error}` : ""}
                 </div>
               )}
               {item.coverImage?.sceneDescription && (
-                <div className="itab-scene-desc">
-                  {item.coverImage.sceneDescription}
-                </div>
+                <div className="itab-scene-desc">{item.coverImage.sceneDescription}</div>
               )}
               <CoverImagePreview
                 imageId={item.coverImage?.generatedImageId}
@@ -352,7 +340,7 @@ export default function ImagesTab({
                   <button
                     onClick={onGenerateCoverImageScene}
                     disabled={isGenerating}
-                    className={`itab-cover-btn ${isGenerating ? "itab-cover-btn--disabled" : "itab-cover-btn--enabled"}`}
+                    className={`itab-cover-btn ${isGenerating ? "itab-cover-btn-disabled" : "itab-cover-btn-enabled"}`}
                   >
                     {item.coverImage ? "Regen Scene" : "Gen Scene"}
                   </button>
@@ -365,7 +353,7 @@ export default function ImagesTab({
                     <button
                       onClick={onGenerateCoverImage}
                       disabled={isGenerating}
-                      className={`itab-cover-btn ${isGenerating ? "itab-cover-btn--disabled" : "itab-cover-btn--enabled"}`}
+                      className={`itab-cover-btn ${isGenerating ? "itab-cover-btn-disabled" : "itab-cover-btn-enabled"}`}
                     >
                       {item.coverImage.status === "complete" ? "Regen Image" : "Gen Image"}
                     </button>
@@ -373,7 +361,7 @@ export default function ImagesTab({
                 {onSelectExistingCoverImage && item.coverImage && !isGenerating && (
                   <button
                     onClick={() => setShowCoverImagePicker(true)}
-                    className="itab-cover-btn itab-cover-btn--enabled"
+                    className="itab-cover-btn itab-cover-btn-enabled"
                   >
                     Select Existing
                   </button>
@@ -431,9 +419,7 @@ export default function ImagesTab({
         <div>
           <div className="itab-anchors-heading">
             Image Anchors
-            <span className="itab-anchors-count">
-              ({item.imageRefs.refs?.length || 0} placed)
-            </span>
+            <span className="itab-anchors-count">({item.imageRefs.refs?.length || 0} placed)</span>
           </div>
           <ChronicleImagePanel
             imageRefs={item.imageRefs}

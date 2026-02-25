@@ -56,7 +56,12 @@ function buildCastData(chronicle, castMap) {
   return { castSummaries, cast };
 }
 
-async function resolveFactCoverageGuidance(chronicle, worldContext, simulationRunId, corpusStrengthCacheRef) {
+async function resolveFactCoverageGuidance(
+  chronicle,
+  worldContext,
+  simulationRunId,
+  corpusStrengthCacheRef
+) {
   if (!chronicle.factCoverageReport?.entries?.length) return undefined;
 
   if (corpusStrengthCacheRef.current.runId !== simulationRunId) {
@@ -79,7 +84,13 @@ async function resolveFactCoverageGuidance(chronicle, worldContext, simulationRu
   );
 }
 
-function buildChronicleContextJson(chronicle, castSummaries, cast, worldContext, factCoverageGuidance) {
+function buildChronicleContextJson(
+  chronicle,
+  castSummaries,
+  cast,
+  worldContext,
+  factCoverageGuidance
+) {
   return JSON.stringify({
     chronicleId: chronicle.chronicleId,
     title: chronicle.title || "Untitled",
@@ -155,18 +166,39 @@ function getCastEntityIds(chronicle) {
   return (chronicle.roleAssignments || []).map((ra) => ra.entityId).filter(Boolean);
 }
 
-function buildChronicleReviewPayload(chronicle, chronicleId, tone, projectId, simulationRunId, contextJson, previousNotesJson, historianConfig) {
+function buildChronicleReviewPayload(
+  chronicle,
+  chronicleId,
+  tone,
+  projectId,
+  simulationRunId,
+  contextJson,
+  previousNotesJson,
+  historianConfig
+) {
   return {
-    projectId, simulationRunId, targetType: "chronicle", targetId: chronicleId,
-    targetName: chronicle.title || "Untitled Chronicle", sourceText: chronicle.finalContent,
-    contextJson, previousNotesJson, historianConfig,
+    projectId,
+    simulationRunId,
+    targetType: "chronicle",
+    targetId: chronicleId,
+    targetName: chronicle.title || "Untitled Chronicle",
+    sourceText: chronicle.finalContent,
+    contextJson,
+    previousNotesJson,
+    historianConfig,
     tone: tone || chronicle.assignedTone || "weary",
   };
 }
 
 async function runChronicleHistorianReview({
-  projectId, simulationRunId, chronicleId, tone, worldContext,
-  historianConfig, corpusStrengthCacheRef, startHistorianReview,
+  projectId,
+  simulationRunId,
+  chronicleId,
+  tone,
+  worldContext,
+  historianConfig,
+  corpusStrengthCacheRef,
+  startHistorianReview,
 }) {
   if (!validateChronicleForReview(projectId, simulationRunId, chronicleId, historianConfig)) return;
   const chronicle = await getChronicle(chronicleId);
@@ -177,17 +209,32 @@ async function runChronicleHistorianReview({
   const castMap = new Map(castFull.map((e) => [e.id, e]));
   const { castSummaries, cast } = buildCastData(chronicle, castMap);
   const factCoverageGuidance = await resolveFactCoverageGuidance(
-    chronicle, worldContext, simulationRunId, corpusStrengthCacheRef
+    chronicle,
+    worldContext,
+    simulationRunId,
+    corpusStrengthCacheRef
   );
   const contextJson = buildChronicleContextJson(
-    chronicle, castSummaries, cast, worldContext, factCoverageGuidance
+    chronicle,
+    castSummaries,
+    cast,
+    worldContext,
+    factCoverageGuidance
   );
   const previousNotes = await collectPreviousNotes({ relatedEntityIds: castEntityIds });
 
-  startHistorianReview(buildChronicleReviewPayload(
-    chronicle, chronicleId, tone, projectId, simulationRunId,
-    contextJson, JSON.stringify(previousNotes), historianConfig,
-  ));
+  startHistorianReview(
+    buildChronicleReviewPayload(
+      chronicle,
+      chronicleId,
+      tone,
+      projectId,
+      simulationRunId,
+      contextJson,
+      JSON.stringify(previousNotes),
+      historianConfig
+    )
+  );
 }
 
 async function runAcceptHistorianEdition(applyAcceptedPatches, reloadEntities) {
@@ -248,7 +295,12 @@ async function runUpdateHistorianNote(targetType, targetId, noteId, updates, rel
 
 // --- Bulk historian helper hook ---
 
-function useBulkHistorianSetup({ applyReviewNotesForEntity, applyEditionPatchesForEntity, reloadEntities, entityNavMap }) {
+function useBulkHistorianSetup({
+  applyReviewNotesForEntity,
+  applyEditionPatchesForEntity,
+  reloadEntities,
+  entityNavMap,
+}) {
   const bulkHistorianDeps = useMemo(
     () => ({
       buildReviewContext: buildHistorianReviewContext,
@@ -262,8 +314,11 @@ function useBulkHistorianSetup({ applyReviewNotesForEntity, applyEditionPatchesF
   );
 
   const {
-    progress: bulkHistorianProgress, isActive: isBulkHistorianActive,
-    prepareBulkHistorian, confirmBulkHistorian, cancelBulkHistorian,
+    progress: bulkHistorianProgress,
+    isActive: isBulkHistorianActive,
+    prepareBulkHistorian,
+    confirmBulkHistorian,
+    cancelBulkHistorian,
     setTone: setBulkHistorianTone,
   } = useBulkHistorian(bulkHistorianDeps);
 
@@ -316,27 +371,45 @@ function useBulkHistorianSetup({ applyReviewNotesForEntity, applyEditionPatchesF
   }, [showBulkHistorianModal, bulkHistorianProgress.status]);
 
   return {
-    bulkHistorianProgress, isBulkHistorianActive, showBulkHistorianModal, editionMaxTokens,
-    setBulkHistorianTone, handleStartBulkHistorianReview, handleStartBulkHistorianEdition,
-    handleStartBulkHistorianClear, handleConfirmBulkHistorian: confirmBulkHistorian,
-    handleCancelBulkHistorian, handleCloseBulkHistorian,
+    bulkHistorianProgress,
+    isBulkHistorianActive,
+    showBulkHistorianModal,
+    editionMaxTokens,
+    setBulkHistorianTone,
+    handleStartBulkHistorianReview,
+    handleStartBulkHistorianEdition,
+    handleStartBulkHistorianClear,
+    handleConfirmBulkHistorian: confirmBulkHistorian,
+    handleCancelBulkHistorian,
+    handleCloseBulkHistorian,
   };
 }
 
 // --- Main hook ---
 
 export function useHistorianCallbacks({
-  projectId, simulationRunId, worldContext, historianConfig, reloadEntities, entityNavMap,
+  projectId,
+  simulationRunId,
+  worldContext,
+  historianConfig,
+  reloadEntities,
+  entityNavMap,
 }) {
   const {
-    run: historianEditionRun, isActive: isHistorianEditionActive,
-    startHistorianEdition, togglePatchDecision: toggleHistorianEditionPatchDecision,
-    applyAccepted: applyAcceptedHistorianEditionPatches, cancelHistorianEdition,
+    run: historianEditionRun,
+    isActive: isHistorianEditionActive,
+    startHistorianEdition,
+    togglePatchDecision: toggleHistorianEditionPatchDecision,
+    applyAccepted: applyAcceptedHistorianEditionPatches,
+    cancelHistorianEdition,
   } = useHistorianEdition();
   const {
-    run: historianRun, isActive: isHistorianActive,
-    startReview: startHistorianReview, toggleNoteDecision: toggleHistorianNoteDecision,
-    applyAccepted: applyAcceptedHistorianNotes, cancelReview: cancelHistorianReview,
+    run: historianRun,
+    isActive: isHistorianActive,
+    startReview: startHistorianReview,
+    toggleNoteDecision: toggleHistorianNoteDecision,
+    applyAccepted: applyAcceptedHistorianNotes,
+    cancelReview: cancelHistorianReview,
   } = useHistorianReview();
 
   registerHistorianStarters({ startHistorianEdition, startHistorianReview });
@@ -351,19 +424,38 @@ export function useHistorianCallbacks({
 
   const corpusStrengthCacheRef = useRef({ runId: null, strength: null });
   const handleChronicleHistorianReview = useCallback(
-    (chronicleId, tone) => runChronicleHistorianReview({
-      projectId, simulationRunId, chronicleId, tone, worldContext,
-      historianConfig, corpusStrengthCacheRef, startHistorianReview,
-    }),
+    (chronicleId, tone) =>
+      runChronicleHistorianReview({
+        projectId,
+        simulationRunId,
+        chronicleId,
+        tone,
+        worldContext,
+        historianConfig,
+        corpusStrengthCacheRef,
+        startHistorianReview,
+      }),
     [projectId, simulationRunId, worldContext, historianConfig, startHistorianReview]
   );
 
   const {
-    bulkHistorianProgress, isBulkHistorianActive, showBulkHistorianModal, editionMaxTokens,
-    setBulkHistorianTone, handleStartBulkHistorianReview, handleStartBulkHistorianEdition,
-    handleStartBulkHistorianClear, handleConfirmBulkHistorian, handleCancelBulkHistorian,
+    bulkHistorianProgress,
+    isBulkHistorianActive,
+    showBulkHistorianModal,
+    editionMaxTokens,
+    setBulkHistorianTone,
+    handleStartBulkHistorianReview,
+    handleStartBulkHistorianEdition,
+    handleStartBulkHistorianClear,
+    handleConfirmBulkHistorian,
+    handleCancelBulkHistorian,
     handleCloseBulkHistorian,
-  } = useBulkHistorianSetup({ applyReviewNotesForEntity, applyEditionPatchesForEntity, reloadEntities, entityNavMap });
+  } = useBulkHistorianSetup({
+    applyReviewNotesForEntity,
+    applyEditionPatchesForEntity,
+    reloadEntities,
+    entityNavMap,
+  });
 
   const handleAcceptHistorianNotes = useCallback(
     () => runAcceptHistorianNotes(historianRun, applyAcceptedHistorianNotes, reloadEntities),
@@ -380,14 +472,31 @@ export function useHistorianCallbacks({
   );
 
   return {
-    historianEditionRun, isHistorianEditionActive, startHistorianEdition,
-    toggleHistorianEditionPatchDecision, handleAcceptHistorianEdition, cancelHistorianEdition,
-    historianRun, isHistorianActive, startHistorianReview, toggleHistorianNoteDecision,
-    cancelHistorianReview, handleAcceptHistorianNotes, handleUpdateHistorianNote,
-    handleEditHistorianNoteText, handleChronicleHistorianReview,
-    bulkHistorianProgress, isBulkHistorianActive, showBulkHistorianModal, editionMaxTokens,
-    setBulkHistorianTone, handleStartBulkHistorianReview, handleStartBulkHistorianEdition,
-    handleStartBulkHistorianClear, handleConfirmBulkHistorian, handleCancelBulkHistorian,
+    historianEditionRun,
+    isHistorianEditionActive,
+    startHistorianEdition,
+    toggleHistorianEditionPatchDecision,
+    handleAcceptHistorianEdition,
+    cancelHistorianEdition,
+    historianRun,
+    isHistorianActive,
+    startHistorianReview,
+    toggleHistorianNoteDecision,
+    cancelHistorianReview,
+    handleAcceptHistorianNotes,
+    handleUpdateHistorianNote,
+    handleEditHistorianNoteText,
+    handleChronicleHistorianReview,
+    bulkHistorianProgress,
+    isBulkHistorianActive,
+    showBulkHistorianModal,
+    editionMaxTokens,
+    setBulkHistorianTone,
+    handleStartBulkHistorianReview,
+    handleStartBulkHistorianEdition,
+    handleStartBulkHistorianClear,
+    handleConfirmBulkHistorian,
+    handleCancelBulkHistorian,
     handleCloseBulkHistorian,
   };
 }

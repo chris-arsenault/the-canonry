@@ -12,7 +12,7 @@
   margin-bottom: var(--spacing-md);
 }
 
-.sectionTitle {
+.section-title {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   font-family: var(--font-family-ui);
@@ -28,23 +28,23 @@
   margin-bottom: var(--spacing-xs);
 }
 
-.fieldLabel {
+.field-label {
   font-family: var(--font-family-ui);
   color: var(--color-text-muted);
   min-width: 80px;
 }
 
-.fieldValue {
+.field-value {
   color: var(--color-text-primary);
 }
 
-.roleList {
+.role-list {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
 }
 
-.roleItem {
+.role-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -54,7 +54,7 @@
   font-size: var(--font-size-xs);
 }
 
-.roleBadge {
+.role-badge {
   padding: 2px var(--spacing-xs);
   border-radius: 3px;
   font-size: 10px;
@@ -64,35 +64,35 @@
   letter-spacing: 0.05em;
 }
 
-.primaryBadge {
-  composes: roleBadge;
+.primary-badge {
+  composes: rolebadge;
   background: var(--color-accent);
   color: var(--color-bg-primary);
 }
 
-.supportingBadge {
-  composes: roleBadge;
+.supporting-badge {
+  composes: rolebadge;
   background: var(--color-bg-secondary);
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
 }
 
-.entityName {
+.entity-name {
   font-weight: var(--font-weight-medium);
 }
 
-.entityKind {
+.entity-kind {
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
 }
 
-.idList {
+.id-list {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-xs);
 }
 
-.idTag {
+.id-tag {
   padding: 2px var(--spacing-sm);
   background: var(--color-bg-tertiary);
   border-radius: 3px;
@@ -100,23 +100,23 @@
   font-family: monospace;
 }
 
-.emptyState {
+.empty-state {
   color: var(--color-text-muted);
   font-style: italic;
 }
 
 /* Modal styles */
-.modalOverlay {
+.modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 8, 5, 0.7);
+  background: rgb(10 8 5 / 70%);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: var(--z-modal);
 }
 
-.modalContent {
+.modal-content {
   background: var(--color-bg-primary);
   border-radius: var(--radius-xl);
   max-width: 600px;
@@ -129,7 +129,7 @@
   border: 1px solid var(--color-border);
 }
 
-.modalHeader {
+.modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -137,14 +137,14 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.modalTitle {
+.modal-title {
   margin: 0;
   font-size: var(--font-size-md);
   font-family: var(--font-family-display);
   color: var(--color-text-primary);
 }
 
-.modalClose {
+.modal-close {
   background: none;
   border: none;
   font-size: 20px;
@@ -153,23 +153,23 @@
   padding: var(--spacing-xs) var(--spacing-sm);
 }
 
-.modalClose:hover {
+.modal-close:hover {
   color: var(--color-text-primary);
 }
 
-.modalBody {
+.modal-body {
   padding: var(--spacing-lg);
   overflow-y: auto;
 }
 
-.modalFooter {
+.modal-footer {
   padding: var(--spacing-sm) var(--spacing-lg);
   border-top: 1px solid var(--color-border);
   display: flex;
   justify-content: flex-end;
 }
 
-.closeButton {
+.close-button {
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
@@ -180,11 +180,11 @@
   transition: all var(--transition-fast);
 }
 
-.closeButton:hover {
+.close-button:hover {
   border-color: var(--color-accent);
 }
 
-.fieldLabelSpaced {
-  composes: fieldLabel;
+.field-label-spaced {
+  composes: fieldlabel;
   margin-bottom: var(--spacing-xs);
 }

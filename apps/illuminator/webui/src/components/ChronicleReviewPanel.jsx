@@ -9,7 +9,8 @@
  * ChronicleWorkspace needs. When adding props, update all three files.
  */
 
-import { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
+import PropTypes from "prop-types";
 import { diffWords } from "diff";
 import CohesionReportViewer from "./CohesionReportViewer";
 import ImageModal from "./ImageModal";
@@ -39,12 +40,10 @@ function PerspectiveSynthesisViewer({ synthesis }) {
   return (
     <div className="crp-synth">
       <div
-        className={`crp-synth-header ${isExpanded ? "crp-synth-header--expanded" : ""}`}
+        className={`crp-synth-header ${isExpanded ? "crp-synth-header-expanded" : ""}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <span className="crp-synth-toggle">
-          {isExpanded ? "\u25BC" : "\u25B6"}
-        </span>
+        <span className="crp-synth-toggle">{isExpanded ? "\u25BC" : "\u25B6"}</span>
         <span className="crp-synth-title">Perspective Synthesis</span>
         <span className="crp-synth-meta">
           {synthesis.facets?.length || 0} facets &bull; {synthesis.entityDirectives?.length || 0}{" "}
@@ -59,13 +58,13 @@ function PerspectiveSynthesisViewer({ synthesis }) {
             <div className="crp-synth-tabs">
               <button
                 onClick={() => setActiveTab("output")}
-                className={`crp-synth-tab ${activeTab === "output" ? "crp-synth-tab--active" : "crp-synth-tab--inactive"}`}
+                className={`crp-synth-tab ${activeTab === "output" ? "crp-synth-tab-active" : "crp-synth-tab-inactive"}`}
               >
                 LLM Output
               </button>
               <button
                 onClick={() => setActiveTab("input")}
-                className={`crp-synth-tab ${activeTab === "input" ? "crp-synth-tab--active" : "crp-synth-tab--inactive"}`}
+                className={`crp-synth-tab ${activeTab === "input" ? "crp-synth-tab-active" : "crp-synth-tab-inactive"}`}
               >
                 LLM Input
               </button>
@@ -75,34 +74,22 @@ function PerspectiveSynthesisViewer({ synthesis }) {
             <>
               {synthesis.constellationSummary && (
                 <div className="crp-synth-section">
-                  <div className="crp-synth-section-label">
-                    CONSTELLATION SUMMARY
-                  </div>
-                  <div className="crp-synth-section-text">
-                    {synthesis.constellationSummary}
-                  </div>
+                  <div className="crp-synth-section-label">CONSTELLATION SUMMARY</div>
+                  <div className="crp-synth-section-text">{synthesis.constellationSummary}</div>
                 </div>
               )}
               {synthesis.brief && (
                 <div className="crp-synth-section">
-                  <div className="crp-synth-section-label">
-                    PERSPECTIVE BRIEF
-                  </div>
-                  <div className="crp-synth-block">
-                    {synthesis.brief}
-                  </div>
+                  <div className="crp-synth-section-label">PERSPECTIVE BRIEF</div>
+                  <div className="crp-synth-block">{synthesis.brief}</div>
                 </div>
               )}
             </>
           )}
           {activeTab === "input" && synthesis.coreTone && (
             <div className="crp-synth-section">
-              <div className="crp-synth-section-label">
-                CORE TONE
-              </div>
-              <div className="crp-synth-block">
-                {synthesis.coreTone}
-              </div>
+              <div className="crp-synth-section-label">CORE TONE</div>
+              <div className="crp-synth-block">{synthesis.coreTone}</div>
             </div>
           )}
           <div className="crp-synth-footer">
@@ -151,10 +138,7 @@ function AssembledContentViewer({ content, wordCount, onCopy, compareContent, co
             </span>
           )}
         </span>
-        <button
-          onClick={onCopy}
-          className="crp-acv-copy-btn"
-        >
+        <button onClick={onCopy} className="crp-acv-copy-btn">
           Copy
         </button>
       </div>
@@ -163,19 +147,13 @@ function AssembledContentViewer({ content, wordCount, onCopy, compareContent, co
           ? diffParts.map((part, i) => {
               if (part.added)
                 return (
-                  <span
-                    key={i}
-                    className="crp-acv-diff-part--added"
-                  >
+                  <span key={i} className="crp-acv-diff-part-added">
                     {part.value}
                   </span>
                 );
               if (part.removed)
                 return (
-                  <span
-                    key={i}
-                    className="crp-acv-diff-part--removed"
-                  >
+                  <span key={i} className="crp-acv-diff-part-removed">
                     {part.value}
                   </span>
                 );

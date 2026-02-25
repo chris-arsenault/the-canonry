@@ -5,7 +5,7 @@
  * Rendered inside EntityBrowser, replacing the entity list when an entity is selected.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import type {
   NetworkDebugInfo,
   DescriptionChainDebug,
@@ -93,12 +93,8 @@ function MetadataRow({ label, value }: { label: string; value: string | undefine
   if (!value) return null;
   return (
     <div className="edv-meta-row">
-      <div className="edv-meta-row__label">
-        {label}
-      </div>
-      <div className="edv-meta-row__value">
-        {value}
-      </div>
+      <div className="edv-meta-row-label">{label}</div>
+      <div className="edv-meta-row-value">{value}</div>
     </div>
   );
 }
@@ -117,23 +113,14 @@ function ExpandableSection({
 
   return (
     <div className="edv-expandable">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="edv-expandable__toggle"
-      >
-        <span className={`edv-expandable__arrow ${expanded ? "edv-expandable__arrow--open" : ""}`}>
+      <button onClick={() => setExpanded(!expanded)} className="edv-expandable-toggle">
+        <span className={`edv-expandable-arrow ${expanded ? "edv-expandable-arrow-open" : ""}`}>
           ▶
         </span>
-        <span className="edv-expandable__title">{title}</span>
-        {charCount !== undefined && (
-          <span className="edv-expandable__chars">{charCount} chars</span>
-        )}
+        <span className="edv-expandable-title">{title}</span>
+        {charCount !== undefined && <span className="edv-expandable-chars">{charCount} chars</span>}
       </button>
-      {expanded && (
-        <div className="edv-expandable__content">
-          {content}
-        </div>
-      )}
+      {expanded && <div className="edv-expandable-content">{content}</div>}
     </div>
   );
 }
@@ -146,12 +133,10 @@ function VisualTraitsList({ traits }: { traits: string[] }) {
   if (!traits || traits.length === 0) return null;
   return (
     <div className="edv-traits">
-      <div className="edv-traits__label">
-        Visual Traits
-      </div>
-      <div className="edv-traits__list">
+      <div className="edv-traits-label">Visual Traits</div>
+      <div className="edv-traits-list">
         {traits.map((trait, i) => (
-          <span key={i} className="edv-traits__tag">
+          <span key={i} className="edv-traits-tag">
             {trait}
           </span>
         ))}
@@ -212,21 +197,18 @@ function AliasesList({
 
   return (
     <div className="edv-aliases">
-      <div className="edv-aliases__label">
+      <div className="edv-aliases-label">
         Aliases
         {editable && !adding && (
-          <button
-            onClick={() => setAdding(true)}
-            className="edv-aliases__add-btn"
-          >
+          <button onClick={() => setAdding(true)} className="edv-aliases-add-btn">
             + Add
           </button>
         )}
       </div>
-      <div className="edv-aliases__list">
+      <div className="edv-aliases-list">
         {aliases.map((alias, i) =>
           editingIndex === i ? (
-            <span key={i} className="edv-aliases__edit-wrap">
+            <span key={i} className="edv-aliases-edit-wrap">
               <input
                 autoFocus
                 value={editValue}
@@ -239,7 +221,7 @@ function AliasesList({
                   }
                 }}
                 onBlur={handleSaveEdit}
-                className="edv-aliases__edit-input"
+                className="edv-aliases-edit-input"
                 // eslint-disable-next-line local/no-inline-styles
                 style={{ width: `${Math.max(editValue.length, 4) * 7.5 + 20}px` }}
               />
@@ -247,7 +229,7 @@ function AliasesList({
           ) : (
             <span
               key={i}
-              className={`edv-aliases__tag ${editable ? "edv-aliases__tag--editable" : ""}`}
+              className={`edv-aliases-tag ${editable ? "edv-aliases-tag-editable" : ""}`}
               onClick={() => handleStartEdit(i)}
               title={editable ? "Click to edit" : undefined}
             >
@@ -258,7 +240,7 @@ function AliasesList({
                     e.stopPropagation();
                     handleRemove(i);
                   }}
-                  className="edv-aliases__remove"
+                  className="edv-aliases-remove"
                   title="Remove alias"
                 >
                   ×
@@ -268,7 +250,7 @@ function AliasesList({
           )
         )}
         {adding && (
-          <span className="edv-aliases__edit-wrap">
+          <span className="edv-aliases-edit-wrap">
             <input
               autoFocus
               value={addValue}
@@ -285,7 +267,7 @@ function AliasesList({
                 else setAdding(false);
               }}
               placeholder="New alias"
-              className="edv-aliases__edit-input"
+              className="edv-aliases-edit-input"
               // eslint-disable-next-line local/no-inline-styles
               style={{ width: `${Math.max(addValue.length, 8) * 7.5 + 20}px` }}
             />
@@ -293,9 +275,7 @@ function AliasesList({
         )}
       </div>
       {aliases.length === 0 && !adding && editable && (
-        <div className="edv-aliases__empty">
-          No aliases
-        </div>
+        <div className="edv-aliases-empty">No aliases</div>
       )}
     </div>
   );
@@ -408,37 +388,35 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
     <>
       <div className="edv">
         {/* Header bar */}
-        <div className="edv__header">
-          <button onClick={onBack} className="edv__back-btn">
+        <div className="edv-header">
+          <button onClick={onBack} className="edv-back-btn">
             ← Back
           </button>
-          <div className="edv__header-info">
-            <div className="edv__entity-name">
-              {entity.name}
-            </div>
-            <div className="edv__entity-meta">
+          <div className="edv-header-info">
+            <div className="edv-entity-name">{entity.name}</div>
+            <div className="edv-entity-meta">
               {entity.kind}/{entity.subtype} ·{" "}
               {prominenceLabelFromScale(entity.prominence, prominenceScale)}
               {entity.culture && ` · ${entity.culture}`}
             </div>
           </div>
-          <div className="edv__esc-hint">Esc to go back</div>
+          <div className="edv-esc-hint">Esc to go back</div>
         </div>
 
         {/* Two-column body */}
-        <div className="edv__body">
+        <div className="edv-body">
           {/* Main content */}
-          <div className="edv__main">
+          <div className="edv-main">
             {/* Summary */}
             {(entity.summary || handleUpdateSummary) && (
-              <div className="edv__section">
-                <div className="edv__section-label">
+              <div className="edv-section">
+                <div className="edv-section-label">
                   Summary
                   {handleUpdateSummary && !editingSummary && (
                     <button
                       onClick={startEditSummary}
                       title="Edit summary"
-                      className="edv__inline-btn"
+                      className="edv-inline-btn"
                     >
                       Edit
                     </button>
@@ -460,15 +438,11 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                       }
                     }}
                     onBlur={saveSummary}
-                    className="edv__summary-textarea"
+                    className="edv-summary-textarea"
                   />
                 ) : (
-                  <p className="edv__summary-text">
-                    {entity.summary || (
-                      <span className="edv__placeholder">
-                        No summary
-                      </span>
-                    )}
+                  <p className="edv-summary-text">
+                    {entity.summary || <span className="edv-placeholder">No summary</span>}
                   </p>
                 )}
               </div>
@@ -476,23 +450,21 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
 
             {/* Visual Thesis */}
             {textEnrichment?.visualThesis && (
-              <div className="edv__section">
-                <div className="edv__section-label edv__section-label--visual-thesis">
+              <div className="edv-section">
+                <div className="edv-section-label edv-section-label-visual-thesis">
                   Visual Thesis
                 </div>
-                <p className="edv__visual-thesis">
-                  {textEnrichment.visualThesis}
-                </p>
+                <p className="edv-visual-thesis">{textEnrichment.visualThesis}</p>
               </div>
             )}
 
             {/* Full Description */}
             {(entity.description || handleUpdateDescription) && (
-              <div className="edv__section">
-                <div className="edv__section-label edv__section-label--wrap">
+              <div className="edv-section">
+                <div className="edv-section-label edv-section-label-wrap">
                   Full Description
                   {historyLen > 0 && (
-                    <span className="edv__version-hint">
+                    <span className="edv-version-hint">
                       v{historyLen + 1} ({historyLen} previous)
                     </span>
                   )}
@@ -500,7 +472,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                     <button
                       onClick={() => handleUndoDescription(entity.id)}
                       title={`Revert to previous version (from ${lastEntry?.source || "unknown"}, ${lastEntry?.replacedAt ? new Date(lastEntry.replacedAt).toLocaleDateString() : "unknown"})`}
-                      className="edv__inline-btn"
+                      className="edv-inline-btn"
                     >
                       ↩ Undo
                     </button>
@@ -509,7 +481,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                     <button
                       onClick={startEditDescription}
                       title="Edit description"
-                      className="edv__inline-btn"
+                      className="edv-inline-btn"
                     >
                       Edit
                     </button>
@@ -517,21 +489,21 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                   <button
                     onClick={() => openRename(entity.id)}
                     title="Rename this entity with full propagation across all references"
-                    className="edv__inline-btn"
+                    className="edv-inline-btn"
                   >
                     Rename
                   </button>
                   <button
                     onClick={() => openPatchEvents(entity.id)}
                     title="Repair stale names in narrative event history for this entity"
-                    className="edv__inline-btn"
+                    className="edv-inline-btn"
                   >
                     Patch Events
                   </button>
                 </div>
                 {historianConfigured && (
                   <>
-                    <div className="edv__section-label">
+                    <div className="edv-section-label">
                       Historian
                       <HistorianToneSelector
                         onSelect={(tone: string) => handleHistorianEdition(entity.id, tone)}
@@ -569,7 +541,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                           <button
                             onClick={() => handleClearNotes(entity.id)}
                             title="Remove all annotations from this entity"
-                            className="edv__inline-btn--ghost"
+                            className="edv-inline-btn-ghost"
                           >
                             Clear Notes
                           </button>
@@ -606,49 +578,33 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                       }
                     }}
                     onBlur={saveDescription}
-                    className="edv__desc-textarea"
+                    className="edv-desc-textarea"
                   />
                 ) : (
                   <>
                     {entity.description ? (
-                      <div className="edv__description entity-description-md">
+                      <div className="edv-description entity-description-md">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
-                            h2: ({ children }) => (
-                              <h2 className="edv__md-h2">{children}</h2>
-                            ),
-                            h3: ({ children }) => (
-                              <h3 className="edv__md-h3">{children}</h3>
-                            ),
-                            p: ({ children }) => <p className="edv__md-p">{children}</p>,
-                            ul: ({ children }) => (
-                              <ul className="edv__md-ul">{children}</ul>
-                            ),
-                            ol: ({ children }) => (
-                              <ol className="edv__md-ol">{children}</ol>
-                            ),
-                            li: ({ children }) => (
-                              <li className="edv__md-li">{children}</li>
-                            ),
+                            h2: ({ children }) => <h2 className="edv-md-h2">{children}</h2>,
+                            h3: ({ children }) => <h3 className="edv-md-h3">{children}</h3>,
+                            p: ({ children }) => <p className="edv-md-p">{children}</p>,
+                            ul: ({ children }) => <ul className="edv-md-ul">{children}</ul>,
+                            ol: ({ children }) => <ol className="edv-md-ol">{children}</ol>,
+                            li: ({ children }) => <li className="edv-md-li">{children}</li>,
                             table: ({ children }) => (
-                              <table className="edv__md-table">{children}</table>
+                              <table className="edv-md-table">{children}</table>
                             ),
-                            th: ({ children }) => (
-                              <th className="edv__md-th">{children}</th>
-                            ),
-                            td: ({ children }) => (
-                              <td className="edv__md-td">{children}</td>
-                            ),
+                            th: ({ children }) => <th className="edv-md-th">{children}</th>,
+                            td: ({ children }) => <td className="edv-md-td">{children}</td>,
                           }}
                         >
                           {entity.description}
                         </ReactMarkdown>
                       </div>
                     ) : (
-                      <p className="edv__no-desc">
-                        No description
-                      </p>
+                      <p className="edv-no-desc">No description</p>
                     )}
                     {enrichment?.historianNotes && enrichment.historianNotes.length > 0 && (
                       <HistorianMarginNotes
@@ -678,7 +634,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
             {/* Chronicle Images */}
             {enrichment?.chronicleBackrefs && enrichment.chronicleBackrefs.length > 0 && (
               <>
-                <div className="edv__separator" />
+                <div className="edv-separator" />
                 <BackrefImageEditor
                   entity={entity}
                   entities={entities}
@@ -690,17 +646,15 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
 
             {/* No enrichment fallback */}
             {!(entity.summary || entity.description) && (
-              <div className="edv__no-enrichment">
+              <div className="edv-no-enrichment">
                 No description enrichment available. Queue a description task for this entity.
               </div>
             )}
           </div>
 
           {/* Sidebar */}
-          <div className="edv__sidebar">
-            <h4 className="edv__sidebar-title">
-              Entity Metadata
-            </h4>
+          <div className="edv-sidebar">
+            <h4 className="edv-sidebar-title">Entity Metadata</h4>
 
             {/* Basic info */}
             <MetadataRow label="Entity ID" value={entity.id} />
@@ -711,10 +665,8 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
             {/* Description generation info */}
             {textEnrichment && (
               <>
-                <div className="edv__sidebar-divider" />
-                <div className="edv__sidebar-section-label">
-                  Description Generation
-                </div>
+                <div className="edv-sidebar-divider" />
+                <div className="edv-sidebar-section-label">Description Generation</div>
                 <MetadataRow label="Model" value={textEnrichment.model} />
                 <MetadataRow label="Generated" value={formatDate(textEnrichment.generatedAt)} />
                 <MetadataRow
@@ -734,16 +686,14 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
             {/* Debug Info */}
             {(chainDebug || legacyDebug) && (
               <>
-                <div className="edv__sidebar-divider" />
-                <div className="edv__sidebar-section-label">
-                  Debug Info
-                </div>
+                <div className="edv-sidebar-divider" />
+                <div className="edv-sidebar-section-label">Debug Info</div>
 
                 {chainDebug && (
                   <>
                     {chainDebug.narrative && (
-                      <div className="edv__debug-step">
-                        <div className="edv__debug-step-label edv__debug-step-label--narrative">
+                      <div className="edv-debug-step">
+                        <div className="edv-debug-step-label edv-debug-step-label-narrative">
                           Step 1: Narrative
                         </div>
                         <ExpandableSection
@@ -759,8 +709,8 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                       </div>
                     )}
                     {chainDebug.thesis && (
-                      <div className="edv__debug-step">
-                        <div className="edv__debug-step-label edv__debug-step-label--thesis">
+                      <div className="edv-debug-step">
+                        <div className="edv-debug-step-label edv-debug-step-label-thesis">
                           Step 2: Visual Thesis
                         </div>
                         <ExpandableSection
@@ -776,8 +726,8 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                       </div>
                     )}
                     {chainDebug.traits && (
-                      <div className="edv__debug-step">
-                        <div className="edv__debug-step-label edv__debug-step-label--traits">
+                      <div className="edv-debug-step">
+                        <div className="edv-debug-step-label edv-debug-step-label-traits">
                           Step 3: Visual Traits
                         </div>
                         <ExpandableSection
@@ -813,7 +763,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
             )}
 
             {!chainDebug && !legacyDebug && textEnrichment && (
-              <div className="edv__no-debug">
+              <div className="edv-no-debug">
                 Debug info not available. This entity may have been enriched before debug
                 persistence was added.
               </div>

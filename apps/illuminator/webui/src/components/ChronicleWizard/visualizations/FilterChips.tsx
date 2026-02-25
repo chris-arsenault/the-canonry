@@ -1,3 +1,4 @@
+import React from "react";
 /**
  * FilterChips - Togglable filter chips for quick filtering
  *

@@ -6,51 +6,51 @@
  * SimulationTraceVisx from lore-weave.
  */
 
-import React, { useState, useMemo, lazy, Suspense } from 'react';
-import { colors } from '../theme';
+import React, { useState, useMemo, lazy, Suspense } from "react";
+import { colors } from "../theme";
 
 // Lazy load the trace visualization from lore-weave remote
-const SimulationTraceVisx = lazy(() => import('loreWeave/SimulationTraceVisx'));
+const SimulationTraceVisx = lazy(() => import("loreWeave/SimulationTraceVisx"));
 
 const styles = {
   button: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '6px 12px',
-    borderRadius: '6px',
-    borderWidth: '1px',
-    borderStyle: 'solid',
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "6px 12px",
+    borderRadius: "6px",
+    borderWidth: "1px",
+    borderStyle: "solid",
     borderColor: colors.border,
     backgroundColor: colors.bgSecondary,
     color: colors.textPrimary,
-    cursor: 'pointer',
-    fontSize: '13px',
+    cursor: "pointer",
+    fontSize: "13px",
     fontWeight: 500,
-    transition: 'all 0.15s ease',
+    transition: "all 0.15s ease",
   },
   buttonDisabled: {
     opacity: 0.5,
-    cursor: 'not-allowed',
+    cursor: "not-allowed",
   },
   buttonActive: {
-    borderColor: 'rgba(59, 130, 246, 0.4)',
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-    color: 'rgb(147, 197, 253)',
+    borderColor: "rgba(59, 130, 246, 0.4)",
+    backgroundColor: "rgba(59, 130, 246, 0.15)",
+    color: "rgb(147, 197, 253)",
   },
   loadingOverlay: {
-    position: 'fixed',
+    position: "fixed",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 10000,
     color: colors.textMuted,
-    fontSize: '14px',
+    fontSize: "14px",
   },
 };
 
@@ -63,12 +63,12 @@ export default function TracePopover({ simulationState }) {
   const templateCount = simulationState?.templateApplications?.length || 0;
   const actionCount = simulationState?.actionApplications?.length || 0;
   const eraTransitions = (simulationState?.systemActions || []).filter(
-    a => a.details?.eraTransition
+    (a) => a.details?.eraTransition
   ).length;
 
   // Button label
   const buttonLabel = useMemo(() => {
-    if (!hasData) return 'No trace';
+    if (!hasData) return "No trace";
     return `${tickCount} ticks`;
   }, [hasData, tickCount]);
 
@@ -81,11 +81,7 @@ export default function TracePopover({ simulationState }) {
   }, [hasData]);
 
   const loadingFallback = useMemo(
-    () => (
-      <div style={styles.loadingOverlay}>
-        Loading trace visualization...
-      </div>
-    ),
+    () => <div style={styles.loadingOverlay}>Loading trace visualization...</div>,
     []
   );
 
@@ -101,12 +97,13 @@ export default function TracePopover({ simulationState }) {
         style={buttonStyle}
         onClick={handleOpen}
         disabled={!hasData}
-        title={hasData
-          ? `View simulation trace: ${tickCount} ticks, ${templateCount} templates, ${actionCount} actions, ${eraTransitions} era transitions`
-          : 'Run a simulation to see trace data'
+        title={
+          hasData
+            ? `View simulation trace: ${tickCount} ticks, ${templateCount} templates, ${actionCount} actions, ${eraTransitions} era transitions`
+            : "Run a simulation to see trace data"
         }
       >
-        <span style={{ fontSize: '11px' }}>~</span>
+        <span style={{ fontSize: "11px" }}>~</span>
         <span>{buttonLabel}</span>
       </button>
 

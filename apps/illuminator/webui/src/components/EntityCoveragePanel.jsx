@@ -101,7 +101,7 @@ function ProminenceDots({ value }) {
     dots.push(
       <span
         key={i}
-        className={`ecp-prominence-dot ${i < n ? "ecp-prominence-dot--filled" : "ecp-prominence-dot--empty"}`}
+        className={`ecp-prominence-dot ${i < n ? "ecp-prominence-dot-filled" : "ecp-prominence-dot-empty"}`}
       />
     );
   }
@@ -118,10 +118,7 @@ function ProminenceDots({ value }) {
 function RatioIndicator({ ratio, expected }) {
   if (expected === 0) {
     return (
-      <span
-        className="ecp-ratio-muted"
-        title="No backrefs expected at this prominence"
-      >
+      <span className="ecp-ratio-muted" title="No backrefs expected at this prominence">
         —
       </span>
     );
@@ -131,7 +128,7 @@ function RatioIndicator({ ratio, expected }) {
     <span
       className="ecp-ratio-value"
       // eslint-disable-next-line local/no-inline-styles
-      style={{ '--ecp-ratio-color': color, color: 'var(--ecp-ratio-color)' }}
+      style={{ "--ecp-ratio-color": color, color: "var(--ecp-ratio-color)" }}
       title={`Ratio: ${ratio.toFixed(2)} (${expected} expected)`}
     >
       {ratio.toFixed(1)}x
@@ -142,10 +139,7 @@ function RatioIndicator({ ratio, expected }) {
 function SignificanceStars({ value }) {
   const stars = Math.max(1, Math.min(5, Math.round(value * 5)));
   return (
-    <span
-      title={`Significance: ${(value * 100).toFixed(0)}%`}
-      className="ecp-sig-stars"
-    >
+    <span title={`Significance: ${(value * 100).toFixed(0)}%`} className="ecp-sig-stars">
       {"★".repeat(stars)}
       {"☆".repeat(5 - stars)}
     </span>
@@ -168,17 +162,13 @@ function StatusDot({ active, label }) {
   return (
     <span
       title={label}
-      className={`ecp-status-dot ${active ? "ecp-status-dot--active" : "ecp-status-dot--inactive"}`}
+      className={`ecp-status-dot ${active ? "ecp-status-dot-active" : "ecp-status-dot-inactive"}`}
     />
   );
 }
 
 function SectionToolbar({ children }) {
-  return (
-    <div className="ecp-section-toolbar">
-      {children}
-    </div>
-  );
+  return <div className="ecp-section-toolbar">{children}</div>;
 }
 
 function FilterSelect({ value, onChange, options, label }) {
@@ -201,22 +191,12 @@ function FilterSelect({ value, onChange, options, label }) {
 function SectionHeader({ sectionId, expanded, onToggle, label, description, underutilCount }) {
   return (
     <div onClick={onToggle} className="ecp-section-header">
-      <span className="ecp-section-arrow">
-        {expanded ? "\u25BC" : "\u25B6"}
-      </span>
-      <span className="ecp-section-label">
-        {label}
-      </span>
+      <span className="ecp-section-arrow">{expanded ? "\u25BC" : "\u25B6"}</span>
+      <span className="ecp-section-label">{label}</span>
       {underutilCount > 0 && (
-        <span className="ecp-section-underutil">
-          {underutilCount} underutilized
-        </span>
+        <span className="ecp-section-underutil">{underutilCount} underutilized</span>
       )}
-      {!expanded && description && (
-        <span className="ecp-section-desc">
-          {description}
-        </span>
-      )}
+      {!expanded && description && <span className="ecp-section-desc">{description}</span>}
     </div>
   );
 }
@@ -621,9 +601,7 @@ function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expa
           options={SUGGESTION_MIN_SIG_OPTIONS}
           label="Min significance"
         />
-        <span className="ecp-auto-count">
-          {actionGroups.length} action types
-        </span>
+        <span className="ecp-auto-count">{actionGroups.length} action types</span>
       </SectionToolbar>
       <TableWrap>
         <thead>
@@ -674,9 +652,7 @@ function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expa
                   </td>
                   <td className="ec-name">{g.action}</td>
                   <td className="ec-right">{g.total}</td>
-                  <td className="ec-right ecp-color-green">
-                    {g.covered}
-                  </td>
+                  <td className="ec-right ecp-color-green">{g.covered}</td>
                   <td className="ec-right">
                     {g.uncovered > 0 ? (
                       <span className="ecp-font-bold ecp-color-red">{g.uncovered}</span>
@@ -752,10 +728,7 @@ function SuggestionActionDetail({ group, entityMap, eraNameMap, entityUsage }) {
         <div className="ecp-detail-heading">
           {group.uncovered} uncovered event{group.uncovered !== 1 ? "s" : ""}
           {group.covered > 0 && (
-            <span className="ecp-detail-covered-note">
-              {" "}
-              ({group.covered} already covered)
-            </span>
+            <span className="ecp-detail-covered-note"> ({group.covered} already covered)</span>
           )}
         </div>
         {uncoveredEvents.map((event) => {
@@ -817,9 +790,7 @@ function SuggestionActionDetail({ group, entityMap, eraNameMap, entityUsage }) {
                     {ent.chronicleAppearances === 0 ? (
                       <span className="ecp-entity-new">new</span>
                     ) : (
-                      <span className="ecp-entity-appearances">
-                        ☰{ent.chronicleAppearances}
-                      </span>
+                      <span className="ecp-entity-appearances">☰{ent.chronicleAppearances}</span>
                     )}
                   </span>
                 ))}
@@ -922,9 +893,7 @@ function BackrefsSection({ entities, expanded }) {
           />
           Has description
         </label>
-        <span className="ecp-auto-count">
-          {rows.length} entities
-        </span>
+        <span className="ecp-auto-count">{rows.length} entities</span>
       </SectionToolbar>
       <TableWrap>
         <thead>
@@ -1083,9 +1052,7 @@ function HistorySection({ entities, expanded }) {
           />
           Backrefs but no history
         </label>
-        <span className="ecp-auto-count">
-          {rows.length} entities
-        </span>
+        <span className="ecp-auto-count">{rows.length} entities</span>
       </SectionToolbar>
       <TableWrap>
         <thead>
@@ -1263,9 +1230,7 @@ function CultureSection({ entities, cultureRoles, cultureEntities, entityUsage, 
           options={kindOptions}
           label="Entity kind"
         />
-        <span className="ecp-auto-count">
-          {rows.length} cultures
-        </span>
+        <span className="ecp-auto-count">{rows.length} cultures</span>
       </SectionToolbar>
       <TableWrap>
         <thead>
@@ -1302,10 +1267,7 @@ function CultureSection({ entities, cultureRoles, cultureEntities, entityUsage, 
                 <span className="ecp-color-blue" title={`${r.primaryCount} primary roles`}>
                   ◆{r.primaryCount}
                 </span>{" "}
-                <span
-                  className="ecp-color-muted"
-                  title={`${r.supportingCount} supporting roles`}
-                >
+                <span className="ecp-color-muted" title={`${r.supportingCount} supporting roles`}>
                   ○{r.supportingCount}
                 </span>
               </td>
@@ -1705,9 +1667,7 @@ function EventsSection({ events, eventCoverage, expanded }) {
                     {r.key}
                   </td>
                   <td className="ec-right">
-                    <span className={r.count <= 2 ? "ecp-rare-count" : undefined}>
-                      {r.count}
-                    </span>
+                    <span className={r.count <= 2 ? "ecp-rare-count" : undefined}>{r.count}</span>
                   </td>
                   <td className="ec-right">{r.coveredCount}</td>
                   <td className="ec-right">
@@ -1929,9 +1889,7 @@ function PotentialSection({ entities, narrativeEvents, relationships, entityUsag
           />
           Zero appearances
         </label>
-        <span className="ecp-auto-count">
-          {rows.length} entities
-        </span>
+        <span className="ecp-auto-count">{rows.length} entities</span>
       </SectionToolbar>
       <TableWrap>
         <thead>
@@ -1980,10 +1938,7 @@ function PotentialSection({ entities, narrativeEvents, relationships, entityUsag
                   <span className="ecp-color-blue" title={`${r.usage.primary} as primary`}>
                     ◆{r.usage.primary}
                   </span>{" "}
-                  <span
-                    className="ecp-color-muted"
-                    title={`${r.usage.supporting} as supporting`}
-                  >
+                  <span className="ecp-color-muted" title={`${r.usage.supporting} as supporting`}>
                     ○{r.usage.supporting}
                   </span>
                   {r.neverPrimary && (
@@ -2099,9 +2054,7 @@ function ErasSection({
           />
           Uncovered only
         </label>
-        <span className="ecp-auto-count">
-          {rows.length} eras
-        </span>
+        <span className="ecp-auto-count">{rows.length} eras</span>
       </SectionToolbar>
       <TableWrap>
         <thead>
@@ -2141,18 +2094,12 @@ function ErasSection({
                   ◇{r.chronicleCount}
                 </span>
                 {r.completedCount > 0 && (
-                  <span
-                    className="ecp-era-completed"
-                    title={`${r.completedCount} completed`}
-                  >
+                  <span className="ecp-era-completed" title={`${r.completedCount} completed`}>
                     ✓{r.completedCount}
                   </span>
                 )}
                 {r.backportedCount > 0 && (
-                  <span
-                    className="ecp-era-completed"
-                    title={`${r.backportedCount} backported`}
-                  >
+                  <span className="ecp-era-completed" title={`${r.backportedCount} backported`}>
                     ⇄{r.backportedCount}
                   </span>
                 )}
@@ -2291,9 +2238,7 @@ function IntegrationSection({ entities, entityBackportedCount, expanded }) {
           options={GAP_FILTER_OPTIONS}
           label="Gap type"
         />
-        <span className="ecp-auto-count">
-          {rows.length} entities
-        </span>
+        <span className="ecp-auto-count">{rows.length} entities</span>
       </SectionToolbar>
       <TableWrap>
         <thead>
@@ -2354,7 +2299,11 @@ function IntegrationSection({ entities, entityBackportedCount, expanded }) {
               </td>
               <td
                 className={`ec-right ${
-                  r.gapScore >= 3 ? "ecp-color-red" : r.gapScore >= 2 ? "ecp-color-amber" : "ecp-color-muted"
+                  r.gapScore >= 3
+                    ? "ecp-color-red"
+                    : r.gapScore >= 2
+                      ? "ecp-color-amber"
+                      : "ecp-color-muted"
                 }`}
               >
                 {r.gapScore}/5
@@ -2442,9 +2391,7 @@ export default function EntityCoveragePanel({ simulationRunId }) {
         <div className="illuminator-card">
           <div className="ecp-pre-calc-inner">
             <div className="ecp-pre-calc-header">
-              <span className="ecp-pre-calc-title">
-                Entity Coverage Analysis
-              </span>
+              <span className="ecp-pre-calc-title">Entity Coverage Analysis</span>
             </div>
             <p className="ecp-pre-calc-desc">
               Analyzes coverage gaps across entities, chronicles, events, and relationships. Loads
@@ -2614,9 +2561,7 @@ export default function EntityCoveragePanel({ simulationRunId }) {
     <div className="ecp-wrapper">
       <div className="illuminator-card ecp-header-card">
         <div className="ecp-header-bar">
-          <span className="ecp-header-title">
-            Entity Coverage Analysis
-          </span>
+          <span className="ecp-header-title">Entity Coverage Analysis</span>
           <span className="ecp-header-stats">
             {analysis.nonEraEntities.length} entities, {analysis.activeChronicles.length}{" "}
             chronicles, {safeEvents.length} events

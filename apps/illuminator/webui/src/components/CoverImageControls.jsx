@@ -6,6 +6,7 @@
 
 import { useImageUrl } from "../hooks/useImageUrl";
 import "./CoverImageControls.css";
+import React from "react";
 
 export function CoverImagePreview({ imageId, onImageClick }) {
   const { url, loading, error } = useImageUrl(imageId);
@@ -17,9 +18,7 @@ export function CoverImagePreview({ imageId, onImageClick }) {
   }
 
   if (error || !url) {
-    return (
-      <div className="cic-error">Failed to load image{error ? `: ${error}` : ""}</div>
-    );
+    return <div className="cic-error">Failed to load image{error ? `: ${error}` : ""}</div>;
   }
 
   return (
@@ -28,7 +27,7 @@ export function CoverImagePreview({ imageId, onImageClick }) {
         src={url}
         alt="Cover image"
         onClick={onImageClick ? () => onImageClick(imageId, "Cover Image") : undefined}
-        className={`cic-preview-img${onImageClick ? " cic-preview-img--clickable" : ""}`}
+        className={`cic-preview-img${onImageClick ? " cic-preview-img-clickable" : ""}`}
       />
     </div>
   );
@@ -55,20 +54,20 @@ export function CoverImageControls({
         <div className="cic-description">
           Generate a montage-style cover image for this chronicle.
         </div>
-        {!item.coverImage && <div className="cic-status cic-status--empty">Not run yet</div>}
+        {!item.coverImage && <div className="cic-status cic-status-empty">Not run yet</div>}
         {item.coverImage && item.coverImage.status === "pending" && (
-          <div className="cic-status cic-status--pending">
+          <div className="cic-status cic-status-pending">
             Scene ready - click Generate Image to create
           </div>
         )}
         {item.coverImage && item.coverImage.status === "generating" && (
-          <div className="cic-status cic-status--generating">Generating image...</div>
+          <div className="cic-status cic-status-generating">Generating image...</div>
         )}
         {item.coverImage && item.coverImage.status === "complete" && (
-          <div className="cic-status cic-status--complete">Complete</div>
+          <div className="cic-status cic-status-complete">Complete</div>
         )}
         {item.coverImage && item.coverImage.status === "failed" && (
-          <div className="cic-status cic-status--failed">
+          <div className="cic-status cic-status-failed">
             Failed{item.coverImage.error ? `: ${item.coverImage.error}` : ""}
           </div>
         )}

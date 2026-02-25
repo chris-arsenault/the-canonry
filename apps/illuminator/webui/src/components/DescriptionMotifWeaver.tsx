@@ -11,7 +11,7 @@
  *      via applyRevisionPatches
  */
 
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useEntityNavList } from "../lib/db/entitySelectors";
 import { useEntityStore } from "../lib/db/entityStore";
 import { applyRevisionPatches } from "../lib/db/entityRepository";

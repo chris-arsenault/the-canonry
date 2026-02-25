@@ -3,7 +3,8 @@
  * Props originate in ChroniclePanel and pass through ChronicleReviewPanel.
  * When adding props, update all three files.
  */
-import { useMemo, useState, useCallback, useEffect } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
+import PropTypes from "prop-types";
 import ImageModal from "../ImageModal";
 import QuickCheckModal from "../QuickCheckModal";
 import WorkspaceHeader from "./WorkspaceHeader";
@@ -714,17 +715,12 @@ export default function ChronicleWorkspace({
                 if (hasPending) handleRejectTitle();
               }}
             >
-              <div
-                className="cw-title-dialog"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div className="cw-title-dialog" onClick={(e) => e.stopPropagation()}>
                 {!hasPending ? (
                   <>
                     <h3 className="cw-title-heading">Generating Title...</h3>
                     <div className="cw-generating-current">
-                      <div className="cw-generating-current-label">
-                        Current
-                      </div>
+                      <div className="cw-generating-current-label">Current</div>
                       <div className="cw-generating-current-value">{item.title}</div>
                     </div>
                     <div className="cw-generating-spinner-row">
@@ -737,17 +733,13 @@ export default function ChronicleWorkspace({
                     <h3 className="cw-title-heading">Choose Title</h3>
                     {item.pendingTitleFragments?.length > 0 && (
                       <div className="cw-fragments-box">
-                        <div className="cw-fragments-label">
-                          Extracted Fragments
-                        </div>
+                        <div className="cw-fragments-label">Extracted Fragments</div>
                         <div className="cw-fragments-list">
                           {item.pendingTitleFragments.map((f, i) => (
                             <span key={i}>
                               {f}
                               {i < item.pendingTitleFragments.length - 1 ? (
-                                <span className="cw-fragment-separator">
-                                  &middot;
-                                </span>
+                                <span className="cw-fragment-separator">&middot;</span>
                               ) : (
                                 ""
                               )}
@@ -761,9 +753,7 @@ export default function ChronicleWorkspace({
                         onClick={() => handleAcceptTitle(item.pendingTitle)}
                         className="cw-candidate-primary"
                       >
-                        <span className="cw-candidate-primary-icon">
-                          &#x2726;
-                        </span>
+                        <span className="cw-candidate-primary-icon">&#x2726;</span>
                         {item.pendingTitle}
                       </button>
                       {item.pendingTitleCandidates
@@ -774,17 +764,13 @@ export default function ChronicleWorkspace({
                             onClick={() => handleAcceptTitle(candidate)}
                             className="cw-candidate-alt"
                           >
-                            <span className="cw-candidate-alt-icon">
-                              &#x25C7;
-                            </span>
+                            <span className="cw-candidate-alt-icon">&#x25C7;</span>
                             {candidate}
                           </button>
                         ))}
                     </div>
                     <div className="cw-custom-title-section">
-                      <div className="cw-custom-title-label">
-                        Custom title
-                      </div>
+                      <div className="cw-custom-title-label">Custom title</div>
                       <div className="cw-custom-title-row">
                         <input
                           className="illuminator-input cw-custom-title-input"
@@ -804,17 +790,14 @@ export default function ChronicleWorkspace({
                             if (trimmed) handleAcceptTitle(trimmed);
                           }}
                           disabled={!customTitle.trim()}
-                          className={`cw-custom-title-use-btn ${customTitle.trim() ? "cw-custom-title-use-btn--active" : "cw-custom-title-use-btn--disabled"}`}
+                          className={`cw-custom-title-use-btn ${customTitle.trim() ? "cw-custom-title-use-btn-active" : "cw-custom-title-use-btn-disabled"}`}
                         >
                           Use
                         </button>
                       </div>
                     </div>
                     <div className="cw-title-footer">
-                      <button
-                        onClick={handleRejectTitle}
-                        className="cw-keep-current-btn"
-                      >
+                      <button onClick={handleRejectTitle} className="cw-keep-current-btn">
                         Keep Current
                       </button>
                     </div>

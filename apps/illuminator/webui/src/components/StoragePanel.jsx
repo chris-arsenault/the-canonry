@@ -5,7 +5,8 @@
  * Shows storage statistics and supports bulk operations.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import PropTypes from "prop-types";
 import {
   getAllImages,
   getStorageStats,
@@ -349,9 +350,7 @@ export default function StoragePanel({ projectId }) {
   if (loading) {
     return (
       <div className="illuminator-card">
-        <div className="storage-panel-loading">
-          Loading storage data...
-        </div>
+        <div className="storage-panel-loading">Loading storage data...</div>
       </div>
     );
   }
@@ -390,9 +389,7 @@ export default function StoragePanel({ projectId }) {
             <div className="storage-panel-stat-label">Total Size</div>
           </div>
           <div className="storage-panel-stat-card">
-            <div className="storage-panel-stat-value">
-              {Object.keys(stats.byProject).length}
-            </div>
+            <div className="storage-panel-stat-value">{Object.keys(stats.byProject).length}</div>
             <div className="storage-panel-stat-label">Projects</div>
           </div>
         </div>
@@ -400,15 +397,10 @@ export default function StoragePanel({ projectId }) {
         {/* Per-project breakdown */}
         {Object.keys(stats.byProject).length > 0 && (
           <div className="storage-panel-project-breakdown">
-            <div className="storage-panel-project-breakdown-title">
-              Storage by Project
-            </div>
+            <div className="storage-panel-project-breakdown-title">Storage by Project</div>
             <div className="storage-panel-project-list">
               {Object.entries(stats.byProject).map(([pid, data]) => (
-                <div
-                  key={pid}
-                  className="storage-panel-project-item"
-                >
+                <div key={pid} className="storage-panel-project-item">
                   <span className="storage-panel-project-name">{pid.slice(0, 8)}...</span>
                   <span className="storage-panel-project-stats">
                     {data.count} ({formatBytes(data.size)})
@@ -463,9 +455,7 @@ export default function StoragePanel({ projectId }) {
 
           {selectedIds.size > 0 && (
             <div className="storage-panel-selection-actions">
-              <span className="storage-panel-selected-count">
-                {selectedIds.size} selected
-              </span>
+              <span className="storage-panel-selected-count">{selectedIds.size} selected</span>
               <button
                 onClick={handleDownloadSelected}
                 className="illuminator-button illuminator-button-secondary storage-panel-compact-btn"
@@ -568,26 +558,19 @@ export default function StoragePanel({ projectId }) {
                       className="storage-panel-thumbnail-img"
                     />
                   ) : (
-                    <div className="storage-panel-thumbnail-placeholder">
-                      Loading...
-                    </div>
+                    <div className="storage-panel-thumbnail-placeholder">Loading...</div>
                   )}
                 </div>
 
                 {/* Info */}
                 <div className="storage-panel-card-info">
-                  <div
-                    className="storage-panel-card-name"
-                    title={img.entityName}
-                  >
+                  <div className="storage-panel-card-name" title={img.entityName}>
                     {img.entityName || "Unknown"}
                   </div>
                   <div className="storage-panel-card-meta">
                     {img.entityKind} &middot; {formatBytes(img.size || 0)}
                   </div>
-                  <div className="storage-panel-card-meta">
-                    {formatDate(img.generatedAt)}
-                  </div>
+                  <div className="storage-panel-card-meta">{formatDate(img.generatedAt)}</div>
 
                   {/* Actions */}
                   <div className="storage-panel-card-actions">
@@ -628,3 +611,7 @@ export default function StoragePanel({ projectId }) {
     </div>
   );
 }
+
+StoragePanel.propTypes = {
+  projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+};

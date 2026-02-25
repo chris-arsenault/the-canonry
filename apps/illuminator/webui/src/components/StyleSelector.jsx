@@ -11,7 +11,8 @@
  * - "None" - no style/composition constraint, let the prompt decide
  */
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import { DEFAULT_RANDOM_EXCLUSIONS } from "@canonry/world-schema";
 import "./StyleSelector.css";
 
@@ -188,9 +189,7 @@ export default function StyleSelector({
     <div className="stsel-grid">
       {/* Artistic Style */}
       <div>
-        <label className="stsel-label">
-          Artistic Style
-        </label>
+        <label className="stsel-label">Artistic Style</label>
         <select
           value={selectedArtisticStyleId || RANDOM_ID}
           onChange={(e) => onArtisticStyleChange(e.target.value || RANDOM_ID)}
@@ -205,9 +204,7 @@ export default function StyleSelector({
           ))}
         </select>
         {selectedArtistic && (
-          <div className="stsel-description">
-            {selectedArtistic.description}
-          </div>
+          <div className="stsel-description">{selectedArtistic.description}</div>
         )}
       </div>
 
@@ -234,17 +231,13 @@ export default function StyleSelector({
           ))}
         </select>
         {selectedComposition && (
-          <div className="stsel-description">
-            {selectedComposition.description}
-          </div>
+          <div className="stsel-description">{selectedComposition.description}</div>
         )}
       </div>
 
       {/* Color Palette */}
       <div>
-        <label className="stsel-label">
-          Color Palette
-        </label>
+        <label className="stsel-label">Color Palette</label>
         <select
           value={selectedColorPaletteId || RANDOM_ID}
           onChange={(e) => onColorPaletteChange(e.target.value || RANDOM_ID)}
@@ -259,9 +252,7 @@ export default function StyleSelector({
           ))}
         </select>
         {selectedColorPalette && (
-          <div className="stsel-description">
-            {selectedColorPalette.description}
-          </div>
+          <div className="stsel-description">{selectedColorPalette.description}</div>
         )}
       </div>
     </div>
@@ -458,5 +449,17 @@ function expandPatterns(patterns, items, getCategoryFn) {
   }
   return ids;
 }
+
+StyleSelector.propTypes = {
+  styleLibrary: PropTypes.object,
+  selectedArtisticStyleId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  selectedCompositionStyleId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  selectedColorPaletteId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onArtisticStyleChange: PropTypes.func,
+  onCompositionStyleChange: PropTypes.func,
+  onColorPaletteChange: PropTypes.func,
+  entityKind: PropTypes.string,
+  compact: PropTypes.bool,
+};
 
 export { RANDOM_ID, NONE_ID };

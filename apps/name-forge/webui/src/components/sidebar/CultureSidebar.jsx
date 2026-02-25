@@ -1,30 +1,30 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 function CultureSidebar({
   cultures,
   selectedCulture,
   onSelectCulture,
   onCulturesChange,
-  readOnly = false
+  readOnly = false,
 }) {
   const [creatingCulture, setCreatingCulture] = useState(false);
-  const [newCultureId, setNewCultureId] = useState('');
-  const [newCultureName, setNewCultureName] = useState('');
+  const [newCultureId, setNewCultureId] = useState("");
+  const [newCultureName, setNewCultureName] = useState("");
   const [error, setError] = useState(null);
 
   const handleCreateCulture = () => {
     if (!newCultureId.trim()) {
-      setError('Culture ID is required');
+      setError("Culture ID is required");
       return;
     }
 
     if (!/^[a-z0-9_]+$/.test(newCultureId)) {
-      setError('Culture ID must be lowercase letters, numbers, and underscores only (no hyphens)');
+      setError("Culture ID must be lowercase letters, numbers, and underscores only (no hyphens)");
       return;
     }
 
     if (cultures[newCultureId]) {
-      setError('Culture ID already exists');
+      setError("Culture ID already exists");
       return;
     }
 
@@ -50,8 +50,8 @@ function CultureSidebar({
     onSelectCulture(newCultureId);
 
     // Reset form
-    setNewCultureId('');
-    setNewCultureName('');
+    setNewCultureId("");
+    setNewCultureName("");
     setCreatingCulture(false);
     setError(null);
   };
@@ -63,7 +63,7 @@ function CultureSidebar({
       domains: naming.domains?.length || 0,
       lexemes: Object.keys(naming.lexemeLists || {}).length,
       grammars: naming.grammars?.length || 0,
-      profiles: naming.profiles?.length || 0
+      profiles: naming.profiles?.length || 0,
     };
   };
 
@@ -111,9 +111,7 @@ function CultureSidebar({
               />
             </div>
 
-            {error && (
-              <div className="error">{error}</div>
-            )}
+            {error && <div className="error">{error}</div>}
 
             <div className="culture-form-buttons">
               <button className="primary" onClick={handleCreateCulture}>
@@ -124,8 +122,8 @@ function CultureSidebar({
                 onClick={() => {
                   setCreatingCulture(false);
                   setError(null);
-                  setNewCultureId('');
-                  setNewCultureName('');
+                  setNewCultureId("");
+                  setNewCultureName("");
                 }}
               >
                 Cancel
@@ -137,9 +135,7 @@ function CultureSidebar({
 
       <div className="culture-list">
         {Object.keys(cultures).length === 0 ? (
-          <div className="culture-list-empty">
-            No cultures yet. Create one to get started.
-          </div>
+          <div className="culture-list-empty">No cultures yet. Create one to get started.</div>
         ) : (
           Object.values(cultures).map((culture) => {
             const completion = calculateCompletion(culture);
@@ -150,25 +146,31 @@ function CultureSidebar({
               <div
                 key={culture.id}
                 onClick={() => onSelectCulture(culture.id)}
-                className={`culture-card ${isSelected ? 'selected' : ''}`}
+                className={`culture-card ${isSelected ? "selected" : ""}`}
               >
                 <div className="culture-card-content">
-                  <div className="culture-card-name">
-                    {culture.name || culture.id}
-                  </div>
+                  <div className="culture-card-name">{culture.name || culture.id}</div>
 
                   {/* Resource counts */}
                   <div className="culture-resource-grid">
-                    <span className={`culture-resource-item ${counts.domains > 0 ? 'has-domains' : ''}`}>
+                    <span
+                      className={`culture-resource-item ${counts.domains > 0 ? "has-domains" : ""}`}
+                    >
                       {counts.domains} dom
                     </span>
-                    <span className={`culture-resource-item ${counts.lexemes > 0 ? 'has-lexemes' : ''}`}>
+                    <span
+                      className={`culture-resource-item ${counts.lexemes > 0 ? "has-lexemes" : ""}`}
+                    >
                       {counts.lexemes} lex
                     </span>
-                    <span className={`culture-resource-item ${counts.grammars > 0 ? 'has-grammars' : ''}`}>
+                    <span
+                      className={`culture-resource-item ${counts.grammars > 0 ? "has-grammars" : ""}`}
+                    >
                       {counts.grammars} gram
                     </span>
-                    <span className={`culture-resource-item ${counts.profiles > 0 ? 'has-profiles' : ''}`}>
+                    <span
+                      className={`culture-resource-item ${counts.profiles > 0 ? "has-profiles" : ""}`}
+                    >
                       {counts.profiles} prof
                     </span>
                   </div>
@@ -176,7 +178,7 @@ function CultureSidebar({
                   {/* Progress bar */}
                   <div className="culture-progress-bar">
                     <div
-                      className={`culture-progress-fill ${completion === 100 ? 'complete' : ''}`}
+                      className={`culture-progress-fill ${completion === 100 ? "complete" : ""}`}
                       style={{ width: `${completion}%` }}
                     />
                   </div>

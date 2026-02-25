@@ -2,7 +2,7 @@
  * ChronicleIndex - list view for accepted chronicles
  */
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import type { WikiPage } from "../types/world.ts";
 import styles from "./ChronicleIndex.module.css";
 

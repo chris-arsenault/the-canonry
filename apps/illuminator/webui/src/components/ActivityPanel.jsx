@@ -7,7 +7,8 @@
  * - Recent completed/errored tasks
  */
 
-import { useMemo, useState, useRef, useCallback } from "react";
+import React, { useMemo, useState, useRef, useCallback } from "react";
+import PropTypes from "prop-types";
 import { useThinkingStore } from "../lib/db/thinkingStore";
 import "./ActivityPanel.css";
 
@@ -88,7 +89,7 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
       <span
         className="ap-task-status-icon"
         // eslint-disable-next-line local/no-inline-styles -- dynamic status color from statusStyles map
-        style={{ '--ap-status-color': statusStyles[item.status].color }}
+        style={{ "--ap-status-color": statusStyles[item.status].color }}
       >
         {statusIcons[item.status]}
       </span>
@@ -105,11 +106,7 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
         </div>
       </div>
 
-      {duration !== null && (
-        <span className="ap-task-duration">
-          {formatDuration(duration)}
-        </span>
-      )}
+      {duration !== null && <span className="ap-task-duration">{formatDuration(duration)}</span>}
 
       {item.status === "queued" && onCancel && (
         <button
@@ -130,10 +127,7 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
       )}
 
       {item.status === "error" && onRetry && (
-        <button
-          onClick={() => onRetry(item.id)}
-          className="illuminator-button-link ap-task-action"
-        >
+        <button onClick={() => onRetry(item.id)} className="illuminator-button-link ap-task-action">
           Retry
         </button>
       )}
@@ -165,6 +159,13 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
     </div>
   );
 }
+
+TaskRow.propTypes = {
+  item: PropTypes.object,
+  onCancel: PropTypes.func,
+  onRetry: PropTypes.func,
+  onViewDebug: PropTypes.func,
+};
 
 export default function ActivityPanel({
   queue,
@@ -235,15 +236,15 @@ export default function ActivityPanel({
             <span className="ap-stat-label">queued</span>
           </div>
           <div>
-            <span className="ap-stat-value ap-stat-value--running">{stats.running}</span>
+            <span className="ap-stat-value ap-stat-value-running">{stats.running}</span>
             <span className="ap-stat-label">running</span>
           </div>
           <div>
-            <span className="ap-stat-value ap-stat-value--completed">{stats.completed}</span>
+            <span className="ap-stat-value ap-stat-value-completed">{stats.completed}</span>
             <span className="ap-stat-label">completed</span>
           </div>
           <div>
-            <span className="ap-stat-value ap-stat-value--errors">{stats.errored}</span>
+            <span className="ap-stat-value ap-stat-value-errors">{stats.errored}</span>
             <span className="ap-stat-label">errors</span>
           </div>
         </div>
@@ -252,9 +253,7 @@ export default function ActivityPanel({
       {/* Currently Running */}
       {running.length > 0 && (
         <div className="illuminator-card ap-section-card">
-          <div className="ap-section-header">
-            Currently Running
-          </div>
+          <div className="ap-section-header">Currently Running</div>
           {running.map((item) => (
             <TaskRow key={item.id} item={item} onCancel={onCancel} onViewDebug={setDebugItem} />
           ))}
@@ -264,16 +263,12 @@ export default function ActivityPanel({
       {/* Queued */}
       {queued.length > 0 && (
         <div className="illuminator-card ap-section-card">
-          <div className="ap-section-header">
-            Queued ({queued.length})
-          </div>
+          <div className="ap-section-header">Queued ({queued.length})</div>
           {queued.slice(0, 10).map((item) => (
             <TaskRow key={item.id} item={item} onCancel={onCancel} onViewDebug={setDebugItem} />
           ))}
           {queued.length > 10 && (
-            <div className="ap-more-indicator">
-              ... and {queued.length - 10} more
-            </div>
+            <div className="ap-more-indicator">... and {queued.length - 10} more</div>
           )}
         </div>
       )}
@@ -281,7 +276,7 @@ export default function ActivityPanel({
       {/* Errors */}
       {errored.length > 0 && (
         <div className="illuminator-card ap-section-card">
-          <div className="ap-section-header ap-section-header--errors">
+          <div className="ap-section-header ap-section-header-errors">
             Errors ({errored.length})
           </div>
           {errored.map((item) => {
@@ -289,11 +284,7 @@ export default function ActivityPanel({
             return (
               <div key={item.id}>
                 <TaskRow item={item} onRetry={onRetry} onViewDebug={setDebugItem} />
-                {activityError && (
-                  <div className="ap-error-detail">
-                    {activityError}
-                  </div>
-                )}
+                {activityError && <div className="ap-error-detail">{activityError}</div>}
               </div>
             );
           })}
@@ -303,9 +294,7 @@ export default function ActivityPanel({
       {/* Recent Completed */}
       {completed.length > 0 && (
         <div className="illuminator-card ap-section-card">
-          <div className="ap-section-header">
-            Recent Completed
-          </div>
+          <div className="ap-section-header">Recent Completed</div>
           {completed.map((item) => (
             <TaskRow key={item.id} item={item} onViewDebug={setDebugItem} />
           ))}
@@ -344,9 +333,7 @@ export default function ActivityPanel({
                     : " · Chronicle"}
               </div>
               <div>
-                <label className="ap-debug-label">
-                  Request (raw)
-                </label>
+                <label className="ap-debug-label">Request (raw)</label>
                 <textarea
                   className="illuminator-textarea ap-debug-request-textarea"
                   value={debugRequest}
@@ -354,9 +341,7 @@ export default function ActivityPanel({
                 />
               </div>
               <div>
-                <label className="ap-debug-label">
-                  Response (raw)
-                </label>
+                <label className="ap-debug-label">Response (raw)</label>
                 <textarea
                   className="illuminator-textarea ap-debug-response-textarea"
                   value={debugResponse}
@@ -370,3 +355,12 @@ export default function ActivityPanel({
     </div>
   );
 }
+
+ActivityPanel.propTypes = {
+  queue: PropTypes.array,
+  stats: PropTypes.object,
+  onCancel: PropTypes.func,
+  onRetry: PropTypes.func,
+  onCancelAll: PropTypes.func,
+  onClearCompleted: PropTypes.func,
+};

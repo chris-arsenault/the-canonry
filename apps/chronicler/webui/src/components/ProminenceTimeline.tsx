@@ -311,17 +311,41 @@ export default function ProminenceTimeline({
           <div
             className={styles.tooltip}
             // eslint-disable-next-line local/no-inline-styles -- dynamic position from mouse event
-            style={{ '--tooltip-left': `${hoveredPoint.x + 10}px`, '--tooltip-top': `${hoveredPoint.y - 40}px` } as React.CSSProperties}
+            style={
+              {
+                "--tooltip-left": `${hoveredPoint.x + 10}px`,
+                "--tooltip-top": `${hoveredPoint.y - 40}px`,
+              } as React.CSSProperties
+            }
           >
             <div className={styles.tooltipValue}>
               {/* eslint-disable-next-line local/no-inline-styles -- dynamic color from prominence value */}
-              <span style={{ '--prominence-color': resolveColor(hoveredPoint.point.previousValue) } as React.CSSProperties} className={styles.transitionColor}>
+              <span
+                style={
+                  {
+                    "--prominence-color": resolveColor(hoveredPoint.point.previousValue),
+                  } as React.CSSProperties
+                }
+                className={styles.transitionColor}
+              >
                 {resolveLabel(hoveredPoint.point.previousValue)}
               </span>
               {/* eslint-disable-next-line local/no-inline-styles -- dynamic color from prominence value */}
-              <span style={{ '--prominence-color': graphColors.textMuted } as React.CSSProperties} className={styles.transitionColor}>&rarr;</span>
+              <span
+                style={{ "--prominence-color": graphColors.textMuted } as React.CSSProperties}
+                className={styles.transitionColor}
+              >
+                &rarr;
+              </span>
               {/* eslint-disable-next-line local/no-inline-styles -- dynamic color from prominence value */}
-              <span style={{ '--prominence-color': resolveColor(hoveredPoint.point.newValue) } as React.CSSProperties} className={styles.transitionColor}>
+              <span
+                style={
+                  {
+                    "--prominence-color": resolveColor(hoveredPoint.point.newValue),
+                  } as React.CSSProperties
+                }
+                className={styles.transitionColor}
+              >
                 {resolveLabel(hoveredPoint.point.newValue)}
               </span>
             </div>

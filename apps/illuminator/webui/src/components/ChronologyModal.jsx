@@ -8,7 +8,8 @@
  * Always uses scholarly tone. Prefers historian prep notes over summaries for context.
  */
 
-import { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
 import { useChronicleStore } from "../lib/db/chronicleStore";
 import { batchUpdateChronicleEraYears } from "../lib/db/chronicleRepository";
 import { useHistorianChronology } from "../hooks/useHistorianChronology";
@@ -209,10 +210,7 @@ export default function ChronologyModal({
           <span className="chm-header-title">
             {isReviewing ? `Chronology: ${run?.targetName}` : "Historian Chronology"}
           </span>
-          <button
-            onClick={handleClose}
-            className="chm-close-btn"
-          >
+          <button onClick={handleClose} className="chm-close-btn">
             {"\u2715"}
           </button>
         </div>
@@ -223,9 +221,7 @@ export default function ChronologyModal({
           {!isActive && !isReviewing && !isFailed && (
             <>
               <div className="chm-field">
-                <label className="chm-field-label">
-                  Era
-                </label>
+                <label className="chm-field-label">Era</label>
                 <select
                   className="illuminator-select chm-era-select"
                   value={selectedEraId}
@@ -254,24 +250,18 @@ export default function ChronologyModal({
                     {selectedEraChronicles.map((c, i) => (
                       <div
                         key={c.chronicleId}
-                        className={`chm-chronicle-row ${i < selectedEraChronicles.length - 1 ? "chm-chronicle-row--bordered" : ""}`}
+                        className={`chm-chronicle-row ${i < selectedEraChronicles.length - 1 ? "chm-chronicle-row-bordered" : ""}`}
                       >
                         <span
-                          className={`chm-prep-icon ${c.hasHistorianPrep ? "chm-prep-icon--ready" : "chm-prep-icon--none"}`}
+                          className={`chm-prep-icon ${c.hasHistorianPrep ? "chm-prep-icon-ready" : "chm-prep-icon-none"}`}
                           title={
                             c.hasHistorianPrep ? "Historian prep available" : "No historian prep"
                           }
                         >
                           {c.hasHistorianPrep ? "\u25C6" : "\u25C7"}
                         </span>
-                        <span className="chm-chronicle-name">
-                          {c.name}
-                        </span>
-                        {c.eraYear != null && (
-                          <span className="chm-era-year">
-                            Y{c.eraYear}
-                          </span>
-                        )}
+                        <span className="chm-chronicle-name">{c.name}</span>
+                        {c.eraYear != null && <span className="chm-era-year">Y{c.eraYear}</span>}
                       </div>
                     ))}
                   </div>
@@ -281,7 +271,7 @@ export default function ChronologyModal({
               <button
                 onClick={handleStart}
                 disabled={!canStart}
-                className={`illuminator-button chm-start-btn ${canStart ? "chm-start-btn--active" : "chm-start-btn--disabled"}`}
+                className={`illuminator-button chm-start-btn ${canStart ? "chm-start-btn-active" : "chm-start-btn-disabled"}`}
               >
                 Assign Years
               </button>
@@ -291,9 +281,7 @@ export default function ChronologyModal({
           {/* Generating state */}
           {isGenerating && (
             <div className="chm-generating">
-              <div className="chm-generating-msg">
-                The historian is ordering chronicles...
-              </div>
+              <div className="chm-generating-msg">The historian is ordering chronicles...</div>
               <div className="chm-generating-target">{run?.targetName}</div>
             </div>
           )}
@@ -301,12 +289,8 @@ export default function ChronologyModal({
           {/* Failed state */}
           {isFailed && (
             <div className="chm-failed">
-              <div className="chm-failed-msg">
-                Chronology failed
-              </div>
-              <div className="chm-failed-error">
-                {run?.error}
-              </div>
+              <div className="chm-failed-msg">Chronology failed</div>
+              <div className="chm-failed-error">{run?.error}</div>
               <button onClick={handleCancel} className="illuminator-button">
                 Dismiss
               </button>
@@ -322,10 +306,7 @@ export default function ChronologyModal({
 
               <div className="chm-assignments">
                 {sortedAssignments.map((a) => (
-                  <div
-                    key={a.chronicleId}
-                    className="chm-assignment-card"
-                  >
+                  <div key={a.chronicleId} className="chm-assignment-card">
                     <div className="chm-assignment-row">
                       <input
                         type="number"
@@ -356,9 +337,7 @@ export default function ChronologyModal({
                       )}
                     </div>
                     {expandedReasoning[a.chronicleId] && a.reasoning && (
-                      <div className="chm-reasoning-text">
-                        {a.reasoning}
-                      </div>
+                      <div className="chm-reasoning-text">{a.reasoning}</div>
                     )}
                   </div>
                 ))}
@@ -373,10 +352,7 @@ export default function ChronologyModal({
             <button onClick={handleCancel} className="illuminator-button">
               Cancel
             </button>
-            <button
-              onClick={handleApply}
-              className="illuminator-button chm-apply-btn"
-            >
+            <button onClick={handleApply} className="illuminator-button chm-apply-btn">
               Apply ({sortedAssignments.length} years)
             </button>
           </div>
@@ -385,3 +361,16 @@ export default function ChronologyModal({
     </div>
   );
 }
+
+ChronologyModal.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  chronicleItems: PropTypes.array,
+  wizardEras: PropTypes.array,
+  wizardEvents: PropTypes.array,
+  projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  simulationRunId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  historianConfig: PropTypes.object,
+  onEnqueue: PropTypes.func,
+  onApplied: PropTypes.func,
+};

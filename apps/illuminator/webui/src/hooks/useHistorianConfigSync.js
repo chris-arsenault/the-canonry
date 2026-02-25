@@ -7,7 +7,9 @@ function readLegacyHistorianConfig() {
   try {
     const stored = localStorage.getItem(LEGACY_HISTORIAN_CONFIG_KEY);
     if (stored) return JSON.parse(stored);
-  } catch { /* ignored */ }
+  } catch {
+    /* ignored */
+  }
   return null;
 }
 
@@ -28,7 +30,10 @@ function resolveExternalChange(externalConfig, hasMigrated) {
   return { config: DEFAULT_HISTORIAN_CONFIG, migrated: hasMigrated };
 }
 
-export default function useHistorianConfigSync({ externalHistorianConfig, onHistorianConfigChange }) {
+export default function useHistorianConfigSync({
+  externalHistorianConfig,
+  onHistorianConfigChange,
+}) {
   const [localHistorianConfig, setLocalHistorianConfig] = useState(() =>
     resolveInitialHistorianConfig(externalHistorianConfig)
   );
@@ -53,21 +58,29 @@ export default function useHistorianConfigSync({ externalHistorianConfig, onHist
     pendingHistorianConfigRef.current = resolved.config;
     if (resolved.migrated && !externalHistorianConfig) {
       if (onHistorianConfigChange) onHistorianConfigChange(resolved.config);
-      try { localStorage.removeItem(LEGACY_HISTORIAN_CONFIG_KEY); } catch { /* ignored */ }
+      try {
+        localStorage.removeItem(LEGACY_HISTORIAN_CONFIG_KEY);
+      } catch {
+        /* ignored */
+      }
     }
   }, [externalHistorianConfig, onHistorianConfigChange, hasMigrated]);
 
   const historianConfigSyncTimeoutRef = useRef(null);
-  const updateHistorianConfig = useCallback((next) => {
-    setLocalHistorianConfig(next);
-    pendingHistorianConfigRef.current = next;
-    if (!onHistorianConfigChange) return;
-    if (historianConfigSyncTimeoutRef.current) clearTimeout(historianConfigSyncTimeoutRef.current);
-    historianConfigSyncTimeoutRef.current = setTimeout(() => {
-      onHistorianConfigChange(pendingHistorianConfigRef.current);
-      historianConfigSyncTimeoutRef.current = null;
-    }, 300);
-  }, [onHistorianConfigChange]);
+  const updateHistorianConfig = useCallback(
+    (next) => {
+      setLocalHistorianConfig(next);
+      pendingHistorianConfigRef.current = next;
+      if (!onHistorianConfigChange) return;
+      if (historianConfigSyncTimeoutRef.current)
+        clearTimeout(historianConfigSyncTimeoutRef.current);
+      historianConfigSyncTimeoutRef.current = setTimeout(() => {
+        onHistorianConfigChange(pendingHistorianConfigRef.current);
+        historianConfigSyncTimeoutRef.current = null;
+      }, 300);
+    },
+    [onHistorianConfigChange]
+  );
 
   return { historianConfig: localHistorianConfig, updateHistorianConfig };
 }

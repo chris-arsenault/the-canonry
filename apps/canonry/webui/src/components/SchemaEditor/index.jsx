@@ -5,21 +5,21 @@
  * Edits entity kinds, relationship kinds, and culture identity.
  */
 
-import React from 'react';
-import EntityKindEditor from './EntityKindEditor';
-import RelationshipKindEditor from './RelationshipKindEditor';
-import CultureEditor from './CultureEditor';
-import TagRegistryEditor from './TagRegistryEditor';
-import RelationshipKindMatrix from './RelationshipKindMatrix';
-import { colors, typography, spacing, radius, getAccentGradient, getHoverBg } from '../../theme';
+import React from "react";
+import EntityKindEditor from "./EntityKindEditor";
+import RelationshipKindEditor from "./RelationshipKindEditor";
+import CultureEditor from "./CultureEditor";
+import TagRegistryEditor from "./TagRegistryEditor";
+import RelationshipKindMatrix from "./RelationshipKindMatrix";
+import { colors, typography, spacing, radius, getAccentGradient, getHoverBg } from "../../theme";
 
 const styles = {
   container: {
-    display: 'flex',
-    height: '100%',
+    display: "flex",
+    height: "100%",
   },
   sidebar: {
-    width: '200px',
+    width: "200px",
     backgroundColor: colors.bgSidebar,
     borderRight: `1px solid ${colors.border}`,
     padding: spacing.lg,
@@ -29,8 +29,8 @@ const styles = {
     fontWeight: typography.weightSemibold,
     fontFamily: typography.fontFamily,
     color: colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
     marginBottom: spacing.md,
   },
   sidebarItem: {
@@ -39,38 +39,38 @@ const styles = {
     fontFamily: typography.fontFamily,
     fontWeight: typography.weightMedium,
     borderRadius: radius.md,
-    cursor: 'pointer',
+    cursor: "pointer",
     marginBottom: spacing.xs,
-    transition: 'all 0.15s',
+    transition: "all 0.15s",
   },
   sidebarItemActive: {
-    background: getAccentGradient('enumerist'),
+    background: getAccentGradient("enumerist"),
     color: colors.bgSidebar,
     fontWeight: typography.weightSemibold,
   },
   sidebarItemInactive: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     color: colors.textSecondary,
   },
   sidebarCount: {
-    float: 'right',
+    float: "right",
     fontSize: typography.sizeXs,
     opacity: 0.8,
   },
   main: {
     flex: 1,
     padding: spacing.xxl,
-    overflow: 'auto',
+    overflow: "auto",
     backgroundColor: colors.bgPrimary,
   },
 };
 
 const SECTIONS = [
-  { id: 'entityKinds', label: 'Entity Kinds', countKey: 'entityKinds' },
-  { id: 'relationshipKinds', label: 'Relationships', countKey: 'relationshipKinds' },
-  { id: 'relationshipMatrix', label: 'Rel. Matrix', countKey: null },
-  { id: 'cultures', label: 'Cultures', countKey: 'cultures' },
-  { id: 'tags', label: 'Tags', countKey: 'tagRegistry' },
+  { id: "entityKinds", label: "Entity Kinds", countKey: "entityKinds" },
+  { id: "relationshipKinds", label: "Relationships", countKey: "relationshipKinds" },
+  { id: "relationshipMatrix", label: "Rel. Matrix", countKey: null },
+  { id: "cultures", label: "Cultures", countKey: "cultures" },
+  { id: "tags", label: "Tags", countKey: "tagRegistry" },
 ];
 
 export default function SchemaEditor({
@@ -86,7 +86,7 @@ export default function SchemaEditor({
   namingData = {},
 }) {
   // Use passed-in activeSection, fallback to entityKinds
-  const currentSection = activeSection || 'entityKinds';
+  const currentSection = activeSection || "entityKinds";
 
   const counts = {
     entityKinds: project.entityKinds.length,
@@ -97,7 +97,7 @@ export default function SchemaEditor({
 
   const renderEditor = () => {
     switch (currentSection) {
-      case 'entityKinds':
+      case "entityKinds":
         return (
           <EntityKindEditor
             entityKinds={project.entityKinds}
@@ -107,7 +107,7 @@ export default function SchemaEditor({
           />
         );
 
-      case 'relationshipKinds':
+      case "relationshipKinds":
         return (
           <RelationshipKindEditor
             relationshipKinds={project.relationshipKinds}
@@ -117,26 +117,21 @@ export default function SchemaEditor({
           />
         );
 
-      case 'relationshipMatrix':
+      case "relationshipMatrix":
         return (
           <RelationshipKindMatrix
             relationshipKinds={project.relationshipKinds}
             entityKinds={project.entityKinds}
             onNavigateToRelationship={(relKind) => {
-              onSectionChange('relationshipKinds');
+              onSectionChange("relationshipKinds");
             }}
           />
         );
 
-      case 'cultures':
-        return (
-          <CultureEditor
-            cultures={project.cultures}
-            onChange={onUpdateCultures}
-          />
-        );
+      case "cultures":
+        return <CultureEditor cultures={project.cultures} onChange={onUpdateCultures} />;
 
-      case 'tags':
+      case "tags":
         return (
           <TagRegistryEditor
             tagRegistry={project.tagRegistry || []}

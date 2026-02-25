@@ -238,7 +238,9 @@
 
 .chip-clickable {
   cursor: pointer;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .chip-clickable:hover {
@@ -271,16 +273,38 @@
 }
 
 /* Size variants for select */
-.select-xs { width: 80px; }
-.select-sm { width: 100px; }
-.select-md { width: 140px; }
-.select-lg { width: 160px; }
+.select-xs {
+  width: 80px;
+}
+
+.select-sm {
+  width: 100px;
+}
+
+.select-md {
+  width: 140px;
+}
+
+.select-lg {
+  width: 160px;
+}
 
 /* Size variants for input */
-.input-xs { width: 80px; }
-.input-sm { width: 100px; }
-.input-md { width: 140px; }
-.input-lg { width: 160px; }
+.input-xs {
+  width: 80px;
+}
+
+.input-sm {
+  width: 100px;
+}
+
+.input-md {
+  width: 140px;
+}
+
+.input-lg {
+  width: 160px;
+}
 
 /* Input modifiers */
 .input-compact {

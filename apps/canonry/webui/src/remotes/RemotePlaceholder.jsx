@@ -2,21 +2,21 @@
  * RemotePlaceholder - Shown when a remote module is not available
  */
 
-import React from 'react';
-import { colors, typography, spacing, radius } from '../theme';
+import React from "react";
+import { colors, typography, spacing, radius } from "../theme";
 
 const styles = {
   container: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
     padding: spacing.xxxl,
-    textAlign: 'center',
+    textAlign: "center",
   },
   icon: {
-    fontSize: '48px',
+    fontSize: "48px",
     marginBottom: spacing.lg,
     opacity: 0.5,
   },
@@ -32,14 +32,14 @@ const styles = {
     fontFamily: typography.fontFamily,
     color: colors.textSecondary,
     marginBottom: spacing.xxl,
-    maxWidth: '400px',
+    maxWidth: "400px",
   },
   instructions: {
     backgroundColor: colors.bgSecondary,
     padding: `${spacing.lg} ${spacing.xxl}`,
     borderRadius: radius.lg,
     fontSize: typography.sizeMd,
-    fontFamily: 'monospace',
+    fontFamily: "monospace",
     color: colors.textSecondary,
     border: `1px solid ${colors.border}`,
   },
@@ -53,11 +53,7 @@ export default function RemotePlaceholder({ name, port, instructions }) {
       <div style={styles.message}>
         The {name} module is not currently running. Start it to enable this feature.
       </div>
-      {instructions && (
-        <div style={styles.instructions}>
-          {instructions}
-        </div>
-      )}
+      {instructions && <div style={styles.instructions}>{instructions}</div>}
     </div>
   );
 }

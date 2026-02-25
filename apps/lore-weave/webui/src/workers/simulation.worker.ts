@@ -9,15 +9,15 @@
  * Communicates progress and results via postMessage.
  */
 
-import { WorldEngine } from '../../../lib/engine/worldEngine';
-import { SimulationEmitter } from '../../../lib/observer/SimulationEmitter';
-import { validateAllConfigs, formatValidationResult } from '../../../lib/engine/configSchemaValidator';
-import type {
-  SimulationEvent,
-  WorkerInboundMessage
-} from '../../../lib/observer/types';
-import type { EngineConfig } from '../../../lib/engine/types';
-import type { HardState } from '../../../lib/core/worldTypes';
+import { WorldEngine } from "../../../lib/engine/worldEngine";
+import { SimulationEmitter } from "../../../lib/observer/SimulationEmitter";
+import {
+  validateAllConfigs,
+  formatValidationResult,
+} from "../../../lib/engine/configSchemaValidator";
+import type { SimulationEvent, WorkerInboundMessage } from "../../../lib/observer/types";
+import type { EngineConfig } from "../../../lib/engine/types";
+import type { HardState } from "../../../lib/core/worldTypes";
 
 // Worker context
 const ctx: Worker = self as unknown as Worker;
@@ -41,11 +41,15 @@ function createWorkerEmitter(): SimulationEmitter {
  * Validate configuration before starting simulation.
  * Returns true if valid, false if invalid (error already emitted).
  */
-function validateConfigBeforeRun(config: EngineConfig, seedEntities: HardState[], workerEmitter: SimulationEmitter): boolean {
+function validateConfigBeforeRun(
+  config: EngineConfig,
+  seedEntities: HardState[],
+  workerEmitter: SimulationEmitter
+): boolean {
   // Extract schema identifiers from canonical schema
-  const cultures = config.schema?.cultures?.map(c => c.id);
-  const entityKinds = config.schema?.entityKinds?.map(k => k.kind);
-  const relationshipKinds = config.schema?.relationshipKinds?.map(k => k.kind);
+  const cultures = config.schema?.cultures?.map((c) => c.id);
+  const entityKinds = config.schema?.entityKinds?.map((k) => k.kind);
+  const relationshipKinds = config.schema?.relationshipKinds?.map((k) => k.kind);
 
   const result = validateAllConfigs({
     templates: config.templates,
@@ -56,26 +60,26 @@ function validateConfigBeforeRun(config: EngineConfig, seedEntities: HardState[]
     schema: {
       cultures,
       entityKinds,
-      relationshipKinds
-    }
+      relationshipKinds,
+    },
   });
 
   if (!result.valid) {
     workerEmitter.error({
       message: `Configuration validation failed:\n\n${formatValidationResult(result)}`,
-      phase: 'validation',
+      phase: "validation",
       context: {
         errorCount: result.errors.length,
         warningCount: result.warnings.length,
-        errors: result.errors
-      }
+        errors: result.errors,
+      },
     });
     return false;
   }
 
   // Log warnings but don't block
   if (result.warnings.length > 0) {
-    workerEmitter.log('warn', `Configuration warnings:\n${formatValidationResult(result)}`);
+    workerEmitter.log("warn", `Configuration warnings:\n${formatValidationResult(result)}`);
   }
 
   return true;
@@ -88,34 +92,34 @@ ctx.onmessage = async (event: MessageEvent<WorkerInboundMessage>) => {
   const message = event.data;
 
   switch (message.type) {
-    case 'start':
+    case "start":
       await runSimulation(message.config as EngineConfig, message.initialState);
       break;
 
-    case 'startStepping':
+    case "startStepping":
       await initializeForStepping(message.config as EngineConfig, message.initialState);
       break;
 
-    case 'step':
+    case "step":
       await stepSimulation();
       break;
 
-    case 'runToCompletion':
+    case "runToCompletion":
       await runToCompletion();
       break;
 
-    case 'reset':
+    case "reset":
       resetSimulation();
       break;
 
-    case 'abort':
+    case "abort":
       // Clear engine state
       engine = null;
       emitter = null;
       engineMaxTicks = null;
       break;
 
-    case 'exportState':
+    case "exportState":
       exportCurrentState();
       break;
   }
@@ -147,13 +151,12 @@ async function runSimulation(config: EngineConfig, state: HardState[]): Promise<
     await engine.run();
 
     // Note: complete event is emitted by WorldEngine itself
-
   } catch (error) {
     emitter.error({
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
-      phase: 'simulation',
-      context: {}
+      phase: "simulation",
+      context: {},
     });
   }
 }
@@ -183,21 +186,20 @@ async function initializeForStepping(config: EngineConfig, state: HardState[]): 
 
     // Emit paused state - ready for stepping
     emitter.progress({
-      phase: 'paused',
+      phase: "paused",
       tick: engine.getGraph().tick,
       maxTicks: engineConfig.maxTicks,
       epoch: engine.getCurrentEpoch(),
       totalEpochs: engine.getTotalEpochs(),
       entityCount: engine.getGraph().getEntityCount(),
-      relationshipCount: engine.getGraph().getRelationshipCount()
+      relationshipCount: engine.getGraph().getRelationshipCount(),
     });
-
   } catch (error) {
     emitter.error({
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
-      phase: 'initialization',
-      context: {}
+      phase: "initialization",
+      context: {},
     });
   }
 }
@@ -208,9 +210,9 @@ async function initializeForStepping(config: EngineConfig, state: HardState[]): 
 async function stepSimulation(): Promise<void> {
   if (!engine || !emitter) {
     emitter?.error({
-      message: 'No simulation initialized. Call start first.',
-      phase: 'step',
-      context: {}
+      message: "No simulation initialized. Call start first.",
+      phase: "step",
+      context: {},
     });
     return;
   }
@@ -222,25 +224,25 @@ async function stepSimulation(): Promise<void> {
       // Simulation complete - complete event already emitted by finalize()
     } else {
       if (engineMaxTicks === null) {
-        throw new Error('Step mode missing maxTicks. Initialize stepping with a valid config.');
+        throw new Error("Step mode missing maxTicks. Initialize stepping with a valid config.");
       }
       // Emit paused progress to indicate step completed
       emitter.progress({
-        phase: 'paused',
+        phase: "paused",
         tick: engine.getGraph().tick,
         maxTicks: engineMaxTicks,
         epoch: engine.getCurrentEpoch(),
         totalEpochs: engine.getTotalEpochs(),
         entityCount: engine.getGraph().getEntityCount(),
-        relationshipCount: engine.getGraph().getRelationshipCount()
+        relationshipCount: engine.getGraph().getRelationshipCount(),
       });
     }
   } catch (error) {
     emitter.error({
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
-      phase: 'step',
-      context: {}
+      phase: "step",
+      context: {},
     });
   }
 }
@@ -251,9 +253,9 @@ async function stepSimulation(): Promise<void> {
 async function runToCompletion(): Promise<void> {
   if (!engine || !emitter) {
     emitter?.error({
-      message: 'No simulation initialized. Call start first.',
-      phase: 'runToCompletion',
-      context: {}
+      message: "No simulation initialized. Call start first.",
+      phase: "runToCompletion",
+      context: {},
     });
     return;
   }
@@ -269,8 +271,8 @@ async function runToCompletion(): Promise<void> {
     emitter.error({
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
-      phase: 'runToCompletion',
-      context: {}
+      phase: "runToCompletion",
+      context: {},
     });
   }
 }
@@ -281,9 +283,9 @@ async function runToCompletion(): Promise<void> {
 function resetSimulation(): void {
   if (!engine || !emitter) {
     emitter?.error({
-      message: 'No simulation initialized. Call start first.',
-      phase: 'reset',
-      context: {}
+      message: "No simulation initialized. Call start first.",
+      phase: "reset",
+      context: {},
     });
     return;
   }
@@ -294,8 +296,8 @@ function resetSimulation(): void {
     emitter?.error({
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
-      phase: 'reset',
-      context: {}
+      phase: "reset",
+      context: {},
     });
   }
 }
@@ -306,9 +308,9 @@ function resetSimulation(): void {
 function exportCurrentState(): void {
   if (!engine || !emitter) {
     emitter?.error({
-      message: 'No simulation initialized. Call start first.',
-      phase: 'exportState',
-      context: {}
+      message: "No simulation initialized. Call start first.",
+      phase: "exportState",
+      context: {},
     });
     return;
   }
@@ -321,15 +323,15 @@ function exportCurrentState(): void {
       ...exportData,
       metadata: {
         ...exportData.metadata,
-        isComplete
-      }
+        isComplete,
+      },
     });
   } catch (error) {
     emitter?.error({
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
-      phase: 'exportState',
-      context: {}
+      phase: "exportState",
+      context: {},
     });
   }
 }

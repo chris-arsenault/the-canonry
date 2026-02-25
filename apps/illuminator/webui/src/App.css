@@ -2269,13 +2269,13 @@ body {
   transition: opacity 0.15s ease;
 }
 
-.preprint-action-button:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
 .preprint-action-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.preprint-action-button:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
 .preprint-action-button.small {
@@ -2540,7 +2540,7 @@ body {
 .preprint-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgb(0 0 0 / 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2868,14 +2868,14 @@ body {
   min-width: 140px;
 }
 
+.preprint-export-input {
+  min-width: 180px;
+}
+
 .preprint-export-select:focus,
 .preprint-export-input:focus {
   outline: none;
   border-color: var(--accent-color);
-}
-
-.preprint-export-input {
-  min-width: 180px;
 }
 
 /* ============================================================================
@@ -2980,7 +2980,7 @@ body {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
   z-index: 10;
   padding: 4px;
 }
@@ -3049,15 +3049,6 @@ body {
   min-width: 60px;
 }
 
-.illuminator-coverage-table tr:last-child td {
-  border-bottom: none;
-}
-
-.illuminator-coverage-table td:last-child,
-.illuminator-coverage-table th:last-child {
-  border-right: none;
-}
-
 .illuminator-coverage-sticky {
   position: sticky;
   left: 0;
@@ -3118,13 +3109,13 @@ body {
 
 .illuminator-coverage-hit {
   background: var(--success, #22c55e);
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgb(0 0 0 / 30%);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 25%);
 }
 
 .illuminator-coverage-miss {
-  border: 1px solid rgba(148, 163, 184, 0.5);
-  background: rgba(15, 23, 42, 0.2);
+  border: 1px solid rgb(148 163 184 / 50%);
+  background: rgb(15 23 42 / 20%);
   opacity: 0.5;
 }
 
@@ -3221,15 +3212,24 @@ body {
   text-align: center;
 }
 
-.entity-coverage-table tr:last-child td {
-  border-bottom: none;
-}
-
 .entity-coverage-table .ec-empty td {
   text-align: center;
   color: var(--text-muted);
   font-size: 11px;
   padding: 12px 10px;
+}
+
+.illuminator-coverage-table td:last-child,
+.illuminator-coverage-table th:last-child {
+  border-right: none;
+}
+
+.illuminator-coverage-table tr:last-child td {
+  border-bottom: none;
+}
+
+.entity-coverage-table tr:last-child td {
+  border-bottom: none;
 }
 
 /* ── Entity Coverage 2-column Grid ───────────────────────────────── */

@@ -24,36 +24,28 @@
  * });
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import { clearStoredValue, loadStoredValue, saveStoredValue } from '../../../utils/persistence';
+import { useState, useCallback, useEffect } from "react";
+import { clearStoredValue, loadStoredValue, saveStoredValue } from "../../../utils/persistence";
 
 export function useEditorState(items, onChange, options = {}) {
-  const {
-    idField = 'id',
-    nameField = 'name',
-    createItem,
-    persistKey,
-  } = options;
+  const { idField = "id", nameField = "name", createItem, persistKey } = options;
 
   const [selectedId, setSelectedId] = useState(() => {
     const stored = loadStoredValue(persistKey);
-    return typeof stored === 'string' ? stored : null;
+    return typeof stored === "string" ? stored : null;
   });
 
   useEffect(() => {
     const stored = loadStoredValue(persistKey);
-    setSelectedId(typeof stored === 'string' ? stored : null);
+    setSelectedId(typeof stored === "string" ? stored : null);
   }, [persistKey]);
 
-  const resolvedIndex = selectedId
-    ? items.findIndex((item) => item[idField] === selectedId)
-    : -1;
+  const resolvedIndex = selectedId ? items.findIndex((item) => item[idField] === selectedId) : -1;
   const selectedIndex = resolvedIndex >= 0 ? resolvedIndex : null;
 
   // Derive selected item from index
-  const selectedItem = selectedIndex !== null && selectedIndex < items.length
-    ? items[selectedIndex]
-    : null;
+  const selectedItem =
+    selectedIndex !== null && selectedIndex < items.length ? items[selectedIndex] : null;
 
   useEffect(() => {
     if (!persistKey) return;
@@ -71,23 +63,29 @@ export function useEditorState(items, onChange, options = {}) {
   }, [selectedId, selectedIndex]);
 
   // Update the currently selected item
-  const handleItemChange = useCallback((updated) => {
-    if (selectedIndex !== null && selectedIndex < items.length) {
-      const newItems = [...items];
-      newItems[selectedIndex] = updated;
-      onChange(newItems);
-    }
-  }, [items, onChange, selectedIndex]);
+  const handleItemChange = useCallback(
+    (updated) => {
+      if (selectedIndex !== null && selectedIndex < items.length) {
+        const newItems = [...items];
+        newItems[selectedIndex] = updated;
+        onChange(newItems);
+      }
+    },
+    [items, onChange, selectedIndex]
+  );
 
   // Toggle the enabled state of an item
-  const handleToggle = useCallback((item) => {
-    const index = items.findIndex((i) => i[idField] === item[idField]);
-    if (index >= 0) {
-      const newItems = [...items];
-      newItems[index] = { ...item, enabled: item.enabled === false ? true : false };
-      onChange(newItems);
-    }
-  }, [items, onChange, idField]);
+  const handleToggle = useCallback(
+    (item) => {
+      const index = items.findIndex((i) => i[idField] === item[idField]);
+      if (index >= 0) {
+        const newItems = [...items];
+        newItems[index] = { ...item, enabled: item.enabled === false ? true : false };
+        onChange(newItems);
+      }
+    },
+    [items, onChange, idField]
+  );
 
   // Delete the currently selected item (with confirmation)
   const handleDelete = useCallback(() => {
@@ -103,17 +101,24 @@ export function useEditorState(items, onChange, options = {}) {
   }, [items, onChange, selectedIndex, selectedItem, idField, nameField]);
 
   // Add a new item (using createItem factory if provided)
-  const handleAdd = useCallback((newItem) => {
-    const itemToAdd = newItem || (createItem ? createItem() : { [idField]: `item_${Date.now()}` });
-    onChange([...items, itemToAdd]);
-    setSelectedId(itemToAdd[idField] || null);
-  }, [items, onChange, createItem, idField]);
+  const handleAdd = useCallback(
+    (newItem) => {
+      const itemToAdd =
+        newItem || (createItem ? createItem() : { [idField]: `item_${Date.now()}` });
+      onChange([...items, itemToAdd]);
+      setSelectedId(itemToAdd[idField] || null);
+    },
+    [items, onChange, createItem, idField]
+  );
 
   // Select an item by index
-  const handleSelect = useCallback((index) => {
-    const item = items[index];
-    setSelectedId(item ? item[idField] : null);
-  }, [items, idField]);
+  const handleSelect = useCallback(
+    (index) => {
+      const item = items[index];
+      setSelectedId(item ? item[idField] : null);
+    },
+    [items, idField]
+  );
 
   // Close the selection (deselect)
   const handleClose = useCallback(() => {

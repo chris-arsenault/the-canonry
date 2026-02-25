@@ -5,7 +5,8 @@
  * custom toolbar buttons for entity links and images.
  */
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import MDEditor from "@uiw/react-md-editor";
 import EntityLinkPicker from "./EntityLinkPicker";
 import ImageRefPicker from "./ImageRefPicker";
@@ -209,3 +210,11 @@ export default function StaticPageEditor({ page, projectId, onSave, onDelete, on
     </div>
   );
 }
+
+StaticPageEditor.propTypes = {
+  page: PropTypes.object,
+  projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onSave: PropTypes.func,
+  onDelete: PropTypes.func,
+  onPublishToggle: PropTypes.func,
+};

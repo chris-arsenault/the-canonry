@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import ImageSettingsDrawer from "./ImageSettingsDrawer";
 import DynamicsGenerationModal from "./DynamicsGenerationModal";
 import RevisionFilterModal from "./RevisionFilterModal";
@@ -20,8 +21,15 @@ import { useEraTemporalInfo } from "../lib/db/indexSelectors";
 import { useToneRankingStore } from "../lib/db/toneRankingStore";
 import { useBulkChronicleAnnotationStore } from "../lib/db/bulkChronicleAnnotationStore";
 import { useInterleavedAnnotationStore } from "../lib/db/interleavedAnnotationStore";
+import React from "react";
 
-function ImageSettingsSection({ imageGenSettings, updateImageGenSettings, styleLibrary, worldSchema, config }) {
+function ImageSettingsSection({
+  imageGenSettings,
+  updateImageGenSettings,
+  styleLibrary,
+  worldSchema,
+  config,
+}) {
   const imageSettingsOpen = useIlluminatorModals((s) => s.imageSettingsOpen);
   return (
     <ImageSettingsDrawer
@@ -229,7 +237,13 @@ function ToneAndAnnotationModals() {
  * Flow objects (revisionFlow, backportFlow, etc.) are passed as grouped props
  * rather than flat-spreading ~100 properties.
  */
-export default function IlluminatorModals({ revisionFlow, backportFlow, historianFlow, dynamicsFlow, ...props }) {
+export default function IlluminatorModals({
+  revisionFlow,
+  backportFlow,
+  historianFlow,
+  dynamicsFlow,
+  ...props
+}) {
   return (
     <>
       <ImageSettingsSection

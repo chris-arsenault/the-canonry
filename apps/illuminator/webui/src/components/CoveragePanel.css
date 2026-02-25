@@ -116,7 +116,7 @@
   border-radius: 2px;
 }
 
-.cvp-histogram-bar--empty {
+.cvp-histogram-bar-empty {
   background: var(--border-color);
   opacity: 0.3;
   min-height: 1px;

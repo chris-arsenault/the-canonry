@@ -2,11 +2,8 @@
 
 .iam-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgb(0 0 0 / 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -22,7 +19,7 @@
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
 }
 
 .iam-header {
@@ -64,12 +61,12 @@
   min-height: 0;
 }
 
-.iam-body--confirming {
+.iam-body-confirming {
   overflow-y: auto;
   flex: 1;
 }
 
-.iam-body--processing {
+.iam-body-processing {
   overflow-y: visible;
 }
 
@@ -120,13 +117,13 @@
   border-bottom: none;
 }
 
-.iam-work-item--chronicle {
+.iam-work-item-chronicle {
   padding: 6px 12px;
   font-size: 12px;
   background: transparent;
 }
 
-.iam-work-item--entity {
+.iam-work-item-entity {
   padding: 4px 12px 4px 28px;
   font-size: 11px;
   background: var(--bg-secondary);
@@ -145,11 +142,11 @@
   flex-shrink: 0;
 }
 
-.iam-work-item-icon--chronicle {
+.iam-work-item-icon-chronicle {
   color: #6b8cae;
 }
 
-.iam-work-item-icon--entity {
+.iam-work-item-icon-entity {
   color: #8b7355;
 }
 
@@ -159,12 +156,12 @@
   white-space: nowrap;
 }
 
-.iam-work-item-name--chronicle {
+.iam-work-item-name-chronicle {
   font-weight: 500;
   color: var(--text-primary);
 }
 
-.iam-work-item-name--entity {
+.iam-work-item-name-entity {
   font-weight: 400;
   color: var(--text-secondary);
 }
@@ -269,8 +266,8 @@
 .iam-terminal-complete {
   padding: 12px;
   border-radius: 8px;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: rgb(16 185 129 / 10%);
+  border: 1px solid rgb(16 185 129 / 20%);
   margin-bottom: 16px;
   font-size: 12px;
 }
@@ -278,8 +275,8 @@
 .iam-terminal-cancelled {
   padding: 12px;
   border-radius: 8px;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: rgb(245 158 11 / 10%);
+  border: 1px solid rgb(245 158 11 / 20%);
   margin-bottom: 16px;
   font-size: 12px;
 }
@@ -287,8 +284,8 @@
 .iam-terminal-failed {
   padding: 12px;
   border-radius: 8px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgb(239 68 68 / 10%);
+  border: 1px solid rgb(239 68 68 / 20%);
   margin-bottom: 16px;
   font-size: 12px;
 }

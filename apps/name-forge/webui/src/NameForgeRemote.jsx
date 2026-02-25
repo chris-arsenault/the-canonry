@@ -9,19 +9,19 @@
  * without the project management or schema editing overhead.
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
-import './App.css';
-import { CultureSidebar } from './components/sidebar';
-import { EntityWorkspace } from './components/workspace';
-import { OptimizerWorkshop } from './components/optimizer';
-import { GenerateTab } from './components/generator';
-import ProfileCoverageMatrix from './components/coverage/ProfileCoverageMatrix';
+import { useState, useCallback, useMemo, useEffect } from "react";
+import "./App.css";
+import { CultureSidebar } from "./components/sidebar";
+import { EntityWorkspace } from "./components/workspace";
+import { OptimizerWorkshop } from "./components/optimizer";
+import { GenerateTab } from "./components/generator";
+import ProfileCoverageMatrix from "./components/coverage/ProfileCoverageMatrix";
 
 const TABS = [
-  { id: 'workshop', label: 'Workshop' },
-  { id: 'optimizer', label: 'Optimizer' },
-  { id: 'generate', label: 'Generate' },
-  { id: 'coverage', label: 'Coverage' },
+  { id: "workshop", label: "Workshop" },
+  { id: "optimizer", label: "Optimizer" },
+  { id: "generate", label: "Generate" },
+  { id: "coverage", label: "Coverage" },
 ];
 
 export default function NameForgeRemote({
@@ -34,27 +34,27 @@ export default function NameForgeRemote({
   generators = [],
 }) {
   // Use passed-in section or default to 'workshop'
-  const activeTab = activeSection || 'workshop';
+  const activeTab = activeSection || "workshop";
   const setActiveTab = onSectionChange || (() => {});
   const storageKey = projectId ? `nameforge:ui:${projectId}` : null;
   const [selectedCulture, setSelectedCulture] = useState(null);
-  const [workspaceTab, setWorkspaceTab] = useState('domain');
+  const [workspaceTab, setWorkspaceTab] = useState("domain");
   const [hydratedKey, setHydratedKey] = useState(null);
 
   // Session-only API key (not persisted)
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState("");
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
 
   // GenerateTab form state
   const [generateFormState, setGenerateFormState] = useState({
-    selectedCulture: '',
-    selectedProfile: '',
-    selectedKind: '',
-    selectedSubKind: '',
+    selectedCulture: "",
+    selectedProfile: "",
+    selectedKind: "",
+    selectedSubKind: "",
     tags: [],
-    prominence: '',
+    prominence: "",
     count: 20,
-    contextPairs: [{ key: '', value: '' }],
+    contextPairs: [{ key: "", value: "" }],
   });
 
   const worldSchema = useMemo(
@@ -110,7 +110,7 @@ export default function NameForgeRemote({
   const cultureIds = Object.keys(cultures);
 
   useEffect(() => {
-    if (!storageKey || typeof localStorage === 'undefined') {
+    if (!storageKey || typeof localStorage === "undefined") {
       setHydratedKey(storageKey);
       return;
     }
@@ -119,27 +119,30 @@ export default function NameForgeRemote({
       if (raw) {
         const parsed = JSON.parse(raw);
         setSelectedCulture(parsed?.selectedCulture || null);
-        setWorkspaceTab(parsed?.workspaceTab || 'domain');
+        setWorkspaceTab(parsed?.workspaceTab || "domain");
       } else {
         setSelectedCulture(null);
-        setWorkspaceTab('domain');
+        setWorkspaceTab("domain");
       }
     } catch {
       setSelectedCulture(null);
-      setWorkspaceTab('domain');
+      setWorkspaceTab("domain");
     } finally {
       setHydratedKey(storageKey);
     }
   }, [storageKey]);
 
   useEffect(() => {
-    if (!storageKey || typeof localStorage === 'undefined') return;
+    if (!storageKey || typeof localStorage === "undefined") return;
     if (hydratedKey !== storageKey) return;
     try {
-      localStorage.setItem(storageKey, JSON.stringify({
-        selectedCulture,
-        workspaceTab,
-      }));
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          selectedCulture,
+          workspaceTab,
+        })
+      );
     } catch {
       // Best-effort only.
     }
@@ -160,8 +163,8 @@ export default function NameForgeRemote({
         <div className="nf-empty-state-icon"></div>
         <div className="nf-empty-state-title">No Cultures Defined</div>
         <div className="nf-empty-state-desc">
-          Add cultures in the <strong>Enumerist</strong> tab first, then return here
-          to configure naming domains, grammars, and profiles.
+          Add cultures in the <strong>Enumerist</strong> tab first, then return here to configure
+          naming domains, grammars, and profiles.
         </div>
       </div>
     );
@@ -176,7 +179,7 @@ export default function NameForgeRemote({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`nf-nav-button ${activeTab === tab.id ? 'active' : ''}`}
+              className={`nf-nav-button ${activeTab === tab.id ? "active" : ""}`}
             >
               {tab.label}
             </button>
@@ -187,16 +190,14 @@ export default function NameForgeRemote({
         <div className="nf-api-section">
           <button
             onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-            className={`nf-api-button ${apiKey ? 'active' : ''}`}
+            className={`nf-api-button ${apiKey ? "active" : ""}`}
           >
-            {apiKey ? '✓ API Key Set' : 'Set API Key'}
+            {apiKey ? "✓ API Key Set" : "Set API Key"}
           </button>
           {showApiKeyInput && (
             <div className="nf-api-dropdown">
               <div className="nf-api-dropdown-title">Anthropic API Key</div>
-              <p className="nf-api-dropdown-hint">
-                Required for LLM lexeme generation.
-              </p>
+              <p className="nf-api-dropdown-hint">Required for LLM lexeme generation.</p>
               <input
                 type="password"
                 value={apiKey}
@@ -204,10 +205,7 @@ export default function NameForgeRemote({
                 placeholder="sk-ant-..."
                 className="nf-api-input"
               />
-              <button
-                onClick={() => setShowApiKeyInput(false)}
-                className="nf-api-button active"
-              >
+              <button onClick={() => setShowApiKeyInput(false)} className="nf-api-button active">
                 Done
               </button>
             </div>
@@ -228,7 +226,7 @@ export default function NameForgeRemote({
 
       {/* Main content area */}
       <div className="nf-main">
-        {activeTab === 'workshop' && (
+        {activeTab === "workshop" && (
           <div className="nf-content">
             <EntityWorkspace
               worldSchema={worldSchema}
@@ -245,16 +243,13 @@ export default function NameForgeRemote({
           </div>
         )}
 
-        {activeTab === 'optimizer' && (
+        {activeTab === "optimizer" && (
           <div className="nf-content">
-            <OptimizerWorkshop
-              cultures={cultures}
-              onCulturesChange={handleCulturesChange}
-            />
+            <OptimizerWorkshop cultures={cultures} onCulturesChange={handleCulturesChange} />
           </div>
         )}
 
-        {activeTab === 'generate' && (
+        {activeTab === "generate" && (
           <div className="nf-content">
             <GenerateTab
               worldSchema={worldSchema}
@@ -265,15 +260,15 @@ export default function NameForgeRemote({
           </div>
         )}
 
-        {activeTab === 'coverage' && (
+        {activeTab === "coverage" && (
           <div className="nf-content">
             <ProfileCoverageMatrix
               cultures={cultures}
               worldSchema={worldSchema}
               onNavigateToProfile={(cultureId, profileId) => {
                 setSelectedCulture(cultureId);
-                setWorkspaceTab('profiles');
-                setActiveTab('workshop');
+                setWorkspaceTab("profiles");
+                setActiveTab("workshop");
               }}
             />
           </div>

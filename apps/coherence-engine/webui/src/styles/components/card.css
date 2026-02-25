@@ -226,7 +226,6 @@
   gap: var(--spacing-lg);
 }
 
-
 /* Card stats row */
 .card-stats {
   display: flex;

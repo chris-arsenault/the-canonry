@@ -2,14 +2,14 @@
  * NameForgeHost - Loads and hosts the Name Forge remote module
  */
 
-import React, { Suspense, lazy } from 'react';
-import RemotePlaceholder from './RemotePlaceholder';
-import { colors, typography } from '../theme';
+import React, { Suspense, lazy } from "react";
+import RemotePlaceholder from "./RemotePlaceholder";
+import { colors, typography } from "../theme";
 
 // Lazy load the remote module
 // This will be replaced with actual federation import once name-forge exposes the remote
 const NameForgeRemote = lazy(() =>
-  import('nameForge/NameForgeRemote').catch(() => ({
+  import("nameForge/NameForgeRemote").catch(() => ({
     default: () => (
       <RemotePlaceholder
         name="Name Forge"
@@ -22,14 +22,14 @@ const NameForgeRemote = lazy(() =>
 
 const styles = {
   container: {
-    height: '100%',
-    overflow: 'auto',
+    height: "100%",
+    overflow: "auto",
   },
   loading: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
     color: colors.textMuted,
     fontSize: typography.sizeLg,
     fontFamily: typography.fontFamily,
@@ -37,9 +37,9 @@ const styles = {
 };
 
 const loadingFallback = React.createElement(
-  'div',
+  "div",
   { style: styles.loading },
-  'Loading Name Forge...'
+  "Loading Name Forge..."
 );
 
 export default function NameForgeHost({

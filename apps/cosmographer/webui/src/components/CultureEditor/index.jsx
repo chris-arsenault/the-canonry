@@ -5,158 +5,158 @@
  * contains x, y, z values corresponding to that kind's semantic plane axes.
  */
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from "react";
 
 const styles = {
   container: {
-    maxWidth: '1200px'
+    maxWidth: "1200px",
   },
   header: {
-    marginBottom: '16px'
+    marginBottom: "16px",
   },
   title: {
-    fontSize: '20px',
+    fontSize: "20px",
     fontWeight: 600,
-    marginBottom: '4px'
+    marginBottom: "4px",
   },
   subtitle: {
-    color: '#888',
-    fontSize: '13px'
+    color: "#888",
+    fontSize: "13px",
   },
   cultureList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px'
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
   },
   cultureCard: {
-    backgroundColor: '#16213e',
-    borderRadius: '6px',
-    border: '1px solid #0f3460',
-    overflow: 'hidden'
+    backgroundColor: "#16213e",
+    borderRadius: "6px",
+    border: "1px solid #0f3460",
+    overflow: "hidden",
   },
   cultureHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '10px 14px',
-    cursor: 'pointer'
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "10px 14px",
+    cursor: "pointer",
   },
   cultureHeaderLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px'
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
   },
   expandIcon: {
-    fontSize: '10px',
-    color: '#888',
-    transition: 'transform 0.2s',
-    width: '14px'
+    fontSize: "10px",
+    color: "#888",
+    transition: "transform 0.2s",
+    width: "14px",
   },
   colorDot: {
-    width: '14px',
-    height: '14px',
-    borderRadius: '50%',
-    border: '2px solid #0f3460'
+    width: "14px",
+    height: "14px",
+    borderRadius: "50%",
+    border: "2px solid #0f3460",
   },
   cultureName: {
     fontWeight: 500,
-    fontSize: '14px'
+    fontSize: "14px",
   },
   cultureId: {
-    color: '#666',
-    fontSize: '11px'
+    color: "#666",
+    fontSize: "11px",
   },
   cultureSummary: {
-    fontSize: '11px',
-    color: '#666'
+    fontSize: "11px",
+    color: "#666",
   },
   cultureBody: {
-    padding: '12px',
-    borderTop: '1px solid #0f3460'
+    padding: "12px",
+    borderTop: "1px solid #0f3460",
   },
   kindsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-    gap: '8px'
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+    gap: "8px",
   },
   kindCard: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: '4px',
-    padding: '10px 12px'
+    backgroundColor: "#1a1a2e",
+    borderRadius: "4px",
+    padding: "10px 12px",
   },
   kindHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '8px'
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "8px",
   },
   kindName: {
-    fontSize: '12px',
+    fontSize: "12px",
     fontWeight: 500,
-    color: '#ccc'
+    color: "#ccc",
   },
   kindSummary: {
-    fontSize: '10px',
-    color: '#666'
+    fontSize: "10px",
+    color: "#666",
   },
   axisRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    marginBottom: '4px'
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    marginBottom: "4px",
   },
   axisLabel: {
-    width: '14px',
-    fontSize: '10px',
+    width: "14px",
+    fontSize: "10px",
     fontWeight: 600,
-    color: '#e94560'
+    color: "#e94560",
   },
   tagLabel: {
-    fontSize: '9px',
-    color: '#666',
-    width: '50px',
-    textAlign: 'right',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap'
+    fontSize: "9px",
+    color: "#666",
+    width: "50px",
+    textAlign: "right",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   tagLabelRight: {
-    fontSize: '9px',
-    color: '#666',
-    width: '50px',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap'
+    fontSize: "9px",
+    color: "#666",
+    width: "50px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   slider: {
     flex: 1,
-    height: '4px',
-    WebkitAppearance: 'none',
-    background: 'linear-gradient(to right, #0f3460, #e94560)',
-    borderRadius: '2px',
-    outline: 'none',
-    cursor: 'pointer'
+    height: "4px",
+    WebkitAppearance: "none",
+    background: "linear-gradient(to right, #0f3460, #e94560)",
+    borderRadius: "2px",
+    outline: "none",
+    cursor: "pointer",
   },
   axisValue: {
-    width: '24px',
-    textAlign: 'right',
-    fontSize: '10px',
-    color: '#888',
-    fontFamily: 'monospace'
+    width: "24px",
+    textAlign: "right",
+    fontSize: "10px",
+    color: "#888",
+    fontFamily: "monospace",
   },
   emptyState: {
-    color: '#666',
-    fontSize: '14px',
-    textAlign: 'center',
-    padding: '40px'
+    color: "#666",
+    fontSize: "14px",
+    textAlign: "center",
+    padding: "40px",
   },
   noKindsWarning: {
-    color: '#f0a500',
-    fontSize: '12px',
-    padding: '12px',
-    backgroundColor: 'rgba(240, 165, 0, 0.1)',
-    borderRadius: '4px'
-  }
+    color: "#f0a500",
+    fontSize: "12px",
+    padding: "12px",
+    backgroundColor: "rgba(240, 165, 0, 0.1)",
+    borderRadius: "4px",
+  },
 };
 
 export default function CultureEditor({ project, onSave }) {
@@ -169,11 +169,11 @@ export default function CultureEditor({ project, onSave }) {
   const entityKinds = project?.entityKinds || [];
   const axisDefinitions = project?.axisDefinitions || [];
   const axisById = useMemo(() => {
-    return new Map(axisDefinitions.map(axis => [axis.id, axis]));
+    return new Map(axisDefinitions.map((axis) => [axis.id, axis]));
   }, [axisDefinitions]);
 
   const toggleCulture = (cultureId) => {
-    setExpandedCultures(prev => ({ ...prev, [cultureId]: !prev[cultureId] }));
+    setExpandedCultures((prev) => ({ ...prev, [cultureId]: !prev[cultureId] }));
   };
 
   const updateCultures = (newCultures) => {
@@ -181,15 +181,13 @@ export default function CultureEditor({ project, onSave }) {
   };
 
   const updateCulture = (cultureId, updates) => {
-    const existing = cultures.find(c => c.id === cultureId);
+    const existing = cultures.find((c) => c.id === cultureId);
     if (existing?.isFramework) return;
-    updateCultures(cultures.map(c =>
-      c.id === cultureId ? { ...c, ...updates } : c
-    ));
+    updateCultures(cultures.map((c) => (c.id === cultureId ? { ...c, ...updates } : c)));
   };
 
   const commitAxisBias = (cultureId, kindId, axis, value) => {
-    const culture = cultures.find(c => c.id === cultureId);
+    const culture = cultures.find((c) => c.id === cultureId);
     if (!culture) return;
 
     const kindBiases = culture.axisBiases?.[kindId] || { x: 50, y: 50, z: 50 };
@@ -199,9 +197,9 @@ export default function CultureEditor({ project, onSave }) {
         ...culture.axisBiases,
         [kindId]: {
           ...kindBiases,
-          [axis]: parseInt(value, 10)
-        }
-      }
+          [axis]: parseInt(value, 10),
+        },
+      },
     });
   };
 
@@ -240,7 +238,7 @@ export default function CultureEditor({ project, onSave }) {
 
   const getBiasSummary = (culture) => {
     const biasCount = Object.keys(culture.axisBiases || {}).length;
-    return `${biasCount} kind${biasCount !== 1 ? 's' : ''} configured`;
+    return `${biasCount} kind${biasCount !== 1 ? "s" : ""} configured`;
   };
 
   return (
@@ -264,27 +262,24 @@ export default function CultureEditor({ project, onSave }) {
 
             return (
               <div key={culture.id} style={styles.cultureCard}>
-                <div
-                  style={styles.cultureHeader}
-                  onClick={() => toggleCulture(culture.id)}
-                >
+                <div style={styles.cultureHeader} onClick={() => toggleCulture(culture.id)}>
                   <div style={styles.cultureHeaderLeft}>
-                    <span style={{
-                      ...styles.expandIcon,
-                      transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)'
-                    }}>
+                    <span
+                      style={{
+                        ...styles.expandIcon,
+                        transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                      }}
+                    >
                       ▶
                     </span>
                     <div style={{ ...styles.colorDot, backgroundColor: culture.color }} />
                     <span style={styles.cultureName}>{culture.name}</span>
                     <span style={styles.cultureId}>({culture.id})</span>
                     {isFramework && (
-                      <span style={{ fontSize: '10px', color: '#94a3b8' }}>framework</span>
+                      <span style={{ fontSize: "10px", color: "#94a3b8" }}>framework</span>
                     )}
                   </div>
-                  <div style={styles.cultureSummary}>
-                    {getBiasSummary(culture)}
-                  </div>
+                  <div style={styles.cultureSummary}>{getBiasSummary(culture)}</div>
                 </div>
 
                 {isExpanded && (
@@ -307,20 +302,31 @@ export default function CultureEditor({ project, onSave }) {
                                   {biases.x}/{biases.y}/{biases.z}
                                 </span>
                               </div>
-                              {['x', 'y', 'z'].map((axis) => {
+                              {["x", "y", "z"].map((axis) => {
                                 const axisRef = axes[axis];
-                                const axisConfig = axisRef?.axisId ? axisById.get(axisRef.axisId) : undefined;
-                                const axisPlaceholder = axisRef?.axisId && !axisConfig
-                                  ? `Missing axis (${axisRef.axisId})`
-                                  : 'Unassigned';
+                                const axisConfig = axisRef?.axisId
+                                  ? axisById.get(axisRef.axisId)
+                                  : undefined;
+                                const axisPlaceholder =
+                                  axisRef?.axisId && !axisConfig
+                                    ? `Missing axis (${axisRef.axisId})`
+                                    : "Unassigned";
                                 const storedValue = biases[axis] ?? 50;
-                                const displayValue = getDisplayValue(culture.id, kind.kind, axis, storedValue);
+                                const displayValue = getDisplayValue(
+                                  culture.id,
+                                  kind.kind,
+                                  axis,
+                                  storedValue
+                                );
 
                                 return (
                                   <div key={axis} style={styles.axisRow}>
                                     <span style={styles.axisLabel}>{axis.toUpperCase()}</span>
-                                    <span style={styles.tagLabel} title={axisConfig?.lowTag || axisPlaceholder}>
-                                      {axisConfig?.lowTag || '—'}
+                                    <span
+                                      style={styles.tagLabel}
+                                      title={axisConfig?.lowTag || axisPlaceholder}
+                                    >
+                                      {axisConfig?.lowTag || "—"}
                                     </span>
                                     <input
                                       type="range"
@@ -328,8 +334,22 @@ export default function CultureEditor({ project, onSave }) {
                                       max="100"
                                       value={displayValue}
                                       disabled={isFramework}
-                                      onMouseDown={(e) => handleSliderStart(culture.id, kind.kind, axis, e.target.value)}
-                                      onTouchStart={(e) => handleSliderStart(culture.id, kind.kind, axis, e.target.value)}
+                                      onMouseDown={(e) =>
+                                        handleSliderStart(
+                                          culture.id,
+                                          kind.kind,
+                                          axis,
+                                          e.target.value
+                                        )
+                                      }
+                                      onTouchStart={(e) =>
+                                        handleSliderStart(
+                                          culture.id,
+                                          kind.kind,
+                                          axis,
+                                          e.target.value
+                                        )
+                                      }
                                       onChange={(e) => handleSliderChange(e.target.value)}
                                       onMouseUp={handleSliderEnd}
                                       onTouchEnd={handleSliderEnd}
@@ -339,11 +359,14 @@ export default function CultureEditor({ project, onSave }) {
                                       style={{
                                         ...styles.slider,
                                         opacity: isFramework ? 0.5 : 1,
-                                        pointerEvents: isFramework ? 'none' : 'auto'
+                                        pointerEvents: isFramework ? "none" : "auto",
                                       }}
                                     />
-                                    <span style={styles.tagLabelRight} title={axisConfig?.highTag || axisPlaceholder}>
-                                      {axisConfig?.highTag || '—'}
+                                    <span
+                                      style={styles.tagLabelRight}
+                                      title={axisConfig?.highTag || axisPlaceholder}
+                                    >
+                                      {axisConfig?.highTag || "—"}
                                     </span>
                                     <span style={styles.axisValue}>{displayValue}</span>
                                   </div>

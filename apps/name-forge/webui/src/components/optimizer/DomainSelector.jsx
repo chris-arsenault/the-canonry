@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 /**
  * DomainSelector - Left panel for selecting domains to optimize
@@ -34,8 +34,8 @@ export default function DomainSelector({
       <div className="optimizer-sidebar-list">
         {Object.entries(domainsByCulture).map(([cultureId, { name, domains }]) => {
           const isExpanded = expandedCultures.has(cultureId);
-          const allSelected = domains.every(d => selectedDomains.has(d.id));
-          const someSelected = domains.some(d => selectedDomains.has(d.id));
+          const allSelected = domains.every((d) => selectedDomains.has(d.id));
+          const someSelected = domains.some((d) => selectedDomains.has(d.id));
 
           return (
             <div key={cultureId} className="mb-sm">
@@ -43,28 +43,25 @@ export default function DomainSelector({
                 <input
                   type="checkbox"
                   checked={allSelected}
-                  ref={el => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someSelected && !allSelected;
+                  }}
                   onChange={() => onToggleAllInCulture(cultureId)}
                   onClick={(e) => e.stopPropagation()}
                   className="accent-ice"
                 />
-                <span
-                  onClick={() => onToggleCulture(cultureId)}
-                  className="culture-row-label"
-                >
-                  {isExpanded ? '▼' : '▶'} {name || cultureId}
-                  <span className="text-muted font-normal ml-sm">
-                    ({domains.length})
-                  </span>
+                <span onClick={() => onToggleCulture(cultureId)} className="culture-row-label">
+                  {isExpanded ? "▼" : "▶"} {name || cultureId}
+                  <span className="text-muted font-normal ml-sm">({domains.length})</span>
                 </span>
               </div>
 
               {isExpanded && (
                 <div className="domain-list">
-                  {domains.map(domain => (
+                  {domains.map((domain) => (
                     <div
                       key={domain.id}
-                      className={`domain-row ${selectedDomains.has(domain.id) ? 'selected' : ''}`}
+                      className={`domain-row ${selectedDomains.has(domain.id) ? "selected" : ""}`}
                       onClick={() => onToggleDomain(domain.id)}
                     >
                       <input

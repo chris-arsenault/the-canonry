@@ -8,7 +8,7 @@
  * - Run Selected / Run All buttons
  */
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   buildProminenceScale,
   DEFAULT_PROMINENCE_DISTRIBUTION,
@@ -215,9 +215,7 @@ export default function EnrichmentQueue({
         </div>
 
         {!hasRequiredKeys && (
-          <div className="eq-api-warning">
-            Set API keys in the sidebar to run enrichment tasks
-          </div>
+          <div className="eq-api-warning">Set API keys in the sidebar to run enrichment tasks</div>
         )}
 
         {/* Filters */}

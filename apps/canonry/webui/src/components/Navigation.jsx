@@ -2,20 +2,28 @@
  * Navigation - Tab bar for switching between tools
  */
 
-import React from 'react';
-import { colors, typography, spacing, radius, getAccentColor, getAccentGradient, getHoverBg } from '../theme';
+import React from "react";
+import {
+  colors,
+  typography,
+  spacing,
+  radius,
+  getAccentColor,
+  getAccentGradient,
+  getHoverBg,
+} from "../theme";
 
 const styles = {
   nav: {
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     gap: spacing.xs,
     padding: `${spacing.sm} ${spacing.lg}`,
     backgroundColor: colors.bgSidebar,
     borderBottom: `1px solid ${colors.border}`,
   },
   tabsContainer: {
-    display: 'flex',
+    display: "flex",
     gap: spacing.xs,
     flex: 1,
   },
@@ -24,27 +32,27 @@ const styles = {
     fontSize: typography.sizeLg,
     fontWeight: typography.weightMedium,
     fontFamily: typography.fontFamily,
-    border: 'none',
+    border: "none",
     borderRadius: `${radius.md} ${radius.md} 0 0`,
-    cursor: 'pointer',
-    transition: 'all 0.15s',
+    cursor: "pointer",
+    transition: "all 0.15s",
   },
   tabInactive: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     color: colors.textSecondary,
   },
   tabDisabled: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     color: colors.textMuted,
     opacity: 0.5,
-    cursor: 'not-allowed',
+    cursor: "not-allowed",
   },
   badge: {
     marginLeft: spacing.sm,
     padding: `2px ${spacing.sm}`,
     fontSize: typography.sizeXs,
     backgroundColor: colors.bgTertiary,
-    borderRadius: '10px',
+    borderRadius: "10px",
     color: colors.textMuted,
   },
   helpButton: {
@@ -52,27 +60,27 @@ const styles = {
     fontSize: typography.sizeMd,
     fontWeight: typography.weightMedium,
     fontFamily: typography.fontFamily,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     color: colors.textSecondary,
     border: `1px solid ${colors.border}`,
     borderRadius: radius.md,
-    cursor: 'pointer',
-    transition: 'all 0.15s',
-    display: 'flex',
-    alignItems: 'center',
+    cursor: "pointer",
+    transition: "all 0.15s",
+    display: "flex",
+    alignItems: "center",
     gap: spacing.xs,
   },
 };
 
 const TABS = [
-  { id: 'enumerist', label: 'Enumerist', enabled: true },
-  { id: 'names', label: 'Name Forge', enabled: true },
-  { id: 'cosmography', label: 'Cosmographer', enabled: true },
-  { id: 'coherence', label: 'Coherence Engine', enabled: true },
-  { id: 'simulation', label: 'Lore Weave', enabled: true },
-  { id: 'illuminator', label: 'Illuminator', enabled: true },
-  { id: 'archivist', label: 'Archivist', enabled: true },
-  { id: 'chronicler', label: 'Chronicler', enabled: true },
+  { id: "enumerist", label: "Enumerist", enabled: true },
+  { id: "names", label: "Name Forge", enabled: true },
+  { id: "cosmography", label: "Cosmographer", enabled: true },
+  { id: "coherence", label: "Coherence Engine", enabled: true },
+  { id: "simulation", label: "Lore Weave", enabled: true },
+  { id: "illuminator", label: "Illuminator", enabled: true },
+  { id: "archivist", label: "Archivist", enabled: true },
+  { id: "chronicler", label: "Chronicler", enabled: true },
 ];
 
 export default function Navigation({ activeTab, onTabChange, onHelpClick, onAwsClick }) {
@@ -108,7 +116,7 @@ export default function Navigation({ activeTab, onTabChange, onHelpClick, onAwsC
             }}
             onMouseLeave={(e) => {
               if (tab.enabled && tab.id !== activeTab) {
-                e.target.style.backgroundColor = 'transparent';
+                e.target.style.backgroundColor = "transparent";
                 e.target.style.color = colors.textSecondary;
               }
             }}
@@ -127,7 +135,7 @@ export default function Navigation({ activeTab, onTabChange, onHelpClick, onAwsC
           e.target.style.borderColor = colors.borderLight;
         }}
         onMouseLeave={(e) => {
-          e.target.style.backgroundColor = 'transparent';
+          e.target.style.backgroundColor = "transparent";
           e.target.style.color = colors.textSecondary;
           e.target.style.borderColor = colors.border;
         }}
@@ -144,7 +152,7 @@ export default function Navigation({ activeTab, onTabChange, onHelpClick, onAwsC
           e.target.style.borderColor = colors.borderLight;
         }}
         onMouseLeave={(e) => {
-          e.target.style.backgroundColor = 'transparent';
+          e.target.style.backgroundColor = "transparent";
           e.target.style.color = colors.textSecondary;
           e.target.style.borderColor = colors.border;
         }}

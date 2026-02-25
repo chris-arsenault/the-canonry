@@ -1,5 +1,5 @@
-import type { ChainLinkLore } from '../types/world.ts';
-import './ChainLinkSection.css';
+import type { ChainLinkLore } from "../types/world.ts";
+import "./ChainLinkSection.css";
 
 interface ChainLinkSectionProps {
   lore: ChainLinkLore;
@@ -7,9 +7,9 @@ interface ChainLinkSectionProps {
 
 export default function ChainLinkSection({ lore }: ChainLinkSectionProps) {
   // Parse the text which is formatted as "observation | clue"
-  const parts = lore.text.split('|').map(p => p.trim());
-  const observation = parts[0] || '';
-  const clue = parts[1] || '';
+  const parts = lore.text.split("|").map((p) => p.trim());
+  const observation = parts[0] || "";
+  const clue = parts[1] || "";
 
   return (
     <div className="chain-link-section">
@@ -26,7 +26,9 @@ export default function ChainLinkSection({ lore }: ChainLinkSectionProps) {
 
       <div className="chain-link-theme">
         <span className="chain-link-theme-label">Theme:</span>
-        <span className="chain-link-theme-badge">{lore.metadata.revealedTheme.replace(/_/g, ' ')}</span>
+        <span className="chain-link-theme-badge">
+          {lore.metadata.revealedTheme.replace(/_/g, " ")}
+        </span>
       </div>
 
       <div className="chain-link-content">

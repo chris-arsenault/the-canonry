@@ -108,7 +108,12 @@ async function resolvePerEntityBackportStatus(allContexts, chronicleBackportMap,
   return perEntityStatus;
 }
 
-async function assembleChronicleContext(projectId, simulationRunId, chronicleId, getEntityContextsForRevision) {
+async function assembleChronicleContext(
+  projectId,
+  simulationRunId,
+  chronicleId,
+  getEntityContextsForRevision
+) {
   if (!projectId || !simulationRunId || !chronicleId) return null;
   const chronicle = await getChronicle(chronicleId);
   if (!chronicle?.finalContent) return null;
@@ -118,11 +123,18 @@ async function assembleChronicleContext(projectId, simulationRunId, chronicleId,
   await appendTertiaryContexts(allContexts, chronicle, getEntityContextsForRevision);
   const perspectiveSynthesisJson = buildPerspectiveSynthesisJson(chronicle);
   const chronicleBackportMap = chronicle.entityBackportStatus || {};
-  const perEntityStatus = await resolvePerEntityBackportStatus(allContexts, chronicleBackportMap, chronicleId);
+  const perEntityStatus = await resolvePerEntityBackportStatus(
+    allContexts,
+    chronicleBackportMap,
+    chronicleId
+  );
   return {
-    chronicleId, chronicleTitle: chronicle.title || "Untitled Chronicle",
-    entities: allContexts, chronicleText: chronicle.finalContent,
-    perspectiveSynthesisJson, perEntityStatus,
+    chronicleId,
+    chronicleTitle: chronicle.title || "Untitled Chronicle",
+    entities: allContexts,
+    chronicleText: chronicle.finalContent,
+    perspectiveSynthesisJson,
+    perEntityStatus,
   };
 }
 
@@ -165,21 +177,39 @@ async function getEligibleChronicleIds(simRunId) {
 
 // --- Extracted handler bodies (module-level) ---
 
-function runBackportConfigStart(backportConfig, projectId, simulationRunId, selectedEntityIds, customInstructions, backportSentEntityIdsRef, startBackport, setBackportConfig) {
+function runBackportConfigStart(
+  backportConfig,
+  projectId,
+  simulationRunId,
+  selectedEntityIds,
+  customInstructions,
+  backportSentEntityIdsRef,
+  startBackport,
+  setBackportConfig
+) {
   if (!backportConfig || !projectId || !simulationRunId) return;
   const selectedEntities = backportConfig.entities.filter((e) => selectedEntityIds.includes(e.id));
   if (selectedEntities.length === 0) return;
   backportSentEntityIdsRef.current = selectedEntityIds;
   startBackport({
-    projectId, simulationRunId, chronicleId: backportConfig.chronicleId,
+    projectId,
+    simulationRunId,
+    chronicleId: backportConfig.chronicleId,
     chronicleText: backportConfig.chronicleText,
     perspectiveSynthesisJson: backportConfig.perspectiveSynthesisJson,
-    entities: selectedEntities, customInstructions: customInstructions || undefined,
+    entities: selectedEntities,
+    customInstructions: customInstructions || undefined,
   });
   setBackportConfig(null);
 }
 
-async function runAcceptBackport(backportChronicleId, applyAcceptedBackportPatches, reloadEntities, backportSentEntityIdsRef, setChronicleRefreshTrigger) {
+async function runAcceptBackport(
+  backportChronicleId,
+  applyAcceptedBackportPatches,
+  reloadEntities,
+  backportSentEntityIdsRef,
+  setChronicleRefreshTrigger
+) {
   const cId = backportChronicleId;
   const patches = applyAcceptedBackportPatches();
   if (!patches?.length) return;
@@ -191,7 +221,12 @@ async function runAcceptBackport(backportChronicleId, applyAcceptedBackportPatch
   }
 }
 
-async function runMarkEntityNotNeeded(backportConfig, entityIds, setBackportConfig, setChronicleRefreshTrigger) {
+async function runMarkEntityNotNeeded(
+  backportConfig,
+  entityIds,
+  setBackportConfig,
+  setChronicleRefreshTrigger
+) {
   if (!backportConfig?.chronicleId) return;
   const now = Date.now();
   const entries = entityIds.map((id) => ({ entityId: id, status: "not_needed", updatedAt: now }));
@@ -207,21 +242,38 @@ async function runMarkEntityNotNeeded(backportConfig, entityIds, setBackportConf
 
 // --- Bulk backport helper hook ---
 
-function useBulkBackportSetup({ assembleContextForChronicle, reloadEntities, setChronicleRefreshTrigger, simulationRunId, projectId }) {
-  const applyBulkPatches = useCallback(async (patches, chronicleId, sentEntityIds) => {
-    if (patches.length > 0) {
-      await applyBackportPatches(patches, chronicleId, reloadEntities);
-    }
-    await markEntitiesBackported(chronicleId, sentEntityIds, setChronicleRefreshTrigger);
-  }, [reloadEntities, setChronicleRefreshTrigger]);
+function useBulkBackportSetup({
+  assembleContextForChronicle,
+  reloadEntities,
+  setChronicleRefreshTrigger,
+  simulationRunId,
+  projectId,
+}) {
+  const applyBulkPatches = useCallback(
+    async (patches, chronicleId, sentEntityIds) => {
+      if (patches.length > 0) {
+        await applyBackportPatches(patches, chronicleId, reloadEntities);
+      }
+      await markEntitiesBackported(chronicleId, sentEntityIds, setChronicleRefreshTrigger);
+    },
+    [reloadEntities, setChronicleRefreshTrigger]
+  );
 
-  const bulkBackportDeps = useMemo(() => ({
-    assembleContextForChronicle, applyPatches: applyBulkPatches, getEligibleChronicleIds,
-  }), [assembleContextForChronicle, applyBulkPatches]);
+  const bulkBackportDeps = useMemo(
+    () => ({
+      assembleContextForChronicle,
+      applyPatches: applyBulkPatches,
+      getEligibleChronicleIds,
+    }),
+    [assembleContextForChronicle, applyBulkPatches]
+  );
 
   const {
-    progress: bulkBackportProgress, isActive: isBulkBackportActive,
-    prepareBulkBackport, confirmBulkBackport, cancelBulkBackport,
+    progress: bulkBackportProgress,
+    isActive: isBulkBackportActive,
+    prepareBulkBackport,
+    confirmBulkBackport,
+    cancelBulkBackport,
   } = useBulkBackport(bulkBackportDeps);
 
   const [showBulkBackportModal, setShowBulkBackportModal] = useState(false);
@@ -234,9 +286,14 @@ function useBulkBackportSetup({ assembleContextForChronicle, reloadEntities, set
 
   const handleConfirmBulkBackport = confirmBulkBackport;
 
-  const handleCancelBulkBackport = useCallback(() => { cancelBulkBackport(); setShowBulkBackportModal(false); }, [cancelBulkBackport]);
+  const handleCancelBulkBackport = useCallback(() => {
+    cancelBulkBackport();
+    setShowBulkBackportModal(false);
+  }, [cancelBulkBackport]);
 
-  const handleCloseBulkBackport = useCallback(() => { setShowBulkBackportModal(false); }, []);
+  const handleCloseBulkBackport = useCallback(() => {
+    setShowBulkBackportModal(false);
+  }, []);
 
   useEffect(() => {
     if (showBulkBackportModal && bulkBackportProgress.status === "idle") {
@@ -251,64 +308,141 @@ function useBulkBackportSetup({ assembleContextForChronicle, reloadEntities, set
   }, [showBulkBackportModal, bulkBackportProgress.status]);
 
   return {
-    bulkBackportProgress, isBulkBackportActive, showBulkBackportModal,
-    handleStartBulkBackport, handleConfirmBulkBackport, handleCancelBulkBackport, handleCloseBulkBackport,
+    bulkBackportProgress,
+    isBulkBackportActive,
+    showBulkBackportModal,
+    handleStartBulkBackport,
+    handleConfirmBulkBackport,
+    handleCancelBulkBackport,
+    handleCloseBulkBackport,
   };
 }
 
 // --- Main hook ---
 
 export function useBackportFlow({
-  projectId, simulationRunId,
-  getEntityContextsForRevision, reloadEntities,
+  projectId,
+  simulationRunId,
+  getEntityContextsForRevision,
+  reloadEntities,
   setChronicleRefreshTrigger,
 }) {
   const {
-    run: backportRun, isActive: isBackportActive,
-    chronicleId: backportChronicleId, startBackport,
+    run: backportRun,
+    isActive: isBackportActive,
+    chronicleId: backportChronicleId,
+    startBackport,
     togglePatchDecision: toggleBackportPatchDecision,
     updateAnchorPhrase: updateBackportAnchorPhrase,
-    applyAccepted: applyAcceptedBackportPatches, cancelBackport,
+    applyAccepted: applyAcceptedBackportPatches,
+    cancelBackport,
   } = useChronicleLoreBackport(getEntityContextsForRevision);
 
   const assembleContextForChronicle = useCallback(
-    (chronicleId) => assembleChronicleContext(projectId, simulationRunId, chronicleId, getEntityContextsForRevision),
+    (chronicleId) =>
+      assembleChronicleContext(
+        projectId,
+        simulationRunId,
+        chronicleId,
+        getEntityContextsForRevision
+      ),
     [projectId, simulationRunId, getEntityContextsForRevision]
   );
 
   const [backportConfig, setBackportConfig] = useState(null);
   const backportSentEntityIdsRef = useRef(null);
 
-  const handleBackportLore = useCallback(async (chronicleId) => {
-    const context = await assembleContextForChronicle(chronicleId);
-    if (!context) { console.warn("[Backport] Could not assemble context for chronicle:", chronicleId); return; }
-    setBackportConfig(context);
-  }, [assembleContextForChronicle]);
+  const handleBackportLore = useCallback(
+    async (chronicleId) => {
+      const context = await assembleContextForChronicle(chronicleId);
+      if (!context) {
+        console.warn("[Backport] Could not assemble context for chronicle:", chronicleId);
+        return;
+      }
+      setBackportConfig(context);
+    },
+    [assembleContextForChronicle]
+  );
 
-  const handleBackportConfigStart = useCallback((selectedEntityIds, customInstructions) => {
-    runBackportConfigStart(backportConfig, projectId, simulationRunId, selectedEntityIds, customInstructions, backportSentEntityIdsRef, startBackport, setBackportConfig);
-  }, [backportConfig, projectId, simulationRunId, startBackport]);
+  const handleBackportConfigStart = useCallback(
+    (selectedEntityIds, customInstructions) => {
+      runBackportConfigStart(
+        backportConfig,
+        projectId,
+        simulationRunId,
+        selectedEntityIds,
+        customInstructions,
+        backportSentEntityIdsRef,
+        startBackport,
+        setBackportConfig
+      );
+    },
+    [backportConfig, projectId, simulationRunId, startBackport]
+  );
 
   const handleAcceptBackport = useCallback(async () => {
-    await runAcceptBackport(backportChronicleId, applyAcceptedBackportPatches, reloadEntities, backportSentEntityIdsRef, setChronicleRefreshTrigger);
-  }, [applyAcceptedBackportPatches, backportChronicleId, reloadEntities, setChronicleRefreshTrigger]);
+    await runAcceptBackport(
+      backportChronicleId,
+      applyAcceptedBackportPatches,
+      reloadEntities,
+      backportSentEntityIdsRef,
+      setChronicleRefreshTrigger
+    );
+  }, [
+    applyAcceptedBackportPatches,
+    backportChronicleId,
+    reloadEntities,
+    setChronicleRefreshTrigger,
+  ]);
 
-  const handleMarkEntityNotNeeded = useCallback(async (entityIds) => {
-    await runMarkEntityNotNeeded(backportConfig, entityIds, setBackportConfig, setChronicleRefreshTrigger);
-  }, [backportConfig, setChronicleRefreshTrigger]);
+  const handleMarkEntityNotNeeded = useCallback(
+    async (entityIds) => {
+      await runMarkEntityNotNeeded(
+        backportConfig,
+        entityIds,
+        setBackportConfig,
+        setChronicleRefreshTrigger
+      );
+    },
+    [backportConfig, setChronicleRefreshTrigger]
+  );
 
   const {
-    bulkBackportProgress, isBulkBackportActive, showBulkBackportModal,
-    handleStartBulkBackport, handleConfirmBulkBackport, handleCancelBulkBackport, handleCloseBulkBackport,
-  } = useBulkBackportSetup({ assembleContextForChronicle, reloadEntities, setChronicleRefreshTrigger, simulationRunId, projectId });
+    bulkBackportProgress,
+    isBulkBackportActive,
+    showBulkBackportModal,
+    handleStartBulkBackport,
+    handleConfirmBulkBackport,
+    handleCancelBulkBackport,
+    handleCloseBulkBackport,
+  } = useBulkBackportSetup({
+    assembleContextForChronicle,
+    reloadEntities,
+    setChronicleRefreshTrigger,
+    simulationRunId,
+    projectId,
+  });
 
   return {
-    backportRun, isBackportActive, backportChronicleId,
-    toggleBackportPatchDecision, updateBackportAnchorPhrase, cancelBackport,
-    backportConfig, setBackportConfig, handleBackportLore,
-    handleBackportConfigStart, handleAcceptBackport, handleMarkEntityNotNeeded,
-    bulkBackportProgress, isBulkBackportActive, showBulkBackportModal,
-    handleStartBulkBackport, handleConfirmBulkBackport, handleCancelBulkBackport, handleCloseBulkBackport,
+    backportRun,
+    isBackportActive,
+    backportChronicleId,
+    toggleBackportPatchDecision,
+    updateBackportAnchorPhrase,
+    cancelBackport,
+    backportConfig,
+    setBackportConfig,
+    handleBackportLore,
+    handleBackportConfigStart,
+    handleAcceptBackport,
+    handleMarkEntityNotNeeded,
+    bulkBackportProgress,
+    isBulkBackportActive,
+    showBulkBackportModal,
+    handleStartBulkBackport,
+    handleConfirmBulkBackport,
+    handleCancelBulkBackport,
+    handleCloseBulkBackport,
     assembleContextForChronicle,
   };
 }

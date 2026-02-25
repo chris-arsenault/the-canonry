@@ -22,7 +22,7 @@
   margin-bottom: var(--spacing-lg);
 }
 
-.sectionTitle {
+.section-title {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -32,14 +32,14 @@
   margin-bottom: var(--spacing-xs);
 }
 
-.sectionTitleRow {
+.section-title-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-sm) var(--spacing-md);
 }
 
-.sectionTitleLabel {
+.section-title-label {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -47,7 +47,7 @@
   color: var(--color-accent);
 }
 
-.sectionToggle {
+.section-toggle {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
@@ -57,11 +57,11 @@
   letter-spacing: 0.3px;
 }
 
-.sectionToggle input {
+.section-toggle input {
   accent-color: var(--color-accent);
 }
 
-.sectionTitleCollapsible {
+.section-title-collapsible {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
@@ -79,18 +79,18 @@
   transition: color var(--transition-fast);
 }
 
-.sectionTitleCollapsible:hover {
+.section-title-collapsible:hover {
   color: var(--color-accent-light);
 }
 
-.collapseIcon {
+.collapse-icon {
   font-size: 8px;
   width: 12px;
   display: inline-flex;
   justify-content: center;
 }
 
-.navItem {
+.nav-item {
   display: block;
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
@@ -105,19 +105,19 @@
   line-height: 1.5;
 }
 
-.navItem:hover {
+.nav-item:hover {
   background-color: var(--color-accent-hover);
   color: var(--color-accent);
 }
 
-.navItemActive {
-  composes: navItem;
+.nav-item-active {
+  composes: navitem;
   background-color: var(--color-accent);
   color: var(--color-bg-primary);
   font-weight: var(--font-weight-medium);
 }
 
-.navItemActive:hover {
+.nav-item-active:hover {
   background-color: var(--color-accent);
   color: var(--color-bg-primary);
 }
@@ -128,7 +128,7 @@
   margin-left: var(--spacing-sm);
 }
 
-.badgeActive {
+.badge-active {
   composes: badge;
   color: var(--color-bg-primary);
   opacity: 0.7;
@@ -138,19 +138,19 @@
    Bottom Section
    =================== */
 
-.bottomSection {
+.bottom-section {
   border-top: 1px solid var(--color-border);
   padding: var(--spacing-md);
   background-color: var(--color-bg-sidebar);
 }
 
-.bottomLinks {
+.bottom-links {
   display: flex;
   gap: var(--spacing-sm);
   margin-top: var(--spacing-md);
 }
 
-.bottomLink {
+.bottom-link {
   flex: 1;
   padding: var(--spacing-sm);
   font-size: var(--font-size-sm);
@@ -163,7 +163,7 @@
   transition: all var(--transition-fast);
 }
 
-.bottomLink:hover {
+.bottom-link:hover {
   background-color: var(--color-accent-hover);
   border-color: var(--color-accent);
   color: var(--color-accent);
@@ -173,7 +173,7 @@
    Drawer Header (Mobile)
    =================== */
 
-.drawerHeader {
+.drawer-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -182,14 +182,14 @@
   background-color: var(--color-bg-secondary);
 }
 
-.drawerTitle {
+.drawer-title {
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-md);
   font-family: var(--font-family-display);
   color: var(--color-text-primary);
 }
 
-.drawerClose {
+.drawer-close {
   background: none;
   border: none;
   color: var(--color-text-muted);
@@ -200,7 +200,7 @@
   transition: color var(--transition-fast);
 }
 
-.drawerClose:hover {
+.drawer-close:hover {
   color: var(--color-text-primary);
 }
 
@@ -208,7 +208,7 @@
    Refresh Button
    =================== */
 
-.refreshButton {
+.refresh-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -225,18 +225,18 @@
   transition: all var(--transition-fast);
 }
 
-.refreshButton:hover {
+.refresh-button:hover {
   border-color: var(--color-accent);
   color: var(--color-accent);
   border-style: solid;
 }
 
-.refreshButton:disabled {
+.refresh-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.refreshSpinner {
+.refresh-spinner {
   animation: spin 1s linear infinite;
 }
 
@@ -244,6 +244,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -253,42 +254,42 @@
    Subtext/Meta
    =================== */
 
-.itemMeta {
+.item-meta {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   margin-left: var(--spacing-xs);
 }
 
-.itemMetaHighlight {
-  composes: itemMeta;
+.item-meta-highlight {
+  composes: itemmeta;
   color: var(--color-accent-light);
 }
 
 /* Era sub-section title: smaller, less padding than top-level */
-.eraSectionTitle {
-  composes: sectionTitleCollapsible;
+.era-section-title {
+  composes: sectiontitlecollapsible;
   padding-left: 4px;
   font-size: var(--font-size-sm);
 }
 
 /* Indented sub-items under an era section */
-.navItemIndented {
-  composes: navItem;
+.nav-item-indented {
+  composes: navitem;
   padding-left: 24px;
 }
 
-.navItemIndentedActive {
-  composes: navItemActive;
+.nav-item-indented-active {
+  composes: navitemactive;
   padding-left: 24px;
 }
 
 /* Era narrative item: indented + italic */
-.navItemEraNarrative {
-  composes: navItemIndented;
+.nav-item-era-narrative {
+  composes: navitemindented;
   font-style: italic;
 }
 
-.navItemEraNarrativeActive {
-  composes: navItemIndentedActive;
+.nav-item-era-narrative-active {
+  composes: navitemindentedactive;
   font-style: italic;
 }

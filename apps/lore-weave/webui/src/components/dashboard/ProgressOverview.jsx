@@ -2,8 +2,8 @@
  * ProgressOverview - Shows progress bar and key stats
  */
 
-import React from 'react';
-import StatusBadge from './StatusBadge';
+import React from "react";
+import StatusBadge from "./StatusBadge";
 
 export default function ProgressOverview({ progress, status }) {
   if (!progress) {
@@ -12,7 +12,7 @@ export default function ProgressOverview({ progress, status }) {
         <StatusBadge status={status} />
         <div className="lw-progress-section">
           <div className="lw-progress-bar">
-            <div className="lw-progress-fill" style={{ width: '0%' }} />
+            <div className="lw-progress-fill" style={{ width: "0%" }} />
           </div>
           <div className="lw-progress-text">
             <span>Waiting to start...</span>
@@ -34,15 +34,19 @@ export default function ProgressOverview({ progress, status }) {
   }
 
   // Progress based on completed epochs (0-100%)
-  const epochProgress = progress.totalEpochs > 0
-    ? (progress.epoch / progress.totalEpochs) * 100
-    : 0;
+  const epochProgress =
+    progress.totalEpochs > 0 ? (progress.epoch / progress.totalEpochs) * 100 : 0;
 
-  const percent = status === 'complete' ? 100 :
-    status === 'initializing' ? 0 :
-    status === 'validating' ? 0 :
-    status === 'finalizing' ? 99 :
-    Math.round(epochProgress);
+  const percent =
+    status === "complete"
+      ? 100
+      : status === "initializing"
+        ? 0
+        : status === "validating"
+          ? 0
+          : status === "finalizing"
+            ? 99
+            : Math.round(epochProgress);
 
   return (
     <div className="lw-overview-bar">
@@ -52,7 +56,10 @@ export default function ProgressOverview({ progress, status }) {
           <div className="lw-progress-fill" style={{ width: `${percent}%` }} />
         </div>
         <div className="lw-progress-text">
-          <span>Tick {progress.tick} / {progress.maxTicks} • Epoch {progress.epoch} / {progress.totalEpochs}</span>
+          <span>
+            Tick {progress.tick} / {progress.maxTicks} • Epoch {progress.epoch} /{" "}
+            {progress.totalEpochs}
+          </span>
           <span>{Math.round(percent)}%</span>
         </div>
       </div>

@@ -5,7 +5,7 @@
  * Reads/writes to the pageLayouts table via pageLayoutRepository.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import type {
   PageLayoutOverride,
   LayoutMode,

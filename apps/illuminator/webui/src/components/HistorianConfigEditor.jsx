@@ -5,7 +5,7 @@
  * Configuration is project-level (one historian per world).
  */
 
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import "./HistorianConfigEditor.css";
 
 // ============================================================================
@@ -29,9 +29,7 @@ function TagInput({ value, onChange, placeholder }) {
 
   return (
     <div>
-      <div
-        className={`hce-tag-list${value.length > 0 ? " hce-tag-list--has-items" : ""}`}
-      >
+      <div className={`hce-tag-list${value.length > 0 ? " hce-tag-list-has-items" : ""}`}>
         {value.map((tag, i) => (
           <span key={i} className="hce-tag">
             {tag}
@@ -58,7 +56,7 @@ function TagInput({ value, onChange, placeholder }) {
         <button
           onClick={addTag}
           disabled={!inputValue.trim()}
-          className={`hce-add-btn ${inputValue.trim() ? "hce-add-btn--enabled" : "hce-add-btn--disabled"}`}
+          className={`hce-add-btn ${inputValue.trim() ? "hce-add-btn-enabled" : "hce-add-btn-disabled"}`}
         >
           Add
         </button>
@@ -96,7 +94,7 @@ function ListEditor({ value, onChange, placeholder, itemPlaceholder }) {
           </button>
         </div>
       ))}
-      <div className={`hce-input-row${value.length > 0 ? " hce-input-row--has-items" : ""}`}>
+      <div className={`hce-input-row${value.length > 0 ? " hce-input-row-has-items" : ""}`}>
         <input
           type="text"
           value={inputValue}
@@ -113,7 +111,7 @@ function ListEditor({ value, onChange, placeholder, itemPlaceholder }) {
         <button
           onClick={addItem}
           disabled={!inputValue.trim()}
-          className={`hce-add-btn ${inputValue.trim() ? "hce-add-btn--enabled" : "hce-add-btn--disabled"}`}
+          className={`hce-add-btn ${inputValue.trim() ? "hce-add-btn-enabled" : "hce-add-btn-disabled"}`}
         >
           Add
         </button>
@@ -172,9 +170,7 @@ export default function HistorianConfigEditor({ config, onChange }) {
       {/* Header */}
       <div className="hce-header">
         <div className="hce-header-top">
-          <div className="hce-header-title">
-            Historian Persona
-          </div>
+          <div className="hce-header-title">Historian Persona</div>
           <button
             onClick={() => setReloadStatus("confirm")}
             disabled={reloadStatus === "loading"}
@@ -230,7 +226,7 @@ export default function HistorianConfigEditor({ config, onChange }) {
             value={config.background}
             onChange={(e) => update("background", e.target.value)}
             placeholder="A seasoned archivist who has spent forty years cataloguing the histories of the realm. Has outlived most of the people described in these texts. Still shows up to work."
-            className="hce-textarea hce-textarea--bg"
+            className="hce-textarea hce-textarea-bg"
           />
         </div>
 
@@ -270,7 +266,7 @@ export default function HistorianConfigEditor({ config, onChange }) {
             value={config.stance}
             onChange={(e) => update("stance", e.target.value)}
             placeholder='e.g., "Has read too many of these accounts to be surprised, but still occasionally moved by the human cost of events others reduce to dates and outcomes"'
-            className="hce-textarea hce-textarea--stance"
+            className="hce-textarea hce-textarea-stance"
           />
         </div>
 
@@ -312,9 +308,7 @@ export default function HistorianConfigEditor({ config, onChange }) {
           }}
         >
           <div className="hce-modal-box">
-            <div className="hce-modal-title">
-              Reload from Defaults?
-            </div>
+            <div className="hce-modal-title">Reload from Defaults?</div>
             <div className="hce-modal-body">
               This will overwrite your current historian configuration with the default project
               template. Any edits you've made will be lost.

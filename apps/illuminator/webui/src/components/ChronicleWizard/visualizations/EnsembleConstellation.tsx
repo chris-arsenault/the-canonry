@@ -7,7 +7,7 @@
  * ring color = era, red glow = overused.
  */
 
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import type { EntityContext, RelationshipContext } from "../../../lib/chronicleTypes";
 import type { EntitySelectionMetrics } from "../../../lib/chronicle/selectionWizard";
 

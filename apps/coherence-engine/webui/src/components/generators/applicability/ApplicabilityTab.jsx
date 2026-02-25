@@ -2,10 +2,10 @@
  * ApplicabilityTab - Configure when a generator is eligible to run
  */
 
-import React from 'react';
-import { ApplicabilityRuleCard } from './ApplicabilityRuleCard';
-import { AddRuleButton } from './AddRuleButton';
-import { createNewRule } from './createNewRule';
+import React from "react";
+import { ApplicabilityRuleCard } from "./ApplicabilityRuleCard";
+import { AddRuleButton } from "./AddRuleButton";
+import { createNewRule } from "./createNewRule";
 
 /**
  * @param {Object} props
@@ -45,7 +45,9 @@ export function ApplicabilityTab({ generator, onChange, schema, pressures, eras 
                 newRules[index] = updated;
                 onChange({ ...generator, applicability: newRules });
               }}
-              onRemove={() => onChange({ ...generator, applicability: rules.filter((_, i) => i !== index) })}
+              onRemove={() =>
+                onChange({ ...generator, applicability: rules.filter((_, i) => i !== index) })
+              }
               schema={schema}
               pressures={pressures}
               eras={eras}
@@ -53,10 +55,12 @@ export function ApplicabilityTab({ generator, onChange, schema, pressures, eras 
           ))
         )}
 
-        <AddRuleButton onAdd={(type) => {
-          const newRule = createNewRule(type, pressures);
-          onChange({ ...generator, applicability: [...rules, newRule] });
-        }} />
+        <AddRuleButton
+          onAdd={(type) => {
+            const newRule = createNewRule(type, pressures);
+            onChange({ ...generator, applicability: [...rules, newRule] });
+          }}
+        />
       </div>
     </div>
   );

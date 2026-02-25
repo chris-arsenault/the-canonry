@@ -5,7 +5,8 @@
  * pick a tone before triggering a review. Same historian persona, different mood.
  */
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import PropTypes from "prop-types";
 import "./HistorianToneSelector.css";
 
 // ============================================================================
@@ -107,32 +108,24 @@ export default function HistorianToneSelector({ onSelect, disabled, hasNotes, st
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled}
         title="Select historian tone and generate annotations"
-        className={`htsel-trigger ${disabled ? "htsel-trigger--disabled" : ""}`}
+        className={`htsel-trigger ${disabled ? "htsel-trigger-disabled" : ""}`}
       >
         {label || (hasNotes ? "Re-annotate" : "Historian")} ▾
       </button>
 
       {isOpen && (
         <div className="htsel-dropdown">
-          <div className="htsel-dropdown-header">
-            Historian Tone
-          </div>
+          <div className="htsel-dropdown-header">Historian Tone</div>
           {TONE_OPTIONS.map((option) => (
             <button
               key={option.value}
               onClick={() => handleSelect(option.value)}
               className="htsel-option"
             >
-              <span className="htsel-option-symbol">
-                {option.symbol}
-              </span>
+              <span className="htsel-option-symbol">{option.symbol}</span>
               <div className="htsel-option-content">
-                <div className="htsel-option-label">
-                  {option.label}
-                </div>
-                <div className="htsel-option-description">
-                  {option.description}
-                </div>
+                <div className="htsel-option-label">{option.label}</div>
+                <div className="htsel-option-description">{option.description}</div>
               </div>
             </button>
           ))}
@@ -141,3 +134,11 @@ export default function HistorianToneSelector({ onSelect, disabled, hasNotes, st
     </div>
   );
 }
+
+HistorianToneSelector.propTypes = {
+  onSelect: PropTypes.func,
+  disabled: PropTypes.bool,
+  hasNotes: PropTypes.bool,
+  style: PropTypes.object,
+  label: PropTypes.string,
+};

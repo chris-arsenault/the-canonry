@@ -12,188 +12,191 @@
  * see the Coherence Engine tab in the main navigation.
  */
 
-import React, { useMemo } from 'react';
-import { validateAllConfigs, formatValidationResult } from '../../../../lib/engine/configSchemaValidator';
+import React, { useMemo } from "react";
+import {
+  validateAllConfigs,
+  formatValidationResult,
+} from "../../../../lib/engine/configSchemaValidator";
 
 const styles = {
   container: {
-    padding: '24px',
-    height: '100%',
-    overflow: 'auto',
+    padding: "24px",
+    height: "100%",
+    overflow: "auto",
   },
   header: {
-    marginBottom: '24px',
+    marginBottom: "24px",
   },
   title: {
-    fontSize: '24px',
+    fontSize: "24px",
     fontWeight: 600,
-    color: 'var(--lw-text)',
-    marginBottom: '8px',
+    color: "var(--lw-text)",
+    marginBottom: "8px",
   },
   subtitle: {
-    fontSize: '14px',
-    color: 'var(--lw-text-muted)',
+    fontSize: "14px",
+    color: "var(--lw-text-muted)",
   },
   statusBanner: {
-    padding: '16px 20px',
-    borderRadius: '8px',
-    marginBottom: '24px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
+    padding: "16px 20px",
+    borderRadius: "8px",
+    marginBottom: "24px",
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
   },
   statusValid: {
-    backgroundColor: 'rgba(74, 222, 128, 0.15)',
-    border: '1px solid rgba(74, 222, 128, 0.3)',
+    backgroundColor: "rgba(74, 222, 128, 0.15)",
+    border: "1px solid rgba(74, 222, 128, 0.3)",
   },
   statusInvalid: {
-    backgroundColor: 'rgba(248, 113, 113, 0.15)',
-    border: '1px solid rgba(248, 113, 113, 0.3)',
+    backgroundColor: "rgba(248, 113, 113, 0.15)",
+    border: "1px solid rgba(248, 113, 113, 0.3)",
   },
   statusIcon: {
-    fontSize: '24px',
+    fontSize: "24px",
   },
   statusText: {
     flex: 1,
   },
   statusTitle: {
     fontWeight: 600,
-    marginBottom: '4px',
+    marginBottom: "4px",
   },
   statusSubtitle: {
-    fontSize: '13px',
-    color: 'var(--lw-text-muted)',
+    fontSize: "13px",
+    color: "var(--lw-text-muted)",
   },
   section: {
-    marginBottom: '24px',
+    marginBottom: "24px",
   },
   sectionTitle: {
-    fontSize: '16px',
+    fontSize: "16px",
     fontWeight: 600,
-    color: 'var(--lw-text)',
-    marginBottom: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
+    color: "var(--lw-text)",
+    marginBottom: "12px",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
   },
   sectionCount: {
-    fontSize: '12px',
-    padding: '2px 8px',
-    borderRadius: '12px',
-    backgroundColor: 'var(--lw-bg-tertiary)',
+    fontSize: "12px",
+    padding: "2px 8px",
+    borderRadius: "12px",
+    backgroundColor: "var(--lw-bg-tertiary)",
   },
   errorList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
   },
   errorCard: {
-    backgroundColor: 'var(--lw-bg-secondary)',
-    borderRadius: '8px',
-    border: '1px solid var(--lw-border)',
-    overflow: 'hidden',
+    backgroundColor: "var(--lw-bg-secondary)",
+    borderRadius: "8px",
+    border: "1px solid var(--lw-border)",
+    overflow: "hidden",
   },
   errorHeader: {
-    padding: '12px 16px',
-    backgroundColor: 'rgba(248, 113, 113, 0.1)',
-    borderBottom: '1px solid var(--lw-border)',
+    padding: "12px 16px",
+    backgroundColor: "rgba(248, 113, 113, 0.1)",
+    borderBottom: "1px solid var(--lw-border)",
   },
   errorPath: {
-    fontFamily: 'monospace',
-    fontSize: '13px',
-    color: 'var(--lw-danger)',
-    marginBottom: '4px',
+    fontFamily: "monospace",
+    fontSize: "13px",
+    color: "var(--lw-danger)",
+    marginBottom: "4px",
   },
   errorMessage: {
-    fontSize: '14px',
+    fontSize: "14px",
     fontWeight: 500,
   },
   errorBody: {
-    padding: '12px 16px',
+    padding: "12px 16px",
   },
   errorRow: {
-    display: 'flex',
-    marginBottom: '8px',
-    fontSize: '13px',
+    display: "flex",
+    marginBottom: "8px",
+    fontSize: "13px",
   },
   errorLabel: {
-    width: '80px',
-    color: 'var(--lw-text-muted)',
+    width: "80px",
+    color: "var(--lw-text-muted)",
     flexShrink: 0,
   },
   errorValue: {
-    fontFamily: 'monospace',
-    backgroundColor: 'var(--lw-bg-tertiary)',
-    padding: '2px 6px',
-    borderRadius: '4px',
-    fontSize: '12px',
-    wordBreak: 'break-all',
+    fontFamily: "monospace",
+    backgroundColor: "var(--lw-bg-tertiary)",
+    padding: "2px 6px",
+    borderRadius: "4px",
+    fontSize: "12px",
+    wordBreak: "break-all",
   },
   suggestion: {
-    marginTop: '12px',
-    padding: '12px',
-    backgroundColor: 'rgba(108, 155, 255, 0.1)',
-    borderRadius: '6px',
-    borderLeft: '3px solid var(--lw-accent)',
+    marginTop: "12px",
+    padding: "12px",
+    backgroundColor: "rgba(108, 155, 255, 0.1)",
+    borderRadius: "6px",
+    borderLeft: "3px solid var(--lw-accent)",
   },
   suggestionLabel: {
-    fontSize: '11px',
+    fontSize: "11px",
     fontWeight: 600,
-    color: 'var(--lw-accent)',
-    marginBottom: '4px',
-    textTransform: 'uppercase',
+    color: "var(--lw-accent)",
+    marginBottom: "4px",
+    textTransform: "uppercase",
   },
   suggestionText: {
-    fontSize: '13px',
-    color: 'var(--lw-text)',
+    fontSize: "13px",
+    color: "var(--lw-text)",
   },
   warningCard: {
-    backgroundColor: 'var(--lw-bg-secondary)',
-    borderRadius: '8px',
-    border: '1px solid var(--lw-border)',
-    overflow: 'hidden',
+    backgroundColor: "var(--lw-bg-secondary)",
+    borderRadius: "8px",
+    border: "1px solid var(--lw-border)",
+    overflow: "hidden",
   },
   warningHeader: {
-    padding: '12px 16px',
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    borderBottom: '1px solid var(--lw-border)',
+    padding: "12px 16px",
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    borderBottom: "1px solid var(--lw-border)",
   },
   warningPath: {
-    fontFamily: 'monospace',
-    fontSize: '13px',
-    color: 'var(--lw-warning)',
-    marginBottom: '4px',
+    fontFamily: "monospace",
+    fontSize: "13px",
+    color: "var(--lw-warning)",
+    marginBottom: "4px",
   },
   emptyState: {
-    textAlign: 'center',
-    padding: '48px 24px',
-    color: 'var(--lw-text-muted)',
+    textAlign: "center",
+    padding: "48px 24px",
+    color: "var(--lw-text-muted)",
   },
   emptyIcon: {
-    fontSize: '48px',
-    marginBottom: '16px',
+    fontSize: "48px",
+    marginBottom: "16px",
   },
   stats: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-    gap: '12px',
-    marginTop: '24px',
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+    gap: "12px",
+    marginTop: "24px",
   },
   statCard: {
-    backgroundColor: 'var(--lw-bg-secondary)',
-    padding: '16px',
-    borderRadius: '8px',
-    border: '1px solid var(--lw-border)',
+    backgroundColor: "var(--lw-bg-secondary)",
+    padding: "16px",
+    borderRadius: "8px",
+    border: "1px solid var(--lw-border)",
   },
   statValue: {
-    fontSize: '24px',
+    fontSize: "24px",
     fontWeight: 600,
-    color: 'var(--lw-text)',
+    color: "var(--lw-text)",
   },
   statLabel: {
-    fontSize: '12px',
-    color: 'var(--lw-text-muted)',
-    marginTop: '4px',
+    fontSize: "12px",
+    color: "var(--lw-text-muted)",
+    marginTop: "4px",
   },
 };
 
@@ -255,9 +258,9 @@ export default function ValidationPanel({
   // Run validation
   const validationResult = useMemo(() => {
     // Extract culture/entity/relationship IDs from schema
-    const cultures = schema?.cultures?.map(c => c.id) || [];
-    const entityKinds = schema?.entityKinds?.map(k => k.kind) || [];
-    const relationshipKinds = schema?.relationshipKinds?.map(k => k.kind) || [];
+    const cultures = schema?.cultures?.map((c) => c.id) || [];
+    const entityKinds = schema?.entityKinds?.map((k) => k.kind) || [];
+    const relationshipKinds = schema?.relationshipKinds?.map((k) => k.kind) || [];
 
     const result = validateAllConfigs({
       templates: generators,
@@ -283,23 +286,27 @@ export default function ValidationPanel({
       <div style={styles.header}>
         <h1 style={styles.title}>Structure Validation</h1>
         <p style={styles.subtitle}>
-          Validates JSON config structure (types, required fields, shapes). This is a hard gate before simulation.
-          For semantic validation (references, balance, orphans), see the Coherence Engine tab.
+          Validates JSON config structure (types, required fields, shapes). This is a hard gate
+          before simulation. For semantic validation (references, balance, orphans), see the
+          Coherence Engine tab.
         </p>
       </div>
 
       {/* Status Banner */}
-      <div style={{
-        ...styles.statusBanner,
-        ...(valid ? styles.statusValid : styles.statusInvalid),
-      }}>
-        <span style={styles.statusIcon}>{valid ? '✓' : '✗'}</span>
+      <div
+        style={{
+          ...styles.statusBanner,
+          ...(valid ? styles.statusValid : styles.statusInvalid),
+        }}
+      >
+        <span style={styles.statusIcon}>{valid ? "✓" : "✗"}</span>
         <div style={styles.statusText}>
           <div style={styles.statusTitle}>
-            {valid ? 'Configuration is valid' : 'Configuration has errors'}
+            {valid ? "Configuration is valid" : "Configuration has errors"}
           </div>
           <div style={styles.statusSubtitle}>
-            {errors.length} error{errors.length !== 1 ? 's' : ''}, {warnings.length} warning{warnings.length !== 1 ? 's' : ''}
+            {errors.length} error{errors.length !== 1 ? "s" : ""}, {warnings.length} warning
+            {warnings.length !== 1 ? "s" : ""}
           </div>
         </div>
       </div>
@@ -309,7 +316,13 @@ export default function ValidationPanel({
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>
             Errors
-            <span style={{ ...styles.sectionCount, backgroundColor: 'rgba(248, 113, 113, 0.2)', color: 'var(--lw-danger)' }}>
+            <span
+              style={{
+                ...styles.sectionCount,
+                backgroundColor: "rgba(248, 113, 113, 0.2)",
+                color: "var(--lw-danger)",
+              }}
+            >
               {errors.length}
             </span>
           </h2>
@@ -326,7 +339,13 @@ export default function ValidationPanel({
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>
             Warnings
-            <span style={{ ...styles.sectionCount, backgroundColor: 'rgba(245, 158, 11, 0.2)', color: 'var(--lw-warning)' }}>
+            <span
+              style={{
+                ...styles.sectionCount,
+                backgroundColor: "rgba(245, 158, 11, 0.2)",
+                color: "var(--lw-warning)",
+              }}
+            >
               {warnings.length}
             </span>
           </h2>

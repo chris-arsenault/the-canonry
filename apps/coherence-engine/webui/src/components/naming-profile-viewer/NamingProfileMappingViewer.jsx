@@ -7,9 +7,9 @@
  * 3. Warnings for gaps where naming may fail (no matching profile)
  */
 
-import React, { useState, useMemo } from 'react';
-import './naming-profile-viewer.css';
-import { analyzeNamingMappings } from './utils';
+import React, { useState, useMemo } from "react";
+import "./naming-profile-viewer.css";
+import { analyzeNamingMappings } from "./utils";
 
 export default function NamingProfileMappingViewer({ generators = [], schema = {} }) {
   const [showInherited, setShowInherited] = useState(false);
@@ -38,10 +38,12 @@ export default function NamingProfileMappingViewer({ generators = [], schema = {
   // Filter warnings - show all by default, but can filter to just explicit cultures
   const displayWarnings = showInherited
     ? warnings
-    : warnings.filter(w => w.cultureSource === 'explicit' || w.reason === 'No matching strategy group');
+    : warnings.filter(
+        (w) => w.cultureSource === "explicit" || w.reason === "No matching strategy group"
+      );
 
-  const successCount = mappings.filter(m => m.match).length;
-  const warningCount = warnings.filter(w => w.reason === 'No matching strategy group').length;
+  const successCount = mappings.filter((m) => m.match).length;
+  const warningCount = warnings.filter((w) => w.reason === "No matching strategy group").length;
 
   if (mappings.length === 0) {
     return (
@@ -70,7 +72,11 @@ export default function NamingProfileMappingViewer({ generators = [], schema = {
             <span>matched</span>
           </div>
           <div className="naming-profile-stat-item">
-            <span className={`naming-profile-stat-value ${warningCount > 0 ? 'text-danger' : 'text-muted'}`}>{warningCount}</span>
+            <span
+              className={`naming-profile-stat-value ${warningCount > 0 ? "text-danger" : "text-muted"}`}
+            >
+              {warningCount}
+            </span>
             <span>missing</span>
           </div>
           <label className="cursor-pointer flex items-center gap-xs">
@@ -94,17 +100,23 @@ export default function NamingProfileMappingViewer({ generators = [], schema = {
             </div>
             <div className="naming-profile-warning-list">
               {displayWarnings.slice(0, 10).map((w, i) => (
-                <div key={`${w.generatorId}-${w.cultureId}-${i}`} className="naming-profile-warning-item">
+                <div
+                  key={`${w.generatorId}-${w.cultureId}-${i}`}
+                  className="naming-profile-warning-item"
+                >
                   <span className="naming-profile-warning-icon">!</span>
                   <span>
                     <strong>{w.generatorName}</strong> creates <strong>{w.entityKind}</strong>
-                    {w.subtype && `:${w.subtype}`} for culture <strong>{w.cultureName}</strong>
-                    {' '}- {w.reason}
+                    {w.subtype && `:${w.subtype}`} for culture <strong>{w.cultureName}</strong> -{" "}
+                    {w.reason}
                   </span>
                 </div>
               ))}
               {displayWarnings.length > 10 && (
-                <div className="text-muted" style={{ padding: 'var(--spacing-md) var(--spacing-lg)' }}>
+                <div
+                  className="text-muted"
+                  style={{ padding: "var(--spacing-md) var(--spacing-lg)" }}
+                >
                   ... and {displayWarnings.length - 10} more
                 </div>
               )}
@@ -131,50 +143,63 @@ export default function NamingProfileMappingViewer({ generators = [], schema = {
                 // Filter items based on showInherited toggle
                 const filteredItems = showInherited
                   ? group.items
-                  : group.items.filter(m => m.cultureSource === 'explicit' || m.cultureSource === 'any');
+                  : group.items.filter(
+                      (m) => m.cultureSource === "explicit" || m.cultureSource === "any"
+                    );
                 // If no explicit cultures, show first inherited one as representative
-                const displayItems = filteredItems.length > 0
-                  ? filteredItems
-                  : group.items.slice(0, 1);
+                const displayItems =
+                  filteredItems.length > 0 ? filteredItems : group.items.slice(0, 1);
                 return displayItems.map((m, idx) => (
-                    <tr
-                      key={`${m.generatorId}-${m.cultureId}-${m.entityKind}-${idx}`}
-                      className={`naming-profile-table-row ${(!m.match && m.hasNamingProfile) ? 'naming-profile-warning-row' : ''}`}
-                    >
-                      <td className="naming-profile-table-cell naming-profile-generator-cell">
-                        {idx === 0 ? m.generatorName : ''}
-                      </td>
-                      <td className="naming-profile-table-cell">
-                        <span className="naming-profile-kind-badge">{m.entityKind}</span>
-                        {m.subtype && <span className="naming-profile-kind-badge" style={{ backgroundColor: 'transparent' }}>{m.subtype}</span>}
-                      </td>
-                      <td className="naming-profile-table-cell">
-                        <div className="naming-profile-culture-cell">
-                          <span className="naming-profile-culture-dot" style={{ backgroundColor: m.cultureColor }} />
-                          <span>{m.cultureName}</span>
-                          {m.cultureSource === 'inherited' && (
-                            <span className="naming-profile-badge naming-profile-badge-inherited">inherited</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="naming-profile-table-cell">
-                        {m.match ? (
-                          <span className="naming-profile-badge naming-profile-badge-match">
-                            {m.match.profileName || m.match.profileId}
-                            {m.match.groupName && ` / ${m.match.groupName}`}
-                          </span>
-                        ) : !m.hasNamingProfile ? (
-                          <span className="naming-profile-badge naming-profile-badge-missing">
-                            No profiles configured
-                          </span>
-                        ) : (
-                          <span className="naming-profile-badge naming-profile-badge-missing">
-                            No matching group
+                  <tr
+                    key={`${m.generatorId}-${m.cultureId}-${m.entityKind}-${idx}`}
+                    className={`naming-profile-table-row ${!m.match && m.hasNamingProfile ? "naming-profile-warning-row" : ""}`}
+                  >
+                    <td className="naming-profile-table-cell naming-profile-generator-cell">
+                      {idx === 0 ? m.generatorName : ""}
+                    </td>
+                    <td className="naming-profile-table-cell">
+                      <span className="naming-profile-kind-badge">{m.entityKind}</span>
+                      {m.subtype && (
+                        <span
+                          className="naming-profile-kind-badge"
+                          style={{ backgroundColor: "transparent" }}
+                        >
+                          {m.subtype}
+                        </span>
+                      )}
+                    </td>
+                    <td className="naming-profile-table-cell">
+                      <div className="naming-profile-culture-cell">
+                        <span
+                          className="naming-profile-culture-dot"
+                          style={{ backgroundColor: m.cultureColor }}
+                        />
+                        <span>{m.cultureName}</span>
+                        {m.cultureSource === "inherited" && (
+                          <span className="naming-profile-badge naming-profile-badge-inherited">
+                            inherited
                           </span>
                         )}
-                      </td>
-                    </tr>
-                  ));
+                      </div>
+                    </td>
+                    <td className="naming-profile-table-cell">
+                      {m.match ? (
+                        <span className="naming-profile-badge naming-profile-badge-match">
+                          {m.match.profileName || m.match.profileId}
+                          {m.match.groupName && ` / ${m.match.groupName}`}
+                        </span>
+                      ) : !m.hasNamingProfile ? (
+                        <span className="naming-profile-badge naming-profile-badge-missing">
+                          No profiles configured
+                        </span>
+                      ) : (
+                        <span className="naming-profile-badge naming-profile-badge-missing">
+                          No matching group
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ));
               })}
             </tbody>
           </table>

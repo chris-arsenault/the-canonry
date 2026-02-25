@@ -6,7 +6,7 @@
  * enrichment queue (so it appears in Activity panel).
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   getPalette,
   exportPalettes,

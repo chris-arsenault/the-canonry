@@ -8,7 +8,7 @@
  * - Accept/cancel controls
  */
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "./DynamicsGenerationModal.css";
 
 // ============================================================================
@@ -41,17 +41,13 @@ function MessageBubble({ message }) {
   }
 
   return (
-    <div
-      className={`dgm-bubble ${isAssistant ? "dgm-bubble--assistant" : "dgm-bubble--user"}`}
-    >
+    <div className={`dgm-bubble ${isAssistant ? "dgm-bubble-assistant" : "dgm-bubble-user"}`}>
       <div
-        className={`dgm-bubble-role ${isAssistant ? "dgm-bubble-role--assistant" : "dgm-bubble-role--user"}`}
+        className={`dgm-bubble-role ${isAssistant ? "dgm-bubble-role-assistant" : "dgm-bubble-role-user"}`}
       >
         {isAssistant ? "Assistant" : "You"}
       </div>
-      <div className="dgm-bubble-content">
-        {isAssistant ? reasoning : message.content}
-      </div>
+      <div className="dgm-bubble-content">{isAssistant ? reasoning : message.content}</div>
     </div>
   );
 }
@@ -65,9 +61,7 @@ function ProposedDynamicsList({ dynamics }) {
 
   return (
     <div className="dgm-proposed">
-      <div className="dgm-proposed-heading">
-        Proposed Dynamics ({dynamics.length})
-      </div>
+      <div className="dgm-proposed-heading">Proposed Dynamics ({dynamics.length})</div>
       {dynamics.map((d, i) => (
         <div key={i} className="dgm-proposed-item">
           <div>{d.text}</div>
@@ -148,9 +142,7 @@ export default function DynamicsGenerationModal({
           </div>
           <div className="dgm-header-actions">
             {run.totalActualCost > 0 && (
-              <span className="dgm-cost">
-                ${run.totalActualCost.toFixed(4)}
-              </span>
+              <span className="dgm-cost">${run.totalActualCost.toFixed(4)}</span>
             )}
             <button
               onClick={onCancel}
@@ -167,17 +159,9 @@ export default function DynamicsGenerationModal({
             <MessageBubble key={i} message={msg} />
           ))}
 
-          {isGenerating && (
-            <div className="dgm-generating">
-              Generating...
-            </div>
-          )}
+          {isGenerating && <div className="dgm-generating">Generating...</div>}
 
-          {isFailed && (
-            <div className="dgm-failed">
-              {run.error || "Generation failed"}
-            </div>
-          )}
+          {isFailed && <div className="dgm-failed">{run.error || "Generation failed"}</div>}
 
           {/* Proposed dynamics inside scrollable area */}
           {isReviewable && run.proposedDynamics && (

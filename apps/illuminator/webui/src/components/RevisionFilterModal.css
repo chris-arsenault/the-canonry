@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgb(0 0 0 / 60%);
 }
 
 .rfm-dialog {
@@ -16,7 +16,7 @@
   border: 1px solid var(--border-color);
   width: 440px;
   max-width: 95vw;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
 }
 
 /* Header */
@@ -58,15 +58,15 @@
   font-weight: 600;
 }
 
-.rfm-count-value--warning {
+.rfm-count-value-warning {
   color: var(--warning-color, #f59e0b);
 }
 
-.rfm-count-value--muted {
+.rfm-count-value-muted {
   color: var(--text-muted);
 }
 
-.rfm-count-label--total {
+.rfm-count-label-total {
   font-weight: 600;
 }
 

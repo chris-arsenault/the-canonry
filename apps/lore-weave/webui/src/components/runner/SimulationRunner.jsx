@@ -2,23 +2,23 @@
  * SimulationRunner - Runs the Lore Weave simulation
  */
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { SimulationDashboard } from '../dashboard';
-import DebugSettingsModal from '../DebugSettingsModal';
-import ParameterForm from './ParameterForm';
-import RunControls from './RunControls';
-import ConfigViewer from './ConfigViewer';
-import JSZip from 'jszip';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { SimulationDashboard } from "../dashboard";
+import DebugSettingsModal from "../DebugSettingsModal";
+import ParameterForm from "./ParameterForm";
+import RunControls from "./RunControls";
+import ConfigViewer from "./ConfigViewer";
+import JSZip from "jszip";
 
-const DEBUG_MODAL_PREFIX = 'loreweave:debugModal:';
+const DEBUG_MODAL_PREFIX = "loreweave:debugModal:";
 
 // Infrastructure systems excluded from validity checking
 // These are framework systems that don't represent domain-specific behavior
 const INFRASTRUCTURE_SYSTEMS = new Set([
-  'era_spawner',           // Only fires at tick 0
-  'era_transition',        // Always fires on era changes
-  'universal_catalyst',    // Always fires (action selection infrastructure)
-  'relationship_maintenance', // Cleanup system
+  "era_spawner", // Only fires at tick 0
+  "era_transition", // Always fires on era changes
+  "universal_catalyst", // Always fires (action selection infrastructure)
+  "relationship_maintenance", // Cleanup system
 ]);
 
 const RUN_SCORE_WEIGHTS = {
@@ -28,11 +28,11 @@ const RUN_SCORE_WEIGHTS = {
 };
 
 function countEnabled(items) {
-  return (items || []).filter(item => item.enabled !== false).length;
+  return (items || []).filter((item) => item.enabled !== false).length;
 }
 
 function loadStoredBoolean(key) {
-  if (!key || typeof localStorage === 'undefined') return false;
+  if (!key || typeof localStorage === "undefined") return false;
   try {
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) === true : false;
@@ -42,7 +42,7 @@ function loadStoredBoolean(key) {
 }
 
 function saveStoredBoolean(key, value) {
-  if (!key || typeof localStorage === 'undefined') return;
+  if (!key || typeof localStorage === "undefined") return;
   try {
     if (value) {
       localStorage.setItem(key, JSON.stringify(true));
@@ -62,17 +62,17 @@ function getUnusedSystems(narrativeHistory, systems) {
   // Get all system IDs that fired (from narrative events)
   const systemsUsed = new Set(
     (narrativeHistory || [])
-      .filter(e => e.id?.startsWith('sys-'))
-      .map(e => {
+      .filter((e) => e.id?.startsWith("sys-"))
+      .map((e) => {
         // Extract system ID from "sys-{systemId}-{tick}" or "sys-{systemId}:{entityId}-{tick}"
         // Remove "sys-" prefix
         const withoutPrefix = e.id.slice(4);
         // Remove "-{tick}" suffix (last hyphen and everything after)
-        const lastHyphen = withoutPrefix.lastIndexOf('-');
+        const lastHyphen = withoutPrefix.lastIndexOf("-");
         if (lastHyphen === -1) return null;
         const withoutTick = withoutPrefix.slice(0, lastHyphen);
         // If there's a colon, take only the system ID (before colon)
-        const colonIndex = withoutTick.indexOf(':');
+        const colonIndex = withoutTick.indexOf(":");
         if (colonIndex !== -1) {
           return withoutTick.slice(0, colonIndex);
         }
@@ -83,12 +83,12 @@ function getUnusedSystems(narrativeHistory, systems) {
 
   // Get all enabled system IDs (excluding infrastructure)
   const allSystemIds = (systems || [])
-    .filter(s => s.enabled !== false)
-    .map(s => s.config?.id || s.systemType)
-    .filter(id => id && !INFRASTRUCTURE_SYSTEMS.has(id));
+    .filter((s) => s.enabled !== false)
+    .map((s) => s.config?.id || s.systemType)
+    .filter((id) => id && !INFRASTRUCTURE_SYSTEMS.has(id));
 
   // Return systems that never fired
-  return allSystemIds.filter(id => !systemsUsed.has(id));
+  return allSystemIds.filter((id) => !systemsUsed.has(id));
 }
 
 export default function SimulationRunner({
@@ -132,7 +132,9 @@ export default function SimulationRunner({
     enabled: false,
     enabledCategories: [],
   });
-  const debugModalKey = projectId ? `${DEBUG_MODAL_PREFIX}${projectId}` : `${DEBUG_MODAL_PREFIX}global`;
+  const debugModalKey = projectId
+    ? `${DEBUG_MODAL_PREFIX}${projectId}`
+    : `${DEBUG_MODAL_PREFIX}global`;
   const [showDebugModal, setShowDebugModal] = useState(() => loadStoredBoolean(debugModalKey));
 
   useEffect(() => {
@@ -154,18 +156,19 @@ export default function SimulationRunner({
     abort: abortWorker,
     clearLogs: workerClearLogs,
     isRunning: workerIsRunning,
-    isPaused: workerIsPaused
+    isPaused: workerIsPaused,
   } = simulationWorker;
 
   // Use external state if provided and worker is idle
-  const simState = (workerSimState.status === 'idle' && externalSimulationState)
-    ? externalSimulationState
-    : workerSimState;
+  const simState =
+    workerSimState.status === "idle" && externalSimulationState
+      ? externalSimulationState
+      : workerSimState;
 
   // Sync worker state changes to external state
   const prevStatusRef = React.useRef(workerSimState.status);
   useEffect(() => {
-    if (onSimulationStateChange && workerSimState.status !== 'idle') {
+    if (onSimulationStateChange && workerSimState.status !== "idle") {
       if (prevStatusRef.current !== workerSimState.status) {
         prevStatusRef.current = workerSimState.status;
         onSimulationStateChange(workerSimState);
@@ -183,20 +186,20 @@ export default function SimulationRunner({
 
   // Handle completion
   useEffect(() => {
-    if (simState.status === 'complete' && simState.result) {
+    if (simState.status === "complete" && simState.result) {
       onComplete(simState.result);
     }
   }, [simState.status, simState.result, onComplete]);
 
   // Run scoring: templates fired (high), actions completed (med), systems executed (low)
   const runValidity = useMemo(() => {
-    if (simState.status !== 'complete') {
+    if (simState.status !== "complete") {
       return {
         score: 0,
         maxScore: 0,
         scoreBreakdown: null,
         reachedFinalEra: false,
-        unusedSystems: []
+        unusedSystems: [],
       };
     }
 
@@ -211,10 +214,9 @@ export default function SimulationRunner({
     // Check systems fired (derived from narrativeHistory)
     const unusedSystems = getUnusedSystems(simState.result?.narrativeHistory, systems);
     const totalSystems = (systems || [])
-      .filter(s => s.enabled !== false)
-      .map(s => s.config?.id || s.systemType)
-      .filter(id => id && !INFRASTRUCTURE_SYSTEMS.has(id))
-      .length;
+      .filter((s) => s.enabled !== false)
+      .map((s) => s.config?.id || s.systemType)
+      .filter((id) => id && !INFRASTRUCTURE_SYSTEMS.has(id)).length;
     const systemsUsed = Math.max(totalSystems - unusedSystems.length, 0);
 
     // Check if we reached the final era
@@ -223,12 +225,14 @@ export default function SimulationRunner({
     const currentEraId = simState.currentEpoch?.era?.id;
     const reachedFinalEra = finalEraId && currentEraId === finalEraId;
 
-    const score = (templatesUsed * RUN_SCORE_WEIGHTS.templates)
-      + (actionsUsed * RUN_SCORE_WEIGHTS.actions)
-      + (systemsUsed * RUN_SCORE_WEIGHTS.systems);
-    const maxScore = (totalTemplates * RUN_SCORE_WEIGHTS.templates)
-      + (totalActions * RUN_SCORE_WEIGHTS.actions)
-      + (totalSystems * RUN_SCORE_WEIGHTS.systems);
+    const score =
+      templatesUsed * RUN_SCORE_WEIGHTS.templates +
+      actionsUsed * RUN_SCORE_WEIGHTS.actions +
+      systemsUsed * RUN_SCORE_WEIGHTS.systems;
+    const maxScore =
+      totalTemplates * RUN_SCORE_WEIGHTS.templates +
+      totalActions * RUN_SCORE_WEIGHTS.actions +
+      totalSystems * RUN_SCORE_WEIGHTS.systems;
 
     return {
       score,
@@ -251,9 +255,19 @@ export default function SimulationRunner({
         },
       },
       unusedSystems,
-      reachedFinalEra
+      reachedFinalEra,
     };
-  }, [simState.status, simState.templateUsage, simState.catalystStats, simState.result, simState.currentEpoch, eras, systems, generators, actions]);
+  }, [
+    simState.status,
+    simState.templateUsage,
+    simState.catalystStats,
+    simState.result,
+    simState.currentEpoch,
+    eras,
+    systems,
+    generators,
+    actions,
+  ]);
 
   // Run Until Valid state
   const [validityAttempts, setValidityAttempts] = useState(0);
@@ -270,9 +284,9 @@ export default function SimulationRunner({
       schema,
       eras,
       pressures: pressures,
-      templates: (generators || []).filter(g => g.enabled !== false),
-      systems: (systems || []).filter(s => s.enabled !== false),
-      actions: (actions || []).filter(a => a.enabled !== false),
+      templates: (generators || []).filter((g) => g.enabled !== false),
+      systems: (systems || []).filter((s) => s.enabled !== false),
+      actions: (actions || []).filter((a) => a.enabled !== false),
       ticksPerEpoch: params.ticksPerEpoch,
       maxEpochs: params.maxEpochs,
       maxTicks: params.maxTicks,
@@ -289,7 +303,18 @@ export default function SimulationRunner({
         minSignificance: params.narrativeMinSignificance,
       },
     };
-  }, [schema, eras, pressures, generators, systems, actions, params, seedRelationships, distributionTargets, debugConfig]);
+  }, [
+    schema,
+    eras,
+    pressures,
+    generators,
+    systems,
+    actions,
+    params,
+    seedRelationships,
+    distributionTargets,
+    debugConfig,
+  ]);
 
   // Run simulation
   const runSimulation = useCallback(() => {
@@ -332,7 +357,7 @@ export default function SimulationRunner({
   // Effect to handle "run until valid" loop and store run data
   useEffect(() => {
     if (!runUntilValidRef.current) return;
-    if (simState.status !== 'complete') return;
+    if (simState.status !== "complete") return;
     if (!simState.result) return; // Wait for result to be fully populated
 
     // Store this run's data for analysis - match canonry-slot export format
@@ -341,11 +366,11 @@ export default function SimulationRunner({
       runScore: runValidity.score,
       runScoreMax: runValidity.maxScore,
       runScoreDetails: runValidity.scoreBreakdown,
-      finalEra: simState.currentEpoch?.era?.id || 'unknown',
-      finalEraName: simState.currentEpoch?.era?.name || 'Unknown',
+      finalEra: simState.currentEpoch?.era?.id || "unknown",
+      finalEraName: simState.currentEpoch?.era?.name || "Unknown",
       reachedFinalEra: runValidity.reachedFinalEra,
-      unusedTemplates: simState.templateUsage?.unusedTemplates?.map(t => t.templateId) || [],
-      unusedActions: simState.catalystStats?.unusedActions?.map(a => a.actionId) || [],
+      unusedTemplates: simState.templateUsage?.unusedTemplates?.map((t) => t.templateId) || [],
+      unusedActions: simState.catalystStats?.unusedActions?.map((a) => a.actionId) || [],
       unusedSystems: runValidity.unusedSystems || [],
       entityCount: simState.result?.hardState?.length || 0,
       relationshipCount: simState.result?.relationships?.length || 0,
@@ -354,7 +379,7 @@ export default function SimulationRunner({
       simulationState: simState,
     };
 
-    setValidityRunData(prev => [...prev, runData]);
+    setValidityRunData((prev) => [...prev, runData]);
     if (onSearchRunScored) {
       onSearchRunScored({
         attempt: runData.attempt,
@@ -386,14 +411,27 @@ export default function SimulationRunner({
     // Schedule next run (start() already clears previous state)
     const timeoutId = setTimeout(() => {
       if (runUntilValidRef.current) {
-        setValidityAttempts(prev => prev + 1);
+        setValidityAttempts((prev) => prev + 1);
         const initialEntities = seedEntities || [];
         startWorker(engineConfig, initialEntities);
       }
     }, 100); // Small delay to allow UI to update
 
     return () => clearTimeout(timeoutId);
-  }, [simState.status, simState.result, simState.currentEpoch, simState.templateUsage, simState.catalystStats, runValidity, validityAttempts, params.maxValidityAttempts, engineConfig, seedEntities, startWorker, onSearchRunScored]);
+  }, [
+    simState.status,
+    simState.result,
+    simState.currentEpoch,
+    simState.templateUsage,
+    simState.catalystStats,
+    runValidity,
+    validityAttempts,
+    params.maxValidityAttempts,
+    engineConfig,
+    seedEntities,
+    startWorker,
+    onSearchRunScored,
+  ]);
 
   // Generate failure analysis report
   const validityReport = useMemo(() => {
@@ -411,7 +449,7 @@ export default function SimulationRunner({
         bestScoreMax: bestRun?.runScoreMax ?? null,
         bestAttempt: bestRun?.attempt || null,
       },
-      runs: validityRunData.map(run => ({
+      runs: validityRunData.map((run) => ({
         attempt: run.attempt,
         runScore: run.runScore,
         runScoreMax: run.runScoreMax,
@@ -428,25 +466,25 @@ export default function SimulationRunner({
         relationshipCount: run.relationshipCount,
       })),
       failureAnalysis: {
-        eraFailures: validityRunData.filter(r => !r.reachedFinalEra).length,
-        templateFailures: validityRunData.filter(r => r.unusedTemplates.length > 0).length,
-        actionFailures: validityRunData.filter(r => r.unusedActions.length > 0).length,
-        systemFailures: validityRunData.filter(r => r.unusedSystems.length > 0).length,
+        eraFailures: validityRunData.filter((r) => !r.reachedFinalEra).length,
+        templateFailures: validityRunData.filter((r) => r.unusedTemplates.length > 0).length,
+        actionFailures: validityRunData.filter((r) => r.unusedActions.length > 0).length,
+        systemFailures: validityRunData.filter((r) => r.unusedSystems.length > 0).length,
         // Aggregate which templates/actions/systems failed most often
         templateFailureCounts: validityRunData.reduce((acc, run) => {
-          run.unusedTemplates.forEach(t => {
+          run.unusedTemplates.forEach((t) => {
             acc[t] = (acc[t] || 0) + 1;
           });
           return acc;
         }, {}),
         actionFailureCounts: validityRunData.reduce((acc, run) => {
-          run.unusedActions.forEach(a => {
+          run.unusedActions.forEach((a) => {
             acc[a] = (acc[a] || 0) + 1;
           });
           return acc;
         }, {}),
         systemFailureCounts: validityRunData.reduce((acc, run) => {
-          run.unusedSystems.forEach(s => {
+          run.unusedSystems.forEach((s) => {
             acc[s] = (acc[s] || 0) + 1;
           });
           return acc;
@@ -465,7 +503,7 @@ export default function SimulationRunner({
     validityRunData.forEach((run) => {
       if (run.simulationResults) {
         const slotPayload = {
-          format: 'canonry-slot-export',
+          format: "canonry-slot-export",
           version: 1,
           exportedAt: new Date().toISOString(),
           slot: {
@@ -486,12 +524,12 @@ export default function SimulationRunner({
     });
 
     // Add the analysis report
-    zip.file('validity-report.json', JSON.stringify(validityReport, null, 2));
+    zip.file("validity-report.json", JSON.stringify(validityReport, null, 2));
 
     // Generate and download
-    const blob = await zip.generateAsync({ type: 'blob' });
+    const blob = await zip.generateAsync({ type: "blob" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `validity-search-${validityRunData.length}-runs.zip`;
     a.click();
@@ -499,23 +537,22 @@ export default function SimulationRunner({
   }, [validityReport, validityRunData]);
 
   const handleParamChange = (field, value) => {
-    setParams(prev => ({ ...prev, [field]: value }));
+    setParams((prev) => ({ ...prev, [field]: value }));
   };
 
   // Show dashboard when running or has data
-  const showDashboard = workerIsRunning ||
+  const showDashboard =
+    workerIsRunning ||
     workerIsPaused ||
-    simState.status === 'complete' ||
-    simState.status === 'error' ||
+    simState.status === "complete" ||
+    simState.status === "error" ||
     simState.logs.length > 0;
 
   return (
     <div className="lw-container">
       <div className="lw-header">
         <h1 className="lw-title">Run Simulation</h1>
-        <p className="lw-subtitle">
-          Configure and run the world generation simulation
-        </p>
+        <p className="lw-subtitle">Configure and run the world generation simulation</p>
       </div>
 
       {!validation.isValid && (
@@ -533,7 +570,10 @@ export default function SimulationRunner({
 
       {/* Parameters Card */}
       <div className="lw-card">
-        <div className="lw-card-header" style={{ marginBottom: (workerIsRunning && !workerIsPaused) ? 0 : '16px' }}>
+        <div
+          className="lw-card-header"
+          style={{ marginBottom: workerIsRunning && !workerIsPaused ? 0 : "16px" }}
+        >
           <div className="lw-card-title" style={{ marginBottom: 0 }}>
             Simulation Parameters
           </div>
@@ -563,9 +603,7 @@ export default function SimulationRunner({
           </div>
         </div>
 
-        {!workerIsRunning && (
-          <ParameterForm params={params} onParamChange={handleParamChange} />
-        )}
+        {!workerIsRunning && <ParameterForm params={params} onParamChange={handleParamChange} />}
 
         {!workerIsRunning && (
           <ConfigViewer
@@ -577,12 +615,7 @@ export default function SimulationRunner({
       </div>
 
       {/* Simulation Dashboard */}
-      {showDashboard && (
-        <SimulationDashboard
-          simState={simState}
-          onClearLogs={clearLogs}
-        />
-      )}
+      {showDashboard && <SimulationDashboard simState={simState} onClearLogs={clearLogs} />}
 
       {/* Debug Settings Modal */}
       <DebugSettingsModal

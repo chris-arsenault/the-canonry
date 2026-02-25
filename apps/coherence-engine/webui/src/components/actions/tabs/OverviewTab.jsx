@@ -2,21 +2,19 @@
  * OverviewTab - Basic information for an action
  */
 
-import React from 'react';
-import { useLocalInputState, LocalTextArea } from '../../shared';
+import React from "react";
+import { useLocalInputState, LocalTextArea } from "../../shared";
 
 export function OverviewTab({ action, onChange, onDelete }) {
   const updateAction = (field, value) => {
     onChange({ ...action, [field]: value });
   };
 
-  const [localId, setLocalId, handleIdBlur] = useLocalInputState(
-    action.id,
-    (value) => updateAction('id', value)
+  const [localId, setLocalId, handleIdBlur] = useLocalInputState(action.id, (value) =>
+    updateAction("id", value)
   );
-  const [localName, setLocalName, handleNameBlur] = useLocalInputState(
-    action.name,
-    (value) => updateAction('name', value)
+  const [localName, setLocalName, handleNameBlur] = useLocalInputState(action.name, (value) =>
+    updateAction("name", value)
   );
 
   const isEnabled = action.enabled !== false;
@@ -51,8 +49,8 @@ export function OverviewTab({ action, onChange, onDelete }) {
           <div className="form-group form-group-wide">
             <label className="label">Description</label>
             <LocalTextArea
-              value={action.description || ''}
-              onChange={(value) => updateAction('description', value)}
+              value={action.description || ""}
+              onChange={(value) => updateAction("description", value)}
               placeholder="What does this action do?"
             />
           </div>
@@ -65,7 +63,7 @@ export function OverviewTab({ action, onChange, onDelete }) {
           <input
             type="checkbox"
             checked={isEnabled}
-            onChange={(e) => updateAction('enabled', e.target.checked)}
+            onChange={(e) => updateAction("enabled", e.target.checked)}
             className="checkbox"
           />
           Action Enabled

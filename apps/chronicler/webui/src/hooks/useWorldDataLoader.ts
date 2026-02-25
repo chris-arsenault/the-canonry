@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { WorldState } from "../types/world.ts";
 import { buildWorldStateForSlot } from "@penguin-tales/world-store";
 import { IndexedDBBackend, useNarrativeStore } from "@penguin-tales/narrative-store";
@@ -22,7 +22,7 @@ function resolveEffectiveState(
   preloadedWorldData: WorldState | null | undefined,
   worldDataState: WorldState | null,
   loading: boolean,
-  loadError: string | null,
+  loadError: string | null
 ): WorldDataLoaderResult {
   if (!projectId) {
     return { worldData: null, loading: false, loadError: null };
@@ -47,8 +47,12 @@ export default function useWorldDataLoader({
   const hasPreloadedWorld = preloadedWorldData !== undefined;
 
   const effective = resolveEffectiveState(
-    projectId, hasPreloadedWorld, preloadedWorldData,
-    worldDataState, loading, loadError,
+    projectId,
+    hasPreloadedWorld,
+    preloadedWorldData,
+    worldDataState,
+    loading,
+    loadError
   );
   const simulationRunId = effective.worldData?.metadata?.simulationRunId ?? null;
 

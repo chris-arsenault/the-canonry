@@ -7,7 +7,7 @@
  * - Alignment (left / right)
  */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useImageUrls } from "../hooks/useImageUrl";
 import { getChronicle } from "../lib/db/chronicleRepository";
 import "./BackrefImageEditor.css";
@@ -105,7 +105,7 @@ function ImageThumbnail({ imageId, imageUrls, selected, onClick, label }) {
     <button
       onClick={onClick}
       title={label}
-      className={`bie-thumbnail ${selected ? "bie-thumbnail--selected" : "bie-thumbnail--unselected"} ${url ? "bie-thumbnail--has-image" : "bie-thumbnail--placeholder"}`}
+      className={`bie-thumbnail ${selected ? "bie-thumbnail-selected" : "bie-thumbnail-unselected"} ${url ? "bie-thumbnail-has-image" : "bie-thumbnail-placeholder"}`}
     >
       {url ? (
         <img src={url} alt={label} className="bie-thumbnail-img" />
@@ -210,7 +210,7 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
             <button
               onClick={handleSelectNone}
               title="No image"
-              className={`bie-none-btn ${isNone ? "bie-none-btn--selected" : "bie-none-btn--unselected"}`}
+              className={`bie-none-btn ${isNone ? "bie-none-btn-selected" : "bie-none-btn-unselected"}`}
             >
               None
             </button>
@@ -252,13 +252,13 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
             <label className="bie-control-label">Align</label>
             <button
               onClick={() => handleAlignmentChange("left")}
-              className={`bie-align-btn bie-align-btn--left ${currentAlignment === "left" ? "bie-align-btn--active" : "bie-align-btn--inactive"}`}
+              className={`bie-align-btn bie-align-btn-left ${currentAlignment === "left" ? "bie-align-btn-active" : "bie-align-btn-inactive"}`}
             >
               Left
             </button>
             <button
               onClick={() => handleAlignmentChange("right")}
-              className={`bie-align-btn bie-align-btn--right ${currentAlignment === "right" ? "bie-align-btn--active" : "bie-align-btn--inactive"}`}
+              className={`bie-align-btn bie-align-btn-right ${currentAlignment === "right" ? "bie-align-btn-active" : "bie-align-btn-inactive"}`}
             >
               Right
             </button>
@@ -359,7 +359,9 @@ export default function BackrefImageEditor({
   if (backrefs.length === 0) return null;
 
   const rowsContent = (
-    <div className={alwaysExpanded ? "bie-rows-container--expanded" : "bie-rows-container--collapsed"}>
+    <div
+      className={alwaysExpanded ? "bie-rows-container-expanded" : "bie-rows-container-collapsed"}
+    >
       {backrefs.map((backref, i) => (
         <BackrefRow
           key={`${backref.chronicleId}-${i}`}
@@ -385,7 +387,9 @@ export default function BackrefImageEditor({
   return (
     <div className="bie-wrapper">
       <button onClick={() => setExpanded(!expanded)} className="bie-toggle-btn">
-        <span className={`bie-toggle-arrow ${expanded ? "bie-toggle-arrow--expanded" : "bie-toggle-arrow--collapsed"}`}>
+        <span
+          className={`bie-toggle-arrow ${expanded ? "bie-toggle-arrow-expanded" : "bie-toggle-arrow-collapsed"}`}
+        >
           ▶
         </span>
         <span className="bie-toggle-label">Chronicle Images ({backrefs.length})</span>

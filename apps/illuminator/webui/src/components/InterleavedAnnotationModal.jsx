@@ -5,7 +5,8 @@
  * Confirmation shows grouped work list: chronicles with entity clusters indented below.
  */
 
-import { useEffect } from "react";
+import React, { useEffect } from "react";
+import PropTypes from "prop-types";
 import { TONE_META } from "./HistorianToneSelector";
 import { useFloatingPillStore } from "../lib/db/floatingPillStore";
 import "./InterleavedAnnotationModal.css";
@@ -55,7 +56,7 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
       <div
         className="iam-dialog"
         // eslint-disable-next-line local/no-inline-styles -- dynamic dialog width based on phase
-        style={{ '--iam-dialog-width': isConfirming ? '560px' : '480px' }}
+        style={{ "--iam-dialog-width": isConfirming ? "560px" : "480px" }}
       >
         {/* Header */}
         <div className="iam-header">
@@ -89,7 +90,16 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
               <span
                 className="iam-status-text"
                 // eslint-disable-next-line local/no-inline-styles -- dynamic status color based on progress.status
-                style={{ '--iam-status-color': progress.status === "complete" ? "#10b981" : progress.status === "failed" ? "#ef4444" : progress.status === "cancelled" ? "#f59e0b" : "var(--text-muted)" }}
+                style={{
+                  "--iam-status-color":
+                    progress.status === "complete"
+                      ? "#10b981"
+                      : progress.status === "failed"
+                        ? "#ef4444"
+                        : progress.status === "cancelled"
+                          ? "#f59e0b"
+                          : "var(--text-muted)",
+                }}
               >
                 {isConfirming && `${progress.totalItems} items`}
                 {progress.status === "running" &&
@@ -103,7 +113,7 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
         </div>
 
         {/* Body */}
-        <div className={`iam-body ${isConfirming ? 'iam-body--confirming' : 'iam-body--processing'}`}>
+        <div className={`iam-body ${isConfirming ? "iam-body-confirming" : "iam-body-processing"}`}>
           {/* ---- Confirmation screen ---- */}
           {isConfirming && (
             <>
@@ -118,9 +128,7 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
 
               {/* Work list — grouped */}
               <div className="iam-worklist-section">
-                <div className="iam-section-label">
-                  Work List
-                </div>
+                <div className="iam-section-label">Work List</div>
 
                 <div className="iam-worklist">
                   {progress.workItems.map((item) => {
@@ -129,25 +137,24 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
                     return (
                       <div
                         key={isChronicle ? `c-${item.chronicleId}` : `e-${item.entityId}`}
-                        className={`iam-work-item ${isChronicle ? 'iam-work-item--chronicle' : 'iam-work-item--entity'}`}
+                        className={`iam-work-item ${isChronicle ? "iam-work-item-chronicle" : "iam-work-item-entity"}`}
                       >
                         <div className="iam-work-item-left">
-                          <span className={`iam-work-item-icon ${isChronicle ? 'iam-work-item-icon--chronicle' : 'iam-work-item-icon--entity'}`}>
+                          <span
+                            className={`iam-work-item-icon ${isChronicle ? "iam-work-item-icon-chronicle" : "iam-work-item-icon-entity"}`}
+                          >
                             {isChronicle ? "\u25a0" : "\u25cb"}
                           </span>
-                          <span className={`iam-work-item-name ${isChronicle ? 'iam-work-item-name--chronicle' : 'iam-work-item-name--entity'}`}>
+                          <span
+                            className={`iam-work-item-name ${isChronicle ? "iam-work-item-name-chronicle" : "iam-work-item-name-entity"}`}
+                          >
                             {isChronicle ? item.title : item.entityName}
                           </span>
                           {!isChronicle && (
-                            <span className="iam-work-item-kind">
-                              {item.entityKind}
-                            </span>
+                            <span className="iam-work-item-kind">{item.entityKind}</span>
                           )}
                         </div>
-                        <span
-                          className="iam-work-item-tone"
-                          title={toneMeta?.label || item.tone}
-                        >
+                        <span className="iam-work-item-tone" title={toneMeta?.label || item.tone}>
                           {toneMeta?.symbol || item.tone}
                         </span>
                       </div>
@@ -167,9 +174,7 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
                     Item {Math.min(progress.processedItems + 1, progress.totalItems)} /{" "}
                     {progress.totalItems}
                   </span>
-                  <span className="iam-progress-percent">
-                    {globalPercent}%
-                  </span>
+                  <span className="iam-progress-percent">{globalPercent}%</span>
                 </div>
 
                 {/* Progress bar */}
@@ -177,7 +182,15 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
                   <div
                     className="iam-progress-fill"
                     // eslint-disable-next-line local/no-inline-styles -- dynamic progress width and color from JS variables
-                    style={{ '--iam-progress-bg': progress.status === "failed" ? "#ef4444" : progress.status === "cancelled" ? "#f59e0b" : "#10b981", '--iam-progress-width': `${globalPercent}%` }}
+                    style={{
+                      "--iam-progress-bg":
+                        progress.status === "failed"
+                          ? "#ef4444"
+                          : progress.status === "cancelled"
+                            ? "#f59e0b"
+                            : "#10b981",
+                      "--iam-progress-width": `${globalPercent}%`,
+                    }}
                   />
                 </div>
 
@@ -197,7 +210,9 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
               {progress.currentItem && !isTerminal && (
                 <div className="iam-current-item">
                   <div className="iam-current-item-header">
-                    <span className={`iam-current-item-icon ${progress.currentItem.type === "chronicle" ? 'iam-work-item-icon--chronicle' : 'iam-work-item-icon--entity'}`}>
+                    <span
+                      className={`iam-current-item-icon ${progress.currentItem.type === "chronicle" ? "iam-work-item-icon-chronicle" : "iam-work-item-icon-entity"}`}
+                    >
                       {progress.currentItem.type === "chronicle" ? "\u25a0" : "\u25cb"}
                     </span>
                     {progress.currentItem.type === "chronicle"
@@ -223,7 +238,10 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
                   Annotated {progress.processedChronicles} chronicles and{" "}
                   {progress.processedEntities} entities.
                   {progress.failedItems.length > 0 && (
-                    <span className="iam-failed-inline"> {progress.failedItems.length} failed.</span>
+                    <span className="iam-failed-inline">
+                      {" "}
+                      {progress.failedItems.length} failed.
+                    </span>
                   )}
                 </div>
               )}
@@ -244,9 +262,7 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
               {/* Failed items list */}
               {isTerminal && progress.failedItems.length > 0 && (
                 <div className="iam-failed-section">
-                  <div className="iam-failed-label">
-                    Failed ({progress.failedItems.length})
-                  </div>
+                  <div className="iam-failed-label">Failed ({progress.failedItems.length})</div>
                   {progress.failedItems.map((f, i) => (
                     <div key={i} className="iam-failed-item">
                       {f.item.type === "chronicle" ? f.item.title : f.item.entityName}: {f.error}
@@ -257,9 +273,7 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
 
               {/* Cost */}
               {progress.totalCost > 0 && (
-                <div className="iam-cost">
-                  Cost: ${progress.totalCost.toFixed(4)}
-                </div>
+                <div className="iam-cost">Cost: ${progress.totalCost.toFixed(4)}</div>
               )}
             </>
           )}
@@ -269,10 +283,7 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
         <div className="iam-footer">
           {isConfirming && (
             <>
-              <button
-                onClick={onCancel}
-                className="illuminator-button iam-footer-btn"
-              >
+              <button onClick={onCancel} className="illuminator-button iam-footer-btn">
                 Cancel
               </button>
               <button
@@ -284,18 +295,12 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
             </>
           )}
           {!isConfirming && !isTerminal && (
-            <button
-              onClick={onCancel}
-              className="illuminator-button iam-footer-btn"
-            >
+            <button onClick={onCancel} className="illuminator-button iam-footer-btn">
               Cancel
             </button>
           )}
           {isTerminal && (
-            <button
-              onClick={onClose}
-              className="illuminator-button iam-footer-btn"
-            >
+            <button onClick={onClose} className="illuminator-button iam-footer-btn">
               Close
             </button>
           )}

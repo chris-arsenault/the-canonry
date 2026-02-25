@@ -3,11 +3,8 @@
 /* Overlay backdrop */
 .benm-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgb(0 0 0 / 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -23,7 +20,7 @@
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
 }
 
 /* Header */
@@ -146,15 +143,15 @@
   line-height: 1;
 }
 
-.benm-tone-btn--default {
+.benm-tone-btn-default {
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
 }
 
-.benm-tone-btn--selected {
+.benm-tone-btn-selected {
   border: 1px solid #8b7355;
-  background: rgba(139, 115, 85, 0.15);
+  background: rgb(139 115 85 / 15%);
   color: #8b7355;
 }
 
@@ -195,15 +192,15 @@
   transition: width 0.3s ease;
 }
 
-.benm-progress-fill--complete {
+.benm-progress-fill-complete {
   background: #10b981;
 }
 
-.benm-progress-fill--failed {
+.benm-progress-fill-failed {
   background: #ef4444;
 }
 
-.benm-progress-fill--cancelled {
+.benm-progress-fill-cancelled {
   background: #f59e0b;
 }
 
@@ -318,19 +315,19 @@
   font-size: 12px;
 }
 
-.benm-terminal-msg--complete {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+.benm-terminal-msg-complete {
+  background: rgb(16 185 129 / 10%);
+  border: 1px solid rgb(16 185 129 / 20%);
 }
 
-.benm-terminal-msg--cancelled {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+.benm-terminal-msg-cancelled {
+  background: rgb(245 158 11 / 10%);
+  border: 1px solid rgb(245 158 11 / 20%);
 }
 
-.benm-terminal-msg--failed {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+.benm-terminal-msg-failed {
+  background: rgb(239 68 68 / 10%);
+  border: 1px solid rgb(239 68 68 / 20%);
 }
 
 /* Cost + words */

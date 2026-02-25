@@ -5,7 +5,8 @@
  * Manages page CRUD operations via staticPageStorage.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import PropTypes from "prop-types";
 import StaticPageEditor from "./StaticPageEditor";
 import {
   getStaticPagesForProject,
@@ -161,3 +162,7 @@ export default function StaticPagesPanel({ projectId }) {
     </div>
   );
 }
+
+StaticPagesPanel.propTypes = {
+  projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+};

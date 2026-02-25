@@ -4,7 +4,14 @@
  * Provides state and actions for all wizard steps.
  */
 
-import { createContext, useContext, useReducer, ReactNode, useMemo, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  ReactNode,
+  useMemo,
+  useCallback,
+} from "react";
 import type {
   NarrativeStyle,
   EntityKindDefinition,

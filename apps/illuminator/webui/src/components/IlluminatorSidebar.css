@@ -6,11 +6,11 @@
   font-size: 10px;
 }
 
-.isb-badge--running {
+.isb-badge-running {
   background: #f59e0b;
 }
 
-.isb-badge--errored {
+.isb-badge-errored {
   background: #ef4444;
 }
 

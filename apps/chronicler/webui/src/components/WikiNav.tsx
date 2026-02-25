@@ -6,7 +6,7 @@
  * - Search, Home, Random at bottom
  */
 
-import { useState } from "react";
+import React, { useState } from "react";
 import type { WikiPage, WikiCategory } from "../types/world.ts";
 import WikiSearch from "./WikiSearch.tsx";
 import styles from "./WikiNav.module.css";
@@ -243,7 +243,11 @@ export default function WikiNav({
                           const isActive = currentPageId === narrativePage.id;
                           return (
                             <button
-                              className={isActive ? styles.navItemEraNarrativeActive : styles.navItemEraNarrative}
+                              className={
+                                isActive
+                                  ? styles.navItemEraNarrativeActive
+                                  : styles.navItemEraNarrative
+                              }
                               onClick={() => onNavigate(narrativePage.id)}
                             >
                               Era Narrative
@@ -252,7 +256,9 @@ export default function WikiNav({
                         })()}
                       <button
                         className={
-                          currentPageId === eraAllId ? styles.navItemIndentedActive : styles.navItemIndented
+                          currentPageId === eraAllId
+                            ? styles.navItemIndentedActive
+                            : styles.navItemIndented
                         }
                         onClick={() => onNavigate(eraAllId)}
                       >
@@ -266,7 +272,9 @@ export default function WikiNav({
                       {era.stories.length > 0 && (
                         <button
                           className={
-                            currentPageId === eraStoriesId ? styles.navItemIndentedActive : styles.navItemIndented
+                            currentPageId === eraStoriesId
+                              ? styles.navItemIndentedActive
+                              : styles.navItemIndented
                           }
                           onClick={() => onNavigate(eraStoriesId)}
                         >
@@ -283,7 +291,9 @@ export default function WikiNav({
                       {era.documents.length > 0 && (
                         <button
                           className={
-                            currentPageId === eraDocsId ? styles.navItemIndentedActive : styles.navItemIndented
+                            currentPageId === eraDocsId
+                              ? styles.navItemIndentedActive
+                              : styles.navItemIndented
                           }
                           onClick={() => onNavigate(eraDocsId)}
                         >

@@ -2,13 +2,13 @@
  * PressuresEditor - Main component for editing pressure configurations
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { PressureCard } from './cards';
-import { buildStorageKey, clearStoredValue, loadStoredValue } from '../../utils/persistence';
+import React, { useState, useCallback, useEffect, useRef } from "react";
+import { PressureCard } from "./cards";
+import { buildStorageKey, clearStoredValue, loadStoredValue } from "../../utils/persistence";
 
 export default function PressuresEditor({ projectId, pressures = [], onChange, schema, usageMap }) {
   const [expandedPressure, setExpandedPressure] = useState(null);
-  const factorModalKey = buildStorageKey(projectId, 'pressures:factorModal');
+  const factorModalKey = buildStorageKey(projectId, "pressures:factorModal");
   const restoredRef = useRef(false);
 
   useEffect(() => {
@@ -31,29 +31,35 @@ export default function PressuresEditor({ projectId, pressures = [], onChange, s
     restoredRef.current = true;
   }, [factorModalKey, pressures]);
 
-  const handlePressureChange = useCallback((index, updatedPressure) => {
-    const newPressures = [...pressures];
-    newPressures[index] = updatedPressure;
-    onChange(newPressures);
-  }, [pressures, onChange]);
-
-  const handleDeletePressure = useCallback((index) => {
-    if (confirm(`Delete "${pressures[index].name}"?`)) {
-      const newPressures = pressures.filter((_, i) => i !== index);
+  const handlePressureChange = useCallback(
+    (index, updatedPressure) => {
+      const newPressures = [...pressures];
+      newPressures[index] = updatedPressure;
       onChange(newPressures);
-      if (expandedPressure === index) {
-        setExpandedPressure(null);
+    },
+    [pressures, onChange]
+  );
+
+  const handleDeletePressure = useCallback(
+    (index) => {
+      if (confirm(`Delete "${pressures[index].name}"?`)) {
+        const newPressures = pressures.filter((_, i) => i !== index);
+        onChange(newPressures);
+        if (expandedPressure === index) {
+          setExpandedPressure(null);
+        }
       }
-    }
-  }, [pressures, onChange, expandedPressure]);
+    },
+    [pressures, onChange, expandedPressure]
+  );
 
   const handleAddPressure = useCallback(() => {
     const newPressure = {
       id: `pressure_${Date.now()}`,
-      name: 'New Pressure',
+      name: "New Pressure",
       initialValue: 0,
       homeostasis: 0.05,
-      description: '',
+      description: "",
       growth: {
         positiveFeedback: [],
         negativeFeedback: [],
@@ -74,16 +80,16 @@ export default function PressuresEditor({ projectId, pressures = [], onChange, s
         </div>
         <div className="empty-state">
           <div className="empty-state-icon">🌡️</div>
-          <div style={{ fontSize: '18px', fontWeight: 500, color: '#ffffff', marginBottom: '8px' }}>
+          <div style={{ fontSize: "18px", fontWeight: 500, color: "#ffffff", marginBottom: "8px" }}>
             No pressures defined
           </div>
-          <div style={{ marginBottom: '24px' }}>
-            Pressures respond to world state with feedback and a pull toward equilibrium,
-            driving the narrative forward.
+          <div style={{ marginBottom: "24px" }}>
+            Pressures respond to world state with feedback and a pull toward equilibrium, driving
+            the narrative forward.
           </div>
           <button
             className="btn btn-primary"
-            style={{ width: 'auto', padding: '14px 28px' }}
+            style={{ width: "auto", padding: "14px 28px" }}
             onClick={handleAddPressure}
           >
             + Create First Pressure
@@ -98,8 +104,9 @@ export default function PressuresEditor({ projectId, pressures = [], onChange, s
       <div className="header">
         <h1 className="title">Pressures</h1>
         <p className="subtitle">
-          Configure environmental and social pressures that drive world evolution.
-          Each pressure has feedback factors that make it grow or shrink based on world state plus a homeostatic pull toward equilibrium.
+          Configure environmental and social pressures that drive world evolution. Each pressure has
+          feedback factors that make it grow or shrink based on world state plus a homeostatic pull
+          toward equilibrium.
         </p>
       </div>
 
@@ -118,10 +125,7 @@ export default function PressuresEditor({ projectId, pressures = [], onChange, s
           />
         ))}
 
-        <button
-          className="btn btn-add"
-          onClick={handleAddPressure}
-        >
+        <button className="btn btn-add" onClick={handleAddPressure}>
           + Add Pressure
         </button>
       </div>

@@ -2,11 +2,8 @@
 
 .bfc-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgb(0 0 0 / 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -22,7 +19,7 @@
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
 }
 
 .bfc-header {
@@ -64,12 +61,12 @@
   min-height: 0;
 }
 
-.bfc-body--confirming {
+.bfc-body-confirming {
   overflow-y: auto;
   flex: 1;
 }
 
-.bfc-body--processing {
+.bfc-body-processing {
   overflow-y: visible;
 }
 
@@ -190,8 +187,8 @@
 .bfc-terminal-complete {
   padding: 12px;
   border-radius: 8px;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: rgb(16 185 129 / 10%);
+  border: 1px solid rgb(16 185 129 / 20%);
   margin-bottom: 16px;
   font-size: 12px;
 }
@@ -199,8 +196,8 @@
 .bfc-terminal-cancelled {
   padding: 12px;
   border-radius: 8px;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: rgb(245 158 11 / 10%);
+  border: 1px solid rgb(245 158 11 / 20%);
   margin-bottom: 16px;
   font-size: 12px;
 }
@@ -208,8 +205,8 @@
 .bfc-terminal-failed {
   padding: 12px;
   border-radius: 8px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgb(239 68 68 / 10%);
+  border: 1px solid rgb(239 68 68 / 20%);
   margin-bottom: 16px;
   font-size: 12px;
 }

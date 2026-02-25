@@ -14,7 +14,12 @@
   border-bottom: 2px solid var(--color-border);
   box-shadow: var(--shadow-xl);
   background: var(--gradient-bg-header);
-  border-image-source: linear-gradient(90deg, var(--color-blue-600), var(--color-blue-500), var(--color-blue-600));
+  border-image-source: linear-gradient(
+    90deg,
+    var(--color-blue-600),
+    var(--color-blue-500),
+    var(--color-blue-600)
+  );
   border-image-slice: 1;
 }
 

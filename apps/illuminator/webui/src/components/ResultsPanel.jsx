@@ -9,7 +9,8 @@
  * Note: Enrichment results are auto-saved to IndexedDB per slot.
  */
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import {
   buildProminenceScale,
   DEFAULT_PROMINENCE_DISTRIBUTION,
@@ -106,6 +107,16 @@ function EntityResultCard({
   );
 }
 
+EntityResultCard.propTypes = {
+  entity: PropTypes.object,
+  tasks: PropTypes.array,
+  selected: PropTypes.bool,
+  onToggleSelect: PropTypes.func,
+  onRegenerate: PropTypes.func,
+  onPreviewImage: PropTypes.func,
+  prominenceScale: PropTypes.object,
+};
+
 function ImagePreviewModal({ imageUrl, onClose }) {
   if (!imageUrl) return null;
 
@@ -118,6 +129,11 @@ function ImagePreviewModal({ imageUrl, onClose }) {
     </div>
   );
 }
+
+ImagePreviewModal.propTypes = {
+  imageUrl: PropTypes.string,
+  onClose: PropTypes.func,
+};
 
 export default function ResultsPanel({ tasks, entities = [], onRegenerateTask }) {
   const [selectedEntities, setSelectedEntities] = useState(new Set());
@@ -193,9 +209,7 @@ export default function ResultsPanel({ tasks, entities = [], onRegenerateTask })
       <div className="illuminator-card">
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Enrichment Results</h2>
-          <span className="rp-autosave-note">
-            Changes auto-save to current slot
-          </span>
+          <span className="rp-autosave-note">Changes auto-save to current slot</span>
         </div>
 
         {enrichedEntities.length === 0 ? (
@@ -208,21 +222,15 @@ export default function ResultsPanel({ tasks, entities = [], onRegenerateTask })
             <div className="rp-stats-bar">
               <div>
                 <span className="rp-stat-value">{enrichedEntities.length}</span>
-                <span className="rp-stat-label">
-                  entities
-                </span>
+                <span className="rp-stat-label">entities</span>
               </div>
               <div>
                 <span className="rp-stat-value">{totalDescriptions}</span>
-                <span className="rp-stat-label">
-                  descriptions
-                </span>
+                <span className="rp-stat-label">descriptions</span>
               </div>
               <div>
                 <span className="rp-stat-value">{totalImages}</span>
-                <span className="rp-stat-label">
-                  images
-                </span>
+                <span className="rp-stat-label">images</span>
               </div>
 
               <div className="rp-filter-wrapper">
@@ -282,3 +290,9 @@ export default function ResultsPanel({ tasks, entities = [], onRegenerateTask })
     </div>
   );
 }
+
+ResultsPanel.propTypes = {
+  tasks: PropTypes.array,
+  entities: PropTypes.array,
+  onRegenerateTask: PropTypes.func,
+};

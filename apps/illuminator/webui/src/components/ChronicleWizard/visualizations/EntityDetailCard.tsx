@@ -11,6 +11,7 @@
 
 import type { EntityContext } from "../../../lib/chronicleTypes";
 import type { EntitySelectionMetrics } from "../../../lib/chronicle/selectionWizard";
+import React from "react";
 
 interface EntityDetailCardProps {
   entity: EntityContext | null;

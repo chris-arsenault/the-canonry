@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgb(0 0 0 / 60%);
 }
 
 .hcpm-dialog {
@@ -19,7 +19,7 @@
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
 }
 
 /* Header */
@@ -66,11 +66,11 @@
   margin-bottom: 6px;
 }
 
-.hcpm-entry--consolidated {
+.hcpm-entry-consolidated {
   border-left: 3px solid #f59e0b;
 }
 
-.hcpm-entry--normal {
+.hcpm-entry-normal {
   border-left: 3px solid var(--border-color);
 }
 
@@ -117,9 +117,8 @@
   max-height: 60px;
   overflow: hidden;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: break-word;
   mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
 }
 
 /* Footer */

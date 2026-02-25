@@ -15,6 +15,7 @@ import type { ChronicleRecord } from "./lib/chronicleStorage.ts";
 import type { StaticPage } from "./lib/staticPageStorage.ts";
 import type { EraNarrativeViewRecord } from "./lib/eraNarrativeStorage.ts";
 import useWorldDataLoader from "./hooks/useWorldDataLoader.ts";
+import React from "react";
 
 export interface ChroniclerRemoteProps {
   projectId?: string;

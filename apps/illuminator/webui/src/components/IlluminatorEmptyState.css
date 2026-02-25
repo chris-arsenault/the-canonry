@@ -12,10 +12,10 @@
   font-size: 12px;
 }
 
-.ies-sync-status--error {
+.ies-sync-status-error {
   color: #ef4444;
 }
 
-.ies-sync-status--success {
+.ies-sync-status-success {
   color: #10b981;
 }

@@ -6,6 +6,7 @@
  */
 
 import { openIlluminatorDb } from "./illuminatorDbReader";
+import React from "react";
 
 const ERA_NARRATIVE_STORE_NAME = "eraNarratives";
 

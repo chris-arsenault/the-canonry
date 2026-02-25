@@ -3,11 +3,8 @@
 /* Title accept modal */
 .cw-title-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  inset: 0;
+  background: rgb(0 0 0 / 60%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -20,11 +17,11 @@
   padding: 24px;
   max-width: 480px;
   width: 90%;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 40px rgb(0 0 0 / 30%);
 }
 
 .cw-title-heading {
-  margin: 0 0 16px 0;
+  margin: 0 0 16px;
   font-size: 18px;
 }
 
@@ -182,13 +179,13 @@
   border-radius: 6px;
 }
 
-.cw-custom-title-use-btn--active {
+.cw-custom-title-use-btn-active {
   background: var(--accent-primary);
   cursor: pointer;
   color: white;
 }
 
-.cw-custom-title-use-btn--disabled {
+.cw-custom-title-use-btn-disabled {
   background: var(--bg-tertiary);
   cursor: not-allowed;
   color: var(--text-muted);

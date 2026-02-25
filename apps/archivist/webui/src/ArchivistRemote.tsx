@@ -4,12 +4,12 @@
  * Loads world data from the shared Dexie store.
  */
 
-import { useEffect, useMemo, useState } from 'react';
-import './index.css';
-import WorldExplorer from './components/WorldExplorer.tsx';
-import type { WorldState } from './types/world.ts';
-import { validateWorldData } from './utils/schemaValidation.ts';
-import { buildWorldStateForSlot } from '@penguin-tales/world-store';
+import { useEffect, useMemo, useState } from "react";
+import "./index.css";
+import WorldExplorer from "./components/WorldExplorer.tsx";
+import type { WorldState } from "./types/world.ts";
+import { validateWorldData } from "./utils/schemaValidation.ts";
+import { buildWorldStateForSlot } from "@penguin-tales/world-store";
 
 export interface ArchivistRemoteProps {
   projectId?: string;
@@ -32,7 +32,7 @@ export default function ArchivistRemote({
   const effectiveLoadError = projectId ? loadError : null;
   const schemaIssues = useMemo(
     () => (effectiveWorldData ? validateWorldData(effectiveWorldData) : []),
-    [effectiveWorldData],
+    [effectiveWorldData]
   );
 
   useEffect(() => {
@@ -52,9 +52,9 @@ export default function ArchivistRemote({
       })
       .catch((err) => {
         if (cancelled) return;
-        console.error('[ArchivistRemote] Failed to load world data:', err);
+        console.error("[ArchivistRemote] Failed to load world data:", err);
         setWorldDataState(null);
-        setLoadError(err?.message || 'Failed to load world data from Dexie.');
+        setLoadError(err?.message || "Failed to load world data from Dexie.");
       })
       .finally(() => {
         if (cancelled) return;
@@ -109,9 +109,7 @@ export default function ArchivistRemote({
       <div className="archivist-error-state">
         <div className="archivist-state-content">
           <div className="archivist-state-icon">❌</div>
-          <div className="archivist-state-title">
-            World data is missing required schema fields
-          </div>
+          <div className="archivist-state-title">World data is missing required schema fields</div>
           <ul className="archivist-state-list">
             {schemaIssues.map((issue, index) => (
               <li key={`${issue}-${index}`}>{issue}</li>
@@ -122,10 +120,5 @@ export default function ArchivistRemote({
     );
   }
 
-  return (
-    <WorldExplorer
-      worldData={effectiveWorldData}
-      loreData={null}
-    />
-  );
+  return <WorldExplorer worldData={effectiveWorldData} loreData={null} />;
 }

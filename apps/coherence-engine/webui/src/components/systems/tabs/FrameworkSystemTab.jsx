@@ -2,8 +2,8 @@
  * FrameworkSystemTab - Configuration for framework-level systems
  */
 
-import React from 'react';
-import { NumberInput } from '../../shared';
+import React from "react";
+import { NumberInput } from "../../shared";
 
 /**
  * @param {Object} props
@@ -29,22 +29,23 @@ export function FrameworkSystemTab({ system, onChange }) {
       <div className="section">
         <div className="section-title">Configuration</div>
 
-        {system.systemType === 'eraTransition' && (
+        {system.systemType === "eraTransition" && (
           <div className="form-grid">
-            <p className="label" style={{ gridColumn: '1 / -1', color: '#666' }}>
-              Era transition timing is controlled by per-era exitConditions in eras.json.
-              Add a time condition (e.g., {`{ type: 'time_elapsed', minTicks: 25 }`}) to control minimum era length.
+            <p className="label" style={{ gridColumn: "1 / -1", color: "#666" }}>
+              Era transition timing is controlled by per-era exitConditions in eras.json. Add a time
+              condition (e.g., {`{ type: 'time_elapsed', minTicks: 25 }`}) to control minimum era
+              length.
             </p>
           </div>
         )}
 
-        {system.systemType === 'universalCatalyst' && (
+        {system.systemType === "universalCatalyst" && (
           <div className="form-grid">
             <div className="form-group">
               <label className="label">Action Attempt Rate</label>
               <NumberInput
                 value={config.actionAttemptRate}
-                onChange={(v) => updateConfig('actionAttemptRate', v)}
+                onChange={(v) => updateConfig("actionAttemptRate", v)}
                 className="input"
                 step={0.1}
                 min={0}
@@ -56,7 +57,7 @@ export function FrameworkSystemTab({ system, onChange }) {
               <label className="label">Pressure Multiplier</label>
               <NumberInput
                 value={config.pressureMultiplier}
-                onChange={(v) => updateConfig('pressureMultiplier', v)}
+                onChange={(v) => updateConfig("pressureMultiplier", v)}
                 className="input"
                 step={0.1}
                 min={0}
@@ -67,7 +68,7 @@ export function FrameworkSystemTab({ system, onChange }) {
               <label className="label">Prominence Up % on Success</label>
               <NumberInput
                 value={config.prominenceUpChanceOnSuccess}
-                onChange={(v) => updateConfig('prominenceUpChanceOnSuccess', v)}
+                onChange={(v) => updateConfig("prominenceUpChanceOnSuccess", v)}
                 className="input"
                 step={0.05}
                 min={0}
@@ -79,7 +80,7 @@ export function FrameworkSystemTab({ system, onChange }) {
               <label className="label">Prominence Down % on Failure</label>
               <NumberInput
                 value={config.prominenceDownChanceOnFailure}
-                onChange={(v) => updateConfig('prominenceDownChanceOnFailure', v)}
+                onChange={(v) => updateConfig("prominenceDownChanceOnFailure", v)}
                 className="input"
                 step={0.05}
                 min={0}
@@ -90,13 +91,13 @@ export function FrameworkSystemTab({ system, onChange }) {
           </div>
         )}
 
-        {system.systemType === 'relationshipMaintenance' && (
+        {system.systemType === "relationshipMaintenance" && (
           <div className="form-grid">
             <div className="form-group">
               <label className="label">Maintenance Frequency</label>
               <NumberInput
                 value={config.maintenanceFrequency}
-                onChange={(v) => updateConfig('maintenanceFrequency', v)}
+                onChange={(v) => updateConfig("maintenanceFrequency", v)}
                 className="input"
                 min={1}
                 allowEmpty
@@ -107,7 +108,7 @@ export function FrameworkSystemTab({ system, onChange }) {
               <label className="label">Cull Threshold</label>
               <NumberInput
                 value={config.cullThreshold}
-                onChange={(v) => updateConfig('cullThreshold', v)}
+                onChange={(v) => updateConfig("cullThreshold", v)}
                 className="input"
                 step={0.05}
                 min={0}
@@ -119,7 +120,7 @@ export function FrameworkSystemTab({ system, onChange }) {
               <label className="label">Grace Period</label>
               <NumberInput
                 value={config.gracePeriod}
-                onChange={(v) => updateConfig('gracePeriod', v)}
+                onChange={(v) => updateConfig("gracePeriod", v)}
                 className="input"
                 min={0}
                 allowEmpty
@@ -130,7 +131,7 @@ export function FrameworkSystemTab({ system, onChange }) {
               <label className="label">Reinforcement Bonus</label>
               <NumberInput
                 value={config.reinforcementBonus}
-                onChange={(v) => updateConfig('reinforcementBonus', v)}
+                onChange={(v) => updateConfig("reinforcementBonus", v)}
                 className="input"
                 step={0.01}
                 min={0}

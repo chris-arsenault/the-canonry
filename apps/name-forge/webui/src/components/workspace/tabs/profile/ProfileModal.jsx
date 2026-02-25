@@ -4,9 +4,9 @@
  * Dynamic tabs: Overview, [each strategy group], Test
  */
 
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { ModalShell } from '@penguin-tales/shared-components';
-import { OverviewTab, SingleGroupTab, TestTab } from './tabs';
+import { useState, useEffect, useRef, useMemo } from "react";
+import { ModalShell } from "@penguin-tales/shared-components";
+import { OverviewTab, SingleGroupTab, TestTab } from "./tabs";
 
 export default function ProfileModal({
   profile,
@@ -20,7 +20,7 @@ export default function ProfileModal({
   onAddTag,
   generatorUsage,
 }) {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
   const [editedProfile, setEditedProfile] = useState(null);
 
   // Autosave refs
@@ -71,9 +71,7 @@ export default function ProfileModal({
   const tabs = useMemo(() => {
     if (!editedProfile) return [];
 
-    const dynamicTabs = [
-      { id: 'overview', label: 'Overview', icon: '📋' },
-    ];
+    const dynamicTabs = [{ id: "overview", label: "Overview", icon: "📋" }];
 
     // Add a tab for each strategy group
     (editedProfile.strategyGroups || []).forEach((group, idx) => {
@@ -81,11 +79,11 @@ export default function ProfileModal({
       dynamicTabs.push({
         id: `group-${idx}`,
         label: group.name || `Group ${idx + 1}`,
-        icon: isConditional ? '🎯' : '📦',
+        icon: isConditional ? "🎯" : "📦",
       });
     });
 
-    dynamicTabs.push({ id: 'test', label: 'Test', icon: '🧪' });
+    dynamicTabs.push({ id: "test", label: "Test", icon: "🧪" });
 
     return dynamicTabs;
   }, [editedProfile]);
@@ -98,7 +96,8 @@ export default function ProfileModal({
         ...group,
         strategies: group.strategies.map((s) => ({
           ...s,
-          weight: totalWeight > 0 ? s.weight / totalWeight : 1 / Math.max(group.strategies.length, 1),
+          weight:
+            totalWeight > 0 ? s.weight / totalWeight : 1 / Math.max(group.strategies.length, 1),
         })),
       };
     });
@@ -136,16 +135,18 @@ export default function ProfileModal({
 
   const handleAddGroup = (withConditions = false) => {
     const newGroup = {
-      name: withConditions ? 'Conditional' : 'Default',
+      name: withConditions ? "Conditional" : "Default",
       priority: withConditions ? 50 : 0,
-      conditions: withConditions ? {
-        entityKinds: [],
-        prominence: [],
-        subtypes: [],
-        subtypeMatchAll: false,
-        tags: [],
-        tagMatchAll: false,
-      } : null,
+      conditions: withConditions
+        ? {
+            entityKinds: [],
+            prominence: [],
+            subtypes: [],
+            subtypeMatchAll: false,
+            tags: [],
+            tagMatchAll: false,
+          }
+        : null,
       strategies: [],
     };
     const updated = {
@@ -165,7 +166,7 @@ export default function ProfileModal({
     setEditedProfile(updated);
     // Switch to overview if we deleted the current tab
     if (activeTab === `group-${groupIdx}`) {
-      setActiveTab('overview');
+      setActiveTab("overview");
     }
   };
 
@@ -184,7 +185,7 @@ export default function ProfileModal({
   const tagRegistry = worldSchema?.tagRegistry || [];
 
   const renderTabContent = () => {
-    if (activeTab === 'overview') {
+    if (activeTab === "overview") {
       return (
         <OverviewTab
           profile={editedProfile}
@@ -198,18 +199,13 @@ export default function ProfileModal({
       );
     }
 
-    if (activeTab === 'test') {
-      return (
-        <TestTab
-          profile={editedProfile}
-          cultureConfig={cultureConfig}
-        />
-      );
+    if (activeTab === "test") {
+      return <TestTab profile={editedProfile} cultureConfig={cultureConfig} />;
     }
 
     // Check if it's a group tab
-    if (activeTab.startsWith('group-')) {
-      const groupIdx = parseInt(activeTab.replace('group-', ''), 10);
+    if (activeTab.startsWith("group-")) {
+      const groupIdx = parseInt(activeTab.replace("group-", ""), 10);
       const group = editedProfile.strategyGroups?.[groupIdx];
       if (group) {
         return (
@@ -256,7 +252,7 @@ export default function ProfileModal({
     <ModalShell
       onClose={handleClose}
       icon="📝"
-      title={isNew ? 'New Profile' : editedProfile.id}
+      title={isNew ? "New Profile" : editedProfile.id}
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={setActiveTab}

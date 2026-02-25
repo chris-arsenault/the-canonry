@@ -41,4 +41,4 @@ export {
 
   // Utils
   getElementValidation,
-} from '@penguin-tales/shared-components';
+} from "@penguin-tales/shared-components";

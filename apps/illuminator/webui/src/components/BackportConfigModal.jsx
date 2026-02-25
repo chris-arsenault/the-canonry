@@ -8,7 +8,8 @@
  * - Provide custom instructions (e.g., "treat as non-canonical fable")
  */
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import "./BackportConfigModal.css";
 
 export default function BackportConfigModal({
@@ -81,24 +82,17 @@ export default function BackportConfigModal({
   };
 
   const progressColor =
-    doneCount === entities.length
-      ? "#10b981"
-      : doneCount > 0
-        ? "#f59e0b"
-        : "var(--text-muted)";
+    doneCount === entities.length ? "#10b981" : doneCount > 0 ? "#f59e0b" : "var(--text-muted)";
 
   const renderEntityRow = (e) => {
     const status = statusMap[e.id];
     const isLocked = !!status;
 
     return (
-      <div
-        key={e.id}
-        className={`bcm-entity-row ${isLocked ? "bcm-entity-row--locked" : ""}`}
-      >
+      <div key={e.id} className={`bcm-entity-row ${isLocked ? "bcm-entity-row-locked" : ""}`}>
         {isLocked ? (
           <span
-            className={`bcm-status-icon ${status === "backported" ? "bcm-status-icon--done" : "bcm-status-icon--skipped"}`}
+            className={`bcm-status-icon ${status === "backported" ? "bcm-status-icon-done" : "bcm-status-icon-skipped"}`}
           >
             {status === "backported" ? "\u2713" : "\u2014"}
           </span>
@@ -111,7 +105,7 @@ export default function BackportConfigModal({
           />
         )}
         <span
-          className={`bcm-entity-name ${isLocked ? "bcm-entity-name--locked" : "bcm-entity-name--clickable"}`}
+          className={`bcm-entity-name ${isLocked ? "bcm-entity-name-locked" : "bcm-entity-name-clickable"}`}
           onClick={() => !isLocked && toggleEntity(e.id)}
         >
           {e.name}
@@ -121,16 +115,8 @@ export default function BackportConfigModal({
           </span>
         </span>
         {/* Status / action tags */}
-        {status === "backported" && (
-          <span className="bcm-tag bcm-tag--done">
-            Done
-          </span>
-        )}
-        {status === "not_needed" && (
-          <span className="bcm-tag bcm-tag--skipped">
-            Skipped
-          </span>
-        )}
+        {status === "backported" && <span className="bcm-tag bcm-tag-done">Done</span>}
+        {status === "not_needed" && <span className="bcm-tag bcm-tag-skipped">Skipped</span>}
         {!status && (
           <button
             onClick={(ev) => {
@@ -143,16 +129,8 @@ export default function BackportConfigModal({
             Skip
           </button>
         )}
-        {e.isLens && (
-          <span className="bcm-tag bcm-tag--lens">
-            Lens
-          </span>
-        )}
-        {e.isTertiary && (
-          <span className="bcm-tag bcm-tag--tertiary">
-            Tertiary
-          </span>
-        )}
+        {e.isLens && <span className="bcm-tag bcm-tag-lens">Lens</span>}
+        {e.isTertiary && <span className="bcm-tag bcm-tag-tertiary">Tertiary</span>}
       </div>
     );
   };
@@ -164,13 +142,11 @@ export default function BackportConfigModal({
         <div className="bcm-header">
           <h2 className="bcm-title">Backport Lore to Cast</h2>
           <div className="bcm-subtitle-row">
-            <p className="bcm-chronicle-title">
-              {chronicleTitle}
-            </p>
+            <p className="bcm-chronicle-title">{chronicleTitle}</p>
             <span
               className="bcm-progress"
               // eslint-disable-next-line local/no-inline-styles -- dynamic progress color
-              style={{ '--bcm-progress-color': progressColor, color: 'var(--bcm-progress-color)' }}
+              style={{ "--bcm-progress-color": progressColor, color: "var(--bcm-progress-color)" }}
             >
               {doneCount}/{entities.length} complete
             </span>
@@ -190,16 +166,13 @@ export default function BackportConfigModal({
                 {tertiaryEntities.length > 0 && (
                   <button
                     onClick={selectTertiaryOnly}
-                    className="bcm-text-btn bcm-text-btn--tertiary"
+                    className="bcm-text-btn bcm-text-btn-tertiary"
                   >
                     Tertiary only
                   </button>
                 )}
                 {pendingEntities.length > 0 && (
-                  <button
-                    onClick={toggleAllPending}
-                    className="bcm-text-btn bcm-text-btn--accent"
-                  >
+                  <button onClick={toggleAllPending} className="bcm-text-btn bcm-text-btn-accent">
                     {allPendingSelected ? "Deselect all" : "Select all pending"}
                   </button>
                 )}
@@ -215,9 +188,7 @@ export default function BackportConfigModal({
               {tertiaryEntities.length > 0 &&
                 (castEntities.length > 0 || lensEntities.length > 0) && (
                   <div className="bcm-divider">
-                    <div className="bcm-tertiary-label">
-                      Tertiary Cast
-                    </div>
+                    <div className="bcm-tertiary-label">Tertiary Cast</div>
                   </div>
                 )}
               {tertiaryEntities.map(renderEntityRow)}
@@ -226,9 +197,7 @@ export default function BackportConfigModal({
 
           {/* Custom instructions */}
           <div>
-            <label className="bcm-instructions-label">
-              Custom Instructions (optional)
-            </label>
+            <label className="bcm-instructions-label">Custom Instructions (optional)</label>
             <textarea
               value={customInstructions}
               onChange={(e) => setCustomInstructions(e.target.value)}
@@ -266,3 +235,13 @@ export default function BackportConfigModal({
     </div>
   );
 }
+
+BackportConfigModal.propTypes = {
+  isOpen: PropTypes.bool,
+  chronicleTitle: PropTypes.string,
+  entities: PropTypes.array,
+  perEntityStatus: PropTypes.object,
+  onStart: PropTypes.func,
+  onMarkNotNeeded: PropTypes.func,
+  onCancel: PropTypes.func,
+};

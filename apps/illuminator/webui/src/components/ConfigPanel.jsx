@@ -12,6 +12,8 @@ import LLMCallConfigPanel from "./LLMCallConfigPanel";
 import { LocalTextArea } from "@penguin-tales/shared-components";
 import { IMAGE_MODELS } from "../lib/imageSettings";
 import "./ConfigPanel.css";
+import React from "react";
+import PropTypes from "prop-types";
 
 const DEFAULT_IMAGE_PROMPT_TEMPLATE = `Transform the structured prompt below into a single, coherent image prompt for {{modelName}}. Do NOT simply reformat—actively synthesize and reshape:
 
@@ -92,9 +94,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Multishot Prompting</h2>
         </div>
-        <p className="cfgp-section-desc">
-          Improve image generation by chaining multiple AI calls.
-        </p>
+        <p className="cfgp-section-desc">Improve image generation by chaining multiple AI calls.</p>
 
         <div className="illuminator-checkbox-group cfgp-checkbox-spacer">
           <input
@@ -121,7 +121,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
           />
           <label htmlFor="useClaudeForImagePrompt">Use Claude to format image prompt</label>
         </div>
-        <p className="cfgp-checkbox-hint--tight">
+        <p className="cfgp-checkbox-hint-tight">
           Sends the image prompt through Claude first to optimize it for the image model.
         </p>
 
@@ -209,10 +209,15 @@ export default function ConfigPanel({ config, onConfigChange }) {
           <strong>Entities</strong> tab to generate descriptions and images for entities. Use the{" "}
           <strong>Chronicle</strong> tab to generate multi-entity narratives and in-world documents.
         </p>
-        <p className="cfgp-about-text--spaced">
+        <p className="cfgp-about-text-spaced">
           All enrichments are saved automatically to your current world slot.
         </p>
       </div>
     </div>
   );
 }
+
+ConfigPanel.propTypes = {
+  config: PropTypes.object,
+  onConfigChange: PropTypes.func,
+};

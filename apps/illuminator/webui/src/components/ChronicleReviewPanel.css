@@ -19,7 +19,7 @@
   cursor: pointer;
 }
 
-.crp-synth-header--expanded {
+.crp-synth-header-expanded {
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -57,13 +57,13 @@
   cursor: pointer;
 }
 
-.crp-synth-tab--active {
+.crp-synth-tab-active {
   font-weight: 600;
   background: var(--accent-primary);
   color: white;
 }
 
-.crp-synth-tab--inactive {
+.crp-synth-tab-inactive {
   font-weight: 400;
   background: var(--bg-tertiary);
   color: var(--text-secondary);
@@ -135,12 +135,12 @@
 
 .crp-acv-diff-added {
   margin-left: 6px;
-  color: rgba(34, 197, 94, 0.8);
+  color: rgb(34 197 94 / 80%);
 }
 
 .crp-acv-diff-removed {
   margin-left: 4px;
-  color: rgba(239, 68, 68, 0.8);
+  color: rgb(239 68 68 / 80%);
 }
 
 .crp-acv-copy-btn {
@@ -163,14 +163,14 @@
   color: var(--text-primary);
 }
 
-.crp-acv-diff-part--added {
-  background: rgba(34, 197, 94, 0.2);
+.crp-acv-diff-part-added {
+  background: rgb(34 197 94 / 20%);
   border-radius: 2px;
   padding: 0 1px;
 }
 
-.crp-acv-diff-part--removed {
-  background: rgba(239, 68, 68, 0.2);
+.crp-acv-diff-part-removed {
+  background: rgb(239 68 68 / 20%);
   color: var(--text-secondary);
   border-radius: 2px;
   padding: 0 1px;

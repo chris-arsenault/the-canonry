@@ -6,7 +6,7 @@ export function findMatchingProfile(namingConfig, entityKind, subtype, prominenc
   if (!namingConfig?.profiles) return null;
 
   for (const profile of namingConfig.profiles) {
-    for (const group of (profile.strategyGroups || [])) {
+    for (const group of profile.strategyGroups || []) {
       const cond = group.conditions || {};
 
       // Check entity kind
@@ -35,10 +35,10 @@ export function findMatchingProfile(namingConfig, entityKind, subtype, prominenc
         const entityTags = Array.isArray(tags) ? tags : Object.keys(tags || {});
         if (cond.tagMatchAll) {
           // All tags must be present
-          if (!cond.tags.every(t => entityTags.includes(t))) continue;
+          if (!cond.tags.every((t) => entityTags.includes(t))) continue;
         } else {
           // Any tag matches
-          if (!cond.tags.some(t => entityTags.includes(t))) continue;
+          if (!cond.tags.some((t) => entityTags.includes(t))) continue;
         }
       }
 

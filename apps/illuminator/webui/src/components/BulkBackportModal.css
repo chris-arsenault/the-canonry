@@ -2,11 +2,8 @@
 
 .bbm-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgb(0 0 0 / 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -21,14 +18,14 @@
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
 }
 
-.bbm-dialog--confirming {
+.bbm-dialog-confirming {
   width: 540px;
 }
 
-.bbm-dialog--processing {
+.bbm-dialog-processing {
   width: 480px;
 }
 
@@ -65,19 +62,19 @@
   font-weight: 500;
 }
 
-.bbm-status--complete {
+.bbm-status-complete {
   color: #10b981;
 }
 
-.bbm-status--failed {
+.bbm-status-failed {
   color: #ef4444;
 }
 
-.bbm-status--cancelled {
+.bbm-status-cancelled {
   color: #f59e0b;
 }
 
-.bbm-status--default {
+.bbm-status-default {
   color: var(--text-muted);
 }
 
@@ -85,13 +82,13 @@
   padding: 20px;
 }
 
-.bbm-body--confirming {
+.bbm-body-confirming {
   overflow-y: auto;
   flex: 1;
   min-height: 0;
 }
 
-.bbm-body--processing {
+.bbm-body-processing {
   min-height: 0;
 }
 
@@ -132,7 +129,7 @@
   font-size: 12px;
 }
 
-.bbm-entity-row--bordered {
+.bbm-entity-row-bordered {
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -200,15 +197,15 @@
   transition: width 0.3s ease;
 }
 
-.bbm-progress-fill--failed {
+.bbm-progress-fill-failed {
   background: #ef4444;
 }
 
-.bbm-progress-fill--cancelled {
+.bbm-progress-fill-cancelled {
   background: #f59e0b;
 }
 
-.bbm-progress-fill--ok {
+.bbm-progress-fill-ok {
   background: #10b981;
 }
 
@@ -257,19 +254,19 @@
   font-size: 12px;
 }
 
-.bbm-terminal-banner--complete {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+.bbm-terminal-banner-complete {
+  background: rgb(16 185 129 / 10%);
+  border: 1px solid rgb(16 185 129 / 20%);
 }
 
-.bbm-terminal-banner--cancelled {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+.bbm-terminal-banner-cancelled {
+  background: rgb(245 158 11 / 10%);
+  border: 1px solid rgb(245 158 11 / 20%);
 }
 
-.bbm-terminal-banner--failed {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+.bbm-terminal-banner-failed {
+  background: rgb(239 68 68 / 10%);
+  border: 1px solid rgb(239 68 68 / 20%);
 }
 
 .bbm-failed-inline {

@@ -2,8 +2,8 @@
  * AddRuleButton - Button with type picker for adding applicability rules
  */
 
-import React, { useState } from 'react';
-import { APPLICABILITY_TYPES } from '../constants';
+import React, { useState } from "react";
+import { APPLICABILITY_TYPES } from "../constants";
 
 /**
  * @param {Object} props
@@ -15,23 +15,23 @@ export function AddRuleButton({ onAdd, depth = 0 }) {
 
   return (
     <div className="dropdown">
-      <button
-        className="btn-add"
-        onClick={() => setShowPicker(!showPicker)}
-      >
+      <button className="btn-add" onClick={() => setShowPicker(!showPicker)}>
         + Add Rule
       </button>
 
       {showPicker && (
-        <div className="dropdown-menu" style={{ minWidth: '280px' }}>
+        <div className="dropdown-menu" style={{ minWidth: "280px" }}>
           <div className="dropdown-options">
             {Object.entries(APPLICABILITY_TYPES)
-              .filter(([type]) => depth < 2 || (type !== 'or' && type !== 'and'))
+              .filter(([type]) => depth < 2 || (type !== "or" && type !== "and"))
               .map(([type, config]) => (
                 <div
                   key={type}
                   className="dropdown-menu-item"
-                  onClick={() => { onAdd(type); setShowPicker(false); }}
+                  onClick={() => {
+                    onAdd(type);
+                    setShowPicker(false);
+                  }}
                 >
                   <div
                     className="dropdown-menu-icon"
@@ -41,7 +41,9 @@ export function AddRuleButton({ onAdd, depth = 0 }) {
                   </div>
                   <div>
                     <div className="dropdown-menu-label">{config.label}</div>
-                    <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
+                    <div
+                      style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}
+                    >
                       {config.desc}
                     </div>
                   </div>

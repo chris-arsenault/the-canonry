@@ -2,10 +2,10 @@
  * ProjectManager - Header bar with project and slot dropdowns
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import ValidationPopover from './ValidationPopover';
-import TracePopover from './TracePopover';
-import SlotSelector from './SlotSelector';
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import ValidationPopover from "./ValidationPopover";
+import TracePopover from "./TracePopover";
+import SlotSelector from "./SlotSelector";
 
 const EMPTY_SLOTS = Object.freeze({});
 
@@ -40,7 +40,7 @@ export default function ProjectManager({
 }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNewModal, setShowNewModal] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectName, setNewProjectName] = useState("");
   const [hoveredProject, setHoveredProject] = useState(null);
   const dropdownRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -63,14 +63,14 @@ export default function ProjectManager({
         setShowDropdown(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleCreate = () => {
     if (newProjectName.trim()) {
       onCreateProject(newProjectName.trim());
-      setNewProjectName('');
+      setNewProjectName("");
       setShowNewModal(false);
       setShowDropdown(false);
     }
@@ -82,15 +82,15 @@ export default function ProjectManager({
 
     try {
       // Require zip file imports
-      if (!file.name.endsWith('.zip') && file.type !== 'application/zip') {
-        throw new Error('Unsupported file type. Import requires a .zip project export.');
+      if (!file.name.endsWith(".zip") && file.type !== "application/zip") {
+        throw new Error("Unsupported file type. Import requires a .zip project export.");
       }
       await onImportProject(file);
       setShowDropdown(false);
     } catch (err) {
-      alert('Failed to import: ' + err.message);
+      alert("Failed to import: " + err.message);
     }
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const handleExport = async () => {
@@ -99,13 +99,13 @@ export default function ProjectManager({
       if (!zipBlob) return;
 
       const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `${currentProject?.name || 'world'}.canonry.zip`;
+      a.download = `${currentProject?.name || "world"}.canonry.zip`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      alert('Failed to export: ' + err.message);
+      alert("Failed to export: " + err.message);
     }
   };
 
@@ -127,9 +127,9 @@ export default function ProjectManager({
             onClick={() => setShowDropdown(!showDropdown)}
           >
             <span className="project-selector-name">
-              {currentProject?.name || 'Select Project'}
+              {currentProject?.name || "Select Project"}
             </span>
-            <span className="project-selector-chevron">{showDropdown ? '▲' : '▼'}</span>
+            <span className="project-selector-chevron">{showDropdown ? "▲" : "▼"}</span>
           </button>
 
           {showDropdown && (
@@ -146,10 +146,7 @@ export default function ProjectManager({
                   >
                     + New
                   </button>
-                  <button
-                    className="btn-sm"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
+                  <button className="btn-sm" onClick={() => fileInputRef.current?.click()}>
                     Import
                   </button>
                 </div>
@@ -166,10 +163,10 @@ export default function ProjectManager({
                       key={project.id}
                       className={`project-item ${
                         currentProject?.id === project.id
-                          ? 'project-item-active'
+                          ? "project-item-active"
                           : hoveredProject === project.id
-                          ? ''
-                          : ''
+                            ? ""
+                            : ""
                       }`}
                       onClick={() => {
                         onOpenProject(project.id);
@@ -184,20 +181,21 @@ export default function ProjectManager({
                         <span>{project.cultureCount} cultures</span>
                         <span>{formatDate(project.updatedAt)}</span>
                       </div>
-                      <div
-                        className="project-item-actions"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <div className="project-item-actions" onClick={(e) => e.stopPropagation()}>
                         {project.id === defaultProjectId && onReloadFromDefaults && (
                           <button
                             className="btn-xs"
                             onClick={async () => {
-                              if (confirm('Reload project from defaults? This will overwrite your configuration changes but preserve world data.')) {
+                              if (
+                                confirm(
+                                  "Reload project from defaults? This will overwrite your configuration changes but preserve world data."
+                                )
+                              ) {
                                 try {
                                   await onReloadFromDefaults();
                                   setShowDropdown(false);
                                 } catch (err) {
-                                  alert('Failed to reload: ' + err.message);
+                                  alert("Failed to reload: " + err.message);
                                 }
                               }
                             }}
@@ -205,10 +203,7 @@ export default function ProjectManager({
                             Reload Defaults
                           </button>
                         )}
-                        <button
-                          className="btn-xs"
-                          onClick={() => onDuplicateProject(project.id)}
-                        >
+                        <button className="btn-xs" onClick={() => onDuplicateProject(project.id)}>
                           Duplicate
                         </button>
                         <button
@@ -247,9 +242,7 @@ export default function ProjectManager({
       </div>
 
       <div className="app-header-right">
-        {currentProject && (
-          <TracePopover simulationState={simulationState} systems={systems} />
-        )}
+        {currentProject && <TracePopover simulationState={simulationState} systems={systems} />}
         {currentProject && (
           <ValidationPopover
             validationResult={validationResult}
@@ -257,28 +250,30 @@ export default function ProjectManager({
             onRemoveProperty={onRemoveProperty}
           />
         )}
-        <button
-          className="btn btn-secondary"
-          onClick={handleExport}
-          disabled={!currentProject}
-        >
+        <button className="btn btn-secondary" onClick={handleExport} disabled={!currentProject}>
           Export
         </button>
         <input
           ref={fileInputRef}
           type="file"
           accept=".zip"
-          style={{ display: 'none' }}
+          style={{ display: "none" }}
           onChange={handleImport}
         />
       </div>
 
       {showNewModal && (
-        <div className="modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
+        <div
+          className="modal-overlay"
+          onMouseDown={handleOverlayMouseDown}
+          onClick={handleOverlayClick}
+        >
           <div className="modal modal-simple">
             <div className="modal-header">
               <div className="modal-title">Create New Project</div>
-              <button className="btn-close" onClick={() => setShowNewModal(false)}>×</button>
+              <button className="btn-close" onClick={() => setShowNewModal(false)}>
+                ×
+              </button>
             </div>
             <div className="modal-body">
               <input
@@ -287,14 +282,11 @@ export default function ProjectManager({
                 placeholder="Project name..."
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
                 autoFocus
               />
               <div className="modal-actions">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setShowNewModal(false)}
-                >
+                <button className="btn btn-secondary" onClick={() => setShowNewModal(false)}>
                   Cancel
                 </button>
                 <button className="btn btn-primary" onClick={handleCreate}>

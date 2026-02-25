@@ -2,8 +2,8 @@
  * BasicInfoSection - Era basic information (ID, name, description)
  */
 
-import React from 'react';
-import { SectionHeader, LocalTextArea } from '../../shared';
+import React from "react";
+import { SectionHeader, LocalTextArea } from "../../shared";
 
 /**
  * @param {Object} props
@@ -20,7 +20,7 @@ export function BasicInfoSection({ era, onFieldChange }) {
           <input
             type="text"
             value={era.id}
-            onChange={(e) => onFieldChange('id', e.target.value)}
+            onChange={(e) => onFieldChange("id", e.target.value)}
             className="input"
           />
         </div>
@@ -29,17 +29,14 @@ export function BasicInfoSection({ era, onFieldChange }) {
           <input
             type="text"
             value={era.name}
-            onChange={(e) => onFieldChange('name', e.target.value)}
+            onChange={(e) => onFieldChange("name", e.target.value)}
             className="input"
           />
         </div>
       </div>
-      <div className="form-group" style={{ marginTop: '16px' }}>
+      <div className="form-group" style={{ marginTop: "16px" }}>
         <label className="label">Summary</label>
-        <LocalTextArea
-          value={era.summary}
-          onChange={(value) => onFieldChange('summary', value)}
-        />
+        <LocalTextArea value={era.summary} onChange={(value) => onFieldChange("summary", value)} />
       </div>
     </div>
   );

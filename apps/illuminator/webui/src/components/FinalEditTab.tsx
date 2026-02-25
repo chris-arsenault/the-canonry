@@ -6,6 +6,7 @@
  */
 
 import CorpusFindReplace from "./CorpusFindReplace";
+import React from "react";
 
 export default function FinalEditTab() {
   return (

@@ -36,11 +36,11 @@
   letter-spacing: 0.04em;
 }
 
-.cpe-format-badge--document {
+.cpe-format-badge-document {
   background: #059669;
 }
 
-.cpe-format-badge--story {
+.cpe-format-badge-story {
   background: var(--accent-primary);
 }
 
@@ -70,7 +70,7 @@
   margin-bottom: 6px;
 }
 
-.cpe-info-line--last {
+.cpe-info-line-last {
   margin-bottom: 0;
 }
 
@@ -146,11 +146,11 @@
   margin-top: 8px;
 }
 
-.cpe-section-detail--sm {
+.cpe-section-detail-sm {
   margin-top: 4px;
 }
 
-.cpe-section-detail--md {
+.cpe-section-detail-md {
   margin-top: 6px;
 }
 
@@ -196,7 +196,7 @@
   font-size: 13px;
 }
 
-.cpe-btn--disabled {
+.cpe-btn-disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

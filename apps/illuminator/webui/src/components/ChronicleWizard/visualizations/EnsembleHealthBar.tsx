@@ -5,7 +5,7 @@
  * Replaces the +cat/+rel badges with a single unified visualization.
  */
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import type { EntityContext } from "../../../lib/chronicleTypes";
 import type { ChronicleRoleAssignment } from "../../../lib/chronicleTypes";
 

@@ -6,7 +6,8 @@
  * summaries and already-generated chronicle text.
  */
 
-import { useState } from "react";
+import React, { useState } from "react";
+import PropTypes from "prop-types";
 import "./RevisionFilterModal.css";
 
 export default function RevisionFilterModal({
@@ -42,12 +43,12 @@ export default function RevisionFilterModal({
 
             <span className="rfm-count-label">Used in chronicles</span>
             <span
-              className={`rfm-count-value ${usedInChronicles > 0 ? "rfm-count-value--warning" : "rfm-count-value--muted"}`}
+              className={`rfm-count-value ${usedInChronicles > 0 ? "rfm-count-value-warning" : "rfm-count-value-muted"}`}
             >
               {usedInChronicles}
             </span>
 
-            <span className="rfm-count-label rfm-count-label--total">Available for revision</span>
+            <span className="rfm-count-label rfm-count-label-total">Available for revision</span>
             <span className="rfm-count-value">{available}</span>
           </div>
 
@@ -97,3 +98,11 @@ export default function RevisionFilterModal({
     </div>
   );
 }
+
+RevisionFilterModal.propTypes = {
+  isOpen: PropTypes.bool,
+  totalEligible: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  usedInChronicles: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onStart: PropTypes.func,
+  onCancel: PropTypes.func,
+};

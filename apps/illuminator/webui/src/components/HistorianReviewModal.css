@@ -7,12 +7,12 @@
   border-radius: 0 4px 4px 0;
 }
 
-.hrm-note--accepted {
-  background: rgba(139, 115, 85, 0.08);
+.hrm-note-accepted {
+  background: rgb(139 115 85 / 8%);
   opacity: 1;
 }
 
-.hrm-note--rejected {
+.hrm-note-rejected {
   background: var(--bg-tertiary);
   opacity: 0.5;
 }
@@ -50,12 +50,12 @@
   cursor: pointer;
 }
 
-.hrm-note-toggle--accepted {
-  background: rgba(34, 197, 94, 0.15);
+.hrm-note-toggle-accepted {
+  background: rgb(34 197 94 / 15%);
   color: #22c55e;
 }
 
-.hrm-note-toggle--rejected {
+.hrm-note-toggle-rejected {
   background: var(--bg-tertiary);
   color: var(--text-muted);
 }
@@ -96,11 +96,11 @@
   cursor: pointer;
 }
 
-.hrm-note-edit-btn--save {
+.hrm-note-edit-btn-save {
   color: var(--text-primary);
 }
 
-.hrm-note-edit-btn--cancel {
+.hrm-note-edit-btn-cancel {
   color: var(--text-muted);
 }
 
@@ -124,7 +124,7 @@
   max-height: 400px;
   overflow: auto;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .hrm-anchor-span {
@@ -133,12 +133,12 @@
   cursor: help;
 }
 
-.hrm-anchor-span--accepted {
+.hrm-anchor-span-accepted {
   text-decoration: none;
   opacity: 1;
 }
 
-.hrm-anchor-span--rejected {
+.hrm-anchor-span-rejected {
   background: transparent;
   border-bottom: 2px solid var(--border-color);
   text-decoration: line-through;
@@ -154,11 +154,8 @@
 /* Main Modal */
 .hrm-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  inset: 0;
+  background: rgb(0 0 0 / 60%);
   z-index: 10000;
   display: flex;
   align-items: center;
@@ -273,13 +270,13 @@
   font-weight: 600;
 }
 
-.hrm-apply-btn--active {
+.hrm-apply-btn-active {
   background: #8b7355;
   color: #fff;
   cursor: pointer;
 }
 
-.hrm-apply-btn--disabled {
+.hrm-apply-btn-disabled {
   background: var(--bg-tertiary);
   color: var(--text-muted);
   cursor: not-allowed;

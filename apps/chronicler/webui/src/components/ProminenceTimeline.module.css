@@ -19,7 +19,7 @@
   margin-bottom: var(--spacing-sm);
 }
 
-.graphContainer {
+.graph-container {
   position: relative;
   height: 50px;
 }
@@ -29,7 +29,7 @@
   height: 100%;
 }
 
-.dataPoint {
+.data-point {
   cursor: pointer;
 }
 
@@ -50,24 +50,24 @@
   box-shadow: var(--shadow-lg);
 }
 
-.transitionColor {
+.transition-color {
   color: var(--prominence-color);
 }
 
-.tooltipValue {
+.tooltip-value {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
   margin-bottom: var(--spacing-xs);
 }
 
-.tooltipDescription {
+.tooltip-description {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   font-style: italic;
 }
 
-.emptyState {
+.empty-state {
   text-align: center;
   padding: var(--spacing-2xl);
   color: var(--color-text-muted);

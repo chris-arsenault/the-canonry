@@ -2,8 +2,8 @@
  * ProbabilityTab - Probability configuration
  */
 
-import React from 'react';
-import { NumberInput } from '../../shared';
+import React from "react";
+import { NumberInput } from "../../shared";
 
 /**
  * Editor for pressure modifiers with multiplier support.
@@ -45,7 +45,7 @@ function PressureModifiersEditor({ value = [], onChange, pressures = [] }) {
           <span className="text-muted text-xs">×</span>
           <NumberInput
             value={mod.multiplier}
-            onChange={(v) => updateModifier(index, 'multiplier', v ?? 1.0)}
+            onChange={(v) => updateModifier(index, "multiplier", v ?? 1.0)}
             className="input input-xs"
             step={0.1}
           />
@@ -57,11 +57,7 @@ function PressureModifiersEditor({ value = [], onChange, pressures = [] }) {
       <div className="text-muted text-xs mb-md">
         Positive multiplier: high pressure increases likelihood. Negative: inverse relationship.
       </div>
-      <select
-        className="select"
-        value=""
-        onChange={(e) => addModifier(e.target.value)}
-      >
+      <select className="select" value="" onChange={(e) => addModifier(e.target.value)}>
         <option value="">+ Add pressure modifier...</option>
         {availablePressures.map((p) => (
           <option key={p.id} value={p.id}>
@@ -99,9 +95,7 @@ export function ProbabilityTab({ action, onChange, pressures }) {
 
       <div className="section">
         <div className="section-title">🎯 Base Success Chance</div>
-        <div className="section-desc">
-          Probability that this action succeeds when attempted.
-        </div>
+        <div className="section-desc">Probability that this action succeeds when attempted.</div>
         <div className="slider-row">
           <input
             type="range"
@@ -109,7 +103,7 @@ export function ProbabilityTab({ action, onChange, pressures }) {
             max="1"
             step="0.05"
             value={baseSuccessChance}
-            onChange={(e) => updateProbability('baseSuccessChance', parseFloat(e.target.value))}
+            onChange={(e) => updateProbability("baseSuccessChance", parseFloat(e.target.value))}
             className="slider"
           />
           <span className="slider-value">{(baseSuccessChance * 100).toFixed(0)}%</span>
@@ -124,7 +118,7 @@ export function ProbabilityTab({ action, onChange, pressures }) {
         <div className="form-group">
           <NumberInput
             value={baseWeight}
-            onChange={(v) => updateProbability('baseWeight', v ?? 1.0)}
+            onChange={(v) => updateProbability("baseWeight", v ?? 1.0)}
             min={0}
           />
         </div>
@@ -133,11 +127,12 @@ export function ProbabilityTab({ action, onChange, pressures }) {
       <div className="section">
         <div className="section-title">📊 Pressure Modifiers ({pressureModifiers.length})</div>
         <div className="section-desc">
-          Pressures that affect the weight of this action. Formula: weight = baseWeight × (1 + Σ(pressure/100 × multiplier))
+          Pressures that affect the weight of this action. Formula: weight = baseWeight × (1 +
+          Σ(pressure/100 × multiplier))
         </div>
         <PressureModifiersEditor
           value={pressureModifiers}
-          onChange={(v) => updateProbability('pressureModifiers', v.length > 0 ? v : undefined)}
+          onChange={(v) => updateProbability("pressureModifiers", v.length > 0 ? v : undefined)}
           pressures={pressures}
         />
       </div>

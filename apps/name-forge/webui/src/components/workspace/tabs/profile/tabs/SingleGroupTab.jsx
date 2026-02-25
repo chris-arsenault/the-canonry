@@ -2,11 +2,11 @@
  * SingleGroupTab - Edit a single strategy group
  */
 
-import { useMemo } from 'react';
-import { TagSelector, NumberInput } from '@penguin-tales/shared-components';
-import MultiSelectPills from '../MultiSelectPills';
+import { useMemo } from "react";
+import { TagSelector, NumberInput } from "@penguin-tales/shared-components";
+import MultiSelectPills from "../MultiSelectPills";
 
-const PROMINENCE_LEVELS = ['forgotten', 'marginal', 'recognized', 'renowned', 'mythic'];
+const PROMINENCE_LEVELS = ["forgotten", "marginal", "recognized", "renowned", "mythic"];
 
 export default function SingleGroupTab({
   group,
@@ -30,14 +30,15 @@ export default function SingleGroupTab({
     const entityDefs = worldSchema?.hardState || [];
 
     // If no entity kinds selected, show all subtypes from all entity kinds
-    const kindsToCheck = selectedKinds.length > 0
-      ? entityDefs.filter(e => selectedKinds.includes(e.kind))
-      : entityDefs;
+    const kindsToCheck =
+      selectedKinds.length > 0
+        ? entityDefs.filter((e) => selectedKinds.includes(e.kind))
+        : entityDefs;
 
     const subtypes = new Set();
-    kindsToCheck.forEach(entityDef => {
+    kindsToCheck.forEach((entityDef) => {
       // subtype is already a string array in hardState format
-      (entityDef.subtype || []).forEach(st => {
+      (entityDef.subtype || []).forEach((st) => {
         if (st) subtypes.add(st);
       });
     });
@@ -74,10 +75,10 @@ export default function SingleGroupTab({
 
   const handleAddStrategy = (type) => {
     const newStrategy = { type, weight: 0.25 };
-    if (type === 'phonotactic') {
-      newStrategy.domainId = domains[0]?.id || '';
-    } else if (type === 'grammar') {
-      newStrategy.grammarId = grammars[0]?.id || '';
+    if (type === "phonotactic") {
+      newStrategy.domainId = domains[0]?.id || "";
+    } else if (type === "grammar") {
+      newStrategy.grammarId = grammars[0]?.id || "";
     }
     updateGroup({
       strategies: [...group.strategies, newStrategy],
@@ -110,7 +111,7 @@ export default function SingleGroupTab({
           <div className="form-group">
             <label>Group Name</label>
             <input
-              value={group.name || ''}
+              value={group.name || ""}
               onChange={(e) => updateGroup({ name: e.target.value })}
               placeholder="e.g., Noble Names"
             />
@@ -125,7 +126,8 @@ export default function SingleGroupTab({
           </div>
         </div>
         <p className="text-muted text-small mt-0">
-          Higher priority groups are evaluated first. The first matching group's strategies are used.
+          Higher priority groups are evaluated first. The first matching group's strategies are
+          used.
         </p>
       </div>
 
@@ -134,10 +136,10 @@ export default function SingleGroupTab({
         <div className="section-header">
           <h4>Conditions</h4>
           <button
-            className={`toggle-btn ${hasConditions ? 'active' : ''}`}
+            className={`toggle-btn ${hasConditions ? "active" : ""}`}
             onClick={toggleConditions}
           >
-            {hasConditions ? 'Conditional' : 'Always Match'}
+            {hasConditions ? "Conditional" : "Always Match"}
           </button>
         </div>
 
@@ -148,7 +150,7 @@ export default function SingleGroupTab({
               <MultiSelectPills
                 options={entityKinds}
                 selected={group.conditions?.entityKinds || []}
-                onChange={(val) => handleConditionChange('entityKinds', val)}
+                onChange={(val) => handleConditionChange("entityKinds", val)}
                 allLabel="All"
               />
             </div>
@@ -158,7 +160,7 @@ export default function SingleGroupTab({
               <MultiSelectPills
                 options={PROMINENCE_LEVELS}
                 selected={group.conditions?.prominence || []}
-                onChange={(val) => handleConditionChange('prominence', val)}
+                onChange={(val) => handleConditionChange("prominence", val)}
                 allLabel="Any"
               />
             </div>
@@ -170,7 +172,7 @@ export default function SingleGroupTab({
                   <input
                     type="checkbox"
                     checked={group.conditions?.subtypeMatchAll || false}
-                    onChange={(e) => handleConditionChange('subtypeMatchAll', e.target.checked)}
+                    onChange={(e) => handleConditionChange("subtypeMatchAll", e.target.checked)}
                   />
                   Match all
                 </label>
@@ -179,14 +181,14 @@ export default function SingleGroupTab({
                 <MultiSelectPills
                   options={availableSubtypes}
                   selected={group.conditions?.subtypes || []}
-                  onChange={(val) => handleConditionChange('subtypes', val)}
+                  onChange={(val) => handleConditionChange("subtypes", val)}
                   allLabel="Any"
                 />
               ) : (
-                <p className="text-muted text-small" style={{ margin: '8px 0' }}>
+                <p className="text-muted text-small" style={{ margin: "8px 0" }}>
                   {(group.conditions?.entityKinds?.length || 0) > 0
-                    ? 'Selected entity types have no subtypes defined'
-                    : 'Select entity types to see available subtypes'}
+                    ? "Selected entity types have no subtypes defined"
+                    : "Select entity types to see available subtypes"}
                 </p>
               )}
             </div>
@@ -195,12 +197,12 @@ export default function SingleGroupTab({
               <label>Tags</label>
               <TagSelector
                 value={group.conditions?.tags || []}
-                onChange={(val) => handleConditionChange('tags', val)}
+                onChange={(val) => handleConditionChange("tags", val)}
                 tagRegistry={tagRegistry}
                 placeholder="Select tags..."
                 matchAllEnabled={true}
                 matchAll={group.conditions?.tagMatchAll || false}
-                onMatchAllChange={(val) => handleConditionChange('tagMatchAll', val)}
+                onMatchAllChange={(val) => handleConditionChange("tagMatchAll", val)}
                 onAddToRegistry={onAddTag}
               />
             </div>
@@ -217,10 +219,13 @@ export default function SingleGroupTab({
         <div className="section-header">
           <h4>Strategies</h4>
           <div className="add-strategy-buttons">
-            <button className="add-btn phonotactic" onClick={() => handleAddStrategy('phonotactic')}>
+            <button
+              className="add-btn phonotactic"
+              onClick={() => handleAddStrategy("phonotactic")}
+            >
               + Phonotactic
             </button>
-            <button className="add-btn grammar" onClick={() => handleAddStrategy('grammar')}>
+            <button className="add-btn grammar" onClick={() => handleAddStrategy("grammar")}>
               + Grammar
             </button>
           </div>
@@ -239,12 +244,10 @@ export default function SingleGroupTab({
                   <span className="strategy-weight">
                     {groupTotalWeight > 0
                       ? Math.round((strategy.weight / groupTotalWeight) * 100)
-                      : 0}%
+                      : 0}
+                    %
                   </span>
-                  <button
-                    className="remove-btn"
-                    onClick={() => handleDeleteStrategy(stratIdx)}
-                  >
+                  <button className="remove-btn" onClick={() => handleDeleteStrategy(stratIdx)}>
                     ×
                   </button>
                 </div>
@@ -262,31 +265,39 @@ export default function SingleGroupTab({
                     />
                   </div>
 
-                  {strategy.type === 'phonotactic' && (
+                  {strategy.type === "phonotactic" && (
                     <div className="strategy-config">
                       <label>Domain</label>
                       <select
-                        value={strategy.domainId || ''}
-                        onChange={(e) => handleStrategyConfigChange(stratIdx, 'domainId', e.target.value)}
+                        value={strategy.domainId || ""}
+                        onChange={(e) =>
+                          handleStrategyConfigChange(stratIdx, "domainId", e.target.value)
+                        }
                       >
                         <option value="">Select domain...</option>
                         {domains.map((d) => (
-                          <option key={d.id} value={d.id}>{d.id}</option>
+                          <option key={d.id} value={d.id}>
+                            {d.id}
+                          </option>
                         ))}
                       </select>
                     </div>
                   )}
 
-                  {strategy.type === 'grammar' && (
+                  {strategy.type === "grammar" && (
                     <div className="strategy-config">
                       <label>Grammar</label>
                       <select
-                        value={strategy.grammarId || ''}
-                        onChange={(e) => handleStrategyConfigChange(stratIdx, 'grammarId', e.target.value)}
+                        value={strategy.grammarId || ""}
+                        onChange={(e) =>
+                          handleStrategyConfigChange(stratIdx, "grammarId", e.target.value)
+                        }
                       >
                         <option value="">Select grammar...</option>
                         {grammars.map((g) => (
-                          <option key={g.id} value={g.id}>{g.id}</option>
+                          <option key={g.id} value={g.id}>
+                            {g.id}
+                          </option>
                         ))}
                       </select>
                     </div>

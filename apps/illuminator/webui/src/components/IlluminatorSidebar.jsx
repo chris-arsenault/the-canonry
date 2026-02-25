@@ -1,6 +1,7 @@
 import { ImageSettingsTrigger } from "./ImageSettingsDrawer";
 import { useIlluminatorModals } from "../lib/db/modalStore";
 import "./IlluminatorSidebar.css";
+import React from "react";
 
 // Tabs ordered by workflow: setup -> work -> monitor -> manage
 const TABS = [
@@ -31,23 +32,25 @@ function NavButton({ tab, activeTab, setActiveTab, stats }) {
     >
       {tab.label}
       {tab.id === "activity" && stats.running > 0 && (
-        <span className="isb-badge isb-badge--running">
-          {stats.running}
-        </span>
+        <span className="isb-badge isb-badge-running">{stats.running}</span>
       )}
       {tab.id === "activity" && stats.errored > 0 && stats.running === 0 && (
-        <span className="isb-badge isb-badge--errored">
-          {stats.errored}
-        </span>
+        <span className="isb-badge isb-badge-errored">{stats.errored}</span>
       )}
     </button>
   );
 }
 
 function ApiKeySection({
-  showApiKeyInput, setShowApiKeyInput,
-  hasRequiredKeys, anthropicApiKey, setAnthropicApiKey,
-  openaiApiKey, setOpenaiApiKey, persistApiKeys, setPersistApiKeys,
+  showApiKeyInput,
+  setShowApiKeyInput,
+  hasRequiredKeys,
+  anthropicApiKey,
+  setAnthropicApiKey,
+  openaiApiKey,
+  setOpenaiApiKey,
+  persistApiKeys,
+  setPersistApiKeys,
 }) {
   return (
     <div className="illuminator-api-section">
@@ -98,11 +101,20 @@ function ApiKeySection({
 }
 
 export default function IlluminatorSidebar({
-  activeTab, setActiveTab, stats,
-  imageGenSettings, styleLibrary,
-  showApiKeyInput, setShowApiKeyInput,
-  hasRequiredKeys, anthropicApiKey, setAnthropicApiKey,
-  openaiApiKey, setOpenaiApiKey, persistApiKeys, setPersistApiKeys,
+  activeTab,
+  setActiveTab,
+  stats,
+  imageGenSettings,
+  styleLibrary,
+  showApiKeyInput,
+  setShowApiKeyInput,
+  hasRequiredKeys,
+  anthropicApiKey,
+  setAnthropicApiKey,
+  openaiApiKey,
+  setOpenaiApiKey,
+  persistApiKeys,
+  setPersistApiKeys,
 }) {
   return (
     <div className="illuminator-sidebar">

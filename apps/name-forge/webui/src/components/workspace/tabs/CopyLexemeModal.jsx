@@ -1,10 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef } from "react";
 
 /**
  * Generate a unique ID with culture prefix, avoiding conflicts
  */
 function generateUniqueId(cultureId, sourceId, existingIds) {
-  const suffix = sourceId.replace(/^[^_]+_/, '');
+  const suffix = sourceId.replace(/^[^_]+_/, "");
   let newId = `${cultureId}_${suffix}`;
   let counter = 1;
   while (existingIds.includes(newId)) {
@@ -37,7 +37,7 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
     .map(([id, config]) => ({
       id,
       name: config.name || id,
-      lexemeLists: config.naming?.lexemeLists || {}
+      lexemeLists: config.naming?.lexemeLists || {},
     }));
 
   const selectedCultureLists = selectedCulture
@@ -69,7 +69,7 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
     const copiedLists = {};
     const usedIds = [...existingListIds];
 
-    selectedLists.forEach(listId => {
+    selectedLists.forEach((listId) => {
       const sourceList = sourceCulture?.naming?.lexemeLists?.[listId];
       if (sourceList) {
         const newId = generateUniqueId(cultureId, listId, usedIds);
@@ -80,7 +80,7 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
           id: newId,
           description: sourceList.description
             ? `${sourceList.description} (copied from ${selectedCulture})`
-            : `Copied from ${selectedCulture}`
+            : `Copied from ${selectedCulture}`,
         };
       }
     });
@@ -89,25 +89,31 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
   };
 
   return (
-    <div className="modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
+    <div
+      className="modal-overlay"
+      onMouseDown={handleOverlayMouseDown}
+      onClick={handleOverlayClick}
+    >
       <div className="modal-content copy-modal">
         <div className="tab-header mb-md">
           <h3 className="mt-0">Copy Lexeme Lists from Another Culture</h3>
-          <button className="secondary" onClick={onClose}>×</button>
+          <button className="secondary" onClick={onClose}>
+            ×
+          </button>
         </div>
 
         <div className="copy-modal-body">
           <div className="form-group">
             <label>Source Culture</label>
             <select
-              value={selectedCulture || ''}
+              value={selectedCulture || ""}
               onChange={(e) => {
                 setSelectedCulture(e.target.value || null);
                 setSelectedLists(new Set());
               }}
             >
               <option value="">Select a culture...</option>
-              {otherCultures.map(c => (
+              {otherCultures.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} ({Object.keys(c.lexemeLists).length} lists)
                 </option>
@@ -120,8 +126,12 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
               <div className="flex justify-between align-center mb-sm">
                 <label className="mb-0">Select Lists to Copy</label>
                 <div className="flex gap-sm">
-                  <button className="secondary sm" onClick={selectAll}>All</button>
-                  <button className="secondary sm" onClick={selectNone}>None</button>
+                  <button className="secondary sm" onClick={selectAll}>
+                    All
+                  </button>
+                  <button className="secondary sm" onClick={selectNone}>
+                    None
+                  </button>
                 </div>
               </div>
               <div className="copy-list-grid">
@@ -136,8 +146,8 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
                       <strong>{listId}</strong>
                       <span className="text-muted text-small">
                         {list.entries?.length || 0} entries
-                        {list.source === 'llm' && ' • LLM'}
-                        {list.source === 'manual' && ' • Manual'}
+                        {list.source === "llm" && " • LLM"}
+                        {list.source === "manual" && " • Manual"}
                       </span>
                     </div>
                   </label>
@@ -152,7 +162,9 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
 
           {selectedLists.size > 0 && (
             <div className="copy-preview">
-              <h4>Will Copy {selectedLists.size} List{selectedLists.size > 1 ? 's' : ''}</h4>
+              <h4>
+                Will Copy {selectedLists.size} List{selectedLists.size > 1 ? "s" : ""}
+              </h4>
               <p className="text-small text-muted">
                 Lists will be renamed with "{cultureId}_" prefix.
               </p>
@@ -161,13 +173,14 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
         </div>
 
         <div className="modal-footer">
-          <button className="secondary" onClick={onClose}>Cancel</button>
-          <button
-            className="primary"
-            onClick={handleCopy}
-            disabled={selectedLists.size === 0}
-          >
-            Copy {selectedLists.size > 0 ? `${selectedLists.size} List${selectedLists.size > 1 ? 's' : ''}` : 'Lists'}
+          <button className="secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="primary" onClick={handleCopy} disabled={selectedLists.size === 0}>
+            Copy{" "}
+            {selectedLists.size > 0
+              ? `${selectedLists.size} List${selectedLists.size > 1 ? "s" : ""}`
+              : "Lists"}
           </button>
         </div>
       </div>

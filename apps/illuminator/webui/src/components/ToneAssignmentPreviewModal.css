@@ -4,11 +4,8 @@
 
 .tapm-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgb(0 0 0 / 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -24,7 +21,7 @@
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
 }
 
 /* === Header === */
@@ -74,7 +71,7 @@
   margin-bottom: 10px;
 }
 
-.tapm-section-label--assignments {
+.tapm-section-label-assignments {
   margin-bottom: 8px;
 }
 
@@ -144,8 +141,8 @@
   border-bottom: 1px solid var(--border-color);
 }
 
-.tapm-entry--shifted {
-  background: rgba(245, 158, 11, 0.05);
+.tapm-entry-shifted {
+  background: rgb(245 158 11 / 5%);
 }
 
 .tapm-entry-title {
@@ -175,12 +172,12 @@
   cursor: pointer;
 }
 
-.tapm-rank-chip--assigned {
+.tapm-rank-chip-assigned {
   color: #fff;
   font-weight: 600;
 }
 
-.tapm-rank-chip--unassigned {
+.tapm-rank-chip-unassigned {
   background: transparent;
   color: var(--text-muted);
   font-weight: 400;

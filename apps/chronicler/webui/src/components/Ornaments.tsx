@@ -265,11 +265,13 @@ export function ParchmentTexture({
       aria-hidden
       className={`${className ?? ""} ${ornStyles.parchmentTexture}`}
       // eslint-disable-next-line local/no-inline-styles -- dynamic texture URL and opacity from canvas pipeline
-      style={{
-        '--parchment-url': `url(${textureUrl})`,
-        '--parchment-size': `${tileSize}px ${tileSize}px`,
-        '--parchment-opacity': config.opacity,
-      } as React.CSSProperties}
+      style={
+        {
+          "--parchment-url": `url(${textureUrl})`,
+          "--parchment-size": `${tileSize}px ${tileSize}px`,
+          "--parchment-opacity": config.opacity,
+        } as React.CSSProperties
+      }
     />
   );
 }
@@ -338,10 +340,7 @@ export function ParchmentDebugPanel({
     <div className={ornStyles.debugPanel}>
       <div className={ornStyles.debugHeader}>
         <strong className={ornStyles.debugTitle}>Parchment Config</strong>
-        <button
-          onClick={() => setOpen(false)}
-          className={ornStyles.debugClose}
-        >
+        <button onClick={() => setOpen(false)} className={ornStyles.debugClose}>
           ✕
         </button>
       </div>
@@ -445,10 +444,7 @@ function ScrollCorner() {
 
 export function PageFrame({ className }: { className?: string }) {
   return (
-    <div
-      aria-hidden="true"
-      className={`${className ?? ""} ${ornStyles.pageFrame}`}
-    >
+    <div aria-hidden="true" className={`${className ?? ""} ${ornStyles.pageFrame}`}>
       {/* Top-left */}
       <div className={ornStyles.cornerTopLeft}>
         <ScrollCorner />

@@ -7,7 +7,7 @@
  *   paragraph/character styles, and Smart Text Reflow
  */
 
-import { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import type { PersistedEntity } from "../../lib/db/illuminatorDb";
 import type { ChronicleRecord } from "../../lib/chronicleTypes";
 import type { ImageMetadataRecord } from "../../lib/preprint/prePrintStats";

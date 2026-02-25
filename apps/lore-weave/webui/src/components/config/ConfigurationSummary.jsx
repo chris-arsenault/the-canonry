@@ -4,7 +4,7 @@
  * Shows what data has been configured in canonry and is available for the simulation.
  */
 
-import React from 'react';
+import React from "react";
 
 export default function ConfigurationSummary({
   schema,
@@ -20,29 +20,34 @@ export default function ConfigurationSummary({
     <div className="lw-container">
       <div className="lw-header">
         <h1 className="lw-title">Configuration Summary</h1>
-        <p className="lw-subtitle">
-          Review the world configuration before running the simulation
-        </p>
+        <p className="lw-subtitle">Review the world configuration before running the simulation</p>
       </div>
 
       {/* Validation Status */}
-      <div className={`lw-validation-box ${validation.isValid ? 'valid' : 'invalid'}`}>
-        <div className={`lw-validation-title ${validation.isValid ? 'valid' : 'invalid'}`}>
-          {validation.isValid ? 'Configuration is ready' : 'Configuration incomplete'}
+      <div className={`lw-validation-box ${validation.isValid ? "valid" : "invalid"}`}>
+        <div className={`lw-validation-title ${validation.isValid ? "valid" : "invalid"}`}>
+          {validation.isValid ? "Configuration is ready" : "Configuration incomplete"}
         </div>
 
         {validation.issues.length > 0 && (
           <ul className="lw-validation-list">
             {validation.issues.map((issue, i) => (
-              <li key={i} className="lw-validation-item error">{issue}</li>
+              <li key={i} className="lw-validation-item error">
+                {issue}
+              </li>
             ))}
           </ul>
         )}
 
         {validation.warnings.length > 0 && (
-          <ul className="lw-validation-list" style={{ marginTop: validation.issues.length > 0 ? '8px' : 0 }}>
+          <ul
+            className="lw-validation-list"
+            style={{ marginTop: validation.issues.length > 0 ? "8px" : 0 }}
+          >
             {validation.warnings.map((warning, i) => (
-              <li key={i} className="lw-validation-item warning">{warning}</li>
+              <li key={i} className="lw-validation-item warning">
+                {warning}
+              </li>
             ))}
           </ul>
         )}
@@ -64,7 +69,7 @@ export default function ConfigurationSummary({
       <div className="lw-section">
         <h2 className="lw-section-title">Eras ({eras.length})</h2>
         {eras.length === 0 ? (
-          <div className="lw-empty-state" style={{ height: 'auto', padding: '20px' }}>
+          <div className="lw-empty-state" style={{ height: "auto", padding: "20px" }}>
             No eras defined. Configure eras in the Coherence Engine tab.
           </div>
         ) : (
@@ -74,9 +79,7 @@ export default function ConfigurationSummary({
                 <span className="lw-detail-name">{era.name || era.id}</span>
                 <span className="lw-detail-id">{era.id}</span>
               </div>
-              {era.summary && (
-                <div className="lw-detail-description">{era.summary}</div>
-              )}
+              {era.summary && <div className="lw-detail-description">{era.summary}</div>}
             </div>
           ))
         )}
@@ -86,7 +89,7 @@ export default function ConfigurationSummary({
       <div className="lw-section">
         <h2 className="lw-section-title">Cultures ({schema.cultures.length})</h2>
         {schema.cultures.length === 0 ? (
-          <div className="lw-empty-state" style={{ height: 'auto', padding: '20px' }}>
+          <div className="lw-empty-state" style={{ height: "auto", padding: "20px" }}>
             No cultures defined. Configure cultures in the Enumerist tab.
           </div>
         ) : (
@@ -96,8 +99,8 @@ export default function ConfigurationSummary({
                 key={culture.id}
                 className="lw-item-badge"
                 style={{
-                  borderColor: culture.color || 'var(--lw-border-color)',
-                  color: culture.color || 'var(--lw-text-secondary)',
+                  borderColor: culture.color || "var(--lw-border-color)",
+                  color: culture.color || "var(--lw-text-secondary)",
                 }}
               >
                 {culture.name}
@@ -111,7 +114,7 @@ export default function ConfigurationSummary({
       <div className="lw-section">
         <h2 className="lw-section-title">Entity Kinds ({schema.entityKinds.length})</h2>
         {schema.entityKinds.length === 0 ? (
-          <div className="lw-empty-state" style={{ height: 'auto', padding: '20px' }}>
+          <div className="lw-empty-state" style={{ height: "auto", padding: "20px" }}>
             No entity kinds defined. Configure entity kinds in the Enumerist tab.
           </div>
         ) : (
@@ -129,7 +132,7 @@ export default function ConfigurationSummary({
       <div className="lw-section">
         <h2 className="lw-section-title">Generators ({generators.length})</h2>
         {generators.length === 0 ? (
-          <div className="lw-empty-state" style={{ height: 'auto', padding: '20px' }}>
+          <div className="lw-empty-state" style={{ height: "auto", padding: "20px" }}>
             No generators defined. Configure generators in the Coherence Engine tab.
           </div>
         ) : (
@@ -147,7 +150,7 @@ export default function ConfigurationSummary({
       <div className="lw-section">
         <h2 className="lw-section-title">Pressures ({pressures.length})</h2>
         {pressures.length === 0 ? (
-          <div className="lw-empty-state" style={{ height: 'auto', padding: '20px' }}>
+          <div className="lw-empty-state" style={{ height: "auto", padding: "20px" }}>
             No pressures defined. Configure pressures in the Coherence Engine tab.
           </div>
         ) : (
@@ -163,7 +166,7 @@ export default function ConfigurationSummary({
 
       {/* Run Button */}
       <button
-        className={`lw-btn lw-btn-primary ${!validation.isValid ? 'disabled' : ''}`}
+        className={`lw-btn lw-btn-primary ${!validation.isValid ? "disabled" : ""}`}
         onClick={onNavigateToRun}
         disabled={!validation.isValid}
       >
@@ -177,9 +180,7 @@ function StatCard({ label, value }) {
   return (
     <div className="lw-stat-card">
       <div className="lw-stat-card-label">{label}</div>
-      <div className={`lw-stat-card-value ${value === 0 ? 'zero' : ''}`}>
-        {value}
-      </div>
+      <div className={`lw-stat-card-value ${value === 0 ? "zero" : ""}`}>{value}</div>
     </div>
   );
 }

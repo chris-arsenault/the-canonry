@@ -8,7 +8,7 @@
   margin-bottom: 10px;
 }
 
-.edv-meta-row__label {
+.edv-meta-row-label {
   font-size: 11px;
   color: var(--text-muted);
   margin-bottom: 2px;
@@ -16,10 +16,10 @@
   letter-spacing: 0.5px;
 }
 
-.edv-meta-row__value {
+.edv-meta-row-value {
   font-size: 13px;
   color: var(--text-primary);
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* ==========================================================================
@@ -30,7 +30,7 @@
   margin-bottom: 8px;
 }
 
-.edv-expandable__toggle {
+.edv-expandable-toggle {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -45,25 +45,25 @@
   text-align: left;
 }
 
-.edv-expandable__arrow {
+.edv-expandable-arrow {
   font-size: 10px;
   transition: transform 0.2s ease;
 }
 
-.edv-expandable__arrow--open {
+.edv-expandable-arrow-open {
   transform: rotate(90deg);
 }
 
-.edv-expandable__title {
+.edv-expandable-title {
   flex: 1;
 }
 
-.edv-expandable__chars {
+.edv-expandable-chars {
   font-size: 10px;
   color: var(--text-muted);
 }
 
-.edv-expandable__content {
+.edv-expandable-content {
   margin-top: 6px;
   padding: 10px;
   background: var(--bg-primary);
@@ -72,7 +72,7 @@
   color: var(--text-secondary);
   line-height: 1.5;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: break-word;
   max-height: 300px;
   overflow-y: auto;
 }
@@ -85,7 +85,7 @@
   margin-bottom: 16px;
 }
 
-.edv-traits__label {
+.edv-traits-label {
   font-size: 11px;
   color: var(--text-muted);
   margin-bottom: 8px;
@@ -93,16 +93,16 @@
   letter-spacing: 0.5px;
 }
 
-.edv-traits__list {
+.edv-traits-list {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.edv-traits__tag {
+.edv-traits-tag {
   padding: 4px 10px;
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  background: rgb(59 130 246 / 15%);
+  border: 1px solid rgb(59 130 246 / 25%);
   border-radius: 12px;
   font-size: 12px;
   color: var(--text-primary);
@@ -116,7 +116,7 @@
   margin-bottom: 16px;
 }
 
-.edv-aliases__label {
+.edv-aliases-label {
   font-size: 11px;
   color: var(--text-muted);
   margin-bottom: 8px;
@@ -127,7 +127,7 @@
   gap: 8px;
 }
 
-.edv-aliases__add-btn {
+.edv-aliases-add-btn {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
@@ -139,20 +139,20 @@
   letter-spacing: normal;
 }
 
-.edv-aliases__list {
+.edv-aliases-list {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
 }
 
-.edv-aliases__edit-wrap {
+.edv-aliases-edit-wrap {
   display: inline-flex;
   align-items: center;
   gap: 2px;
 }
 
-.edv-aliases__edit-input {
+.edv-aliases-edit-input {
   padding: 3px 8px;
   background: var(--bg-primary);
   border: 1px solid var(--accent-color);
@@ -162,7 +162,7 @@
   outline: none;
 }
 
-.edv-aliases__tag {
+.edv-aliases-tag {
   padding: 4px 10px;
   background: var(--bg-tertiary);
   border-radius: 12px;
@@ -173,11 +173,11 @@
   gap: 4px;
 }
 
-.edv-aliases__tag--editable {
+.edv-aliases-tag-editable {
   cursor: pointer;
 }
 
-.edv-aliases__remove {
+.edv-aliases-remove {
   cursor: pointer;
   color: var(--text-muted);
   font-size: 10px;
@@ -185,7 +185,7 @@
   line-height: 1;
 }
 
-.edv-aliases__empty {
+.edv-aliases-empty {
   font-size: 12px;
   color: var(--text-muted);
   font-style: italic;
@@ -203,7 +203,7 @@
 }
 
 /* Header bar */
-.edv__header {
+.edv-header {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -213,7 +213,7 @@
   flex-shrink: 0;
 }
 
-.edv__back-btn {
+.edv-back-btn {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   border-radius: 4px;
@@ -226,36 +226,36 @@
   gap: 4px;
 }
 
-.edv__header-info {
+.edv-header-info {
   flex: 1;
 }
 
-.edv__entity-name {
+.edv-entity-name {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.edv__entity-meta {
+.edv-entity-meta {
   font-size: 12px;
   color: var(--text-muted);
   margin-top: 2px;
 }
 
-.edv__esc-hint {
+.edv-esc-hint {
   font-size: 11px;
   color: var(--text-muted);
 }
 
 /* Two-column body */
-.edv__body {
+.edv-body {
   display: flex;
   flex: 1;
   min-height: 0;
 }
 
 /* Main content */
-.edv__main {
+.edv-main {
   flex: 1;
   overflow-y: auto;
   padding: 20px 24px;
@@ -263,7 +263,7 @@
 }
 
 /* Section label (shared across Summary, Visual Thesis, Full Description) */
-.edv__section-label {
+.edv-section-label {
   font-size: 11px;
   color: var(--text-muted);
   margin-bottom: 6px;
@@ -274,16 +274,16 @@
   gap: 8px;
 }
 
-.edv__section-label--wrap {
+.edv-section-label-wrap {
   flex-wrap: wrap;
 }
 
-.edv__section-label--visual-thesis {
-  color: rgba(139, 92, 246, 0.8);
+.edv-section-label-visual-thesis {
+  color: rgb(139 92 246 / 80%);
 }
 
 /* Small inline button (Edit, Undo, Rename, Patch Events, Add, Clear Notes) */
-.edv__inline-btn {
+.edv-inline-btn {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
@@ -295,7 +295,7 @@
   letter-spacing: normal;
 }
 
-.edv__inline-btn--ghost {
+.edv-inline-btn-ghost {
   background: none;
   border: 1px solid var(--border-color);
   color: var(--text-muted);
@@ -308,7 +308,7 @@
 }
 
 /* Version hint */
-.edv__version-hint {
+.edv-version-hint {
   text-transform: none;
   letter-spacing: normal;
   font-size: 10px;
@@ -316,25 +316,25 @@
 }
 
 /* Section spacing */
-.edv__section {
+.edv-section {
   margin-bottom: 20px;
 }
 
 /* Summary text */
-.edv__summary-text {
+.edv-summary-text {
   font-size: 15px;
   color: var(--text-primary);
   line-height: 1.6;
   margin: 0;
 }
 
-.edv__placeholder {
+.edv-placeholder {
   font-style: italic;
   color: var(--text-muted);
 }
 
 /* Summary textarea */
-.edv__summary-textarea {
+.edv-summary-textarea {
   width: 100%;
   min-height: 80px;
   font-size: 15px;
@@ -352,20 +352,20 @@
 }
 
 /* Visual Thesis */
-.edv__visual-thesis {
+.edv-visual-thesis {
   font-size: 14px;
   color: var(--text-primary);
   line-height: 1.6;
   margin: 0;
   padding: 12px 16px;
-  background: rgba(139, 92, 246, 0.08);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgb(139 92 246 / 8%);
+  border: 1px solid rgb(139 92 246 / 20%);
   border-radius: 8px;
   font-style: italic;
 }
 
 /* Description textarea */
-.edv__desc-textarea {
+.edv-desc-textarea {
   width: 100%;
   min-height: 200px;
   font-size: 14px;
@@ -384,15 +384,15 @@
 }
 
 /* Description rendered */
-.edv__description {
+.edv-description {
   font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.7;
 }
 
 /* Markdown heading overrides */
-.edv__description h2,
-.edv__md-h2 {
+.edv-description h2,
+.edv-md-h2 {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
@@ -401,46 +401,46 @@
   padding-bottom: 3px;
 }
 
-.edv__description h3,
-.edv__md-h3 {
+.edv-description h3,
+.edv-md-h3 {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 12px 0 4px;
 }
 
-.edv__description p,
-.edv__md-p {
+.edv-description p,
+.edv-md-p {
   margin: 0 0 8px;
 }
 
-.edv__description ul,
-.edv__md-ul {
+.edv-description ul,
+.edv-md-ul {
   margin: 4px 0 8px;
   padding-left: 20px;
 }
 
-.edv__description ol,
-.edv__md-ol {
+.edv-description ol,
+.edv-md-ol {
   margin: 4px 0 8px;
   padding-left: 20px;
 }
 
-.edv__description li,
-.edv__md-li {
+.edv-description li,
+.edv-md-li {
   margin-bottom: 2px;
 }
 
-.edv__description table,
-.edv__md-table {
+.edv-description table,
+.edv-md-table {
   border-collapse: collapse;
   margin: 8px 0;
   font-size: 13px;
   width: 100%;
 }
 
-.edv__description th,
-.edv__md-th {
+.edv-description th,
+.edv-md-th {
   border: 1px solid var(--border-color);
   padding: 4px 8px;
   text-align: left;
@@ -448,33 +448,33 @@
   background: var(--bg-tertiary);
 }
 
-.edv__description td,
-.edv__md-td {
+.edv-description td,
+.edv-md-td {
   border: 1px solid var(--border-color);
   padding: 4px 8px;
 }
 
-.edv__no-desc {
+.edv-no-desc {
   font-style: italic;
   color: var(--text-muted);
   margin: 0;
 }
 
 /* Backref separator */
-.edv__separator {
+.edv-separator {
   border-top: 1px solid var(--border-color);
-  margin: 8px 0 16px 0;
+  margin: 8px 0 16px;
 }
 
 /* No enrichment fallback */
-.edv__no-enrichment {
+.edv-no-enrichment {
   padding: 40px;
   text-align: center;
   color: var(--text-muted);
 }
 
 /* Sidebar */
-.edv__sidebar {
+.edv-sidebar {
   width: 320px;
   flex-shrink: 0;
   border-left: 1px solid var(--border-color);
@@ -483,8 +483,8 @@
   background: var(--bg-secondary);
 }
 
-.edv__sidebar-title {
-  margin: 0 0 16px 0;
+.edv-sidebar-title {
+  margin: 0 0 16px;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
@@ -492,12 +492,12 @@
   padding-bottom: 10px;
 }
 
-.edv__sidebar-divider {
+.edv-sidebar-divider {
   border-top: 1px solid var(--border-color);
   margin: 12px 0;
 }
 
-.edv__sidebar-section-label {
+.edv-sidebar-section-label {
   font-size: 11px;
   color: var(--text-muted);
   margin-bottom: 10px;
@@ -506,30 +506,30 @@
 }
 
 /* Debug chain step labels */
-.edv__debug-step {
+.edv-debug-step {
   margin-bottom: 8px;
 }
 
-.edv__debug-step-label {
+.edv-debug-step-label {
   font-size: 10px;
   margin-bottom: 4px;
   font-weight: 500;
 }
 
-.edv__debug-step-label--narrative {
-  color: rgba(59, 130, 246, 0.8);
+.edv-debug-step-label-narrative {
+  color: rgb(59 130 246 / 80%);
 }
 
-.edv__debug-step-label--thesis {
-  color: rgba(139, 92, 246, 0.8);
+.edv-debug-step-label-thesis {
+  color: rgb(139 92 246 / 80%);
 }
 
-.edv__debug-step-label--traits {
-  color: rgba(34, 197, 94, 0.8);
+.edv-debug-step-label-traits {
+  color: rgb(34 197 94 / 80%);
 }
 
 /* No debug info */
-.edv__no-debug {
+.edv-no-debug {
   font-size: 12px;
   color: var(--text-muted);
   font-style: italic;
@@ -537,6 +537,6 @@
 }
 
 /* Historian margin notes spacing */
-.edv__margin-notes {
+.edv-margin-notes {
   margin-top: 12px;
 }

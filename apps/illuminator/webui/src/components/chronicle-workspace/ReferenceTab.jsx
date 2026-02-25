@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import { ExpandableSeedSection } from "../ChronicleSeedViewer";
 import NarrativeTimeline from "../ChronicleWizard/visualizations/NarrativeTimeline";
 import {
@@ -33,14 +34,12 @@ function PerspectiveSynthesisViewer({ synthesis }) {
   return (
     <div className="ref-tab-synth">
       <div
-        className={`ref-tab-synth__header ${isExpanded ? "ref-tab-synth__header--expanded" : ""}`}
+        className={`ref-tab-synth-header ${isExpanded ? "ref-tab-synth-header-expanded" : ""}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <span className="ref-tab-synth__toggle">
-          {isExpanded ? "\u25BC" : "\u25B6"}
-        </span>
-        <span className="ref-tab-synth__title">Perspective Synthesis</span>
-        <span className="ref-tab-synth__meta">
+        <span className="ref-tab-synth-toggle">{isExpanded ? "\u25BC" : "\u25B6"}</span>
+        <span className="ref-tab-synth-title">Perspective Synthesis</span>
+        <span className="ref-tab-synth-meta">
           {synthesis.facets?.length || 0} facets &bull; {synthesis.entityDirectives?.length || 0}{" "}
           directives &bull; {synthesis.suggestedMotifs?.length || 0} motifs &bull;{" "}
           {formatCost(synthesis.actualCost)}
@@ -48,18 +47,18 @@ function PerspectiveSynthesisViewer({ synthesis }) {
       </div>
 
       {isExpanded && (
-        <div className="ref-tab-synth__body">
+        <div className="ref-tab-synth-body">
           {hasInputData && (
-            <div className="ref-tab-synth__tabs">
+            <div className="ref-tab-synth-tabs">
               <button
                 onClick={() => setActiveTab("output")}
-                className={`ref-tab-synth__tab-btn ${activeTab === "output" ? "ref-tab-synth__tab-btn--active" : ""}`}
+                className={`ref-tab-synth-tab-btn ${activeTab === "output" ? "ref-tab-synth-tab-btn-active" : ""}`}
               >
                 LLM Output
               </button>
               <button
                 onClick={() => setActiveTab("input")}
-                className={`ref-tab-synth__tab-btn ${activeTab === "input" ? "ref-tab-synth__tab-btn--active" : ""}`}
+                className={`ref-tab-synth-tab-btn ${activeTab === "input" ? "ref-tab-synth-tab-btn-active" : ""}`}
               >
                 LLM Input
               </button>
@@ -70,42 +69,27 @@ function PerspectiveSynthesisViewer({ synthesis }) {
             <>
               {/* Constellation Summary */}
               <div className="ref-tab-section">
-                <div className="ref-tab-section-heading">
-                  CONSTELLATION SUMMARY
-                </div>
-                <div className="ref-tab-text">
-                  {synthesis.constellationSummary}
-                </div>
+                <div className="ref-tab-section-heading">CONSTELLATION SUMMARY</div>
+                <div className="ref-tab-text">{synthesis.constellationSummary}</div>
               </div>
 
               {/* Brief */}
               <div className="ref-tab-section">
-                <div className="ref-tab-section-heading">
-                  PERSPECTIVE BRIEF
-                </div>
-                <div className="ref-tab-text--brief">
-                  {synthesis.brief}
-                </div>
+                <div className="ref-tab-section-heading">PERSPECTIVE BRIEF</div>
+                <div className="ref-tab-text-brief">{synthesis.brief}</div>
               </div>
 
               {/* Facets */}
               {synthesis.facets && synthesis.facets.length > 0 && (
                 <div className="ref-tab-section">
-                  <div className="ref-tab-section-heading ref-tab-section-heading--mb8">
+                  <div className="ref-tab-section-heading ref-tab-section-heading-mb8">
                     FACETED FACTS ({synthesis.facets.length})
                   </div>
                   <div className="ref-tab-vlist">
                     {synthesis.facets.map((facet, i) => (
-                      <div
-                        key={i}
-                        className="ref-tab-card ref-tab-card--accent-left"
-                      >
-                        <div className="ref-tab-card__id">
-                          {facet.factId}
-                        </div>
-                        <div className="ref-tab-card__body">
-                          {facet.interpretation}
-                        </div>
+                      <div key={i} className="ref-tab-card ref-tab-card-accent-left">
+                        <div className="ref-tab-card-id">{facet.factId}</div>
+                        <div className="ref-tab-card-body">{facet.interpretation}</div>
                       </div>
                     ))}
                   </div>
@@ -115,21 +99,14 @@ function PerspectiveSynthesisViewer({ synthesis }) {
               {/* Narrative Voice */}
               {synthesis.narrativeVoice && Object.keys(synthesis.narrativeVoice).length > 0 && (
                 <div className="ref-tab-section">
-                  <div className="ref-tab-section-heading ref-tab-section-heading--mb8">
+                  <div className="ref-tab-section-heading ref-tab-section-heading-mb8">
                     NARRATIVE VOICE
                   </div>
                   <div className="ref-tab-vlist">
                     {Object.entries(synthesis.narrativeVoice).map(([key, value]) => (
-                      <div
-                        key={key}
-                        className="ref-tab-card ref-tab-card--accent-secondary"
-                      >
-                        <div className="ref-tab-card__heading">
-                          {key}
-                        </div>
-                        <div className="ref-tab-card__body">
-                          {value}
-                        </div>
+                      <div key={key} className="ref-tab-card ref-tab-card-accent-secondary">
+                        <div className="ref-tab-card-heading">{key}</div>
+                        <div className="ref-tab-card-body">{value}</div>
                       </div>
                     ))}
                   </div>
@@ -139,21 +116,16 @@ function PerspectiveSynthesisViewer({ synthesis }) {
               {/* Entity Directives */}
               {synthesis.entityDirectives && synthesis.entityDirectives.length > 0 && (
                 <div className="ref-tab-section">
-                  <div className="ref-tab-section-heading ref-tab-section-heading--mb8">
+                  <div className="ref-tab-section-heading ref-tab-section-heading-mb8">
                     ENTITY DIRECTIVES ({synthesis.entityDirectives.length})
                   </div>
                   <div className="ref-tab-vlist">
                     {synthesis.entityDirectives.map((d, i) => (
-                      <div
-                        key={i}
-                        className="ref-tab-card ref-tab-card--accent-tertiary"
-                      >
-                        <div className="ref-tab-card__heading ref-tab-card__heading--tertiary">
+                      <div key={i} className="ref-tab-card ref-tab-card-accent-tertiary">
+                        <div className="ref-tab-card-heading ref-tab-card-heading-tertiary">
                           {d.entityName}
                         </div>
-                        <div className="ref-tab-card__body">
-                          {d.directive}
-                        </div>
+                        <div className="ref-tab-card-body">{d.directive}</div>
                       </div>
                     ))}
                   </div>
@@ -163,7 +135,7 @@ function PerspectiveSynthesisViewer({ synthesis }) {
               {/* Suggested Motifs */}
               {synthesis.suggestedMotifs && synthesis.suggestedMotifs.length > 0 && (
                 <div className="ref-tab-section">
-                  <div className="ref-tab-section-heading ref-tab-section-heading--mb8">
+                  <div className="ref-tab-section-heading ref-tab-section-heading-mb8">
                     SUGGESTED MOTIFS
                   </div>
                   <div className="ref-tab-motifs">
@@ -183,13 +155,11 @@ function PerspectiveSynthesisViewer({ synthesis }) {
               {/* Narrative Style */}
               {synthesis.narrativeStyleName && (
                 <div className="ref-tab-section">
-                  <div className="ref-tab-section-heading">
-                    NARRATIVE STYLE
-                  </div>
-                  <div className="ref-tab-card--style">
-                    <span className="ref-tab-card__name">{synthesis.narrativeStyleName}</span>
+                  <div className="ref-tab-section-heading">NARRATIVE STYLE</div>
+                  <div className="ref-tab-card-style">
+                    <span className="ref-tab-card-name">{synthesis.narrativeStyleName}</span>
                     {synthesis.narrativeStyleId && (
-                      <span className="ref-tab-card__inline-meta">
+                      <span className="ref-tab-card-inline-meta">
                         ({synthesis.narrativeStyleId})
                       </span>
                     )}
@@ -200,18 +170,12 @@ function PerspectiveSynthesisViewer({ synthesis }) {
               {/* Focal Era */}
               {synthesis.focalEra && (
                 <div className="ref-tab-section">
-                  <div className="ref-tab-section-heading">
-                    FOCAL ERA
-                  </div>
-                  <div className="ref-tab-card ref-tab-card--accent-green">
-                    <span className="ref-tab-card__name">{synthesis.focalEra.name}</span>
-                    <span className="ref-tab-card__inline-meta">
-                      ({synthesis.focalEra.id})
-                    </span>
+                  <div className="ref-tab-section-heading">FOCAL ERA</div>
+                  <div className="ref-tab-card ref-tab-card-accent-green">
+                    <span className="ref-tab-card-name">{synthesis.focalEra.name}</span>
+                    <span className="ref-tab-card-inline-meta">({synthesis.focalEra.id})</span>
                     {synthesis.focalEra.description && (
-                      <div className="ref-tab-card__sub">
-                        {synthesis.focalEra.description}
-                      </div>
+                      <div className="ref-tab-card-sub">{synthesis.focalEra.description}</div>
                     )}
                   </div>
                 </div>
@@ -221,9 +185,7 @@ function PerspectiveSynthesisViewer({ synthesis }) {
               {synthesis.factSelectionRange &&
                 (synthesis.factSelectionRange.min || synthesis.factSelectionRange.max) && (
                   <div className="ref-tab-section">
-                    <div className="ref-tab-section-heading">
-                      FACT SELECTION RANGE
-                    </div>
+                    <div className="ref-tab-section-heading">FACT SELECTION RANGE</div>
                     <div className="ref-tab-text">
                       {synthesis.factSelectionRange.min && synthesis.factSelectionRange.max
                         ? synthesis.factSelectionRange.min === synthesis.factSelectionRange.max
@@ -239,39 +201,35 @@ function PerspectiveSynthesisViewer({ synthesis }) {
               {/* Core Tone */}
               {synthesis.coreTone && (
                 <div className="ref-tab-section">
-                  <div className="ref-tab-section-heading">
-                    CORE TONE
-                  </div>
-                  <div className="ref-tab-text--brief">
-                    {synthesis.coreTone}
-                  </div>
+                  <div className="ref-tab-section-heading">CORE TONE</div>
+                  <div className="ref-tab-text-brief">{synthesis.coreTone}</div>
                 </div>
               )}
 
               {/* Constellation Analysis */}
               {synthesis.constellation && (
                 <div className="ref-tab-section">
-                  <div className="ref-tab-section-heading ref-tab-section-heading--mb8">
+                  <div className="ref-tab-section-heading ref-tab-section-heading-mb8">
                     CONSTELLATION ANALYSIS
                   </div>
                   <div className="ref-tab-constellation">
-                    <div className="ref-tab-constellation__row">
+                    <div className="ref-tab-constellation-row">
                       <strong>Cultures:</strong>{" "}
                       {Object.entries(synthesis.constellation.cultures || {})
                         .map(([k, v]) => `${k}(${v})`)
                         .join(", ") || "none"}
                     </div>
-                    <div className="ref-tab-constellation__row">
+                    <div className="ref-tab-constellation-row">
                       <strong>Entity Kinds:</strong>{" "}
                       {Object.entries(synthesis.constellation.kinds || {})
                         .map(([k, v]) => `${k}(${v})`)
                         .join(", ") || "none"}
                     </div>
-                    <div className="ref-tab-constellation__row">
+                    <div className="ref-tab-constellation-row">
                       <strong>Prominent Tags:</strong>{" "}
                       {synthesis.constellation.prominentTags?.join(", ") || "none"}
                     </div>
-                    <div className="ref-tab-constellation__row">
+                    <div className="ref-tab-constellation-row">
                       <strong>Culture Balance:</strong> {synthesis.constellation.cultureBalance}
                       {synthesis.constellation.dominantCulture &&
                         ` (dominant: ${synthesis.constellation.dominantCulture})`}
@@ -292,23 +250,21 @@ function PerspectiveSynthesisViewer({ synthesis }) {
               {/* Input Entities */}
               {synthesis.inputEntities && synthesis.inputEntities.length > 0 && (
                 <div className="ref-tab-section">
-                  <div className="ref-tab-section-heading ref-tab-section-heading--mb8">
+                  <div className="ref-tab-section-heading ref-tab-section-heading-mb8">
                     ENTITIES ({synthesis.inputEntities.length})
                   </div>
-                  <div className="ref-tab-vlist ref-tab-vlist--tight">
+                  <div className="ref-tab-vlist ref-tab-vlist-tight">
                     {synthesis.inputEntities.map((entity, i) => (
                       <div key={i} className="ref-tab-entity">
-                        <div className="ref-tab-entity__name">
+                        <div className="ref-tab-entity-name">
                           {entity.name}{" "}
-                          <span className="ref-tab-entity__meta">
+                          <span className="ref-tab-entity-meta">
                             ({entity.kind}
                             {entity.culture ? `, ${entity.culture}` : ""})
                           </span>
                         </div>
                         {entity.summary && (
-                          <div className="ref-tab-entity__summary">
-                            {entity.summary}
-                          </div>
+                          <div className="ref-tab-entity-summary">{entity.summary}</div>
                         )}
                       </div>
                     ))}
@@ -319,26 +275,22 @@ function PerspectiveSynthesisViewer({ synthesis }) {
               {/* Input Facts */}
               {synthesis.inputFacts && synthesis.inputFacts.length > 0 && (
                 <div className="ref-tab-section">
-                  <div className="ref-tab-section-heading ref-tab-section-heading--mb8">
+                  <div className="ref-tab-section-heading ref-tab-section-heading-mb8">
                     INPUT FACTS ({synthesis.inputFacts.length})
                   </div>
-                  <div className="ref-tab-vlist ref-tab-vlist--tight">
+                  <div className="ref-tab-vlist ref-tab-vlist-tight">
                     {synthesis.inputFacts.map((fact, i) => (
                       <div
                         key={i}
-                        className={`ref-tab-fact ${fact.type === "generation_constraint" ? "ref-tab-fact--constraint" : "ref-tab-fact--normal"}`}
+                        className={`ref-tab-fact ${fact.type === "generation_constraint" ? "ref-tab-fact-constraint" : "ref-tab-fact-normal"}`}
                       >
-                        <div className="ref-tab-fact__header">
-                          <span className="ref-tab-fact__id">
-                            {fact.id}
-                          </span>
+                        <div className="ref-tab-fact-header">
+                          <span className="ref-tab-fact-id">{fact.id}</span>
                           {fact.type === "generation_constraint" && (
-                            <span className="ref-tab-fact__badge">
-                              constraint
-                            </span>
+                            <span className="ref-tab-fact-badge">constraint</span>
                           )}
                         </div>
-                        <div className="ref-tab-fact__text">{fact.text}</div>
+                        <div className="ref-tab-fact-text">{fact.text}</div>
                       </div>
                     ))}
                   </div>
@@ -349,7 +301,7 @@ function PerspectiveSynthesisViewer({ synthesis }) {
               {synthesis.inputCulturalIdentities &&
                 Object.keys(synthesis.inputCulturalIdentities).length > 0 && (
                   <div className="ref-tab-section">
-                    <div className="ref-tab-section-heading ref-tab-section-heading--mb8">
+                    <div className="ref-tab-section-heading ref-tab-section-heading-mb8">
                       CULTURAL IDENTITIES ({Object.keys(synthesis.inputCulturalIdentities).length}{" "}
                       cultures)
                     </div>
@@ -357,13 +309,11 @@ function PerspectiveSynthesisViewer({ synthesis }) {
                       {Object.entries(synthesis.inputCulturalIdentities).map(
                         ([cultureId, traits]) => (
                           <div key={cultureId} className="ref-tab-culture">
-                            <div className="ref-tab-culture__name">
-                              {cultureId}
-                            </div>
-                            <div className="ref-tab-culture__traits">
+                            <div className="ref-tab-culture-name">{cultureId}</div>
+                            <div className="ref-tab-culture-traits">
                               {Object.entries(traits).map(([key, value]) => (
                                 <div key={key}>
-                                  <span className="ref-tab-culture__trait-key">{key}:</span> {value}
+                                  <span className="ref-tab-culture-trait-key">{key}:</span> {value}
                                 </div>
                               ))}
                             </div>
@@ -377,21 +327,16 @@ function PerspectiveSynthesisViewer({ synthesis }) {
               {/* World Dynamics */}
               {synthesis.inputWorldDynamics && synthesis.inputWorldDynamics.length > 0 && (
                 <div className="ref-tab-section">
-                  <div className="ref-tab-section-heading ref-tab-section-heading--mb8">
+                  <div className="ref-tab-section-heading ref-tab-section-heading-mb8">
                     WORLD DYNAMICS ({synthesis.inputWorldDynamics.length})
                   </div>
-                  <div className="ref-tab-vlist ref-tab-vlist--tight">
+                  <div className="ref-tab-vlist ref-tab-vlist-tight">
                     {synthesis.inputWorldDynamics.map((dynamic, i) => (
-                      <div
-                        key={i}
-                        className="ref-tab-card ref-tab-card--accent-cyan"
-                      >
-                        <div className="ref-tab-card__heading ref-tab-card__heading--cyan">
+                      <div key={i} className="ref-tab-card ref-tab-card-accent-cyan">
+                        <div className="ref-tab-card-heading ref-tab-card-heading-cyan">
                           {dynamic.id}
                         </div>
-                        <div className="ref-tab-card__body">
-                          {dynamic.text}
-                        </div>
+                        <div className="ref-tab-card-body">{dynamic.text}</div>
                       </div>
                     ))}
                   </div>
@@ -401,7 +346,7 @@ function PerspectiveSynthesisViewer({ synthesis }) {
           )}
 
           {/* Metadata */}
-          <div className="ref-tab-synth__footer">
+          <div className="ref-tab-synth-footer">
             <span>Model: {synthesis.model}</span>
             <span>
               Tokens: {synthesis.inputTokens} in / {synthesis.outputTokens} out
@@ -413,6 +358,10 @@ function PerspectiveSynthesisViewer({ synthesis }) {
     </div>
   );
 }
+
+PerspectiveSynthesisViewer.propTypes = {
+  synthesis: PropTypes.object,
+};
 
 // ============================================================================
 // Fact Coverage Viewer (local)
@@ -435,11 +384,9 @@ function FactCoverageGrid({ report }) {
 
   return (
     <div className="ref-tab-fcg">
-      <div className="ref-tab-fcg__header">
-        <span className="ref-tab-fcg__title">
-          Canon Facts
-        </span>
-        <span className="ref-tab-fcg__legend">
+      <div className="ref-tab-fcg-header">
+        <span className="ref-tab-fcg-title">Canon Facts</span>
+        <span className="ref-tab-fcg-legend">
           {RATING_ORDER.map((r) => (
             <span key={r}>
               {/* eslint-disable-next-line local/no-inline-styles */}
@@ -457,7 +404,7 @@ function FactCoverageGrid({ report }) {
           </span>
         </span>
       </div>
-      <div className="ref-tab-fcg__grid">
+      <div className="ref-tab-fcg-grid">
         {cols.map((col, ci) => (
           <div key={ci}>
             {col.map((entry) => {
@@ -475,20 +422,21 @@ function FactCoverageGrid({ report }) {
               return (
                 <div
                   key={entry.factId}
-                  className="ref-tab-fcg__entry"
+                  className="ref-tab-fcg-entry"
                   // eslint-disable-next-line local/no-inline-styles
                   style={{ background: bg, borderRadius: bg ? "3px" : undefined }}
                   title={entry.factText}
                 >
                   {/* eslint-disable-next-line local/no-inline-styles */}
-                  <span className="ref-tab-fcg__symbol" style={{ color: rs.color }}>
+                  <span className="ref-tab-fcg-symbol" style={{ color: rs.color }}>
                     {rs.symbol}
                   </span>
-                  <span className="ref-tab-fcg__fact-id">
-                    {entry.factId}
-                  </span>
+                  <span className="ref-tab-fcg-fact-id">{entry.factId}</span>
                   {/* eslint-disable-next-line local/no-inline-styles */}
-                  <span className="ref-tab-fcg__included" style={{ color: entry.wasFaceted ? "#10b981" : "var(--text-muted)" }}>
+                  <span
+                    className="ref-tab-fcg-included"
+                    style={{ color: entry.wasFaceted ? "#10b981" : "var(--text-muted)" }}
+                  >
                     {entry.wasFaceted ? "yes" : "no"}
                   </span>
                 </div>
@@ -500,6 +448,10 @@ function FactCoverageGrid({ report }) {
     </div>
   );
 }
+
+FactCoverageGrid.propTypes = {
+  report: PropTypes.object,
+};
 
 function FactCoverageViewer({ report, generatedAt }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -518,14 +470,12 @@ function FactCoverageViewer({ report, generatedAt }) {
   return (
     <div className="ref-tab-fcv">
       <div
-        className={`ref-tab-fcv__header ${isExpanded ? "ref-tab-fcv__header--expanded" : ""}`}
+        className={`ref-tab-fcv-header ${isExpanded ? "ref-tab-fcv-header-expanded" : ""}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <span className="ref-tab-synth__toggle">
-          {isExpanded ? "\u25BC" : "\u25B6"}
-        </span>
-        <span className="ref-tab-synth__title">Fact Coverage</span>
-        <span className="ref-tab-synth__meta">
+        <span className="ref-tab-synth-toggle">{isExpanded ? "\u25BC" : "\u25B6"}</span>
+        <span className="ref-tab-synth-title">Fact Coverage</span>
+        <span className="ref-tab-synth-meta">
           {RATING_ORDER.map((r) =>
             counts[r] > 0 ? `${RATING_STYLE[r].symbol} ${counts[r]} ${r}` : null
           )
@@ -535,38 +485,34 @@ function FactCoverageViewer({ report, generatedAt }) {
       </div>
 
       {isExpanded && (
-        <div className="ref-tab-fcv__body">
+        <div className="ref-tab-fcv-body">
           {sorted.map((entry) => {
             const rs = RATING_STYLE[entry.rating] || RATING_STYLE.missing;
             return (
-              <div key={entry.factId} className="ref-tab-fcv__entry">
-                <div className="ref-tab-fcv__entry-row">
+              <div key={entry.factId} className="ref-tab-fcv-entry">
+                <div className="ref-tab-fcv-entry-row">
                   {/* eslint-disable-next-line local/no-inline-styles */}
-                  <span className="ref-tab-fcv__symbol" style={{ color: rs.color }} title={rs.label}>
+                  <span className="ref-tab-fcv-symbol" style={{ color: rs.color }} title={rs.label}>
                     {rs.symbol}
                   </span>
-                  <span className="ref-tab-fcv__fact-text" title={entry.factText}>
+                  <span className="ref-tab-fcv-fact-text" title={entry.factText}>
                     {entry.factText}
                   </span>
                   {entry.wasFaceted && (
                     <span
-                      className="ref-tab-fcv__faceted"
+                      className="ref-tab-fcv-faceted"
                       title="This fact was in the faceted set for this chronicle"
                     >
                       &#x2B21;
                     </span>
                   )}
                 </div>
-                {entry.evidence && (
-                  <div className="ref-tab-fcv__evidence">
-                    {entry.evidence}
-                  </div>
-                )}
+                {entry.evidence && <div className="ref-tab-fcv-evidence">{entry.evidence}</div>}
               </div>
             );
           })}
           {generatedAt && (
-            <div className="ref-tab-fcv__meta">
+            <div className="ref-tab-fcv-meta">
               {report.model} &bull; ${report.actualCost.toFixed(4)} &bull;{" "}
               {new Date(generatedAt).toLocaleString()}
             </div>
@@ -576,6 +522,11 @@ function FactCoverageViewer({ report, generatedAt }) {
     </div>
   );
 }
+
+FactCoverageViewer.propTypes = {
+  report: PropTypes.object,
+  generatedAt: PropTypes.any,
+};
 
 // ============================================================================
 // Temporal Context Editor (local)
@@ -668,22 +619,18 @@ function TemporalContextEditor({
 
   return (
     <div ref={containerRef} className="ref-tab-temporal">
-      <div className="ref-tab-temporal__title">
-        Temporal Context
-      </div>
+      <div className="ref-tab-temporal-title">Temporal Context</div>
       {availableEras.length === 0 ? (
-        <div className="ref-tab-temporal__empty">
-          No eras available for this world.
-        </div>
+        <div className="ref-tab-temporal-empty">No eras available for this world.</div>
       ) : (
         <>
           {onUpdateTemporalContext && (
-            <div className="ref-tab-temporal__controls">
-              <div className="ref-tab-temporal__label">Focal Era</div>
+            <div className="ref-tab-temporal-controls">
+              <div className="ref-tab-temporal-label">Focal Era</div>
               <select
                 value={selectedEraId}
                 onChange={(event) => setSelectedEraId(event.target.value)}
-                className="ref-tab-temporal__select"
+                className="ref-tab-temporal-select"
               >
                 {availableEras.map((era) => (
                   <option key={era.id} value={era.id}>
@@ -694,37 +641,37 @@ function TemporalContextEditor({
               <button
                 onClick={() => onUpdateTemporalContext?.(selectedEraId)}
                 disabled={!selectedEraId || isGenerating}
-                className={`ref-tab-temporal__update-btn ${!selectedEraId || isGenerating ? "ref-tab-temporal__update-btn--disabled" : "ref-tab-temporal__update-btn--enabled"}`}
+                className={`ref-tab-temporal-update-btn ${!selectedEraId || isGenerating ? "ref-tab-temporal-update-btn-disabled" : "ref-tab-temporal-update-btn-enabled"}`}
               >
                 Update Era
               </button>
             </div>
           )}
-          <div className="ref-tab-temporal__info">
+          <div className="ref-tab-temporal-info">
             <div>
-              <span className="ref-tab-temporal__info-label">Current:</span>{" "}
+              <span className="ref-tab-temporal-info-label">Current:</span>{" "}
               {focalEra?.name || "Not set"}
             </div>
             {focalEra?.summary && (
               <div>
-                <span className="ref-tab-temporal__info-label">Era Summary:</span> {focalEra.summary}
+                <span className="ref-tab-temporal-info-label">Era Summary:</span> {focalEra.summary}
               </div>
             )}
             {item.temporalContext?.temporalDescription && (
               <div>
-                <span className="ref-tab-temporal__info-label">Temporal Scope:</span>{" "}
+                <span className="ref-tab-temporal-info-label">Temporal Scope:</span>{" "}
                 {item.temporalContext.temporalDescription}
               </div>
             )}
             {tickRange && (
               <div>
-                <span className="ref-tab-temporal__info-label">Tick Range:</span> {tickRange[0]}
+                <span className="ref-tab-temporal-info-label">Tick Range:</span> {tickRange[0]}
                 &ndash;{tickRange[1]}
               </div>
             )}
             {typeof item.temporalContext?.isMultiEra === "boolean" && (
               <div>
-                <span className="ref-tab-temporal__info-label">Multi-era:</span>{" "}
+                <span className="ref-tab-temporal-info-label">Multi-era:</span>{" "}
                 {item.temporalContext.isMultiEra ? "Yes" : "No"}
               </div>
             )}
@@ -732,8 +679,8 @@ function TemporalContextEditor({
 
           {/* Timeline visualization of selected events */}
           {hasTimelineData ? (
-            <div className="ref-tab-temporal__timeline">
-              <div className="ref-tab-temporal__timeline-heading">
+            <div className="ref-tab-temporal-timeline">
+              <div className="ref-tab-temporal-timeline-heading">
                 SELECTED EVENTS TIMELINE ({timelineEvents.length} events)
               </div>
               <NarrativeTimeline
@@ -748,41 +695,37 @@ function TemporalContextEditor({
               />
             </div>
           ) : (
-            <div className="ref-tab-temporal__no-events">
+            <div className="ref-tab-temporal-no-events">
               No events selected — timeline will appear after event curation
             </div>
           )}
 
           {/* Temporal Alignment Check */}
           {item.perspectiveSynthesis?.temporalNarrative && (
-            <div className="ref-tab-temporal__narrative">
-              <div className="ref-tab-temporal__narrative-header">
-                <div className="ref-tab-temporal__narrative-title">
-                  TEMPORAL NARRATIVE
-                </div>
+            <div className="ref-tab-temporal-narrative">
+              <div className="ref-tab-temporal-narrative-header">
+                <div className="ref-tab-temporal-narrative-title">TEMPORAL NARRATIVE</div>
                 <button
                   onClick={onTemporalCheck}
                   disabled={isGenerating || temporalCheckRunning || !item.assembledContent}
                   title="Check if focal era / temporal narrative misalignment affected the chronicle output"
-                  className={`ref-tab-temporal__check-btn ${isGenerating || temporalCheckRunning || !item.assembledContent ? "ref-tab-temporal__check-btn--disabled" : "ref-tab-temporal__check-btn--enabled"}`}
+                  className={`ref-tab-temporal-check-btn ${isGenerating || temporalCheckRunning || !item.assembledContent ? "ref-tab-temporal-check-btn-disabled" : "ref-tab-temporal-check-btn-enabled"}`}
                 >
                   {temporalCheckRunning ? "Checking..." : "Temporal Check"}
                 </button>
               </div>
-              <div className="ref-tab-temporal__narrative-text">
+              <div className="ref-tab-temporal-narrative-text">
                 {item.perspectiveSynthesis.temporalNarrative}
               </div>
 
               {/* Temporal Check Report */}
               {item.temporalCheckReport && (
-                <div className="ref-tab-temporal__report">
-                  <div className="ref-tab-temporal__report-header">
-                    <span className="ref-tab-temporal__report-title">
-                      Alignment Check Report
-                    </span>
-                    <div className="ref-tab-temporal__report-actions">
+                <div className="ref-tab-temporal-report">
+                  <div className="ref-tab-temporal-report-header">
+                    <span className="ref-tab-temporal-report-title">Alignment Check Report</span>
+                    <div className="ref-tab-temporal-report-actions">
                       {item.temporalCheckReportGeneratedAt && (
-                        <span className="ref-tab-temporal__report-date">
+                        <span className="ref-tab-temporal-report-date">
                           {new Date(item.temporalCheckReportGeneratedAt).toLocaleString()}
                         </span>
                       )}
@@ -798,15 +741,13 @@ function TemporalContextEditor({
                           a.click();
                           URL.revokeObjectURL(url);
                         }}
-                        className="ref-tab-temporal__export-btn"
+                        className="ref-tab-temporal-export-btn"
                       >
                         Export
                       </button>
                     </div>
                   </div>
-                  <div className="ref-tab-temporal__report-body">
-                    {item.temporalCheckReport}
-                  </div>
+                  <div className="ref-tab-temporal-report-body">{item.temporalCheckReport}</div>
                 </div>
               )}
             </div>
@@ -816,6 +757,17 @@ function TemporalContextEditor({
     </div>
   );
 }
+
+TemporalContextEditor.propTypes = {
+  item: PropTypes.object,
+  eras: PropTypes.array,
+  events: PropTypes.array,
+  entities: PropTypes.array,
+  onUpdateTemporalContext: PropTypes.func,
+  onTemporalCheck: PropTypes.func,
+  temporalCheckRunning: PropTypes.bool,
+  isGenerating: PropTypes.bool,
+};
 
 // ============================================================================
 // Reference Tab
@@ -863,3 +815,15 @@ export default function ReferenceTab({
     </div>
   );
 }
+
+ReferenceTab.propTypes = {
+  item: PropTypes.object,
+  eras: PropTypes.array,
+  events: PropTypes.array,
+  entities: PropTypes.array,
+  isGenerating: PropTypes.bool,
+  onUpdateTemporalContext: PropTypes.func,
+  onTemporalCheck: PropTypes.func,
+  temporalCheckRunning: PropTypes.bool,
+  seedData: PropTypes.object,
+};

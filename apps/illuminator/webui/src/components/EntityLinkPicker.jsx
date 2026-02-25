@@ -5,7 +5,8 @@
  * and inserts wiki-style links at the cursor position.
  */
 
-import { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef } from "react";
+import PropTypes from "prop-types";
 import { useEntityNavList } from "../lib/db/entitySelectors";
 
 export default function EntityLinkPicker({ onSelect, onClose }) {
@@ -94,3 +95,8 @@ export default function EntityLinkPicker({ onSelect, onClose }) {
     </div>
   );
 }
+
+EntityLinkPicker.propTypes = {
+  onSelect: PropTypes.func,
+  onClose: PropTypes.func,
+};

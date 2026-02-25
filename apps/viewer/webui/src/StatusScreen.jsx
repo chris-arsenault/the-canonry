@@ -1,3 +1,5 @@
+import React from "react";
+import PropTypes from "prop-types";
 export default function StatusScreen({ status, error, bundleRequestUrl, onRetry, worldData }) {
   if (status === "loading") {
     return (
@@ -21,9 +23,7 @@ export default function StatusScreen({ status, error, bundleRequestUrl, onRetry,
             <div className="state-detail">
               {error?.message || "Failed to load the viewer bundle."}
             </div>
-            <div className="state-detail">
-              Expected at: {bundleRequestUrl}
-            </div>
+            <div className="state-detail">Expected at: {bundleRequestUrl}</div>
             <div className="state-actions">
               <button className="button" onClick={onRetry} type="button">
                 Retry
@@ -57,3 +57,11 @@ export default function StatusScreen({ status, error, bundleRequestUrl, onRetry,
 
   return null;
 }
+
+StatusScreen.propTypes = {
+  status: PropTypes.string,
+  error: PropTypes.object,
+  bundleRequestUrl: PropTypes.string,
+  onRetry: PropTypes.func,
+  worldData: PropTypes.object,
+};

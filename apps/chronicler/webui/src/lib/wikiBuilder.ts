@@ -39,6 +39,7 @@ import {
   type ProminenceScale,
 } from "@canonry/world-schema";
 import { resolveAnchorPhrase } from "./fuzzyAnchor.ts";
+import React from "react";
 
 // Re-export for backwards compatibility
 export { applyWikiLinks };

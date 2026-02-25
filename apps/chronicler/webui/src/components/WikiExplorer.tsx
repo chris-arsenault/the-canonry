@@ -8,7 +8,7 @@
  * - Page actions/info (right, optional)
  */
 
-import { useState, useMemo, useEffect, useLayoutEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useLayoutEffect, useCallback } from "react";
 import type {
   WorldState,
   LoreData,

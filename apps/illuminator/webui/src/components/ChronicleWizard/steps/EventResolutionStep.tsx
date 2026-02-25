@@ -8,7 +8,7 @@
  * - Compact relationship list with visual strength indicators
  */
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useWizard } from "../WizardContext";
 import {
   getRelevantRelationships,

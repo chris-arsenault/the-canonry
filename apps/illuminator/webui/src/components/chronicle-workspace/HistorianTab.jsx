@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import HistorianMarginNotes from "../HistorianMarginNotes";
 import HistorianToneSelector, { TONE_META } from "../HistorianToneSelector";
 import { computeBackportProgress } from "../../lib/chronicleTypes";
@@ -35,7 +36,7 @@ function BackportLoreButton({ item, onBackportLore, isGenerating }) {
       </button>
       {done > 0 && (
         <span
-          className={`htab-backport-status ${allDone ? "htab-backport-status--complete" : "htab-backport-status--partial"}`}
+          className={`htab-backport-status ${allDone ? "htab-backport-status-complete" : "htab-backport-status-partial"}`}
           title={`${done}/${total} entities backported`}
         >
           &#x21C4; {done}/{total}
@@ -44,6 +45,12 @@ function BackportLoreButton({ item, onBackportLore, isGenerating }) {
     </div>
   );
 }
+
+BackportLoreButton.propTypes = {
+  item: PropTypes.object,
+  onBackportLore: PropTypes.func,
+  isGenerating: PropTypes.bool,
+};
 
 const ANNOTATION_TONES = [
   "witty",
@@ -113,7 +120,7 @@ export default function HistorianTab({
                 <button
                   key={tone}
                   onClick={() => onSetAssignedTone(tone)}
-                  className={`htab-tone-btn ${isAssigned ? "htab-tone-btn--active" : ""}`}
+                  className={`htab-tone-btn ${isAssigned ? "htab-tone-btn-active" : ""}`}
                   title={perTone || meta?.description || tone}
                 >
                   {meta?.symbol} {meta?.label || tone}
@@ -127,7 +134,7 @@ export default function HistorianTab({
       {/* Historian Review */}
       {onHistorianReview && (
         <div className="htab-section">
-          <div className="htab-section-title htab-section-title--mb12">Annotate</div>
+          <div className="htab-section-title htab-section-title-mb12">Annotate</div>
           <div className="htab-annotate-row">
             {item.assignedTone &&
               (() => {
@@ -179,9 +186,7 @@ export default function HistorianTab({
       {/* Historian Prep */}
       {onGeneratePrep && (
         <div className="htab-section">
-          <div className="htab-section-title htab-section-title--mb8">
-            Historian Prep
-          </div>
+          <div className="htab-section-title htab-section-title-mb8">Historian Prep</div>
           <div className="htab-prep-description">
             Private reading notes in the historian's voice — observations and thematic threads for
             era narrative input.
@@ -208,20 +213,14 @@ export default function HistorianTab({
               </span>
             )}
           </div>
-          {item.historianPrep && (
-            <div className="htab-prep-content">
-              {item.historianPrep}
-            </div>
-          )}
+          {item.historianPrep && <div className="htab-prep-content">{item.historianPrep}</div>}
         </div>
       )}
 
       {/* Lore Backport */}
       {onBackportLore && (
         <div className="htab-section">
-          <div className="htab-lore-title">
-            Lore Integration
-          </div>
+          <div className="htab-lore-title">Lore Integration</div>
           <BackportLoreButton
             item={item}
             onBackportLore={onBackportLore}
@@ -234,10 +233,20 @@ export default function HistorianTab({
         !onBackportLore &&
         !onGeneratePrep &&
         !(item.historianNotes?.length > 0) && (
-          <div className="htab-empty">
-            No historian tools available for this chronicle.
-          </div>
+          <div className="htab-empty">No historian tools available for this chronicle.</div>
         )}
     </div>
   );
 }
+
+HistorianTab.propTypes = {
+  item: PropTypes.object,
+  isGenerating: PropTypes.bool,
+  isHistorianActive: PropTypes.bool,
+  onHistorianReview: PropTypes.func,
+  onSetAssignedTone: PropTypes.func,
+  onDetectTone: PropTypes.func,
+  onUpdateHistorianNote: PropTypes.func,
+  onBackportLore: PropTypes.func,
+  onGeneratePrep: PropTypes.func,
+};

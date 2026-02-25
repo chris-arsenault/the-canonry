@@ -2,9 +2,9 @@
  * SystemModal - Modal for editing system configuration
  */
 
-import React, { useState, useMemo } from 'react';
-import { SYSTEM_TYPES } from './constants';
-import { ModalShell } from '../shared';
+import React, { useState, useMemo } from "react";
+import { SYSTEM_TYPES } from "./constants";
+import { ModalShell } from "../shared";
 import {
   OverviewTab,
   CommonSettingsTab,
@@ -15,7 +15,7 @@ import {
   TagDiffusionTab,
   PlaneDiffusionTab,
   FrameworkSystemTab,
-} from './tabs';
+} from "./tabs";
 
 /**
  * @param {Object} props
@@ -27,42 +27,47 @@ import {
  * @param {Array} props.pressures - Available pressure definitions
  */
 export function SystemModal({ system, onChange, onClose, onDelete, schema, pressures }) {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
   const typeConfig = SYSTEM_TYPES[system.systemType] || {};
 
-  const isFrameworkSystem = ['eraSpawner', 'eraTransition', 'universalCatalyst', 'relationshipMaintenance'].includes(system.systemType);
+  const isFrameworkSystem = [
+    "eraSpawner",
+    "eraTransition",
+    "universalCatalyst",
+    "relationshipMaintenance",
+  ].includes(system.systemType);
 
   // Build tabs dynamically based on system type
   const tabs = useMemo(() => {
     const result = [
-      { id: 'overview', label: 'Overview', icon: '📋' },
-      { id: 'common', label: 'Settings', icon: '⚙️' },
+      { id: "overview", label: "Overview", icon: "📋" },
+      { id: "common", label: "Settings", icon: "⚙️" },
     ];
 
     // Add type-specific tab
     if (!isFrameworkSystem) {
       switch (system.systemType) {
-        case 'graphContagion':
-          result.push({ id: 'type', label: 'Contagion', icon: '🦠' });
+        case "graphContagion":
+          result.push({ id: "type", label: "Contagion", icon: "🦠" });
           break;
-        case 'connectionEvolution':
-          result.push({ id: 'type', label: 'Evolution', icon: '🔄' });
+        case "connectionEvolution":
+          result.push({ id: "type", label: "Evolution", icon: "🔄" });
           break;
-        case 'thresholdTrigger':
-          result.push({ id: 'type', label: 'Trigger', icon: '⚡' });
+        case "thresholdTrigger":
+          result.push({ id: "type", label: "Trigger", icon: "⚡" });
           break;
-        case 'clusterFormation':
-          result.push({ id: 'type', label: 'Clustering', icon: '🔲' });
+        case "clusterFormation":
+          result.push({ id: "type", label: "Clustering", icon: "🔲" });
           break;
-        case 'tagDiffusion':
-          result.push({ id: 'type', label: 'Diffusion', icon: '🏷️' });
+        case "tagDiffusion":
+          result.push({ id: "type", label: "Diffusion", icon: "🏷️" });
           break;
-        case 'planeDiffusion':
-          result.push({ id: 'type', label: 'Plane', icon: '🗺️' });
+        case "planeDiffusion":
+          result.push({ id: "type", label: "Plane", icon: "🗺️" });
           break;
       }
     } else {
-      result.push({ id: 'type', label: 'Framework', icon: '🔧' });
+      result.push({ id: "type", label: "Framework", icon: "🔧" });
     }
 
     return result;
@@ -70,26 +75,40 @@ export function SystemModal({ system, onChange, onClose, onDelete, schema, press
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'overview':
+      case "overview":
         return <OverviewTab system={system} onChange={onChange} onDelete={onDelete} />;
-      case 'common':
-        return <CommonSettingsTab system={system} onChange={onChange} schema={schema} pressures={pressures} />;
-      case 'type':
+      case "common":
+        return (
+          <CommonSettingsTab
+            system={system}
+            onChange={onChange}
+            schema={schema}
+            pressures={pressures}
+          />
+        );
+      case "type":
         if (isFrameworkSystem) {
           return <FrameworkSystemTab system={system} onChange={onChange} />;
         }
         switch (system.systemType) {
-          case 'graphContagion':
+          case "graphContagion":
             return <GraphContagionTab system={system} onChange={onChange} schema={schema} />;
-          case 'connectionEvolution':
+          case "connectionEvolution":
             return <ConnectionEvolutionTab system={system} onChange={onChange} schema={schema} />;
-          case 'thresholdTrigger':
-            return <ThresholdTriggerTab system={system} onChange={onChange} schema={schema} pressures={pressures} />;
-          case 'clusterFormation':
+          case "thresholdTrigger":
+            return (
+              <ThresholdTriggerTab
+                system={system}
+                onChange={onChange}
+                schema={schema}
+                pressures={pressures}
+              />
+            );
+          case "clusterFormation":
             return <ClusterFormationTab system={system} onChange={onChange} schema={schema} />;
-          case 'tagDiffusion':
+          case "tagDiffusion":
             return <TagDiffusionTab system={system} onChange={onChange} schema={schema} />;
-          case 'planeDiffusion':
+          case "planeDiffusion":
             return <PlaneDiffusionTab system={system} onChange={onChange} schema={schema} />;
           default:
             return null;

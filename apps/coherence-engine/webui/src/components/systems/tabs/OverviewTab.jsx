@@ -2,11 +2,11 @@
  * OverviewTab - Basic system information and settings
  */
 
-import React from 'react';
-import { SYSTEM_TYPES } from '../constants';
-import { EnableToggle, useLocalInputState, LocalTextArea } from '../../shared';
+import React from "react";
+import { SYSTEM_TYPES } from "../constants";
+import { EnableToggle, useLocalInputState, LocalTextArea } from "../../shared";
 
-const DESCRIPTION_TEXTAREA_STYLE = Object.freeze({ minHeight: '60px' });
+const DESCRIPTION_TEXTAREA_STYLE = Object.freeze({ minHeight: "60px" });
 
 /**
  * @param {Object} props
@@ -22,13 +22,11 @@ export function OverviewTab({ system, onChange, onDelete }) {
     onChange({ ...system, config: { ...config, [field]: value } });
   };
 
-  const [localId, setLocalId, handleIdBlur] = useLocalInputState(
-    config.id,
-    (value) => updateConfig('id', value)
+  const [localId, setLocalId, handleIdBlur] = useLocalInputState(config.id, (value) =>
+    updateConfig("id", value)
   );
-  const [localName, setLocalName, handleNameBlur] = useLocalInputState(
-    config.name,
-    (value) => updateConfig('name', value)
+  const [localName, setLocalName, handleNameBlur] = useLocalInputState(config.name, (value) =>
+    updateConfig("name", value)
   );
 
   return (
@@ -58,34 +56,39 @@ export function OverviewTab({ system, onChange, onDelete }) {
           </div>
         </div>
 
-        <div style={{ marginTop: '16px' }}>
+        <div style={{ marginTop: "16px" }}>
           <div className="form-group">
             <label className="label">Description</label>
             <LocalTextArea
-              value={config.description || ''}
-              onChange={(value) => updateConfig('description', value)}
+              value={config.description || ""}
+              onChange={(value) => updateConfig("description", value)}
               style={DESCRIPTION_TEXTAREA_STYLE}
               placeholder="Describe what this system does..."
             />
           </div>
         </div>
 
-        <div style={{ marginTop: '16px' }}>
+        <div style={{ marginTop: "16px" }}>
           <label className="label">System Type</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span className="type-badge" style={{ backgroundColor: `${typeConfig.color}30`, color: typeConfig.color }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <span
+              className="type-badge"
+              style={{ backgroundColor: `${typeConfig.color}30`, color: typeConfig.color }}
+            >
               {typeConfig.icon} {typeConfig.label}
             </span>
-            <span className="text-muted" style={{ fontSize: '13px' }}>{typeConfig.desc}</span>
+            <span className="text-muted" style={{ fontSize: "13px" }}>
+              {typeConfig.desc}
+            </span>
           </div>
         </div>
 
-        <div style={{ marginTop: '16px' }}>
+        <div style={{ marginTop: "16px" }}>
           <label className="label">Enabled</label>
           <EnableToggle
             enabled={system.enabled !== false}
             onChange={(enabled) => onChange({ ...system, enabled })}
-            label={system.enabled !== false ? 'System is active' : 'System is disabled'}
+            label={system.enabled !== false ? "System is active" : "System is disabled"}
           />
         </div>
       </div>

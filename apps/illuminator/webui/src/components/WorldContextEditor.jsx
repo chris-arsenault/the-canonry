@@ -8,7 +8,7 @@
  * - Legacy: simple canon facts and tone (for backwards compatibility)
  */
 
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { LocalTextArea } from "@penguin-tales/shared-components";
 import "./WorldContextEditor.css";
 
@@ -34,23 +34,14 @@ function FactCard({ fact, onUpdate, onRemove }) {
   const isDisabled = Boolean(fact.disabled);
 
   return (
-    <div className={`wce-fact-card ${isDisabled ? "wce-fact-card--disabled" : ""}`}>
+    <div className={`wce-fact-card ${isDisabled ? "wce-fact-card-disabled" : ""}`}>
       {/* Header */}
-      <div
-        className="wce-fact-header"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <span className="wce-fact-chevron">
-          {isExpanded ? "▼" : "▶"}
-        </span>
-        <span className="wce-fact-id">
-          {fact.id}
-        </span>
-        <span className="wce-fact-preview">
-          {fact.text}
-        </span>
+      <div className="wce-fact-header" onClick={() => setIsExpanded(!isExpanded)}>
+        <span className="wce-fact-chevron">{isExpanded ? "▼" : "▶"}</span>
+        <span className="wce-fact-id">{fact.id}</span>
+        <span className="wce-fact-preview">{fact.text}</span>
         <span
-          className={`wce-fact-type-badge ${isConstraint ? "wce-fact-type-badge--constraint" : "wce-fact-type-badge--truth"}`}
+          className={`wce-fact-type-badge ${isConstraint ? "wce-fact-type-badge-constraint" : "wce-fact-type-badge-truth"}`}
           title={
             isConstraint
               ? "Meta-instruction (always verbatim)"
@@ -61,7 +52,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
         </span>
         {fact.required && !isConstraint && !isDisabled && (
           <span
-            className="wce-fact-status-badge wce-fact-status-badge--required"
+            className="wce-fact-status-badge wce-fact-status-badge-required"
             title="Required fact (must be included in perspective facets)"
           >
             required
@@ -69,7 +60,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
         )}
         {isDisabled && (
           <span
-            className="wce-fact-status-badge wce-fact-status-badge--disabled"
+            className="wce-fact-status-badge wce-fact-status-badge-disabled"
             title="Disabled — excluded from perspective synthesis and generation"
           >
             disabled
@@ -90,9 +81,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
       {isExpanded && (
         <div className="wce-fact-detail">
           <div>
-            <label className="wce-field-label">
-              Text
-            </label>
+            <label className="wce-field-label">Text</label>
             <LocalTextArea
               value={fact.text || ""}
               onChange={(value) => updateField("text", value)}
@@ -102,9 +91,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
 
           <div className="wce-fact-detail-grid">
             <div>
-              <label className="wce-field-label">
-                Fact Type
-              </label>
+              <label className="wce-field-label">Fact Type</label>
               <select
                 value={fact.type || "world_truth"}
                 onChange={(e) => updateField("type", e.target.value)}
@@ -117,9 +104,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
               </select>
             </div>
             <div>
-              <label className="wce-field-label">
-                Required
-              </label>
+              <label className="wce-field-label">Required</label>
               <label className="wce-checkbox-label">
                 <input
                   type="checkbox"
@@ -131,9 +116,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
               </label>
             </div>
             <div>
-              <label className="wce-field-label">
-                Disabled
-              </label>
+              <label className="wce-field-label">Disabled</label>
               <label className="wce-checkbox-label">
                 <input
                   type="checkbox"
@@ -243,19 +226,10 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
   return (
     <div className="wce-dynamic-card">
       {/* Header */}
-      <div
-        className="wce-dynamic-header"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <span className="wce-dynamic-chevron">
-          {isExpanded ? "▼" : "▶"}
-        </span>
-        <span className="wce-dynamic-id">
-          {dynamic.id}
-        </span>
-        <span className="wce-dynamic-preview">
-          {dynamic.text}
-        </span>
+      <div className="wce-dynamic-header" onClick={() => setIsExpanded(!isExpanded)}>
+        <span className="wce-dynamic-chevron">{isExpanded ? "▼" : "▶"}</span>
+        <span className="wce-dynamic-id">{dynamic.id}</span>
+        <span className="wce-dynamic-preview">{dynamic.text}</span>
         {dynamic.cultures?.length > 0 && dynamic.cultures[0] !== "*" && (
           <span className="wce-dynamic-scope-badge">
             {dynamic.cultures.length} culture{dynamic.cultures.length !== 1 ? "s" : ""}
@@ -281,9 +255,7 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
       {isExpanded && (
         <div className="wce-dynamic-detail">
           <div>
-            <label className="wce-field-label">
-              Dynamic Statement
-            </label>
+            <label className="wce-field-label">Dynamic Statement</label>
             <LocalTextArea
               value={dynamic.text || ""}
               onChange={(value) => updateField("text", value)}
@@ -321,20 +293,15 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
           {/* Era Overrides */}
           {eras && eras.length > 0 && (
             <div>
-              <label className="wce-field-label wce-field-label--mb6">
+              <label className="wce-field-label wce-field-label-mb6">
                 Era Overrides (optional — adjust this dynamic for specific eras)
               </label>
               {Object.entries(dynamic.eraOverrides || {}).map(([eraId, override]) => {
                 const eraName = eras.find((e) => e.id === eraId)?.name || eraId;
                 return (
-                  <div
-                    key={eraId}
-                    className="wce-override-card"
-                  >
+                  <div key={eraId} className="wce-override-card">
                     <div className="wce-override-header">
-                      <span className="wce-override-era-name">
-                        {eraName}
-                      </span>
+                      <span className="wce-override-era-name">{eraName}</span>
                       <label className="wce-override-replace-label">
                         <input
                           type="checkbox"
@@ -356,7 +323,7 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
                             Object.keys(newOverrides).length > 0 ? newOverrides : undefined
                           );
                         }}
-                        className="wce-remove-btn wce-remove-btn--sm"
+                        className="wce-remove-btn wce-remove-btn-sm"
                       >
                         ×
                       </button>
@@ -368,7 +335,7 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
                         newOverrides[eraId] = { ...override, text: value };
                         updateField("eraOverrides", newOverrides);
                       }}
-                      className="illuminator-input wce-textarea-compact wce-textarea-compact--short"
+                      className="illuminator-input wce-textarea-compact wce-textarea-compact-short"
                       placeholder={
                         override.replace
                           ? "Replacement text for this era..."
@@ -493,9 +460,7 @@ function ToneFragmentsEditor({ fragments, onChange }) {
     <div className="wce-tone-layout">
       {/* Core Tone */}
       <div>
-        <label className="wce-tone-core-label">
-          Core Tone (always included)
-        </label>
+        <label className="wce-tone-core-label">Core Tone (always included)</label>
         <LocalTextArea
           value={fragments?.core || ""}
           onChange={(value) => updateField("core", value)}
@@ -557,15 +522,9 @@ function EditableList({ items, onChange, placeholder }) {
       </div>
       <div className="wce-editable-list-items">
         {items.map((item, index) => (
-          <div
-            key={index}
-            className="wce-editable-list-item"
-          >
+          <div key={index} className="wce-editable-list-item">
             <span className="wce-editable-list-item-text">{item}</span>
-            <button
-              onClick={() => handleRemove(index)}
-              className="wce-editable-list-remove"
-            >
+            <button onClick={() => handleRemove(index)} className="wce-editable-list-remove">
               ×
             </button>
           </div>
@@ -593,10 +552,8 @@ export default function WorldContextEditor({
     <div>
       {/* Info Banner */}
       <div className="wce-info-banner">
-        <div className="wce-info-banner__title">
-          Entity context is built automatically
-        </div>
-        <div className="wce-info-banner__desc">
+        <div className="wce-info-banner-title">Entity context is built automatically</div>
+        <div className="wce-info-banner-desc">
           Relationships, cultural peers, faction members, and entity age are extracted from the
           simulation data. This panel only configures world-level context that applies to all
           entities.

@@ -8,7 +8,8 @@
  * Uses pagination to avoid loading entire library.
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
 import { searchChronicleImages, loadImage } from "../lib/db/imageRepository";
 import "./ChronicleImagePicker.css";
 
@@ -55,9 +56,7 @@ function LazyThumbnail({ imageId, alt, className }) {
       {url ? (
         <img src={url} alt={alt} className="cip-thumb-img" />
       ) : (
-        <div className="cip-thumb-loading">
-          Loading...
-        </div>
+        <div className="cip-thumb-loading">Loading...</div>
       )}
     </div>
   );
@@ -72,6 +71,12 @@ function formatDate(timestamp) {
     minute: "2-digit",
   });
 }
+
+LazyThumbnail.propTypes = {
+  imageId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  alt: PropTypes.string,
+  className: PropTypes.string,
+};
 
 export default function ChronicleImagePicker({
   isOpen,
@@ -271,9 +276,7 @@ export default function ChronicleImagePicker({
           {/* Image grid */}
           <div className="cip-grid-area">
             {loading && images.length === 0 ? (
-              <div className="cip-empty-state">
-                Loading images...
-              </div>
+              <div className="cip-empty-state">Loading images...</div>
             ) : images.length === 0 ? (
               <div className="cip-empty-state">
                 No images found. Try unchecking filters to see more.
@@ -289,7 +292,7 @@ export default function ChronicleImagePicker({
                       <div
                         key={img.imageId}
                         onClick={() => setSelectedImageId(img.imageId)}
-                        className={`cip-image-card${isSelected ? " cip-image-card--selected" : isCurrent ? " cip-image-card--current" : ""}`}
+                        className={`cip-image-card${isSelected ? " cip-image-card-selected" : isCurrent ? " cip-image-card-current" : ""}`}
                       >
                         <LazyThumbnail
                           imageId={img.imageId}
@@ -298,16 +301,10 @@ export default function ChronicleImagePicker({
                         />
 
                         {/* Current indicator */}
-                        {isCurrent && (
-                          <div className="cip-current-badge">
-                            Current
-                          </div>
-                        )}
+                        {isCurrent && <div className="cip-current-badge">Current</div>}
 
                         {/* Date overlay */}
-                        <div className="cip-date-overlay">
-                          {formatDate(img.generatedAt)}
-                        </div>
+                        <div className="cip-date-overlay">{formatDate(img.generatedAt)}</div>
                       </div>
                     );
                   })}
@@ -338,7 +335,7 @@ export default function ChronicleImagePicker({
           <button
             onClick={handleSelect}
             disabled={!selectedImageId}
-            className={`cip-select-btn ${selectedImageId ? "cip-select-btn--active" : "cip-select-btn--disabled"}`}
+            className={`cip-select-btn ${selectedImageId ? "cip-select-btn-active" : "cip-select-btn-disabled"}`}
           >
             Select Image
           </button>
@@ -347,3 +344,13 @@ export default function ChronicleImagePicker({
     </div>
   );
 }
+
+ChronicleImagePicker.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  onSelect: PropTypes.func,
+  projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  chronicleId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  imageRefId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  currentImageId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+};

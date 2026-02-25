@@ -6,7 +6,7 @@
  * resolve unanchored references without leaving the modal.
  */
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import "./QuickCheckModal.css";
 
 // ---------------------------------------------------------------------------
@@ -62,9 +62,7 @@ function HighlightMatch({ text, query, truncate = 0, matchIndex }) {
   return (
     <>
       {before}
-      <span className="qcm-highlight">
-        {match}
-      </span>
+      <span className="qcm-highlight">{match}</span>
       {after}
     </>
   );
@@ -149,30 +147,19 @@ function EntitySearchPanel({ entities, initialQuery, onClose }) {
           autoFocus
           className="qcm-search-input"
         />
-        <button
-          onClick={onClose}
-          className="qcm-search-close-btn"
-          title="Close search"
-        >
+        <button onClick={onClose} className="qcm-search-close-btn" title="Close search">
           {"\u2715"}
         </button>
       </div>
 
       <div className="qcm-search-results">
         {query.trim().length < 2 ? (
-          <div className="qcm-search-hint">
-            Type at least 2 characters to search
-          </div>
+          <div className="qcm-search-hint">Type at least 2 characters to search</div>
         ) : results.length === 0 ? (
-          <div className="qcm-search-hint">
-            No matching entities found
-          </div>
+          <div className="qcm-search-hint">No matching entities found</div>
         ) : (
           results.slice(0, 10).map(({ entity, matches }) => (
-            <div
-              key={entity.id}
-              className="qcm-search-result-item"
-            >
+            <div key={entity.id} className="qcm-search-result-item">
               <div className="qcm-search-result-header">
                 <span className="qcm-search-result-name">
                   {matches.some((m) => m.field === "name") ? (
@@ -194,13 +181,8 @@ function EntitySearchPanel({ entities, initialQuery, onClose }) {
                 .filter((m) => m.field !== "name")
                 .slice(0, 3)
                 .map((m, j) => (
-                  <div
-                    key={j}
-                    className="qcm-search-match-row"
-                  >
-                    <span className="qcm-search-match-field">
-                      {m.field}
-                    </span>
+                  <div key={j} className="qcm-search-match-row">
+                    <span className="qcm-search-match-field">{m.field}</span>
                     <span className="qcm-search-match-value">
                       <HighlightMatch
                         text={m.value}
@@ -215,9 +197,7 @@ function EntitySearchPanel({ entities, initialQuery, onClose }) {
           ))
         )}
         {results.length > 10 && (
-          <div className="qcm-search-more">
-            +{results.length - 10} more results
-          </div>
+          <div className="qcm-search-more">+{results.length - 10} more results</div>
         )}
       </div>
     </div>
@@ -235,22 +215,14 @@ function SuspectCard({ suspect, entities, onCreateEntity }) {
     <div
       className="qcm-suspect-card"
       // eslint-disable-next-line local/no-inline-styles -- dynamic confidence color from JS map
-      style={{ '--qcm-confidence-color': CONFIDENCE_COLORS[suspect.confidence] || '#6b7280' }}
+      style={{ "--qcm-confidence-color": CONFIDENCE_COLORS[suspect.confidence] || "#6b7280" }}
     >
       <div className="qcm-suspect-header">
         <span className="qcm-suspect-phrase">&ldquo;{suspect.phrase}&rdquo;</span>
-        <span className="qcm-suspect-confidence">
-          {suspect.confidence}
-        </span>
+        <span className="qcm-suspect-confidence">{suspect.confidence}</span>
       </div>
-      {suspect.context && (
-        <div className="qcm-suspect-context">
-          ...{suspect.context}...
-        </div>
-      )}
-      <div className="qcm-suspect-reasoning">
-        {suspect.reasoning}
-      </div>
+      {suspect.context && <div className="qcm-suspect-context">...{suspect.context}...</div>}
+      <div className="qcm-suspect-reasoning">{suspect.reasoning}</div>
 
       {/* Action buttons */}
       <div className="qcm-suspect-actions">
@@ -306,39 +278,32 @@ export default function QuickCheckModal({ report, entities, onCreateEntity, onCl
         {/* Header */}
         <div className="qcm-header">
           <div>
-            <div className="qcm-header-title">
-              Quick Check — Unanchored References
-            </div>
+            <div className="qcm-header-title">Quick Check — Unanchored References</div>
             <div className="qcm-header-subtitle">
               <span
                 className="qcm-assessment-label"
                 // eslint-disable-next-line local/no-inline-styles -- dynamic assessment color from JS map
-                style={{ '--qcm-assessment-color': ASSESSMENT_COLORS[assessment] || 'var(--text-muted)' }}
+                style={{
+                  "--qcm-assessment-color": ASSESSMENT_COLORS[assessment] || "var(--text-muted)",
+                }}
               >
                 {ASSESSMENT_LABELS[assessment] || assessment}
               </span>{" "}
               &bull; {suspects.length} suspect{suspects.length !== 1 ? "s" : ""}
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="qcm-close-btn"
-          >
+          <button onClick={onClose} className="qcm-close-btn">
             {"\u2715"}
           </button>
         </div>
 
         {/* Summary */}
-        <div className="qcm-summary">
-          {summary}
-        </div>
+        <div className="qcm-summary">{summary}</div>
 
         {/* Suspects list */}
         <div className="qcm-suspects-list">
           {suspects.length === 0 ? (
-            <div className="qcm-empty-message">
-              No unanchored references detected.
-            </div>
+            <div className="qcm-empty-message">No unanchored references detected.</div>
           ) : (
             suspects.map((suspect, i) => (
               <SuspectCard
@@ -353,10 +318,7 @@ export default function QuickCheckModal({ report, entities, onCreateEntity, onCl
 
         {/* Footer */}
         <div className="qcm-footer">
-          <button
-            onClick={onClose}
-            className="illuminator-button qcm-footer-btn"
-          >
+          <button onClick={onClose} className="illuminator-button qcm-footer-btn">
             Dismiss
           </button>
         </div>

@@ -5,7 +5,8 @@
  * Shows all images in the library with filtering by entity kind and culture.
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
 import {
   searchImagesWithFilters as searchImages,
   getImageFilterOptions,
@@ -53,15 +54,9 @@ function LazyThumbnail({ imageId, alt, className }) {
   return (
     <div ref={ref} className={className}>
       {url ? (
-        <img
-          src={url}
-          alt={alt}
-          className="ipm-thumbnail-img"
-        />
+        <img src={url} alt={alt} className="ipm-thumbnail-img" />
       ) : (
-        <div className="ipm-thumbnail-placeholder">
-          Loading...
-        </div>
+        <div className="ipm-thumbnail-placeholder">Loading...</div>
       )}
     </div>
   );
@@ -79,6 +74,12 @@ function formatDate(timestamp) {
     minute: "2-digit",
   });
 }
+
+LazyThumbnail.propTypes = {
+  imageId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  alt: PropTypes.string,
+  className: PropTypes.string,
+};
 
 export default function ImagePickerModal({
   isOpen,
@@ -116,7 +117,7 @@ export default function ImagePickerModal({
     async function loadFilterOptions() {
       try {
         const [kinds, cultures, models] = await Promise.all([
-          getImageFilterOptions("entityKind"),
+          getImageFilterOptions("entity-kind"),
           getImageFilterOptions("entityCulture"),
           getImageFilterOptions("model"),
         ]);
@@ -215,9 +216,7 @@ export default function ImagePickerModal({
           {/* Filters */}
           <div className="ipm-filters">
             <div>
-              <label className="ipm-filter-label">
-                Search
-              </label>
+              <label className="ipm-filter-label">Search</label>
               <input
                 type="text"
                 value={searchText}
@@ -228,9 +227,7 @@ export default function ImagePickerModal({
             </div>
 
             <div>
-              <label className="ipm-filter-label">
-                Entity Kind
-              </label>
+              <label className="ipm-filter-label">Entity Kind</label>
               <select
                 value={filterKind}
                 onChange={(e) => setFilterKind(e.target.value)}
@@ -246,9 +243,7 @@ export default function ImagePickerModal({
             </div>
 
             <div>
-              <label className="ipm-filter-label">
-                Culture
-              </label>
+              <label className="ipm-filter-label">Culture</label>
               <select
                 value={filterCulture}
                 onChange={(e) => setFilterCulture(e.target.value)}
@@ -264,9 +259,7 @@ export default function ImagePickerModal({
             </div>
 
             <div>
-              <label className="ipm-filter-label">
-                Model
-              </label>
+              <label className="ipm-filter-label">Model</label>
               <select
                 value={filterModel}
                 onChange={(e) => setFilterModel(e.target.value)}
@@ -282,18 +275,14 @@ export default function ImagePickerModal({
             </div>
 
             <div className="ipm-filter-count-wrapper">
-              <span className="ipm-filter-count">
-                {images.length} images
-              </span>
+              <span className="ipm-filter-count">{images.length} images</span>
             </div>
           </div>
 
           {/* Image grid */}
           <div className="ipm-grid-container">
             {loading ? (
-              <div className="ipm-loading">
-                Loading images...
-              </div>
+              <div className="ipm-loading">Loading images...</div>
             ) : images.length === 0 ? (
               <div className="ipm-empty">
                 No images found. Try adjusting the filters or generate some images first.
@@ -308,14 +297,10 @@ export default function ImagePickerModal({
                     <div
                       key={img.imageId}
                       onClick={() => setSelectedImageId(img.imageId)}
-                      className={`ipm-card ${isSelected ? "ipm-card--selected" : ""} ${isCurrent ? "ipm-card--current" : ""}`}
+                      className={`ipm-card ${isSelected ? "ipm-card-selected" : ""} ${isCurrent ? "ipm-card-current" : ""}`}
                     >
                       {/* Current badge */}
-                      {isCurrent && (
-                        <div className="ipm-current-badge">
-                          CURRENT
-                        </div>
-                      )}
+                      {isCurrent && <div className="ipm-current-badge">CURRENT</div>}
 
                       {/* Thumbnail — lazy-loaded via IntersectionObserver */}
                       <LazyThumbnail
@@ -326,10 +311,7 @@ export default function ImagePickerModal({
 
                       {/* Info */}
                       <div className="ipm-card-info">
-                        <div
-                          className="ipm-card-name"
-                          title={img.entityName}
-                        >
+                        <div className="ipm-card-name" title={img.entityName}>
                           {img.entityName || "Unknown"}
                         </div>
                         <div className="ipm-card-meta">
@@ -343,7 +325,7 @@ export default function ImagePickerModal({
                         {/* Prompt preview */}
                         {(img.finalPrompt || img.originalPrompt) && (
                           <div
-                            className={`ipm-card-prompt ${expandedPrompt === img.imageId ? "ipm-card-prompt--expanded" : "ipm-card-prompt--collapsed"}`}
+                            className={`ipm-card-prompt ${expandedPrompt === img.imageId ? "ipm-card-prompt-expanded" : "ipm-card-prompt-collapsed"}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               setExpandedPrompt(
@@ -381,3 +363,12 @@ export default function ImagePickerModal({
     </div>
   );
 }
+
+ImagePickerModal.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  onSelect: PropTypes.func,
+  entityKind: PropTypes.string,
+  entityCulture: PropTypes.string,
+  currentImageId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+};

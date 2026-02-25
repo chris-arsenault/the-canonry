@@ -45,12 +45,12 @@
   border-radius: 4px;
 }
 
-.style-editor-badge--document {
+.style-editor-badge-document {
   background: #059669;
   color: white;
 }
 
-.style-editor-badge--story {
+.style-editor-badge-story {
   background: var(--accent-primary);
   color: white;
 }
@@ -131,7 +131,7 @@
   margin-bottom: 4px;
 }
 
-.style-editor-detail-label--mb8 {
+.style-editor-detail-label-mb8 {
   margin-bottom: 8px;
 }
 
@@ -145,7 +145,7 @@
   overflow: auto;
 }
 
-.style-editor-preformatted--compact {
+.style-editor-preformatted-compact {
   max-height: none;
 }
 
@@ -195,8 +195,8 @@
 .style-editor-readonly-notice {
   margin-top: 24px;
   padding: 12px;
-  background: rgba(234, 179, 8, 0.1);
-  border: 1px solid rgba(234, 179, 8, 0.3);
+  background: rgb(234 179 8 / 10%);
+  border: 1px solid rgb(234 179 8 / 30%);
   border-radius: 6px;
   font-size: 12px;
   color: var(--text-secondary);
@@ -232,7 +232,7 @@
   font-weight: 400;
 }
 
-.style-editor-tab--active {
+.style-editor-tab-active {
   background: var(--bg-primary);
   border-bottom-color: var(--accent-primary);
   color: var(--text-primary);

@@ -6,173 +6,173 @@
  * while working in other tabs.
  */
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { colors } from '../theme';
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { colors } from "../theme";
 
 const styles = {
   container: {
-    position: 'relative',
+    position: "relative",
   },
   button: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '6px 12px',
-    borderRadius: '6px',
-    borderWidth: '1px',
-    borderStyle: 'solid',
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "6px 12px",
+    borderRadius: "6px",
+    borderWidth: "1px",
+    borderStyle: "solid",
     borderColor: colors.border,
     backgroundColor: colors.bgSecondary,
     color: colors.textPrimary,
-    cursor: 'pointer',
-    fontSize: '13px',
+    cursor: "pointer",
+    fontSize: "13px",
     fontWeight: 500,
-    transition: 'all 0.15s ease',
+    transition: "all 0.15s ease",
   },
   buttonValid: {
-    borderColor: 'rgba(74, 222, 128, 0.4)',
-    backgroundColor: 'rgba(74, 222, 128, 0.15)',
-    color: 'rgb(74, 222, 128)',
+    borderColor: "rgba(74, 222, 128, 0.4)",
+    backgroundColor: "rgba(74, 222, 128, 0.15)",
+    color: "rgb(74, 222, 128)",
   },
   buttonWarning: {
-    borderColor: 'rgba(245, 158, 11, 0.4)',
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    color: 'rgb(245, 158, 11)',
+    borderColor: "rgba(245, 158, 11, 0.4)",
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    color: "rgb(245, 158, 11)",
   },
   buttonError: {
-    borderColor: 'rgba(248, 113, 113, 0.4)',
-    backgroundColor: 'rgba(248, 113, 113, 0.15)',
-    color: 'rgb(248, 113, 113)',
+    borderColor: "rgba(248, 113, 113, 0.4)",
+    backgroundColor: "rgba(248, 113, 113, 0.15)",
+    color: "rgb(248, 113, 113)",
   },
   popover: {
-    position: 'fixed',
-    top: '60px',
-    right: '16px',
-    width: '420px',
-    maxHeight: 'calc(100vh - 100px)',
+    position: "fixed",
+    top: "60px",
+    right: "16px",
+    width: "420px",
+    maxHeight: "calc(100vh - 100px)",
     backgroundColor: colors.bgPrimary,
     border: `1px solid ${colors.border}`,
-    borderRadius: '8px',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
+    borderRadius: "8px",
+    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.6)",
     zIndex: 9999,
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
   },
   popoverHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '12px 16px',
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "12px 16px",
     borderBottom: `1px solid ${colors.border}`,
     backgroundColor: colors.bgSecondary,
   },
   popoverTitle: {
-    fontSize: '14px',
+    fontSize: "14px",
     fontWeight: 600,
     color: colors.textPrimary,
   },
   closeButton: {
-    background: 'none',
-    border: 'none',
-    fontSize: '18px',
+    background: "none",
+    border: "none",
+    fontSize: "18px",
     color: colors.textMuted,
-    cursor: 'pointer',
-    padding: '4px',
+    cursor: "pointer",
+    padding: "4px",
     lineHeight: 1,
   },
   popoverBody: {
     flex: 1,
-    overflow: 'auto',
-    padding: '12px',
+    overflow: "auto",
+    padding: "12px",
     backgroundColor: colors.bgPrimary,
   },
   validMessage: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '16px',
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "16px",
     color: colors.success,
-    fontSize: '14px',
+    fontSize: "14px",
   },
   errorList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
   },
   errorCard: {
     backgroundColor: colors.bgSecondary,
-    borderRadius: '6px',
+    borderRadius: "6px",
     border: `1px solid ${colors.border}`,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   errorHeader: {
-    padding: '8px 12px',
-    backgroundColor: 'rgba(248, 113, 113, 0.15)',
+    padding: "8px 12px",
+    backgroundColor: "rgba(248, 113, 113, 0.15)",
     borderBottom: `1px solid ${colors.border}`,
   },
   warningHeader: {
-    padding: '8px 12px',
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    padding: "8px 12px",
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
     borderBottom: `1px solid ${colors.border}`,
   },
   errorPath: {
-    fontFamily: 'monospace',
-    fontSize: '11px',
+    fontFamily: "monospace",
+    fontSize: "11px",
     color: colors.textMuted,
-    marginBottom: '2px',
+    marginBottom: "2px",
   },
   errorMessage: {
-    fontSize: '13px',
+    fontSize: "13px",
     fontWeight: 500,
     color: colors.textPrimary,
   },
   errorBody: {
-    padding: '8px 12px',
-    fontSize: '12px',
+    padding: "8px 12px",
+    fontSize: "12px",
     backgroundColor: colors.bgSecondary,
     color: colors.textPrimary,
   },
   errorRow: {
-    display: 'flex',
-    marginBottom: '4px',
+    display: "flex",
+    marginBottom: "4px",
   },
   errorLabel: {
-    width: '60px',
+    width: "60px",
     color: colors.textMuted,
     flexShrink: 0,
   },
   errorValue: {
-    fontFamily: 'monospace',
+    fontFamily: "monospace",
     backgroundColor: colors.bgTertiary,
-    padding: '1px 4px',
-    borderRadius: '3px',
-    fontSize: '11px',
-    wordBreak: 'break-all',
+    padding: "1px 4px",
+    borderRadius: "3px",
+    fontSize: "11px",
+    wordBreak: "break-all",
     color: colors.textPrimary,
   },
   moreCount: {
-    padding: '12px',
-    textAlign: 'center',
-    fontSize: '12px',
+    padding: "12px",
+    textAlign: "center",
+    fontSize: "12px",
     color: colors.textMuted,
     borderTop: `1px solid ${colors.border}`,
     backgroundColor: colors.bgSecondary,
   },
   navLink: {
     color: colors.accent,
-    cursor: 'pointer',
-    textDecoration: 'underline',
+    cursor: "pointer",
+    textDecoration: "underline",
   },
   removeButton: {
-    marginTop: '8px',
-    padding: '4px 10px',
-    fontSize: '11px',
-    backgroundColor: 'rgba(248, 113, 113, 0.2)',
-    border: '1px solid rgba(248, 113, 113, 0.4)',
-    borderRadius: '4px',
-    color: 'rgb(248, 113, 113)',
-    cursor: 'pointer',
+    marginTop: "8px",
+    padding: "4px 10px",
+    fontSize: "11px",
+    backgroundColor: "rgba(248, 113, 113, 0.2)",
+    border: "1px solid rgba(248, 113, 113, 0.4)",
+    borderRadius: "4px",
+    color: "rgb(248, 113, 113)",
+    cursor: "pointer",
     fontWeight: 500,
   },
 };
@@ -183,9 +183,9 @@ function ErrorCard({ error, isWarning, onRemoveProperty }) {
   const headerStyle = isWarning ? styles.warningHeader : styles.errorHeader;
 
   // Check if this is an "additional properties" error that can be auto-fixed
-  const isAdditionalPropError = error.expected?.startsWith('no additional property:');
+  const isAdditionalPropError = error.expected?.startsWith("no additional property:");
   const additionalProp = isAdditionalPropError
-    ? error.expected.replace('no additional property: ', '').trim()
+    ? error.expected.replace("no additional property: ", "").trim()
     : null;
 
   return (
@@ -238,23 +238,23 @@ export default function ValidationPopover({
 
   // Get button label
   const buttonLabel = useMemo(() => {
-    if (errors.length > 0) return `${errors.length} error${errors.length !== 1 ? 's' : ''}`;
-    if (warnings.length > 0) return `${warnings.length} warning${warnings.length !== 1 ? 's' : ''}`;
-    return 'Valid';
+    if (errors.length > 0) return `${errors.length} error${errors.length !== 1 ? "s" : ""}`;
+    if (warnings.length > 0) return `${warnings.length} warning${warnings.length !== 1 ? "s" : ""}`;
+    return "Valid";
   }, [errors.length, warnings.length]);
 
   // Get icon
   const icon = useMemo(() => {
-    if (errors.length > 0) return '✗';
-    if (warnings.length > 0) return '⚠';
-    return '✓';
+    if (errors.length > 0) return "✗";
+    if (warnings.length > 0) return "⚠";
+    return "✓";
   }, [errors.length, warnings.length]);
 
   // Combined and limited list
   const displayItems = useMemo(() => {
     const items = [
-      ...errors.map(e => ({ ...e, isWarning: false })),
-      ...warnings.map(w => ({ ...w, isWarning: true })),
+      ...errors.map((e) => ({ ...e, isWarning: false })),
+      ...warnings.map((w) => ({ ...w, isWarning: true })),
     ];
     return items.slice(0, MAX_ERRORS_SHOWN);
   }, [errors, warnings]);
@@ -271,7 +271,7 @@ export default function ValidationPopover({
       <button
         style={buttonStyle}
         onClick={() => setIsOpen(!isOpen)}
-        title={valid ? 'Configuration is valid' : 'Click to see validation issues'}
+        title={valid ? "Configuration is valid" : "Click to see validation issues"}
       >
         <span>{icon}</span>
         <span>{buttonLabel}</span>
@@ -280,9 +280,7 @@ export default function ValidationPopover({
       {isOpen && (
         <div style={styles.popover} ref={popoverRef}>
           <div style={styles.popoverHeader}>
-            <span style={styles.popoverTitle}>
-              Structure Validation
-            </span>
+            <span style={styles.popoverTitle}>Structure Validation</span>
             <button style={styles.closeButton} onClick={() => setIsOpen(false)}>
               ×
             </button>
@@ -297,7 +295,12 @@ export default function ValidationPopover({
             ) : (
               <div style={styles.errorList}>
                 {displayItems.map((item, i) => (
-                  <ErrorCard key={i} error={item} isWarning={item.isWarning} onRemoveProperty={onRemoveProperty} />
+                  <ErrorCard
+                    key={i}
+                    error={item}
+                    isWarning={item.isWarning}
+                    onRemoveProperty={onRemoveProperty}
+                  />
                 ))}
               </div>
             )}
@@ -305,7 +308,7 @@ export default function ValidationPopover({
 
           {remainingCount > 0 && (
             <div style={styles.moreCount}>
-              +{remainingCount} more issue{remainingCount !== 1 ? 's' : ''}.{' '}
+              +{remainingCount} more issue{remainingCount !== 1 ? "s" : ""}.{" "}
               <span style={styles.navLink} onClick={handleNavigate}>
                 View all in Validation tab
               </span>

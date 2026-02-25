@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import ChronicleVersionSelector from "./ChronicleVersionSelector";
 import { getCallConfig } from "../../lib/llmModelSettings";
 import "./VersionsTab.css";
@@ -213,7 +214,15 @@ export default function VersionsTab({
                 disabled={!combineInstructionsDraft.trim()}
                 className="vtab-save-btn"
                 // eslint-disable-next-line local/no-inline-styles -- dynamic save button appearance from draft state
-                style={{ '--vtab-save-bg': combineInstructionsDraft.trim() ? 'var(--accent-color, #6366f1)' : 'var(--bg-tertiary)', '--vtab-save-color': combineInstructionsDraft.trim() ? '#fff' : 'var(--text-muted)', '--vtab-save-cursor': combineInstructionsDraft.trim() ? 'pointer' : 'not-allowed' }}
+                style={{
+                  "--vtab-save-bg": combineInstructionsDraft.trim()
+                    ? "var(--accent-color, #6366f1)"
+                    : "var(--bg-tertiary)",
+                  "--vtab-save-color": combineInstructionsDraft.trim()
+                    ? "#fff"
+                    : "var(--text-muted)",
+                  "--vtab-save-cursor": combineInstructionsDraft.trim() ? "pointer" : "not-allowed",
+                }}
               >
                 Save
               </button>
@@ -241,9 +250,7 @@ export default function VersionsTab({
 
       {/* Create New Version */}
       <div className="vtab-section">
-        <div className="vtab-section-title">
-          Create New Version
-        </div>
+        <div className="vtab-section-title">Create New Version</div>
 
         <div className="vtab-button-row-mb">
           {/* Regenerate with existing perspective */}
@@ -330,11 +337,32 @@ export default function VersionsTab({
               </button>
             </div>
           </div>
-          <div className="vtab-report-body">
-            {item.comparisonReport}
-          </div>
+          <div className="vtab-report-body">{item.comparisonReport}</div>
         </div>
       )}
     </div>
   );
 }
+
+VersionsTab.propTypes = {
+  item: PropTypes.object,
+  versions: PropTypes.array,
+  selectedVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  compareToVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  activeVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  isGenerating: PropTypes.bool,
+  onSelectVersion: PropTypes.func,
+  onSelectCompareVersion: PropTypes.func,
+  onSetActiveVersion: PropTypes.func,
+  onDeleteVersion: PropTypes.func,
+  onCompareVersions: PropTypes.func,
+  onCombineVersions: PropTypes.func,
+  onRegenerateFull: PropTypes.func,
+  onRegenerateCreative: PropTypes.func,
+  onRegenerateWithSampling: PropTypes.func,
+  onUpdateCombineInstructions: PropTypes.func,
+  onCopyEdit: PropTypes.func,
+  compareRunning: PropTypes.bool,
+  combineRunning: PropTypes.bool,
+  copyEditRunning: PropTypes.bool,
+};

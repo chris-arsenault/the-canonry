@@ -34,6 +34,11 @@ export default defineConfig({
       ),
     },
   },
+  css: {
+    modules: {
+      localsConvention: "camelCaseOnly",
+    },
+  },
   // Base path - use /chronicler/ in dev (via proxy) and production
   base: "/chronicler/",
   build: {

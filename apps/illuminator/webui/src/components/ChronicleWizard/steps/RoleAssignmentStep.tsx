@@ -8,7 +8,7 @@
  * - Ensemble health bar showing diversity
  */
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import type {
   StoryNarrativeStyle,
   DocumentNarrativeStyle,

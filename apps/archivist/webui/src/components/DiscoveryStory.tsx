@@ -1,16 +1,23 @@
-import { useState, useRef } from 'react';
-import type { DiscoveryEventLore } from '../types/world.ts';
-import './DiscoveryStory.css';
+import { useState, useRef } from "react";
+import type { DiscoveryEventLore } from "../types/world.ts";
+import "./DiscoveryStory.css";
 
 interface DiscoveryStoryProps {
   lore: DiscoveryEventLore;
   onExplorerClick?: (explorerId: string) => void;
-  onClose?: () => void;  // Optional close handler for modal mode
-  isModal?: boolean;  // Whether to render as modal
+  onClose?: () => void; // Optional close handler for modal mode
+  isModal?: boolean; // Whether to render as modal
 }
 
-export default function DiscoveryStory({ lore, onExplorerClick, onClose, isModal = false }: DiscoveryStoryProps) {
-  const [expandedSection, setExpandedSection] = useState<'discovery' | 'significance' | null>('discovery');
+export default function DiscoveryStory({
+  lore,
+  onExplorerClick,
+  onClose,
+  isModal = false,
+}: DiscoveryStoryProps) {
+  const [expandedSection, setExpandedSection] = useState<"discovery" | "significance" | null>(
+    "discovery"
+  );
   const mouseDownOnOverlay = useRef(false);
 
   const handleOverlayMouseDown = (e: React.MouseEvent) => {
@@ -23,7 +30,7 @@ export default function DiscoveryStory({ lore, onExplorerClick, onClose, isModal
     }
   };
 
-  const toggleSection = (section: 'discovery' | 'significance') => {
+  const toggleSection = (section: "discovery" | "significance") => {
     setExpandedSection(expandedSection === section ? null : section);
   };
 
@@ -31,7 +38,7 @@ export default function DiscoveryStory({ lore, onExplorerClick, onClose, isModal
   const isEntityId = lore.metadata.explorer.match(/^(npc_|faction_|location_)/);
 
   const content = (
-    <div className={`discovery-story ${isModal ? 'discovery-story-modal-content' : ''}`}>
+    <div className={`discovery-story ${isModal ? "discovery-story-modal-content" : ""}`}>
       <div className="discovery-story-header">
         <span className="discovery-story-icon">🧭</span>
         <span className="discovery-story-title">Discovery Story</span>
@@ -57,7 +64,9 @@ export default function DiscoveryStory({ lore, onExplorerClick, onClose, isModal
         </div>
         <div className="discovery-story-meta-row">
           <span className="discovery-story-meta-label">Method:</span>
-          <span className={`discovery-story-type-badge discovery-story-type-${lore.metadata.discoveryType}`}>
+          <span
+            className={`discovery-story-type-badge discovery-story-type-${lore.metadata.discoveryType}`}
+          >
             {lore.metadata.discoveryType}
           </span>
         </div>
@@ -66,39 +75,41 @@ export default function DiscoveryStory({ lore, onExplorerClick, onClose, isModal
       {/* The Discovery */}
       <div className="discovery-story-section">
         <button
-          onClick={() => toggleSection('discovery')}
+          onClick={() => toggleSection("discovery")}
           className="discovery-story-section-header"
         >
-          <span className="discovery-story-section-icon">{expandedSection === 'discovery' ? '▼' : '▶'}</span>
+          <span className="discovery-story-section-icon">
+            {expandedSection === "discovery" ? "▼" : "▶"}
+          </span>
           <span className="discovery-story-section-title">The Discovery</span>
         </button>
-        {expandedSection === 'discovery' && (
-          <div className="discovery-story-section-content">
-            {lore.text}
-          </div>
+        {expandedSection === "discovery" && (
+          <div className="discovery-story-section-content">{lore.text}</div>
         )}
       </div>
 
       {/* Why It Matters */}
       <div className="discovery-story-section">
         <button
-          onClick={() => toggleSection('significance')}
+          onClick={() => toggleSection("significance")}
           className="discovery-story-section-header"
         >
-          <span className="discovery-story-section-icon">{expandedSection === 'significance' ? '▼' : '▶'}</span>
+          <span className="discovery-story-section-icon">
+            {expandedSection === "significance" ? "▼" : "▶"}
+          </span>
           <span className="discovery-story-section-title">Why It Matters</span>
         </button>
-        {expandedSection === 'significance' && (
-          <div className="discovery-story-section-content">
-            {lore.metadata.significance}
-          </div>
+        {expandedSection === "significance" && (
+          <div className="discovery-story-section-content">{lore.metadata.significance}</div>
         )}
       </div>
 
       {/* Close button for modal mode */}
       {isModal && onClose && (
         <div className="discovery-story-footer">
-          <button onClick={onClose} className="discovery-story-close">Close</button>
+          <button onClick={onClose} className="discovery-story-close">
+            Close
+          </button>
         </div>
       )}
     </div>
@@ -107,10 +118,12 @@ export default function DiscoveryStory({ lore, onExplorerClick, onClose, isModal
   // Wrap in modal overlay if in modal mode
   if (isModal && onClose) {
     return (
-      <div className="discovery-story-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
-        <div>
-          {content}
-        </div>
+      <div
+        className="discovery-story-overlay"
+        onMouseDown={handleOverlayMouseDown}
+        onClick={handleOverlayClick}
+      >
+        <div>{content}</div>
       </div>
     );
   }

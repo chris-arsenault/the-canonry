@@ -8,7 +8,7 @@
  * Phase 3: Apply changes
  */
 
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useEntityNavList } from "../lib/db/entitySelectors";
 import * as entityRepo from "../lib/db/entityRepository";
 import { useRelationships } from "../lib/db/relationshipSelectors";

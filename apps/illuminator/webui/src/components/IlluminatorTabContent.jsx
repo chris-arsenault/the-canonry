@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import "./IlluminatorTabContent.css";
 import EntityBrowser from "./EntityBrowser";
 import ChroniclePanel from "./ChroniclePanel";
@@ -21,6 +22,7 @@ import { useIlluminatorModals } from "../lib/db/modalStore";
 import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
 import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
 import { useEraTemporalInfo } from "../lib/db/indexSelectors";
+import React from "react";
 
 function EntitiesTab({ revisionFlow, historianFlow, ...props }) {
   return (
@@ -46,7 +48,14 @@ function EntitiesTab({ revisionFlow, historianFlow, ...props }) {
 }
 
 function ChronicleTab({ backportFlow, historianFlow, ...props }) {
-  const { projectId, simulationRunId, worldContext, entityGuidance, cultureIdentities, historianConfig } = useIlluminatorConfigStore();
+  const {
+    projectId,
+    simulationRunId,
+    worldContext,
+    entityGuidance,
+    cultureIdentities,
+    historianConfig,
+  } = useIlluminatorConfigStore();
   const queue = useEnrichmentQueueStore((s) => s.queue);
   return (
     <div className="illuminator-content">
@@ -207,7 +216,11 @@ function TraitsTab(props) {
 function ConfigureTab(props) {
   return (
     <div className="illuminator-content">
-      <ConfigPanel config={props.config} onConfigChange={props.updateConfig} worldSchema={props.worldSchema} />
+      <ConfigPanel
+        config={props.config}
+        onConfigChange={props.updateConfig}
+        worldSchema={props.worldSchema}
+      />
       <div className="illuminator-card">
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Data Sync</h2>
@@ -233,12 +246,10 @@ function ConfigureTab(props) {
             Overwrite from Hard State
           </button>
         </div>
-        <div className="itc-sync-summary">
-          {props.hardStateSummary}
-        </div>
+        <div className="itc-sync-summary">{props.hardStateSummary}</div>
         {props.dataSyncStatus && (
           <div
-            className={`itc-sync-status ${props.dataSyncStatus.type === "error" ? "itc-sync-status--error" : "itc-sync-status--success"}`}
+            className={`itc-sync-status ${props.dataSyncStatus.type === "error" ? "itc-sync-status-error" : "itc-sync-status-success"}`}
           >
             {props.dataSyncStatus.message}
           </div>

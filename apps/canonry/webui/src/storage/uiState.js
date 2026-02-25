@@ -1,8 +1,8 @@
-const UI_STATE_KEY = 'canonry:uiState';
-const LAST_PROJECT_KEY = 'canonry:lastProjectId';
+const UI_STATE_KEY = "canonry:uiState";
+const LAST_PROJECT_KEY = "canonry:lastProjectId";
 
 function canUseStorage() {
-  return typeof localStorage !== 'undefined';
+  return typeof localStorage !== "undefined";
 }
 
 export function loadUiState() {

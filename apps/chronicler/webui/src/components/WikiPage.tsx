@@ -435,7 +435,10 @@ function HistorianCallout({
   if (layoutMode === "margin") {
     return (
       // eslint-disable-next-line local/no-inline-styles -- dynamic color per historian note type
-      <aside className={styles.marginCallout} style={{ '--note-color': color } as React.CSSProperties}>
+      <aside
+        className={styles.marginCallout}
+        style={{ "--note-color": color } as React.CSSProperties}
+      >
         <div className={styles.marginCalloutLabel}>
           {indexLabel && <span className={styles.noteIndexLabel}>{indexLabel}</span>}
           {icon} {label}
@@ -448,7 +451,7 @@ function HistorianCallout({
   // Flow mode: floated right callout
   return (
     // eslint-disable-next-line local/no-inline-styles -- dynamic color per historian note type
-    <aside className={styles.flowCallout} style={{ '--note-color': color } as React.CSSProperties}>
+    <aside className={styles.flowCallout} style={{ "--note-color": color } as React.CSSProperties}>
       <div className={styles.noteTypeLabel}>
         {indexLabel && <span className={styles.noteIndexLabel}>{indexLabel}</span>}
         {icon} {label}
@@ -483,7 +486,16 @@ function HistorianFootnoteTooltip({
 
   return (
     // eslint-disable-next-line local/no-inline-styles -- dynamic position and color
-    <div className={styles.footnoteTooltip} style={{ '--tooltip-left': `${left}px`, '--tooltip-top': `${position.y + 8}px`, '--note-color': color } as React.CSSProperties}>
+    <div
+      className={styles.footnoteTooltip}
+      style={
+        {
+          "--tooltip-left": `${left}px`,
+          "--tooltip-top": `${position.y + 8}px`,
+          "--note-color": color,
+        } as React.CSSProperties
+      }
+    >
       <div className={styles.noteTypeLabel}>
         {indexLabel && <span className={styles.noteIndexLabel}>{indexLabel}</span>}
         {icon} {label}
@@ -679,7 +691,7 @@ function SectionWithImages({
               key={note.noteId}
               className={styles.footnoteItem}
               // eslint-disable-next-line local/no-inline-styles -- dynamic color per note type
-              style={{ '--note-color': color } as React.CSSProperties}
+              style={{ "--note-color": color } as React.CSSProperties}
             >
               <span className={styles.footnoteLabel}>
                 {icon} {label}
@@ -945,7 +957,9 @@ function SectionWithImages({
               }}
               className={styles.sidenoteCallout}
               // eslint-disable-next-line local/no-inline-styles -- dynamic vertical position computed by layout engine
-              style={{ '--sidenote-top': `${resolvedPositions.get(idx) ?? 0}px` } as React.CSSProperties}
+              style={
+                { "--sidenote-top": `${resolvedPositions.get(idx) ?? 0}px` } as React.CSSProperties
+              }
             >
               <HistorianCallout note={note} noteIndex={idx} layoutMode="margin" />
             </div>
@@ -1010,7 +1024,10 @@ function EntityPreviewCard({
 
   return (
     // eslint-disable-next-line local/no-inline-styles -- dynamic position from mouse hover
-    <div className={styles.previewCard} style={{ '--preview-left': `${left}px`, '--preview-top': `${top}px` } as React.CSSProperties}>
+    <div
+      className={styles.previewCard}
+      style={{ "--preview-left": `${left}px`, "--preview-top": `${top}px` } as React.CSSProperties}
+    >
       <div className={styles.previewHeader}>
         {imageUrl ? (
           <img src={imageUrl} alt="" className={styles.previewThumbnail} />
@@ -1898,7 +1915,7 @@ export default function WikiPageView({
                   key={section.id}
                   className={styles.tocItem}
                   // eslint-disable-next-line local/no-inline-styles -- dynamic indent depth per section level
-                  style={{ '--toc-indent': `${(section.level - 1) * 16}px` } as React.CSSProperties}
+                  style={{ "--toc-indent": `${(section.level - 1) * 16}px` } as React.CSSProperties}
                   onClick={() => {
                     const el = document.getElementById(section.id);
                     el?.scrollIntoView({ behavior: "smooth" });
@@ -2043,9 +2060,7 @@ export default function WikiPageView({
               if (unmatched.length === 0) return null;
               return (
                 <div className={styles.unmatchedNotesSection}>
-                  <div className={styles.unmatchedNotesHeading}>
-                    Historian's Notes
-                  </div>
+                  <div className={styles.unmatchedNotesHeading}>Historian's Notes</div>
                   {unmatched.map((note) => {
                     const color =
                       HISTORIAN_NOTE_COLORS[note.type] || HISTORIAN_NOTE_COLORS.commentary;
@@ -2056,7 +2071,7 @@ export default function WikiPageView({
                         key={note.noteId}
                         className={styles.unmatchedNoteCard}
                         // eslint-disable-next-line local/no-inline-styles -- dynamic color per note type
-                        style={{ '--note-color': color } as React.CSSProperties}
+                        style={{ "--note-color": color } as React.CSSProperties}
                       >
                         <div className={styles.noteTypeLabel}>
                           {icon} {label}

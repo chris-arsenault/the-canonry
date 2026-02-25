@@ -62,15 +62,15 @@
   font-weight: 600;
 }
 
-.ap-stat-value--running {
+.ap-stat-value-running {
   color: #f59e0b;
 }
 
-.ap-stat-value--completed {
+.ap-stat-value-completed {
   color: #10b981;
 }
 
-.ap-stat-value--errors {
+.ap-stat-value-errors {
   color: #ef4444;
 }
 
@@ -93,7 +93,7 @@
   background: var(--bg-tertiary);
 }
 
-.ap-section-header--errors {
+.ap-section-header-errors {
   color: #ef4444;
 }
 
@@ -110,7 +110,7 @@
   padding: 8px 12px 12px 40px;
   font-size: 11px;
   color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
+  background: rgb(239 68 68 / 10%);
 }
 
 /* Empty state */

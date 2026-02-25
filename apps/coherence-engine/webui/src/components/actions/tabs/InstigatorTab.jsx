@@ -2,8 +2,8 @@
  * InstigatorTab - Instigator configuration
  */
 
-import React from 'react';
-import VariableSelectionEditor from '../../shared/VariableSelectionEditor';
+import React from "react";
+import VariableSelectionEditor from "../../shared/VariableSelectionEditor";
 
 export function InstigatorTab({ action, onChange, schema }) {
   const actor = action.actor || {};
@@ -19,15 +19,15 @@ export function InstigatorTab({ action, onChange, schema }) {
   const hasInstigator = Boolean(instigator);
 
   const addInstigator = () => {
-    updateActor('instigator', { from: 'graph', kind: '', pickStrategy: 'random', required: false });
+    updateActor("instigator", { from: "graph", kind: "", pickStrategy: "random", required: false });
   };
 
   const updateInstigator = (updated) => {
-    updateActor('instigator', updated);
+    updateActor("instigator", updated);
   };
 
   const removeInstigator = () => {
-    updateActor('instigator', undefined);
+    updateActor("instigator", undefined);
   };
 
   return (
@@ -42,7 +42,8 @@ export function InstigatorTab({ action, onChange, schema }) {
       <div className="section">
         <div className="section-title">👤 Instigator (Optional)</div>
         <div className="section-desc">
-          An instigator can trigger the action on behalf of the actor (e.g., NPC leader acts for their faction).
+          An instigator can trigger the action on behalf of the actor (e.g., NPC leader acts for
+          their faction).
         </div>
 
         {!hasInstigator ? (
@@ -56,22 +57,30 @@ export function InstigatorTab({ action, onChange, schema }) {
           </div>
         ) : (
           <div>
-            <label className="checkbox-label" style={{ marginBottom: '12px' }}>
+            <label className="checkbox-label" style={{ marginBottom: "12px" }}>
               <input
                 type="checkbox"
                 checked={instigator.required || false}
-                onChange={(e) => updateInstigator({ ...instigator, required: e.target.checked || undefined })}
+                onChange={(e) =>
+                  updateInstigator({ ...instigator, required: e.target.checked || undefined })
+                }
                 className="checkbox"
               />
               Instigator required
             </label>
             <VariableSelectionEditor
               value={instigator}
-              onChange={(updated) => updateInstigator({ ...updated, required: instigator.required })}
+              onChange={(updated) =>
+                updateInstigator({ ...updated, required: instigator.required })
+              }
               schema={schema}
-              availableRefs={['$actor']}
+              availableRefs={["$actor"]}
             />
-            <button className="btn btn-danger-outline" style={{ marginTop: '12px' }} onClick={removeInstigator}>
+            <button
+              className="btn btn-danger-outline"
+              style={{ marginTop: "12px" }}
+              onClick={removeInstigator}
+            >
               Remove Instigator
             </button>
           </div>

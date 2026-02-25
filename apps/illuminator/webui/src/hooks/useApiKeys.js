@@ -13,19 +13,21 @@ function readPersistedApiKey(keyName) {
     if (localStorage.getItem("illuminator:persistApiKeys") === "true") {
       return localStorage.getItem(keyName) || "";
     }
-  } catch { /* ignored */ }
+  } catch {
+    /* ignored */
+  }
   return "";
 }
 
 export default function useApiKeys() {
-  const [persistApiKeys, setPersistApiKeys] = useState(
-    () => readPersistedFlag("illuminator:persistApiKeys")
+  const [persistApiKeys, setPersistApiKeys] = useState(() =>
+    readPersistedFlag("illuminator:persistApiKeys")
   );
-  const [anthropicApiKey, setAnthropicApiKey] = useState(
-    () => readPersistedApiKey("illuminator:anthropicApiKey")
+  const [anthropicApiKey, setAnthropicApiKey] = useState(() =>
+    readPersistedApiKey("illuminator:anthropicApiKey")
   );
-  const [openaiApiKey, setOpenaiApiKey] = useState(
-    () => readPersistedApiKey("illuminator:openaiApiKey")
+  const [openaiApiKey, setOpenaiApiKey] = useState(() =>
+    readPersistedApiKey("illuminator:openaiApiKey")
   );
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
 
@@ -40,7 +42,9 @@ export default function useApiKeys() {
         localStorage.removeItem("illuminator:anthropicApiKey");
         localStorage.removeItem("illuminator:openaiApiKey");
       }
-    } catch { /* ignored */ }
+    } catch {
+      /* ignored */
+    }
   }, [persistApiKeys, anthropicApiKey, openaiApiKey]);
 
   const hasAnthropicKey = anthropicApiKey.length > 0;

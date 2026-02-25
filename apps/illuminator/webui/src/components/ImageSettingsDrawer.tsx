@@ -6,7 +6,7 @@
  * StyleSelector dropdowns in EntityBrowser and ChronicleImagePanel.
  */
 
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { getSizeOptions, getQualityOptions } from "../lib/imageSettings";
 import {
@@ -159,11 +159,7 @@ function SpecialToggle({
           {opt.label}
         </button>
       ))}
-      {poolInfo && value === RANDOM_ID && (
-        <span className="isd-pool-info">
-          {poolInfo}
-        </span>
-      )}
+      {poolInfo && value === RANDOM_ID && <span className="isd-pool-info">{poolInfo}</span>}
     </div>
   );
 }
@@ -185,22 +181,12 @@ function CollapsibleSection({
 }) {
   return (
     <div className="isd-section">
-      <button
-        onClick={() => onToggle(sectionKey)}
-        className="isd-section-btn"
-      >
-        <span
-          className="isd-section-chevron"
-          data-collapsed={String(collapsed)}
-        >
+      <button onClick={() => onToggle(sectionKey)} className="isd-section-btn">
+        <span className="isd-section-chevron" data-collapsed={String(collapsed)}>
           &#9654;
         </span>
         {title}
-        {badge && (
-          <span className="isd-section-badge">
-            {badge}
-          </span>
-        )}
+        {badge && <span className="isd-section-badge">{badge}</span>}
       </button>
       {!collapsed && <div className="isd-section-content">{children}</div>}
     </div>
@@ -215,7 +201,7 @@ function SwatchStrip({ colors }: { colors: string[] }) {
           key={i}
           className="isd-swatch"
           // eslint-disable-next-line local/no-inline-styles
-          style={{ '--swatch-bg': color, background: 'var(--swatch-bg)' } as React.CSSProperties}
+          style={{ "--swatch-bg": color, background: "var(--swatch-bg)" } as React.CSSProperties}
         />
       ))}
     </div>
@@ -435,24 +421,14 @@ export default function ImageSettingsDrawer({
   return createPortal(
     <>
       {/* Backdrop */}
-      <div
-        onClick={onClose}
-        className="isd-backdrop"
-      />
+      <div onClick={onClose} className="isd-backdrop" />
 
       {/* Drawer */}
-      <div
-        ref={drawerRef}
-        onClick={(e) => e.stopPropagation()}
-        className="isd-drawer"
-      >
+      <div ref={drawerRef} onClick={(e) => e.stopPropagation()} className="isd-drawer">
         {/* Header */}
         <div className="isd-header">
           <span className="isd-header-title">Image Settings</span>
-          <button
-            onClick={onClose}
-            className="isd-close-btn"
-          >
+          <button onClick={onClose} className="isd-close-btn">
             &#10005;
           </button>
         </div>
@@ -460,9 +436,7 @@ export default function ImageSettingsDrawer({
         {/* Scrollable content */}
         <div className="isd-scroll">
           {!styleLibrary ? (
-            <div className="isd-loading">
-              Loading styles...
-            </div>
+            <div className="isd-loading">Loading styles...</div>
           ) : (
             <>
               {/* ─── Visual Style ─── */}
@@ -505,13 +479,9 @@ export default function ImageSettingsDrawer({
                         className="isd-item-btn"
                         data-selected={isSelected}
                       >
-                        <span className="isd-item-name">
-                          {style.name}
-                        </span>
+                        <span className="isd-item-name">{style.name}</span>
                         {style.description && (
-                          <span className="isd-item-desc">
-                            {style.description}
-                          </span>
+                          <span className="isd-item-desc">{style.description}</span>
                         )}
                       </button>
                     );
@@ -561,13 +531,9 @@ export default function ImageSettingsDrawer({
                         className="isd-item-btn"
                         data-selected={isSelected}
                       >
-                        <span className="isd-item-name-composition">
-                          {style.name}
-                        </span>
+                        <span className="isd-item-name-composition">{style.name}</span>
                         {style.description && (
-                          <span className="isd-item-desc">
-                            {style.description}
-                          </span>
+                          <span className="isd-item-desc">{style.description}</span>
                         )}
                       </button>
                     );
@@ -592,9 +558,7 @@ export default function ImageSettingsDrawer({
 
                 {palettesByGroup.map((group) => (
                   <div key={group.label} className="isd-palette-group">
-                    <div className="isd-palette-group-label">
-                      {group.label}
-                    </div>
+                    <div className="isd-palette-group-label">{group.label}</div>
                     <div className="isd-palette-grid">
                       {group.palettes.map((palette) => {
                         const isSelected = settings.colorPaletteId === palette.id;
@@ -611,9 +575,7 @@ export default function ImageSettingsDrawer({
                                 <SwatchStrip colors={palette.swatchColors} />
                               </div>
                             )}
-                            <div className="isd-palette-name">
-                              {palette.name}
-                            </div>
+                            <div className="isd-palette-name">{palette.name}</div>
                           </button>
                         );
                       })}
@@ -633,9 +595,7 @@ export default function ImageSettingsDrawer({
               >
                 {/* Size - segmented buttons */}
                 <div className="isd-output-group">
-                  <div className="isd-output-label">
-                    Size
-                  </div>
+                  <div className="isd-output-label">Size</div>
                   <div className="isd-output-btns">
                     {sizeOptions.map((opt) => {
                       const isSelected = settings.imageSize === opt.value;
@@ -655,9 +615,7 @@ export default function ImageSettingsDrawer({
 
                 {/* Quality - segmented buttons */}
                 <div className="isd-output-group">
-                  <div className="isd-output-label">
-                    Quality
-                  </div>
+                  <div className="isd-output-label">Quality</div>
                   <div className="isd-output-btns">
                     {qualityOptions.map((opt) => {
                       const isSelected = settings.imageQuality === opt.value;
@@ -678,9 +636,7 @@ export default function ImageSettingsDrawer({
                 {/* Culture dropdown */}
                 {cultures && cultures.length > 0 && (
                   <div>
-                    <div className="isd-output-label">
-                      Culture
-                    </div>
+                    <div className="isd-output-label">Culture</div>
                     <select
                       value={settings.selectedCultureId}
                       onChange={(e) => onSettingsChange({ selectedCultureId: e.target.value })}
@@ -737,10 +693,7 @@ export function ImageSettingsSummary({
         {artistic} &middot; {composition} &middot; {palette}
       </span>
       {swatchColors && swatchColors.length > 0 && <SwatchStrip colors={swatchColors} />}
-      <button
-        onClick={onOpenSettings}
-        className="isd-summary-settings-btn"
-      >
+      <button onClick={onOpenSettings} className="isd-summary-settings-btn">
         Settings
       </button>
     </div>
@@ -770,11 +723,7 @@ export function ImageSettingsTrigger({
   const swatchColors = currentPalette?.swatchColors;
 
   return (
-    <button
-      onClick={onClick}
-      className="isd-trigger"
-      title="Open image generation settings"
-    >
+    <button onClick={onClick} className="isd-trigger" title="Open image generation settings">
       <div className="isd-trigger-header">
         <span className="isd-trigger-title">Image Settings</span>
       </div>

@@ -6,7 +6,7 @@
 
 .hmn-anchor-editor {
   padding: 6px 0;
-  border-top: 1px solid rgba(139, 115, 85, 0.15);
+  border-top: 1px solid rgb(139 115 85 / 15%);
   margin-top: 4px;
 }
 
@@ -38,7 +38,7 @@
   opacity: 0.5;
 }
 
-.hmn-anchor-save-btn--resolved {
+.hmn-anchor-save-btn-resolved {
   background: #8b7355;
   color: #fff;
   cursor: pointer;
@@ -60,11 +60,11 @@
   margin-top: 3px;
 }
 
-.hmn-anchor-status--resolved {
+.hmn-anchor-status-resolved {
   color: #5b7a5e;
 }
 
-.hmn-anchor-status--unresolved {
+.hmn-anchor-status-unresolved {
   color: #c0392b;
 }
 
@@ -77,14 +77,14 @@
   align-items: flex-start;
   gap: 8px;
   padding: 6px 10px;
-  background: rgba(139, 115, 85, 0.08);
+  background: rgb(139 115 85 / 8%);
   border-radius: 0 4px 4px 0;
   margin-bottom: 4px;
   transition: opacity 0.15s;
 }
 
-.hmn-note-item--disabled {
-  background: rgba(139, 115, 85, 0.03);
+.hmn-note-item-disabled {
+  background: rgb(139 115 85 / 3%);
   opacity: 0.5;
 }
 
@@ -119,7 +119,7 @@
   flex-shrink: 0;
 }
 
-.hmn-type-label--disabled {
+.hmn-type-label-disabled {
   opacity: 0.6;
 }
 
@@ -137,19 +137,19 @@
   flex: 1;
 }
 
-.hmn-anchor-text--missing {
+.hmn-anchor-text-missing {
   color: #ef4444;
 }
 
-.hmn-anchor-text--normal {
+.hmn-anchor-text-normal {
   color: var(--text-muted);
 }
 
-.hmn-anchor-text--editable {
+.hmn-anchor-text-editable {
   cursor: pointer;
 }
 
-.hmn-anchor-text--readonly {
+.hmn-anchor-text-readonly {
   cursor: default;
 }
 
@@ -167,11 +167,11 @@
   cursor: pointer;
 }
 
-.hmn-note-text--disabled {
+.hmn-note-text-disabled {
   color: var(--text-muted);
 }
 
-.hmn-note-text--active {
+.hmn-note-text-active {
   color: var(--text-secondary);
 }
 

@@ -56,4 +56,4 @@ export {
   computeTagUsage,
   getEntityKindUsageSummary,
   getRelationshipKindUsageSummary,
-} from '@penguin-tales/shared-components';
+} from "@penguin-tales/shared-components";

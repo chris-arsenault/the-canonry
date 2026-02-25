@@ -7,7 +7,8 @@
  * Anchor text can be edited; resolution uses the shared fuzzyAnchor module.
  */
 
-import { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback } from "react";
+import PropTypes from "prop-types";
 import { resolveAnchorPhrase } from "../lib/fuzzyAnchor";
 import "./HistorianMarginNotes.css";
 
@@ -66,7 +67,7 @@ function AnchorEditor({ anchorPhrase, sourceText, onSave, onCancel }) {
         <button
           onClick={() => resolved && onSave(resolved.phrase)}
           disabled={!resolved}
-          className={`hmn-anchor-save-btn${resolved ? " hmn-anchor-save-btn--resolved" : ""}`}
+          className={`hmn-anchor-save-btn${resolved ? " hmn-anchor-save-btn-resolved" : ""}`}
         >
           Save
         </button>
@@ -76,7 +77,7 @@ function AnchorEditor({ anchorPhrase, sourceText, onSave, onCancel }) {
       </div>
       {/* Resolution status */}
       <div
-        className={`hmn-anchor-status ${resolved ? "hmn-anchor-status--resolved" : "hmn-anchor-status--unresolved"}`}
+        className={`hmn-anchor-status ${resolved ? "hmn-anchor-status-resolved" : "hmn-anchor-status-unresolved"}`}
       >
         {!value.trim()
           ? ""
@@ -87,6 +88,13 @@ function AnchorEditor({ anchorPhrase, sourceText, onSave, onCancel }) {
     </div>
   );
 }
+
+AnchorEditor.propTypes = {
+  anchorPhrase: PropTypes.string,
+  sourceText: PropTypes.string,
+  onSave: PropTypes.func,
+  onCancel: PropTypes.func,
+};
 
 // ============================================================================
 // Note Item
@@ -123,7 +131,7 @@ function NoteItem({ note, sourceText, onUpdateNote }) {
 
   return (
     <div
-      className={`hmn-note-item${isDisabled ? " hmn-note-item--disabled" : ""}`}
+      className={`hmn-note-item${isDisabled ? " hmn-note-item-disabled" : ""}`}
       // eslint-disable-next-line local/no-inline-styles -- dynamic border-left color from note type metadata
       style={{ borderLeft: `3px solid ${isDisabled ? "var(--border-color)" : meta.color}` }}
     >
@@ -145,7 +153,7 @@ function NoteItem({ note, sourceText, onUpdateNote }) {
         {/* Type label + anchor + edit button */}
         <div className="hmn-note-header">
           <span
-            className={`hmn-type-label${isDisabled ? " hmn-type-label--disabled" : ""}`}
+            className={`hmn-type-label${isDisabled ? " hmn-type-label-disabled" : ""}`}
             // eslint-disable-next-line local/no-inline-styles -- dynamic color from note type metadata
             style={{ color: meta.color }}
           >
@@ -156,7 +164,7 @@ function NoteItem({ note, sourceText, onUpdateNote }) {
           )}
           <span
             onClick={() => !editingAnchor && setEditingAnchor(true)}
-            className={`hmn-anchor-text ${anchorMissing ? "hmn-anchor-text--missing" : "hmn-anchor-text--normal"} ${onUpdateNote ? "hmn-anchor-text--editable" : "hmn-anchor-text--readonly"}`}
+            className={`hmn-anchor-text ${anchorMissing ? "hmn-anchor-text-missing" : "hmn-anchor-text-normal"} ${onUpdateNote ? "hmn-anchor-text-editable" : "hmn-anchor-text-readonly"}`}
             title={`Anchor: "${note.anchorPhrase}"${anchorMissing ? " (not found in source text)" : ""}${onUpdateNote ? " — click to edit" : ""}`}
           >
             "{note.anchorPhrase}"
@@ -180,7 +188,7 @@ function NoteItem({ note, sourceText, onUpdateNote }) {
 
         {/* Note text */}
         <div
-          className={`hmn-note-text ${isDisabled ? "hmn-note-text--disabled" : "hmn-note-text--active"}`}
+          className={`hmn-note-text ${isDisabled ? "hmn-note-text-disabled" : "hmn-note-text-active"}`}
           onClick={() => setExpanded(!expanded)}
         >
           {expanded || note.text.length <= 120 ? note.text : note.text.slice(0, 120) + "\u2026"}
@@ -189,6 +197,12 @@ function NoteItem({ note, sourceText, onUpdateNote }) {
     </div>
   );
 }
+
+NoteItem.propTypes = {
+  note: PropTypes.object,
+  sourceText: PropTypes.string,
+  onUpdateNote: PropTypes.func,
+};
 
 // ============================================================================
 // Main Component
@@ -235,3 +249,10 @@ export default function HistorianMarginNotes({ notes, sourceText, style, onUpdat
     </div>
   );
 }
+
+HistorianMarginNotes.propTypes = {
+  notes: PropTypes.array,
+  sourceText: PropTypes.string,
+  style: PropTypes.object,
+  onUpdateNote: PropTypes.func,
+};

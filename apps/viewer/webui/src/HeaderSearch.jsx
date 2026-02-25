@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import Fuse from "fuse.js";
 import {
   getChronicles,
@@ -125,7 +126,10 @@ export default function HeaderSearch({ projectId, slotIndex, dexieSeededAt, onNa
   const fuse = useMemo(
     () =>
       new Fuse(pages, {
-        keys: [{ name: "title", weight: 2 }, { name: "content.summary", weight: 1 }],
+        keys: [
+          { name: "title", weight: 2 },
+          { name: "content.summary", weight: 1 },
+        ],
         threshold: 0.3,
         includeScore: true,
         minMatchCharLength: 2,
@@ -138,13 +142,21 @@ export default function HeaderSearch({ projectId, slotIndex, dexieSeededAt, onNa
     return fuse.search(query).slice(0, 8);
   }, [fuse, query]);
 
-  const handleSelect = useCallback((id) => {
-    if (id) onNavigate(id);
-    setIsOpen(false);
-    setQuery("");
-  }, [onNavigate]);
+  const handleSelect = useCallback(
+    (id) => {
+      if (id) onNavigate(id);
+      setIsOpen(false);
+      setQuery("");
+    },
+    [onNavigate]
+  );
 
-  const handleKeyDown = useKeyboardNavigation(results, selectedIndex, setSelectedIndex, handleSelect);
+  const handleKeyDown = useKeyboardNavigation(
+    results,
+    selectedIndex,
+    setSelectedIndex,
+    handleSelect
+  );
 
   useEffect(() => {
     const onClickOutside = (e) => {
@@ -196,3 +208,10 @@ export default function HeaderSearch({ projectId, slotIndex, dexieSeededAt, onNa
     </div>
   );
 }
+
+HeaderSearch.propTypes = {
+  projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  slotIndex: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  dexieSeededAt: PropTypes.any,
+  onNavigate: PropTypes.func,
+};

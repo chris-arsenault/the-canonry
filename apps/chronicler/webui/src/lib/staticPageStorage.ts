@@ -6,6 +6,7 @@
  */
 
 import { openIlluminatorDb } from "./illuminatorDbReader";
+import React from "react";
 
 const STATIC_PAGE_STORE_NAME = "staticPages";
 

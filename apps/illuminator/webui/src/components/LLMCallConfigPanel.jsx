@@ -5,7 +5,8 @@
  * for each LLM call type. Settings persist in localStorage across all projects.
  */
 
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
+import PropTypes from "prop-types";
 import {
   getLLMModelSettings,
   saveLLMModelSettings,
@@ -289,6 +290,14 @@ function CallTypeRow({ callType, config, isDefault, onUpdate, isLast }) {
   );
 }
 
+CallTypeRow.propTypes = {
+  callType: PropTypes.string,
+  config: PropTypes.object,
+  isDefault: PropTypes.bool,
+  onUpdate: PropTypes.func,
+  isLast: PropTypes.bool,
+};
+
 function CategoryHeader({ category }) {
   return (
     <tr className="llm-table-category-row">
@@ -298,6 +307,10 @@ function CategoryHeader({ category }) {
     </tr>
   );
 }
+
+CategoryHeader.propTypes = {
+  category: PropTypes.string,
+};
 
 export default function LLMCallConfigPanel() {
   const [settings, setSettings] = useState(() => getLLMModelSettings());

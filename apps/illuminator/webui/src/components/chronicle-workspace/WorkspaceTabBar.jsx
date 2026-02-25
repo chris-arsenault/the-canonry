@@ -1,3 +1,5 @@
+import React from "react";
+import PropTypes from "prop-types";
 export default function WorkspaceTabBar({ tabs, activeTab, onTabChange }) {
   return (
     <div className="workspace-subtabs">
@@ -18,3 +20,9 @@ export default function WorkspaceTabBar({ tabs, activeTab, onTabChange }) {
     </div>
   );
 }
+
+WorkspaceTabBar.propTypes = {
+  tabs: PropTypes.array,
+  activeTab: PropTypes.string,
+  onTabChange: PropTypes.func,
+};

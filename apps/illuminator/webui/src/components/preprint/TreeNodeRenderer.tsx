@@ -6,6 +6,7 @@
 
 import type { NodeRendererProps } from "react-arborist";
 import type { ContentTreeNode } from "../../lib/preprint/prePrintTypes";
+import React from "react";
 
 const TYPE_ICONS: Record<string, string> = {
   folder: "\u{1F4C1}",

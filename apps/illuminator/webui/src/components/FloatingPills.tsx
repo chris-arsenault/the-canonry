@@ -7,6 +7,7 @@
 
 import { useFloatingPillStore, type FloatingPill } from "../lib/db/floatingPillStore";
 import { useThinkingStore } from "../lib/db/thinkingStore";
+import React from "react";
 
 function Pill({ pill, onNavigate }: { pill: FloatingPill; onNavigate?: (tabId: string) => void }) {
   const expand = useFloatingPillStore((s) => s.expand);

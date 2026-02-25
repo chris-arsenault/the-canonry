@@ -5,7 +5,8 @@
  * with filtering by era, kind, significance, and tags.
  */
 
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import PropTypes from "prop-types";
 import "./EventsPanel.css";
 
 // Display limit for performance - loading 7000+ events causes UI freeze
@@ -30,12 +31,21 @@ function EventKindBadge({ kind }) {
     <span
       className="events-panel-kind-badge"
       // eslint-disable-next-line local/no-inline-styles
-      style={{ '--badge-bg': colors.bg, '--badge-text': colors.text, background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+      style={{
+        "--badge-bg": colors.bg,
+        "--badge-text": colors.text,
+        background: "var(--badge-bg)",
+        color: "var(--badge-text)",
+      }}
     >
       {kind.replace(/_/g, " ")}
     </span>
   );
 }
+
+EventKindBadge.propTypes = {
+  kind: PropTypes.string,
+};
 
 function SignificanceBar({ value }) {
   const percentage = Math.round(value * 100);
@@ -47,37 +57,46 @@ function SignificanceBar({ value }) {
         <div
           className="events-panel-significance-fill"
           // eslint-disable-next-line local/no-inline-styles
-          style={{ '--sig-width': `${percentage}%`, '--sig-color': color, width: 'var(--sig-width)', background: 'var(--sig-color)' }}
+          style={{
+            "--sig-width": `${percentage}%`,
+            "--sig-color": color,
+            width: "var(--sig-width)",
+            background: "var(--sig-color)",
+          }}
         />
       </div>
-      <span className="events-panel-significance-label">
-        {percentage}%
-      </span>
+      <span className="events-panel-significance-label">{percentage}%</span>
     </div>
   );
 }
 
+SignificanceBar.propTypes = {
+  value: PropTypes.any,
+};
+
 function NarrativeTag({ tag }) {
-  return (
-    <span className="events-panel-narrative-tag">
-      {tag}
-    </span>
-  );
+  return <span className="events-panel-narrative-tag">{tag}</span>;
 }
+
+NarrativeTag.propTypes = {
+  tag: PropTypes.any,
+};
 
 function StateChangeItem({ change }) {
   return (
     <div className="events-panel-state-change">
       <span className="events-panel-state-entity-name">{change.entityName}</span>
       <span className="events-panel-state-field">{change.field}:</span>
-      <span className="events-panel-state-old-value">
-        {String(change.previousValue)}
-      </span>
+      <span className="events-panel-state-old-value">{String(change.previousValue)}</span>
       <span className="events-panel-state-arrow">&rarr;</span>
       <span className="events-panel-state-new-value">{String(change.newValue)}</span>
     </div>
   );
 }
+
+StateChangeItem.propTypes = {
+  change: PropTypes.object,
+};
 
 function EventCard({ event, entityMap, expanded, onToggle }) {
   const subjectEntity = entityMap?.get(event.subject?.id);
@@ -92,10 +111,7 @@ function EventCard({ event, entityMap, expanded, onToggle }) {
             <EventKindBadge kind={event.eventKind} />
             <span className="events-panel-card-tick">tick {event.tick}</span>
           </div>
-          <h3
-            className="events-panel-card-headline"
-            onClick={onToggle}
-          >
+          <h3 className="events-panel-card-headline" onClick={onToggle}>
             {event.headline}
           </h3>
         </div>
@@ -106,17 +122,13 @@ function EventCard({ event, entityMap, expanded, onToggle }) {
       <div className="events-panel-card-subject">
         <span className="events-panel-card-entity-name">{event.subject?.name || "Unknown"}</span>
         {event.subject?.kind && (
-          <span className="events-panel-card-entity-kind">
-            ({event.subject.kind})
-          </span>
+          <span className="events-panel-card-entity-kind">({event.subject.kind})</span>
         )}
         {event.object && (
           <>
             <span className="events-panel-card-arrow">&rarr;</span>
             <span className="events-panel-card-entity-name">{event.object.name}</span>
-            <span className="events-panel-card-entity-kind">
-              ({event.object.kind})
-            </span>
+            <span className="events-panel-card-entity-kind">({event.object.kind})</span>
           </>
         )}
       </div>
@@ -135,17 +147,13 @@ function EventCard({ event, entityMap, expanded, onToggle }) {
         <div className="events-panel-card-expanded">
           {/* Description */}
           {event.description && (
-            <p className="events-panel-card-description">
-              {event.description}
-            </p>
+            <p className="events-panel-card-description">{event.description}</p>
           )}
 
           {/* State changes */}
           {event.stateChanges && event.stateChanges.length > 0 && (
             <div className="events-panel-card-state-changes">
-              <div className="events-panel-card-state-changes-label">
-                State Changes
-              </div>
+              <div className="events-panel-card-state-changes-label">State Changes</div>
               {event.stateChanges.map((change, i) => (
                 <StateChangeItem key={i} change={change} />
               ))}
@@ -164,15 +172,19 @@ function EventCard({ event, entityMap, expanded, onToggle }) {
       )}
 
       {/* Toggle button */}
-      <button
-        onClick={onToggle}
-        className="events-panel-card-toggle"
-      >
+      <button onClick={onToggle} className="events-panel-card-toggle">
         {expanded ? "Show less" : "Show more"}
       </button>
     </div>
   );
 }
+
+EventCard.propTypes = {
+  event: PropTypes.object,
+  entityMap: PropTypes.object,
+  expanded: PropTypes.bool,
+  onToggle: PropTypes.func,
+};
 
 export default function EventsPanel({ narrativeEvents = [], simulationRunId, entityMap }) {
   const [significanceFilter, setSignificanceFilter] = useState(0);
@@ -278,9 +290,7 @@ export default function EventsPanel({ narrativeEvents = [], simulationRunId, ent
           in the Lore Weave simulation parameters.
         </p>
         <div className="events-panel-empty-instructions">
-          <div className="events-panel-empty-instructions-title">
-            To enable event tracking:
-          </div>
+          <div className="events-panel-empty-instructions-title">To enable event tracking:</div>
           <ol className="events-panel-empty-instructions-list">
             <li>Go to the Lore Weave tab</li>
             <li>Open "Run Simulation"</li>
@@ -303,9 +313,7 @@ export default function EventsPanel({ narrativeEvents = [], simulationRunId, ent
               : `Showing ${displayedEvents.length} of ${filteredEvents.length} filtered (${events.length} total)`}
           </div>
           <div className="events-panel-filter-actions">
-            <div className="events-panel-filter-sort-label">
-              Sorted by significance
-            </div>
+            <div className="events-panel-filter-sort-label">Sorted by significance</div>
             <button
               onClick={handleExportEvents}
               disabled={events.length === 0}
@@ -319,9 +327,7 @@ export default function EventsPanel({ narrativeEvents = [], simulationRunId, ent
         <div className="events-panel-filters-row">
           {/* Significance slider */}
           <div className="events-panel-significance-filter">
-            <label className="events-panel-filter-label">
-              Min significance:
-            </label>
+            <label className="events-panel-filter-label">Min significance:</label>
             <input
               type="range"
               min={0}
@@ -400,9 +406,7 @@ export default function EventsPanel({ narrativeEvents = [], simulationRunId, ent
       {/* Events list */}
       <div className="events-panel-list">
         {sortedEvents.length === 0 ? (
-          <div className="events-panel-no-match">
-            No events match the current filters
-          </div>
+          <div className="events-panel-no-match">No events match the current filters</div>
         ) : (
           <>
             {displayedEvents.map((event) => (
@@ -418,10 +422,7 @@ export default function EventsPanel({ narrativeEvents = [], simulationRunId, ent
             {/* Load more button */}
             {hasMoreEvents && (
               <div className="events-panel-load-more-row">
-                <button
-                  onClick={handleLoadMore}
-                  className="events-panel-load-more-btn"
-                >
+                <button onClick={handleLoadMore} className="events-panel-load-more-btn">
                   Load {Math.min(LOAD_MORE_INCREMENT, sortedEvents.length - displayLimit)} more
                   <span className="events-panel-load-more-remaining">
                     ({sortedEvents.length - displayLimit} remaining)
@@ -435,3 +436,9 @@ export default function EventsPanel({ narrativeEvents = [], simulationRunId, ent
     </div>
   );
 }
+
+EventsPanel.propTypes = {
+  narrativeEvents: PropTypes.array,
+  simulationRunId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  entityMap: PropTypes.object,
+};

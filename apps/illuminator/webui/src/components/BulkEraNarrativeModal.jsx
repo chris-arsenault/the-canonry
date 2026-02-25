@@ -7,7 +7,8 @@
  * 3. Terminal: completion/cancellation/failure summary
  */
 
-import { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
+import PropTypes from "prop-types";
 import { useBulkEraNarrativeStore } from "../lib/db/bulkEraNarrativeStore";
 import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
 import { useThinkingStore } from "../lib/db/thinkingStore";
@@ -16,7 +17,12 @@ import "./BulkEraNarrativeModal.css";
 const PILL_ID = "bulk-era-narrative";
 
 const ERA_NARRATIVE_TONES = [
-  { value: "witty", label: "Witty", symbol: "\u2736", description: "Sly, dry, finds the dark comic" },
+  {
+    value: "witty",
+    label: "Witty",
+    symbol: "\u2736",
+    description: "Sly, dry, finds the dark comic",
+  },
   {
     value: "cantankerous",
     label: "Cantankerous",
@@ -29,7 +35,12 @@ const ERA_NARRATIVE_TONES = [
     symbol: "\u2042",
     description: "Puzzled and delighted by absurdity",
   },
-  { value: "defiant", label: "Defiant", symbol: "\u25B2", description: "Proud of what was attempted" },
+  {
+    value: "defiant",
+    label: "Defiant",
+    symbol: "\u25B2",
+    description: "Proud of what was attempted",
+  },
   {
     value: "sardonic",
     label: "Sardonic",
@@ -37,7 +48,12 @@ const ERA_NARRATIVE_TONES = [
     description: "Sharp irony, names the pattern",
   },
   { value: "tender", label: "Tender", symbol: "\u25E0", description: "Lingers on what survived" },
-  { value: "hopeful", label: "Hopeful", symbol: "\u2600", description: "Reads for what was seeded" },
+  {
+    value: "hopeful",
+    label: "Hopeful",
+    symbol: "\u2600",
+    description: "Reads for what was seeded",
+  },
   {
     value: "enthusiastic",
     label: "Enthusiastic",
@@ -182,10 +198,10 @@ export default function BulkEraNarrativeModal({
 
   const progressFillClass =
     progress.status === "failed"
-      ? "benm-progress-fill benm-progress-fill--failed"
+      ? "benm-progress-fill benm-progress-fill-failed"
       : progress.status === "cancelled"
-        ? "benm-progress-fill benm-progress-fill--cancelled"
-        : "benm-progress-fill benm-progress-fill--complete";
+        ? "benm-progress-fill benm-progress-fill-cancelled"
+        : "benm-progress-fill benm-progress-fill-complete";
 
   return (
     <div className="benm-overlay">
@@ -253,9 +269,7 @@ export default function BulkEraNarrativeModal({
             <>
               {/* Era list with per-era tone */}
               <div className="benm-era-section">
-                <div className="benm-section-label">
-                  Eras ({progress.eras.length})
-                </div>
+                <div className="benm-section-label">Eras ({progress.eras.length})</div>
                 <div className="benm-era-list">
                   {progress.eras.map((era, i) => {
                     return (
@@ -269,9 +283,7 @@ export default function BulkEraNarrativeModal({
                         }}
                       >
                         <div className="benm-era-row-info">
-                          <span className="benm-era-name">
-                            {era.eraName}
-                          </span>
+                          <span className="benm-era-name">{era.eraName}</span>
                         </div>
                         <div className="benm-era-row-actions">
                           <span className="benm-era-prepped">
@@ -295,7 +307,7 @@ export default function BulkEraNarrativeModal({
                                   key={t}
                                   onClick={() => setEraTone(era.eraId, t)}
                                   title={meta?.label}
-                                  className={`benm-tone-btn ${selected ? "benm-tone-btn--selected" : "benm-tone-btn--default"}`}
+                                  className={`benm-tone-btn ${selected ? "benm-tone-btn-selected" : "benm-tone-btn-default"}`}
                                 >
                                   {meta?.symbol}
                                 </button>
@@ -321,9 +333,7 @@ export default function BulkEraNarrativeModal({
                     Era {Math.min(progress.processedEras + 1, progress.totalEras)} /{" "}
                     {progress.totalEras}
                   </span>
-                  <span className="benm-progress-percent">
-                    {globalPercent}%
-                  </span>
+                  <span className="benm-progress-percent">{globalPercent}%</span>
                 </div>
                 <div className="benm-progress-track">
                   <div
@@ -361,10 +371,7 @@ export default function BulkEraNarrativeModal({
                       {/* Era name + tone */}
                       <div className="benm-current-era-name">
                         {currentToneMeta && (
-                          <span
-                            className="benm-current-era-tone"
-                            title={currentToneMeta.label}
-                          >
+                          <span className="benm-current-era-tone" title={currentToneMeta.label}>
                             {currentToneMeta.symbol}
                           </span>
                         )}
@@ -428,9 +435,7 @@ export default function BulkEraNarrativeModal({
                                     <span className="benm-step-counters">
                                       {thinkingWords > 0 && (
                                         <span title="Thinking words received">
-                                          <span className="benm-counter-thinking-label">
-                                            T
-                                          </span>{" "}
+                                          <span className="benm-counter-thinking-label">T</span>{" "}
                                           {thinkingWords.toLocaleString()}
                                         </span>
                                       )}
@@ -447,11 +452,7 @@ export default function BulkEraNarrativeModal({
                                   </div>
                                 )}
 
-                                {isDone && (
-                                  <span className="benm-step-done">
-                                    done
-                                  </span>
-                                )}
+                                {isDone && <span className="benm-step-done">done</span>}
                               </div>
                             </div>
                           );
@@ -463,7 +464,7 @@ export default function BulkEraNarrativeModal({
 
               {/* Terminal state messages */}
               {progress.status === "complete" && (
-                <div className="benm-terminal-msg benm-terminal-msg--complete">
+                <div className="benm-terminal-msg benm-terminal-msg-complete">
                   Generated {progress.processedEras} era narratives.
                   {progress.totalWords > 0 && (
                     <span> {progress.totalWords.toLocaleString()} words total.</span>
@@ -472,13 +473,13 @@ export default function BulkEraNarrativeModal({
               )}
 
               {progress.status === "cancelled" && (
-                <div className="benm-terminal-msg benm-terminal-msg--cancelled">
+                <div className="benm-terminal-msg benm-terminal-msg-cancelled">
                   Cancelled after processing {progress.processedEras} of {progress.totalEras} eras.
                 </div>
               )}
 
               {progress.status === "failed" && (
-                <div className="benm-terminal-msg benm-terminal-msg--failed">
+                <div className="benm-terminal-msg benm-terminal-msg-failed">
                   {progress.error || "An unexpected error occurred."}
                 </div>
               )}
@@ -500,10 +501,7 @@ export default function BulkEraNarrativeModal({
         <div className="benm-footer">
           {isConfirming && (
             <>
-              <button
-                onClick={handleCancel}
-                className="illuminator-button benm-footer-btn"
-              >
+              <button onClick={handleCancel} className="illuminator-button benm-footer-btn">
                 Cancel
               </button>
               <button
@@ -515,18 +513,12 @@ export default function BulkEraNarrativeModal({
             </>
           )}
           {!isConfirming && !isTerminal && (
-            <button
-              onClick={handleCancel}
-              className="illuminator-button benm-footer-btn"
-            >
+            <button onClick={handleCancel} className="illuminator-button benm-footer-btn">
               Cancel
             </button>
           )}
           {isTerminal && (
-            <button
-              onClick={handleClose}
-              className="illuminator-button benm-footer-btn"
-            >
+            <button onClick={handleClose} className="illuminator-button benm-footer-btn">
               Close
             </button>
           )}
@@ -535,3 +527,14 @@ export default function BulkEraNarrativeModal({
     </div>
   );
 }
+
+BulkEraNarrativeModal.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  chronicleItems: PropTypes.array,
+  wizardEras: PropTypes.array,
+  eraTemporalInfo: PropTypes.any,
+  projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  simulationRunId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  styleLibrary: PropTypes.object,
+};

@@ -8,7 +8,7 @@
  * - Mini constellation showing 1-hop network preview
  */
 
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import type {
   EntityContext,
   RelationshipContext,

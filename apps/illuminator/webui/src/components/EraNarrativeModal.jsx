@@ -10,7 +10,7 @@
  * 6. Complete: summary
  */
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useChronicleStore } from "../lib/db/chronicleStore";
 import { useEraNarrative } from "../hooks/useEraNarrative";
 import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
@@ -409,10 +409,10 @@ export default function EraNarrativeModal({
       <div className="era-narr-modal">
         {/* Header */}
         <div className="era-narr-header">
-          <span className="era-narr-header__title">
+          <span className="era-narr-header-title">
             {narrative?.eraName ? `Era Narrative: ${narrative.eraName}` : "Era Narrative"}
           </span>
-          <div className="era-narr-header__actions">
+          <div className="era-narr-header-actions">
             {isActive && !isComplete && (
               <button
                 onClick={() =>
@@ -424,13 +424,13 @@ export default function EraNarrativeModal({
                     tabId: "chronicle",
                   })
                 }
-                className="illuminator-button era-narr-header__minimize-btn"
+                className="illuminator-button era-narr-header-minimize-btn"
                 title="Minimize to pill"
               >
                 ―
               </button>
             )}
-            <button onClick={handleClose} className="era-narr-header__close-btn">
+            <button onClick={handleClose} className="era-narr-header-close-btn">
               {"\u2715"}
             </button>
           </div>
@@ -442,11 +442,9 @@ export default function EraNarrativeModal({
           {showSetup && (
             <>
               <div className="era-narr-field">
-                <label className="era-narr-label">
-                  Era
-                </label>
+                <label className="era-narr-label">Era</label>
                 <select
-                  className="illuminator-select era-narr-select--full"
+                  className="illuminator-select era-narr-select-full"
                   value={selectedEraId}
                   onChange={(e) => setSelectedEraId(e.target.value)}
                 >
@@ -478,21 +476,17 @@ export default function EraNarrativeModal({
               {/* Previous era thesis -- continuity link */}
               {previousEraThesis && (
                 <div className="era-narr-thesis-link">
-                  <div className="era-narr-thesis-link__label">
+                  <div className="era-narr-thesis-link-label">
                     Preceding volume thesis ({previousEraThesis.eraName})
                   </div>
-                  <div className="era-narr-thesis-link__text">
-                    {previousEraThesis.thesis}
-                  </div>
+                  <div className="era-narr-thesis-link-text">{previousEraThesis.thesis}</div>
                 </div>
               )}
 
               {/* Chronicle enumeration for selected era */}
               {eraChronicles.length > 0 && (
                 <div className="era-narr-field">
-                  <label className="era-narr-label">
-                    Chronicles ({eraChronicles.length})
-                  </label>
+                  <label className="era-narr-label">Chronicles ({eraChronicles.length})</label>
                   <div className="era-narr-chronicle-list">
                     {eraChronicles.map((c) => {
                       const weight =
@@ -521,34 +515,31 @@ export default function EraNarrativeModal({
                           style={{ opacity: c.hasHistorianPrep ? 1 : 0.5 }}
                         >
                           <span
-                            className="era-narr-chronicle-item__weight"
+                            className="era-narr-chronicle-item-weight"
                             // eslint-disable-next-line local/no-inline-styles
                             style={{ color: weightColor }}
                             title={weight ? `Weight: ${weight}` : "No weight assigned"}
                           >
                             {weightSymbol}
                           </span>
-                          <span
-                            className="era-narr-chronicle-item__title"
-                            title={c.title || c.name}
-                          >
+                          <span className="era-narr-chronicle-item-title" title={c.title || c.name}>
                             {c.title || c.name}
                           </span>
                           {c.eraYear != null && (
-                            <span className="era-narr-chronicle-item__year" title="Era year">
+                            <span className="era-narr-chronicle-item-year" title="Era year">
                               Y{c.eraYear}
                             </span>
                           )}
                           {c.narrativeStyleName && (
                             <span
-                              className="era-narr-chronicle-item__style"
+                              className="era-narr-chronicle-item-style"
                               title={`Style: ${c.narrativeStyleName}`}
                             >
                               {c.narrativeStyleName}
                             </span>
                           )}
                           <span
-                            className="era-narr-chronicle-item__prep"
+                            className="era-narr-chronicle-item-prep"
                             // eslint-disable-next-line local/no-inline-styles
                             style={{ color: c.hasHistorianPrep ? "#8b7355" : "var(--text-muted)" }}
                             title={
@@ -567,9 +558,7 @@ export default function EraNarrativeModal({
               {/* Existing narratives for this era */}
               {existingNarratives.length > 0 && (
                 <div className="era-narr-field">
-                  <label className="era-narr-label">
-                    Existing Narratives
-                  </label>
+                  <label className="era-narr-label">Existing Narratives</label>
                   <div className="era-narr-existing-list">
                     {existingNarratives.map((rec) => {
                       const stepLabel = { threads: "Threads", generate: "Draft", edit: "Edit" };
@@ -596,26 +585,28 @@ export default function EraNarrativeModal({
                       return (
                         <div key={rec.narrativeId} className="era-narr-existing-item">
                           {/* eslint-disable-next-line local/no-inline-styles */}
-                          <span className="era-narr-existing-item__status" style={{ color: statusColor }} title={rec.status}>
+                          <span
+                            className="era-narr-existing-item-status"
+                            style={{ color: statusColor }}
+                            title={rec.status}
+                          >
                             {statusIcon}
                           </span>
-                          <span className="era-narr-existing-item__step">
+                          <span className="era-narr-existing-item-step">
                             {rec.status === "complete"
                               ? "Complete"
                               : `${stepLabel[rec.currentStep] || rec.currentStep} step`}
                           </span>
-                          <span className="era-narr-existing-item__time">
-                            {timeStr}
-                          </span>
+                          <span className="era-narr-existing-item-time">{timeStr}</span>
                           {rec.totalActualCost > 0 && (
-                            <span className="era-narr-existing-item__cost">
+                            <span className="era-narr-existing-item-cost">
                               ${rec.totalActualCost.toFixed(3)}
                             </span>
                           )}
                           {canResume && (
                             <button
                               onClick={() => handleResume(rec.narrativeId)}
-                              className="illuminator-button era-narr-existing-item__resume-btn"
+                              className="illuminator-button era-narr-existing-item-resume-btn"
                             >
                               Resume
                             </button>
@@ -623,14 +614,14 @@ export default function EraNarrativeModal({
                           {!canResume && (
                             <button
                               onClick={() => handleResume(rec.narrativeId)}
-                              className="illuminator-button era-narr-existing-item__view-btn"
+                              className="illuminator-button era-narr-existing-item-view-btn"
                             >
                               View
                             </button>
                           )}
                           <button
                             onClick={() => handleDeleteExisting(rec.narrativeId)}
-                            className="illuminator-button era-narr-existing-item__delete-btn"
+                            className="illuminator-button era-narr-existing-item-delete-btn"
                             title="Delete narrative"
                           >
                             {"\u2715"}
@@ -642,17 +633,15 @@ export default function EraNarrativeModal({
                 </div>
               )}
 
-              <div className="era-narr-field--lg">
-                <label className="era-narr-label">
-                  Tone
-                </label>
+              <div className="era-narr-field-lg">
+                <label className="era-narr-label">Tone</label>
                 <div className="era-narr-tone-row">
                   {TONE_OPTIONS.map((t) => (
                     <button
                       key={t.value}
                       onClick={() => setTone(t.value)}
                       title={t.description}
-                      className={`illuminator-button era-narr-tone-btn ${tone === t.value ? "era-narr-tone-btn--active" : ""}`}
+                      className={`illuminator-button era-narr-tone-btn ${tone === t.value ? "era-narr-tone-btn-active" : ""}`}
                     >
                       {t.label}
                     </button>
@@ -661,9 +650,9 @@ export default function EraNarrativeModal({
               </div>
 
               {/* Arc Direction Override (optional) */}
-              <div className="era-narr-field--lg">
+              <div className="era-narr-field-lg">
                 <label className="era-narr-label">
-                  Arc Direction <span className="era-narr-label__optional">(optional)</span>
+                  Arc Direction <span className="era-narr-label-optional">(optional)</span>
                 </label>
                 <textarea
                   value={arcDirection}
@@ -677,7 +666,7 @@ export default function EraNarrativeModal({
                 <button
                   onClick={handleStart}
                   disabled={!selectedEraId || !selectedEra || selectedEra.preppedCount === 0}
-                  className={`illuminator-button era-narr-start-btn ${selectedEraId && selectedEra?.preppedCount > 0 ? "era-narr-start-btn--primary" : ""}`}
+                  className={`illuminator-button era-narr-start-btn ${selectedEraId && selectedEra?.preppedCount > 0 ? "era-narr-start-btn-primary" : ""}`}
                   // eslint-disable-next-line local/no-inline-styles
                   style={{ opacity: selectedEraId && selectedEra?.preppedCount > 0 ? 1 : 0.5 }}
                 >
@@ -700,26 +689,20 @@ export default function EraNarrativeModal({
           {/* Generating */}
           {isGenerating && (
             <div className="era-narr-generating">
-              <div className="era-narr-generating__status">
+              <div className="era-narr-generating-status">
                 {narrative?.currentStep === "threads" && "Identifying narrative threads..."}
                 {narrative?.currentStep === "generate" && "Writing era narrative..."}
                 {narrative?.currentStep === "edit" && "Editing era narrative..."}
               </div>
-              <div className="era-narr-generating__era">
-                {narrative?.eraName}
-              </div>
+              <div className="era-narr-generating-era">{narrative?.eraName}</div>
             </div>
           )}
 
           {/* Failed */}
           {isFailed && (
             <div className="era-narr-failed">
-              <div className="era-narr-failed__title">
-                Generation failed
-              </div>
-              <div className="era-narr-failed__error">
-                {narrative?.error}
-              </div>
+              <div className="era-narr-failed-title">Generation failed</div>
+              <div className="era-narr-failed-error">{narrative?.error}</div>
               <button onClick={cancel} className="illuminator-button">
                 Dismiss
               </button>
@@ -731,42 +714,32 @@ export default function EraNarrativeModal({
             <>
               <div className="era-narr-review-section">
                 <div className="era-narr-review-heading">Thesis</div>
-                <div className="era-narr-thesis-text">
-                  {synthesis.thesis}
-                </div>
+                <div className="era-narr-thesis-text">{synthesis.thesis}</div>
               </div>
 
               <div className="era-narr-review-section">
-                <div className="era-narr-review-heading">
-                  Threads ({synthesis.threads.length})
-                </div>
+                <div className="era-narr-review-heading">Threads ({synthesis.threads.length})</div>
                 <div className="era-narr-thread-list">
                   {synthesis.threads.map((t) => (
                     <div key={t.threadId} className="era-narr-thread-card">
-                      <div className="era-narr-thread-card__header">
-                        <span className="era-narr-thread-card__name">{t.name}</span>
+                      <div className="era-narr-thread-card-header">
+                        <span className="era-narr-thread-card-name">{t.name}</span>
                         {t.culturalActors?.length > 0 && (
-                          <span className="era-narr-thread-card__actors">
+                          <span className="era-narr-thread-card-actors">
                             [{t.culturalActors.join(", ")}]
                           </span>
                         )}
                         {t.register && (
-                          <span className="era-narr-thread-card__register">
-                            {t.register}
-                          </span>
+                          <span className="era-narr-thread-card-register">{t.register}</span>
                         )}
                       </div>
-                      <div className="era-narr-thread-card__desc">
-                        {t.description}
-                      </div>
+                      <div className="era-narr-thread-card-desc">{t.description}</div>
                       {t.material && (
-                        <details className="era-narr-thread-card__material">
-                          <summary className="era-narr-thread-card__material-summary">
+                        <details className="era-narr-thread-card-material">
+                          <summary className="era-narr-thread-card-material-summary">
                             Material
                           </summary>
-                          <div className="era-narr-thread-card__material-body">
-                            {t.material}
-                          </div>
+                          <div className="era-narr-thread-card-material-body">{t.material}</div>
                         </details>
                       )}
                     </div>
@@ -782,23 +755,21 @@ export default function EraNarrativeModal({
                   <div className="era-narr-movement-list">
                     {synthesis.movements.map((m) => (
                       <div key={m.movementIndex} className="era-narr-movement-card">
-                        <div className="era-narr-movement-card__header">
-                          <span className="era-narr-movement-card__index">Movement {m.movementIndex + 1}</span>
-                          <span className="era-narr-movement-card__range">
+                        <div className="era-narr-movement-card-header">
+                          <span className="era-narr-movement-card-index">
+                            Movement {m.movementIndex + 1}
+                          </span>
+                          <span className="era-narr-movement-card-range">
                             Y{m.yearRange[0]}–Y{m.yearRange[1]}
                           </span>
                         </div>
-                        <div className="era-narr-movement-card__threads">
+                        <div className="era-narr-movement-card-threads">
                           {m.threadFocus.map((id) => threadNameMap[id] || id).join(", ")}
                         </div>
                         {m.worldState && (
-                          <div className="era-narr-movement-card__world-state">
-                            {m.worldState}
-                          </div>
+                          <div className="era-narr-movement-card-world-state">{m.worldState}</div>
                         )}
-                        <div className="era-narr-movement-card__beats">
-                          {m.beats}
-                        </div>
+                        <div className="era-narr-movement-card-beats">{m.beats}</div>
                       </div>
                     ))}
                   </div>
@@ -807,12 +778,8 @@ export default function EraNarrativeModal({
 
               {synthesis.counterweight && (
                 <div className="era-narr-review-section">
-                  <div className="era-narr-review-heading">
-                    Counterweight
-                  </div>
-                  <div className="era-narr-counterweight">
-                    {synthesis.counterweight}
-                  </div>
+                  <div className="era-narr-review-heading">Counterweight</div>
+                  <div className="era-narr-counterweight">{synthesis.counterweight}</div>
                 </div>
               )}
 
@@ -824,15 +791,13 @@ export default function EraNarrativeModal({
                   <div className="era-narr-dynamics-list">
                     {synthesis.strategicDynamics.map((sd, i) => (
                       <div key={i} className="era-narr-dynamic-card">
-                        <div className="era-narr-dynamic-card__interaction">
+                        <div className="era-narr-dynamic-card-interaction">
                           {sd.interaction}{" "}
-                          <span className="era-narr-dynamic-card__actors">
+                          <span className="era-narr-dynamic-card-actors">
                             [{sd.actors?.join(", ")}]
                           </span>
                         </div>
-                        <div className="era-narr-dynamic-card__text">
-                          {sd.dynamic}
-                        </div>
+                        <div className="era-narr-dynamic-card-text">{sd.dynamic}</div>
                       </div>
                     ))}
                   </div>
@@ -841,16 +806,12 @@ export default function EraNarrativeModal({
 
               {synthesis.quotes?.length > 0 && (
                 <div className="era-narr-review-section">
-                  <div className="era-narr-review-heading">
-                    Quotes ({synthesis.quotes.length})
-                  </div>
+                  <div className="era-narr-review-heading">Quotes ({synthesis.quotes.length})</div>
                   <div className="era-narr-quotes-list">
                     {synthesis.quotes.map((q, i) => (
                       <div key={i} className="era-narr-quote-card">
-                        <div className="era-narr-quote-card__text">
-                          &ldquo;{q.text}&rdquo;
-                        </div>
-                        <div className="era-narr-quote-card__origin">
+                        <div className="era-narr-quote-card-text">&ldquo;{q.text}&rdquo;</div>
+                        <div className="era-narr-quote-card-origin">
                           {q.origin}. {q.context}
                         </div>
                       </div>
@@ -861,9 +822,7 @@ export default function EraNarrativeModal({
 
               {synthesis.motifs?.length > 0 && (
                 <div className="era-narr-review-section">
-                  <div className="era-narr-motifs">
-                    Motifs: {synthesis.motifs.join(", ")}
-                  </div>
+                  <div className="era-narr-motifs">Motifs: {synthesis.motifs.join(", ")}</div>
                 </div>
               )}
             </>
@@ -878,11 +837,9 @@ export default function EraNarrativeModal({
                   {viewedWordCount.toLocaleString()} words
                 </span>
               </div>
-              <div className="era-narr-content-viewer">
-                {viewedContent}
-              </div>
+              <div className="era-narr-content-viewer">{viewedContent}</div>
             </>
-          )}}
+          )}
 
           {/* Edit Review */}
           {showEditReview && (
@@ -893,11 +850,9 @@ export default function EraNarrativeModal({
                   {viewedWordCount.toLocaleString()} words
                 </span>
               </div>
-              <div className="era-narr-content-viewer">
-                {viewedContent}
-              </div>
+              <div className="era-narr-content-viewer">{viewedContent}</div>
             </>
-          )}}
+          )}
 
           {/* Complete — Workspace View */}
           {isComplete && (
@@ -930,9 +885,7 @@ export default function EraNarrativeModal({
 
                   {/* Active badge or Make Active button */}
                   {viewedVersion && viewedVersion.versionId === resolved.activeVersionId ? (
-                    <span className="era-narr-version-active-badge">
-                      Active
-                    </span>
+                    <span className="era-narr-version-active-badge">Active</span>
                   ) : viewedVersion ? (
                     <button
                       onClick={() => {
@@ -963,7 +916,7 @@ export default function EraNarrativeModal({
                             }
                           }}
                           onBlur={() => setConfirmingDeleteId(null)}
-                          className={`illuminator-button era-narr-version-delete-btn ${isConfirming ? "era-narr-version-delete-btn--confirming" : "era-narr-version-delete-btn--normal"}`}
+                          className={`illuminator-button era-narr-version-delete-btn ${isConfirming ? "era-narr-version-delete-btn-confirming" : "era-narr-version-delete-btn-normal"}`}
                           title={isConfirming ? "Click again to confirm" : "Delete this version"}
                         >
                           {isConfirming ? "Confirm Delete" : "Delete"}
@@ -974,7 +927,7 @@ export default function EraNarrativeModal({
               )}
 
               {/* Content header */}
-              <div className="era-narr-content-header era-narr-content-header--mb8">
+              <div className="era-narr-content-header era-narr-content-header-mb8">
                 <div className="era-narr-content-title">
                   {narrative?.eraName || "Era Narrative"}
                 </div>
@@ -986,13 +939,9 @@ export default function EraNarrativeModal({
 
               {/* Content viewer */}
               {viewedContent ? (
-                <div className="era-narr-content-viewer">
-                  {viewedContent}
-                </div>
+                <div className="era-narr-content-viewer">{viewedContent}</div>
               ) : (
-                <div className="era-narr-no-content">
-                  No content available
-                </div>
+                <div className="era-narr-no-content">No content available</div>
               )}
             </>
           )}
@@ -1001,10 +950,10 @@ export default function EraNarrativeModal({
         {/* Footer */}
         {(showThreadReview || showNarrativeReview || showEditReview || isComplete) && (
           <div className="era-narr-footer">
-            <div className="era-narr-footer__cost">
+            <div className="era-narr-footer-cost">
               {narrative?.totalActualCost ? `$${narrative.totalActualCost.toFixed(4)}` : ""}
             </div>
-            <div className="era-narr-footer__actions">
+            <div className="era-narr-footer-actions">
               {!isComplete && (
                 <button onClick={cancel} className="illuminator-button">
                   Cancel
@@ -1014,7 +963,7 @@ export default function EraNarrativeModal({
               {showThreadReview && (
                 <button
                   onClick={advanceStep}
-                  className="illuminator-button era-narr-footer__primary-btn"
+                  className="illuminator-button era-narr-footer-primary-btn"
                 >
                   Generate Narrative
                 </button>
@@ -1027,7 +976,7 @@ export default function EraNarrativeModal({
                   </button>
                   <button
                     onClick={advanceStep}
-                    className="illuminator-button era-narr-footer__primary-btn"
+                    className="illuminator-button era-narr-footer-primary-btn"
                   >
                     Copy Edit
                   </button>
@@ -1037,7 +986,7 @@ export default function EraNarrativeModal({
               {showEditReview && (
                 <button
                   onClick={advanceStep}
-                  className="illuminator-button era-narr-footer__primary-btn"
+                  className="illuminator-button era-narr-footer-primary-btn"
                 >
                   Finish
                 </button>
@@ -1050,14 +999,14 @@ export default function EraNarrativeModal({
                       setSelectedVersionId("");
                       rerunCopyEdit();
                     }}
-                    className="illuminator-button era-narr-footer__rerun-btn"
+                    className="illuminator-button era-narr-footer-rerun-btn"
                     title="Re-run the copy edit pass on the latest version"
                   >
                     Re-run Copy Edit
                   </button>
                   <button
                     onClick={handleClose}
-                    className="illuminator-button era-narr-footer__primary-btn"
+                    className="illuminator-button era-narr-footer-primary-btn"
                   >
                     Close
                   </button>

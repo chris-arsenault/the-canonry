@@ -23,14 +23,14 @@
  * />
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 export function useLocalInputState(externalValue, onUpdate) {
-  const [localValue, setLocalValue] = useState(externalValue || '');
+  const [localValue, setLocalValue] = useState(externalValue || "");
 
   // Sync local value when external value changes
   useEffect(() => {
-    setLocalValue(externalValue || '');
+    setLocalValue(externalValue || "");
   }, [externalValue]);
 
   // Call onUpdate if value changed

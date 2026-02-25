@@ -2,11 +2,11 @@
  * TargetingTab - Target selection configuration
  */
 
-import React from 'react';
-import SelectionRuleEditor from '../../shared/SelectionRuleEditor';
+import React from "react";
+import SelectionRuleEditor from "../../shared/SelectionRuleEditor";
 
 export function TargetingTab({ action, onChange, schema }) {
-  const targeting = action.targeting || { strategy: 'by_kind' };
+  const targeting = action.targeting || { strategy: "by_kind" };
 
   const updateTargeting = (updated) => {
     onChange({
@@ -16,15 +16,13 @@ export function TargetingTab({ action, onChange, schema }) {
   };
 
   // Available refs for selection filters (action context)
-  const availableRefs = ['$actor', '$instigator'];
+  const availableRefs = ["$actor", "$instigator"];
 
   return (
     <div>
       <div className="info-box">
         <div className="info-box-title">Target Selection</div>
-        <div className="info-box-text">
-          Define how valid targets are selected for this action.
-        </div>
+        <div className="info-box-text">Define how valid targets are selected for this action.</div>
       </div>
 
       <div className="section">

@@ -5,7 +5,7 @@
  * Much faster than individual checkboxes for bulk selection.
  */
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { tickToX, xToTick } from "../../../lib/chronicle/timelineUtils";
 
 interface TimelineBrushProps {

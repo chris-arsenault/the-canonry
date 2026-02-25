@@ -95,11 +95,11 @@
   border: 1px solid var(--border-color);
 }
 
-.cip-image-card--selected {
+.cip-image-card-selected {
   border: 3px solid #3b82f6;
 }
 
-.cip-image-card--current {
+.cip-image-card-current {
   border: 3px solid #10b981;
 }
 
@@ -121,7 +121,7 @@
   left: 0;
   right: 0;
   padding: 4px 6px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  background: linear-gradient(transparent, rgb(0 0 0 / 70%));
   font-size: 10px;
   color: white;
 }
@@ -178,13 +178,13 @@
   font-weight: 500;
 }
 
-.cip-select-btn--active {
+.cip-select-btn-active {
   background: #3b82f6;
   color: white;
   cursor: pointer;
 }
 
-.cip-select-btn--disabled {
+.cip-select-btn-disabled {
   background: var(--bg-tertiary);
   color: var(--text-muted);
   cursor: not-allowed;

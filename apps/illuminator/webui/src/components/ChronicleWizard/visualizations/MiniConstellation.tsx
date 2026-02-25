@@ -5,7 +5,7 @@
  * in a circular layout around it, showing relationship structure at a glance.
  */
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import type { ConnectedEntity } from "../../../lib/chronicle/storyPotential";
 
 interface MiniConstellationProps {

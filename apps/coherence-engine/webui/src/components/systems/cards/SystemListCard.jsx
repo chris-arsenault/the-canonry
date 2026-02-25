@@ -2,10 +2,10 @@
  * SystemListCard - Card display for a system in the list view
  */
 
-import React, { useMemo } from 'react';
-import { SYSTEM_TYPES } from '../constants';
-import { ErrorBadge, OrphanBadge, EraBadges, EnableToggle } from '../../shared';
-import { getElementValidation } from '../../shared';
+import React, { useMemo } from "react";
+import { SYSTEM_TYPES } from "../constants";
+import { ErrorBadge, OrphanBadge, EraBadges, EnableToggle } from "../../shared";
+import { getElementValidation } from "../../shared";
 
 /**
  * @param {Object} props
@@ -21,8 +21,11 @@ export function SystemListCard({ system, onClick, onToggle, usageMap }) {
   const typeConfig = SYSTEM_TYPES[system.systemType] || {};
 
   // Get validation and usage info
-  const validation = useMemo(() =>
-    usageMap ? getElementValidation(usageMap, 'system', sysId) : { invalidRefs: [], isOrphan: false },
+  const validation = useMemo(
+    () =>
+      usageMap
+        ? getElementValidation(usageMap, "system", sysId)
+        : { invalidRefs: [], isOrphan: false },
     [usageMap, sysId]
   );
 
@@ -36,20 +39,19 @@ export function SystemListCard({ system, onClick, onToggle, usageMap }) {
   const isOrphan = validation.isOrphan;
 
   const cardClassName = [
-    'card card-clickable',
-    !isEnabled && 'card-disabled',
-    hasErrors && 'card-error',
-    isOrphan && !hasErrors && 'card-warning',
-  ].filter(Boolean).join(' ');
+    "card card-clickable",
+    !isEnabled && "card-disabled",
+    hasErrors && "card-error",
+    isOrphan && !hasErrors && "card-warning",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div
-      className={cardClassName}
-      onClick={onClick}
-    >
+    <div className={cardClassName} onClick={onClick}>
       <div className="card-header">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span className="card-title">{config.name || config.id}</span>
             <ErrorBadge count={errorCount} />
           </div>
@@ -57,23 +59,27 @@ export function SystemListCard({ system, onClick, onToggle, usageMap }) {
         </div>
         <EnableToggle
           enabled={isEnabled}
-          onClick={(e) => { e.stopPropagation(); onToggle(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
         />
       </div>
 
       <div className="card-badges">
-        <span className="type-badge" style={{ backgroundColor: `${typeConfig.color}30`, color: typeConfig.color }}>
+        <span
+          className="type-badge"
+          style={{ backgroundColor: `${typeConfig.color}30`, color: typeConfig.color }}
+        >
           {typeConfig.icon} {typeConfig.label}
         </span>
       </div>
 
-      {config.description && (
-        <div className="card-desc">{config.description}</div>
-      )}
+      {config.description && <div className="card-desc">{config.description}</div>}
 
       <EraBadges eras={eraUsage} />
       {isOrphan && (
-        <div style={{ marginTop: '8px' }}>
+        <div style={{ marginTop: "8px" }}>
           <OrphanBadge isOrphan={isOrphan} />
         </div>
       )}

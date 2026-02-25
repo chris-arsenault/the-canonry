@@ -11,7 +11,7 @@
  * Optional LLM branch: preview → generate → review → apply
  */
 
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import "./CorpusFindReplace.css";
 import {
   getChronicle,
@@ -218,26 +218,28 @@ function MatchRow({
   const diff = variant ? extractDiff(match.noteText!, variant) : null;
 
   return (
-    <div className={`cfr-match-row ${accepted ? "cfr-match-row--accepted" : "cfr-match-row--rejected"}`}>
+    <div
+      className={`cfr-match-row ${accepted ? "cfr-match-row-accepted" : "cfr-match-row-rejected"}`}
+    >
       <input
         type="checkbox"
         checked={accepted}
         onChange={onToggle}
         className="cfr-match-checkbox"
       />
-      <div className={`cfr-match-body ${diff ? "" : "cfr-match-body--mono"}`}>
+      <div className={`cfr-match-body ${diff ? "" : "cfr-match-body-mono"}`}>
         {diff ? (
           <>
             <span className="cfr-diff-context">{diff.prefix}</span>
-            <span className={`cfr-diff-old ${accepted ? "cfr-diff-old--accepted" : "cfr-diff-old--rejected"}`}>
+            <span
+              className={`cfr-diff-old ${accepted ? "cfr-diff-old-accepted" : "cfr-diff-old-rejected"}`}
+            >
               {diff.oldMiddle}
             </span>
             {accepted && (
               <>
                 {" "}
-                <span className="cfr-diff-new">
-                  {diff.newMiddle}
-                </span>
+                <span className="cfr-diff-new">{diff.newMiddle}</span>
               </>
             )}
             <span className="cfr-diff-context">{diff.suffix}</span>
@@ -245,14 +247,8 @@ function MatchRow({
         ) : (
           <>
             <span className="cfr-literal-context">{match.contextBefore}</span>
-            <span className="cfr-literal-old">
-              {match.matchedText}
-            </span>
-            {accepted && (
-              <span className="cfr-literal-new">
-                {replace}
-              </span>
-            )}
+            <span className="cfr-literal-old">{match.matchedText}</span>
+            {accepted && <span className="cfr-literal-new">{replace}</span>}
             <span className="cfr-literal-context">{match.contextAfter}</span>
           </>
         )}
@@ -293,12 +289,8 @@ function SourceGroup({
   return (
     <div className="cfr-source-group">
       <div onClick={onToggleExpand} className="cfr-source-header">
-        <span className="cfr-source-arrow">
-          {expanded ? "\u25BC" : "\u25B6"}
-        </span>
-        <span className="cfr-source-label">
-          {label}
-        </span>
+        <span className="cfr-source-arrow">{expanded ? "\u25BC" : "\u25B6"}</span>
+        <span className="cfr-source-label">{label}</span>
         <span className="cfr-source-count">
           {matches.length} {matches.length === 1 ? "match" : "matches"}
         </span>
@@ -320,7 +312,7 @@ function SourceGroup({
             onAcceptAll();
           }}
           title="Accept all in this group"
-          className="cfr-source-btn cfr-source-btn--accept"
+          className="cfr-source-btn cfr-source-btn-accept"
         >
           {"all\u2713"}
         </button>
@@ -330,7 +322,7 @@ function SourceGroup({
             onRejectAll();
           }}
           title="Reject all in this group"
-          className="cfr-source-btn cfr-source-btn--reject"
+          className="cfr-source-btn cfr-source-btn-reject"
         >
           {"all\u2717"}
         </button>
@@ -1168,9 +1160,7 @@ export default function CorpusFindReplace() {
         <div className="cfr-input-form">
           {/* Context checkboxes */}
           <div>
-            <label className="cfr-field-label">
-              Search in
-            </label>
+            <label className="cfr-field-label">Search in</label>
             <div className="cfr-checkbox-row">
               {(
                 [
@@ -1196,9 +1186,7 @@ export default function CorpusFindReplace() {
 
           {/* Find / Replace inputs */}
           <div>
-            <label className="cfr-field-label cfr-field-label--tight">
-              Find
-            </label>
+            <label className="cfr-field-label cfr-field-label-tight">Find</label>
             <input
               ref={inputRef}
               value={find}
@@ -1209,9 +1197,7 @@ export default function CorpusFindReplace() {
             />
           </div>
           <div>
-            <label className="cfr-field-label cfr-field-label--tight">
-              Replace with
-            </label>
+            <label className="cfr-field-label cfr-field-label-tight">Replace with</label>
             <input
               value={replace}
               onChange={(e) => setReplace(e.target.value)}
@@ -1233,7 +1219,7 @@ export default function CorpusFindReplace() {
               Case sensitive
             </label>
             <label
-              className={`cfr-option-label ${hasAnnotationContext ? "" : "cfr-option-label--disabled"}`}
+              className={`cfr-option-label ${hasAnnotationContext ? "" : "cfr-option-label-disabled"}`}
               title={
                 hasAnnotationContext
                   ? "Use LLM to generate contextual replacements for annotation matches"
@@ -1266,21 +1252,15 @@ export default function CorpusFindReplace() {
       {/* Scanning */}
       {phase === "scanning" && (
         <div className="cfr-phase-center">
-          <div className="cfr-phase-title">
-            Scanning...
-          </div>
-          {scanProgress && (
-            <div className="cfr-phase-subtitle">{scanProgress}</div>
-          )}
+          <div className="cfr-phase-title">Scanning...</div>
+          {scanProgress && <div className="cfr-phase-subtitle">{scanProgress}</div>}
         </div>
       )}
 
       {/* Empty */}
       {phase === "empty" && (
         <div className="cfr-empty-center">
-          <div className="cfr-empty-msg">
-            No matches found for &ldquo;{find}&rdquo;
-          </div>
+          <div className="cfr-empty-msg">No matches found for &ldquo;{find}&rdquo;</div>
           <button
             onClick={handleReset}
             className="illuminator-button illuminator-button-secondary cfr-btn-back"
@@ -1301,9 +1281,7 @@ export default function CorpusFindReplace() {
               {llmMode && phase === "review" ? (
                 <em className="cfr-summary-em">contextual variants</em>
               ) : (
-                <strong>
-                  {replace || <em className="cfr-summary-em">(delete)</em>}
-                </strong>
+                <strong>{replace || <em className="cfr-summary-em">(delete)</em>}</strong>
               )}
             </span>
             <span className="cfr-summary-muted">|</span>
@@ -1314,19 +1292,15 @@ export default function CorpusFindReplace() {
               <span className="cfr-summary-muted">({variants.size} variants)</span>
             )}
             <div className="cfr-summary-spacer" />
-            <button onClick={acceptAllMatches} className="cfr-summary-link cfr-summary-link--accept">
+            <button onClick={acceptAllMatches} className="cfr-summary-link cfr-summary-link-accept">
               Accept All
             </button>
-            <button onClick={rejectAllMatches} className="cfr-summary-link cfr-summary-link--reject">
+            <button onClick={rejectAllMatches} className="cfr-summary-link cfr-summary-link-reject">
               Reject All
             </button>
           </div>
 
-          {error && (
-            <div className="cfr-error-banner">
-              {error}
-            </div>
-          )}
+          {error && <div className="cfr-error-banner">{error}</div>}
 
           {/* Grouped matches */}
           {groupedByContext.map((ctxGroup) => (
@@ -1381,9 +1355,7 @@ export default function CorpusFindReplace() {
       {/* Generating */}
       {phase === "generating" && (
         <div className="cfr-phase-center">
-          <div className="cfr-phase-title">
-            Generating contextual variants...
-          </div>
+          <div className="cfr-phase-title">Generating contextual variants...</div>
           <div className="cfr-phase-subtitle">
             {
               matches.filter(
@@ -1399,9 +1371,7 @@ export default function CorpusFindReplace() {
             )}{" "}
             LLM calls
           </div>
-          {error && (
-            <div className="cfr-error-inline">{error}</div>
-          )}
+          {error && <div className="cfr-error-inline">{error}</div>}
         </div>
       )}
 
@@ -1416,10 +1386,7 @@ export default function CorpusFindReplace() {
               <div className="cfr-done-msg">
                 {resultCount} replacement{resultCount !== 1 ? "s" : ""} applied.
               </div>
-              <button
-                onClick={handleReset}
-                className="illuminator-button cfr-btn-new-search"
-              >
+              <button onClick={handleReset} className="illuminator-button cfr-btn-new-search">
                 New Search
               </button>
             </>

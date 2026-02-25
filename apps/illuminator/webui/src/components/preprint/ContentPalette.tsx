@@ -6,7 +6,7 @@
  * onto the tree container via react-dnd (shared context with react-arborist).
  */
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useDrag } from "react-dnd";
 import type { PersistedEntity } from "../../lib/db/illuminatorDb";
 import type { ChronicleRecord } from "../../lib/chronicleTypes";

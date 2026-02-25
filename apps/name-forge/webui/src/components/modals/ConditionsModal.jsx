@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { ModalShell, TagSelector } from '@penguin-tales/shared-components';
-import { PROMINENCE_LEVELS } from '../constants';
+import { useState, useEffect } from "react";
+import { ModalShell, TagSelector } from "@penguin-tales/shared-components";
+import { PROMINENCE_LEVELS } from "../constants";
 
 function ConditionsModal({ isOpen, onClose, conditions, onChange, tagRegistry = [], onAddTag }) {
   const [localConditions, setLocalConditions] = useState(conditions || {});
@@ -34,22 +34,28 @@ function ConditionsModal({ isOpen, onClose, conditions, onChange, tagRegistry = 
         <label>Entity Tags</label>
         <TagSelector
           value={localConditions.tags || []}
-          onChange={(tags) => setLocalConditions({ ...localConditions, tags: tags.length > 0 ? tags : undefined })}
+          onChange={(tags) =>
+            setLocalConditions({ ...localConditions, tags: tags.length > 0 ? tags : undefined })
+          }
           tagRegistry={tagRegistry}
           placeholder="Select tags..."
           matchAllEnabled={true}
           matchAll={localConditions.requireAllTags || false}
-          onMatchAllChange={(val) => setLocalConditions({ ...localConditions, requireAllTags: val || undefined })}
+          onMatchAllChange={(val) =>
+            setLocalConditions({ ...localConditions, requireAllTags: val || undefined })
+          }
           onAddToRegistry={onAddTag}
         />
-        <small className="text-muted">Use tags from the shared registry; toggle match-all when needed.</small>
+        <small className="text-muted">
+          Use tags from the shared registry; toggle match-all when needed.
+        </small>
       </div>
 
       {/* Prominence */}
       <div className="form-group">
         <label>Prominence Levels</label>
         <div className="flex flex-wrap gap-sm mt-xs">
-          {PROMINENCE_LEVELS.map(level => {
+          {PROMINENCE_LEVELS.map((level) => {
             const isSelected = (localConditions.prominence || []).includes(level);
             return (
               <button
@@ -58,14 +64,14 @@ function ConditionsModal({ isOpen, onClose, conditions, onChange, tagRegistry = 
                 onClick={() => {
                   const current = localConditions.prominence || [];
                   const updated = isSelected
-                    ? current.filter(l => l !== level)
+                    ? current.filter((l) => l !== level)
                     : [...current, level];
                   setLocalConditions({
                     ...localConditions,
-                    prominence: updated.length > 0 ? updated : undefined
+                    prominence: updated.length > 0 ? updated : undefined,
                   });
                 }}
-                className={`pill-button ${isSelected ? 'selected-gold' : ''}`}
+                className={`pill-button ${isSelected ? "selected-gold" : ""}`}
               >
                 {level}
               </button>
@@ -81,10 +87,16 @@ function ConditionsModal({ isOpen, onClose, conditions, onChange, tagRegistry = 
       <div className="form-group">
         <label>Entity Subtypes</label>
         <input
-          value={(localConditions.subtype || []).join(', ')}
+          value={(localConditions.subtype || []).join(", ")}
           onChange={(e) => {
-            const subtypes = e.target.value.split(',').map(t => t.trim()).filter(t => t);
-            setLocalConditions({ ...localConditions, subtype: subtypes.length > 0 ? subtypes : undefined });
+            const subtypes = e.target.value
+              .split(",")
+              .map((t) => t.trim())
+              .filter((t) => t);
+            setLocalConditions({
+              ...localConditions,
+              subtype: subtypes.length > 0 ? subtypes : undefined,
+            });
           }}
           placeholder="e.g., merchant, artisan, warrior"
         />
@@ -92,20 +104,31 @@ function ConditionsModal({ isOpen, onClose, conditions, onChange, tagRegistry = 
       </div>
 
       {/* Summary */}
-      {(localConditions.tags?.length > 0 || localConditions.prominence?.length > 0 || localConditions.subtype?.length > 0) && (
+      {(localConditions.tags?.length > 0 ||
+        localConditions.prominence?.length > 0 ||
+        localConditions.subtype?.length > 0) && (
         <div className="conditions-preview">
-          <strong className="text-gold">Preview:</strong> This strategy will be used when entity has{' '}
+          <strong className="text-gold">Preview:</strong> This strategy will be used when entity has{" "}
           {[
-            localConditions.tags?.length > 0 && `${localConditions.requireAllTags ? 'ALL' : 'any'} tags: ${localConditions.tags.join(', ')}`,
-            localConditions.prominence?.length > 0 && `prominence: ${localConditions.prominence.join(' or ')}`,
-            localConditions.subtype?.length > 0 && `subtype: ${localConditions.subtype.join(' or ')}`
-          ].filter(Boolean).join(' AND ')}
+            localConditions.tags?.length > 0 &&
+              `${localConditions.requireAllTags ? "ALL" : "any"} tags: ${localConditions.tags.join(", ")}`,
+            localConditions.prominence?.length > 0 &&
+              `prominence: ${localConditions.prominence.join(" or ")}`,
+            localConditions.subtype?.length > 0 &&
+              `subtype: ${localConditions.subtype.join(" or ")}`,
+          ]
+            .filter(Boolean)
+            .join(" AND ")}
         </div>
       )}
 
       <div className="flex gap-md mt-lg justify-end">
-        <button className="secondary" onClick={onClose}>Cancel</button>
-        <button className="primary" onClick={handleSave}>Save Conditions</button>
+        <button className="secondary" onClick={onClose}>
+          Cancel
+        </button>
+        <button className="primary" onClick={handleSave}>
+          Save Conditions
+        </button>
       </div>
     </ModalShell>
   );

@@ -9,7 +9,8 @@
  * See CHRONICLE_DESIGN.md for architecture documentation.
  */
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import "./ChroniclePlanEditor.css";
 
 function resolveName(map, id) {
@@ -42,13 +43,11 @@ function PlanHeader({ plan }) {
     <div className="cpe-card">
       <div className="cpe-header-row">
         <div>
-          <div className="cpe-plan-title-label">
-            Plan Title
-          </div>
+          <div className="cpe-plan-title-label">Plan Title</div>
           <div className="cpe-plan-title">{plan.title}</div>
         </div>
         <span
-          className={`cpe-format-badge ${plan.format === "document" ? "cpe-format-badge--document" : "cpe-format-badge--story"}`}
+          className={`cpe-format-badge ${plan.format === "document" ? "cpe-format-badge-document" : "cpe-format-badge-story"}`}
         >
           {plan.format}
         </span>
@@ -95,7 +94,7 @@ function FocusSummary({ plan, entityMap }) {
           {formatEntityList(focus.supportingEntityIds, entityMap)}
         </div>
       )}
-      <div className="cpe-info-line cpe-info-line--last">
+      <div className="cpe-info-line cpe-info-line-last">
         <strong>Selected Cast:</strong> {focus.selectedEntityIds.length} entities •{" "}
         {focus.selectedEventIds.length} events
       </div>
@@ -119,9 +118,7 @@ function OutlineSummary({ plan }) {
 
     return (
       <div className="cpe-card">
-        <div className="cpe-section-title">
-          Document Outline
-        </div>
+        <div className="cpe-section-title">Document Outline</div>
         <div className="cpe-info-line">
           <strong>Purpose:</strong> {outline.purpose}
         </div>
@@ -140,7 +137,7 @@ function OutlineSummary({ plan }) {
           </ul>
         </div>
         {optionalMeta.length > 0 && (
-          <div className="cpe-info-line cpe-info-line--last">
+          <div className="cpe-info-line cpe-info-line-last">
             <strong>Optional:</strong> {optionalMeta.join(" • ")}
           </div>
         )}
@@ -189,7 +186,7 @@ function OutlineSummary({ plan }) {
         </ul>
       </div>
       {optionalMeta.length > 0 && (
-        <div className="cpe-info-line cpe-info-line--last">
+        <div className="cpe-info-line cpe-info-line-last">
           <strong>Optional:</strong> {optionalMeta.join(" • ")}
         </div>
       )}
@@ -204,13 +201,9 @@ function PlotSummary({ plan }) {
   const beats = plot.normalizedBeats || [];
   return (
     <div className="cpe-card">
-      <div className="cpe-section-title">
-        Structure ({plot.type})
-      </div>
+      <div className="cpe-section-title">Structure ({plot.type})</div>
       {beats.length === 0 ? (
-        <div className="cpe-empty-msg">
-          No structure beats defined.
-        </div>
+        <div className="cpe-empty-msg">No structure beats defined.</div>
       ) : (
         <ol className="cpe-ordered-list">
           {beats.map((beat, idx) => (
@@ -230,9 +223,7 @@ function EntityRoleList({ plan, entityMap }) {
       <div className="cpe-section-title">Entities</div>
       {plan.entityRoles.map((role) => (
         <div key={role.entityId} className="cpe-entity-card">
-          <div className="cpe-entity-name">
-            {resolveName(entityMap, role.entityId)}
-          </div>
+          <div className="cpe-entity-name">{resolveName(entityMap, role.entityId)}</div>
           <div className="cpe-entity-info">
             <strong>Role:</strong> {role.role}
           </div>
@@ -255,49 +246,45 @@ function SectionCard({ section, index, format, entityMap, eventMap }) {
         <div className="cpe-section-name">
           Section {index + 1}: {section.name}
         </div>
-        {section.optional && (
-          <span className="cpe-optional-badge">
-            optional
-          </span>
-        )}
+        {section.optional && <span className="cpe-optional-badge">optional</span>}
       </div>
       <div className="cpe-section-detail">
         <strong>Purpose:</strong> {section.purpose}
       </div>
-      <div className="cpe-section-detail cpe-section-detail--sm">
+      <div className="cpe-section-detail cpe-section-detail-sm">
         <strong>Goal:</strong> {section.goal}
       </div>
       {section.wordCountTarget && (
-        <div className="cpe-section-detail cpe-section-detail--sm">
+        <div className="cpe-section-detail cpe-section-detail-sm">
           <strong>Word Target:</strong> {section.wordCountTarget}
         </div>
       )}
       {format === "story" && (
         <>
           {section.emotionalArc && (
-            <div className="cpe-section-detail cpe-section-detail--sm">
+            <div className="cpe-section-detail cpe-section-detail-sm">
               <strong>Emotional Arc:</strong> {section.emotionalArc}
             </div>
           )}
           {section.requiredElements && section.requiredElements.length > 0 && (
-            <div className="cpe-section-detail cpe-section-detail--md">
+            <div className="cpe-section-detail cpe-section-detail-md">
               <strong>Required Elements:</strong> {section.requiredElements.join(", ")}
             </div>
           )}
         </>
       )}
       {format === "document" && section.contentGuidance && (
-        <div className="cpe-section-detail cpe-section-detail--md">
+        <div className="cpe-section-detail cpe-section-detail-md">
           <strong>Content Guidance:</strong> {section.contentGuidance}
         </div>
       )}
       {entities.length > 0 && (
-        <div className="cpe-section-detail cpe-section-detail--md">
+        <div className="cpe-section-detail cpe-section-detail-md">
           <strong>Entities:</strong> {entities.join(", ")}
         </div>
       )}
       {events.length > 0 && (
-        <div className="cpe-section-detail cpe-section-detail--md">
+        <div className="cpe-section-detail cpe-section-detail-md">
           <strong>Events:</strong> {events.join(", ")}
         </div>
       )}
@@ -366,14 +353,14 @@ export default function ChroniclePlanEditor({
         <button
           onClick={onRegenerate}
           disabled={isGenerating}
-          className={`illuminator-button cpe-btn ${isGenerating ? "cpe-btn--disabled" : ""}`}
+          className={`illuminator-button cpe-btn ${isGenerating ? "cpe-btn-disabled" : ""}`}
         >
           Regenerate Plan
         </button>
         <button
           onClick={onApprove}
           disabled={isGenerating}
-          className={`illuminator-button illuminator-button-primary cpe-btn ${isGenerating ? "cpe-btn--disabled" : ""}`}
+          className={`illuminator-button illuminator-button-primary cpe-btn ${isGenerating ? "cpe-btn-disabled" : ""}`}
         >
           Approve Plan
         </button>

@@ -10,7 +10,8 @@
  * entities/chronicles are regenerated.
  */
 
-import { useMemo, useEffect, useState, useCallback } from "react";
+import React, { useMemo, useEffect, useState, useCallback } from "react";
+import PropTypes from "prop-types";
 import { formatCost } from "../lib/costEstimation";
 import {
   getCostsForSimulation,
@@ -32,9 +33,14 @@ function CostCard({ title, children }) {
   );
 }
 
+CostCard.propTypes = {
+  title: PropTypes.string,
+  children: PropTypes.node,
+};
+
 function CostRow({ label, value, isTotal, isEstimated }) {
   return (
-    <div className={`cpanel-row ${isTotal ? "cpanel-row--total" : ""}`}>
+    <div className={`cpanel-row ${isTotal ? "cpanel-row-total" : ""}`}>
       <span>{label}</span>
       <span className="cpanel-row-value">
         {isEstimated && "~"}
@@ -43,6 +49,13 @@ function CostRow({ label, value, isTotal, isEstimated }) {
     </div>
   );
 }
+
+CostRow.propTypes = {
+  label: PropTypes.string,
+  value: PropTypes.any,
+  isTotal: PropTypes.bool,
+  isEstimated: PropTypes.bool,
+};
 
 // Group cost types into categories
 function categorizeCosts(summary) {
@@ -201,9 +214,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
       {/* Current Simulation */}
       {simCategorized && (
         <CostCard title="Current Simulation">
-          <div className="cpanel-section-hint">
-            Costs from this simulation run.
-          </div>
+          <div className="cpanel-section-hint">Costs from this simulation run.</div>
           <CostRow label="Text generations" value={simCategorized.text.actual} />
           <CostRow
             label={`  \u2514 ${simCategorized.text.count} requests`}
@@ -253,9 +264,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
       {/* By Model */}
       {simulationCosts && Object.keys(simulationCosts.byModel).length > 0 && (
         <CostCard title="By Model (Simulation)">
-          <div className="cpanel-section-hint">
-            Cost breakdown by model used.
-          </div>
+          <div className="cpanel-section-hint">Cost breakdown by model used.</div>
           {Object.entries(simulationCosts.byModel)
             .sort((a, b) => b[1].actual - a[1].actual)
             .map(([model, data]) => (
@@ -312,3 +321,9 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
     </div>
   );
 }
+
+CostsPanel.propTypes = {
+  queue: PropTypes.array,
+  projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  simulationRunId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+};

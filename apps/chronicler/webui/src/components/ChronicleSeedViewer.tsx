@@ -6,6 +6,7 @@
  */
 
 import styles from "./ChronicleSeedViewer.module.css";
+import React from "react";
 
 export interface ChronicleRoleAssignment {
   role: string;
@@ -139,9 +140,7 @@ export default function ChronicleSeedViewer({
             )}
             {seed.temporalContext.touchedEraIds?.length ? (
               <div>
-                <div className={styles.fieldLabelSpaced}>
-                  Touched Eras:
-                </div>
+                <div className={styles.fieldLabelSpaced}>Touched Eras:</div>
                 <div className={styles.idList}>
                   {seed.temporalContext.touchedEraIds.map((id) => (
                     <span key={id} className={styles.idTag}>

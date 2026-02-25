@@ -5,4 +5,4 @@
  * Internal modules (utils) are used internally.
  */
 
-export { default, NamingProfileMappingViewer } from './NamingProfileMappingViewer';
+export { default, NamingProfileMappingViewer } from "./NamingProfileMappingViewer";

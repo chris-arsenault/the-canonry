@@ -9,12 +9,12 @@
   margin-right: 2px;
 }
 
-.ecp-prominence-dot--filled {
+.ecp-prominence-dot-filled {
   background: var(--text-secondary);
 }
 
-.ecp-prominence-dot--empty {
-  background: rgba(148, 163, 184, 0.25);
+.ecp-prominence-dot-empty {
+  background: rgb(148 163 184 / 25%);
 }
 
 .ecp-prominence-wrap {
@@ -59,14 +59,14 @@
   border-radius: 50%;
 }
 
-.ecp-status-dot--active {
+.ecp-status-dot-active {
   background: #22c55e;
   border: none;
 }
 
-.ecp-status-dot--inactive {
-  background: rgba(148, 163, 184, 0.3);
-  border: 1px solid rgba(148, 163, 184, 0.4);
+.ecp-status-dot-inactive {
+  background: rgb(148 163 184 / 30%);
+  border: 1px solid rgb(148 163 184 / 40%);
 }
 
 /* ── Section toolbar ── */

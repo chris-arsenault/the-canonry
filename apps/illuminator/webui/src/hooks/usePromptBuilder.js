@@ -53,17 +53,27 @@ function resolveVisualFields(entity) {
 
 function buildEntityFields(entity) {
   return {
-    id: entity.id, name: entity.name, kind: entity.kind, subtype: entity.subtype,
-    culture: entity.culture || "", status: entity.status || "active",
-    summary: entity.summary || "", description: entity.description || "",
-    tags: entity.tags || {}, ...resolveVisualFields(entity),
+    id: entity.id,
+    name: entity.name,
+    kind: entity.kind,
+    subtype: entity.subtype,
+    culture: entity.culture || "",
+    status: entity.status || "active",
+    summary: entity.summary || "",
+    description: entity.description || "",
+    tags: entity.tags || {},
+    ...resolveVisualFields(entity),
   };
 }
 
 function buildEntityContext(entity, params) {
-  const { relationshipsByEntity, entityNavMap, prominenceScale, currentEra, prominentByCulture } = params;
+  const { relationshipsByEntity, entityNavMap, prominenceScale, currentEra, prominentByCulture } =
+    params;
   return {
-    entity: { ...buildEntityFields(entity), prominence: prominenceLabelFromScale(entity.prominence, prominenceScale) },
+    entity: {
+      ...buildEntityFields(entity),
+      prominence: prominenceLabelFromScale(entity.prominence, prominenceScale),
+    },
     relationships: buildRelationshipsForPrompt(entity, relationshipsByEntity, entityNavMap),
     era: { name: currentEra?.name || "", description: currentEra?.description },
     entityAge: "established",

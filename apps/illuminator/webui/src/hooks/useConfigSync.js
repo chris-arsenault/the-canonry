@@ -36,8 +36,13 @@ const DEFAULT_CONFIG = {
 };
 
 const LEGACY_MODEL_FIELDS = [
-  "textModel", "chronicleModel", "textModal", "chronicleModal",
-  "thinkingModel", "thinkingBudget", "useThinkingForDescriptions",
+  "textModel",
+  "chronicleModel",
+  "textModal",
+  "chronicleModal",
+  "thinkingModel",
+  "thinkingBudget",
+  "useThinkingForDescriptions",
 ];
 
 const normalizeEnrichmentConfig = (config) => {
@@ -53,13 +58,15 @@ function initializeEnrichmentConfig(externalConfig) {
   try {
     const saved = localStorage.getItem("illuminator:config");
     if (saved) return normalizeEnrichmentConfig(JSON.parse(saved)) || DEFAULT_CONFIG;
-  } catch { /* ignored */ }
+  } catch {
+    /* ignored */
+  }
   return DEFAULT_CONFIG;
 }
 
 export default function useConfigSync({ externalEnrichmentConfig, onEnrichmentConfigChange }) {
-  const [localConfig, setLocalConfig] = useState(
-    () => initializeEnrichmentConfig(externalEnrichmentConfig)
+  const [localConfig, setLocalConfig] = useState(() =>
+    initializeEnrichmentConfig(externalEnrichmentConfig)
   );
   const pendingConfigSyncRef = useRef(null);
   const skipConfigSyncRef = useRef(false);
@@ -104,13 +111,20 @@ export default function useConfigSync({ externalEnrichmentConfig, onEnrichmentCo
     if (onEnrichmentConfigChange) {
       onEnrichmentConfigChange(pending);
     } else {
-      try { localStorage.setItem("illuminator:config", JSON.stringify(pending)); } catch { /* ignored */ }
+      try {
+        localStorage.setItem("illuminator:config", JSON.stringify(pending));
+      } catch {
+        /* ignored */
+      }
     }
   }, [localConfig, onEnrichmentConfigChange]);
 
-  const updateConfig = useCallback((updates) => {
-    setConfig((prev) => ({ ...prev, ...updates }));
-  }, [setConfig]);
+  const updateConfig = useCallback(
+    (updates) => {
+      setConfig((prev) => ({ ...prev, ...updates }));
+    },
+    [setConfig]
+  );
 
   return { config, setConfig, updateConfig };
 }

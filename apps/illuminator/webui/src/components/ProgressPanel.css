@@ -17,8 +17,8 @@
 
 .pp-key-warning {
   padding: 12px;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgb(245 158 11 / 10%);
+  border: 1px solid rgb(245 158 11 / 30%);
   border-radius: 4px;
   margin-bottom: 16px;
   font-size: 12px;
@@ -85,23 +85,23 @@
   font-size: 11px;
 }
 
-.pp-stat-label--completed {
+.pp-stat-label-completed {
   color: var(--success);
 }
 
-.pp-stat-label--running {
+.pp-stat-label-running {
   color: var(--arctic-ice);
 }
 
-.pp-stat-label--pending {
+.pp-stat-label-pending {
   color: var(--text-muted);
 }
 
-.pp-stat-label--errors {
+.pp-stat-label-errors {
   color: var(--danger);
 }
 
-.pp-stat-value--danger {
+.pp-stat-value-danger {
   color: var(--danger);
 }
 
@@ -116,7 +116,7 @@
 
 .pp-error-item {
   padding: 8px 12px;
-  background: rgba(239, 68, 68, 0.1);
+  background: rgb(239 68 68 / 10%);
   border-radius: 4px;
   margin-bottom: 8px;
   font-size: 12px;

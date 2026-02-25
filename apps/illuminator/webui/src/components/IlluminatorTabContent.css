@@ -23,10 +23,10 @@
   font-size: 12px;
 }
 
-.itc-sync-status--error {
+.itc-sync-status-error {
   color: #ef4444;
 }
 
-.itc-sync-status--success {
+.itc-sync-status-success {
   color: #10b981;
 }

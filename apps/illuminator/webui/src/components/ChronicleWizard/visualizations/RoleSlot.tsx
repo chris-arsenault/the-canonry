@@ -7,6 +7,7 @@
 
 import type { RoleDefinition } from "@canonry/world-schema";
 import type { ChronicleRoleAssignment } from "../../../lib/chronicleTypes";
+import React from "react";
 
 interface RoleSlotProps {
   role: RoleDefinition;

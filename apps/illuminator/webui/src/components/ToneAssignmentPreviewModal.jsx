@@ -8,7 +8,8 @@
  * - Manual override per-chronicle before confirming
  */
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import { TONE_META } from "./HistorianToneSelector";
 import "./ToneAssignmentPreviewModal.css";
 
@@ -97,7 +98,12 @@ export default function ToneAssignmentPreviewModal({ preview, onApply, onClose }
                       <div
                         className="tapm-chart-bar-fill"
                         // eslint-disable-next-line local/no-inline-styles -- dynamic tone color and computed width
-                        style={{ '--tapm-bar-color': TONE_COLORS[tone] || '#888', '--tapm-bar-width': `${pct}%`, background: 'var(--tapm-bar-color)', width: 'var(--tapm-bar-width)' }}
+                        style={{
+                          "--tapm-bar-color": TONE_COLORS[tone] || "#888",
+                          "--tapm-bar-width": `${pct}%`,
+                          background: "var(--tapm-bar-color)",
+                          width: "var(--tapm-bar-width)",
+                        }}
                       />
                     </div>
                     <span className="tapm-chart-count">{count}</span>
@@ -108,12 +114,12 @@ export default function ToneAssignmentPreviewModal({ preview, onApply, onClose }
           </div>
 
           {/* Chronicle list */}
-          <div className="tapm-section-label tapm-section-label--assignments">Assignments</div>
+          <div className="tapm-section-label tapm-section-label-assignments">Assignments</div>
           <div className="tapm-list">
             {entries.map((entry) => (
               <div
                 key={entry.chronicleId}
-                className={`tapm-entry ${entry.wasShifted ? "tapm-entry--shifted" : ""}`}
+                className={`tapm-entry ${entry.wasShifted ? "tapm-entry-shifted" : ""}`}
               >
                 {/* Title */}
                 <div className="tapm-entry-title">{entry.title}</div>
@@ -127,9 +133,13 @@ export default function ToneAssignmentPreviewModal({ preview, onApply, onClose }
                       <span
                         key={rank}
                         title={`#${rank + 1}: ${meta?.label || tone}`}
-                        className={`tapm-rank-chip ${isAssigned ? "tapm-rank-chip--assigned" : "tapm-rank-chip--unassigned"}`}
+                        className={`tapm-rank-chip ${isAssigned ? "tapm-rank-chip-assigned" : "tapm-rank-chip-unassigned"}`}
                         // eslint-disable-next-line local/no-inline-styles -- dynamic tone color and rank-based opacity
-                        style={{ '--tapm-chip-bg': isAssigned ? TONE_COLORS[tone] : 'transparent', background: 'var(--tapm-chip-bg)', opacity: rank === 0 ? 1 : rank === 1 ? 0.7 : 0.4 }}
+                        style={{
+                          "--tapm-chip-bg": isAssigned ? TONE_COLORS[tone] : "transparent",
+                          background: "var(--tapm-chip-bg)",
+                          opacity: rank === 0 ? 1 : rank === 1 ? 0.7 : 0.4,
+                        }}
                         onClick={() => handleToneChange(entry.chronicleId, tone)}
                       >
                         {meta?.symbol || "?"}
@@ -168,3 +178,9 @@ export default function ToneAssignmentPreviewModal({ preview, onApply, onClose }
     </div>
   );
 }
+
+ToneAssignmentPreviewModal.propTypes = {
+  preview: PropTypes.object,
+  onApply: PropTypes.func,
+  onClose: PropTypes.func,
+};

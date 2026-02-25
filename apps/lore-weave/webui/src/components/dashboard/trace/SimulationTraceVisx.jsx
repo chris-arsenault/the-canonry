@@ -9,39 +9,40 @@
  * - Interactive tooltips and selection
  */
 
-import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { ParentSize } from '@visx/responsive';
-import './SimulationTraceVisx.css';
-import {
-  createXScale,
-  createPressureYScale,
-  DEFAULT_MARGIN,
-  ERA_TIMELINE_HEIGHT
-} from './scales';
-import PressureChart from './PressureChart';
-import EraTimeline from './EraTimeline';
-import { SystemActivityPanel, PlaneDiffusionVis, GraphContagionVis } from '../systems';
+import React, { useState, useMemo, useCallback, useRef } from "react";
+import { ParentSize } from "@visx/responsive";
+import "./SimulationTraceVisx.css";
+import { createXScale, createPressureYScale, DEFAULT_MARGIN, ERA_TIMELINE_HEIGHT } from "./scales";
+import PressureChart from "./PressureChart";
+import EraTimeline from "./EraTimeline";
+import { SystemActivityPanel, PlaneDiffusionVis, GraphContagionVis } from "../systems";
 
 // Color palettes (same as original)
 export const PRESSURE_COLORS = [
-  '#f59e0b', '#ef4444', '#22c55e', '#3b82f6',
-  '#8b5cf6', '#ec4899', '#14b8a6', '#f97316',
+  "#f59e0b",
+  "#ef4444",
+  "#22c55e",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
+  "#14b8a6",
+  "#f97316",
 ];
 
 // Entity kind color palette - deterministic colors based on kind string hash
 const ENTITY_KIND_COLORS = [
-  '#22c55e', // green
-  '#3b82f6', // blue
-  '#f59e0b', // amber
-  '#ec4899', // pink
-  '#8b5cf6', // violet
-  '#14b8a6', // teal
-  '#ef4444', // red
-  '#f97316', // orange
-  '#06b6d4', // cyan
-  '#84cc16', // lime
-  '#a855f7', // purple
-  '#eab308', // yellow
+  "#22c55e", // green
+  "#3b82f6", // blue
+  "#f59e0b", // amber
+  "#ec4899", // pink
+  "#8b5cf6", // violet
+  "#14b8a6", // teal
+  "#ef4444", // red
+  "#f97316", // orange
+  "#06b6d4", // cyan
+  "#84cc16", // lime
+  "#a855f7", // purple
+  "#eab308", // yellow
 ];
 
 // Simple hash function for consistent color assignment
@@ -49,7 +50,7 @@ function hashString(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
   return Math.abs(hash);
@@ -63,17 +64,17 @@ function getEntityKindColor(kind) {
 }
 
 export const EVENT_COLORS = {
-  template: '#22c55e',
-  system: '#8b5cf6',
-  action: '#f59e0b',
+  template: "#22c55e",
+  system: "#8b5cf6",
+  action: "#f59e0b",
 };
 
 const ERA_COLORS = [
-  'rgba(59, 130, 246, 0.15)',
-  'rgba(168, 85, 247, 0.15)',
-  'rgba(236, 72, 153, 0.15)',
-  'rgba(34, 197, 94, 0.15)',
-  'rgba(249, 115, 22, 0.15)',
+  "rgba(59, 130, 246, 0.15)",
+  "rgba(168, 85, 247, 0.15)",
+  "rgba(236, 72, 153, 0.15)",
+  "rgba(34, 197, 94, 0.15)",
+  "rgba(249, 115, 22, 0.15)",
 ];
 
 // Visible tick window
@@ -87,10 +88,10 @@ function transformPressureData(pressureUpdates) {
     return { data: [], pressureIds: [], breakdownsByTick: new Map() };
   }
 
-  const pressureIds = pressureUpdates[0]?.pressures?.map(p => p.id) || [];
+  const pressureIds = pressureUpdates[0]?.pressures?.map((p) => p.id) || [];
   const breakdownsByTick = new Map();
 
-  const data = pressureUpdates.map(update => {
+  const data = pressureUpdates.map((update) => {
     const point = { tick: update.tick, epoch: update.epoch };
     const tickBreakdowns = new Map();
 
@@ -180,8 +181,8 @@ function transformEventData(templateApplications, actionApplications, systemActi
   // Process system actions (including era transitions)
   // Filter out framework-growth (shown via template applications) and universal-catalyst (shown via action markers)
   if (systemActions?.length) {
-    const filteredActions = systemActions.filter(a =>
-      a.systemId !== 'framework-growth' && a.systemId !== 'universal-catalyst'
+    const filteredActions = systemActions.filter(
+      (a) => a.systemId !== "framework-growth" && a.systemId !== "universal-catalyst"
     );
 
     // Group by tick for stacking
@@ -208,7 +209,7 @@ function transformEventData(templateApplications, actionApplications, systemActi
           stackIndex,
           totalAtTick: actions.length,
           isEraTransition,
-          color: isEraTransition ? '#f59e0b' : EVENT_COLORS.system,
+          color: isEraTransition ? "#f59e0b" : EVENT_COLORS.system,
         });
       });
     }
@@ -217,7 +218,7 @@ function transformEventData(templateApplications, actionApplications, systemActi
   // Process action applications (agent actions from universalCatalyst)
   // Only show successful actions
   if (actionApplications?.length) {
-    const successfulActions = actionApplications.filter(app => app.outcome?.status === 'success');
+    const successfulActions = actionApplications.filter((app) => app.outcome?.status === "success");
 
     // Group actions by tick for horizontal stacking
     const byTick = new Map();
@@ -232,7 +233,7 @@ function transformEventData(templateApplications, actionApplications, systemActi
     for (const [tick, apps] of byTick) {
       apps.forEach((app, stackIndex) => {
         // Color by outcome status: green for success, red for failure
-        const color = app.outcome.status === 'success' ? '#22c55e' : '#ef4444';
+        const color = app.outcome.status === "success" ? "#22c55e" : "#ef4444";
         const uniqueId = `action-${tick}-${app.actionId}-${app.actorId}`;
 
         events.action.push({
@@ -275,7 +276,7 @@ function extractEraBoundaries(pressureUpdates, epochStats, systemActions) {
 
   // Find era transitions from systemActions
   const eraTransitions = (systemActions || [])
-    .filter(a => a.details?.eraTransition)
+    .filter((a) => a.details?.eraTransition)
     .sort((a, b) => a.tick - b.tick);
 
   if (eraTransitions.length > 0) {
@@ -321,7 +322,7 @@ function extractEraBoundaries(pressureUpdates, epochStats, systemActions) {
         boundaries.push({ era: currentEra, epoch: currentEpoch, startTick, endTick: update.tick });
       }
       currentEpoch = update.epoch;
-      const epochStat = epochStats?.find(e => e.epoch === currentEpoch);
+      const epochStat = epochStats?.find((e) => e.epoch === currentEpoch);
       currentEra = formatEpochEraLabel(epochStat?.era, `Epoch ${currentEpoch}`);
       startTick = update.tick;
     }
@@ -342,7 +343,14 @@ function extractEraBoundaries(pressureUpdates, epochStats, systemActions) {
 /**
  * Detail panel component for pressure breakdowns
  */
-function DetailPanel({ selectedTick, lockedTick, breakdownsByTick, pressureIds, pressureData, onUnlock }) {
+function DetailPanel({
+  selectedTick,
+  lockedTick,
+  breakdownsByTick,
+  pressureIds,
+  pressureData,
+  onUnlock,
+}) {
   const displayTick = lockedTick !== null ? lockedTick : selectedTick;
   const isLocked = lockedTick !== null;
 
@@ -393,7 +401,8 @@ function DetailPanel({ selectedTick, lockedTick, breakdownsByTick, pressureIds, 
           const info = tickBreakdowns.get(id);
           if (!info) return null;
 
-          const { name, value, previousValue, breakdown, discreteModifications, discreteTotal } = info;
+          const { name, value, previousValue, breakdown, discreteModifications, discreteTotal } =
+            info;
           const delta = value - previousValue;
           const hasDiscrete = discreteModifications && discreteModifications.length > 0;
 
@@ -407,8 +416,11 @@ function DetailPanel({ selectedTick, lockedTick, breakdownsByTick, pressureIds, 
                 <span className="lw-trace-view-detail-pressure-name">{name}</span>
                 <span className="lw-trace-view-detail-pressure-value">
                   {value.toFixed(1)}
-                  <span className={`lw-trace-view-detail-delta ${delta >= 0 ? 'positive' : 'negative'}`}>
-                    ({delta >= 0 ? '+' : ''}{delta.toFixed(2)})
+                  <span
+                    className={`lw-trace-view-detail-delta ${delta >= 0 ? "positive" : "negative"}`}
+                  >
+                    ({delta >= 0 ? "+" : ""}
+                    {delta.toFixed(2)})
                   </span>
                 </span>
               </div>
@@ -417,21 +429,26 @@ function DetailPanel({ selectedTick, lockedTick, breakdownsByTick, pressureIds, 
                 <div className="lw-trace-view-detail-discrete">
                   <div className="lw-trace-view-detail-section-header">Discrete Changes</div>
                   {discreteModifications.map((mod, j) => {
-                    const sourceType = mod.source?.type || 'unknown';
-                    const sourceId = mod.source?.templateId || mod.source?.systemId || mod.source?.actionId || 'unknown';
+                    const sourceType = mod.source?.type || "unknown";
+                    const sourceId =
+                      mod.source?.templateId ||
+                      mod.source?.systemId ||
+                      mod.source?.actionId ||
+                      "unknown";
                     return (
                       <div key={j} className="lw-trace-view-detail-row">
                         <span className="lw-trace-view-detail-label">
                           <span
                             className="lw-trace-view-discrete-badge"
-                            style={{ color: EVENT_COLORS[sourceType] || '#888' }}
+                            style={{ color: EVENT_COLORS[sourceType] || "#888" }}
                           >
-                            {sourceType === 'template' ? '▲' : sourceType === 'system' ? '◆' : '●'}
+                            {sourceType === "template" ? "▲" : sourceType === "system" ? "◆" : "●"}
                           </span>
                           {sourceId}
                         </span>
-                        <span className={mod.delta >= 0 ? 'positive' : 'negative'}>
-                          {mod.delta >= 0 ? '+' : ''}{mod.delta.toFixed(3)}
+                        <span className={mod.delta >= 0 ? "positive" : "negative"}>
+                          {mod.delta >= 0 ? "+" : ""}
+                          {mod.delta.toFixed(3)}
                         </span>
                       </div>
                     );
@@ -444,33 +461,38 @@ function DetailPanel({ selectedTick, lockedTick, breakdownsByTick, pressureIds, 
                   <div className="lw-trace-view-detail-section-header">Feedback</div>
 
                   {/* Positive feedback */}
-                  {breakdown.positiveFeedback?.filter(fb => fb.contribution !== 0).map((fb, k) => (
-                    <div key={`pos-${k}`} className="lw-trace-view-detail-row">
-                      <span className="lw-trace-view-detail-label">
-                        <span className="lw-trace-view-feedback-badge positive">+</span>
-                        {fb.label}
-                      </span>
-                      <span className="positive">+{fb.contribution.toFixed(3)}</span>
-                    </div>
-                  ))}
+                  {breakdown.positiveFeedback
+                    ?.filter((fb) => fb.contribution !== 0)
+                    .map((fb, k) => (
+                      <div key={`pos-${k}`} className="lw-trace-view-detail-row">
+                        <span className="lw-trace-view-detail-label">
+                          <span className="lw-trace-view-feedback-badge positive">+</span>
+                          {fb.label}
+                        </span>
+                        <span className="positive">+{fb.contribution.toFixed(3)}</span>
+                      </div>
+                    ))}
 
                   {/* Negative feedback */}
-                  {breakdown.negativeFeedback?.filter(fb => fb.contribution !== 0).map((fb, k) => (
-                    <div key={`neg-${k}`} className="lw-trace-view-detail-row">
-                      <span className="lw-trace-view-detail-label">
-                        <span className="lw-trace-view-feedback-badge negative">−</span>
-                        {fb.label}
-                      </span>
-                      <span className="negative">{fb.contribution.toFixed(3)}</span>
-                    </div>
-                  ))}
+                  {breakdown.negativeFeedback
+                    ?.filter((fb) => fb.contribution !== 0)
+                    .map((fb, k) => (
+                      <div key={`neg-${k}`} className="lw-trace-view-detail-row">
+                        <span className="lw-trace-view-detail-label">
+                          <span className="lw-trace-view-feedback-badge negative">−</span>
+                          {fb.label}
+                        </span>
+                        <span className="negative">{fb.contribution.toFixed(3)}</span>
+                      </div>
+                    ))}
 
                   {/* Homeostasis */}
                   {breakdown.homeostasis !== 0 && (
                     <div className="lw-trace-view-detail-row">
                       <span className="lw-trace-view-detail-label">Homeostasis</span>
-                      <span className={breakdown.homeostaticDelta >= 0 ? 'positive' : 'negative'}>
-                        {breakdown.homeostaticDelta >= 0 ? '+' : ''}{breakdown.homeostaticDelta.toFixed(3)}
+                      <span className={breakdown.homeostaticDelta >= 0 ? "positive" : "negative"}>
+                        {breakdown.homeostaticDelta >= 0 ? "+" : ""}
+                        {breakdown.homeostaticDelta.toFixed(3)}
                       </span>
                     </div>
                   )}
@@ -494,8 +516,9 @@ function DetailPanel({ selectedTick, lockedTick, breakdownsByTick, pressureIds, 
                   {/* Feedback subtotal */}
                   <div className="lw-trace-view-detail-row lw-trace-view-detail-subtotal">
                     <span className="lw-trace-view-detail-label">Net Δ (smoothed)</span>
-                    <span className={breakdown.smoothedDelta >= 0 ? 'positive' : 'negative'}>
-                      {breakdown.smoothedDelta >= 0 ? '+' : ''}{breakdown.smoothedDelta.toFixed(3)}
+                    <span className={breakdown.smoothedDelta >= 0 ? "positive" : "negative"}>
+                      {breakdown.smoothedDelta >= 0 ? "+" : ""}
+                      {breakdown.smoothedDelta.toFixed(3)}
                     </span>
                   </div>
                 </div>
@@ -504,8 +527,9 @@ function DetailPanel({ selectedTick, lockedTick, breakdownsByTick, pressureIds, 
               {/* Total delta */}
               <div className="lw-trace-view-detail-row lw-trace-view-detail-total">
                 <span className="lw-trace-view-detail-label">Total Δ</span>
-                <span className={delta >= 0 ? 'positive' : 'negative'}>
-                  {delta >= 0 ? '+' : ''}{delta.toFixed(3)}
+                <span className={delta >= 0 ? "positive" : "negative"}>
+                  {delta >= 0 ? "+" : ""}
+                  {delta.toFixed(3)}
                 </span>
               </div>
             </div>
@@ -560,9 +584,7 @@ function TemplateDetailPanel({ template, isLocked, onClear }) {
             </span>
           </div>
 
-          {app.description && (
-            <div className="lw-trace-view-template-desc">{app.description}</div>
-          )}
+          {app.description && <div className="lw-trace-view-template-desc">{app.description}</div>}
 
           {app.entitiesCreated?.length > 0 && (
             <div className="lw-trace-view-template-section">
@@ -599,7 +621,9 @@ function TemplateDetailPanel({ template, isLocked, onClear }) {
                       <div className="lw-trace-view-entity-placement-row">
                         <span className="lw-trace-view-entity-placement-label">Anchor</span>
                         <span className="lw-trace-view-entity-placement-value">
-                          <span className={`lw-trace-view-anchor-badge ${entity.placement?.anchorType || 'unknown'}`}>
+                          <span
+                            className={`lw-trace-view-anchor-badge ${entity.placement?.anchorType || "unknown"}`}
+                          >
                             {entity.placement?.anchorType || entity.placementStrategy}
                           </span>
                         </span>
@@ -609,12 +633,12 @@ function TemplateDetailPanel({ template, isLocked, onClear }) {
                       <div className="lw-trace-view-entity-placement-row">
                         <span className="lw-trace-view-entity-placement-label">Resolved Via</span>
                         <span className="lw-trace-view-entity-placement-value">
-                        <span
-                          className={`lw-trace-view-resolved-badge ${(entity.placement?.resolvedVia || 'unknown').replace(/_/g, '-')}`}
-                        >
+                          <span
+                            className={`lw-trace-view-resolved-badge ${(entity.placement?.resolvedVia || "unknown").replace(/_/g, "-")}`}
+                          >
                             {entity.placement?.resolvedVia || entity.placementStrategy}
                           </span>
-                          {entity.placement?.resolvedVia === 'random' && (
+                          {entity.placement?.resolvedVia === "random" && (
                             <span className="lw-trace-view-fallback-badge">fallback</span>
                           )}
                         </span>
@@ -658,7 +682,9 @@ function TemplateDetailPanel({ template, isLocked, onClear }) {
                       {/* Emergent region created */}
                       {entity.placement?.emergentRegionCreated && (
                         <div className="lw-trace-view-entity-placement-row">
-                          <span className="lw-trace-view-entity-placement-label">Emergent Region</span>
+                          <span className="lw-trace-view-entity-placement-label">
+                            Emergent Region
+                          </span>
                           <span className="lw-trace-view-entity-placement-value">
                             <span className="lw-trace-view-emergent-badge">
                               + {entity.placement.emergentRegionCreated.label}
@@ -672,7 +698,8 @@ function TemplateDetailPanel({ template, isLocked, onClear }) {
                         <div className="lw-trace-view-entity-placement-row">
                           <span className="lw-trace-view-entity-placement-label">Coordinates</span>
                           <span className="lw-trace-view-entity-placement-value mono">
-                            ({entity.coordinates.x.toFixed(1)}, {entity.coordinates.y.toFixed(1)}, {entity.coordinates.z?.toFixed(1) ?? '0.0'})
+                            ({entity.coordinates.x.toFixed(1)}, {entity.coordinates.y.toFixed(1)},{" "}
+                            {entity.coordinates.z?.toFixed(1) ?? "0.0"})
                           </span>
                         </div>
                       )}
@@ -696,7 +723,8 @@ function TemplateDetailPanel({ template, isLocked, onClear }) {
                       <div className="lw-trace-view-entity-tags">
                         {Object.entries(entity.tags).map(([tag, val]) => (
                           <span key={tag} className="lw-trace-view-tag">
-                            {tag}{val !== true ? `:${val}` : ''}
+                            {tag}
+                            {val !== true ? `:${val}` : ""}
                           </span>
                         ))}
                       </div>
@@ -706,11 +734,14 @@ function TemplateDetailPanel({ template, isLocked, onClear }) {
                   {/* Derived tags from placement */}
                   {entity.derivedTags && Object.keys(entity.derivedTags).length > 0 && (
                     <div className="lw-trace-view-entity-derived-section">
-                      <div className="lw-trace-view-entity-section-label">Derived from Placement</div>
+                      <div className="lw-trace-view-entity-section-label">
+                        Derived from Placement
+                      </div>
                       <div className="lw-trace-view-entity-tags">
                         {Object.entries(entity.derivedTags).map(([tag, val]) => (
                           <span key={tag} className="lw-trace-view-tag derived">
-                            {tag}{val !== true ? `:${val}` : ''}
+                            {tag}
+                            {val !== true ? `:${val}` : ""}
                           </span>
                         ))}
                       </div>
@@ -750,8 +781,9 @@ function TemplateDetailPanel({ template, isLocked, onClear }) {
               {Object.entries(app.pressureChanges).map(([pressureId, delta]) => (
                 <div key={pressureId} className="lw-trace-view-detail-row">
                   <span className="lw-trace-view-detail-label">{pressureId}</span>
-                  <span className={delta >= 0 ? 'positive' : 'negative'}>
-                    {delta >= 0 ? '+' : ''}{delta.toFixed(1)}
+                  <span className={delta >= 0 ? "positive" : "negative"}>
+                    {delta >= 0 ? "+" : ""}
+                    {delta.toFixed(1)}
                   </span>
                 </div>
               ))}
@@ -786,8 +818,10 @@ function SystemActionDetailPanel({ systemAction, isEraTransition, isLocked, onCl
     <div className="lw-trace-view-detail">
       <div className="lw-trace-view-detail-header">
         <span>
-          <span style={{ color: isEraTransition ? '#f59e0b' : EVENT_COLORS.system, marginRight: 6 }}>
-            {isEraTransition ? '★' : '■'}
+          <span
+            style={{ color: isEraTransition ? "#f59e0b" : EVENT_COLORS.system, marginRight: 6 }}
+          >
+            {isEraTransition ? "★" : "■"}
           </span>
           Tick {action.tick} / Epoch {action.epoch}
         </span>
@@ -802,9 +836,7 @@ function SystemActionDetailPanel({ systemAction, isEraTransition, isLocked, onCl
         <div className="lw-trace-view-template-app">
           <div className="lw-trace-view-template-header">
             <span className="lw-trace-view-template-id">{action.systemName}</span>
-            <span className="lw-trace-view-template-target">
-              ({action.systemId})
-            </span>
+            <span className="lw-trace-view-template-target">({action.systemId})</span>
           </div>
 
           {action.description && (
@@ -814,9 +846,7 @@ function SystemActionDetailPanel({ systemAction, isEraTransition, isLocked, onCl
           {/* Era Transition Details */}
           {eraTransition && (
             <div className="lw-trace-view-template-section">
-              <div className="lw-trace-view-detail-section-header">
-                Era Transition
-              </div>
+              <div className="lw-trace-view-detail-section-header">Era Transition</div>
               <div className="lw-trace-view-era-transition">
                 <div className="lw-trace-view-era-flow">
                   <span className="lw-trace-view-era-from">{eraTransition.fromEra}</span>
@@ -864,8 +894,10 @@ function SystemActionDetailPanel({ systemAction, isEraTransition, isLocked, onCl
                       {eraTransition.exitConditionsMet.map((cond, i) => (
                         <span key={i} className="lw-trace-view-tag">
                           {cond.type}
-                          {cond.pressureId && `: ${cond.pressureId} ${cond.operator} ${cond.threshold}`}
-                          {cond.entityKind && `: ${cond.entityKind} ${cond.operator} ${cond.threshold}`}
+                          {cond.pressureId &&
+                            `: ${cond.pressureId} ${cond.operator} ${cond.threshold}`}
+                          {cond.entityKind &&
+                            `: ${cond.entityKind} ${cond.operator} ${cond.threshold}`}
                           {cond.minTicks && `: ${cond.currentAge}/${cond.minTicks} ticks`}
                         </span>
                       ))}
@@ -902,8 +934,9 @@ function SystemActionDetailPanel({ systemAction, isEraTransition, isLocked, onCl
               {Object.entries(action.pressureChanges).map(([pressureId, delta]) => (
                 <div key={pressureId} className="lw-trace-view-detail-row">
                   <span className="lw-trace-view-detail-label">{pressureId}</span>
-                  <span className={delta >= 0 ? 'positive' : 'negative'}>
-                    {delta >= 0 ? '+' : ''}{delta.toFixed(1)}
+                  <span className={delta >= 0 ? "positive" : "negative"}>
+                    {delta >= 0 ? "+" : ""}
+                    {delta.toFixed(1)}
                   </span>
                 </div>
               ))}
@@ -933,23 +966,25 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
 
   const app = actionApplication;
   const outcomeColors = {
-    success: '#22c55e',
-    failed_roll: '#ef4444',
-    failed_no_target: '#f59e0b',
-    failed_no_instigator: '#f59e0b',
+    success: "#22c55e",
+    failed_roll: "#ef4444",
+    failed_no_target: "#f59e0b",
+    failed_no_instigator: "#f59e0b",
   };
   const outcomeLabels = {
-    success: 'Success',
-    failed_roll: 'Failed Roll',
-    failed_no_target: 'No Target',
-    failed_no_instigator: 'No Instigator',
+    success: "Success",
+    failed_roll: "Failed Roll",
+    failed_no_target: "No Target",
+    failed_no_instigator: "No Instigator",
   };
 
   return (
     <div className="lw-trace-view-detail">
       <div className="lw-trace-view-detail-header">
         <span>
-          <span style={{ color: outcomeColors[app.outcome.status] || '#888', marginRight: 6 }}>●</span>
+          <span style={{ color: outcomeColors[app.outcome.status] || "#888", marginRight: 6 }}>
+            ●
+          </span>
           Tick {app.tick} / Epoch {app.epoch}
         </span>
         {isLocked && (
@@ -967,9 +1002,9 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
             <span
               className="lw-trace-view-outcome-badge"
               style={{
-                backgroundColor: outcomeColors[app.outcome.status] || '#888',
-                color: '#fff',
-                padding: '2px 8px',
+                backgroundColor: outcomeColors[app.outcome.status] || "#888",
+                color: "#fff",
+                padding: "2px 8px",
                 borderRadius: 4,
                 fontSize: 11,
                 fontWeight: 500,
@@ -992,17 +1027,13 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
                 <span className="lw-trace-view-entity-placement-label">Actor</span>
                 <span className="lw-trace-view-entity-placement-value">
                   <span className="lw-trace-view-anchor-entity">{app.actorName}</span>
-                  <span className="lw-trace-view-anchor-entity-kind">
-                    ({app.actorKind})
-                  </span>
+                  <span className="lw-trace-view-anchor-entity-kind">({app.actorKind})</span>
                 </span>
               </div>
 
               <div className="lw-trace-view-entity-placement-row">
                 <span className="lw-trace-view-entity-placement-label">Prominence</span>
-                <span className="lw-trace-view-entity-placement-value">
-                  {app.actorProminence}
-                </span>
+                <span className="lw-trace-view-entity-placement-value">{app.actorProminence}</span>
               </div>
 
               {/* Instigator (optional) */}
@@ -1010,7 +1041,9 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
                 <div className="lw-trace-view-entity-placement-row">
                   <span className="lw-trace-view-entity-placement-label">Instigator</span>
                   <span className="lw-trace-view-entity-placement-value">
-                    <span className="lw-trace-view-anchor-entity">{app.instigatorName || app.instigatorId}</span>
+                    <span className="lw-trace-view-anchor-entity">
+                      {app.instigatorName || app.instigatorId}
+                    </span>
                   </span>
                 </div>
               )}
@@ -1033,7 +1066,9 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
                 <div className="lw-trace-view-entity-placement-row">
                   <span className="lw-trace-view-entity-placement-label">Target 2</span>
                   <span className="lw-trace-view-entity-placement-value">
-                    <span className="lw-trace-view-anchor-entity">{app.target2Name || app.target2Id}</span>
+                    <span className="lw-trace-view-anchor-entity">
+                      {app.target2Name || app.target2Id}
+                    </span>
                   </span>
                 </div>
               )}
@@ -1054,9 +1089,15 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
               <div className="lw-trace-view-entity-placement-row">
                 <span className="lw-trace-view-entity-placement-label">Selected Weight</span>
                 <span className="lw-trace-view-entity-placement-value">
-                  {app.selectionContext.selectedWeight.toFixed(2)} / {app.selectionContext.totalWeight.toFixed(2)}
-                  <span style={{ color: '#64748b', marginLeft: 4 }}>
-                    ({((app.selectionContext.selectedWeight / app.selectionContext.totalWeight) * 100).toFixed(0)}%)
+                  {app.selectionContext.selectedWeight.toFixed(2)} /{" "}
+                  {app.selectionContext.totalWeight.toFixed(2)}
+                  <span style={{ color: "#64748b", marginLeft: 4 }}>
+                    (
+                    {(
+                      (app.selectionContext.selectedWeight / app.selectionContext.totalWeight) *
+                      100
+                    ).toFixed(0)}
+                    %)
                   </span>
                 </span>
               </div>
@@ -1077,17 +1118,20 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
             {/* Pressure influences breakdown - affects selection weight only, NOT success chance */}
             {app.selectionContext.pressureInfluences?.length > 0 && (
               <div className="lw-trace-view-detail-discrete" style={{ marginTop: 8 }}>
-                <div className="lw-trace-view-detail-section-header">Pressure Influences (on selection weight)</div>
+                <div className="lw-trace-view-detail-section-header">
+                  Pressure Influences (on selection weight)
+                </div>
                 {app.selectionContext.pressureInfluences.map((influence, i) => (
                   <div key={i} className="lw-trace-view-detail-row">
                     <span className="lw-trace-view-detail-label">
                       {influence.pressureId}
-                      <span style={{ color: '#64748b', marginLeft: 4 }}>
+                      <span style={{ color: "#64748b", marginLeft: 4 }}>
                         ({influence.value.toFixed(0)} × {influence.multiplier.toFixed(1)})
                       </span>
                     </span>
-                    <span className={influence.contribution >= 0 ? 'positive' : 'negative'}>
-                      {influence.contribution >= 0 ? '+' : ''}{influence.contribution.toFixed(2)}
+                    <span className={influence.contribution >= 0 ? "positive" : "negative"}>
+                      {influence.contribution >= 0 ? "+" : ""}
+                      {influence.contribution.toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -1103,7 +1147,7 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
                 <span className="lw-trace-view-entity-placement-label">Success Chance</span>
                 <span className="lw-trace-view-entity-placement-value">
                   {(app.outcome.successChance * 100).toFixed(0)}%
-                  <span style={{ color: '#64748b', marginLeft: 4 }}>
+                  <span style={{ color: "#64748b", marginLeft: 4 }}>
                     (base × {app.outcome.prominenceMultiplier.toFixed(1)} prominence)
                   </span>
                 </span>
@@ -1122,7 +1166,7 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
                     <span className="lw-trace-view-rel-ids">
                       {rel.srcName} → {rel.dstName}
                       {rel.strength !== undefined && (
-                        <span style={{ color: '#64748b', marginLeft: 4 }}>
+                        <span style={{ color: "#64748b", marginLeft: 4 }}>
                           (str: {rel.strength.toFixed(2)})
                         </span>
                       )}
@@ -1144,8 +1188,8 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
                 {app.outcome.prominenceChanges.map((change, i) => (
                   <div key={i} className="lw-trace-view-detail-row">
                     <span className="lw-trace-view-detail-label">{change.entityName}</span>
-                    <span className={change.direction === 'up' ? 'positive' : 'negative'}>
-                      {change.direction === 'up' ? '↑' : '↓'}
+                    <span className={change.direction === "up" ? "positive" : "negative"}>
+                      {change.direction === "up" ? "↑" : "↓"}
                     </span>
                   </div>
                 ))}
@@ -1220,7 +1264,7 @@ function TraceVisualization({
       return {
         visibleData: pressureData,
         maxScrollOffset: 0,
-        currentOffset: 0
+        currentOffset: 0,
       };
     }
 
@@ -1231,7 +1275,7 @@ function TraceVisualization({
     return {
       visibleData: sliced,
       maxScrollOffset: maxOffset,
-      currentOffset: offset
+      currentOffset: offset,
     };
   }, [pressureData, scrollOffset]);
 
@@ -1243,9 +1287,9 @@ function TraceVisualization({
     const endTick = visibleData[visibleData.length - 1]?.tick ?? Infinity;
 
     return {
-      template: eventData.template.filter(e => e.tick >= startTick && e.tick <= endTick),
-      system: eventData.system.filter(e => e.tick >= startTick && e.tick <= endTick),
-      action: eventData.action.filter(e => e.tick >= startTick && e.tick <= endTick),
+      template: eventData.template.filter((e) => e.tick >= startTick && e.tick <= endTick),
+      system: eventData.system.filter((e) => e.tick >= startTick && e.tick <= endTick),
+      action: eventData.action.filter((e) => e.tick >= startTick && e.tick <= endTick),
     };
   }, [eventData, visibleData]);
 
@@ -1256,13 +1300,13 @@ function TraceVisualization({
     const startTick = visibleData[0]?.tick ?? 0;
     const endTick = visibleData[visibleData.length - 1]?.tick ?? Infinity;
 
-    return eraBoundaries.filter(era =>
-      era.endTick >= startTick && era.startTick <= endTick
-    ).map(era => ({
-      ...era,
-      startTick: Math.max(era.startTick, startTick),
-      endTick: Math.min(era.endTick, endTick),
-    }));
+    return eraBoundaries
+      .filter((era) => era.endTick >= startTick && era.startTick <= endTick)
+      .map((era) => ({
+        ...era,
+        startTick: Math.max(era.startTick, startTick),
+        endTick: Math.min(era.endTick, endTick),
+      }));
   }, [eraBoundaries, visibleData]);
 
   // Create scales
@@ -1280,51 +1324,54 @@ function TraceVisualization({
   const lastHoverRef = useRef(0);
   const THROTTLE_MS = 50;
 
-  const handleMouseMove = useCallback((event) => {
-    if (lockedTick !== null) {
-      setTooltip(null);
-      return;
-    }
+  const handleMouseMove = useCallback(
+    (event) => {
+      if (lockedTick !== null) {
+        setTooltip(null);
+        return;
+      }
 
-    const now = Date.now();
-    if (now - lastHoverRef.current < THROTTLE_MS) return;
-    lastHoverRef.current = now;
+      const now = Date.now();
+      if (now - lastHoverRef.current < THROTTLE_MS) return;
+      lastHoverRef.current = now;
 
-    // The overlay rect starts at margin.left, so we need to add margin.left
-    // to convert from rect-relative coords to SVG coords for xScale
-    const rectBounds = event.currentTarget.getBoundingClientRect();
-    const xInRect = event.clientX - rectBounds.left;
-    const yInRect = event.clientY - rectBounds.top;
-    const xInSvg = xInRect + margin.left;
+      // The overlay rect starts at margin.left, so we need to add margin.left
+      // to convert from rect-relative coords to SVG coords for xScale
+      const rectBounds = event.currentTarget.getBoundingClientRect();
+      const xInRect = event.clientX - rectBounds.left;
+      const yInRect = event.clientY - rectBounds.top;
+      const xInSvg = xInRect + margin.left;
 
-    // Find closest tick
-    const tickValue = xScale.invert(xInSvg);
-    const closestPoint = visibleData.reduce((closest, point) => {
-      const dist = Math.abs(point.tick - tickValue);
-      return dist < Math.abs(closest.tick - tickValue) ? point : closest;
-    }, visibleData[0]);
+      // Find closest tick
+      const tickValue = xScale.invert(xInSvg);
+      const closestPoint = visibleData.reduce((closest, point) => {
+        const dist = Math.abs(point.tick - tickValue);
+        return dist < Math.abs(closest.tick - tickValue) ? point : closest;
+      }, visibleData[0]);
 
-    if (closestPoint) {
-      onTickHover(closestPoint.tick);
+      if (closestPoint) {
+        onTickHover(closestPoint.tick);
 
-      // Build tooltip with pressure values
-      const pressureValues = pressureIds
-        .filter(id => !hiddenPressures.has(id))
-        .map((id, i) => ({
-          name: closestPoint[`${id}_name`] || id,
-          value: closestPoint[id],
-          color: PRESSURE_COLORS[i % PRESSURE_COLORS.length],
-        }));
+        // Build tooltip with pressure values
+        const pressureValues = pressureIds
+          .filter((id) => !hiddenPressures.has(id))
+          .map((id, i) => ({
+            name: closestPoint[`${id}_name`] || id,
+            value: closestPoint[id],
+            color: PRESSURE_COLORS[i % PRESSURE_COLORS.length],
+          }));
 
-      setTooltip({
-        x: event.clientX,
-        y: event.clientY,
-        tick: closestPoint.tick,
-        epoch: closestPoint.epoch,
-        pressures: pressureValues,
-      });
-    }
-  }, [xScale, visibleData, lockedTick, onTickHover, margin.left, pressureIds, hiddenPressures]);
+        setTooltip({
+          x: event.clientX,
+          y: event.clientY,
+          tick: closestPoint.tick,
+          epoch: closestPoint.epoch,
+          pressures: pressureValues,
+        });
+      }
+    },
+    [xScale, visibleData, lockedTick, onTickHover, margin.left, pressureIds, hiddenPressures]
+  );
 
   const handleMouseLeave = useCallback(() => {
     if (lockedTick === null) {
@@ -1332,27 +1379,30 @@ function TraceVisualization({
     }
   }, [lockedTick]);
 
-  const handleClick = useCallback((event) => {
-    // Same coordinate conversion as handleMouseMove
-    const rectBounds = event.currentTarget.getBoundingClientRect();
-    const xInRect = event.clientX - rectBounds.left;
-    const xInSvg = xInRect + margin.left;
+  const handleClick = useCallback(
+    (event) => {
+      // Same coordinate conversion as handleMouseMove
+      const rectBounds = event.currentTarget.getBoundingClientRect();
+      const xInRect = event.clientX - rectBounds.left;
+      const xInSvg = xInRect + margin.left;
 
-    const tickValue = xScale.invert(xInSvg);
-    const closestPoint = visibleData.reduce((closest, point) => {
-      const dist = Math.abs(point.tick - tickValue);
-      return dist < Math.abs(closest.tick - tickValue) ? point : closest;
-    }, visibleData[0]);
+      const tickValue = xScale.invert(xInSvg);
+      const closestPoint = visibleData.reduce((closest, point) => {
+        const dist = Math.abs(point.tick - tickValue);
+        return dist < Math.abs(closest.tick - tickValue) ? point : closest;
+      }, visibleData[0]);
 
-    if (closestPoint) {
-      onTickClick(closestPoint.tick);
-    }
-  }, [xScale, visibleData, onTickClick, margin.left]);
+      if (closestPoint) {
+        onTickClick(closestPoint.tick);
+      }
+    },
+    [xScale, visibleData, onTickClick, margin.left]
+  );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ flex: 1, minHeight: 0 }}>
-        <svg width={width} height={height} style={{ cursor: 'crosshair' }}>
+        <svg width={width} height={height} style={{ cursor: "crosshair" }}>
           {/* Era timeline at top */}
           <EraTimeline
             eraBoundaries={visibleEraBoundaries}
@@ -1364,20 +1414,21 @@ function TraceVisualization({
           />
 
           {/* Era backgrounds in chart area */}
-          {pressureChartHeight > 0 && visibleEraBoundaries.map((era, i) => {
-            const eraWidth = xScale(era.endTick) - xScale(era.startTick);
-            if (eraWidth <= 0) return null;
-            return (
-              <rect
-                key={`era-bg-${i}`}
-                x={xScale(era.startTick)}
-                y={margin.top}
-                width={eraWidth}
-                height={pressureChartHeight}
-                fill={ERA_COLORS[i % ERA_COLORS.length]}
-              />
-            );
-          })}
+          {pressureChartHeight > 0 &&
+            visibleEraBoundaries.map((era, i) => {
+              const eraWidth = xScale(era.endTick) - xScale(era.startTick);
+              if (eraWidth <= 0) return null;
+              return (
+                <rect
+                  key={`era-bg-${i}`}
+                  x={xScale(era.startTick)}
+                  y={margin.top}
+                  width={eraWidth}
+                  height={pressureChartHeight}
+                  fill={ERA_COLORS[i % ERA_COLORS.length]}
+                />
+              );
+            })}
 
           {/* Pressure chart */}
           <PressureChart
@@ -1392,7 +1443,7 @@ function TraceVisualization({
           />
 
           {/* Reference lines for selected/hovered tick */}
-          {lockedTick !== null && visibleData.some(d => d.tick === lockedTick) && (
+          {lockedTick !== null && visibleData.some((d) => d.tick === lockedTick) && (
             <line
               x1={xScale(lockedTick)}
               y1={margin.top}
@@ -1402,17 +1453,19 @@ function TraceVisualization({
               strokeWidth={2}
             />
           )}
-          {lockedTick === null && selectedTick !== null && visibleData.some(d => d.tick === selectedTick) && (
-            <line
-              x1={xScale(selectedTick)}
-              y1={margin.top}
-              x2={xScale(selectedTick)}
-              y2={chartBottom}
-              stroke="#f59e0b"
-              strokeWidth={2}
-              strokeDasharray="4 4"
-            />
-          )}
+          {lockedTick === null &&
+            selectedTick !== null &&
+            visibleData.some((d) => d.tick === selectedTick) && (
+              <line
+                x1={xScale(selectedTick)}
+                y1={margin.top}
+                x2={xScale(selectedTick)}
+                y2={chartBottom}
+                stroke="#f59e0b"
+                strokeWidth={2}
+                strokeDasharray="4 4"
+              />
+            )}
 
           {/* Invisible overlay for mouse events (pressure hover) */}
           <rect
@@ -1431,7 +1484,7 @@ function TraceVisualization({
             // Position at tick + 0.5 to differentiate from pressure hover
             const cx = xScale(event.tick + 0.5);
             // Stack from bottom of chart, going upward
-            const cy = chartBottom - 10 - (event.stackIndex * MARKER_STACK_OFFSET);
+            const cy = chartBottom - 10 - event.stackIndex * MARKER_STACK_OFFSET;
             const isHovered = event.uniqueId === hoveredEventId;
             const isSelected = event.uniqueId === selectedEventId;
             const size = isSelected ? MARKER_SIZE + 3 : isHovered ? MARKER_SIZE + 2 : MARKER_SIZE;
@@ -1444,7 +1497,7 @@ function TraceVisualization({
             return (
               <g
                 key={event.uniqueId}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: "pointer" }}
                 onMouseEnter={() => onEventHover(event.uniqueId)}
                 onMouseLeave={() => onEventHover(null)}
                 onClick={(e) => {
@@ -1456,7 +1509,7 @@ function TraceVisualization({
                   points={points}
                   fill={event.color}
                   fillOpacity={opacity}
-                  stroke={isSelected ? '#fff' : isHovered ? event.color : 'rgba(0,0,0,0.3)'}
+                  stroke={isSelected ? "#fff" : isHovered ? event.color : "rgba(0,0,0,0.3)"}
                   strokeWidth={isSelected ? 2 : 1}
                 />
                 {/* Show count badge if many at same tick and this is the top one */}
@@ -1492,7 +1545,7 @@ function TraceVisualization({
             // Position at tick + 0.5, but offset vertically from templates
             const cx = xScale(event.tick + 0.5);
             // Stack above templates - use margin.top area for system events
-            const cy = margin.top - 10 - (event.stackIndex * MARKER_STACK_OFFSET);
+            const cy = margin.top - 10 - event.stackIndex * MARKER_STACK_OFFSET;
             const isHovered = event.uniqueId === hoveredEventId;
             const isSelected = event.uniqueId === selectedEventId;
             const size = isSelected ? MARKER_SIZE + 3 : isHovered ? MARKER_SIZE + 2 : MARKER_SIZE;
@@ -1506,14 +1559,14 @@ function TraceVisualization({
               const points = [];
               for (let i = 0; i < 10; i++) {
                 const radius = i % 2 === 0 ? outerRadius : innerRadius;
-                const angle = (i * Math.PI / 5) - Math.PI / 2;
+                const angle = (i * Math.PI) / 5 - Math.PI / 2;
                 points.push(`${cx + radius * Math.cos(angle)},${cy + radius * Math.sin(angle)}`);
               }
 
               return (
                 <g
                   key={event.uniqueId}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: "pointer" }}
                   onMouseEnter={() => onEventHover(event.uniqueId)}
                   onMouseLeave={() => onEventHover(null)}
                   onClick={(e) => {
@@ -1522,10 +1575,10 @@ function TraceVisualization({
                   }}
                 >
                   <polygon
-                    points={points.join(' ')}
+                    points={points.join(" ")}
                     fill={event.color}
                     fillOpacity={opacity}
-                    stroke={isSelected ? '#fff' : isHovered ? event.color : 'rgba(0,0,0,0.3)'}
+                    stroke={isSelected ? "#fff" : isHovered ? event.color : "rgba(0,0,0,0.3)"}
                     strokeWidth={isSelected ? 2 : 1}
                   />
                   {/* Vertical line extending into chart for era transitions */}
@@ -1549,7 +1602,7 @@ function TraceVisualization({
               return (
                 <g
                   key={event.uniqueId}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: "pointer" }}
                   onMouseEnter={() => onEventHover(event.uniqueId)}
                   onMouseLeave={() => onEventHover(null)}
                   onClick={(e) => {
@@ -1561,7 +1614,7 @@ function TraceVisualization({
                     points={points}
                     fill={event.color}
                     fillOpacity={opacity}
-                    stroke={isSelected ? '#fff' : isHovered ? event.color : 'rgba(0,0,0,0.3)'}
+                    stroke={isSelected ? "#fff" : isHovered ? event.color : "rgba(0,0,0,0.3)"}
                     strokeWidth={isSelected ? 2 : 1}
                   />
                 </g>
@@ -1575,7 +1628,7 @@ function TraceVisualization({
             const cx = xScale(event.tick + 0.5);
             // Position at y=-60 on pressure scale, stack upward if multiple at same tick
             const baseY = yScale(-60);
-            const cy = baseY - (event.stackIndex * MARKER_STACK_OFFSET);
+            const cy = baseY - event.stackIndex * MARKER_STACK_OFFSET;
             const isHovered = event.uniqueId === hoveredEventId;
             const isSelected = event.uniqueId === selectedEventId;
             const radius = isSelected ? 6 : isHovered ? 5 : 4;
@@ -1584,7 +1637,7 @@ function TraceVisualization({
             return (
               <g
                 key={event.uniqueId}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: "pointer" }}
                 onMouseEnter={() => onEventHover(event.uniqueId)}
                 onMouseLeave={() => onEventHover(null)}
                 onClick={(e) => {
@@ -1598,7 +1651,7 @@ function TraceVisualization({
                   r={radius}
                   fill={event.color}
                   fillOpacity={opacity}
-                  stroke={isSelected ? '#fff' : isHovered ? event.color : 'rgba(0,0,0,0.3)'}
+                  stroke={isSelected ? "#fff" : isHovered ? event.color : "rgba(0,0,0,0.3)"}
                   strokeWidth={isSelected ? 2 : 1}
                 />
                 {/* Show count badge if many at same tick and this is the top one */}
@@ -1645,9 +1698,7 @@ function TraceVisualization({
             onChange={(e) => onScrollChange(parseInt(e.target.value, 10))}
             className="lw-trace-view-scroll-slider"
           />
-          <span className="lw-trace-view-scroll-label">
-            of {pressureData.length} total
-          </span>
+          <span className="lw-trace-view-scroll-label">of {pressureData.length} total</span>
         </div>
       )}
 
@@ -1656,10 +1707,10 @@ function TraceVisualization({
         <div
           className="lw-trace-view-tooltip"
           style={{
-            position: 'fixed',
+            position: "fixed",
             left: tooltip.x + 15,
             top: tooltip.y - 10,
-            pointerEvents: 'none',
+            pointerEvents: "none",
             zIndex: 1000,
           }}
         >
@@ -1669,7 +1720,16 @@ function TraceVisualization({
           </div>
           {tooltip.pressures?.map((p, i) => (
             <div key={i} className="lw-trace-view-tooltip-row">
-              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, backgroundColor: p.color, marginRight: 6 }} />
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 8,
+                  height: 8,
+                  borderRadius: 2,
+                  backgroundColor: p.color,
+                  marginRight: 6,
+                }}
+              />
               <span style={{ flex: 1 }}>{p.name}</span>
               <span style={{ fontWeight: 500 }}>{p.value?.toFixed(1)}</span>
             </div>
@@ -1736,23 +1796,24 @@ export default function SimulationTraceVisx({
 
   const diffusionConfig = useMemo(
     () => ({
-      name: diffusionSystemsWithData.find(s => s.id === activeDiffusionId)?.name,
+      name: diffusionSystemsWithData.find((s) => s.id === activeDiffusionId)?.name,
     }),
     [diffusionSystemsWithData, activeDiffusionId]
   );
 
   const contagionConfig = useMemo(
     () => ({
-      name: contagionSystemsWithData.find(s => s.id === activeContagionId)?.name,
+      name: contagionSystemsWithData.find((s) => s.id === activeContagionId)?.name,
     }),
     [contagionSystemsWithData, activeContagionId]
   );
 
   // Transform data
-  const { data: pressureData, pressureIds, breakdownsByTick } = useMemo(
-    () => transformPressureData(pressureUpdates),
-    [pressureUpdates]
-  );
+  const {
+    data: pressureData,
+    pressureIds,
+    breakdownsByTick,
+  } = useMemo(() => transformPressureData(pressureUpdates), [pressureUpdates]);
 
   const eventData = useMemo(
     () => transformEventData(templateApplications, actionApplications, systemActions, pressureData),
@@ -1770,21 +1831,25 @@ export default function SimulationTraceVisx({
     if (!eventId) return null;
 
     // Check templates first
-    const templateEvent = eventData.template.find(e => e.uniqueId === eventId);
+    const templateEvent = eventData.template.find((e) => e.uniqueId === eventId);
     if (templateEvent) {
-      return { type: 'template', data: templateEvent.data };
+      return { type: "template", data: templateEvent.data };
     }
 
     // Check action applications
-    const actionEvent = eventData.action.find(e => e.uniqueId === eventId);
+    const actionEvent = eventData.action.find((e) => e.uniqueId === eventId);
     if (actionEvent) {
-      return { type: 'action', data: actionEvent.data };
+      return { type: "action", data: actionEvent.data };
     }
 
     // Check system actions
-    const systemEvent = eventData.system.find(e => e.uniqueId === eventId);
+    const systemEvent = eventData.system.find((e) => e.uniqueId === eventId);
     if (systemEvent) {
-      return { type: 'system', data: systemEvent.data, isEraTransition: systemEvent.isEraTransition };
+      return {
+        type: "system",
+        data: systemEvent.data,
+        isEraTransition: systemEvent.isEraTransition,
+      };
     }
 
     return null;
@@ -1792,32 +1857,36 @@ export default function SimulationTraceVisx({
 
   // Count era transitions for display
   const eraTransitionCount = useMemo(
-    () => eventData.system.filter(e => e.isEraTransition).length,
+    () => eventData.system.filter((e) => e.isEraTransition).length,
     [eventData]
   );
 
   // Get max tick for slider (from pressure data or system actions)
   const maxTick = useMemo(() => {
-    const pressureMax = pressureData.length > 0 ? Math.max(...pressureData.map(d => d.tick)) : 0;
-    const systemMax = systemActions.length > 0 ? Math.max(...systemActions.map(a => a.tick)) : 0;
+    const pressureMax = pressureData.length > 0 ? Math.max(...pressureData.map((d) => d.tick)) : 0;
+    const systemMax = systemActions.length > 0 ? Math.max(...systemActions.map((a) => a.tick)) : 0;
     return Math.max(pressureMax, systemMax, 1);
   }, [pressureData, systemActions]);
 
   // Get available ticks with visualization data for the active system
   const availableVisTicks = useMemo(() => {
-    if (systemPanel === 'plane-diffusion' && activeDiffusionId) {
-      return [...new Set(
-        systemActions
-          .filter(a => a.systemId === activeDiffusionId && a.details?.diffusionSnapshot)
-          .map(a => a.tick)
-      )].sort((a, b) => a - b);
+    if (systemPanel === "plane-diffusion" && activeDiffusionId) {
+      return [
+        ...new Set(
+          systemActions
+            .filter((a) => a.systemId === activeDiffusionId && a.details?.diffusionSnapshot)
+            .map((a) => a.tick)
+        ),
+      ].sort((a, b) => a - b);
     }
-    if (systemPanel === 'graph-contagion' && activeContagionId) {
-      return [...new Set(
-        systemActions
-          .filter(a => a.systemId === activeContagionId && a.details?.contagionSnapshot)
-          .map(a => a.tick)
-      )].sort((a, b) => a - b);
+    if (systemPanel === "graph-contagion" && activeContagionId) {
+      return [
+        ...new Set(
+          systemActions
+            .filter((a) => a.systemId === activeContagionId && a.details?.contagionSnapshot)
+            .map((a) => a.tick)
+        ),
+      ].sort((a, b) => a - b);
     }
     return [];
   }, [systemPanel, activeDiffusionId, activeContagionId, systemActions]);
@@ -1825,7 +1894,10 @@ export default function SimulationTraceVisx({
   // Initialize lockedTick to maxTick when opening a visualization panel
   // This ensures slider position matches displayed data
   React.useEffect(() => {
-    if ((systemPanel === 'plane-diffusion' || systemPanel === 'graph-contagion') && lockedTick === null) {
+    if (
+      (systemPanel === "plane-diffusion" || systemPanel === "graph-contagion") &&
+      lockedTick === null
+    ) {
       setLockedTick(maxTick);
     }
   }, [systemPanel, maxTick, lockedTick]);
@@ -1835,28 +1907,37 @@ export default function SimulationTraceVisx({
     setSelectedTick(tick);
   }, []);
 
-  const handleTickClick = useCallback((tick) => {
-    if (lockedTick === tick) {
-      setLockedTick(null);
-    } else {
-      setLockedTick(tick);
-      setSelectedTick(tick);
-    }
-  }, [lockedTick]);
+  const handleTickClick = useCallback(
+    (tick) => {
+      if (lockedTick === tick) {
+        setLockedTick(null);
+      } else {
+        setLockedTick(tick);
+        setSelectedTick(tick);
+      }
+    },
+    [lockedTick]
+  );
 
-  const handleEventHover = useCallback((eventId) => {
-    if (!selectedEventId) {
-      setHoveredEventId(eventId);
-    }
-  }, [selectedEventId]);
+  const handleEventHover = useCallback(
+    (eventId) => {
+      if (!selectedEventId) {
+        setHoveredEventId(eventId);
+      }
+    },
+    [selectedEventId]
+  );
 
-  const handleEventClick = useCallback((eventId) => {
-    if (selectedEventId === eventId) {
-      setSelectedEventId(null);
-    } else {
-      setSelectedEventId(eventId);
-    }
-  }, [selectedEventId]);
+  const handleEventClick = useCallback(
+    (eventId) => {
+      if (selectedEventId === eventId) {
+        setSelectedEventId(null);
+      } else {
+        setSelectedEventId(eventId);
+      }
+    },
+    [selectedEventId]
+  );
 
   const handleUnlock = useCallback(() => {
     setLockedTick(null);
@@ -1868,7 +1949,7 @@ export default function SimulationTraceVisx({
   }, []);
 
   const togglePressure = useCallback((id) => {
-    setHiddenPressures(prev => {
+    setHiddenPressures((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -1884,33 +1965,45 @@ export default function SimulationTraceVisx({
           <div className="lw-trace-view-title">
             Simulation Trace
             <span className="lw-trace-view-subtitle">
-              {pressureData.length} ticks / {pressureIds.length} pressures / {eventData.template.length} templates / {eventData.action.length} actions / {eraTransitionCount} era transitions
+              {pressureData.length} ticks / {pressureIds.length} pressures /{" "}
+              {eventData.template.length} templates / {eventData.action.length} actions /{" "}
+              {eraTransitionCount} era transitions
             </span>
           </div>
           <div className="lw-trace-view-header-actions">
             <button
-              className={`lw-trace-view-panel-toggle ${systemPanel === 'activity' ? 'active' : ''}`}
-              onClick={() => setSystemPanel(systemPanel === 'activity' ? null : 'activity')}
+              className={`lw-trace-view-panel-toggle ${systemPanel === "activity" ? "active" : ""}`}
+              onClick={() => setSystemPanel(systemPanel === "activity" ? null : "activity")}
             >
               Activity
             </button>
             <button
-              className={`lw-trace-view-panel-toggle ${systemPanel === 'plane-diffusion' ? 'active' : ''} ${diffusionSystemsWithData.length > 0 ? 'has-data' : ''}`}
-              onClick={() => setSystemPanel(systemPanel === 'plane-diffusion' ? null : 'plane-diffusion')}
-              title={diffusionSystemsWithData.length > 0
-                ? `${diffusionSystemsWithData.length} system(s): ${diffusionSystemsWithData.map(s => s.name).join(', ')}`
-                : 'No diffusion systems ran'}
+              className={`lw-trace-view-panel-toggle ${systemPanel === "plane-diffusion" ? "active" : ""} ${diffusionSystemsWithData.length > 0 ? "has-data" : ""}`}
+              onClick={() =>
+                setSystemPanel(systemPanel === "plane-diffusion" ? null : "plane-diffusion")
+              }
+              title={
+                diffusionSystemsWithData.length > 0
+                  ? `${diffusionSystemsWithData.length} system(s): ${diffusionSystemsWithData.map((s) => s.name).join(", ")}`
+                  : "No diffusion systems ran"
+              }
             >
-              Diffusion{diffusionSystemsWithData.length > 0 && ` (${diffusionSystemsWithData.length})`}
+              Diffusion
+              {diffusionSystemsWithData.length > 0 && ` (${diffusionSystemsWithData.length})`}
             </button>
             <button
-              className={`lw-trace-view-panel-toggle ${systemPanel === 'graph-contagion' ? 'active' : ''} ${contagionSystemsWithData.length > 0 ? 'has-data' : ''}`}
-              onClick={() => setSystemPanel(systemPanel === 'graph-contagion' ? null : 'graph-contagion')}
-              title={contagionSystemsWithData.length > 0
-                ? `${contagionSystemsWithData.length} system(s): ${contagionSystemsWithData.map(s => s.name).join(', ')}`
-                : 'No contagion systems ran'}
+              className={`lw-trace-view-panel-toggle ${systemPanel === "graph-contagion" ? "active" : ""} ${contagionSystemsWithData.length > 0 ? "has-data" : ""}`}
+              onClick={() =>
+                setSystemPanel(systemPanel === "graph-contagion" ? null : "graph-contagion")
+              }
+              title={
+                contagionSystemsWithData.length > 0
+                  ? `${contagionSystemsWithData.length} system(s): ${contagionSystemsWithData.map((s) => s.name).join(", ")}`
+                  : "No contagion systems ran"
+              }
             >
-              Contagion{contagionSystemsWithData.length > 0 && ` (${contagionSystemsWithData.length})`}
+              Contagion
+              {contagionSystemsWithData.length > 0 && ` (${contagionSystemsWithData.length})`}
             </button>
             <button className="lw-trace-view-close" onClick={onClose}>
               x
@@ -1930,10 +2023,12 @@ export default function SimulationTraceVisx({
                 return (
                   <button
                     key={id}
-                    className={`lw-trace-view-toggle ${isHidden ? 'hidden' : ''}`}
+                    className={`lw-trace-view-toggle ${isHidden ? "hidden" : ""}`}
                     style={{
                       borderColor: PRESSURE_COLORS[i % PRESSURE_COLORS.length],
-                      backgroundColor: isHidden ? 'transparent' : PRESSURE_COLORS[i % PRESSURE_COLORS.length] + '20',
+                      backgroundColor: isHidden
+                        ? "transparent"
+                        : PRESSURE_COLORS[i % PRESSURE_COLORS.length] + "20",
                     }}
                     onClick={() => togglePressure(id)}
                   >
@@ -1944,7 +2039,7 @@ export default function SimulationTraceVisx({
             </div>
 
             {/* Chart area */}
-            <div className={`lw-trace-view-chart-area ${lockedTick !== null ? 'locked' : ''}`}>
+            <div className={`lw-trace-view-chart-area ${lockedTick !== null ? "locked" : ""}`}>
               <ParentSize>
                 {({ width, height }) => (
                   <TraceVisualization
@@ -1971,18 +2066,18 @@ export default function SimulationTraceVisx({
             </div>
 
             {/* System Visualization Panels */}
-            {systemPanel === 'activity' && (
+            {systemPanel === "activity" && (
               <div className="lw-trace-view-system-activity">
                 <SystemActivityPanel systemActions={systemActions} />
               </div>
             )}
-            {systemPanel === 'plane-diffusion' && (
+            {systemPanel === "plane-diffusion" && (
               <div className="lw-trace-view-system-vis">
                 {diffusionSystemsWithData.length === 0 ? (
                   <div className="vis-empty">
                     <div className="vis-empty-icon">&#9783;</div>
                     <div>No diffusion data</div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>
                       Enable a planeDiffusion system and run simulation
                     </div>
                   </div>
@@ -1992,7 +2087,7 @@ export default function SimulationTraceVisx({
                       {diffusionSystemsWithData.length > 1 && (
                         <select
                           className="lw-trace-view-system-select"
-                          value={activeDiffusionId || ''}
+                          value={activeDiffusionId || ""}
                           onChange={(e) => setSelectedDiffusionId(e.target.value)}
                         >
                           {diffusionSystemsWithData.map((sys) => (
@@ -2030,7 +2125,7 @@ export default function SimulationTraceVisx({
                     </div>
                     <PlaneDiffusionVis
                       config={diffusionConfig}
-                      systemActions={systemActions.filter(a => a.systemId === activeDiffusionId)}
+                      systemActions={systemActions.filter((a) => a.systemId === activeDiffusionId)}
                       selectedTick={lockedTick ?? selectedTick}
                       autoScaleColors={autoScaleColors}
                     />
@@ -2038,13 +2133,13 @@ export default function SimulationTraceVisx({
                 )}
               </div>
             )}
-            {systemPanel === 'graph-contagion' && (
+            {systemPanel === "graph-contagion" && (
               <div className="lw-trace-view-system-vis">
                 {contagionSystemsWithData.length === 0 ? (
                   <div className="vis-empty">
                     <div className="vis-empty-icon">&#9673;</div>
                     <div>No contagion data</div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>
                       Enable a graphContagion system and run simulation
                     </div>
                   </div>
@@ -2054,7 +2149,7 @@ export default function SimulationTraceVisx({
                       {contagionSystemsWithData.length > 1 && (
                         <select
                           className="lw-trace-view-system-select"
-                          value={activeContagionId || ''}
+                          value={activeContagionId || ""}
                           onChange={(e) => setSelectedContagionId(e.target.value)}
                         >
                           {contagionSystemsWithData.map((sys) => (
@@ -2084,7 +2179,7 @@ export default function SimulationTraceVisx({
                     </div>
                     <GraphContagionVis
                       config={contagionConfig}
-                      systemActions={systemActions.filter(a => a.systemId === activeContagionId)}
+                      systemActions={systemActions.filter((a) => a.systemId === activeContagionId)}
                       selectedTick={lockedTick ?? selectedTick}
                     />
                   </>
@@ -2094,19 +2189,19 @@ export default function SimulationTraceVisx({
           </div>
 
           {/* Right: Detail panel */}
-          {selectedEvent?.type === 'template' ? (
+          {selectedEvent?.type === "template" ? (
             <TemplateDetailPanel
               template={selectedEvent.data}
               isLocked={!!selectedEventId}
               onClear={handleClearEvent}
             />
-          ) : selectedEvent?.type === 'action' ? (
+          ) : selectedEvent?.type === "action" ? (
             <ActionDetailPanel
               actionApplication={selectedEvent.data}
               isLocked={!!selectedEventId}
               onClear={handleClearEvent}
             />
-          ) : selectedEvent?.type === 'system' ? (
+          ) : selectedEvent?.type === "system" ? (
             <SystemActionDetailPanel
               systemAction={selectedEvent.data}
               isEraTransition={selectedEvent.isEraTransition}

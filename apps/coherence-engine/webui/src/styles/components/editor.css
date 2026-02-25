@@ -44,7 +44,6 @@
   gap: var(--spacing-lg);
 }
 
-
 /* Items grid (vertical stack for nested items) */
 .items-grid {
   display: flex;

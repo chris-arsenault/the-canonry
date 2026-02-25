@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
-import type { WorldState, HardState, Point, Region } from '../types/world.ts';
-import type { EntityKindDefinition } from '@canonry/world-schema';
-import './CoordinateMapView.css';
+import { useEffect, useRef, useState, useMemo } from "react";
+import type { WorldState, HardState, Point, Region } from "../types/world.ts";
+import type { EntityKindDefinition } from "@canonry/world-schema";
+import "./CoordinateMapView.css";
 
 interface CoordinateMapViewProps {
   data: WorldState;
@@ -15,7 +15,7 @@ function getKindDisplayName(kindDef: EntityKindDefinition): string {
 
 function mergeRegions(seed: Region[], emergent: Region[]): Region[] {
   const merged = [...seed];
-  const seen = new Set(seed.map(region => region.id));
+  const seen = new Set(seed.map((region) => region.id));
   for (const region of emergent) {
     if (!seen.has(region.id)) {
       merged.push(region);
@@ -39,7 +39,7 @@ function getRegionColor(region: Region): { fill: string; stroke: string } {
   }
   return {
     fill: hexToRgba(region.color, 0.15),
-    stroke: hexToRgba(region.color, 0.7)
+    stroke: hexToRgba(region.color, 0.7),
   };
 }
 
@@ -47,7 +47,12 @@ function getRegionColor(region: Region): { fill: string; stroke: string } {
 function getEntityCoords(entity: HardState): Point {
   const coords = entity.coordinates;
 
-  if (!coords || typeof coords.x !== 'number' || typeof coords.y !== 'number' || typeof coords.z !== 'number') {
+  if (
+    !coords ||
+    typeof coords.x !== "number" ||
+    typeof coords.y !== "number" ||
+    typeof coords.z !== "number"
+  ) {
     throw new Error(`Archivist: entity "${entity.id}" is missing valid coordinates.`);
   }
   return coords;
@@ -69,11 +74,11 @@ function runForceLayout(
   relationships: Array<{ src: string; dst: string; strength?: number }>,
   iterations: number = 50
 ): void {
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
   for (let i = 0; i < iterations; i++) {
     // Reset velocities
-    nodes.forEach(n => {
+    nodes.forEach((n) => {
       if (!n.anchored) {
         n.vx = 0;
         n.vy = 0;
@@ -81,7 +86,7 @@ function runForceLayout(
     });
 
     // Attraction to related anchored nodes
-    relationships.forEach(rel => {
+    relationships.forEach((rel) => {
       const src = nodeMap.get(rel.src);
       const dst = nodeMap.get(rel.dst);
       if (!src || !dst) return;
@@ -92,33 +97,33 @@ function runForceLayout(
       const strength = (rel.strength ?? 0.5) * 0.1;
 
       if (!src.anchored) {
-        src.vx += dx / dist * strength;
-        src.vy += dy / dist * strength;
+        src.vx += (dx / dist) * strength;
+        src.vy += (dy / dist) * strength;
       }
       if (!dst.anchored) {
-        dst.vx -= dx / dist * strength;
-        dst.vy -= dy / dist * strength;
+        dst.vx -= (dx / dist) * strength;
+        dst.vy -= (dy / dist) * strength;
       }
     });
 
     // Repulsion between floating nodes
-    nodes.forEach(a => {
+    nodes.forEach((a) => {
       if (a.anchored) return;
-      nodes.forEach(b => {
+      nodes.forEach((b) => {
         if (a.id === b.id) return;
         const dx = a.x - b.x;
         const dy = a.y - b.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
         if (dist < 10) {
           const force = 0.5 / dist;
-          a.vx += dx / dist * force;
-          a.vy += dy / dist * force;
+          a.vx += (dx / dist) * force;
+          a.vy += (dy / dist) * force;
         }
       });
     });
 
     // Apply velocities
-    nodes.forEach(n => {
+    nodes.forEach((n) => {
       if (!n.anchored) {
         n.x = Math.max(0, Math.min(100, n.x + n.vx));
         n.y = Math.max(0, Math.min(100, n.y + n.vy));
@@ -127,16 +132,22 @@ function runForceLayout(
   }
 }
 
-export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }: CoordinateMapViewProps) {
+export default function CoordinateMapView({
+  data,
+  selectedNodeId,
+  onNodeSelect,
+}: CoordinateMapViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [mapKind, setMapKind] = useState<string>(() => {
-    const firstKind = data.schema.entityKinds.find(kind => kind.semanticPlane)?.kind;
-    return firstKind ?? '';
-  });  // Which entity kind's map to show
-  const [showRelatedKinds, setShowRelatedKinds] = useState<boolean>(true);  // Show related entities from other kinds
-  const [visibleLayers, setVisibleLayers] = useState<Set<string>>(new Set(['regions', 'entities', 'relationships']));
+    const firstKind = data.schema.entityKinds.find((kind) => kind.semanticPlane)?.kind;
+    return firstKind ?? "";
+  }); // Which entity kind's map to show
+  const [showRelatedKinds, setShowRelatedKinds] = useState<boolean>(true); // Show related entities from other kinds
+  const [visibleLayers, setVisibleLayers] = useState<Set<string>>(
+    new Set(["regions", "entities", "relationships"])
+  );
   const [hoveredEntity, setHoveredEntity] = useState<HardState | null>(null);
   const [hoveredRegion, setHoveredRegion] = useState<Region | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
@@ -144,19 +155,19 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
   // Get entity kind schemas
   const entityKindSchemas = data.schema.entityKinds;
   const kindDisplayNames = useMemo(() => {
-    return new Map(entityKindSchemas.map(kind => [kind.kind, getKindDisplayName(kind)]));
+    return new Map(entityKindSchemas.map((kind) => [kind.kind, getKindDisplayName(kind)]));
   }, [entityKindSchemas]);
 
   const axisDefinitions = data.schema.axisDefinitions || [];
   const axisById = useMemo(() => {
-    return new Map(axisDefinitions.map(axis => [axis.id, axis]));
+    return new Map(axisDefinitions.map((axis) => [axis.id, axis]));
   }, [axisDefinitions]);
 
   const mappableKindSchemas = useMemo(
-    () => entityKindSchemas.filter(kind => kind.semanticPlane),
+    () => entityKindSchemas.filter((kind) => kind.semanticPlane),
     [entityKindSchemas]
   );
-  const mappableKinds = mappableKindSchemas.map(kind => kind.kind);
+  const mappableKinds = mappableKindSchemas.map((kind) => kind.kind);
 
   // Ensure mapKind is valid - default to first available kind if current selection is invalid
   useEffect(() => {
@@ -166,9 +177,9 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
   }, [mappableKinds, mapKind]);
 
   // Get per-kind map config and regions (seed + emergent)
-  const activeKindDef = mappableKindSchemas.find(kind => kind.kind === mapKind);
+  const activeKindDef = mappableKindSchemas.find((kind) => kind.kind === mapKind);
   if (!activeKindDef || !activeKindDef.semanticPlane) {
-    throw new Error('Archivist: map view requires a semantic plane on the selected entity kind.');
+    throw new Error("Archivist: map view requires a semantic plane on the selected entity kind.");
   }
   const displayName = getKindDisplayName(activeKindDef);
   const planeAxes = activeKindDef.semanticPlane.axes;
@@ -188,23 +199,23 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
 
   // Filter entities for the current map - primary kind always shown, related kinds optionally
   const mapEntities = useMemo(() => {
-    const primaryEntities = data.hardState.filter(e => e.kind === mapKind);
+    const primaryEntities = data.hardState.filter((e) => e.kind === mapKind);
 
     if (!showRelatedKinds) {
       return primaryEntities;
     }
 
     // Find entities related to primary entities
-    const primaryIds = new Set(primaryEntities.map(e => e.id));
+    const primaryIds = new Set(primaryEntities.map((e) => e.id));
     const relatedIds = new Set<string>();
 
-    data.relationships.forEach(rel => {
+    data.relationships.forEach((rel) => {
       if (primaryIds.has(rel.src)) relatedIds.add(rel.dst);
       if (primaryIds.has(rel.dst)) relatedIds.add(rel.src);
     });
 
-    const relatedEntities = data.hardState.filter(e =>
-      relatedIds.has(e.id) && !primaryIds.has(e.id)
+    const relatedEntities = data.hardState.filter(
+      (e) => relatedIds.has(e.id) && !primaryIds.has(e.id)
     );
 
     return [...primaryEntities, ...relatedEntities];
@@ -213,7 +224,7 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
   // Build entity color map
   const entityColorMap = useMemo(() => {
     const map = new Map<string, string>();
-    entityKindSchemas.forEach(ek => {
+    entityKindSchemas.forEach((ek) => {
       if (!ek.style?.color) {
         throw new Error(`Archivist: entity kind "${ek.kind}" is missing style.color.`);
       }
@@ -227,7 +238,7 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
     const nodes: LayoutNode[] = [];
 
     // All entities get coordinates
-    mapEntities.forEach(entity => {
+    mapEntities.forEach((entity) => {
       const coords = getEntityCoords(entity);
 
       nodes.push({
@@ -238,22 +249,22 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
         vy: 0,
         // Only anchor primary kind entities
         anchored: entity.kind === mapKind,
-        entity
+        entity,
       });
     });
 
     // Run force layout - only include relationships between visible entities
-    const visibleIds = new Set(mapEntities.map(e => e.id));
+    const visibleIds = new Set(mapEntities.map((e) => e.id));
     const relationships = data.relationships
-      .filter(r => visibleIds.has(r.src) && visibleIds.has(r.dst))
-      .map(r => ({
+      .filter((r) => visibleIds.has(r.src) && visibleIds.has(r.dst))
+      .map((r) => ({
         src: r.src,
         dst: r.dst,
-        strength: r.strength
+        strength: r.strength,
       }));
     runForceLayout(nodes, relationships);
 
-    return new Map(nodes.map(n => [n.id, { x: n.x, y: n.y, anchored: n.anchored }]));
+    return new Map(nodes.map((n) => [n.id, { x: n.x, y: n.y, anchored: n.anchored }]));
   }, [mapEntities, data.relationships, mapKind]);
 
   // Use uniform scale to preserve aspect ratio (circles stay circular)
@@ -271,7 +282,7 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
   const worldToCanvas = (x: number, y: number): { x: number; y: number } => {
     return {
       x: offsetX + (x - bounds.min) * uniformScale,
-      y: dimensions.height - offsetY - (y - bounds.min) * uniformScale // Flip Y for canvas
+      y: dimensions.height - offsetY - (y - bounds.min) * uniformScale, // Flip Y for canvas
     };
   };
 
@@ -279,7 +290,7 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
   const canvasToWorld = (canvasX: number, canvasY: number): { x: number; y: number } => {
     return {
       x: bounds.min + (canvasX - offsetX) / uniformScale,
-      y: bounds.min + (dimensions.height - offsetY - canvasY) / uniformScale
+      y: bounds.min + (dimensions.height - offsetY - canvasY) / uniformScale,
     };
   };
 
@@ -294,14 +305,14 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
       if (containerRef.current) {
         setDimensions({
           width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight
+          height: containerRef.current.clientHeight,
         });
       }
     };
 
     updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
+    window.addEventListener("resize", updateDimensions);
+    return () => window.removeEventListener("resize", updateDimensions);
   }, []);
 
   // Draw the map
@@ -309,15 +320,15 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     // Clear canvas
-    ctx.fillStyle = '#0a1929';
+    ctx.fillStyle = "#0a1929";
     ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
     // Draw grid
-    ctx.strokeStyle = 'rgba(59, 130, 246, 0.1)';
+    ctx.strokeStyle = "rgba(59, 130, 246, 0.1)";
     ctx.lineWidth = 1;
     const gridStep = 10;
 
@@ -339,23 +350,23 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
 
     // Draw axis labels - semantic tags at ends, numeric in middle
     // Draw semantic axis labels at ends
-    ctx.font = 'bold 11px sans-serif';
-    ctx.textAlign = 'center';
+    ctx.font = "bold 11px sans-serif";
+    ctx.textAlign = "center";
 
     // X-axis labels (low on left, high on right)
     if (xAxis) {
       // Low tag (left side)
-      ctx.fillStyle = 'rgba(252, 107, 107, 0.8)';  // Reddish for low
+      ctx.fillStyle = "rgba(252, 107, 107, 0.8)"; // Reddish for low
       const xLowPos = worldToCanvas(bounds.min + 5, bounds.min);
       ctx.fillText(`← ${xAxis.lowTag}`, xLowPos.x + 30, xLowPos.y + 25);
 
       // Axis name (center bottom)
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
       const xCenterPos = worldToCanvas((bounds.min + bounds.max) / 2, bounds.min);
       ctx.fillText(xAxis.name, xCenterPos.x, xCenterPos.y + 25);
 
       // High tag (right side)
-      ctx.fillStyle = 'rgba(107, 252, 156, 0.8)';  // Greenish for high
+      ctx.fillStyle = "rgba(107, 252, 156, 0.8)"; // Greenish for high
       const xHighPos = worldToCanvas(bounds.max - 5, bounds.min);
       ctx.fillText(`${xAxis.highTag} →`, xHighPos.x - 30, xHighPos.y + 25);
     }
@@ -365,7 +376,7 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
       ctx.save();
 
       // Low tag (bottom)
-      ctx.fillStyle = 'rgba(252, 107, 107, 0.8)';
+      ctx.fillStyle = "rgba(252, 107, 107, 0.8)";
       const yLowPos = worldToCanvas(bounds.min, bounds.min + 5);
       ctx.translate(yLowPos.x - 25, yLowPos.y - 20);
       ctx.rotate(-Math.PI / 2);
@@ -374,7 +385,7 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
 
       // Axis name (center left)
       ctx.save();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
       const yCenterPos = worldToCanvas(bounds.min, (bounds.min + bounds.max) / 2);
       ctx.translate(yCenterPos.x - 25, yCenterPos.y);
       ctx.rotate(-Math.PI / 2);
@@ -383,7 +394,7 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
 
       // High tag (top)
       ctx.save();
-      ctx.fillStyle = 'rgba(107, 252, 156, 0.8)';
+      ctx.fillStyle = "rgba(107, 252, 156, 0.8)";
       const yHighPos = worldToCanvas(bounds.min, bounds.max - 5);
       ctx.translate(yHighPos.x - 25, yHighPos.y + 20);
       ctx.rotate(-Math.PI / 2);
@@ -392,43 +403,44 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
     }
 
     // Draw small numeric labels for reference
-    ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
-    ctx.font = '9px monospace';
-    ctx.textAlign = 'center';
+    ctx.fillStyle = "rgba(59, 130, 246, 0.3)";
+    ctx.font = "9px monospace";
+    ctx.textAlign = "center";
     for (let i = bounds.min + 20; i < bounds.max; i += 20) {
       const pos = worldToCanvas(i, bounds.min);
       ctx.fillText(i.toString(), pos.x, pos.y + 12);
 
-      ctx.textAlign = 'right';
+      ctx.textAlign = "right";
       const posY = worldToCanvas(bounds.min, i);
       ctx.fillText(i.toString(), posY.x - 5, posY.y + 3);
-      ctx.textAlign = 'center';
+      ctx.textAlign = "center";
     }
 
     // Parse selectedNodeId to check if a region is selected
-    const selectedRegionId = selectedNodeId?.startsWith('region:')
-      ? selectedNodeId.split(':')[2]
+    const selectedRegionId = selectedNodeId?.startsWith("region:")
+      ? selectedNodeId.split(":")[2]
       : null;
 
     // Draw regions if layer is visible
-    if (visibleLayers.has('regions')) {
-      regions.forEach(region => {
+    if (visibleLayers.has("regions")) {
+      regions.forEach((region) => {
         const colors = getRegionColor(region);
         const isHovered = hoveredRegion?.id === region.id;
         const isSelected = selectedRegionId === region.id;
 
         // Adjust colors for hover/selection state
-        ctx.fillStyle = isHovered || isSelected
-          ? colors.fill.replace(/[\d.]+\)$/, '0.3)')  // Brighter fill
-          : colors.fill;
+        ctx.fillStyle =
+          isHovered || isSelected
+            ? colors.fill.replace(/[\d.]+\)$/, "0.3)") // Brighter fill
+            : colors.fill;
         ctx.strokeStyle = isSelected
-          ? '#ffffff'  // White stroke for selected
+          ? "#ffffff" // White stroke for selected
           : isHovered
-            ? colors.stroke.replace(/[\d.]+\)$/, '1)')  // Full opacity on hover
+            ? colors.stroke.replace(/[\d.]+\)$/, "1)") // Full opacity on hover
             : colors.stroke;
         ctx.lineWidth = isSelected ? 3 : isHovered ? 2.5 : 2;
 
-        if (region.bounds.shape === 'circle') {
+        if (region.bounds.shape === "circle") {
           const center = worldToCanvas(region.bounds.center.x, region.bounds.center.y);
           const radiusPixels = worldToCanvasDistance(region.bounds.radius);
 
@@ -438,11 +450,11 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
           ctx.stroke();
 
           // Draw label
-          ctx.fillStyle = isHovered || isSelected ? '#ffffff' : colors.stroke;
-          ctx.font = isHovered || isSelected ? 'bold 13px sans-serif' : 'bold 12px sans-serif';
-          ctx.textAlign = 'center';
+          ctx.fillStyle = isHovered || isSelected ? "#ffffff" : colors.stroke;
+          ctx.font = isHovered || isSelected ? "bold 13px sans-serif" : "bold 12px sans-serif";
+          ctx.textAlign = "center";
           ctx.fillText(region.label, center.x, center.y);
-        } else if (region.bounds.shape === 'rect') {
+        } else if (region.bounds.shape === "rect") {
           const topLeft = worldToCanvas(region.bounds.x1, region.bounds.y2);
           const bottomRight = worldToCanvas(region.bounds.x2, region.bounds.y1);
 
@@ -452,17 +464,17 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
           ctx.stroke();
 
           // Draw label
-          ctx.fillStyle = isHovered || isSelected ? '#ffffff' : colors.stroke;
-          ctx.font = isHovered || isSelected ? 'bold 13px sans-serif' : 'bold 12px sans-serif';
-          ctx.textAlign = 'center';
+          ctx.fillStyle = isHovered || isSelected ? "#ffffff" : colors.stroke;
+          ctx.font = isHovered || isSelected ? "bold 13px sans-serif" : "bold 12px sans-serif";
+          ctx.textAlign = "center";
           const centerX = (topLeft.x + bottomRight.x) / 2;
           const centerY = (topLeft.y + bottomRight.y) / 2;
           ctx.fillText(region.label, centerX, centerY);
-        } else if (region.bounds.shape === 'polygon') {
-          const points = region.bounds.points.map(p => worldToCanvas(p.x, p.y));
+        } else if (region.bounds.shape === "polygon") {
+          const points = region.bounds.points.map((p) => worldToCanvas(p.x, p.y));
           ctx.beginPath();
           ctx.moveTo(points[0].x, points[0].y);
-          points.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+          points.slice(1).forEach((p) => ctx.lineTo(p.x, p.y));
           ctx.closePath();
           ctx.fill();
           ctx.stroke();
@@ -471,11 +483,11 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
     }
 
     // Draw relationships if layer is visible
-    if (visibleLayers.has('relationships')) {
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    if (visibleLayers.has("relationships")) {
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
       ctx.lineWidth = 1;
 
-      data.relationships.forEach(rel => {
+      data.relationships.forEach((rel) => {
         const srcPos = entityPositions.get(rel.src);
         const dstPos = entityPositions.get(rel.dst);
         if (!srcPos || !dstPos) return;
@@ -493,8 +505,8 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
     }
 
     // Draw entities if layer is visible
-    if (visibleLayers.has('entities')) {
-      mapEntities.forEach(entity => {
+    if (visibleLayers.has("entities")) {
+      mapEntities.forEach((entity) => {
         const pos = entityPositions.get(entity.id);
         if (!pos) return;
 
@@ -516,14 +528,14 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
 
         // Draw primary kind indicator (white border)
         if (isPrimaryKind) {
-          ctx.strokeStyle = '#fff';
+          ctx.strokeStyle = "#fff";
           ctx.lineWidth = 2;
           ctx.stroke();
         }
 
         // Draw selection/hover highlight
         if (isSelected || isHovered) {
-          ctx.strokeStyle = '#FFD700';
+          ctx.strokeStyle = "#FFD700";
           ctx.lineWidth = 3;
           ctx.beginPath();
           ctx.arc(canvasPos.x, canvasPos.y, radius + 4, 0, Math.PI * 2);
@@ -532,25 +544,43 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
 
         // Draw label for primary kind or selected/hovered entities
         if (isPrimaryKind || isSelected || isHovered) {
-          ctx.fillStyle = '#fff';
-          ctx.font = '10px sans-serif';
-          ctx.textAlign = 'center';
+          ctx.fillStyle = "#fff";
+          ctx.font = "10px sans-serif";
+          ctx.textAlign = "center";
           ctx.fillText(entity.name, canvasPos.x, canvasPos.y - radius - 5);
         }
       });
     }
-
-  }, [data, dimensions, mapKind, visibleLayers, entityPositions, entityColorMap, regions, bounds, selectedNodeId, hoveredEntity, hoveredRegion, mapEntities, xAxis, yAxis]);
+  }, [
+    data,
+    dimensions,
+    mapKind,
+    visibleLayers,
+    entityPositions,
+    entityColorMap,
+    regions,
+    bounds,
+    selectedNodeId,
+    hoveredEntity,
+    hoveredRegion,
+    mapEntities,
+    xAxis,
+    yAxis,
+  ]);
 
   // Check if a point is inside a region
   const isPointInRegion = (region: Region, worldX: number, worldY: number): boolean => {
-    if (region.bounds.shape === 'circle') {
+    if (region.bounds.shape === "circle") {
       const dx = worldX - region.bounds.center.x;
       const dy = worldY - region.bounds.center.y;
       return Math.sqrt(dx * dx + dy * dy) <= region.bounds.radius;
-    } else if (region.bounds.shape === 'rect') {
-      return worldX >= region.bounds.x1 && worldX <= region.bounds.x2 &&
-             worldY >= region.bounds.y1 && worldY <= region.bounds.y2;
+    } else if (region.bounds.shape === "rect") {
+      return (
+        worldX >= region.bounds.x1 &&
+        worldX <= region.bounds.x2 &&
+        worldY >= region.bounds.y1 &&
+        worldY <= region.bounds.y2
+      );
     }
     return false;
   };
@@ -570,7 +600,7 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
     let foundEntity: HardState | null = null;
     let minDist = 3; // Threshold in world units - small to allow region selection
 
-    mapEntities.forEach(entity => {
+    mapEntities.forEach((entity) => {
       const pos = entityPositions.get(entity.id);
       if (!pos) return;
 
@@ -589,7 +619,7 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
     // Find region under cursor (if no entity found and regions visible)
     // Check regions in reverse order so topmost (last drawn) is selected first
     let foundRegion: Region | null = null;
-    if (!foundEntity && visibleLayers.has('regions')) {
+    if (!foundEntity && visibleLayers.has("regions")) {
       for (let i = regions.length - 1; i >= 0; i--) {
         if (isPointInRegion(regions[i], worldPos.x, worldPos.y)) {
           foundRegion = regions[i];
@@ -612,7 +642,7 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
   };
 
   const toggleLayer = (layer: string) => {
-    setVisibleLayers(prev => {
+    setVisibleLayers((prev) => {
       const next = new Set(prev);
       if (next.has(layer)) {
         next.delete(layer);
@@ -631,7 +661,7 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
         height={dimensions.height}
         onMouseMove={handleMouseMove}
         onClick={handleClick}
-        style={{ cursor: (hoveredEntity || hoveredRegion) ? 'pointer' : 'default' }}
+        style={{ cursor: hoveredEntity || hoveredRegion ? "pointer" : "default" }}
       />
 
       {/* Controls */}
@@ -640,10 +670,10 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
           <div className="control-label">Entity Map</div>
           <select
             value={mapKind}
-            onChange={e => setMapKind(e.target.value)}
+            onChange={(e) => setMapKind(e.target.value)}
             className="control-select"
           >
-            {mappableKinds.map(kind => (
+            {mappableKinds.map((kind) => (
               <option key={kind} value={kind}>
                 {kindDisplayNames.get(kind) ?? kind}
               </option>
@@ -666,7 +696,7 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
         <div className="control-section">
           <div className="control-label">Layers</div>
           <div className="layer-toggles">
-            {['regions', 'entities', 'relationships'].map(layer => (
+            {["regions", "entities", "relationships"].map((layer) => (
               <label key={layer} className="layer-toggle">
                 <input
                   type="checkbox"
@@ -683,7 +713,7 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
       {/* Legend */}
       <div className="coordinate-map-legend">
         <div className="legend-title">Entity Types</div>
-        {entityKindSchemas.map(ek => {
+        {entityKindSchemas.map((ek) => {
           if (!ek.style?.color) {
             throw new Error(`Archivist: entity kind "${ek.kind}" is missing style.color.`);
           }
@@ -693,7 +723,7 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
                 className="legend-dot"
                 style={{
                   backgroundColor: ek.style.color,
-                  border: ek.kind === mapKind ? '2px solid white' : 'none'
+                  border: ek.kind === mapKind ? "2px solid white" : "none",
                 }}
               />
               <span>{ek.description || ek.kind}</span>
@@ -705,16 +735,13 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
           <>
             <div className="legend-divider" />
             <div className="legend-title">Regions ({regions.length})</div>
-            {regions.map(region => {
+            {regions.map((region) => {
               if (!region.color) {
                 throw new Error(`Archivist: region "${region.id}" is missing color.`);
               }
               return (
                 <div key={region.id} className="legend-item">
-                  <div
-                    className="legend-dot"
-                    style={{ backgroundColor: region.color }}
-                  />
+                  <div className="legend-dot" style={{ backgroundColor: region.color }} />
                   <span>{region.label}</span>
                 </div>
               );
@@ -724,24 +751,29 @@ export default function CoordinateMapView({ data, selectedNodeId, onNodeSelect }
       </div>
 
       {/* Hover tooltip */}
-      {hoveredEntity && mousePos && (() => {
-        const coords = getEntityCoords(hoveredEntity);
-        return (
-          <div className="coordinate-map-tooltip" style={{
-            left: worldToCanvas(mousePos.x, mousePos.y).x + 15,
-            top: worldToCanvas(mousePos.x, mousePos.y).y - 15
-          }}>
-            <div className="tooltip-name">{hoveredEntity.name}</div>
-            <div className="tooltip-info">{hoveredEntity.kind} / {hoveredEntity.subtype}</div>
-            <div className="tooltip-info">{hoveredEntity.status}</div>
-            <div className="tooltip-coords">
-              x: {coords.x.toFixed(1)},
-              y: {coords.y.toFixed(1)},
-              z: {coords.z.toFixed(1)}
+      {hoveredEntity &&
+        mousePos &&
+        (() => {
+          const coords = getEntityCoords(hoveredEntity);
+          return (
+            <div
+              className="coordinate-map-tooltip"
+              style={{
+                left: worldToCanvas(mousePos.x, mousePos.y).x + 15,
+                top: worldToCanvas(mousePos.x, mousePos.y).y - 15,
+              }}
+            >
+              <div className="tooltip-name">{hoveredEntity.name}</div>
+              <div className="tooltip-info">
+                {hoveredEntity.kind} / {hoveredEntity.subtype}
+              </div>
+              <div className="tooltip-info">{hoveredEntity.status}</div>
+              <div className="tooltip-coords">
+                x: {coords.x.toFixed(1)}, y: {coords.y.toFixed(1)}, z: {coords.z.toFixed(1)}
+              </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       {/* Coordinate display */}
       {mousePos && (

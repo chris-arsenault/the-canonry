@@ -5,7 +5,7 @@
  * Provides Save/Load actions for managing slots.
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from "react";
 
 const MAX_SAVE_SLOTS = 4;
 
@@ -23,7 +23,7 @@ export default function SlotSelector({
 }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [editingSlot, setEditingSlot] = useState(null);
-  const [editValue, setEditValue] = useState('');
+  const [editValue, setEditValue] = useState("");
   const [importTargetSlot, setImportTargetSlot] = useState(null);
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
@@ -37,8 +37,8 @@ export default function SlotSelector({
         setEditingSlot(null);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Focus input when editing starts
@@ -52,7 +52,7 @@ export default function SlotSelector({
   const handleStartEdit = useCallback((slotIndex, currentTitle, e) => {
     e.stopPropagation();
     setEditingSlot(slotIndex);
-    setEditValue(currentTitle || '');
+    setEditValue(currentTitle || "");
   }, []);
 
   const handleSaveEdit = useCallback(() => {
@@ -60,50 +60,60 @@ export default function SlotSelector({
       onUpdateTitle(editingSlot, editValue.trim());
     }
     setEditingSlot(null);
-    setEditValue('');
+    setEditValue("");
   }, [editingSlot, editValue, onUpdateTitle]);
 
   const handleCancelEdit = useCallback(() => {
     setEditingSlot(null);
-    setEditValue('');
+    setEditValue("");
   }, []);
 
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Enter') {
-      handleSaveEdit();
-    } else if (e.key === 'Escape') {
-      handleCancelEdit();
-    }
-  }, [handleSaveEdit, handleCancelEdit]);
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (e.key === "Enter") {
+        handleSaveEdit();
+      } else if (e.key === "Escape") {
+        handleCancelEdit();
+      }
+    },
+    [handleSaveEdit, handleCancelEdit]
+  );
 
-  const handleImportRequest = useCallback((slotIndex) => {
-    if (!onImportSlot) return;
-    const slot = slots[slotIndex];
-    const slotTitle = slot?.title || (slotIndex === 0 ? 'Scratch' : `Slot ${slotIndex}`);
-    if (slot && !window.confirm(`Overwrite "${slotTitle}" with imported data?`)) {
-      return;
-    }
-    setImportTargetSlot(slotIndex);
-    fileInputRef.current?.click();
-  }, [onImportSlot, slots]);
+  const handleImportRequest = useCallback(
+    (slotIndex) => {
+      if (!onImportSlot) return;
+      const slot = slots[slotIndex];
+      const slotTitle = slot?.title || (slotIndex === 0 ? "Scratch" : `Slot ${slotIndex}`);
+      if (slot && !window.confirm(`Overwrite "${slotTitle}" with imported data?`)) {
+        return;
+      }
+      setImportTargetSlot(slotIndex);
+      fileInputRef.current?.click();
+    },
+    [onImportSlot, slots]
+  );
 
-  const handleImportFile = useCallback((e) => {
-    const file = e.target.files?.[0];
-    if (!file || importTargetSlot === null || !onImportSlot) {
-      e.target.value = '';
-      return;
-    }
-    onImportSlot(importTargetSlot, file);
-    setImportTargetSlot(null);
-    setShowDropdown(false);
-    e.target.value = '';
-  }, [importTargetSlot, onImportSlot]);
+  const handleImportFile = useCallback(
+    (e) => {
+      const file = e.target.files?.[0];
+      if (!file || importTargetSlot === null || !onImportSlot) {
+        e.target.value = "";
+        return;
+      }
+      onImportSlot(importTargetSlot, file);
+      setImportTargetSlot(null);
+      setShowDropdown(false);
+      e.target.value = "";
+    },
+    [importTargetSlot, onImportSlot]
+  );
 
   // Get active slot data for display
   const activeSlot = slots[activeSlotIndex];
-  const activeTitle = activeSlotIndex === 0
-    ? (activeSlot?.title || 'Scratch')
-    : (activeSlot?.title || `Slot ${activeSlotIndex}`);
+  const activeTitle =
+    activeSlotIndex === 0
+      ? activeSlot?.title || "Scratch"
+      : activeSlot?.title || `Slot ${activeSlotIndex}`;
 
   // Determine which slots to show:
   // - Always show slot 0 (scratch)
@@ -127,12 +137,9 @@ export default function SlotSelector({
 
   return (
     <div className="slot-selector" ref={dropdownRef}>
-      <button
-        className="slot-selector-trigger"
-        onClick={() => setShowDropdown(!showDropdown)}
-      >
+      <button className="slot-selector-trigger" onClick={() => setShowDropdown(!showDropdown)}>
         <span className="slot-selector-name">{activeTitle}</span>
-        <span className="slot-selector-chevron">{showDropdown ? '\u25B2' : '\u25BC'}</span>
+        <span className="slot-selector-chevron">{showDropdown ? "\u25B2" : "\u25BC"}</span>
       </button>
 
       {showDropdown && (
@@ -152,7 +159,7 @@ export default function SlotSelector({
               const canImport = Boolean(onImportSlot);
 
               const title = isScratch
-                ? (slot?.title || 'Scratch')
+                ? slot?.title || "Scratch"
                 : isEmpty
                   ? `Slot ${slotIndex} (empty)`
                   : slot.title;
@@ -160,7 +167,7 @@ export default function SlotSelector({
               return (
                 <div
                   key={slotIndex}
-                  className={`slot-item ${isActive ? 'slot-item-active' : ''} ${isEmpty ? 'slot-item-empty' : ''}`}
+                  className={`slot-item ${isActive ? "slot-item-active" : ""} ${isEmpty ? "slot-item-empty" : ""}`}
                 >
                   <div className="slot-item-content">
                     {isEditing ? (
@@ -177,8 +184,12 @@ export default function SlotSelector({
                     ) : (
                       <div
                         className="slot-item-name"
-                        onClick={() => !isEmpty && !isScratch && handleStartEdit(slotIndex, slot?.title, { stopPropagation: () => {} })}
-                        title={!isEmpty && !isScratch ? 'Click to edit title' : undefined}
+                        onClick={() =>
+                          !isEmpty &&
+                          !isScratch &&
+                          handleStartEdit(slotIndex, slot?.title, { stopPropagation: () => {} })
+                        }
+                        title={!isEmpty && !isScratch ? "Click to edit title" : undefined}
                       >
                         {isActive && <span className="slot-active-indicator">*</span>}
                         {title}
@@ -186,11 +197,11 @@ export default function SlotSelector({
                     )}
                     {slot?.createdAt && !isEditing && (
                       <div className="slot-item-meta">
-                        {new Date(slot.createdAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
+                        {new Date(slot.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
                         })}
                       </div>
                     )}
@@ -201,10 +212,7 @@ export default function SlotSelector({
                       // Scratch slot - Load if not active, Clear if has data
                       <>
                         {canImport && (
-                          <button
-                            className="btn-xs"
-                            onClick={() => handleImportRequest(slotIndex)}
-                          >
+                          <button className="btn-xs" onClick={() => handleImportRequest(slotIndex)}>
                             Import
                           </button>
                         )}
@@ -236,7 +244,7 @@ export default function SlotSelector({
                           <button
                             className="btn-xs btn-xs-danger"
                             onClick={() => {
-                              if (window.confirm('Clear scratch data? This cannot be undone.')) {
+                              if (window.confirm("Clear scratch data? This cannot be undone.")) {
                                 onClearSlot(0);
                                 setShowDropdown(false);
                               }
@@ -251,10 +259,7 @@ export default function SlotSelector({
                       // Empty save slot - only show Save if scratch has data
                       <>
                         {canImport && (
-                          <button
-                            className="btn-xs"
-                            onClick={() => handleImportRequest(slotIndex)}
-                          >
+                          <button className="btn-xs" onClick={() => handleImportRequest(slotIndex)}>
                             Import
                           </button>
                         )}
@@ -274,10 +279,7 @@ export default function SlotSelector({
                       // Filled save slot - show Save (if on scratch), Load, and Clear
                       <>
                         {canImport && (
-                          <button
-                            className="btn-xs"
-                            onClick={() => handleImportRequest(slotIndex)}
-                          >
+                          <button className="btn-xs" onClick={() => handleImportRequest(slotIndex)}>
                             Import
                           </button>
                         )}
@@ -296,7 +298,11 @@ export default function SlotSelector({
                           <button
                             className="btn-xs"
                             onClick={() => {
-                              if (window.confirm(`Overwrite "${slot.title}" with current scratch data?`)) {
+                              if (
+                                window.confirm(
+                                  `Overwrite "${slot.title}" with current scratch data?`
+                                )
+                              ) {
                                 onSaveToSlot(slotIndex);
                                 setShowDropdown(false);
                               }
@@ -354,7 +360,10 @@ export default function SlotSelector({
                   <button
                     className="btn-xs"
                     onClick={() => {
-                      if (hasDataInScratch && !window.confirm('Overwrite scratch with the example output?')) {
+                      if (
+                        hasDataInScratch &&
+                        !window.confirm("Overwrite scratch with the example output?")
+                      ) {
                         return;
                       }
                       onLoadExampleOutput();
@@ -374,7 +383,7 @@ export default function SlotSelector({
         ref={fileInputRef}
         type="file"
         accept=".json,.zip,application/json,application/zip"
-        style={{ display: 'none' }}
+        style={{ display: "none" }}
         onChange={handleImportFile}
       />
     </div>

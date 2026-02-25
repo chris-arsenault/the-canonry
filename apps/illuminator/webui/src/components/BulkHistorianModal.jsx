@@ -7,7 +7,8 @@
  * 3. Terminal: completion/cancellation/failure message, failed entities list
  */
 
-import { useEffect } from "react";
+import React, { useEffect } from "react";
+import PropTypes from "prop-types";
 import { TONE_META } from "./HistorianToneSelector";
 import { useFloatingPillStore } from "../lib/db/floatingPillStore";
 import "./BulkHistorianModal.css";
@@ -77,10 +78,10 @@ export default function BulkHistorianModal({
 
   const progressFillClass =
     progress.status === "failed"
-      ? "bhm-progress-fill bhm-progress-fill--failed"
+      ? "bhm-progress-fill bhm-progress-fill-failed"
       : progress.status === "cancelled"
-        ? "bhm-progress-fill bhm-progress-fill--cancelled"
-        : "bhm-progress-fill bhm-progress-fill--complete";
+        ? "bhm-progress-fill bhm-progress-fill-cancelled"
+        : "bhm-progress-fill bhm-progress-fill-complete";
 
   return (
     <div className="bhm-overlay">
@@ -149,18 +150,12 @@ export default function BulkHistorianModal({
               {isClear ? null : isReview ? (
                 /* Review mode: show tone cycling info */
                 <div className="bhm-tone-cycle-box">
-                  <span className="bhm-tone-cycle-label">
-                    Tones cycle:
-                  </span>
+                  <span className="bhm-tone-cycle-label">Tones cycle:</span>
                   {TONE_CYCLE_ORDER.map((t, i) => {
                     const meta = TONE_META[t];
                     return (
                       <span key={t}>
-                        {i > 0 && (
-                          <span className="bhm-tone-cycle-arrow">
-                            &rarr;
-                          </span>
-                        )}
+                        {i > 0 && <span className="bhm-tone-cycle-arrow">&rarr;</span>}
                         <span className="bhm-tone-cycle-symbol">{meta?.symbol}</span> {meta?.label}
                       </span>
                     );
@@ -169,9 +164,7 @@ export default function BulkHistorianModal({
               ) : (
                 /* Edition mode: tone picker */
                 <div className="bhm-tone-picker">
-                  <div className="bhm-section-label">
-                    Historian Tone
-                  </div>
+                  <div className="bhm-section-label">Historian Tone</div>
                   <div className="bhm-tone-options">
                     {TONE_CYCLE_ORDER.map((t) => {
                       const meta = TONE_META[t];
@@ -180,7 +173,7 @@ export default function BulkHistorianModal({
                         <button
                           key={t}
                           onClick={() => onChangeTone(t)}
-                          className={`bhm-tone-btn ${isSelected ? "bhm-tone-btn--selected" : "bhm-tone-btn--default"}`}
+                          className={`bhm-tone-btn ${isSelected ? "bhm-tone-btn-selected" : "bhm-tone-btn-default"}`}
                         >
                           <span className="bhm-tone-btn-symbol">{meta?.symbol}</span>
                           {meta?.label}
@@ -219,9 +212,7 @@ export default function BulkHistorianModal({
                             {TONE_META[entity.tone]?.symbol}
                           </span>
                         )}
-                        <span className="bhm-entity-name">
-                          {entity.entityName}
-                        </span>
+                        <span className="bhm-entity-name">{entity.entityName}</span>
                         <span className="bhm-entity-kind">
                           {entity.entityKind}
                           {entity.entitySubtype ? ` / ${entity.entitySubtype}` : ""}
@@ -261,7 +252,7 @@ export default function BulkHistorianModal({
                     : 0;
                   return (
                     <div
-                      className={`bhm-token-summary ${overCount > 0 ? "bhm-token-summary--over" : "bhm-token-summary--ok"}`}
+                      className={`bhm-token-summary ${overCount > 0 ? "bhm-token-summary-over" : "bhm-token-summary-ok"}`}
                     >
                       <div>
                         Largest description: <strong>~{maxEst.toLocaleString()} tokens</strong>
@@ -293,9 +284,7 @@ export default function BulkHistorianModal({
                     Entity {Math.min(progress.processedEntities + 1, progress.totalEntities)} /{" "}
                     {progress.totalEntities}
                   </span>
-                  <span className="bhm-progress-percent">
-                    {globalPercent}%
-                  </span>
+                  <span className="bhm-progress-percent">{globalPercent}%</span>
                 </div>
 
                 {/* Progress bar */}
@@ -340,7 +329,7 @@ export default function BulkHistorianModal({
 
               {/* Terminal state messages */}
               {progress.status === "complete" && (
-                <div className="bhm-terminal-msg bhm-terminal-msg--complete">
+                <div className="bhm-terminal-msg bhm-terminal-msg-complete">
                   {isClear
                     ? `Cleared annotations from ${progress.processedEntities} entities.`
                     : isReview
@@ -356,14 +345,14 @@ export default function BulkHistorianModal({
               )}
 
               {progress.status === "cancelled" && (
-                <div className="bhm-terminal-msg bhm-terminal-msg--cancelled">
+                <div className="bhm-terminal-msg bhm-terminal-msg-cancelled">
                   Cancelled after processing {progress.processedEntities} of{" "}
                   {progress.totalEntities} entities.
                 </div>
               )}
 
               {progress.status === "failed" && (
-                <div className="bhm-terminal-msg bhm-terminal-msg--failed">
+                <div className="bhm-terminal-msg bhm-terminal-msg-failed">
                   {progress.error || "An unexpected error occurred."}
                 </div>
               )}
@@ -371,9 +360,7 @@ export default function BulkHistorianModal({
               {/* Failed entities list */}
               {isTerminal && progress.failedEntities.length > 0 && (
                 <div className="bhm-failed-section">
-                  <div className="bhm-failed-label">
-                    Failed ({progress.failedEntities.length})
-                  </div>
+                  <div className="bhm-failed-label">Failed ({progress.failedEntities.length})</div>
                   <div className="bhm-failed-list">
                     {progress.failedEntities.map((f, i) => (
                       <div
@@ -397,9 +384,7 @@ export default function BulkHistorianModal({
 
               {/* Cost */}
               {progress.totalCost > 0 && (
-                <div className="bhm-cost">
-                  Cost: ${progress.totalCost.toFixed(4)}
-                </div>
+                <div className="bhm-cost">Cost: ${progress.totalCost.toFixed(4)}</div>
               )}
             </>
           )}
@@ -409,10 +394,7 @@ export default function BulkHistorianModal({
         <div className="bhm-footer">
           {isConfirming && (
             <>
-              <button
-                onClick={onCancel}
-                className="illuminator-button bhm-footer-btn"
-              >
+              <button onClick={onCancel} className="illuminator-button bhm-footer-btn">
                 Cancel
               </button>
               <button
@@ -428,18 +410,12 @@ export default function BulkHistorianModal({
             </>
           )}
           {!isConfirming && !isTerminal && (
-            <button
-              onClick={onCancel}
-              className="illuminator-button bhm-footer-btn"
-            >
+            <button onClick={onCancel} className="illuminator-button bhm-footer-btn">
               Cancel
             </button>
           )}
           {isTerminal && (
-            <button
-              onClick={onClose}
-              className="illuminator-button bhm-footer-btn"
-            >
+            <button onClick={onClose} className="illuminator-button bhm-footer-btn">
               Close
             </button>
           )}

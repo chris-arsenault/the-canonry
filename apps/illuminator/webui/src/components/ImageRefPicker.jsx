@@ -5,7 +5,8 @@
  * Loads image thumbnails on-demand as they become visible.
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
 import { searchImages, getImageDataUrl } from "../lib/db/imageRepository";
 
 const PAGE_SIZE = 12;
@@ -213,6 +214,12 @@ export default function ImageRefPicker({ projectId, onSelect, onClose }) {
   );
 }
 
+ImageRefPicker.propTypes = {
+  projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onSelect: PropTypes.func,
+  onClose: PropTypes.func,
+};
+
 /**
  * Single image thumbnail with lazy loading via IntersectionObserver
  */
@@ -252,3 +259,11 @@ function ImageThumbnail({ image, dataUrl, isSelected, onSelect, onVisible }) {
     </button>
   );
 }
+
+ImageThumbnail.propTypes = {
+  image: PropTypes.object,
+  dataUrl: PropTypes.string,
+  isSelected: PropTypes.bool,
+  onSelect: PropTypes.func,
+  onVisible: PropTypes.func,
+};

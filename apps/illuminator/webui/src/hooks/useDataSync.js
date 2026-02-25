@@ -34,7 +34,7 @@ function resolveFinalEraIdFromHardState(hardState, eraValue) {
       entity.kind === "era" &&
       (entity.id === eraValue || entity.eraId === eraValue || entity.name === eraValue)
   );
-  return eraEntity ? (eraEntity.eraId || eraEntity.id || eraValue) : eraValue;
+  return eraEntity ? eraEntity.eraId || eraEntity.id || eraValue : eraValue;
 }
 
 function validateHardStateAvailable(worldData, hasHardState) {
@@ -179,7 +179,12 @@ async function applyEntityEnrichment(entityId, output) {
     );
     return;
   }
-  await entityRepo.applyDescriptionResult(entityId, output.enrichment, output.summary, output.description);
+  await entityRepo.applyDescriptionResult(
+    entityId,
+    output.enrichment,
+    output.summary,
+    output.description
+  );
 }
 
 // --- Reload helpers (module-level to reduce hook body) ---
@@ -231,40 +236,61 @@ async function initializeStoresForRun(simulationRunId) {
 // --- Main hook ---
 
 export function useDataSync({
-  projectId, activeSlotIndex, worldData, hasHardState,
-  slotRecord, setSlotRecord, simulationRunId, eraTemporalInfo,
+  projectId,
+  activeSlotIndex,
+  worldData,
+  hasHardState,
+  slotRecord,
+  setSlotRecord,
+  simulationRunId,
+  eraTemporalInfo,
 }) {
   const [dataSyncStatus, setDataSyncStatus] = useState(null);
   const [isDataSyncing, setIsDataSyncing] = useState(false);
 
   const reloadEntities = useCallback(
-    (invalidateIds, overrideRunId) => createReloadEntities(simulationRunId)(invalidateIds, overrideRunId),
+    (invalidateIds, overrideRunId) =>
+      createReloadEntities(simulationRunId)(invalidateIds, overrideRunId),
     [simulationRunId]
   );
   const reloadEntitiesAndEvents = useCallback(
-    (invalidateIds, overrideRunId) => createReloadEntitiesAndEvents(simulationRunId)(invalidateIds, overrideRunId),
+    (invalidateIds, overrideRunId) =>
+      createReloadEntitiesAndEvents(simulationRunId)(invalidateIds, overrideRunId),
     [simulationRunId]
   );
 
   const handleDataSync = useCallback(
     async (mode) => {
       const result = validateDataSyncPreconditions(mode, worldData, hasHardState, slotRecord);
-      if (result.error) { setDataSyncStatus({ type: "error", message: result.error }); return; }
+      if (result.error) {
+        setDataSyncStatus({ type: "error", message: result.error });
+        return;
+      }
       if (result.cancelled) return;
       setIsDataSyncing(true);
       setDataSyncStatus(null);
       try {
-        const message = mode === "overwrite"
-          ? await performOverwriteSync(result.hardRunId, worldData)
-          : await performPatchSync(result.hardRunId, worldData);
+        const message =
+          mode === "overwrite"
+            ? await performOverwriteSync(result.hardRunId, worldData)
+            : await performPatchSync(result.hardRunId, worldData);
         setDataSyncStatus({ type: "success", message });
         await syncAncillaryData(result.hardRunId, projectId, worldData);
-        const nextSlot = buildNextSlotRecord(result.hardRunId, projectId, activeSlotIndex, worldData, slotRecord);
+        const nextSlot = buildNextSlotRecord(
+          result.hardRunId,
+          projectId,
+          activeSlotIndex,
+          worldData,
+          slotRecord
+        );
         await slotRepo.upsertSlot(nextSlot);
         setSlotRecord(nextSlot);
         await reinitializeStoresAfterSync(result.hardRunId);
       } catch (err) {
-        setDataSyncStatus({ type: "error", message: err instanceof Error ? err.message : String(err) });
+        setDataSyncStatus({
+          type: "error",
+          message: err instanceof Error ? err.message : String(err),
+        });
       } finally {
         setIsDataSyncing(false);
       }
@@ -298,12 +324,18 @@ export function useDataSync({
 
   useEffect(() => {
     if (!simulationRunId) return;
-    initializeStoresForRun(simulationRunId).catch((err) => console.warn("[Illuminator] DAL load failed:", err));
+    initializeStoresForRun(simulationRunId).catch((err) =>
+      console.warn("[Illuminator] DAL load failed:", err)
+    );
   }, [simulationRunId]);
 
   return {
-    dataSyncStatus, isDataSyncing, handleDataSync,
-    handleEntityUpdate, handleRefreshEraSummaries,
-    reloadEntities, reloadEntitiesAndEvents,
+    dataSyncStatus,
+    isDataSyncing,
+    handleDataSync,
+    handleEntityUpdate,
+    handleRefreshEraSummaries,
+    reloadEntities,
+    reloadEntitiesAndEvents,
   };
 }

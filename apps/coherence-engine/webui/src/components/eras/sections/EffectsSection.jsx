@@ -2,15 +2,15 @@
  * EffectsSection - Reusable section for entry/exit effects (pressure changes)
  */
 
-import React from 'react';
-import { SectionHeader, EmptyState, SearchableDropdown } from '../../shared';
-import { TransitionEffectItem } from '../shared';
+import React from "react";
+import { SectionHeader, EmptyState, SearchableDropdown } from "../../shared";
+import { TransitionEffectItem } from "../shared";
 
 const EMPTY_STATE_STYLES = Object.freeze({
   emptyState: {
-    padding: '16px',
-    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-    borderRadius: '8px',
+    padding: "16px",
+    backgroundColor: "rgba(59, 130, 246, 0.05)",
+    borderRadius: "8px",
   },
 });
 
@@ -46,15 +46,12 @@ export function EffectsSection({
       <SectionHeader
         icon={icon}
         title={title}
-        count={`${pressureChanges.length} effect${pressureChanges.length !== 1 ? 's' : ''}`}
+        count={`${pressureChanges.length} effect${pressureChanges.length !== 1 ? "s" : ""}`}
         description={description}
       />
       <div className="items-grid">
         {pressureChanges.length === 0 ? (
-          <EmptyState
-            title={emptyMessage}
-            styles={EMPTY_STATE_STYLES}
-          />
+          <EmptyState title={emptyMessage} styles={EMPTY_STATE_STYLES} />
         ) : (
           pressureChanges.map(([pressureId, value]) => (
             <TransitionEffectItem

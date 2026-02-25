@@ -5,12 +5,12 @@
  * Each column has conditions and effects stacked vertically.
  */
 
-import React from 'react';
-import { EmptyState, AddItemButton, SearchableDropdown } from '../../shared';
-import { TransitionConditionEditor, TransitionEffectItem } from '../shared';
+import React from "react";
+import { EmptyState, AddItemButton, SearchableDropdown } from "../../shared";
+import { TransitionConditionEditor, TransitionEffectItem } from "../shared";
 
 const ADD_ITEM_STYLES = Object.freeze({
-  addItemBtn: { marginTop: '8px', padding: '6px 12px', fontSize: '12px' },
+  addItemBtn: { marginTop: "8px", padding: "6px 12px", fontSize: "12px" },
 });
 
 /**
@@ -25,9 +25,7 @@ function MiniSection({ title, icon, count, children, isEmpty, emptyMessage }) {
         <span className="transitions-mini-count">{count}</span>
       </div>
       <div className="transitions-mini-content">
-        {isEmpty && (
-          <div className="transitions-mini-empty">{emptyMessage}</div>
-        )}
+        {isEmpty && <div className="transitions-mini-empty">{emptyMessage}</div>}
         {children}
       </div>
     </div>

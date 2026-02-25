@@ -5,7 +5,8 @@
  * Users can accept/reject/edit individual notes before applying them.
  */
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import { TONE_META } from "./HistorianToneSelector";
 import "./HistorianReviewModal.css";
 
@@ -32,7 +33,7 @@ function NoteCard({ note, accepted, onToggle, onEditText }) {
 
   return (
     <div
-      className={`hrm-note ${accepted !== false ? "hrm-note--accepted" : "hrm-note--rejected"}`}
+      className={`hrm-note ${accepted !== false ? "hrm-note-accepted" : "hrm-note-rejected"}`}
       // eslint-disable-next-line local/no-inline-styles -- dynamic border-left color from note type
       style={{ borderLeft: `3px solid ${accepted !== false ? meta.color : "var(--border-color)"}` }}
     >
@@ -56,7 +57,7 @@ function NoteCard({ note, accepted, onToggle, onEditText }) {
         </div>
         <button
           onClick={() => onToggle(note.noteId, accepted === false)}
-          className={`hrm-note-toggle ${accepted !== false ? "hrm-note-toggle--accepted" : "hrm-note-toggle--rejected"}`}
+          className={`hrm-note-toggle ${accepted !== false ? "hrm-note-toggle-accepted" : "hrm-note-toggle-rejected"}`}
         >
           {accepted !== false ? "\u2713 Accepted" : "Rejected"}
         </button>
@@ -65,7 +66,10 @@ function NoteCard({ note, accepted, onToggle, onEditText }) {
       {/* Anchor phrase */}
       <div className="hrm-note-anchor">
         anchored to: &ldquo;
-        {note.anchorPhrase.length > 60 ? note.anchorPhrase.slice(0, 60) + "\u2026" : note.anchorPhrase}&rdquo;
+        {note.anchorPhrase.length > 60
+          ? note.anchorPhrase.slice(0, 60) + "\u2026"
+          : note.anchorPhrase}
+        &rdquo;
       </div>
 
       {/* Note text */}
@@ -82,7 +86,7 @@ function NoteCard({ note, accepted, onToggle, onEditText }) {
                 onEditText(note.noteId, editValue);
                 setEditing(false);
               }}
-              className="hrm-note-edit-btn hrm-note-edit-btn--save"
+              className="hrm-note-edit-btn hrm-note-edit-btn-save"
             >
               Save
             </button>
@@ -91,24 +95,27 @@ function NoteCard({ note, accepted, onToggle, onEditText }) {
                 setEditValue(note.text);
                 setEditing(false);
               }}
-              className="hrm-note-edit-btn hrm-note-edit-btn--cancel"
+              className="hrm-note-edit-btn hrm-note-edit-btn-cancel"
             >
               Cancel
             </button>
           </div>
         </div>
       ) : (
-        <div
-          onClick={() => setEditing(true)}
-          title="Click to edit"
-          className="hrm-note-text"
-        >
+        <div onClick={() => setEditing(true)} title="Click to edit" className="hrm-note-text">
           {note.text}
         </div>
       )}
     </div>
   );
 }
+
+NoteCard.propTypes = {
+  note: PropTypes.object,
+  accepted: PropTypes.any,
+  onToggle: PropTypes.func,
+  onEditText: PropTypes.func,
+};
 
 // ============================================================================
 // Annotated Text View
@@ -176,13 +183,13 @@ function AnnotatedText({ sourceText, notes, noteDecisions }) {
           <span
             key={i}
             title={`${seg.meta.label}: ${seg.note.text}`}
-            className={`hrm-anchor-span ${seg.accepted ? "hrm-anchor-span--accepted" : "hrm-anchor-span--rejected"}`}
+            className={`hrm-anchor-span ${seg.accepted ? "hrm-anchor-span-accepted" : "hrm-anchor-span-rejected"}`}
             // eslint-disable-next-line local/no-inline-styles -- dynamic colors from note type meta
             style={{
-              '--hrm-anchor-bg': seg.accepted ? `${seg.meta.color}22` : 'transparent',
-              '--hrm-anchor-border': seg.accepted ? seg.meta.color : 'var(--border-color)',
-              background: 'var(--hrm-anchor-bg)',
-              borderBottom: '2px solid var(--hrm-anchor-border)',
+              "--hrm-anchor-bg": seg.accepted ? `${seg.meta.color}22` : "transparent",
+              "--hrm-anchor-border": seg.accepted ? seg.meta.color : "var(--border-color)",
+              background: "var(--hrm-anchor-bg)",
+              borderBottom: "2px solid var(--hrm-anchor-border)",
             }}
           >
             {seg.content}
@@ -199,6 +206,12 @@ function AnnotatedText({ sourceText, notes, noteDecisions }) {
     </div>
   );
 }
+
+AnnotatedText.propTypes = {
+  sourceText: PropTypes.string,
+  notes: PropTypes.array,
+  noteDecisions: PropTypes.object,
+};
 
 // ============================================================================
 // Main Modal
@@ -227,9 +240,7 @@ export default function HistorianReviewModal({
         {/* Header */}
         <div className="hrm-modal-header">
           <div>
-            <div className="hrm-modal-title">
-              Historian Review &mdash; {run.targetName}
-            </div>
+            <div className="hrm-modal-title">Historian Review &mdash; {run.targetName}</div>
             <div className="hrm-modal-subtitle">
               {run.targetType === "entity" ? "Entity Description" : "Chronicle Narrative"}
               {run.tone && TONE_META[run.tone] && (
@@ -248,24 +259,18 @@ export default function HistorianReviewModal({
         {/* Content */}
         <div className="hrm-modal-content">
           {isGenerating && (
-            <div className="hrm-generating-message">
-              The historian is reviewing the text\u2026
-            </div>
+            <div className="hrm-generating-message">The historian is reviewing the text\u2026</div>
           )}
 
           {isFailed && (
-            <div className="hrm-failed-message">
-              Review failed: {run.error || "Unknown error"}
-            </div>
+            <div className="hrm-failed-message">Review failed: {run.error || "Unknown error"}</div>
           )}
 
           {isReviewing && (
             <div className="hrm-review-layout">
               {/* Annotated source text */}
               <div>
-                <div className="hrm-section-label">
-                  Source Text (annotations highlighted)
-                </div>
+                <div className="hrm-section-label">Source Text (annotations highlighted)</div>
                 <AnnotatedText
                   sourceText={run.sourceText}
                   notes={notes}
@@ -275,9 +280,7 @@ export default function HistorianReviewModal({
 
               {/* Notes list */}
               <div>
-                <div className="hrm-section-label">
-                  Historian Notes ({notes.length})
-                </div>
+                <div className="hrm-section-label">Historian Notes ({notes.length})</div>
                 {notes.map((note) => (
                   <NoteCard
                     key={note.noteId}
@@ -301,7 +304,7 @@ export default function HistorianReviewModal({
             <button
               onClick={onAccept}
               disabled={acceptedCount === 0}
-              className={`hrm-apply-btn ${acceptedCount > 0 ? "hrm-apply-btn--active" : "hrm-apply-btn--disabled"}`}
+              className={`hrm-apply-btn ${acceptedCount > 0 ? "hrm-apply-btn-active" : "hrm-apply-btn-disabled"}`}
             >
               Apply {acceptedCount} Note{acceptedCount !== 1 ? "s" : ""}
             </button>
@@ -311,3 +314,12 @@ export default function HistorianReviewModal({
     </div>
   );
 }
+
+HistorianReviewModal.propTypes = {
+  run: PropTypes.object,
+  isActive: PropTypes.bool,
+  onToggleNote: PropTypes.func,
+  onEditNoteText: PropTypes.func,
+  onAccept: PropTypes.func,
+  onCancel: PropTypes.func,
+};

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import "./ChronicleVersionSelector.css";
 
 export default function ChronicleVersionSelector({
@@ -68,9 +69,7 @@ export default function ChronicleVersionSelector({
           ))}
       </select>
       {isActive ? (
-        <span className="cvs-active-badge">
-          Active
-        </span>
+        <span className="cvs-active-badge">Active</span>
       ) : (
         <button
           onClick={() => onSetActiveVersion?.(selectedVersionId)}
@@ -86,7 +85,7 @@ export default function ChronicleVersionSelector({
           onBlur={() => setConfirmingDeleteId(null)}
           disabled={disabled}
           title={confirmingDelete ? "Click again to confirm deletion" : "Delete this version"}
-          className={`cvs-btn-delete${confirmingDelete ? " cvs-btn-delete--confirming" : ""}`}
+          className={`cvs-btn-delete${confirmingDelete ? " cvs-btn-delete-confirming" : ""}`}
         >
           {confirmingDelete ? "Confirm Delete" : "Delete"}
         </button>
@@ -94,3 +93,15 @@ export default function ChronicleVersionSelector({
     </div>
   );
 }
+
+ChronicleVersionSelector.propTypes = {
+  versions: PropTypes.array,
+  selectedVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  activeVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  compareToVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onSelectVersion: PropTypes.func,
+  onSelectCompareVersion: PropTypes.func,
+  onSetActiveVersion: PropTypes.func,
+  onDeleteVersion: PropTypes.func,
+  disabled: PropTypes.bool,
+};

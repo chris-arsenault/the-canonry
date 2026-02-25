@@ -5,206 +5,206 @@
  * its tags are automatically configured in the tag registry (isAxis: true, mutually exclusive).
  */
 
-import React, { useState, useMemo } from 'react';
-import { TagSelector } from '@penguin-tales/shared-components';
+import React, { useState, useMemo } from "react";
+import { TagSelector } from "@penguin-tales/shared-components";
 
 const styles = {
   container: {
-    maxWidth: '1000px'
+    maxWidth: "1000px",
   },
   header: {
-    marginBottom: '16px'
+    marginBottom: "16px",
   },
   title: {
-    fontSize: '20px',
+    fontSize: "20px",
     fontWeight: 600,
-    marginBottom: '4px'
+    marginBottom: "4px",
   },
   subtitle: {
-    color: '#888',
-    fontSize: '13px'
+    color: "#888",
+    fontSize: "13px",
   },
   toolbar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '16px'
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "16px",
   },
   addButton: {
-    padding: '8px 16px',
-    fontSize: '13px',
-    backgroundColor: '#60a5fa',
-    color: '#0a1929',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontWeight: 500
+    padding: "8px 16px",
+    fontSize: "13px",
+    backgroundColor: "#60a5fa",
+    color: "#0a1929",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    fontWeight: 500,
   },
   axisList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px'
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
   },
   axisCard: {
-    backgroundColor: '#0c1f2e',
-    borderRadius: '6px',
-    border: '1px solid rgba(59, 130, 246, 0.3)',
-    padding: '14px 16px'
+    backgroundColor: "#0c1f2e",
+    borderRadius: "6px",
+    border: "1px solid rgba(59, 130, 246, 0.3)",
+    padding: "14px 16px",
   },
   axisHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '8px'
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: "8px",
   },
   axisName: {
-    fontSize: '15px',
+    fontSize: "15px",
     fontWeight: 600,
-    color: '#93c5fd'
+    color: "#93c5fd",
   },
   axisDescription: {
-    fontSize: '12px',
-    color: '#888',
-    marginTop: '2px'
+    fontSize: "12px",
+    color: "#888",
+    marginTop: "2px",
   },
   axisRange: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginTop: '10px',
-    padding: '8px 12px',
-    backgroundColor: 'rgba(96, 165, 250, 0.1)',
-    borderRadius: '4px'
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginTop: "10px",
+    padding: "8px 12px",
+    backgroundColor: "rgba(96, 165, 250, 0.1)",
+    borderRadius: "4px",
   },
   tag: {
-    padding: '3px 8px',
-    fontSize: '11px',
-    backgroundColor: 'rgba(96, 165, 250, 0.2)',
-    color: '#93c5fd',
-    borderRadius: '3px',
-    fontFamily: 'monospace'
+    padding: "3px 8px",
+    fontSize: "11px",
+    backgroundColor: "rgba(96, 165, 250, 0.2)",
+    color: "#93c5fd",
+    borderRadius: "3px",
+    fontFamily: "monospace",
   },
   arrow: {
-    color: '#60a5fa',
-    fontSize: '14px'
+    color: "#60a5fa",
+    fontSize: "14px",
   },
   usageInfo: {
-    fontSize: '11px',
-    color: '#666',
-    marginTop: '8px'
+    fontSize: "11px",
+    color: "#666",
+    marginTop: "8px",
   },
   usageKind: {
-    color: '#93c5fd'
+    color: "#93c5fd",
   },
   actions: {
-    display: 'flex',
-    gap: '6px'
+    display: "flex",
+    gap: "6px",
   },
   editButton: {
-    padding: '4px 10px',
-    fontSize: '11px',
-    backgroundColor: 'rgba(96, 165, 250, 0.2)',
-    color: '#93c5fd',
-    border: 'none',
-    borderRadius: '3px',
-    cursor: 'pointer'
+    padding: "4px 10px",
+    fontSize: "11px",
+    backgroundColor: "rgba(96, 165, 250, 0.2)",
+    color: "#93c5fd",
+    border: "none",
+    borderRadius: "3px",
+    cursor: "pointer",
   },
   deleteButton: {
-    padding: '4px 10px',
-    fontSize: '11px',
-    backgroundColor: 'transparent',
-    color: '#f87171',
-    border: '1px solid #f87171',
-    borderRadius: '3px',
-    cursor: 'pointer'
+    padding: "4px 10px",
+    fontSize: "11px",
+    backgroundColor: "transparent",
+    color: "#f87171",
+    border: "1px solid #f87171",
+    borderRadius: "3px",
+    cursor: "pointer",
   },
   emptyState: {
-    color: '#666',
-    fontSize: '14px',
-    textAlign: 'center',
-    padding: '60px 20px'
+    color: "#666",
+    fontSize: "14px",
+    textAlign: "center",
+    padding: "60px 20px",
   },
   modal: {
-    position: 'fixed',
+    position: "fixed",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000
+    backgroundColor: "rgba(0,0,0,0.7)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
   },
   modalContent: {
-    backgroundColor: '#0c1f2e',
-    padding: '24px',
-    borderRadius: '8px',
-    width: '440px',
-    border: '1px solid rgba(59, 130, 246, 0.3)'
+    backgroundColor: "#0c1f2e",
+    padding: "24px",
+    borderRadius: "8px",
+    width: "440px",
+    border: "1px solid rgba(59, 130, 246, 0.3)",
   },
   modalTitle: {
-    fontSize: '16px',
+    fontSize: "16px",
     fontWeight: 600,
-    marginBottom: '16px',
-    color: '#93c5fd'
+    marginBottom: "16px",
+    color: "#93c5fd",
   },
   formGroup: {
-    marginBottom: '14px'
+    marginBottom: "14px",
   },
   label: {
-    fontSize: '12px',
-    color: '#888',
-    marginBottom: '4px',
-    display: 'block'
+    fontSize: "12px",
+    color: "#888",
+    marginBottom: "4px",
+    display: "block",
   },
   input: {
-    width: '100%',
-    padding: '8px 10px',
-    fontSize: '14px',
-    backgroundColor: '#0a1929',
-    border: '1px solid rgba(59, 130, 246, 0.3)',
-    borderRadius: '4px',
-    color: '#eee',
-    boxSizing: 'border-box'
+    width: "100%",
+    padding: "8px 10px",
+    fontSize: "14px",
+    backgroundColor: "#0a1929",
+    border: "1px solid rgba(59, 130, 246, 0.3)",
+    borderRadius: "4px",
+    color: "#eee",
+    boxSizing: "border-box",
   },
   inputRow: {
-    display: 'flex',
-    gap: '12px'
+    display: "flex",
+    gap: "12px",
   },
   inputHalf: {
-    flex: 1
+    flex: 1,
   },
   hint: {
-    fontSize: '11px',
-    color: '#666',
-    marginTop: '4px'
+    fontSize: "11px",
+    color: "#666",
+    marginTop: "4px",
   },
   modalActions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '8px',
-    marginTop: '20px'
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "8px",
+    marginTop: "20px",
   },
   cancelButton: {
-    padding: '8px 16px',
-    fontSize: '13px',
-    backgroundColor: 'rgba(96, 165, 250, 0.1)',
-    color: '#93c5fd',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer'
+    padding: "8px 16px",
+    fontSize: "13px",
+    backgroundColor: "rgba(96, 165, 250, 0.1)",
+    color: "#93c5fd",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
   },
   saveButton: {
-    padding: '8px 16px',
-    fontSize: '13px',
-    backgroundColor: '#60a5fa',
-    color: '#0a1929',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontWeight: 500
-  }
+    padding: "8px 16px",
+    fontSize: "13px",
+    backgroundColor: "#60a5fa",
+    color: "#0a1929",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    fontWeight: 500,
+  },
 };
 
 export default function AxisRegistryEditor({
@@ -212,16 +212,16 @@ export default function AxisRegistryEditor({
   entityKinds = [],
   tagRegistry = [],
   onAxisDefinitionsChange,
-  onTagRegistryChange
+  onTagRegistryChange,
 }) {
   const [showModal, setShowModal] = useState(false);
   const [editingAxis, setEditingAxis] = useState(null);
   const [formData, setFormData] = useState({
-    id: '',
-    name: '',
-    description: '',
-    lowTag: '',
-    highTag: ''
+    id: "",
+    name: "",
+    description: "",
+    lowTag: "",
+    highTag: "",
   });
 
   // Compute which entity kinds use each axis
@@ -238,7 +238,7 @@ export default function AxisRegistryEditor({
           usage[axisConfig.axisId].push({
             kind: ek.kind,
             description: ek.description,
-            axis: axisKey.toUpperCase()
+            axis: axisKey.toUpperCase(),
           });
         }
       }
@@ -250,11 +250,11 @@ export default function AxisRegistryEditor({
   const openNewModal = () => {
     setEditingAxis(null);
     setFormData({
-      id: '',
-      name: '',
-      description: '',
-      lowTag: '',
-      highTag: ''
+      id: "",
+      name: "",
+      description: "",
+      lowTag: "",
+      highTag: "",
     });
     setShowModal(true);
   };
@@ -264,9 +264,9 @@ export default function AxisRegistryEditor({
     setFormData({
       id: axis.id,
       name: axis.name,
-      description: axis.description || '',
+      description: axis.description || "",
       lowTag: axis.lowTag,
-      highTag: axis.highTag
+      highTag: axis.highTag,
     });
     setShowModal(true);
   };
@@ -277,20 +277,23 @@ export default function AxisRegistryEditor({
   };
 
   const generateId = (name) => {
-    return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "");
   };
 
   const handleNameChange = (name) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       name,
       // Auto-generate ID only if creating new or ID hasn't been manually edited
-      id: !editingAxis ? generateId(name) : prev.id
+      id: !editingAxis ? generateId(name) : prev.id,
     }));
   };
 
   const ensureTagExists = (tagId, isAxis = true) => {
-    const existing = tagRegistry.find(t => t.tag === tagId);
+    const existing = tagRegistry.find((t) => t.tag === tagId);
     if (existing) {
       // Update existing tag to be an axis tag
       if (!existing.isAxis) {
@@ -301,9 +304,9 @@ export default function AxisRegistryEditor({
     // Create new tag
     return {
       tag: tagId,
-      description: '',
-      category: 'trait',
-      isAxis: true
+      description: "",
+      category: "trait",
+      isAxis: true,
     };
   };
 
@@ -322,15 +325,13 @@ export default function AxisRegistryEditor({
       name: formData.name.trim(),
       description: formData.description.trim(),
       lowTag: formData.lowTag.trim(),
-      highTag: formData.highTag.trim()
+      highTag: formData.highTag.trim(),
     };
 
     // Update axis definitions
     let newDefinitions;
     if (editingAxis) {
-      newDefinitions = axisDefinitions.map(a =>
-        a.id === editingAxis.id ? newAxis : a
-      );
+      newDefinitions = axisDefinitions.map((a) => (a.id === editingAxis.id ? newAxis : a));
     } else {
       newDefinitions = [...axisDefinitions, newAxis];
     }
@@ -346,21 +347,21 @@ export default function AxisRegistryEditor({
       const lowWithExclusive = {
         ...lowTagEntry,
         mutuallyExclusiveWith: [
-          ...new Set([...(lowTagEntry.mutuallyExclusiveWith || []), newAxis.highTag])
-        ]
+          ...new Set([...(lowTagEntry.mutuallyExclusiveWith || []), newAxis.highTag]),
+        ],
       };
       const highWithExclusive = {
         ...highTagEntry,
         mutuallyExclusiveWith: [
-          ...new Set([...(highTagEntry.mutuallyExclusiveWith || []), newAxis.lowTag])
-        ]
+          ...new Set([...(highTagEntry.mutuallyExclusiveWith || []), newAxis.lowTag]),
+        ],
       };
 
       // Update tag registry
       let newRegistry = [...tagRegistry];
 
       // Update or add low tag
-      const lowIdx = newRegistry.findIndex(t => t.tag === newAxis.lowTag);
+      const lowIdx = newRegistry.findIndex((t) => t.tag === newAxis.lowTag);
       if (lowIdx >= 0) {
         newRegistry[lowIdx] = lowWithExclusive;
       } else {
@@ -368,7 +369,7 @@ export default function AxisRegistryEditor({
       }
 
       // Update or add high tag
-      const highIdx = newRegistry.findIndex(t => t.tag === newAxis.highTag);
+      const highIdx = newRegistry.findIndex((t) => t.tag === newAxis.highTag);
       if (highIdx >= 0) {
         newRegistry[highIdx] = highWithExclusive;
       } else {
@@ -384,13 +385,13 @@ export default function AxisRegistryEditor({
   const deleteAxis = (axisId) => {
     const usage = axisUsage[axisId] || [];
     if (usage.length > 0) {
-      const kindList = usage.map(u => u.description || u.kind).join(', ');
+      const kindList = usage.map((u) => u.description || u.kind).join(", ");
       if (!window.confirm(`This axis is used by: ${kindList}. Delete anyway?`)) {
         return;
       }
     }
 
-    const newDefinitions = axisDefinitions.filter(a => a.id !== axisId);
+    const newDefinitions = axisDefinitions.filter((a) => a.id !== axisId);
     onAxisDefinitionsChange(newDefinitions);
   };
 
@@ -404,8 +405,8 @@ export default function AxisRegistryEditor({
       </div>
 
       <div style={styles.toolbar}>
-        <span style={{ color: '#888', fontSize: '13px' }}>
-          {axisDefinitions.length} {axisDefinitions.length === 1 ? 'axis' : 'axes'} defined
+        <span style={{ color: "#888", fontSize: "13px" }}>
+          {axisDefinitions.length} {axisDefinitions.length === 1 ? "axis" : "axes"} defined
         </span>
         <button style={styles.addButton} onClick={openNewModal}>
           + New Axis
@@ -418,7 +419,7 @@ export default function AxisRegistryEditor({
         </div>
       ) : (
         <div style={styles.axisList}>
-          {axisDefinitions.map(axis => {
+          {axisDefinitions.map((axis) => {
             const usage = axisUsage[axis.id] || [];
             return (
               <div key={axis.id} style={styles.axisCard}>
@@ -447,10 +448,10 @@ export default function AxisRegistryEditor({
 
                 {usage.length > 0 && (
                   <div style={styles.usageInfo}>
-                    Used in:{' '}
+                    Used in:{" "}
                     {usage.map((u, i) => (
                       <span key={u.kind}>
-                        {i > 0 && ', '}
+                        {i > 0 && ", "}
                         <span style={styles.usageKind}>
                           {u.description || u.kind} ({u.axis})
                         </span>
@@ -467,9 +468,9 @@ export default function AxisRegistryEditor({
       {/* Create/Edit Modal */}
       {showModal && (
         <div style={styles.modal} onClick={closeModal}>
-          <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalTitle}>
-              {editingAxis ? `Edit Axis: ${editingAxis.name}` : 'New Axis Definition'}
+              {editingAxis ? `Edit Axis: ${editingAxis.name}` : "New Axis Definition"}
             </div>
 
             <div style={styles.formGroup}>
@@ -478,7 +479,7 @@ export default function AxisRegistryEditor({
                 style={styles.input}
                 placeholder="e.g., Power, Alignment, Element"
                 value={formData.name}
-                onChange={e => handleNameChange(e.target.value)}
+                onChange={(e) => handleNameChange(e.target.value)}
                 autoFocus
               />
             </div>
@@ -489,11 +490,11 @@ export default function AxisRegistryEditor({
                 style={styles.input}
                 placeholder="e.g., power, alignment, element"
                 value={formData.id}
-                onChange={e => setFormData({ ...formData, id: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, id: e.target.value })}
                 disabled={!!editingAxis}
               />
               <div style={styles.hint}>
-                {editingAxis ? 'ID cannot be changed' : 'Auto-generated from name'}
+                {editingAxis ? "ID cannot be changed" : "Auto-generated from name"}
               </div>
             </div>
 
@@ -503,7 +504,7 @@ export default function AxisRegistryEditor({
                 style={styles.input}
                 placeholder="Brief description of this axis"
                 value={formData.description}
-                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
 
@@ -514,7 +515,7 @@ export default function AxisRegistryEditor({
                   <TagSelector
                     tagRegistry={tagRegistry}
                     value={formData.lowTag ? [formData.lowTag] : []}
-                    onChange={(tags) => setFormData({ ...formData, lowTag: tags[0] || '' })}
+                    onChange={(tags) => setFormData({ ...formData, lowTag: tags[0] || "" })}
                     onAddToRegistry={(newTag) => onTagRegistryChange([...tagRegistry, newTag])}
                     placeholder="Select or create tag..."
                     singleSelect
@@ -527,7 +528,7 @@ export default function AxisRegistryEditor({
                   <TagSelector
                     tagRegistry={tagRegistry}
                     value={formData.highTag ? [formData.highTag] : []}
-                    onChange={(tags) => setFormData({ ...formData, highTag: tags[0] || '' })}
+                    onChange={(tags) => setFormData({ ...formData, highTag: tags[0] || "" })}
                     onAddToRegistry={(newTag) => onTagRegistryChange([...tagRegistry, newTag])}
                     placeholder="Select or create tag..."
                     singleSelect
@@ -537,7 +538,8 @@ export default function AxisRegistryEditor({
             </div>
 
             <div style={styles.hint}>
-              Tags will be auto-created in the registry with isAxis=true and set as mutually exclusive.
+              Tags will be auto-created in the registry with isAxis=true and set as mutually
+              exclusive.
             </div>
 
             <div style={styles.modalActions}>
@@ -547,12 +549,12 @@ export default function AxisRegistryEditor({
               <button
                 style={{
                   ...styles.saveButton,
-                  opacity: formData.name && formData.lowTag && formData.highTag ? 1 : 0.5
+                  opacity: formData.name && formData.lowTag && formData.highTag ? 1 : 0.5,
                 }}
                 onClick={saveAxis}
                 disabled={!formData.name || !formData.lowTag || !formData.highTag}
               >
-                {editingAxis ? 'Save Changes' : 'Create Axis'}
+                {editingAxis ? "Save Changes" : "Create Axis"}
               </button>
             </div>
           </div>

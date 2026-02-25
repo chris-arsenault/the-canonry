@@ -5,7 +5,7 @@
  * note statistics. Calculated on-demand via button click.
  */
 
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import type { PrePrintStats } from "../../lib/preprint/prePrintTypes";
 import type { PersistedEntity } from "../../lib/db/illuminatorDb";
 import type { ChronicleRecord } from "../../lib/chronicleTypes";

@@ -5,7 +5,8 @@
  * Three phases: confirmation → processing → terminal.
  */
 
-import { useEffect } from "react";
+import React, { useEffect } from "react";
+import PropTypes from "prop-types";
 import { useFloatingPillStore } from "../lib/db/floatingPillStore";
 import "./BulkChronicleAnnotationModal.css";
 
@@ -63,7 +64,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
       <div
         className="bcam-dialog"
         // eslint-disable-next-line local/no-inline-styles -- dynamic dialog width based on confirming state
-        style={{ '--bcam-dialog-width': isConfirming ? '540px' : '480px' }}
+        style={{ "--bcam-dialog-width": isConfirming ? "540px" : "480px" }}
       >
         {/* Header */}
         <div className="bcam-header">
@@ -98,7 +99,16 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
               <span
                 className="bcam-status-label"
                 // eslint-disable-next-line local/no-inline-styles -- dynamic status color from progress.status
-                style={{ '--bcam-status-color': progress.status === "complete" ? "#10b981" : progress.status === "failed" ? "#ef4444" : progress.status === "cancelled" ? "#f59e0b" : "var(--text-muted)" }}
+                style={{
+                  "--bcam-status-color":
+                    progress.status === "complete"
+                      ? "#10b981"
+                      : progress.status === "failed"
+                        ? "#ef4444"
+                        : progress.status === "cancelled"
+                          ? "#f59e0b"
+                          : "var(--text-muted)",
+                }}
               >
                 {isConfirming && `${progress.totalChronicles} chronicles`}
                 {progress.status === "running" &&
@@ -115,7 +125,10 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
         <div
           className="bcam-body"
           // eslint-disable-next-line local/no-inline-styles -- dynamic overflow/flex based on confirming state
-          style={{ '--bcam-body-overflow': isConfirming ? 'auto' : 'visible', '--bcam-body-flex': isConfirming ? 1 : 'unset' }}
+          style={{
+            "--bcam-body-overflow": isConfirming ? "auto" : "visible",
+            "--bcam-body-flex": isConfirming ? 1 : "unset",
+          }}
         >
           {/* ---- Confirmation screen ---- */}
           {isConfirming && (
@@ -159,13 +172,8 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
 
                 <div className="bcam-chronicle-list">
                   {progress.chronicles.map((chron) => (
-                    <div
-                      key={chron.chronicleId}
-                      className="bcam-chronicle-item"
-                    >
-                      <span className="bcam-chronicle-title">
-                        {chron.title}
-                      </span>
+                    <div key={chron.chronicleId} className="bcam-chronicle-item">
+                      <span className="bcam-chronicle-title">{chron.title}</span>
                       {!isClear && (
                         <span className="bcam-chronicle-tone">
                           {chron.assignedTone || "weary"}
@@ -194,9 +202,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
                         <span className="bcam-current-title">
                           {progress.currentTitle || (isClear ? "Clearing..." : "Annotating...")}
                         </span>
-                        <span className="bcam-pct-label">
-                          {pct}%
-                        </span>
+                        <span className="bcam-pct-label">{pct}%</span>
                       </div>
 
                       {/* Progress bar */}
@@ -204,7 +210,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
                         <div
                           className="bcam-progress-fill"
                           // eslint-disable-next-line local/no-inline-styles -- dynamic progress bar width
-                          style={{ '--bcam-pct': `${pct}%` }}
+                          style={{ "--bcam-pct": `${pct}%` }}
                         />
                       </div>
 
@@ -252,10 +258,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
                     Failed ({progress.failedChronicles.length})
                   </div>
                   {progress.failedChronicles.map((f) => (
-                    <div
-                      key={f.chronicleId}
-                      className="bcam-failed-item"
-                    >
+                    <div key={f.chronicleId} className="bcam-failed-item">
                       {f.title}: {f.error}
                     </div>
                   ))}
@@ -264,9 +267,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
 
               {/* Cost */}
               {progress.totalCost > 0 && (
-                <div className="bcam-cost">
-                  Cost: ${progress.totalCost.toFixed(4)}
-                </div>
+                <div className="bcam-cost">Cost: ${progress.totalCost.toFixed(4)}</div>
               )}
             </>
           )}
@@ -276,10 +277,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
         <div className="bcam-footer">
           {isConfirming && (
             <>
-              <button
-                onClick={onCancel}
-                className="illuminator-button bcam-footer-btn"
-              >
+              <button onClick={onCancel} className="illuminator-button bcam-footer-btn">
                 Cancel
               </button>
               <button
@@ -293,18 +291,12 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
             </>
           )}
           {!isConfirming && !isTerminal && (
-            <button
-              onClick={onCancel}
-              className="illuminator-button bcam-footer-btn"
-            >
+            <button onClick={onCancel} className="illuminator-button bcam-footer-btn">
               Cancel
             </button>
           )}
           {isTerminal && (
-            <button
-              onClick={onClose}
-              className="illuminator-button bcam-footer-btn"
-            >
+            <button onClick={onClose} className="illuminator-button bcam-footer-btn">
               Close
             </button>
           )}

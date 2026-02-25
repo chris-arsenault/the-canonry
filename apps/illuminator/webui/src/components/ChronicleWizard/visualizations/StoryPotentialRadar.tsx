@@ -9,7 +9,7 @@
  * - Prominence: entity prominence level
  */
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import type { StoryPotential } from "../../../lib/chronicle/storyPotential";
 
 interface StoryPotentialRadarProps {

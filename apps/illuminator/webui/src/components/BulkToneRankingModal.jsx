@@ -7,7 +7,8 @@
  * 3. Terminal: completion/cancellation/failure message
  */
 
-import { useEffect } from "react";
+import React, { useEffect } from "react";
+import PropTypes from "prop-types";
 import { useFloatingPillStore } from "../lib/db/floatingPillStore";
 import "./BulkToneRankingModal.css";
 
@@ -58,17 +59,17 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
 
   const statusClass =
     progress.status === "complete"
-      ? "btrm-status--complete"
+      ? "btrm-status-complete"
       : progress.status === "failed"
-        ? "btrm-status--failed"
+        ? "btrm-status-failed"
         : progress.status === "cancelled"
-          ? "btrm-status--cancelled"
-          : "btrm-status--default";
+          ? "btrm-status-cancelled"
+          : "btrm-status-default";
 
   return (
     <div className="btrm-overlay">
       <div
-        className={`btrm-dialog ${isConfirming ? "btrm-dialog--confirming" : "btrm-dialog--processing"}`}
+        className={`btrm-dialog ${isConfirming ? "btrm-dialog-confirming" : "btrm-dialog-processing"}`}
       >
         {/* Header */}
         <div className="btrm-header">
@@ -112,7 +113,7 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
         </div>
 
         {/* Body */}
-        <div className={`btrm-body ${isConfirming ? "btrm-body--confirming" : ""}`}>
+        <div className={`btrm-body ${isConfirming ? "btrm-body-confirming" : ""}`}>
           {/* ---- Confirmation screen ---- */}
           {isConfirming && (
             <>
@@ -156,9 +157,7 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
                             `Ranking ${progress.totalChronicles} chronicles...`}
                         </span>
                         {progress.processedChronicles > 0 && (
-                          <span className="btrm-progress-pct">
-                            {pct}%
-                          </span>
+                          <span className="btrm-progress-pct">{pct}%</span>
                         )}
                       </div>
 
@@ -181,29 +180,27 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
 
               {/* Terminal state messages */}
               {progress.status === "complete" && (
-                <div className="btrm-terminal-msg btrm-terminal-msg--complete">
+                <div className="btrm-terminal-msg btrm-terminal-msg-complete">
                   Ranked {progress.processedChronicles} of {progress.totalChronicles} chronicles.
                 </div>
               )}
 
               {progress.status === "cancelled" && (
-                <div className="btrm-terminal-msg btrm-terminal-msg--cancelled">
+                <div className="btrm-terminal-msg btrm-terminal-msg-cancelled">
                   Cancelled after {progress.processedChronicles} of {progress.totalChronicles}{" "}
                   chronicles.
                 </div>
               )}
 
               {progress.status === "failed" && (
-                <div className="btrm-terminal-msg btrm-terminal-msg--failed">
+                <div className="btrm-terminal-msg btrm-terminal-msg-failed">
                   {progress.error || "An unexpected error occurred."}
                 </div>
               )}
 
               {/* Cost */}
               {progress.totalCost > 0 && (
-                <div className="btrm-cost">
-                  Cost: ${progress.totalCost.toFixed(4)}
-                </div>
+                <div className="btrm-cost">Cost: ${progress.totalCost.toFixed(4)}</div>
               )}
             </>
           )}
@@ -213,10 +210,7 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
         <div className="btrm-footer">
           {isConfirming && (
             <>
-              <button
-                onClick={onCancel}
-                className="illuminator-button btrm-footer-btn"
-              >
+              <button onClick={onCancel} className="illuminator-button btrm-footer-btn">
                 Cancel
               </button>
               <button
@@ -228,18 +222,12 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
             </>
           )}
           {!isConfirming && !isTerminal && (
-            <button
-              onClick={onCancel}
-              className="illuminator-button btrm-footer-btn"
-            >
+            <button onClick={onCancel} className="illuminator-button btrm-footer-btn">
               Cancel
             </button>
           )}
           {isTerminal && (
-            <button
-              onClick={onClose}
-              className="illuminator-button btrm-footer-btn"
-            >
+            <button onClick={onClose} className="illuminator-button btrm-footer-btn">
               Close
             </button>
           )}
@@ -248,3 +236,10 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
     </div>
   );
 }
+
+BulkToneRankingModal.propTypes = {
+  progress: PropTypes.object,
+  onConfirm: PropTypes.func,
+  onCancel: PropTypes.func,
+  onClose: PropTypes.func,
+};

@@ -7,7 +7,7 @@
   gap: 4px;
 }
 
-.hce-tag-list--has-items {
+.hce-tag-list-has-items {
   margin-bottom: 6px;
 }
 
@@ -16,8 +16,8 @@
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  background: rgba(139, 115, 85, 0.12);
-  border: 1px solid rgba(139, 115, 85, 0.25);
+  background: rgb(139 115 85 / 12%);
+  border: 1px solid rgb(139 115 85 / 25%);
   border-radius: 3px;
   font-size: 11px;
   color: var(--text-primary);
@@ -38,7 +38,7 @@
   gap: 4px;
 }
 
-.hce-input-row--has-items {
+.hce-input-row-has-items {
   margin-top: 6px;
 }
 
@@ -60,12 +60,12 @@
   background: var(--bg-tertiary);
 }
 
-.hce-add-btn--enabled {
+.hce-add-btn-enabled {
   color: var(--text-primary);
   cursor: pointer;
 }
 
-.hce-add-btn--disabled {
+.hce-add-btn-disabled {
   color: var(--text-muted);
   cursor: not-allowed;
 }
@@ -158,8 +158,8 @@
 .hce-unconfigured-notice {
   margin-top: 8px;
   padding: 6px 10px;
-  background: rgba(139, 115, 85, 0.1);
-  border: 1px solid rgba(139, 115, 85, 0.25);
+  background: rgb(139 115 85 / 10%);
+  border: 1px solid rgb(139 115 85 / 25%);
   border-radius: 4px;
   font-size: 11px;
   color: #8b7355;
@@ -193,11 +193,11 @@
   line-height: 1.5;
 }
 
-.hce-textarea--bg {
+.hce-textarea-bg {
   min-height: 80px;
 }
 
-.hce-textarea--stance {
+.hce-textarea-stance {
   min-height: 50px;
 }
 
@@ -209,7 +209,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgb(0 0 0 / 60%);
 }
 
 .hce-modal-box {
@@ -218,7 +218,7 @@
   border: 1px solid var(--border-color);
   padding: 20px 24px;
   max-width: 400px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 30%);
 }
 
 .hce-modal-title {

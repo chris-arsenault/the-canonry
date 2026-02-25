@@ -9,7 +9,8 @@
  * - Continue/cancel/apply controls
  */
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import PropTypes from "prop-types";
 import { diffWords } from "diff";
 import { resolveAnchorPhrase } from "../lib/fuzzyAnchor";
 import "./SummaryRevisionModal.css";
@@ -25,9 +26,7 @@ function InlineDiff({ current, proposed, label }) {
 
   return (
     <div className="srm-diff-section">
-      <div className="srm-diff-label">
-        {label}
-      </div>
+      <div className="srm-diff-label">{label}</div>
       <div className="srm-diff-content">
         {changes.map((part, i) => {
           if (part.added) {
@@ -78,9 +77,7 @@ function AnchorPhraseEditor({ patch, onUpdate }) {
   if (editing) {
     return (
       <div className="srm-anchor-section">
-        <div className="srm-anchor-label">
-          Anchor Phrase
-        </div>
+        <div className="srm-anchor-label">Anchor Phrase</div>
         <div className="srm-anchor-edit-row">
           <input
             type="text"
@@ -116,9 +113,7 @@ function AnchorPhraseEditor({ patch, onUpdate }) {
       <div className="srm-anchor-label">
         Anchor Phrase
         {!phraseInDescription && (
-          <span className="srm-anchor-warning">
-            not found in description
-          </span>
+          <span className="srm-anchor-warning">not found in description</span>
         )}
       </div>
       <div className="srm-anchor-display">
@@ -127,10 +122,7 @@ function AnchorPhraseEditor({ patch, onUpdate }) {
         >
           &ldquo;{patch.anchorPhrase}&rdquo;
         </span>
-        <button
-          onClick={() => setEditing(true)}
-          className="srm-anchor-edit-trigger"
-        >
+        <button onClick={() => setEditing(true)} className="srm-anchor-edit-trigger">
           Edit
         </button>
       </div>
@@ -157,19 +149,11 @@ function PatchCard({
   const hasDescChange = patch.description && patch.description !== baselineDesc;
 
   return (
-    <div
-      className="srm-patch-card"
-      data-accepted={accepted !== false}
-    >
+    <div className="srm-patch-card" data-accepted={accepted !== false}>
       {/* Header -- always visible */}
-      <div
-        onClick={onToggleExpand}
-        className="srm-patch-header"
-      >
+      <div onClick={onToggleExpand} className="srm-patch-header">
         <div className="srm-patch-header-left">
-          <span className="srm-patch-expand-icon">
-            {expanded ? "\u25BC" : "\u25B6"}
-          </span>
+          <span className="srm-patch-expand-icon">{expanded ? "\u25BC" : "\u25B6"}</span>
           <span className="srm-patch-entity-name">{patch.entityName}</span>
           <span className="srm-patch-entity-kind">{patch.entityKind}</span>
           <span className="srm-patch-changes-label">
@@ -377,9 +361,7 @@ export default function SummaryRevisionModal({
             <h2 className="srm-modal-title">
               Batch Revision
               {currentBatch && !isRunReviewing && (
-                <span className="srm-modal-culture">
-                  {currentBatch.culture}
-                </span>
+                <span className="srm-modal-culture">{currentBatch.culture}</span>
               )}
             </h2>
             <p className="srm-modal-subtitle">
@@ -391,9 +373,7 @@ export default function SummaryRevisionModal({
           </div>
           <div className="srm-modal-header-right">
             {run.totalActualCost > 0 && (
-              <span className="srm-modal-cost">
-                ${run.totalActualCost.toFixed(4)}
-              </span>
+              <span className="srm-modal-cost">${run.totalActualCost.toFixed(4)}</span>
             )}
             <button
               onClick={onCancel}
@@ -419,11 +399,7 @@ export default function SummaryRevisionModal({
             </div>
           )}
 
-          {isFailed && currentBatch?.error && (
-            <div className="srm-error">
-              {currentBatch.error}
-            </div>
-          )}
+          {isFailed && currentBatch?.error && <div className="srm-error">{currentBatch.error}</div>}
 
           {/* Patches */}
           {allPatches.length > 0 && (
@@ -431,27 +407,16 @@ export default function SummaryRevisionModal({
               <div className="srm-patches-toolbar">
                 <span className="srm-patches-count">
                   {allPatches.length} entities revised
-                  <span className="srm-patches-accepted">
-                    {acceptedCount} accepted
-                  </span>
+                  <span className="srm-patches-accepted">{acceptedCount} accepted</span>
                 </span>
                 <div className="srm-patches-actions">
-                  <button
-                    onClick={handleExport}
-                    className="srm-toolbar-btn"
-                  >
+                  <button onClick={handleExport} className="srm-toolbar-btn">
                     Export
                   </button>
-                  <button
-                    onClick={expandAll}
-                    className="srm-toolbar-btn"
-                  >
+                  <button onClick={expandAll} className="srm-toolbar-btn">
                     Expand all
                   </button>
-                  <button
-                    onClick={collapseAll}
-                    className="srm-toolbar-btn"
-                  >
+                  <button onClick={collapseAll} className="srm-toolbar-btn">
                     Collapse all
                   </button>
                 </div>
@@ -473,9 +438,7 @@ export default function SummaryRevisionModal({
           )}
 
           {(isBatchReviewing || isRunReviewing) && allPatches.length === 0 && (
-            <div className="srm-no-patches">
-              No changes suggested for this batch.
-            </div>
+            <div className="srm-no-patches">No changes suggested for this batch.</div>
           )}
 
           <div ref={scrollRef} />

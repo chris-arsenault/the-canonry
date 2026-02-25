@@ -2,8 +2,8 @@
  * OverviewTab - Profile ID, stats, and groups overview with drag-to-reorder
  */
 
-import { useState, useRef } from 'react';
-import MultiSelectPills from '../MultiSelectPills';
+import { useState, useRef } from "react";
+import MultiSelectPills from "../MultiSelectPills";
 
 export default function OverviewTab({
   profile,
@@ -25,13 +25,13 @@ export default function OverviewTab({
   const handleDragStart = (e, idx) => {
     setDraggedIdx(idx);
     dragNodeRef.current = e.target;
-    e.target.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', idx);
+    e.target.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", idx);
   };
 
   const handleDragEnd = (e) => {
-    e.target.classList.remove('dragging');
+    e.target.classList.remove("dragging");
     setDraggedIdx(null);
     setDragOverIdx(null);
     dragNodeRef.current = null;
@@ -74,7 +74,7 @@ export default function OverviewTab({
       <div className="form-group">
         <label>Profile ID</label>
         <input
-          value={profile.id || ''}
+          value={profile.id || ""}
           onChange={(e) => onChange({ ...profile, id: e.target.value })}
           placeholder="e.g., culture_default"
         />
@@ -94,7 +94,8 @@ export default function OverviewTab({
           <span>Default Profile</span>
         </label>
         <small className="text-muted">
-          Use this profile when no entity kind matches. Only one profile should be marked as default.
+          Use this profile when no entity kind matches. Only one profile should be marked as
+          default.
         </small>
       </div>
 
@@ -108,7 +109,8 @@ export default function OverviewTab({
           allLabel="Any"
         />
         <small className="text-muted">
-          Profile applies when generating names for these entity kinds. "Any" means use default profile logic.
+          Profile applies when generating names for these entity kinds. "Any" means use default
+          profile logic.
         </small>
       </div>
 
@@ -125,9 +127,7 @@ export default function OverviewTab({
           <div className="stat-label">Total Strategies</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">
-            {groups.filter((g) => g.conditions).length}
-          </div>
+          <div className="stat-value">{groups.filter((g) => g.conditions).length}</div>
           <div className="stat-label">Conditional</div>
         </div>
         <div className="stat-card">
@@ -157,7 +157,7 @@ export default function OverviewTab({
               return (
                 <div
                   key={idx}
-                  className={`group-row ${isDragOver ? 'drag-over' : ''} ${draggedIdx === idx ? 'dragging' : ''}`}
+                  className={`group-row ${isDragOver ? "drag-over" : ""} ${draggedIdx === idx ? "dragging" : ""}`}
                   draggable
                   onDragStart={(e) => handleDragStart(e, idx)}
                   onDragEnd={handleDragEnd}
@@ -172,8 +172,10 @@ export default function OverviewTab({
 
                   <div className="group-info">
                     <span className="group-name">{group.name || `Group ${idx + 1}`}</span>
-                    <span className={`group-type-badge ${isConditional ? 'conditional' : 'default'}`}>
-                      {isConditional ? '🎯 Conditional' : '📦 Default'}
+                    <span
+                      className={`group-type-badge ${isConditional ? "conditional" : "default"}`}
+                    >
+                      {isConditional ? "🎯 Conditional" : "📦 Default"}
                     </span>
                   </div>
 
@@ -204,7 +206,8 @@ export default function OverviewTab({
         )}
 
         <p className="text-muted text-xs mt-sm">
-          Groups are evaluated by priority (highest first). First matching group's strategies are used.
+          Groups are evaluated by priority (highest first). First matching group's strategies are
+          used.
         </p>
       </div>
 

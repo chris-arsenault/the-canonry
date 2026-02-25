@@ -18,7 +18,7 @@ export function findMatchingGenerators(generators, cultureId, conditions) {
       // Check if this creation could use this culture
       let matchesCulture = false;
       if (creation.culture) {
-        if (typeof creation.culture === 'string') {
+        if (typeof creation.culture === "string") {
           matchesCulture = creation.culture === cultureId;
         } else if (creation.culture.inherit || creation.culture.from) {
           // Inherited culture - could be any culture
@@ -38,7 +38,7 @@ export function findMatchingGenerators(generators, cultureId, conditions) {
           generatorId: gen.id,
           generatorName: gen.name || gen.id,
           entityKind: creation.kind,
-          subtype: typeof creation.subtype === 'string' ? creation.subtype : null,
+          subtype: typeof creation.subtype === "string" ? creation.subtype : null,
           isDefault: true,
         });
         continue;
@@ -52,7 +52,7 @@ export function findMatchingGenerators(generators, cultureId, conditions) {
 
       // Check subtype condition
       const subtypes = conditions.subtypes || [];
-      const creationSubtype = typeof creation.subtype === 'string' ? creation.subtype : null;
+      const creationSubtype = typeof creation.subtype === "string" ? creation.subtype : null;
       if (subtypes.length > 0) {
         if (!creationSubtype || !subtypes.includes(creationSubtype)) {
           continue;
@@ -72,11 +72,11 @@ export function findMatchingGenerators(generators, cultureId, conditions) {
       if (conditionTags.length > 0) {
         const creationTags = creation.tags ? Object.keys(creation.tags) : [];
         if (conditions.tagMatchAll) {
-          if (!conditionTags.every(t => creationTags.includes(t))) {
+          if (!conditionTags.every((t) => creationTags.includes(t))) {
             continue;
           }
         } else {
-          if (!conditionTags.some(t => creationTags.includes(t))) {
+          if (!conditionTags.some((t) => creationTags.includes(t))) {
             continue;
           }
         }
@@ -108,9 +108,9 @@ export function computeProfileGeneratorUsage(profiles, generators, cultureId) {
       groups: {},
     };
 
-    for (const group of (profile.strategyGroups || [])) {
+    for (const group of profile.strategyGroups || []) {
       const matches = findMatchingGenerators(generators, cultureId, group.conditions);
-      usage[profile.id].groups[group.name || 'Default'] = matches;
+      usage[profile.id].groups[group.name || "Default"] = matches;
       usage[profile.id].totalMatches += matches.length;
     }
   }

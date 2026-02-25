@@ -5,7 +5,7 @@
  * Loads all data on mount for the sub-views to use.
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useEntityNavList } from "../lib/db/entitySelectors";
 import type { PersistedEntity } from "../lib/db/illuminatorDb";
 import type { ChronicleRecord } from "../lib/chronicleTypes";

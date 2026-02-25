@@ -4,7 +4,7 @@
  * Uses fuse.js for fuzzy matching across page titles and content.
  */
 
-import { useMemo, useState, useRef, useEffect } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import Fuse from "fuse.js";
 import type { WikiPage } from "../types/world.ts";
 import styles from "./WikiSearch.module.css";

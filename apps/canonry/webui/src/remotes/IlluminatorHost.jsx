@@ -5,13 +5,13 @@
  * LLM-generated descriptions and images.
  */
 
-import React, { Suspense, lazy } from 'react';
-import RemotePlaceholder from './RemotePlaceholder';
-import { colors, typography } from '../theme';
+import React, { Suspense, lazy } from "react";
+import RemotePlaceholder from "./RemotePlaceholder";
+import { colors, typography } from "../theme";
 
 // Lazy load the remote module
 const IlluminatorRemote = lazy(() =>
-  import('illuminator/IlluminatorRemote').catch(() => ({
+  import("illuminator/IlluminatorRemote").catch(() => ({
     default: () => (
       <RemotePlaceholder
         name="Illuminator"
@@ -24,14 +24,14 @@ const IlluminatorRemote = lazy(() =>
 
 const styles = {
   container: {
-    height: '100%',
-    overflow: 'auto',
+    height: "100%",
+    overflow: "auto",
   },
   loading: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
     color: colors.textMuted,
     fontSize: typography.sizeLg,
     fontFamily: typography.fontFamily,
@@ -39,9 +39,9 @@ const styles = {
 };
 
 const loadingFallback = React.createElement(
-  'div',
+  "div",
   { style: styles.loading },
-  'Loading Illuminator...'
+  "Loading Illuminator..."
 );
 
 export default function IlluminatorHost({

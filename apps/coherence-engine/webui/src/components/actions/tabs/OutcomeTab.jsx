@@ -2,10 +2,10 @@
  * OutcomeTab - Action outcome configuration
  */
 
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { RELATIONSHIP_REFS, MUTATION_TYPE_OPTIONS } from '../constants';
-import MutationCard, { DEFAULT_MUTATION_TYPES } from '../../shared/MutationCard';
-import { NumberInput, LocalTextArea } from '../../shared';
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { RELATIONSHIP_REFS, MUTATION_TYPE_OPTIONS } from "../constants";
+import MutationCard, { DEFAULT_MUTATION_TYPES } from "../../shared/MutationCard";
+import { NumberInput, LocalTextArea } from "../../shared";
 
 const ACTION_MUTATION_TYPES = DEFAULT_MUTATION_TYPES;
 
@@ -24,35 +24,52 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
   };
 
   const createMutation = (type) => {
-    const defaultPressure = pressures?.[0]?.id || '';
-    const defaultEntity = '$actor';
-    const defaultTarget = '$target';
-    const defaultOther = '$target2';
+    const defaultPressure = pressures?.[0]?.id || "";
+    const defaultEntity = "$actor";
+    const defaultTarget = "$target";
+    const defaultOther = "$target2";
 
     switch (type) {
-      case 'modify_pressure':
-        return { type: 'modify_pressure', pressureId: defaultPressure, delta: 0 };
-      case 'set_tag':
-        return { type: 'set_tag', entity: defaultTarget, tag: '', value: true };
-      case 'remove_tag':
-        return { type: 'remove_tag', entity: defaultTarget, tag: '' };
-      case 'change_status':
-        return { type: 'change_status', entity: defaultTarget, newStatus: '' };
-      case 'adjust_prominence':
-        return { type: 'adjust_prominence', entity: defaultEntity, delta: 0.1 };
-      case 'archive_relationship':
-        return { type: 'archive_relationship', entity: defaultEntity, relationshipKind: '', with: defaultTarget, direction: 'both' };
-      case 'archive_all_relationships':
-        return { type: 'archive_all_relationships', entity: defaultEntity, relationshipKind: '', direction: 'both' };
-      case 'adjust_relationship_strength':
-        return { type: 'adjust_relationship_strength', kind: '', src: defaultEntity, dst: defaultTarget, delta: 0.1 };
-      case 'update_rate_limit':
-        return { type: 'update_rate_limit' };
-      case 'create_relationship':
+      case "modify_pressure":
+        return { type: "modify_pressure", pressureId: defaultPressure, delta: 0 };
+      case "set_tag":
+        return { type: "set_tag", entity: defaultTarget, tag: "", value: true };
+      case "remove_tag":
+        return { type: "remove_tag", entity: defaultTarget, tag: "" };
+      case "change_status":
+        return { type: "change_status", entity: defaultTarget, newStatus: "" };
+      case "adjust_prominence":
+        return { type: "adjust_prominence", entity: defaultEntity, delta: 0.1 };
+      case "archive_relationship":
+        return {
+          type: "archive_relationship",
+          entity: defaultEntity,
+          relationshipKind: "",
+          with: defaultTarget,
+          direction: "both",
+        };
+      case "archive_all_relationships":
+        return {
+          type: "archive_all_relationships",
+          entity: defaultEntity,
+          relationshipKind: "",
+          direction: "both",
+        };
+      case "adjust_relationship_strength":
+        return {
+          type: "adjust_relationship_strength",
+          kind: "",
+          src: defaultEntity,
+          dst: defaultTarget,
+          delta: 0.1,
+        };
+      case "update_rate_limit":
+        return { type: "update_rate_limit" };
+      case "create_relationship":
       default:
         return {
-          type: 'create_relationship',
-          kind: '',
+          type: "create_relationship",
+          kind: "",
           src: defaultEntity,
           dst: defaultTarget || defaultOther,
           strength: 0.5,
@@ -61,17 +78,20 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
   };
 
   const addMutation = (type) => {
-    updateOutcome('mutations', [...mutations, createMutation(type)]);
+    updateOutcome("mutations", [...mutations, createMutation(type)]);
   };
 
   const updateMutation = (index, mutation) => {
     const next = [...mutations];
     next[index] = mutation;
-    updateOutcome('mutations', next);
+    updateOutcome("mutations", next);
   };
 
   const removeMutation = (index) => {
-    updateOutcome('mutations', mutations.filter((_, i) => i !== index));
+    updateOutcome(
+      "mutations",
+      mutations.filter((_, i) => i !== index)
+    );
   };
 
   useLayoutEffect(() => {
@@ -92,8 +112,8 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
         setShowTypeMenu(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showTypeMenu]);
 
   return (
@@ -126,11 +146,8 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
           />
         ))}
 
-        <div ref={addButtonRef} style={{ position: 'relative', marginTop: '12px' }}>
-          <button
-            onClick={() => setShowTypeMenu(!showTypeMenu)}
-            className="btn-add-inline"
-          >
+        <div ref={addButtonRef} style={{ position: "relative", marginTop: "12px" }}>
+          <button onClick={() => setShowTypeMenu(!showTypeMenu)} className="btn-add-inline">
             + Add Mutation
           </button>
 
@@ -138,12 +155,12 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
             <div
               className="dropdown-menu"
               style={{
-                position: 'fixed',
+                position: "fixed",
                 top: dropdownPos.top,
                 left: dropdownPos.left,
                 width: dropdownPos.width,
-                maxHeight: '300px',
-                overflowY: 'auto',
+                maxHeight: "300px",
+                overflowY: "auto",
                 zIndex: 10000,
               }}
             >
@@ -156,7 +173,10 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
                   }}
                   className="dropdown-menu-item"
                 >
-                  <span className="dropdown-menu-icon" style={{ backgroundColor: `${opt.color}20` }}>
+                  <span
+                    className="dropdown-menu-icon"
+                    style={{ backgroundColor: `${opt.color}20` }}
+                  >
                     {opt.icon}
                   </span>
                   <span className="dropdown-menu-label">{opt.label}</span>
@@ -170,11 +190,14 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
       <div className="section">
         <div className="section-title">⭐ Prominence Changes</div>
         <div className="section-desc">
-          Apply prominence changes to actor or target on action success/failure. Values are numeric deltas (e.g., 0.1 or -0.05).
+          Apply prominence changes to actor or target on action success/failure. Values are numeric
+          deltas (e.g., 0.1 or -0.05).
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <div className="label" style={{ marginBottom: '8px' }}>Actor Prominence Delta</div>
+        <div style={{ marginBottom: "16px" }}>
+          <div className="label" style={{ marginBottom: "8px" }}>
+            Actor Prominence Delta
+          </div>
           <div className="form-grid">
             <div className="form-group">
               <label className="label-micro">On Success</label>
@@ -184,7 +207,10 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
                   const current = outcome.actorProminenceDelta || {};
                   const updated = { ...current, onSuccess: v };
                   if (updated.onSuccess === undefined) delete updated.onSuccess;
-                  updateOutcome('actorProminenceDelta', Object.keys(updated).length > 0 ? updated : undefined);
+                  updateOutcome(
+                    "actorProminenceDelta",
+                    Object.keys(updated).length > 0 ? updated : undefined
+                  );
                 }}
                 placeholder="e.g., 0.1"
                 allowEmpty
@@ -198,7 +224,10 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
                   const current = outcome.actorProminenceDelta || {};
                   const updated = { ...current, onFailure: v };
                   if (updated.onFailure === undefined) delete updated.onFailure;
-                  updateOutcome('actorProminenceDelta', Object.keys(updated).length > 0 ? updated : undefined);
+                  updateOutcome(
+                    "actorProminenceDelta",
+                    Object.keys(updated).length > 0 ? updated : undefined
+                  );
                 }}
                 placeholder="e.g., -0.05"
                 allowEmpty
@@ -208,7 +237,9 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
         </div>
 
         <div>
-          <div className="label" style={{ marginBottom: '8px' }}>Target Prominence Delta</div>
+          <div className="label" style={{ marginBottom: "8px" }}>
+            Target Prominence Delta
+          </div>
           <div className="form-grid">
             <div className="form-group">
               <label className="label-micro">On Success</label>
@@ -218,7 +249,10 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
                   const current = outcome.targetProminenceDelta || {};
                   const updated = { ...current, onSuccess: v };
                   if (updated.onSuccess === undefined) delete updated.onSuccess;
-                  updateOutcome('targetProminenceDelta', Object.keys(updated).length > 0 ? updated : undefined);
+                  updateOutcome(
+                    "targetProminenceDelta",
+                    Object.keys(updated).length > 0 ? updated : undefined
+                  );
                 }}
                 placeholder="e.g., 0.1"
                 allowEmpty
@@ -232,7 +266,10 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
                   const current = outcome.targetProminenceDelta || {};
                   const updated = { ...current, onFailure: v };
                   if (updated.onFailure === undefined) delete updated.onFailure;
-                  updateOutcome('targetProminenceDelta', Object.keys(updated).length > 0 ? updated : undefined);
+                  updateOutcome(
+                    "targetProminenceDelta",
+                    Object.keys(updated).length > 0 ? updated : undefined
+                  );
                 }}
                 placeholder="e.g., -0.05"
                 allowEmpty
@@ -245,11 +282,12 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
       <div className="section">
         <div className="section-title">📝 Description Template</div>
         <div className="section-desc">
-          Template for generating occurrence descriptions. Use {'{actor.name}'}, {'{instigator.name}'}, {'{target.name}'}, etc.
+          Template for generating occurrence descriptions. Use {"{actor.name}"},{" "}
+          {"{instigator.name}"}, {"{target.name}"}, etc.
         </div>
         <LocalTextArea
-          value={outcome.descriptionTemplate || ''}
-          onChange={(value) => updateOutcome('descriptionTemplate', value || undefined)}
+          value={outcome.descriptionTemplate || ""}
+          onChange={(value) => updateOutcome("descriptionTemplate", value || undefined)}
           placeholder="e.g., declared war on {target.name}"
         />
       </div>
@@ -257,11 +295,12 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
       <div className="section">
         <div className="section-title">📖 Narration Template</div>
         <div className="section-desc">
-          Domain-controlled narrative text. Syntax: {'{entity.field}'}, {'{$var.field}'}, {'{field|fallback}'}, {'{list:entities}'}.
+          Domain-controlled narrative text. Syntax: {"{entity.field}"}, {"{$var.field}"},{" "}
+          {"{field|fallback}"}, {"{list:entities}"}.
         </div>
         <LocalTextArea
-          value={outcome.narrationTemplate || ''}
-          onChange={(value) => updateOutcome('narrationTemplate', value || undefined)}
+          value={outcome.narrationTemplate || ""}
+          onChange={(value) => updateOutcome("narrationTemplate", value || undefined)}
           placeholder="e.g., The {actor.subtype} {actor.name} declared war on {target.name}, shattering the fragile peace."
           rows={3}
         />

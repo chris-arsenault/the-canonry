@@ -2,8 +2,8 @@
  * TransitionConditionEditor - Editor for era transition conditions
  */
 
-import React from 'react';
-import { ApplicabilityRuleCard } from '../../generators/applicability/ApplicabilityRuleCard';
+import React from "react";
+import { ApplicabilityRuleCard } from "../../generators/applicability/ApplicabilityRuleCard";
 
 /**
  * @param {Object} props
@@ -15,7 +15,15 @@ import { ApplicabilityRuleCard } from '../../generators/applicability/Applicabil
  * @param {Object} props.schema - Domain schema
  * @param {Array} props.eras - Era definitions (optional)
  */
-export function TransitionConditionEditor({ condition, index, onChange, onRemove, pressures, schema, eras }) {
+export function TransitionConditionEditor({
+  condition,
+  index,
+  onChange,
+  onRemove,
+  pressures,
+  schema,
+  eras,
+}) {
   return (
     <ApplicabilityRuleCard
       rule={condition}

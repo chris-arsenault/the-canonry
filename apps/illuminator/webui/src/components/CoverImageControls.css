@@ -28,7 +28,7 @@
   object-fit: contain;
 }
 
-.cic-preview-img--clickable {
+.cic-preview-img-clickable {
   cursor: pointer;
 }
 
@@ -60,23 +60,23 @@
   margin-top: 4px;
 }
 
-.cic-status--empty {
+.cic-status-empty {
   color: var(--text-muted);
 }
 
-.cic-status--pending {
+.cic-status-pending {
   color: #f59e0b;
 }
 
-.cic-status--generating {
+.cic-status-generating {
   color: var(--text-muted);
 }
 
-.cic-status--complete {
+.cic-status-complete {
   color: #10b981;
 }
 
-.cic-status--failed {
+.cic-status-failed {
   color: #ef4444;
 }
 

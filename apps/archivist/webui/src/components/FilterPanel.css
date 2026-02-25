@@ -446,11 +446,13 @@
   width: 100%;
   height: 6px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(90deg,
+  background: linear-gradient(
+    90deg,
     rgb(239 68 68 / 30%) 0%,
     rgb(251 191 36 / 30%) 25%,
     rgb(59 130 246 / 30%) 50%,
-    rgb(16 185 129 / 30%) 100%);
+    rgb(16 185 129 / 30%) 100%
+  );
   outline: none;
   appearance: none;
   cursor: pointer;

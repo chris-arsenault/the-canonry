@@ -9,7 +9,7 @@
  * dragged directly onto the tree.
  */
 
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { DndProvider, useDragDropManager, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Tree } from "react-arborist";

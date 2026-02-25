@@ -9,7 +9,7 @@
  * - Final results
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from "react";
 import type {
   SimulationEvent,
   ProgressPayload,
@@ -33,16 +33,24 @@ import type {
   NotableEntitiesPayload,
   SimulationResultPayload,
   StateExportPayload,
-  ErrorPayload
-} from '../../../lib/observer/types';
-import type { EngineConfig } from '../../../lib/engine/types';
-import type { HardState } from '../../../lib/core/worldTypes';
+  ErrorPayload,
+} from "../../../lib/observer/types";
+import type { EngineConfig } from "../../../lib/engine/types";
+import type { HardState } from "../../../lib/core/worldTypes";
 
 // Maximum log entries to keep in memory
 const MAX_LOG_ENTRIES = 1000;
 
 export interface SimulationState {
-  status: 'idle' | 'initializing' | 'validating' | 'running' | 'finalizing' | 'paused' | 'complete' | 'error';
+  status:
+    | "idle"
+    | "initializing"
+    | "validating"
+    | "running"
+    | "finalizing"
+    | "paused"
+    | "complete"
+    | "error";
   progress: ProgressPayload | null;
   validation: ValidationPayload | null;
   currentEpoch: EpochStartPayload | null;
@@ -88,7 +96,7 @@ export interface UseSimulationWorkerReturn {
 }
 
 const initialState: SimulationState = {
-  status: 'idle',
+  status: "idle",
   progress: null,
   validation: null,
   currentEpoch: null,
@@ -110,7 +118,7 @@ const initialState: SimulationState = {
   result: null,
   stateExport: null,
   error: null,
-  logs: []
+  logs: [],
 };
 
 export function useSimulationWorker(): UseSimulationWorkerReturn {
@@ -130,18 +138,18 @@ export function useSimulationWorker(): UseSimulationWorkerReturn {
   const handleMessage = useCallback((event: MessageEvent<SimulationEvent>) => {
     const message = event.data;
 
-    setState(prev => {
+    setState((prev) => {
       switch (message.type) {
-        case 'progress':
+        case "progress":
           // Map progress phase to status (includes 'paused')
-          const status = message.payload.phase as SimulationState['status'];
+          const status = message.payload.phase as SimulationState["status"];
           return {
             ...prev,
             status,
-            progress: message.payload
+            progress: message.payload,
           };
 
-        case 'log':
+        case "log":
           // Limit log entries to prevent memory issues
           const newLogs = [...prev.logs, message.payload];
           if (newLogs.length > MAX_LOG_ENTRIES) {
@@ -149,34 +157,34 @@ export function useSimulationWorker(): UseSimulationWorkerReturn {
           }
           return {
             ...prev,
-            logs: newLogs
+            logs: newLogs,
           };
 
-        case 'validation':
+        case "validation":
           return {
             ...prev,
-            validation: message.payload
+            validation: message.payload,
           };
 
-        case 'epoch_start':
+        case "epoch_start":
           return {
             ...prev,
-            currentEpoch: message.payload
+            currentEpoch: message.payload,
           };
 
-        case 'epoch_stats':
+        case "epoch_stats":
           return {
             ...prev,
-            epochStats: [...prev.epochStats, message.payload]
+            epochStats: [...prev.epochStats, message.payload],
           };
 
-        case 'growth_phase':
+        case "growth_phase":
           return {
             ...prev,
-            growthPhases: [...prev.growthPhases, message.payload]
+            growthPhases: [...prev.growthPhases, message.payload],
           };
 
-        case 'template_application':
+        case "template_application":
           // Keep only last 1000 template applications (for trace visualization)
           const newTemplateApps = [...prev.templateApplications, message.payload];
           if (newTemplateApps.length > 1000) {
@@ -184,16 +192,16 @@ export function useSimulationWorker(): UseSimulationWorkerReturn {
           }
           return {
             ...prev,
-            templateApplications: newTemplateApps
+            templateApplications: newTemplateApps,
           };
 
-        case 'action_application':
+        case "action_application":
           return {
             ...prev,
-            actionApplications: [...prev.actionApplications, message.payload]
+            actionApplications: [...prev.actionApplications, message.payload],
           };
 
-        case 'pressure_update':
+        case "pressure_update":
           // Keep only last 500 pressure updates (enough for ~33 epochs at 15 ticks each)
           const newPressureUpdates = [...prev.pressureUpdates, message.payload];
           if (newPressureUpdates.length > 500) {
@@ -201,40 +209,40 @@ export function useSimulationWorker(): UseSimulationWorkerReturn {
           }
           return {
             ...prev,
-            pressureUpdates: newPressureUpdates
+            pressureUpdates: newPressureUpdates,
           };
 
-        case 'population_report':
+        case "population_report":
           return {
             ...prev,
-            populationReport: message.payload
+            populationReport: message.payload,
           };
 
-        case 'template_usage':
+        case "template_usage":
           return {
             ...prev,
-            templateUsage: message.payload
+            templateUsage: message.payload,
           };
 
-        case 'coordinate_stats':
+        case "coordinate_stats":
           return {
             ...prev,
-            coordinateStats: message.payload
+            coordinateStats: message.payload,
           };
 
-        case 'tag_health':
+        case "tag_health":
           return {
             ...prev,
-            tagHealth: message.payload
+            tagHealth: message.payload,
           };
 
-        case 'system_health':
+        case "system_health":
           return {
             ...prev,
-            systemHealth: message.payload
+            systemHealth: message.payload,
           };
 
-        case 'system_action':
+        case "system_action":
           // Keep only last 500 system actions
           const newSystemActions = [...prev.systemActions, message.payload];
           if (newSystemActions.length > 500) {
@@ -242,51 +250,51 @@ export function useSimulationWorker(): UseSimulationWorkerReturn {
           }
           return {
             ...prev,
-            systemActions: newSystemActions
+            systemActions: newSystemActions,
           };
 
-        case 'entity_breakdown':
+        case "entity_breakdown":
           return {
             ...prev,
-            entityBreakdown: message.payload
+            entityBreakdown: message.payload,
           };
 
-        case 'catalyst_stats':
+        case "catalyst_stats":
           return {
             ...prev,
-            catalystStats: message.payload
+            catalystStats: message.payload,
           };
 
-        case 'relationship_breakdown':
+        case "relationship_breakdown":
           return {
             ...prev,
-            relationshipBreakdown: message.payload
+            relationshipBreakdown: message.payload,
           };
 
-        case 'notable_entities':
+        case "notable_entities":
           return {
             ...prev,
-            notableEntities: message.payload
+            notableEntities: message.payload,
           };
 
-        case 'complete':
+        case "complete":
           return {
             ...prev,
-            status: 'complete',
-            result: message.payload
+            status: "complete",
+            result: message.payload,
           };
 
-        case 'state_export':
+        case "state_export":
           return {
             ...prev,
-            stateExport: message.payload
+            stateExport: message.payload,
           };
 
-        case 'error':
+        case "error":
           return {
             ...prev,
-            status: 'error',
-            error: message.payload
+            status: "error",
+            error: message.payload,
           };
 
         default:
@@ -295,105 +303,109 @@ export function useSimulationWorker(): UseSimulationWorkerReturn {
     });
   }, []);
 
-  const start = useCallback((config: EngineConfig, initialEntities: HardState[]) => {
-    // Terminate existing worker if any
-    if (workerRef.current) {
-      workerRef.current.terminate();
-    }
+  const start = useCallback(
+    (config: EngineConfig, initialEntities: HardState[]) => {
+      // Terminate existing worker if any
+      if (workerRef.current) {
+        workerRef.current.terminate();
+      }
 
-    // Reset state to initial values
-    setState({
-      ...initialState,
-      status: 'initializing'
-    });
+      // Reset state to initial values
+      setState({
+        ...initialState,
+        status: "initializing",
+      });
 
-    // Create new worker using Vite's web worker support
-    // Import the worker as a module - Vite bundles it appropriately
-    workerRef.current = new Worker(
-      new URL('../workers/simulation.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+      // Create new worker using Vite's web worker support
+      // Import the worker as a module - Vite bundles it appropriately
+      workerRef.current = new Worker(new URL("../workers/simulation.worker.ts", import.meta.url), {
+        type: "module",
+      });
 
-    workerRef.current.onmessage = handleMessage;
+      workerRef.current.onmessage = handleMessage;
 
-    workerRef.current.onerror = (error) => {
-      setState(prev => ({
-        ...prev,
-        status: 'error',
-        error: {
-          message: error.message || 'Worker error',
-          phase: 'worker',
-          context: {}
-        }
-      }));
-    };
+      workerRef.current.onerror = (error) => {
+        setState((prev) => ({
+          ...prev,
+          status: "error",
+          error: {
+            message: error.message || "Worker error",
+            phase: "worker",
+            context: {},
+          },
+        }));
+      };
 
-    // Start simulation
-    workerRef.current.postMessage({
-      type: 'start',
-      config,
-      initialState: initialEntities
-    });
-  }, [handleMessage]);
+      // Start simulation
+      workerRef.current.postMessage({
+        type: "start",
+        config,
+        initialState: initialEntities,
+      });
+    },
+    [handleMessage]
+  );
 
-  const startStepping = useCallback((config: EngineConfig, initialEntities: HardState[]) => {
-    // Terminate existing worker if any
-    if (workerRef.current) {
-      workerRef.current.terminate();
-    }
+  const startStepping = useCallback(
+    (config: EngineConfig, initialEntities: HardState[]) => {
+      // Terminate existing worker if any
+      if (workerRef.current) {
+        workerRef.current.terminate();
+      }
 
-    // Reset state to initial values
-    setState({
-      ...initialState,
-      status: 'initializing'
-    });
+      // Reset state to initial values
+      setState({
+        ...initialState,
+        status: "initializing",
+      });
 
-    // Create new worker
-    workerRef.current = new Worker(
-      new URL('../workers/simulation.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+      // Create new worker
+      workerRef.current = new Worker(new URL("../workers/simulation.worker.ts", import.meta.url), {
+        type: "module",
+      });
 
-    workerRef.current.onmessage = handleMessage;
+      workerRef.current.onmessage = handleMessage;
 
-    workerRef.current.onerror = (error) => {
-      setState(prev => ({
-        ...prev,
-        status: 'error',
-        error: {
-          message: error.message || 'Worker error',
-          phase: 'worker',
-          context: {}
-        }
-      }));
-    };
+      workerRef.current.onerror = (error) => {
+        setState((prev) => ({
+          ...prev,
+          status: "error",
+          error: {
+            message: error.message || "Worker error",
+            phase: "worker",
+            context: {},
+          },
+        }));
+      };
 
-    // Initialize for stepping (doesn't run automatically)
-    workerRef.current.postMessage({
-      type: 'startStepping',
-      config,
-      initialState: initialEntities
-    });
-  }, [handleMessage]);
+      // Initialize for stepping (doesn't run automatically)
+      workerRef.current.postMessage({
+        type: "startStepping",
+        config,
+        initialState: initialEntities,
+      });
+    },
+    [handleMessage]
+  );
 
   const step = useCallback(() => {
     if (workerRef.current) {
-      workerRef.current.postMessage({ type: 'step' });
+      workerRef.current.postMessage({ type: "step" });
     }
   }, []);
 
   const runToCompletion = useCallback(() => {
     if (workerRef.current) {
-      workerRef.current.postMessage({ type: 'runToCompletion' });
+      workerRef.current.postMessage({ type: "runToCompletion" });
     }
   }, []);
 
   const reset = useCallback(() => {
     if (workerRef.current) {
       // Reset state but keep worker
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        status: 'initializing',
+        status: "initializing",
         epochStats: [],
         growthPhases: [],
         pressureUpdates: [],
@@ -408,9 +420,9 @@ export function useSimulationWorker(): UseSimulationWorkerReturn {
         relationshipBreakdown: null,
         notableEntities: null,
         result: null,
-        error: null
+        error: null,
       }));
-      workerRef.current.postMessage({ type: 'reset' });
+      workerRef.current.postMessage({ type: "reset" });
     }
   }, []);
 
@@ -418,9 +430,9 @@ export function useSimulationWorker(): UseSimulationWorkerReturn {
     if (workerRef.current) {
       workerRef.current.terminate();
       workerRef.current = null;
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        status: 'idle'
+        status: "idle",
       }));
     }
   }, []);
@@ -428,24 +440,25 @@ export function useSimulationWorker(): UseSimulationWorkerReturn {
   const requestExport = useCallback(() => {
     if (workerRef.current) {
       // Clear previous export before requesting new one
-      setState(prev => ({ ...prev, stateExport: null }));
-      workerRef.current.postMessage({ type: 'exportState' });
+      setState((prev) => ({ ...prev, stateExport: null }));
+      workerRef.current.postMessage({ type: "exportState" });
     }
   }, []);
 
   const clearLogs = useCallback(() => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      logs: []
+      logs: [],
     }));
   }, []);
 
-  const isRunning = state.status === 'initializing' ||
-                   state.status === 'validating' ||
-                   state.status === 'running' ||
-                   state.status === 'finalizing';
+  const isRunning =
+    state.status === "initializing" ||
+    state.status === "validating" ||
+    state.status === "running" ||
+    state.status === "finalizing";
 
-  const isPaused = state.status === 'paused';
+  const isPaused = state.status === "paused";
 
   return {
     state,
@@ -458,6 +471,6 @@ export function useSimulationWorker(): UseSimulationWorkerReturn {
     clearLogs,
     requestExport,
     isRunning,
-    isPaused
+    isPaused,
   };
 }

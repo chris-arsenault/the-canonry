@@ -2,8 +2,8 @@
  * DependencySection - Expandable section for dependency items
  */
 
-import React, { useState } from 'react';
-import '../dependency-viewer.css';
+import React, { useState } from "react";
+import "../dependency-viewer.css";
 
 export function DependencySection({ title, icon, items, renderItem, defaultExpanded = false }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -24,7 +24,9 @@ export function DependencySection({ title, icon, items, renderItem, defaultExpan
           <span>{title}</span>
           <span className="dependency-section-count">{items.length}</span>
         </div>
-        <span className={`dependency-expand-icon ${expanded ? 'dependency-expand-icon-open' : ''}`}>▼</span>
+        <span className={`dependency-expand-icon ${expanded ? "dependency-expand-icon-open" : ""}`}>
+          ▼
+        </span>
       </div>
       {expanded && (
         <div className="dependency-section-content">

@@ -4,9 +4,9 @@
  * Writes merged entity records to the `entities` store via raw IndexedDB.
  */
 
-import { openIlluminatorDb } from '../lib/illuminatorDbReader';
+import { openIlluminatorDb } from "../lib/illuminatorDbReader";
 
-const ENTITIES_STORE_NAME = 'entities';
+const ENTITIES_STORE_NAME = "entities";
 
 function mergeDefined(target, source) {
   const merged = { ...target };
@@ -28,11 +28,11 @@ export async function importEntities(simulationRunId, entities) {
 
   try {
     if (!db.objectStoreNames.contains(ENTITIES_STORE_NAME)) {
-      throw new Error('Illuminator entities store is unavailable.');
+      throw new Error("Illuminator entities store is unavailable.");
     }
 
     return await new Promise((resolve, reject) => {
-      const tx = db.transaction(ENTITIES_STORE_NAME, 'readwrite');
+      const tx = db.transaction(ENTITIES_STORE_NAME, "readwrite");
       const store = tx.objectStore(ENTITIES_STORE_NAME);
 
       for (const entity of entities) {
@@ -58,7 +58,8 @@ export async function importEntities(simulationRunId, entities) {
           merged.enrichment = { ...existingEnrichment, ...incomingEnrichment };
           merged.summary = incoming.summary ?? existing.summary;
           merged.description = incoming.description ?? existing.description;
-          merged.simulationRunId = incoming.simulationRunId || existing.simulationRunId || simulationRunId;
+          merged.simulationRunId =
+            incoming.simulationRunId || existing.simulationRunId || simulationRunId;
 
           store.put(merged);
           imported += 1;
@@ -69,7 +70,7 @@ export async function importEntities(simulationRunId, entities) {
       }
 
       tx.oncomplete = () => resolve({ imported, overwritten, skipped });
-      tx.onerror = () => reject(tx.error || new Error('Failed to import entities'));
+      tx.onerror = () => reject(tx.error || new Error("Failed to import entities"));
     });
   } finally {
     db.close();
@@ -81,12 +82,12 @@ export async function getEntityCountForRun(simulationRunId) {
   const db = await openIlluminatorDb();
   try {
     return await new Promise((resolve, reject) => {
-      const tx = db.transaction(ENTITIES_STORE_NAME, 'readonly');
+      const tx = db.transaction(ENTITIES_STORE_NAME, "readonly");
       const store = tx.objectStore(ENTITIES_STORE_NAME);
-      const index = store.index('simulationRunId');
+      const index = store.index("simulationRunId");
       const request = index.count(simulationRunId);
       request.onsuccess = () => resolve(request.result || 0);
-      request.onerror = () => reject(request.error || new Error('Failed to count entities'));
+      request.onerror = () => reject(request.error || new Error("Failed to count entities"));
     });
   } finally {
     db.close();

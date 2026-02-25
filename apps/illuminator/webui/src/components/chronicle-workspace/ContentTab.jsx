@@ -1,4 +1,5 @@
-import { useMemo, useState, useRef, useCallback } from "react";
+import React, { useMemo, useState, useRef, useCallback } from "react";
+import PropTypes from "prop-types";
 import { diffWords } from "diff";
 import ChronicleVersionSelector from "./ChronicleVersionSelector";
 import "./ContentTab.css";
@@ -26,10 +27,10 @@ function AssembledContentViewer({
 
   const qcColorClass = quickCheckReport
     ? quickCheckReport.assessment === "clean"
-      ? "ctab-qc-indicator--clean"
+      ? "ctab-qc-indicator-clean"
       : quickCheckReport.assessment === "minor"
-        ? "ctab-qc-indicator--minor"
-        : "ctab-qc-indicator--major"
+        ? "ctab-qc-indicator-minor"
+        : "ctab-qc-indicator-major"
     : "";
 
   return (
@@ -62,7 +63,7 @@ function AssembledContentViewer({
                 onClick={onQuickCheck}
                 disabled={quickCheckRunning || !content}
                 title="Check for unanchored entity references (names not in cast or name bank)"
-                className={`ctab-toolbar-btn ${quickCheckRunning || !content ? "ctab-toolbar-btn--disabled" : ""}`}
+                className={`ctab-toolbar-btn ${quickCheckRunning || !content ? "ctab-toolbar-btn-disabled" : ""}`}
               >
                 {quickCheckRunning ? "Checking..." : "Quick Check"}
               </button>
@@ -88,10 +89,7 @@ function AssembledContentViewer({
               Find/Replace
             </button>
           )}
-          <button
-            onClick={onCopy}
-            className="ctab-toolbar-btn"
-          >
+          <button onClick={onCopy} className="ctab-toolbar-btn">
             Copy
           </button>
         </div>
@@ -120,6 +118,19 @@ function AssembledContentViewer({
     </div>
   );
 }
+
+AssembledContentViewer.propTypes = {
+  content: PropTypes.any,
+  wordCount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onCopy: PropTypes.func,
+  compareContent: PropTypes.any,
+  compareLabel: PropTypes.any,
+  onQuickCheck: PropTypes.func,
+  quickCheckRunning: PropTypes.bool,
+  quickCheckReport: PropTypes.object,
+  onShowQuickCheck: PropTypes.func,
+  onFindReplace: PropTypes.func,
+};
 
 // ============================================================================
 // Content Tab
@@ -180,12 +191,10 @@ export default function ContentTab({
         <div className="ctab-summary-section">
           <div
             onClick={() => setSummaryExpanded((v) => !v)}
-            className={`ctab-summary-header ${summaryExpanded ? "ctab-summary-header--expanded" : ""}`}
+            className={`ctab-summary-header ${summaryExpanded ? "ctab-summary-header-expanded" : ""}`}
           >
             <span className="ctab-summary-label">
-              <span className="ctab-collapse-icon">
-                {summaryExpanded ? "\u25BC" : "\u25B6"}
-              </span>
+              <span className="ctab-collapse-icon">{summaryExpanded ? "\u25BC" : "\u25B6"}</span>
               Summary
             </span>
             <button
@@ -198,11 +207,7 @@ export default function ContentTab({
               Copy
             </button>
           </div>
-          {summaryExpanded && (
-            <div className="ctab-summary-body">
-              {item.summary}
-            </div>
-          )}
+          {summaryExpanded && <div className="ctab-summary-body">{item.summary}</div>}
         </div>
       )}
 
@@ -210,7 +215,7 @@ export default function ContentTab({
       <div className="ctab-tertiary-section">
         <div
           onClick={() => hasTertiaryCast && setTertiaryCastExpanded((v) => !v)}
-          className={`ctab-tertiary-header ${hasTertiaryCast ? "ctab-tertiary-header--expandable" : "ctab-tertiary-header--default"} ${tertiaryExpanded ? "ctab-tertiary-header--expanded" : "ctab-tertiary-header--collapsed"}`}
+          className={`ctab-tertiary-header ${hasTertiaryCast ? "ctab-tertiary-header-expandable" : "ctab-tertiary-header-default"} ${tertiaryExpanded ? "ctab-tertiary-header-expanded" : "ctab-tertiary-header-collapsed"}`}
         >
           <span className="ctab-tertiary-label">
             {hasTertiaryCast && (
@@ -231,7 +236,7 @@ export default function ContentTab({
               onDetectTertiaryCast?.();
             }}
             disabled={!content}
-            className={`ctab-detect-btn ${content ? "ctab-detect-btn--enabled" : "ctab-detect-btn--disabled"}`}
+            className={`ctab-detect-btn ${content ? "ctab-detect-btn-enabled" : "ctab-detect-btn-disabled"}`}
           >
             {item.tertiaryCast ? "Re-detect" : "Detect"}
           </button>
@@ -265,12 +270,10 @@ export default function ContentTab({
                   >
                     <span
                       onClick={() => onToggleTertiaryCast?.(entry.entityId)}
-                      className={`ctab-tertiary-chip ${entry.accepted ? "ctab-tertiary-chip--accepted" : "ctab-tertiary-chip--rejected"}`}
+                      className={`ctab-tertiary-chip ${entry.accepted ? "ctab-tertiary-chip-accepted" : "ctab-tertiary-chip-rejected"}`}
                     >
                       {entry.name}
-                      <span className="ctab-tertiary-chip-kind">
-                        {entry.kind}
-                      </span>
+                      <span className="ctab-tertiary-chip-kind">{entry.kind}</span>
                     </span>
                     {isHovered && (
                       <div className="ctab-tertiary-tooltip">
@@ -289,9 +292,7 @@ export default function ContentTab({
                         ) : entry.matchedAs !== entry.name ? (
                           <div className="ctab-tooltip-matched-as">
                             matched as &ldquo;
-                            <span className="ctab-tooltip-matched-name">
-                              {entry.matchedAs}
-                            </span>
+                            <span className="ctab-tooltip-matched-name">{entry.matchedAs}</span>
                             &rdquo;
                           </div>
                         ) : null}
@@ -338,3 +339,25 @@ export default function ContentTab({
     </div>
   );
 }
+
+ContentTab.propTypes = {
+  item: PropTypes.object,
+  isComplete: PropTypes.bool,
+  versions: PropTypes.array,
+  selectedVersion: PropTypes.object,
+  compareToVersion: PropTypes.object,
+  selectedVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  compareToVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  activeVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onSelectVersion: PropTypes.func,
+  onSelectCompareVersion: PropTypes.func,
+  onSetActiveVersion: PropTypes.func,
+  onDeleteVersion: PropTypes.func,
+  isGenerating: PropTypes.bool,
+  onQuickCheck: PropTypes.func,
+  quickCheckRunning: PropTypes.bool,
+  onShowQuickCheck: PropTypes.func,
+  onFindReplace: PropTypes.func,
+  onDetectTertiaryCast: PropTypes.func,
+  onToggleTertiaryCast: PropTypes.func,
+};

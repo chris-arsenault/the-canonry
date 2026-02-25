@@ -210,10 +210,21 @@
 }
 
 /* SIR state colors */
-.state-susceptible { fill: #22c55e; }
-.state-infected { fill: #ef4444; }
-.state-recovered { fill: #64748b; }
-.state-immune { fill: #8b5cf6; }
+.state-susceptible {
+  fill: #22c55e;
+}
+
+.state-infected {
+  fill: #ef4444;
+}
+
+.state-recovered {
+  fill: #64748b;
+}
+
+.state-immune {
+  fill: #8b5cf6;
+}
 
 /* Tick controls */
 .vis-tick-controls {

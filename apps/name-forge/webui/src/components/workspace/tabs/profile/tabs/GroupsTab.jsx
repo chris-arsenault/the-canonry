@@ -2,7 +2,7 @@
  * GroupsTab - Strategy groups management
  */
 
-import StrategyGroupEditor from '../StrategyGroupEditor';
+import StrategyGroupEditor from "../StrategyGroupEditor";
 
 export default function GroupsTab({
   profile,
@@ -13,20 +13,22 @@ export default function GroupsTab({
   tagRegistry,
   onAddTag,
 }) {
-  const prominenceLevels = ['forgotten', 'marginal', 'recognized', 'renowned', 'mythic'];
+  const prominenceLevels = ["forgotten", "marginal", "recognized", "renowned", "mythic"];
 
   const handleAddGroup = (withConditions = false) => {
     const newGroup = {
-      name: withConditions ? 'Conditional Group' : 'Default',
+      name: withConditions ? "Conditional Group" : "Default",
       priority: withConditions ? 50 : 0,
-      conditions: withConditions ? {
-        entityKinds: [],
-        prominence: [],
-        subtypes: [],
-        subtypeMatchAll: false,
-        tags: [],
-        tagMatchAll: false,
-      } : null,
+      conditions: withConditions
+        ? {
+            entityKinds: [],
+            prominence: [],
+            subtypes: [],
+            subtypeMatchAll: false,
+            tags: [],
+            tagMatchAll: false,
+          }
+        : null,
       strategies: [],
     };
     onChange({
@@ -44,10 +46,10 @@ export default function GroupsTab({
 
   const handleAddStrategy = (groupIdx, type) => {
     const newStrategy = { type, weight: 0.25 };
-    if (type === 'phonotactic') {
-      newStrategy.domainId = domains[0]?.id || '';
-    } else if (type === 'grammar') {
-      newStrategy.grammarId = grammars[0]?.id || '';
+    if (type === "phonotactic") {
+      newStrategy.domainId = domains[0]?.id || "";
+    } else if (type === "grammar") {
+      newStrategy.grammarId = grammars[0]?.id || "";
     }
 
     const groups = [...profile.strategyGroups];

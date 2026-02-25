@@ -1,4 +1,6 @@
 import "./EnrichmentTab.css";
+import React from "react";
+import PropTypes from "prop-types";
 
 export default function EnrichmentTab({
   item,
@@ -17,9 +19,7 @@ export default function EnrichmentTab({
   return (
     <div>
       <div className="enrtab-container">
-        <div className="enrtab-heading">
-          Post-Publish Enrichment
-        </div>
+        <div className="enrtab-heading">Post-Publish Enrichment</div>
         <div className="enrtab-sections">
           {/* Title */}
           {onGenerateTitle && (
@@ -47,15 +47,13 @@ export default function EnrichmentTab({
                   </div>
                 )}
                 {item.titleFragments?.length > 0 && (
-                  <div className="enrtab-fragments">
-                    ~ {item.titleFragments.join(" \u00b7 ")}
-                  </div>
+                  <div className="enrtab-fragments">~ {item.titleFragments.join(" \u00b7 ")}</div>
                 )}
               </div>
               <button
                 onClick={onGenerateTitle}
                 disabled={titleDisabled}
-                className={`enrtab-button ${titleDisabled ? "enrtab-button--disabled" : ""}`}
+                className={`enrtab-button ${titleDisabled ? "enrtab-button-disabled" : ""}`}
               >
                 {titleState.running ? "Generating..." : "Regenerate Title"}
               </button>
@@ -79,7 +77,7 @@ export default function EnrichmentTab({
               <button
                 onClick={onGenerateSummary}
                 disabled={summaryDisabled}
-                className={`enrtab-button ${summaryDisabled ? "enrtab-button--disabled" : ""}`}
+                className={`enrtab-button ${summaryDisabled ? "enrtab-button-disabled" : ""}`}
               >
                 {summaryState.running ? "Generating..." : "Regenerate Summary"}
               </button>
@@ -90,3 +88,11 @@ export default function EnrichmentTab({
     </div>
   );
 }
+
+EnrichmentTab.propTypes = {
+  item: PropTypes.object,
+  isGenerating: PropTypes.bool,
+  refinements: PropTypes.object,
+  onGenerateTitle: PropTypes.func,
+  onGenerateSummary: PropTypes.func,
+};

@@ -8,6 +8,8 @@
  */
 
 import "./HistoryCompressionPreviewModal.css";
+import React from "react";
+import PropTypes from "prop-types";
 
 export default function HistoryCompressionPreviewModal({
   entityName,
@@ -50,7 +52,7 @@ export default function HistoryCompressionPreviewModal({
             return (
               <div
                 key={i}
-                className={`hcpm-entry ${isConsolidated ? "hcpm-entry--consolidated" : "hcpm-entry--normal"}`}
+                className={`hcpm-entry ${isConsolidated ? "hcpm-entry-consolidated" : "hcpm-entry-normal"}`}
               >
                 {/* Header */}
                 <div className="hcpm-entry-header">
@@ -94,3 +96,11 @@ export default function HistoryCompressionPreviewModal({
     </div>
   );
 }
+
+HistoryCompressionPreviewModal.propTypes = {
+  entityName: PropTypes.string,
+  originalCount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  compressed: PropTypes.array,
+  onProceed: PropTypes.func,
+  onCancel: PropTypes.func,
+};

@@ -9,25 +9,25 @@
      ================== */
 
   /* Background Colors (Arctic Deep Blues) */
-  --color-bg-primary: #0a1929;      /* Main app background (deepest) */
-  --color-bg-secondary: #1e3a5f;    /* Panels, cards (mid) */
-  --color-bg-tertiary: #2d4a6f;     /* Inputs, nested elements */
-  --color-bg-elevated: #0f172a;     /* Stats panel, elevated surfaces */
-  --color-bg-surface: #1e293b;      /* Alternative surface color */
+  --color-bg-primary: #0a1929; /* Main app background (deepest) */
+  --color-bg-secondary: #1e3a5f; /* Panels, cards (mid) */
+  --color-bg-tertiary: #2d4a6f; /* Inputs, nested elements */
+  --color-bg-elevated: #0f172a; /* Stats panel, elevated surfaces */
+  --color-bg-surface: #1e293b; /* Alternative surface color */
 
   /* Blue Accent Scale */
   --color-blue-900: #1e3a8a;
   --color-blue-700: #2563eb;
-  --color-blue-600: #3b82f6;        /* Primary accent */
-  --color-blue-500: #60a5fa;        /* Frost */
-  --color-blue-400: #93c5fd;        /* Light */
+  --color-blue-600: #3b82f6; /* Primary accent */
+  --color-blue-500: #60a5fa; /* Frost */
+  --color-blue-400: #93c5fd; /* Light */
   --color-blue-300: #bfdbfe;
   --color-blue-200: #dbeafe;
 
   /* Gold/Amber Accent Scale */
   --color-gold-600: #d97706;
   --color-gold-500: #f59e0b;
-  --color-gold-400: #fbbf24;        /* Primary gold */
+  --color-gold-400: #fbbf24; /* Primary gold */
   --color-gold-300: #fcd34d;
 
   /* Orange Scale */
@@ -63,9 +63,6 @@
   /* Red Scale (Extended) */
   --color-red-300: #fca5a5;
 
-  /* Green Scale (Extended) */
-  --color-green-300: #86efac;
-
   /* Gold Scale (Extended) */
   --color-gold-200: #fde68a;
 
@@ -84,11 +81,10 @@
   --color-gray-100: #f3f4f6;
 
   /* Semantic Colors */
-  --color-text-primary: #ffffff;
+  --color-text-primary: #fff;
   --color-text-secondary: var(--color-blue-400);
   --color-text-muted: var(--color-blue-500);
   --color-text-hint: var(--color-gray-400);
-
   --color-success: var(--color-emerald-500);
   --color-warning: var(--color-gold-500);
   --color-danger: var(--color-red-500);
@@ -109,17 +105,14 @@
   --color-bg-blue-30: rgb(59 130 246 / 30%);
   --color-bg-blue-40: rgb(59 130 246 / 40%);
   --color-bg-blue-50: rgb(59 130 246 / 50%);
-
   --color-bg-dark-30: rgb(30 58 95 / 30%);
   --color-bg-dark-20: rgb(30 58 95 / 20%);
   --color-bg-dark-10: rgb(30 58 95 / 10%);
   --color-bg-dark-40: rgb(30 58 95 / 40%);
-
   --color-bg-deep-40: rgb(10 25 41 / 40%);
   --color-bg-deep-60: rgb(10 25 41 / 60%);
   --color-bg-deep-80: rgb(10 25 41 / 80%);
   --color-bg-deep-90: rgb(10 25 41 / 90%);
-
   --color-bg-slate-30: rgb(23 37 84 / 30%);
   --color-bg-slate-20: rgb(23 37 84 / 20%);
 
@@ -157,11 +150,11 @@
   /* ==================
      Typography
      ================== */
-  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, monospace;
-  --font-serif: Georgia, 'Times New Roman', serif;
-
+  --font-family:
+    -apple-system, blinkmacsystemfont, "Segoe UI", roboto, oxygen, ubuntu, cantarell, "Fira Sans",
+    "Droid Sans", "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, sfmono-regular, "SF Mono", menlo, monaco, consolas, monospace;
+  --font-serif: georgia, "Times New Roman", serif;
   --font-size-2xs: 9px;
   --font-size-xs: 10px;
   --font-size-sm: 11px;
@@ -173,12 +166,10 @@
   --font-size-3xl: 20px;
   --font-size-4xl: 24px;
   --font-size-5xl: 30px;
-
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-
   --line-height-tight: 1.25;
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.625;
@@ -223,12 +214,32 @@
      Gradients
      ================== */
   --gradient-bg-main: linear-gradient(135deg, #0a1929 0%, #1a2332 50%, #0f1f3a 100%);
-  --gradient-bg-panel: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-bg-primary) 100%);
-  --gradient-bg-header: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg-primary) 100%);
-  --gradient-accent-blue: linear-gradient(135deg, var(--color-blue-600) 0%, var(--color-blue-700) 100%);
-  --gradient-accent-gold: linear-gradient(135deg, var(--color-gold-400) 0%, var(--color-gold-500) 100%);
+  --gradient-bg-panel: linear-gradient(
+    180deg,
+    var(--color-bg-secondary) 0%,
+    var(--color-bg-primary) 100%
+  );
+  --gradient-bg-header: linear-gradient(
+    135deg,
+    var(--color-bg-secondary) 0%,
+    var(--color-bg-primary) 100%
+  );
+  --gradient-accent-blue: linear-gradient(
+    135deg,
+    var(--color-blue-600) 0%,
+    var(--color-blue-700) 100%
+  );
+  --gradient-accent-gold: linear-gradient(
+    135deg,
+    var(--color-gold-400) 0%,
+    var(--color-gold-500) 100%
+  );
   --gradient-text-title: linear-gradient(135deg, #fff 0%, var(--color-blue-400) 100%);
-  --gradient-scrollbar: linear-gradient(180deg, var(--color-blue-600) 0%, var(--color-bg-secondary) 100%);
+  --gradient-scrollbar: linear-gradient(
+    180deg,
+    var(--color-blue-600) 0%,
+    var(--color-bg-secondary) 100%
+  );
 
   /* ==================
      Transitions
@@ -269,9 +280,9 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans",
+    "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--arctic-deep);

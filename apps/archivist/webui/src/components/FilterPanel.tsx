@@ -1,10 +1,14 @@
-import { useState } from 'react';
-import type { EntityKind, Filters, Prominence, WorldState } from '../types/world.ts';
-import { getAllTags, getProminenceLevels, getRelationshipTypeCounts } from '../utils/dataTransform.ts';
-import './FilterPanel.css';
+import { useState } from "react";
+import type { EntityKind, Filters, Prominence, WorldState } from "../types/world.ts";
+import {
+  getAllTags,
+  getProminenceLevels,
+  getRelationshipTypeCounts,
+} from "../utils/dataTransform.ts";
+import "./FilterPanel.css";
 
-export type EdgeMetric = 'strength' | 'distance' | 'none';
-export type ViewMode = 'graph3d' | 'graph2d' | 'map' | 'timeline';
+export type EdgeMetric = "strength" | "distance" | "none";
+export type ViewMode = "graph3d" | "graph2d" | "map" | "timeline";
 
 interface FilterPanelProps {
   filters: Filters;
@@ -33,7 +37,7 @@ export default function FilterPanel({
   const relationshipTypeCounts = getRelationshipTypeCounts(worldData);
   const maxTick = worldData.metadata.tick;
 
-  const allRelationshipTypes = worldData.schema.relationshipKinds.map(rel => rel.kind);
+  const allRelationshipTypes = worldData.schema.relationshipKinds.map((rel) => rel.kind);
   // Sort relationship types by count (descending)
   const sortedRelationshipTypes = [...allRelationshipTypes].sort((a, b) => {
     return (relationshipTypeCounts[b] || 0) - (relationshipTypeCounts[a] || 0);
@@ -42,25 +46,25 @@ export default function FilterPanel({
   const [isRelTypesExpanded, setIsRelTypesExpanded] = useState(false);
 
   const entityKindSchemas = worldData.schema.entityKinds;
-  const entityKinds: EntityKind[] = entityKindSchemas.map(ek => ek.kind);
+  const entityKinds: EntityKind[] = entityKindSchemas.map((ek) => ek.kind);
 
   const prominenceLevels: Prominence[] = getProminenceLevels(worldData.schema);
 
   // Build a map from kind to display name (from schema if available, otherwise use kind as-is)
   const kindDisplayNames = Object.fromEntries(
-    entityKindSchemas.map(ek => [ek.kind, ek.style?.displayName || ek.description || ek.kind])
+    entityKindSchemas.map((ek) => [ek.kind, ek.style?.displayName || ek.description || ek.kind])
   );
 
   const toggleKind = (kind: EntityKind) => {
     const kinds = filters.kinds.includes(kind)
-      ? filters.kinds.filter(k => k !== kind)
+      ? filters.kinds.filter((k) => k !== kind)
       : [...filters.kinds, kind];
     onChange({ ...filters, kinds });
   };
 
   const toggleTag = (tag: string) => {
     const tags = filters.tags.includes(tag)
-      ? filters.tags.filter(t => t !== tag)
+      ? filters.tags.filter((t) => t !== tag)
       : [...filters.tags, tag];
     onChange({ ...filters, tags });
   };
@@ -73,7 +77,7 @@ export default function FilterPanel({
       relationshipTypes = [type];
     } else if (filters.relationshipTypes.includes(type)) {
       // Type is selected, uncheck it
-      relationshipTypes = filters.relationshipTypes.filter(t => t !== type);
+      relationshipTypes = filters.relationshipTypes.filter((t) => t !== type);
       // If nothing left selected, go back to showing all
       // (empty array = no filter = show all)
     } else {
@@ -90,29 +94,29 @@ export default function FilterPanel({
       <div className="view-controls">
         <div className="view-mode-buttons">
           <button
-            className={`view-mode-btn ${viewMode === 'graph3d' ? 'active' : ''}`}
-            onClick={() => onViewModeChange('graph3d')}
+            className={`view-mode-btn ${viewMode === "graph3d" ? "active" : ""}`}
+            onClick={() => onViewModeChange("graph3d")}
             title="3D Graph View"
           >
             3D
           </button>
           <button
-            className={`view-mode-btn ${viewMode === 'graph2d' ? 'active' : ''}`}
-            onClick={() => onViewModeChange('graph2d')}
+            className={`view-mode-btn ${viewMode === "graph2d" ? "active" : ""}`}
+            onClick={() => onViewModeChange("graph2d")}
             title="2D Graph View"
           >
             2D
           </button>
           <button
-            className={`view-mode-btn ${viewMode === 'map' ? 'active' : ''}`}
-            onClick={() => onViewModeChange('map')}
+            className={`view-mode-btn ${viewMode === "map" ? "active" : ""}`}
+            onClick={() => onViewModeChange("map")}
             title="Coordinate Map View"
           >
             Map
           </button>
           <button
-            className={`view-mode-btn ${viewMode === 'timeline' ? 'active' : ''}`}
-            onClick={() => onViewModeChange('timeline')}
+            className={`view-mode-btn ${viewMode === "timeline" ? "active" : ""}`}
+            onClick={() => onViewModeChange("timeline")}
             title="Timeline View - Eras along axis"
           >
             Time
@@ -126,36 +130,32 @@ export default function FilterPanel({
           >
             ♻️
           </button>
-          <button
-            className="view-action-btn"
-            onClick={onToggleStats}
-            title="Toggle Stats Panel"
-          >
+          <button className="view-action-btn" onClick={onToggleStats} title="Toggle Stats Panel">
             📊
           </button>
         </div>
       </div>
 
       {/* Edge Metric (for graph views) */}
-      {(viewMode === 'graph3d' || viewMode === 'graph2d') && (
+      {(viewMode === "graph3d" || viewMode === "graph2d") && (
         <div className="edge-metric-section">
           <label className="filter-section-label">Edge Spring</label>
           <div className="edge-metric-buttons">
             <button
-              className={`edge-metric-btn ${edgeMetric === 'strength' ? 'active' : ''}`}
-              onClick={() => onEdgeMetricChange('strength')}
+              className={`edge-metric-btn ${edgeMetric === "strength" ? "active" : ""}`}
+              onClick={() => onEdgeMetricChange("strength")}
             >
               Strength
             </button>
             <button
-              className={`edge-metric-btn ${edgeMetric === 'distance' ? 'active' : ''}`}
-              onClick={() => onEdgeMetricChange('distance')}
+              className={`edge-metric-btn ${edgeMetric === "distance" ? "active" : ""}`}
+              onClick={() => onEdgeMetricChange("distance")}
             >
               Distance
             </button>
             <button
-              className={`edge-metric-btn ${edgeMetric === 'none' ? 'active' : ''}`}
-              onClick={() => onEdgeMetricChange('none')}
+              className={`edge-metric-btn ${edgeMetric === "none" ? "active" : ""}`}
+              onClick={() => onEdgeMetricChange("none")}
             >
               Equal
             </button>
@@ -181,7 +181,7 @@ export default function FilterPanel({
       <div className="filter-section">
         <label className="filter-section-label">Entity Types</label>
         <div className="filter-checkbox-group">
-          {entityKinds.map(kind => (
+          {entityKinds.map((kind) => (
             <label key={kind} className="filter-checkbox-label">
               <input
                 type="checkbox"
@@ -202,13 +202,11 @@ export default function FilterPanel({
             className="filter-accordion-header"
           >
             <div className="filter-accordion-header-left">
-              <span className="filter-accordion-icon">{isRelTypesExpanded ? '−' : '+'}</span>
+              <span className="filter-accordion-icon">{isRelTypesExpanded ? "−" : "+"}</span>
               <span className="filter-accordion-title">Relationship Types</span>
             </div>
             <span className="filter-accordion-badge">
-              {filters.relationshipTypes.length === 0
-                ? 'All'
-                : filters.relationshipTypes.length}
+              {filters.relationshipTypes.length === 0 ? "All" : filters.relationshipTypes.length}
             </span>
           </button>
           {isRelTypesExpanded && (
@@ -221,12 +219,13 @@ export default function FilterPanel({
                   Show All
                 </button>
               </div>
-              {sortedRelationshipTypes.map(type => {
+              {sortedRelationshipTypes.map((type) => {
                 // Empty array = show all (all appear checked)
                 // Non-empty = only selected types are checked
-                const isChecked = filters.relationshipTypes.length === 0
-                  ? true
-                  : filters.relationshipTypes.includes(type);
+                const isChecked =
+                  filters.relationshipTypes.length === 0
+                    ? true
+                    : filters.relationshipTypes.includes(type);
                 return (
                   <label key={type} className="filter-checkbox-label">
                     <input
@@ -234,7 +233,9 @@ export default function FilterPanel({
                       checked={isChecked}
                       onChange={() => toggleRelationshipType(type)}
                     />
-                    <span>{type.replace(/_/g, ' ')} ({relationshipTypeCounts[type]})</span>
+                    <span>
+                      {type.replace(/_/g, " ")} ({relationshipTypeCounts[type]})
+                    </span>
                   </label>
                 );
               })}
@@ -251,7 +252,7 @@ export default function FilterPanel({
           onChange={(e) => onChange({ ...filters, minProminence: e.target.value as Prominence })}
           className="filter-select"
         >
-          {prominenceLevels.map(level => (
+          {prominenceLevels.map((level) => (
             <option key={level} value={level}>
               {level}
             </option>
@@ -264,8 +265,12 @@ export default function FilterPanel({
         <label className="filter-section-label">Time Range</label>
         <div className="time-range-box">
           <div className="time-range-labels">
-            <span className="time-range-label">Start: <span className="time-range-label-value">{filters.timeRange[0]}</span></span>
-            <span className="time-range-label">End: <span className="time-range-label-value">{filters.timeRange[1]}</span></span>
+            <span className="time-range-label">
+              Start: <span className="time-range-label-value">{filters.timeRange[0]}</span>
+            </span>
+            <span className="time-range-label">
+              End: <span className="time-range-label-value">{filters.timeRange[1]}</span>
+            </span>
           </div>
           <div className="time-range-sliders">
             <input
@@ -273,20 +278,24 @@ export default function FilterPanel({
               min={0}
               max={maxTick}
               value={filters.timeRange[0]}
-              onChange={(e) => onChange({
-                ...filters,
-                timeRange: [parseInt(e.target.value), filters.timeRange[1]]
-              })}
+              onChange={(e) =>
+                onChange({
+                  ...filters,
+                  timeRange: [parseInt(e.target.value), filters.timeRange[1]],
+                })
+              }
             />
             <input
               type="range"
               min={0}
               max={maxTick}
               value={filters.timeRange[1]}
-              onChange={(e) => onChange({
-                ...filters,
-                timeRange: [filters.timeRange[0], parseInt(e.target.value)]
-              })}
+              onChange={(e) =>
+                onChange({
+                  ...filters,
+                  timeRange: [filters.timeRange[0], parseInt(e.target.value)],
+                })
+              }
             />
           </div>
         </div>
@@ -298,7 +307,7 @@ export default function FilterPanel({
           Tags <span className="text-blue-400 font-normal">({filters.tags.length} selected)</span>
         </label>
         <div className="tags-box">
-          {allTags.map(tag => (
+          {allTags.map((tag) => (
             <label key={tag} className="filter-checkbox-label">
               <input
                 type="checkbox"
@@ -314,7 +323,8 @@ export default function FilterPanel({
       {/* Minimum Relationship Strength */}
       <div className="filter-section">
         <label className="filter-section-label">
-          Min Relationship Strength <span className="text-blue-400 font-normal">({filters.minStrength.toFixed(2)})</span>
+          Min Relationship Strength{" "}
+          <span className="text-blue-400 font-normal">({filters.minStrength.toFixed(2)})</span>
         </label>
         <div className="strength-slider-container">
           <input
@@ -345,7 +355,8 @@ export default function FilterPanel({
           <span>Show Catalyzed-By Chains</span>
         </label>
         <div className="filter-help-text">
-          Visualizes meta-relationships showing which events or entities catalyzed the formation of relationships
+          Visualizes meta-relationships showing which events or entities catalyzed the formation of
+          relationships
         </div>
       </div>
 
@@ -355,7 +366,9 @@ export default function FilterPanel({
           <input
             type="checkbox"
             checked={filters.showHistoricalRelationships}
-            onChange={(e) => onChange({ ...filters, showHistoricalRelationships: e.target.checked })}
+            onChange={(e) =>
+              onChange({ ...filters, showHistoricalRelationships: e.target.checked })
+            }
           />
           <span>Show Historical Relationships</span>
         </label>
@@ -366,17 +379,19 @@ export default function FilterPanel({
 
       {/* Reset Button */}
       <button
-        onClick={() => onChange({
-          kinds: entityKinds,
-          minProminence: prominenceLevels[0],
-          timeRange: [0, maxTick],
-          tags: [],
-          searchQuery: '',
-          relationshipTypes: [],
-          minStrength: 0.0,
-          showCatalyzedBy: false,
-          showHistoricalRelationships: false
-        })}
+        onClick={() =>
+          onChange({
+            kinds: entityKinds,
+            minProminence: prominenceLevels[0],
+            timeRange: [0, maxTick],
+            tags: [],
+            searchQuery: "",
+            relationshipTypes: [],
+            minStrength: 0.0,
+            showCatalyzedBy: false,
+            showHistoricalRelationships: false,
+          })
+        }
         className="reset-button"
       >
         Reset Filters

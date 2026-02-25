@@ -9,7 +9,8 @@
  * - Reset to defaults
  */
 
-import { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
 import { LocalTextArea } from "@penguin-tales/shared-components";
 import { SCENE_PROMPT_TEMPLATES, getCoverImageConfig } from "../lib/coverImageStyles";
 import "./StyleLibraryEditor.css";
@@ -60,6 +61,13 @@ function StyleCard({ style, type, onEdit, onDelete }) {
     </div>
   );
 }
+
+StyleCard.propTypes = {
+  style: PropTypes.object,
+  type: PropTypes.string,
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func,
+};
 
 /**
  * Modal for editing a style
@@ -179,9 +187,7 @@ function StyleEditModal({ style, type, onSave, onCancel }) {
                 className="illuminator-input"
                 placeholder="e.g., traditional, classical, painterly"
               />
-              <p className="style-editor-hint">
-                Comma-separated keywords for categorization.
-              </p>
+              <p className="style-editor-hint">Comma-separated keywords for categorization.</p>
             </div>
           )}
 
@@ -202,6 +208,13 @@ function StyleEditModal({ style, type, onSave, onCancel }) {
     </div>
   );
 }
+
+StyleEditModal.propTypes = {
+  style: PropTypes.object,
+  type: PropTypes.string,
+  onSave: PropTypes.func,
+  onCancel: PropTypes.func,
+};
 
 /**
  * Narrative style card component
@@ -251,7 +264,9 @@ function NarrativeStyleCard({ style, compositionStyles, onEdit, onDelete }) {
       )}
       <div className="style-editor-badge-row">
         {/* Type badge */}
-        <span className={`style-editor-badge ${isDocument ? "style-editor-badge--document" : "style-editor-badge--story"}`}>
+        <span
+          className={`style-editor-badge ${isDocument ? "style-editor-badge-document" : "style-editor-badge-story"}`}
+        >
           {isDocument ? "document" : "story"}
         </span>
         {/* Word count badge */}
@@ -266,25 +281,18 @@ function NarrativeStyleCard({ style, compositionStyles, onEdit, onDelete }) {
         )}
         {/* Roles badge */}
         {style.roles?.length > 0 && (
-          <span className="style-editor-badge">
-            {style.roles.length} roles
-          </span>
+          <span className="style-editor-badge">{style.roles.length} roles</span>
         )}
         {/* Cover image scene prompt badge */}
         {sceneTemplate && (
-          <span
-            className="style-editor-badge"
-            title={`Cover scene: ${sceneTemplate.name}`}
-          >
+          <span className="style-editor-badge" title={`Cover scene: ${sceneTemplate.name}`}>
             cover: {sceneTemplate.name}
           </span>
         )}
       </div>
       {/* Instructions preview */}
       {instructionsPreview && (
-        <div className="style-editor-instructions-preview">
-          {instructionsPreview}
-        </div>
+        <div className="style-editor-instructions-preview">{instructionsPreview}</div>
       )}
       {style.tags?.length > 0 && (
         <div className="illuminator-style-card-keywords style-editor-tags-row">
@@ -299,6 +307,13 @@ function NarrativeStyleCard({ style, compositionStyles, onEdit, onDelete }) {
   );
 }
 
+NarrativeStyleCard.propTypes = {
+  style: PropTypes.object,
+  compositionStyles: PropTypes.array,
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func,
+};
+
 /**
  * Shared read-only section showing cover image config for a narrative style
  */
@@ -309,22 +324,16 @@ function CoverImageConfigSection({ styleId, compositionStyles }) {
 
   return (
     <div className="style-editor-cover-section">
-      <div className="style-editor-cover-label">
-        Cover Image
-      </div>
+      <div className="style-editor-cover-label">Cover Image</div>
       <div className="style-editor-cover-grid">
         <div className="style-editor-cover-card">
-          <div className="style-editor-cover-card-label">
-            Scene Prompt
-          </div>
+          <div className="style-editor-cover-card-label">Scene Prompt</div>
           <div className="style-editor-cover-card-value">
             {sceneTemplate?.name || coverConfig.scenePromptId}
           </div>
         </div>
         <div className="style-editor-cover-card">
-          <div className="style-editor-cover-card-label">
-            Composition
-          </div>
+          <div className="style-editor-cover-card-label">Composition</div>
           <div className="style-editor-cover-card-value">
             {coverComposition?.name || coverConfig.compositionStyleId}
           </div>
@@ -333,6 +342,11 @@ function CoverImageConfigSection({ styleId, compositionStyles }) {
     </div>
   );
 }
+
+CoverImageConfigSection.propTypes = {
+  styleId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  compositionStyles: PropTypes.array,
+};
 
 /**
  * Modal for viewing/editing a document-format narrative style (read-only for now)
@@ -367,17 +381,13 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
         <div className="illuminator-modal-body style-editor-modal-body-scroll">
           {/* Basic info */}
           <div className="style-editor-detail-section">
-            <div className="style-editor-detail-label">
-              Description
-            </div>
+            <div className="style-editor-detail-label">Description</div>
             <div>{style.description || "(none)"}</div>
           </div>
 
           {/* Word count */}
           <div className="style-editor-detail-section">
-            <div className="style-editor-detail-label">
-              Word Count
-            </div>
+            <div className="style-editor-detail-label">Word Count</div>
             <div>
               {style.pacing?.wordCount?.min || 300} - {style.pacing?.wordCount?.max || 800} words
             </div>
@@ -386,22 +396,16 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
           {/* Document instructions */}
           {style.documentInstructions && (
             <div className="style-editor-detail-section">
-              <div className="style-editor-detail-label">
-                Document Instructions
-              </div>
-              <div className="style-editor-preformatted">
-                {style.documentInstructions}
-              </div>
+              <div className="style-editor-detail-label">Document Instructions</div>
+              <div className="style-editor-preformatted">{style.documentInstructions}</div>
             </div>
           )}
 
           {/* Event instructions */}
           {style.eventInstructions && (
             <div className="style-editor-detail-section">
-              <div className="style-editor-detail-label">
-                Event Instructions
-              </div>
-              <div className="style-editor-preformatted style-editor-preformatted--compact">
+              <div className="style-editor-detail-label">Event Instructions</div>
+              <div className="style-editor-preformatted style-editor-preformatted-compact">
                 {style.eventInstructions}
               </div>
             </div>
@@ -410,15 +414,12 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
           {/* Roles */}
           {style.roles?.length > 0 && (
             <div className="style-editor-detail-section">
-              <div className="style-editor-detail-label style-editor-detail-label--mb8">
+              <div className="style-editor-detail-label style-editor-detail-label-mb8">
                 Roles ({style.roles.length})
               </div>
               <div className="style-editor-roles-list">
                 {style.roles.map((role, i) => (
-                  <div
-                    key={role.role || i}
-                    className="style-editor-role-card"
-                  >
+                  <div key={role.role || i} className="style-editor-role-card">
                     <div className="style-editor-role-header">
                       <div className="style-editor-role-name">{role.role}</div>
                       <div className="style-editor-role-count">
@@ -426,9 +427,7 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
                       </div>
                     </div>
                     {role.description && (
-                      <div className="style-editor-role-desc">
-                        {role.description}
-                      </div>
+                      <div className="style-editor-role-desc">{role.description}</div>
                     )}
                   </div>
                 ))}
@@ -442,9 +441,7 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
           {/* Tags */}
           {style.tags?.length > 0 && (
             <div>
-              <div className="style-editor-detail-label">
-                Tags
-              </div>
+              <div className="style-editor-detail-label">Tags</div>
               <div className="style-editor-tags-flex">
                 {style.tags.map((tag) => (
                   <span key={tag} className="illuminator-style-keyword">
@@ -470,6 +467,12 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
     </div>
   );
 }
+
+DocumentStyleViewModal.propTypes = {
+  style: PropTypes.object,
+  compositionStyles: PropTypes.array,
+  onCancel: PropTypes.func,
+};
 
 /**
  * Modal for editing a narrative style
@@ -648,17 +651,14 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`style-editor-tab ${activeTab === tab.id ? "style-editor-tab--active" : ""}`}
+              className={`style-editor-tab ${activeTab === tab.id ? "style-editor-tab-active" : ""}`}
             >
               {tab.label}
             </button>
           ))}
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="style-editor-form-scroll"
-        >
+        <form onSubmit={handleSubmit} className="style-editor-form-scroll">
           <div className="illuminator-modal-body style-editor-modal-body-scroll">
             {/* Basic Tab */}
             {activeTab === "basic" && (
@@ -693,9 +693,7 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
                     className="illuminator-input"
                     placeholder="e.g., dramatic, conflict, emotional"
                   />
-                  <p className="style-editor-hint">
-                    Comma-separated tags for categorization.
-                  </p>
+                  <p className="style-editor-hint">Comma-separated tags for categorization.</p>
                 </div>
                 <div className="style-editor-pacing-grid">
                   <div className="illuminator-form-group">
@@ -845,10 +843,7 @@ Avoid: modern slang, breaking fourth wall, rushed emotional beats."`}
                   </p>
                 </div>
                 {formData.roles.map((role, index) => (
-                  <div
-                    key={index}
-                    className="style-editor-role-edit-card"
-                  >
+                  <div key={index} className="style-editor-role-edit-card">
                     <div className="style-editor-role-edit-row">
                       <div className="style-editor-role-edit-fields">
                         <input
@@ -1139,9 +1134,7 @@ export default function StyleLibraryEditor({
         </div>
 
         {styleLibrary.artisticStyles.length === 0 && (
-          <p className="style-editor-empty">
-            No artistic styles defined. Add one to get started.
-          </p>
+          <p className="style-editor-empty">No artistic styles defined. Add one to get started.</p>
         )}
       </div>
 
@@ -1221,9 +1214,7 @@ export default function StyleLibraryEditor({
         </div>
 
         {styleLibrary.narrativeStyles.length === 0 && (
-          <p className="style-editor-empty">
-            No narrative styles defined. Add one to get started.
-          </p>
+          <p className="style-editor-empty">No narrative styles defined. Add one to get started.</p>
         )}
       </div>
 
@@ -1232,9 +1223,7 @@ export default function StyleLibraryEditor({
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">
             Cover Image Scene Prompts
-            <span className="style-editor-section-count">
-              ({SCENE_PROMPT_TEMPLATES.length})
-            </span>
+            <span className="style-editor-section-count">({SCENE_PROMPT_TEMPLATES.length})</span>
           </h2>
         </div>
         <p className="style-editor-description">

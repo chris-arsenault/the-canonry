@@ -2,7 +2,7 @@
  * Shared scale creators for the simulation trace visualization
  */
 
-import { scaleLinear } from '@visx/scale';
+import { scaleLinear } from "@visx/scale";
 
 /**
  * Create X scale for tick values
@@ -15,7 +15,7 @@ export function createXScale(data, width, margin) {
     });
   }
 
-  const ticks = data.map(d => d.tick);
+  const ticks = data.map((d) => d.tick);
   return scaleLinear({
     domain: [Math.min(...ticks), Math.max(...ticks)],
     range: [margin.left, width - margin.right],
@@ -52,7 +52,7 @@ export const DEFAULT_MARGIN = {
 export const SWIMLANE_CONFIG = {
   height: 24,
   gap: 2,
-  types: ['template', 'system', 'action'],
+  types: ["template", "system", "action"],
 };
 
 /**

@@ -4,7 +4,8 @@
  * Shows a matrix of chronicle -> fact selections and fact usage totals.
  */
 
-import { useMemo, useEffect, useState, useCallback } from "react";
+import React, { useMemo, useEffect, useState, useCallback } from "react";
+import PropTypes from "prop-types";
 import { getChroniclesForSimulation } from "../lib/db/chronicleRepository";
 import "./CoveragePanel.css";
 
@@ -65,9 +66,7 @@ function WordCountHistogram({ chronicles }) {
     <div className="cvp-histogram">
       <div className="cvp-histogram-title">
         Word Count Distribution
-        <span className="cvp-histogram-subtitle">
-          {chronicles.length} chronicles
-        </span>
+        <span className="cvp-histogram-subtitle">{chronicles.length} chronicles</span>
         <span className="cvp-histogram-legend">
           <span className="cvp-histogram-legend-story">{"\u25A0"}</span> story
           <span className="cvp-histogram-legend-document">{"\u25A0"}</span> document
@@ -79,16 +78,11 @@ function WordCountHistogram({ chronicles }) {
           const height = total > 0 ? Math.max(4, Math.round((total / data.maxCount) * 56)) : 0;
           const storyPct = total > 0 ? (bucket.story / total) * 100 : 0;
           return (
-            <div
-              key={bucket.label}
-              className="cvp-histogram-bucket"
-            >
-              {total > 0 && (
-                <span className="cvp-histogram-count">{total}</span>
-              )}
+            <div key={bucket.label} className="cvp-histogram-bucket">
+              {total > 0 && <span className="cvp-histogram-count">{total}</span>}
               <div
                 title={`${bucket.label}: ${bucket.story} story, ${bucket.document} document`}
-                className={`cvp-histogram-bar ${total === 0 ? "cvp-histogram-bar--empty" : ""}`}
+                className={`cvp-histogram-bar ${total === 0 ? "cvp-histogram-bar-empty" : ""}`}
                 // eslint-disable-next-line local/no-inline-styles -- dynamic height/gradient from computed data
                 style={{
                   height: `${height}px`,
@@ -100,9 +94,7 @@ function WordCountHistogram({ chronicles }) {
                   opacity: total === 0 ? undefined : 1,
                 }}
               />
-              <span className="cvp-histogram-bucket-label">
-                {bucket.label}
-              </span>
+              <span className="cvp-histogram-bucket-label">{bucket.label}</span>
             </div>
           );
         })}
@@ -110,6 +102,10 @@ function WordCountHistogram({ chronicles }) {
     </div>
   );
 }
+
+WordCountHistogram.propTypes = {
+  chronicles: PropTypes.array,
+};
 
 export default function CoveragePanel({ worldContext, simulationRunId, onWorldContextChange }) {
   const [chronicles, setChronicles] = useState([]);
@@ -332,9 +328,7 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Coverage</h2>
         </div>
-        <div className="cvp-empty-msg">
-          No active simulation run.
-        </div>
+        <div className="cvp-empty-msg">No active simulation run.</div>
       </div>
     );
   }
@@ -345,9 +339,7 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Coverage</h2>
         </div>
-        <div className="cvp-empty-msg">
-          Loading chronicles...
-        </div>
+        <div className="cvp-empty-msg">Loading chronicles...</div>
       </div>
     );
   }
@@ -372,9 +364,7 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
         className="illuminator-card-header cvp-header-clickable"
         onClick={() => setExpanded((prev) => !prev)}
       >
-        <span className="cvp-expand-icon">
-          {expanded ? "\u25BC" : "\u25B6"}
-        </span>
+        <span className="cvp-expand-icon">{expanded ? "\u25BC" : "\u25B6"}</span>
         <h2 className="illuminator-card-title">Lore Coverage</h2>
         {!expanded && (
           <span className="illuminator-card-subtitle cvp-collapsed-subtitle">
@@ -440,9 +430,7 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
                       >
                         <span className="illuminator-coverage-fact-id">{fact.id}</span>
                         {fact.required && <span className="illuminator-coverage-required">R</span>}
-                        {fact.disabled && (
-                          <span className="cvp-fact-disabled-label">off</span>
-                        )}
+                        {fact.disabled && <span className="cvp-fact-disabled-label">off</span>}
                       </div>
                     </th>
                   ))}
@@ -558,24 +546,12 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
               <table className="cvp-analysis-table">
                 <thead>
                   <tr>
-                    <th className="cvp-analysis-th-fact">
-                      Fact
-                    </th>
-                    <th className="cvp-analysis-th-integral">
-                      Integral
-                    </th>
-                    <th className="cvp-analysis-th-prevalent">
-                      Prevalent
-                    </th>
-                    <th className="cvp-analysis-th-mentioned">
-                      Mentioned
-                    </th>
-                    <th className="cvp-analysis-th-missing">
-                      Missing
-                    </th>
-                    <th className="cvp-analysis-th-strength">
-                      Strength
-                    </th>
+                    <th className="cvp-analysis-th-fact">Fact</th>
+                    <th className="cvp-analysis-th-integral">Integral</th>
+                    <th className="cvp-analysis-th-prevalent">Prevalent</th>
+                    <th className="cvp-analysis-th-mentioned">Mentioned</th>
+                    <th className="cvp-analysis-th-missing">Missing</th>
+                    <th className="cvp-analysis-th-strength">Strength</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -592,22 +568,27 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
                       strength >= 60 ? "#10b981" : strength >= 30 ? "#f59e0b" : "#ef4444";
                     return (
                       <tr key={fact.id}>
-                        <td
-                          className="cvp-analysis-td-fact"
-                          title={fact.text}
-                        >
+                        <td className="cvp-analysis-td-fact" title={fact.text}>
                           {fact.id}
                         </td>
-                        <td className={`cvp-analysis-td-center ${agg.integral > 0 ? "cvp-color-integral" : "cvp-color-muted"}`}>
+                        <td
+                          className={`cvp-analysis-td-center ${agg.integral > 0 ? "cvp-color-integral" : "cvp-color-muted"}`}
+                        >
                           {agg.integral}
                         </td>
-                        <td className={`cvp-analysis-td-center ${agg.prevalent > 0 ? "cvp-color-prevalent" : "cvp-color-muted"}`}>
+                        <td
+                          className={`cvp-analysis-td-center ${agg.prevalent > 0 ? "cvp-color-prevalent" : "cvp-color-muted"}`}
+                        >
                           {agg.prevalent}
                         </td>
-                        <td className={`cvp-analysis-td-center ${agg.mentioned > 0 ? "cvp-color-mentioned" : "cvp-color-muted"}`}>
+                        <td
+                          className={`cvp-analysis-td-center ${agg.mentioned > 0 ? "cvp-color-mentioned" : "cvp-color-muted"}`}
+                        >
                           {agg.mentioned}
                         </td>
-                        <td className={`cvp-analysis-td-center ${agg.missing > 0 ? "cvp-color-primary" : "cvp-color-muted"}`}>
+                        <td
+                          className={`cvp-analysis-td-center ${agg.missing > 0 ? "cvp-color-primary" : "cvp-color-muted"}`}
+                        >
                           {agg.missing}
                         </td>
                         <td
@@ -629,3 +610,9 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
     </div>
   );
 }
+
+CoveragePanel.propTypes = {
+  worldContext: PropTypes.object,
+  simulationRunId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onWorldContextChange: PropTypes.func,
+};

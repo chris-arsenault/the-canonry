@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from "react";
+import React, { useEffect, useCallback, useRef } from "react";
 import type { MouseEvent } from "react";
 import styles from "./ImageLightbox.module.css";
 

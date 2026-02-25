@@ -9,7 +9,7 @@
  * 5. Pipeline selection and generation
  */
 
-import { useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useEffect, useCallback, useMemo, useRef } from "react";
 import type { NarrativeStyle, EntityKindDefinition } from "@canonry/world-schema";
 import type {
   EntityContext,

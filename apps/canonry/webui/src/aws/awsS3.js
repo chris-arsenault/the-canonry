@@ -1,20 +1,25 @@
-import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
-import { fromCognitoIdentityPool } from '@aws-sdk/credential-provider-cognito-identity';
-import { getImageBlob, getImagesByProject } from '../lib/imageExportHelpers';
-import { openIlluminatorDb } from '../lib/illuminatorDbReader';
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
+import { fromCognitoIdentityPool } from "@aws-sdk/credential-provider-cognito-identity";
+import { getImageBlob, getImagesByProject } from "../lib/imageExportHelpers";
+import { openIlluminatorDb } from "../lib/illuminatorDbReader";
 
-const DEFAULT_RAW_PREFIX = 'raw';
-const DEFAULT_WEBP_PREFIX = 'webp';
-const DEFAULT_THUMB_PREFIX = 'thumb';
-const MANIFEST_NAME = 'image-manifest.json';
+const DEFAULT_RAW_PREFIX = "raw";
+const DEFAULT_WEBP_PREFIX = "webp";
+const DEFAULT_THUMB_PREFIX = "thumb";
+const MANIFEST_NAME = "image-manifest.json";
 
 function normalizeImageSize(value) {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
 }
 
 function normalizeManifestSize(value) {
-  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
-  if (typeof value === 'string') {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+  if (typeof value === "string") {
     const trimmed = value.trim();
     if (/^\d+$/.test(trimmed)) {
       const parsed = Number(trimmed);
@@ -25,12 +30,12 @@ function normalizeManifestSize(value) {
 }
 
 function updateImageSize(db, imageId, size) {
-  if (!db || !db.objectStoreNames.contains('images')) {
+  if (!db || !db.objectStoreNames.contains("images")) {
     return Promise.resolve(false);
   }
   return new Promise((resolve) => {
-    const tx = db.transaction('images', 'readwrite');
-    const store = tx.objectStore('images');
+    const tx = db.transaction("images", "readwrite");
+    const store = tx.objectStore("images");
     let updated = false;
     const request = store.get(imageId);
 
@@ -52,18 +57,18 @@ function updateImageSize(db, imageId, size) {
 function toS3Key(...parts) {
   return parts
     .filter(Boolean)
-    .map((part) => part.replace(/^\/+|\/+$/g, ''))
+    .map((part) => part.replace(/^\/+|\/+$/g, ""))
     .filter(Boolean)
-    .join('/');
+    .join("/");
 }
 
 export function buildImageStorageConfig(config, projectId) {
   if (!config?.imageBucket) return null;
-  const basePrefix = config?.imagePrefix?.trim() || '';
+  const basePrefix = config?.imagePrefix?.trim() || "";
   return {
-    provider: 's3',
+    provider: "s3",
     bucket: config.imageBucket.trim(),
-    region: config.region?.trim() || 'us-east-1',
+    region: config.region?.trim() || "us-east-1",
     basePrefix,
     rawPrefix: DEFAULT_RAW_PREFIX,
     webpPrefix: DEFAULT_WEBP_PREFIX,
@@ -95,20 +100,20 @@ export function createS3Client(config, tokens) {
 
 async function readBodyAsText(body) {
   if (!body) return null;
-  if (typeof body.transformToString === 'function') {
+  if (typeof body.transformToString === "function") {
     return body.transformToString();
   }
-  if (typeof body.text === 'function') {
+  if (typeof body.text === "function") {
     return body.text();
   }
-  if (typeof body.arrayBuffer === 'function') {
+  if (typeof body.arrayBuffer === "function") {
     const buffer = await body.arrayBuffer();
     return new TextDecoder().decode(buffer);
   }
-  if (typeof body.getReader === 'function' && typeof Response !== 'undefined') {
+  if (typeof body.getReader === "function" && typeof Response !== "undefined") {
     return new Response(body).text();
   }
-  if (typeof body[Symbol.asyncIterator] === 'function') {
+  if (typeof body[Symbol.asyncIterator] === "function") {
     const chunks = [];
     for await (const chunk of body) {
       chunks.push(chunk);
@@ -131,10 +136,10 @@ export async function loadImageManifest(s3, { bucket, basePrefix }) {
     if (!text) return null;
     return JSON.parse(text);
   } catch (err) {
-    if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
+    if (err?.name === "NoSuchKey" || err?.$metadata?.httpStatusCode === 404) {
       return null;
     }
-    console.warn('Failed to load image manifest:', err);
+    console.warn("Failed to load image manifest:", err);
     return null;
   }
 }
@@ -143,13 +148,15 @@ export async function saveImageManifest(s3, { bucket, basePrefix }, manifest) {
   if (!s3 || !bucket) return;
   const key = toS3Key(basePrefix, MANIFEST_NAME);
   const body = JSON.stringify(manifest, null, 2);
-  await s3.send(new PutObjectCommand({
-    Bucket: bucket,
-    Key: key,
-    Body: body,
-    ContentType: 'application/json',
-    CacheControl: 'no-store, must-revalidate',
-  }));
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: body,
+      ContentType: "application/json",
+      CacheControl: "no-store, must-revalidate",
+    })
+  );
 }
 
 function safeTagValue(value, maxLen = 256) {
@@ -160,46 +167,45 @@ function safeTagValue(value, maxLen = 256) {
 
 function buildTagging(metadata) {
   const tags = [
-    ['imageId', metadata.imageId],
-    ['projectId', metadata.projectId],
-    ['entityId', metadata.entityId],
-    ['entityKind', metadata.entityKind],
-    ['imageType', metadata.imageType],
-    ['chronicleId', metadata.chronicleId],
-    ['imageRefId', metadata.imageRefId],
-    ['generatedAt', metadata.generatedAt],
-    ['savedAt', metadata.savedAt],
+    ["imageId", metadata.imageId],
+    ["projectId", metadata.projectId],
+    ["entityId", metadata.entityId],
+    ["entityKind", metadata.entityKind],
+    ["imageType", metadata.imageType],
+    ["chronicleId", metadata.chronicleId],
+    ["imageRefId", metadata.imageRefId],
+    ["generatedAt", metadata.generatedAt],
+    ["savedAt", metadata.savedAt],
   ]
     .map(([key, value]) => [key, safeTagValue(value)])
-    .filter(([, value]) => value != null && value !== '');
+    .filter(([, value]) => value != null && value !== "");
 
   if (!tags.length) return undefined;
-  return tags.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join('&');
+  return tags
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join("&");
 }
 
 export async function listS3Prefixes(s3, { bucket, prefix }) {
   if (!s3 || !bucket) return [];
-  const response = await s3.send(new ListObjectsV2Command({
-    Bucket: bucket,
-    Prefix: prefix || undefined,
-    Delimiter: '/',
-    MaxKeys: 200,
-  }));
+  const response = await s3.send(
+    new ListObjectsV2Command({
+      Bucket: bucket,
+      Prefix: prefix || undefined,
+      Delimiter: "/",
+      MaxKeys: 200,
+    })
+  );
   return (response.CommonPrefixes || []).map((item) => item.Prefix).filter(Boolean);
 }
 
-export async function getS3ImageUploadPlan({
-  projectId,
-  s3,
-  config,
-  repairSizes = false,
-}) {
-  if (!projectId) throw new Error('Missing projectId for image sync');
-  if (!s3) throw new Error('Missing S3 client');
+export async function getS3ImageUploadPlan({ projectId, s3, config, repairSizes = false }) {
+  if (!projectId) throw new Error("Missing projectId for image sync");
+  if (!s3) throw new Error("Missing S3 client");
   const bucket = config?.imageBucket?.trim();
-  if (!bucket) throw new Error('Missing image bucket');
+  if (!bucket) throw new Error("Missing image bucket");
 
-  const basePrefix = config?.imagePrefix?.trim() || '';
+  const basePrefix = config?.imagePrefix?.trim() || "";
   const manifestFromS3 = await loadImageManifest(s3, { bucket, basePrefix });
   const manifest = manifestFromS3 || {
     version: 1,
@@ -233,12 +239,13 @@ export async function getS3ImageUploadPlan({
       const rawSize = image.size;
       const normalizedSize = normalizeImageSize(rawSize);
       let effectiveSize = normalizedSize;
-      let sizeSource = normalizedSize != null ? 'metadata' : 'unknown';
+      let sizeSource = normalizedSize != null ? "metadata" : "unknown";
       const reasons = [];
 
-      const needsBlobForPlan = entry
-        && entry.updatedAt >= updatedAt
-        && (normalizedSize == null || entry.size !== normalizedSize);
+      const needsBlobForPlan =
+        entry &&
+        entry.updatedAt >= updatedAt &&
+        (normalizedSize == null || entry.size !== normalizedSize);
       const needsBlobForRepair = repairSizes && normalizedSize == null;
       let blob = null;
 
@@ -246,9 +253,9 @@ export async function getS3ImageUploadPlan({
         blob = await getImageBlob(image.imageId);
         if (blob) {
           effectiveSize = blob.size;
-          sizeSource = 'blob';
+          sizeSource = "blob";
         } else {
-          sizeSource = 'missing_blob';
+          sizeSource = "missing_blob";
         }
       }
 
@@ -284,11 +291,11 @@ export async function getS3ImageUploadPlan({
       }
 
       if (!entry) {
-        reasons.push('missing_manifest');
+        reasons.push("missing_manifest");
       } else {
-        if (entry.updatedAt < updatedAt) reasons.push('updated_at');
-        if (effectiveSize != null && entry.size !== effectiveSize) reasons.push('size_mismatch');
-        if (effectiveSize == null) reasons.push('size_unknown');
+        if (entry.updatedAt < updatedAt) reasons.push("updated_at");
+        if (effectiveSize != null && entry.size !== effectiveSize) reasons.push("size_mismatch");
+        if (effectiveSize == null) reasons.push("size_unknown");
       }
 
       if (!reasons.length) continue;
@@ -297,14 +304,14 @@ export async function getS3ImageUploadPlan({
         imageId: image.imageId,
         entityId: image.entityId || null,
         entityName: image.entityName || null,
-        imageType: image.imageType || 'entity',
+        imageType: image.imageType || "entity",
         updatedAt,
         size: rawSize ?? null,
         effectiveSize,
         sizeSource,
         manifestUpdatedAt: entry?.updatedAt ?? null,
         manifestSize: entry?.size ?? null,
-        reason: reasons.join('+'),
+        reason: reasons.join("+"),
       });
     }
   } finally {
@@ -329,18 +336,13 @@ export async function getS3ImageUploadPlan({
   };
 }
 
-export async function syncProjectImagesToS3({
-  projectId,
-  s3,
-  config,
-  onProgress,
-}) {
-  if (!projectId) throw new Error('Missing projectId for image sync');
-  if (!s3) throw new Error('Missing S3 client');
+export async function syncProjectImagesToS3({ projectId, s3, config, onProgress }) {
+  if (!projectId) throw new Error("Missing projectId for image sync");
+  if (!s3) throw new Error("Missing S3 client");
   const bucket = config?.imageBucket?.trim();
-  if (!bucket) throw new Error('Missing image bucket');
+  if (!bucket) throw new Error("Missing image bucket");
 
-  const basePrefix = config?.imagePrefix?.trim() || '';
+  const basePrefix = config?.imagePrefix?.trim() || "";
   const rawPrefix = DEFAULT_RAW_PREFIX;
   const manifest = (await loadImageManifest(s3, { bucket, basePrefix })) || {
     version: 1,
@@ -363,7 +365,7 @@ export async function syncProjectImagesToS3({
     if (!image?.imageId) continue;
     processed += 1;
     if (onProgress) {
-      onProgress({ phase: 'scan', processed, total, uploaded });
+      onProgress({ phase: "scan", processed, total, uploaded });
     }
 
     const updatedAt = image.savedAt || image.generatedAt || 0;
@@ -402,27 +404,29 @@ export async function syncProjectImagesToS3({
     const rawKey = toS3Key(basePrefix, rawPrefix, projectId, image.imageId);
     const tagging = buildTagging({ ...image, projectId, savedAt: updatedAt });
 
-    await s3.send(new PutObjectCommand({
-      Bucket: bucket,
-      Key: rawKey,
-      Body: body,
-      ContentType: image.mimeType || blob.type || 'application/octet-stream',
-      ContentLength: contentLength,
-      Tagging: tagging,
-      CacheControl: 'public, max-age=31536000, immutable',
-    }));
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: rawKey,
+        Body: body,
+        ContentType: image.mimeType || blob.type || "application/octet-stream",
+        ContentLength: contentLength,
+        Tagging: tagging,
+        CacheControl: "public, max-age=31536000, immutable",
+      })
+    );
 
     existing[image.imageId] = {
       imageId: image.imageId,
       projectId,
       rawKey,
-      mimeType: image.mimeType || blob.type || 'application/octet-stream',
+      mimeType: image.mimeType || blob.type || "application/octet-stream",
       size: normalizedSize ?? contentLength ?? null,
       updatedAt,
       entityId: image.entityId || null,
       entityKind: image.entityKind || null,
       entityName: image.entityName || null,
-      imageType: image.imageType || 'entity',
+      imageType: image.imageType || "entity",
       chronicleId: image.chronicleId || null,
       imageRefId: image.imageRefId || null,
       generatedAt: image.generatedAt || null,
@@ -431,7 +435,7 @@ export async function syncProjectImagesToS3({
 
     uploaded += 1;
     if (onProgress) {
-      onProgress({ phase: 'upload', processed, total, uploaded });
+      onProgress({ phase: "upload", processed, total, uploaded });
     }
   }
 
@@ -445,14 +449,15 @@ export async function syncProjectImagesToS3({
 
 export function buildStorageImageUrl(storage, variant, imageId) {
   if (!storage || !imageId) return null;
-  const basePrefix = storage.basePrefix || '';
-  const projectId = storage.projectId || '';
-  const prefix = variant === 'raw'
-    ? storage.rawPrefix
-    : variant === 'thumb'
-      ? storage.thumbPrefix
-      : storage.webpPrefix;
-  const filename = variant === 'raw' ? imageId : `${imageId}.webp`;
+  const basePrefix = storage.basePrefix || "";
+  const projectId = storage.projectId || "";
+  const prefix =
+    variant === "raw"
+      ? storage.rawPrefix
+      : variant === "thumb"
+        ? storage.thumbPrefix
+        : storage.webpPrefix;
+  const filename = variant === "raw" ? imageId : `${imageId}.webp`;
   const path = toS3Key(basePrefix, prefix, projectId, filename);
   return `/${path}`;
 }

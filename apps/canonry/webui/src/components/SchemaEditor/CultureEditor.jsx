@@ -6,14 +6,33 @@
  * - Naming data is edited in Name Forge
  */
 
-import React, { useState } from 'react';
-import { ExpandableCard, FormGroup, FormRow, SectionHeader, EmptyState, InfoBox } from '@penguin-tales/shared-components';
+import React, { useState } from "react";
+import {
+  ExpandableCard,
+  FormGroup,
+  FormRow,
+  SectionHeader,
+  EmptyState,
+  InfoBox,
+} from "@penguin-tales/shared-components";
 
 const PRESET_COLORS = [
-  '#ff6b7a', '#ff8f6b', '#ffb366', '#ffdd59',
-  '#7bed9f', '#66ddb3', '#6c9bff', '#5352ed',
-  '#a55eea', '#ff6b81', '#70a1ff', '#eccc68',
-  '#ff7f50', '#20bf6b', '#0fb9b1', '#778ca3',
+  "#ff6b7a",
+  "#ff8f6b",
+  "#ffb366",
+  "#ffdd59",
+  "#7bed9f",
+  "#66ddb3",
+  "#6c9bff",
+  "#5352ed",
+  "#a55eea",
+  "#ff6b81",
+  "#70a1ff",
+  "#eccc68",
+  "#ff7f50",
+  "#20bf6b",
+  "#0fb9b1",
+  "#778ca3",
 ];
 
 export default function CultureEditor({ cultures, onChange }) {
@@ -29,8 +48,8 @@ export default function CultureEditor({ cultures, onChange }) {
     const stableKey = `culture_${Date.now()}`;
     const newCulture = {
       id: stableKey,
-      name: 'New Culture',
-      description: '',
+      name: "New Culture",
+      description: "",
       color: PRESET_COLORS[cultures.length % PRESET_COLORS.length],
       _key: stableKey,
     };
@@ -47,7 +66,7 @@ export default function CultureEditor({ cultures, onChange }) {
   const deleteCulture = (cultureId) => {
     const existing = cultures.find((c) => c.id === cultureId);
     if (existing?.isFramework) return;
-    if (confirm('Delete this culture?')) {
+    if (confirm("Delete this culture?")) {
       onChange(cultures.filter((c) => c.id !== cultureId));
     }
   };
@@ -55,8 +74,8 @@ export default function CultureEditor({ cultures, onChange }) {
   const getCultureSummary = (culture) => {
     const parts = [];
     if (culture.naming?.domains?.length) parts.push(`${culture.naming.domains.length} domains`);
-    if (culture.axisBiases && Object.keys(culture.axisBiases).length) parts.push('axis biases');
-    return parts.length > 0 ? parts.join(', ') : 'not configured';
+    if (culture.axisBiases && Object.keys(culture.axisBiases).length) parts.push("axis biases");
+    return parts.length > 0 ? parts.join(", ") : "not configured";
   };
 
   const renderHeaderActions = () => (
@@ -66,14 +85,14 @@ export default function CultureEditor({ cultures, onChange }) {
   );
 
   const renderCultureTitle = (culture) => (
-    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
       <span
         style={{
-          width: '16px',
-          height: '16px',
-          borderRadius: '50%',
+          width: "16px",
+          height: "16px",
+          borderRadius: "50%",
           backgroundColor: culture.color,
-          border: '2px solid var(--color-border)',
+          border: "2px solid var(--color-border)",
         }}
       />
       {culture.name}
@@ -83,12 +102,16 @@ export default function CultureEditor({ cultures, onChange }) {
   const renderCultureActions = (culture, isFramework) => (
     <span className="text-muted text-small">
       {getCultureSummary(culture)}
-      {isFramework && <span className="badge badge-info" style={{ marginLeft: '8px' }}>framework</span>}
+      {isFramework && (
+        <span className="badge badge-info" style={{ marginLeft: "8px" }}>
+          framework
+        </span>
+      )}
     </span>
   );
 
   return (
-    <div className="editor-container" style={{ maxWidth: '900px' }}>
+    <div className="editor-container" style={{ maxWidth: "900px" }}>
       <SectionHeader
         title="Cultures"
         description="Define cultural groups with their own naming conventions and placement biases."
@@ -135,7 +158,7 @@ export default function CultureEditor({ cultures, onChange }) {
                       value={culture.id}
                       disabled={isFramework}
                       onChange={(e) => {
-                        const newId = e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, '');
+                        const newId = e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "");
                         if (newId && !cultures.some((c) => c.id === newId && c.id !== culture.id)) {
                           updateCulture(culture.id, { id: newId });
                         }
@@ -149,7 +172,7 @@ export default function CultureEditor({ cultures, onChange }) {
                   <FormGroup label="Description" wide>
                     <input
                       className="input"
-                      value={culture.description || ''}
+                      value={culture.description || ""}
                       disabled={isFramework}
                       onChange={(e) => updateCulture(culture.id, { description: e.target.value })}
                       placeholder="Optional description"
@@ -160,29 +183,29 @@ export default function CultureEditor({ cultures, onChange }) {
                 {/* Color Selection */}
                 <div className="section">
                   <div className="section-title">Color</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <div
                       style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "50%",
                         backgroundColor: culture.color,
-                        border: '3px solid var(--color-border)',
-                        }}
+                        border: "3px solid var(--color-border)",
+                      }}
                     />
                     <div className="chip-list">
                       {PRESET_COLORS.map((color) => (
                         <div
                           key={color}
-                          className={`chip chip-clickable ${culture.color === color ? 'chip-active' : ''}`}
+                          className={`chip chip-clickable ${culture.color === color ? "chip-active" : ""}`}
                           style={{
-                            width: '24px',
-                            height: '24px',
+                            width: "24px",
+                            height: "24px",
                             padding: 0,
                             backgroundColor: color,
-                            borderColor: culture.color === color ? '#fff' : 'transparent',
+                            borderColor: culture.color === color ? "#fff" : "transparent",
                             opacity: isFramework ? 0.6 : 1,
-                            pointerEvents: isFramework ? 'none' : 'auto',
+                            pointerEvents: isFramework ? "none" : "auto",
                           }}
                           onClick={() => updateCulture(culture.id, { color })}
                         />
@@ -193,19 +216,27 @@ export default function CultureEditor({ cultures, onChange }) {
 
                 {/* Info about other editors */}
                 <InfoBox title="Additional configuration">
-                  <ul style={{ margin: '8px 0 0 16px', padding: 0 }}>
-                    <li><strong>Names tab</strong> — Configure naming domains, grammars, and profiles</li>
-                    <li><strong>Cosmography tab</strong> — Configure axis biases and home regions</li>
+                  <ul style={{ margin: "8px 0 0 16px", padding: 0 }}>
+                    <li>
+                      <strong>Names tab</strong> — Configure naming domains, grammars, and profiles
+                    </li>
+                    <li>
+                      <strong>Cosmography tab</strong> — Configure axis biases and home regions
+                    </li>
                   </ul>
                 </InfoBox>
 
                 {/* Actions */}
                 <div className="danger-zone">
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: "flex", gap: "8px" }}>
                     {culture.naming && <span className="badge">has naming</span>}
                     {culture.axisBiases && <span className="badge">has biases</span>}
                   </div>
-                  <button className="btn btn-danger" onClick={() => deleteCulture(culture.id)} disabled={isFramework}>
+                  <button
+                    className="btn btn-danger"
+                    onClick={() => deleteCulture(culture.id)}
+                    disabled={isFramework}
+                  >
                     Delete Culture
                   </button>
                 </div>

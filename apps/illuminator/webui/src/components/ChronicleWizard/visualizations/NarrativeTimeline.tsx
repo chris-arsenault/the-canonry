@@ -8,7 +8,7 @@
  * - Hover for full details
  */
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
   type TimelineEvent,
   type EraRange,

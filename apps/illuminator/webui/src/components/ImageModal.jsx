@@ -6,7 +6,7 @@
  * Displays metadata in a collapsible sidebar with expandable prompt sections.
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useImageUrl } from "../hooks/useImageUrl";
 import "./ImageModal.css";
 
@@ -53,15 +53,15 @@ function PromptSection({ title, content, defaultExpanded = false }) {
   return (
     <div className="imod-prompt-section">
       <button onClick={() => setExpanded(!expanded)} className="imod-prompt-toggle">
-        <span className={`imod-prompt-arrow ${expanded ? "imod-prompt-arrow--expanded" : "imod-prompt-arrow--collapsed"}`}>
+        <span
+          className={`imod-prompt-arrow ${expanded ? "imod-prompt-arrow-expanded" : "imod-prompt-arrow-collapsed"}`}
+        >
           ▶
         </span>
         <span className="imod-prompt-title">{title}</span>
         <span className="imod-prompt-chars">{content.length} chars</span>
       </button>
-      {expanded && (
-        <div className="imod-prompt-content">{content}</div>
-      )}
+      {expanded && <div className="imod-prompt-content">{content}</div>}
     </div>
   );
 }
@@ -83,7 +83,7 @@ function MetadataSidebar({ metadata, isOpen, onToggle }) {
       {/* Toggle button */}
       <button
         onClick={onToggle}
-        className={`imod-sidebar-toggle ${isOpen ? "imod-sidebar-toggle--open" : "imod-sidebar-toggle--closed"}`}
+        className={`imod-sidebar-toggle ${isOpen ? "imod-sidebar-toggle-open" : "imod-sidebar-toggle-closed"}`}
         title={isOpen ? "Hide metadata" : "Show metadata"}
       >
         {isOpen ? ">" : "<"}
@@ -91,7 +91,7 @@ function MetadataSidebar({ metadata, isOpen, onToggle }) {
 
       {/* Sidebar */}
       <div
-        className={`imod-sidebar ${isOpen ? "imod-sidebar--open" : "imod-sidebar--closed"}`}
+        className={`imod-sidebar ${isOpen ? "imod-sidebar-open" : "imod-sidebar-closed"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="imod-sidebar-inner">
@@ -190,22 +190,22 @@ export default function ImageModal({ isOpen, imageId, title, onClose }) {
   const hasSidebar = sidebarOpen && metadata;
 
   return (
-    <div
-      className="imod-overlay"
-      onMouseDown={handleOverlayMouseDown}
-      onClick={handleOverlayClick}
-    >
+    <div className="imod-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
       {/* Header with title and close button */}
       <div
-        className={`imod-header ${hasSidebar ? "imod-header--sidebar-open" : "imod-header--sidebar-closed"}`}
+        className={`imod-header ${hasSidebar ? "imod-header-sidebar-open" : "imod-header-sidebar-closed"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="imod-title">{title}</h3>
-        <button onClick={onClose} className="imod-close-btn">Close (Esc)</button>
+        <button onClick={onClose} className="imod-close-btn">
+          Close (Esc)
+        </button>
       </div>
 
       {/* Image container - adjusted for sidebar */}
-      <div className={`imod-image-container ${hasSidebar ? "imod-image-container--sidebar-open" : "imod-image-container--sidebar-closed"}`}>
+      <div
+        className={`imod-image-container ${hasSidebar ? "imod-image-container-sidebar-open" : "imod-image-container-sidebar-closed"}`}
+      >
         {loading ? (
           <div className="imod-loading">Loading image...</div>
         ) : error || !imageUrl ? (
@@ -231,7 +231,9 @@ export default function ImageModal({ isOpen, imageId, title, onClose }) {
       />
 
       {/* Hint at bottom */}
-      <div className={`imod-hint ${hasSidebar ? "imod-hint--sidebar-open" : "imod-hint--sidebar-closed"}`}>
+      <div
+        className={`imod-hint ${hasSidebar ? "imod-hint-sidebar-open" : "imod-hint-sidebar-closed"}`}
+      >
         Click anywhere or press Escape to close
       </div>
     </div>

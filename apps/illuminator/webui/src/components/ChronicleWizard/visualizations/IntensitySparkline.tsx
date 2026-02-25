@@ -5,7 +5,7 @@
  * helping users identify natural story arcs (rising action, climax, resolution).
  */
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import type { IntensityPoint } from "../../../lib/chronicle/timelineUtils";
 
 interface IntensitySparklineProps {

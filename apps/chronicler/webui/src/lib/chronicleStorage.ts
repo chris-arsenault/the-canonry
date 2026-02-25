@@ -6,6 +6,7 @@
  */
 
 import { openIlluminatorDb } from "./illuminatorDbReader";
+import React from "react";
 
 const CHRONICLE_STORE_NAME = "chronicles";
 

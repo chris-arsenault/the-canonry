@@ -6,7 +6,7 @@
  * Renders at z-index 10001 to layer above everything including process modals.
  */
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useThinkingStore } from "../lib/db/thinkingStore";
 
 type ViewerTab = "thinking" | "response";

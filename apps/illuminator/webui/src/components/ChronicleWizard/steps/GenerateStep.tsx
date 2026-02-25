@@ -5,6 +5,7 @@
  */
 
 import { useWizard } from "../WizardContext";
+import React from "react";
 
 interface GenerateStepProps {
   onGenerate: () => void;

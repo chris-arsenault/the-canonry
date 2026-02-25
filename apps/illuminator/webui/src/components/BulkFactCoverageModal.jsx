@@ -7,7 +7,8 @@
  * 3. Terminal: completion/cancellation/failure message
  */
 
-import { useEffect } from "react";
+import React, { useEffect } from "react";
+import PropTypes from "prop-types";
 import { useFloatingPillStore } from "../lib/db/floatingPillStore";
 import "./BulkFactCoverageModal.css";
 
@@ -58,7 +59,7 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
       <div
         className="bfc-dialog"
         // eslint-disable-next-line local/no-inline-styles -- dynamic dialog width based on phase
-        style={{ '--bfc-dialog-width': isConfirming ? '540px' : '480px' }}
+        style={{ "--bfc-dialog-width": isConfirming ? "540px" : "480px" }}
       >
         {/* Header */}
         <div className="bfc-header">
@@ -93,7 +94,16 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
               <span
                 className="bfc-status-text"
                 // eslint-disable-next-line local/no-inline-styles -- dynamic status color based on progress.status
-                style={{ '--bfc-status-color': progress.status === "complete" ? "#10b981" : progress.status === "failed" ? "#ef4444" : progress.status === "cancelled" ? "#f59e0b" : "var(--text-muted)" }}
+                style={{
+                  "--bfc-status-color":
+                    progress.status === "complete"
+                      ? "#10b981"
+                      : progress.status === "failed"
+                        ? "#ef4444"
+                        : progress.status === "cancelled"
+                          ? "#f59e0b"
+                          : "var(--text-muted)",
+                }}
               >
                 {isConfirming && `${progress.totalChronicles} chronicles`}
                 {progress.status === "running" && "Analyzing..."}
@@ -106,7 +116,7 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
         </div>
 
         {/* Body */}
-        <div className={`bfc-body ${isConfirming ? 'bfc-body--confirming' : 'bfc-body--processing'}`}>
+        <div className={`bfc-body ${isConfirming ? "bfc-body-confirming" : "bfc-body-processing"}`}>
           {/* ---- Confirmation screen ---- */}
           {isConfirming && (
             <>
@@ -117,16 +127,11 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
 
               {/* Chronicle list */}
               <div className="bfc-list-section">
-                <div className="bfc-section-label">
-                  Chronicles ({progress.chronicles.length})
-                </div>
+                <div className="bfc-section-label">Chronicles ({progress.chronicles.length})</div>
 
                 <div className="bfc-chronicle-list">
                   {progress.chronicles.map((chron) => (
-                    <div
-                      key={chron.chronicleId}
-                      className="bfc-chronicle-item"
-                    >
+                    <div key={chron.chronicleId} className="bfc-chronicle-item">
                       {chron.title}
                     </div>
                   ))}
@@ -145,9 +150,7 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
                     Chronicle {Math.min(progress.processedChronicles + 1, progress.totalChronicles)}{" "}
                     / {progress.totalChronicles}
                   </span>
-                  <span className="bfc-progress-percent">
-                    {globalPercent}%
-                  </span>
+                  <span className="bfc-progress-percent">{globalPercent}%</span>
                 </div>
 
                 {/* Progress bar */}
@@ -155,7 +158,15 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
                   <div
                     className="bfc-progress-fill"
                     // eslint-disable-next-line local/no-inline-styles -- dynamic progress width and color from JS variables
-                    style={{ '--bfc-progress-bg': progress.status === "failed" ? "#ef4444" : progress.status === "cancelled" ? "#f59e0b" : "#10b981", '--bfc-progress-width': `${globalPercent}%` }}
+                    style={{
+                      "--bfc-progress-bg":
+                        progress.status === "failed"
+                          ? "#ef4444"
+                          : progress.status === "cancelled"
+                            ? "#f59e0b"
+                            : "#10b981",
+                      "--bfc-progress-width": `${globalPercent}%`,
+                    }}
                   />
                 </div>
 
@@ -172,12 +183,8 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
               {/* Current chronicle */}
               {progress.currentTitle && !isTerminal && (
                 <div className="bfc-current-item">
-                  <div className="bfc-current-item-title">
-                    {progress.currentTitle}
-                  </div>
-                  <div className="bfc-current-item-sub">
-                    Analyzing fact coverage...
-                  </div>
+                  <div className="bfc-current-item-title">{progress.currentTitle}</div>
+                  <div className="bfc-current-item-sub">Analyzing fact coverage...</div>
                 </div>
               )}
 
@@ -215,10 +222,7 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
                   </div>
                   <div className="bfc-failed-list">
                     {progress.failedChronicles.map((f) => (
-                      <div
-                        key={f.chronicleId}
-                        className="bfc-failed-item"
-                      >
+                      <div key={f.chronicleId} className="bfc-failed-item">
                         <span className="bfc-failed-item-title">{f.title}</span>
                         <span className="bfc-failed-item-error">{f.error}</span>
                       </div>
@@ -229,9 +233,7 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
 
               {/* Cost */}
               {progress.totalCost > 0 && (
-                <div className="bfc-cost">
-                  Cost: ${progress.totalCost.toFixed(4)}
-                </div>
+                <div className="bfc-cost">Cost: ${progress.totalCost.toFixed(4)}</div>
               )}
             </>
           )}
@@ -241,10 +243,7 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
         <div className="bfc-footer">
           {isConfirming && (
             <>
-              <button
-                onClick={onCancel}
-                className="illuminator-button bfc-footer-btn"
-              >
+              <button onClick={onCancel} className="illuminator-button bfc-footer-btn">
                 Cancel
               </button>
               <button
@@ -256,18 +255,12 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
             </>
           )}
           {!isConfirming && !isTerminal && (
-            <button
-              onClick={onCancel}
-              className="illuminator-button bfc-footer-btn"
-            >
+            <button onClick={onCancel} className="illuminator-button bfc-footer-btn">
               Cancel
             </button>
           )}
           {isTerminal && (
-            <button
-              onClick={onClose}
-              className="illuminator-button bfc-footer-btn"
-            >
+            <button onClick={onClose} className="illuminator-button bfc-footer-btn">
               Close
             </button>
           )}

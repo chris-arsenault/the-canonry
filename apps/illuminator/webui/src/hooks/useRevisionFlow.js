@@ -140,9 +140,19 @@ function filterEligibleIds(navEntities, excludeChronicleEntities, chronicleEntit
 }
 
 async function buildRevisionStartPayload(params) {
-  const { projectId, simulationRunId, worldContext, worldSchema,
-    navEntities, entityNavMap, relationshipsByEntity, prominenceScale,
-    excludeChronicleEntities, chronicleEntityIds, startRevision } = params;
+  const {
+    projectId,
+    simulationRunId,
+    worldContext,
+    worldSchema,
+    navEntities,
+    entityNavMap,
+    relationshipsByEntity,
+    prominenceScale,
+    excludeChronicleEntities,
+    chronicleEntityIds,
+    startRevision,
+  } = params;
 
   const staticPagesContext = await loadStaticPagesContext(projectId);
   const dynamicsContext = buildDynamicsContext(worldContext);
@@ -155,9 +165,11 @@ async function buildRevisionStartPayload(params) {
     .map((e) => mapEntityToRevisionEntity(e, mapParams));
 
   startRevision({
-    projectId, simulationRunId,
+    projectId,
+    simulationRunId,
     worldDynamicsContext: dynamicsContext,
-    staticPagesContext, schemaContext,
+    staticPagesContext,
+    schemaContext,
     revisionGuidance: "",
     entities: revisionEntities,
   });
@@ -166,9 +178,16 @@ async function buildRevisionStartPayload(params) {
 // --- Main hook ---
 
 export function useRevisionFlow({
-  projectId, simulationRunId, navEntities, entityNavMap,
-  relationshipsByEntity, prominenceScale, worldContext, worldSchema,
-  entityGuidance, reloadEntities,
+  projectId,
+  simulationRunId,
+  navEntities,
+  entityNavMap,
+  relationshipsByEntity,
+  prominenceScale,
+  worldContext,
+  worldSchema,
+  entityGuidance,
+  reloadEntities,
 }) {
   const getEntityContextsForRevision = useCallback(
     async (entityIds) => {
@@ -189,14 +208,21 @@ export function useRevisionFlow({
   );
 
   const {
-    run: revisionRun, isActive: isRevisionActive,
-    startRevision, continueToNextBatch,
-    autoContineAll: autoContineAllRevision, togglePatchDecision,
-    applyAccepted: applyAcceptedPatches, cancelRevision,
+    run: revisionRun,
+    isActive: isRevisionActive,
+    startRevision,
+    continueToNextBatch,
+    autoContineAll: autoContineAllRevision,
+    togglePatchDecision,
+    applyAccepted: applyAcceptedPatches,
+    cancelRevision,
   } = useSummaryRevision(getEntityContextsForRevision);
 
   const [revisionFilter, setRevisionFilter] = useState({
-    open: false, totalEligible: 0, usedInChronicles: 0, chronicleEntityIds: new Set(),
+    open: false,
+    totalEligible: 0,
+    usedInChronicles: 0,
+    chronicleEntityIds: new Set(),
   });
 
   const handleOpenRevisionFilter = useCallback(async () => {
@@ -206,9 +232,16 @@ export function useRevisionFlow({
     try {
       const usageStats = await getEntityUsageStats(simulationRunId);
       chronicleEntityIds = new Set(usageStats.keys());
-    } catch (err) { console.warn("[Revision] Failed to load chronicle usage stats:", err); }
+    } catch (err) {
+      console.warn("[Revision] Failed to load chronicle usage stats:", err);
+    }
     const usedInChronicles = eligible.filter((e) => chronicleEntityIds.has(e.id)).length;
-    setRevisionFilter({ open: true, totalEligible: eligible.length, usedInChronicles, chronicleEntityIds });
+    setRevisionFilter({
+      open: true,
+      totalEligible: eligible.length,
+      usedInChronicles,
+      chronicleEntityIds,
+    });
   }, [projectId, simulationRunId, navEntities]);
 
   const handleStartRevision = useCallback(
@@ -216,15 +249,31 @@ export function useRevisionFlow({
       if (!projectId || !simulationRunId) return;
       setRevisionFilter((prev) => ({ ...prev, open: false }));
       await buildRevisionStartPayload({
-        projectId, simulationRunId, worldContext, worldSchema,
-        navEntities, entityNavMap, relationshipsByEntity, prominenceScale,
-        excludeChronicleEntities, chronicleEntityIds: revisionFilter.chronicleEntityIds,
+        projectId,
+        simulationRunId,
+        worldContext,
+        worldSchema,
+        navEntities,
+        entityNavMap,
+        relationshipsByEntity,
+        prominenceScale,
+        excludeChronicleEntities,
+        chronicleEntityIds: revisionFilter.chronicleEntityIds,
         startRevision,
       });
     },
-    [projectId, simulationRunId, worldContext, worldSchema, navEntities,
-      entityNavMap, relationshipsByEntity, prominenceScale, startRevision,
-      revisionFilter.chronicleEntityIds]
+    [
+      projectId,
+      simulationRunId,
+      worldContext,
+      worldSchema,
+      navEntities,
+      entityNavMap,
+      relationshipsByEntity,
+      prominenceScale,
+      startRevision,
+      revisionFilter.chronicleEntityIds,
+    ]
   );
 
   const handleAcceptRevision = useCallback(() => {
@@ -232,10 +281,18 @@ export function useRevisionFlow({
   }, [applyAcceptedPatches, handleRevisionApplied]);
 
   return {
-    revisionRun, isRevisionActive, revisionFilter, setRevisionFilter,
-    getEntityContextsForRevision, handleOpenRevisionFilter,
-    handleStartRevision, handleAcceptRevision,
-    continueToNextBatch, autoContineAllRevision,
-    togglePatchDecision, cancelRevision, startRevision,
+    revisionRun,
+    isRevisionActive,
+    revisionFilter,
+    setRevisionFilter,
+    getEntityContextsForRevision,
+    handleOpenRevisionFilter,
+    handleStartRevision,
+    handleAcceptRevision,
+    continueToNextBatch,
+    autoContineAllRevision,
+    togglePatchDecision,
+    cancelRevision,
+    startRevision,
   };
 }

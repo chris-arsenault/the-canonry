@@ -8,7 +8,8 @@
  * - Pause/Resume/Abort controls
  */
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import "./ProgressPanel.css";
 
 export default function ProgressPanel({
@@ -72,9 +73,7 @@ export default function ProgressPanel({
         </div>
 
         {!hasRequiredKeys && isIdle && (
-          <div className="pp-key-warning">
-            Set API keys in the sidebar to start enrichment
-          </div>
+          <div className="pp-key-warning">Set API keys in the sidebar to start enrichment</div>
         )}
 
         {/* Progress bar */}
@@ -94,9 +93,7 @@ export default function ProgressPanel({
         {/* Current task */}
         {runningTasks.length > 0 && (
           <div className="pp-current-task">
-            <div className="pp-current-task-label">
-              Currently processing:
-            </div>
+            <div className="pp-current-task-label">Currently processing:</div>
             {runningTasks.map((task) => (
               <div key={task.id} className="pp-current-task-item">
                 {task.entityName} - {task.type}
@@ -108,28 +105,22 @@ export default function ProgressPanel({
         {/* Stats */}
         <div className="pp-stats-grid">
           <div className="pp-stat-card">
-            <div className="pp-stat-value">
-              {completedTasks.length}
-            </div>
-            <div className="pp-stat-label pp-stat-label--completed">Completed</div>
+            <div className="pp-stat-value">{completedTasks.length}</div>
+            <div className="pp-stat-label pp-stat-label-completed">Completed</div>
           </div>
           <div className="pp-stat-card">
-            <div className="pp-stat-value">
-              {runningTasks.length}
-            </div>
-            <div className="pp-stat-label pp-stat-label--running">Running</div>
+            <div className="pp-stat-value">{runningTasks.length}</div>
+            <div className="pp-stat-label pp-stat-label-running">Running</div>
           </div>
           <div className="pp-stat-card">
-            <div className="pp-stat-value">
-              {pendingTasks.length}
-            </div>
-            <div className="pp-stat-label pp-stat-label--pending">Pending</div>
+            <div className="pp-stat-value">{pendingTasks.length}</div>
+            <div className="pp-stat-label pp-stat-label-pending">Pending</div>
           </div>
           <div className="pp-stat-card">
-            <div className={`pp-stat-value${errorTasks.length > 0 ? " pp-stat-value--danger" : ""}`}>
+            <div className={`pp-stat-value${errorTasks.length > 0 ? " pp-stat-value-danger" : ""}`}>
               {errorTasks.length}
             </div>
-            <div className="pp-stat-label pp-stat-label--errors">Errors</div>
+            <div className="pp-stat-label pp-stat-label-errors">Errors</div>
           </div>
         </div>
       </div>
@@ -138,9 +129,7 @@ export default function ProgressPanel({
       {errorTasks.length > 0 && (
         <div className="illuminator-card">
           <div className="illuminator-card-header">
-            <h2 className="illuminator-card-title pp-error-title">
-              Errors ({errorTasks.length})
-            </h2>
+            <h2 className="illuminator-card-title pp-error-title">Errors ({errorTasks.length})</h2>
           </div>
           <div className="pp-error-list">
             {errorTasks.map((task) => (
@@ -148,9 +137,7 @@ export default function ProgressPanel({
                 <div className="pp-error-item-name">
                   {task.entityName} - {task.type}
                 </div>
-                <div className="pp-error-item-message">
-                  {task.error || "Unknown error"}
-                </div>
+                <div className="pp-error-item-message">{task.error || "Unknown error"}</div>
               </div>
             ))}
           </div>
@@ -162,9 +149,7 @@ export default function ProgressPanel({
         <div className="illuminator-card">
           <div className="pp-complete-section">
             <div className="pp-complete-icon">&#x2728;</div>
-            <div className="pp-complete-title">
-              Enrichment Complete!
-            </div>
+            <div className="pp-complete-title">Enrichment Complete!</div>
             <div className="pp-complete-summary">
               {completedTasks.length} tasks completed
               {errorTasks.length > 0 && `, ${errorTasks.length} errors`}
@@ -175,3 +160,14 @@ export default function ProgressPanel({
     </div>
   );
 }
+
+ProgressPanel.propTypes = {
+  status: PropTypes.string,
+  progress: PropTypes.object,
+  tasks: PropTypes.array,
+  onPause: PropTypes.func,
+  onResume: PropTypes.func,
+  onAbort: PropTypes.func,
+  onRunAll: PropTypes.func,
+  hasRequiredKeys: PropTypes.bool,
+};

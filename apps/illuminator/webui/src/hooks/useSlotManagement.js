@@ -35,7 +35,10 @@ function buildEraFromLoadedEntity(full, fallbackId) {
 }
 
 function resolveProjectSlotChange(projectId, prevProjectSlot, activeSlotIndex) {
-  if (projectId !== prevProjectSlot.projectId || activeSlotIndex !== prevProjectSlot.activeSlotIndex) {
+  if (
+    projectId !== prevProjectSlot.projectId ||
+    activeSlotIndex !== prevProjectSlot.activeSlotIndex
+  ) {
     if (!projectId) {
       return { changed: true, clearSlot: true };
     }

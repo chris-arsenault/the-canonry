@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import ChroniclerRemote from "@chronicler/ChroniclerRemote.tsx";
 import parchmentTileUrl from "@chronicler/assets/textures/parchment-tile.jpg";
 import HeaderSearch from "./HeaderSearch";
@@ -7,8 +7,15 @@ import useBundleLoader from "./useBundleLoader";
 
 export default function App() {
   const {
-    bundle, status, error, bundleRequestUrl, loadBundle, dexieSeededAt,
-    preloadedChronicles, preloadedStaticPages, preloadedEraNarratives,
+    bundle,
+    status,
+    error,
+    bundleRequestUrl,
+    loadBundle,
+    dexieSeededAt,
+    preloadedChronicles,
+    preloadedStaticPages,
+    preloadedEraNarratives,
   } = useBundleLoader();
   const [chroniclerRequestedPage, setChroniclerRequestedPage] = useState(null);
 
@@ -35,7 +42,9 @@ export default function App() {
             window.location.hash = "#/";
           }}
         >
-          <span className="brand-icon" aria-hidden="true">&#x2756;</span>
+          <span className="brand-icon" aria-hidden="true">
+            &#x2756;
+          </span>
           <span className="brand-title">The Ice Remembers</span>
         </button>
         <HeaderSearch

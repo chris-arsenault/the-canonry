@@ -1,19 +1,12 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 /**
  * Visual grid editor for phoneme weights
  * Shows each phoneme with its corresponding weight and a visual bar
  */
-function PhonemeWeightGrid({
-  label,
-  items,
-  weights,
-  onChange,
-  minWeight = 0.1,
-  maxWeight = 3.0
-}) {
+function PhonemeWeightGrid({ label, items, weights, onChange, minWeight = 0.1, maxWeight = 3.0 }) {
   const [editingIndex, setEditingIndex] = useState(null);
-  const [editValue, setEditValue] = useState('');
+  const [editValue, setEditValue] = useState("");
 
   // Ensure weights array matches items length
   const normalizedWeights = items.map((_, i) => weights?.[i] ?? 1.0);
@@ -39,9 +32,9 @@ function PhonemeWeightGrid({
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleBlur();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       setEditingIndex(null);
     }
   };
@@ -57,7 +50,7 @@ function PhonemeWeightGrid({
           <span className="weight-grid-label">{label}</span>
         </div>
         <div className="weight-grid-empty">
-          No items defined. Add {label.toLowerCase().replace(' weights', 's')} in Phonology section.
+          No items defined. Add {label.toLowerCase().replace(" weights", "s")} in Phonology section.
         </div>
       </div>
     );
@@ -89,10 +82,12 @@ function PhonemeWeightGrid({
           return (
             <div
               key={index}
-              className={`weight-cell ${isEditing ? 'editing' : ''}`}
+              className={`weight-cell ${isEditing ? "editing" : ""}`}
               onClick={() => !isEditing && handleCellClick(index)}
             >
-              <div className="weight-cell-item" title={item}>{item}</div>
+              <div className="weight-cell-item" title={item}>
+                {item}
+              </div>
               {isEditing ? (
                 <input
                   type="number"
@@ -114,7 +109,7 @@ function PhonemeWeightGrid({
                   className="weight-cell-bar"
                   style={{
                     height: `${barHeight}%`,
-                    backgroundColor: `hsl(${hue}, ${saturation}%, 50%)`
+                    backgroundColor: `hsl(${hue}, ${saturation}%, 50%)`,
                   }}
                 />
               </div>

@@ -5,11 +5,11 @@
 
 :root {
   /* Colors - Base (ordered dark to light for nesting hierarchy) */
-  --color-bg: #0a1929;           /* Page background */
-  --color-bg-dark: #0c1f2e;      /* Inputs, deepest nested */
-  --color-bg-card: #1e3a5f;      /* Primary cards */
-  --color-bg-elevated: #152d4a;  /* Content area inside cards */
-  --color-bg-nested: #1a3550;    /* Nested sections inside elevated */
+  --color-bg: #0a1929; /* Page background */
+  --color-bg-dark: #0c1f2e; /* Inputs, deepest nested */
+  --color-bg-card: #1e3a5f; /* Primary cards */
+  --color-bg-elevated: #152d4a; /* Content area inside cards */
+  --color-bg-nested: #1a3550; /* Nested sections inside elevated */
   --color-border: rgb(59 130 246 / 30%);
   --color-border-light: rgb(59 130 246 / 15%);
 

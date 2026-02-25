@@ -4,13 +4,13 @@
  * Displays world data from lore-weave simulation results.
  */
 
-import React, { Suspense, lazy } from 'react';
-import RemotePlaceholder from './RemotePlaceholder';
-import { colors, typography } from '../theme';
+import React, { Suspense, lazy } from "react";
+import RemotePlaceholder from "./RemotePlaceholder";
+import { colors, typography } from "../theme";
 
 // Lazy load the remote module
 const ArchivistRemote = lazy(() =>
-  import('archivist/ArchivistRemote').catch(() => ({
+  import("archivist/ArchivistRemote").catch(() => ({
     default: () => (
       <RemotePlaceholder
         name="Archivist"
@@ -23,14 +23,14 @@ const ArchivistRemote = lazy(() =>
 
 const styles = {
   container: {
-    height: '100%',
-    overflow: 'auto',
+    height: "100%",
+    overflow: "auto",
   },
   loading: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
     color: colors.textMuted,
     fontSize: typography.sizeLg,
     fontFamily: typography.fontFamily,
@@ -38,19 +38,16 @@ const styles = {
 };
 
 const loadingFallback = React.createElement(
-  'div',
+  "div",
   { style: styles.loading },
-  'Loading Archivist...'
+  "Loading Archivist..."
 );
 
 export default function ArchivistHost({ projectId, activeSlotIndex }) {
   return (
     <div style={styles.container}>
       <Suspense fallback={loadingFallback}>
-        <ArchivistRemote
-          projectId={projectId}
-          activeSlotIndex={activeSlotIndex}
-        />
+        <ArchivistRemote projectId={projectId} activeSlotIndex={activeSlotIndex} />
       </Suspense>
     </div>
   );

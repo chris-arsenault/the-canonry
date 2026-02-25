@@ -1,13 +1,26 @@
-import { useState } from 'react';
-import type { WorldState, LoreData, DescriptionLore, RelationshipBackstoryLore, ChainLinkLore, DiscoveryEventLore, Region } from '../types/world.ts';
-import { getEntityById, getRelatedEntities, getRelationships, getTagsArray } from '../utils/dataTransform.ts';
-import { useImageUrl } from '@penguin-tales/image-store';
-import LoreSection from './LoreSection.tsx';
-import RelationshipStoryModal from './RelationshipStoryModal.tsx';
-import ChainLinkSection from './ChainLinkSection.tsx';
-import DiscoveryStory from './DiscoveryStory.tsx';
-import './EntityDetail.css';
-import { prominenceLabelFromScale, type ProminenceScale } from '@canonry/world-schema';
+import { useState } from "react";
+import type {
+  WorldState,
+  LoreData,
+  DescriptionLore,
+  RelationshipBackstoryLore,
+  ChainLinkLore,
+  DiscoveryEventLore,
+  Region,
+} from "../types/world.ts";
+import {
+  getEntityById,
+  getRelatedEntities,
+  getRelationships,
+  getTagsArray,
+} from "../utils/dataTransform.ts";
+import { useImageUrl } from "@penguin-tales/image-store";
+import LoreSection from "./LoreSection.tsx";
+import RelationshipStoryModal from "./RelationshipStoryModal.tsx";
+import ChainLinkSection from "./ChainLinkSection.tsx";
+import DiscoveryStory from "./DiscoveryStory.tsx";
+import "./EntityDetail.css";
+import { prominenceLabelFromScale, type ProminenceScale } from "@canonry/world-schema";
 
 interface EntityDetailProps {
   entityId?: string;
@@ -18,29 +31,43 @@ interface EntityDetailProps {
 }
 
 // Parse selection ID - returns { type: 'entity', id } or { type: 'region', entityKind, regionId }
-function parseSelectionId(selectionId: string): { type: 'entity'; id: string } | { type: 'region'; entityKind: string; regionId: string } {
-  if (selectionId.startsWith('region:')) {
-    const parts = selectionId.split(':');
-    return { type: 'region', entityKind: parts[1], regionId: parts[2] };
+function parseSelectionId(
+  selectionId: string
+): { type: "entity"; id: string } | { type: "region"; entityKind: string; regionId: string } {
+  if (selectionId.startsWith("region:")) {
+    const parts = selectionId.split(":");
+    return { type: "region", entityKind: parts[1], regionId: parts[2] };
   }
-  return { type: 'entity', id: selectionId };
+  return { type: "entity", id: selectionId };
 }
 
 // Find a region by entityKind and regionId
-function findRegion(worldData: WorldState, entityKind: string, regionId: string): Region | undefined {
-  const kindDef = worldData.schema.entityKinds.find(kind => kind.kind === entityKind);
+function findRegion(
+  worldData: WorldState,
+  entityKind: string,
+  regionId: string
+): Region | undefined {
+  const kindDef = worldData.schema.entityKinds.find((kind) => kind.kind === entityKind);
   if (!kindDef?.semanticPlane) {
     throw new Error(`Archivist: entity kind "${entityKind}" is missing semanticPlane.`);
   }
   const seedRegions = kindDef.semanticPlane.regions;
   const emergentRegions = worldData.coordinateState?.emergentRegions?.[entityKind] ?? [];
-  return [...seedRegions, ...emergentRegions].find(region => region.id === regionId);
+  return [...seedRegions, ...emergentRegions].find((region) => region.id === regionId);
 }
 
 // Region detail component
-function RegionDetail({ region, entityKind, worldData }: { region: Region; entityKind: string; worldData: WorldState }) {
+function RegionDetail({
+  region,
+  entityKind,
+  worldData,
+}: {
+  region: Region;
+  entityKind: string;
+  worldData: WorldState;
+}) {
   const culture = region.culture
-    ? worldData.schema.cultures.find(c => c.id === region.culture)
+    ? worldData.schema.cultures.find((c) => c.id === region.culture)
     : undefined;
 
   return (
@@ -49,12 +76,15 @@ function RegionDetail({ region, entityKind, worldData }: { region: Region; entit
       <div className="entity-detail-header">
         <h2 className="entity-detail-name">{region.label}</h2>
         <div className="entity-detail-badges">
-          <span className={`entity-badge ${region.emergent ? 'entity-badge-emergent' : ''}`}>
-            {region.emergent ? 'Emergent' : 'Seed'} Region
+          <span className={`entity-badge ${region.emergent ? "entity-badge-emergent" : ""}`}>
+            {region.emergent ? "Emergent" : "Seed"} Region
           </span>
           <span className="entity-badge entity-badge-kind">{entityKind}</span>
           {culture && (
-            <span className="entity-badge entity-badge-culture" style={{ borderColor: culture.color, color: culture.color }}>
+            <span
+              className="entity-badge entity-badge-culture"
+              style={{ borderColor: culture.color, color: culture.color }}
+            >
               {culture.name}
             </span>
           )}
@@ -65,7 +95,10 @@ function RegionDetail({ region, entityKind, worldData }: { region: Region; entit
       {region.description && (
         <div className="detail-card">
           <div className="section-header">Description</div>
-          <p className="detail-card-content" style={{ fontSize: '13px', color: '#bfdbfe', margin: 0 }}>
+          <p
+            className="detail-card-content"
+            style={{ fontSize: "13px", color: "#bfdbfe", margin: 0 }}
+          >
             {region.description}
           </p>
         </div>
@@ -73,7 +106,7 @@ function RegionDetail({ region, entityKind, worldData }: { region: Region; entit
 
       {/* Region Properties */}
       <div className="entity-meta-grid">
-        {region.bounds.shape === 'circle' && (
+        {region.bounds.shape === "circle" && (
           <>
             <div className="entity-meta-item">
               <span className="entity-meta-label">Radius</span>
@@ -89,12 +122,12 @@ function RegionDetail({ region, entityKind, worldData }: { region: Region; entit
             </div>
           </>
         )}
-      {region.emergent && region.createdAt !== undefined && (
-        <div className="entity-meta-item">
-          <span className="entity-meta-label">Created</span>
-          <span className="entity-meta-value">Tick {region.createdAt}</span>
-        </div>
-      )}
+        {region.emergent && region.createdAt !== undefined && (
+          <div className="entity-meta-item">
+            <span className="entity-meta-label">Created</span>
+            <span className="entity-meta-value">Tick {region.createdAt}</span>
+          </div>
+        )}
       </div>
 
       {/* Tags */}
@@ -103,7 +136,9 @@ function RegionDetail({ region, entityKind, worldData }: { region: Region; entit
           <div className="section-header">Tags</div>
           <div className="tags-container">
             {region.tags.map((tag: string) => (
-              <span key={tag} className="tag">{tag}</span>
+              <span key={tag} className="tag">
+                {tag}
+              </span>
             ))}
           </div>
         </div>
@@ -117,16 +152,18 @@ export default function EntityDetail({
   worldData,
   loreData,
   onRelatedClick,
-  prominenceScale
+  prominenceScale,
 }: EntityDetailProps) {
   // Hooks must be called before any early returns
-  const [selectedRelationshipLore, setSelectedRelationshipLore] = useState<RelationshipBackstoryLore | null>(null);
+  const [selectedRelationshipLore, setSelectedRelationshipLore] =
+    useState<RelationshipBackstoryLore | null>(null);
   const [expandedOutgoing, setExpandedOutgoing] = useState<Set<string>>(new Set());
   const [expandedIncoming, setExpandedIncoming] = useState<Set<string>>(new Set());
 
   // Look up entity to get imageId for the hook (must be before early returns)
   const selection = entityId ? parseSelectionId(entityId) : null;
-  const entityForImage = selection?.type === 'entity' ? getEntityById(worldData, selection.id) : null;
+  const entityForImage =
+    selection?.type === "entity" ? getEntityById(worldData, selection.id) : null;
   const imageId = entityForImage?.enrichment?.image?.imageId;
   const { url: imageUrl } = useImageUrl(imageId);
 
@@ -134,7 +171,12 @@ export default function EntityDetail({
     return (
       <div className="entity-detail empty">
         <div className="text-center">
-          <div className="text-5xl mb-4" style={{ filter: 'drop-shadow(0 0 20px rgba(59, 130, 246, 0.4))' }}>👈</div>
+          <div
+            className="text-5xl mb-4"
+            style={{ filter: "drop-shadow(0 0 20px rgba(59, 130, 246, 0.4))" }}
+          >
+            👈
+          </div>
           <div className="text-blue-300 font-medium">Select a node to view details</div>
         </div>
       </div>
@@ -144,7 +186,7 @@ export default function EntityDetail({
   // selection is guaranteed non-null here because entityId is truthy
   const sel = selection!;
 
-  if (sel.type === 'region') {
+  if (sel.type === "region") {
     const region = findRegion(worldData, sel.entityKind, sel.regionId);
     if (!region) {
       return (
@@ -173,44 +215,51 @@ export default function EntityDetail({
 
   // Look up culture info
   const entityCulture = entity.culture
-    ? worldData.schema.cultures.find(c => c.id === entity.culture)
+    ? worldData.schema.cultures.find((c) => c.id === entity.culture)
     : undefined;
 
   // Find lore for this entity
   const descriptionLore = loreData?.records.find(
-    record => record.type === 'description' && record.targetId === entityId
+    (record) => record.type === "description" && record.targetId === entityId
   ) as DescriptionLore | undefined;
 
   const chainLinkLore = loreData?.records.find(
-    record => record.type === 'chain_link' && record.targetId === entityId
+    (record) => record.type === "chain_link" && record.targetId === entityId
   ) as ChainLinkLore | undefined;
 
   const discoveryEventLore = loreData?.records.find(
-    record => record.type === 'discovery_event' && record.targetId === entityId
+    (record) => record.type === "discovery_event" && record.targetId === entityId
   ) as DiscoveryEventLore | undefined;
 
   // Image URL loaded via useImageUrl hook (called above, before early returns)
 
   // Helper to find relationship lore
-  const findRelationshipLore = (srcId: string, dstId: string, kind: string): RelationshipBackstoryLore | undefined => {
-    return loreData?.records.find(
-      record => {
-        if (record.type !== 'relationship_backstory') return false;
-        const relLore = record as RelationshipBackstoryLore;
-        return relLore.relationship.src === srcId &&
-               relLore.relationship.dst === dstId &&
-               relLore.relationship.kind === kind;
-      }
-    ) as RelationshipBackstoryLore | undefined;
+  const findRelationshipLore = (
+    srcId: string,
+    dstId: string,
+    kind: string
+  ): RelationshipBackstoryLore | undefined => {
+    return loreData?.records.find((record) => {
+      if (record.type !== "relationship_backstory") return false;
+      const relLore = record as RelationshipBackstoryLore;
+      return (
+        relLore.relationship.src === srcId &&
+        relLore.relationship.dst === dstId &&
+        relLore.relationship.kind === kind
+      );
+    }) as RelationshipBackstoryLore | undefined;
   };
 
-  const outgoingRels = relationships.filter(r => r.src === entityId);
-  const incomingRels = relationships.filter(r => r.dst === entityId);
+  const outgoingRels = relationships.filter((r) => r.src === entityId);
+  const incomingRels = relationships.filter((r) => r.dst === entityId);
 
   // Debug: Check if distance is present
-  const relsWithDistance = relationships.filter(r => r.distance !== undefined);
+  const relsWithDistance = relationships.filter((r) => r.distance !== undefined);
   if (relsWithDistance.length > 0) {
-    console.log(`Entity ${entityId} has ${relsWithDistance.length} relationships with distance:`, relsWithDistance[0]);
+    console.log(
+      `Entity ${entityId} has ${relsWithDistance.length} relationships with distance:`,
+      relsWithDistance[0]
+    );
   }
 
   const getRelatedEntity = (relId: string) => getEntityById(worldData, relId);
@@ -218,7 +267,7 @@ export default function EntityDetail({
   // Group relationships by kind
   const groupByKind = (rels: typeof relationships) => {
     const groups = new Map<string, typeof relationships>();
-    rels.forEach(rel => {
+    rels.forEach((rel) => {
       const kind = rel.kind;
       if (!groups.has(kind)) {
         groups.set(kind, []);
@@ -257,13 +306,14 @@ export default function EntityDetail({
       <div className="entity-detail-header">
         <h2 className="entity-detail-name">{entity.name}</h2>
         <div className="entity-detail-badges">
-          <span className={`entity-badge prominence-${prominenceLabel}`}>
-            {prominenceLabel}
-          </span>
+          <span className={`entity-badge prominence-${prominenceLabel}`}>{prominenceLabel}</span>
           <span className="entity-badge entity-badge-kind">{entity.kind}</span>
           <span className="entity-badge entity-badge-subtype">{entity.subtype}</span>
           {entityCulture && (
-            <span className="entity-badge entity-badge-culture" style={{ borderColor: entityCulture.color, color: entityCulture.color }}>
+            <span
+              className="entity-badge entity-badge-culture"
+              style={{ borderColor: entityCulture.color, color: entityCulture.color }}
+            >
               {entityCulture.name}
             </span>
           )}
@@ -274,12 +324,7 @@ export default function EntityDetail({
       {imageUrl && (
         <div className="mb-6">
           <div className="entity-image-container">
-            <img
-              src={imageUrl}
-              alt={entity.name}
-              className="entity-image"
-              loading="lazy"
-            />
+            <img src={imageUrl} alt={entity.name} className="entity-image" loading="lazy" />
           </div>
         </div>
       )}
@@ -293,9 +338,11 @@ export default function EntityDetail({
             Summary
             <button
               onClick={() => {
-                window.dispatchEvent(new CustomEvent('canonry:navigate', {
-                  detail: { tab: 'chronicler', pageId: entity.id }
-                }));
+                window.dispatchEvent(
+                  new CustomEvent("canonry:navigate", {
+                    detail: { tab: "chronicler", pageId: entity.id },
+                  })
+                );
               }}
               className="chronicler-link"
               title="View full article in Chronicler"
@@ -304,7 +351,7 @@ export default function EntityDetail({
             </button>
           </div>
           <p className="text-sm text-blue-100 leading-relaxed break-words detail-card-content">
-            {(entity as any).summary || 'No summary available'}
+            {(entity as any).summary || "No summary available"}
           </p>
         </div>
       )}
@@ -314,10 +361,7 @@ export default function EntityDetail({
 
       {/* Discovery Story */}
       {discoveryEventLore && (
-        <DiscoveryStory
-          lore={discoveryEventLore}
-          onExplorerClick={onRelatedClick}
-        />
+        <DiscoveryStory lore={discoveryEventLore} onExplorerClick={onRelatedClick} />
       )}
 
       {/* Status & Timeline */}
@@ -341,8 +385,10 @@ export default function EntityDetail({
         <div className="entity-tags-section">
           <div className="section-header">Tags</div>
           <div className="tags-container">
-            {getTagsArray(entity.tags).map(tag => (
-              <span key={tag} className="tag">{tag}</span>
+            {getTagsArray(entity.tags).map((tag) => (
+              <span key={tag} className="tag">
+                {tag}
+              </span>
             ))}
           </div>
         </div>
@@ -351,9 +397,7 @@ export default function EntityDetail({
       {/* Outgoing Relationships */}
       {outgoingRels.length > 0 && (
         <div className="mb-6">
-          <div className="section-header">
-            Relationships ({outgoingRels.length})
-          </div>
+          <div className="section-header">Relationships ({outgoingRels.length})</div>
           <div className="accordion-container">
             {Array.from(outgoingGroups.entries()).map(([kind, rels]) => {
               const isExpanded = expandedOutgoing.has(kind);
@@ -361,8 +405,8 @@ export default function EntityDetail({
                 <div key={kind} className="accordion-item">
                   <button onClick={() => toggleOutgoing(kind)} className="accordion-header">
                     <div className="accordion-header-left">
-                      <span className="accordion-icon">{isExpanded ? '−' : '+'}</span>
-                      <span className="accordion-title">{kind.replace(/_/g, ' ')}</span>
+                      <span className="accordion-icon">{isExpanded ? "−" : "+"}</span>
+                      <span className="accordion-title">{kind.replace(/_/g, " ")}</span>
                     </div>
                     <span className="accordion-badge">{rels.length}</span>
                   </button>
@@ -373,24 +417,44 @@ export default function EntityDetail({
                         const relLore = findRelationshipLore(rel.src, rel.dst, rel.kind);
                         const strength = rel.strength ?? 0.5;
                         const distance = rel.distance;
-                        const isHistorical = rel.status === 'historical';
+                        const isHistorical = rel.status === "historical";
                         return target ? (
-                          <div key={i} className={`accordion-row ${i % 2 === 0 ? 'even' : 'odd'} ${isHistorical ? 'historical' : ''}`}>
+                          <div
+                            key={i}
+                            className={`accordion-row ${i % 2 === 0 ? "even" : "odd"} ${isHistorical ? "historical" : ""}`}
+                          >
                             <button
                               onClick={() => onRelatedClick(target.id)}
                               className="accordion-row-button"
                               style={isHistorical ? { opacity: 0.6 } : undefined}
                             >
                               <div className="accordion-row-name">
-                                {isHistorical && <span style={{ color: '#9ca3af', marginRight: '0.5rem' }}>📜</span>}
+                                {isHistorical && (
+                                  <span style={{ color: "#9ca3af", marginRight: "0.5rem" }}>
+                                    📜
+                                  </span>
+                                )}
                                 {target.name}
                               </div>
                               <div className="accordion-row-kind">
-                                ({target.kind}) <span style={{ color: isHistorical ? '#9ca3af' : '#93c5fd', fontWeight: 'bold' }}>
-                                  [S:{strength.toFixed(2)}{distance !== undefined ? ` D:${distance.toFixed(2)}` : ''}]
+                                ({target.kind}){" "}
+                                <span
+                                  style={{
+                                    color: isHistorical ? "#9ca3af" : "#93c5fd",
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  [S:{strength.toFixed(2)}
+                                  {distance !== undefined ? ` D:${distance.toFixed(2)}` : ""}]
                                 </span>
                                 {isHistorical && rel.archivedAt && (
-                                  <span style={{ color: '#9ca3af', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
+                                  <span
+                                    style={{
+                                      color: "#9ca3af",
+                                      fontSize: "0.75rem",
+                                      marginLeft: "0.5rem",
+                                    }}
+                                  >
                                     archived @{rel.archivedAt}
                                   </span>
                                 )}
@@ -423,9 +487,7 @@ export default function EntityDetail({
       {/* Incoming Relationships */}
       {incomingRels.length > 0 && (
         <div className="mb-6">
-          <div className="section-header">
-            Referenced By ({incomingRels.length})
-          </div>
+          <div className="section-header">Referenced By ({incomingRels.length})</div>
           <div className="accordion-container">
             {Array.from(incomingGroups.entries()).map(([kind, rels]) => {
               const isExpanded = expandedIncoming.has(kind);
@@ -433,8 +495,8 @@ export default function EntityDetail({
                 <div key={kind} className="accordion-item incoming">
                   <button onClick={() => toggleIncoming(kind)} className="accordion-header">
                     <div className="accordion-header-left">
-                      <span className="accordion-icon">{isExpanded ? '−' : '+'}</span>
-                      <span className="accordion-title">{kind.replace(/_/g, ' ')}</span>
+                      <span className="accordion-icon">{isExpanded ? "−" : "+"}</span>
+                      <span className="accordion-title">{kind.replace(/_/g, " ")}</span>
                     </div>
                     <span className="accordion-badge">{rels.length}</span>
                   </button>
@@ -445,24 +507,44 @@ export default function EntityDetail({
                         const relLore = findRelationshipLore(rel.src, rel.dst, rel.kind);
                         const strength = rel.strength ?? 0.5;
                         const distance = rel.distance;
-                        const isHistorical = rel.status === 'historical';
+                        const isHistorical = rel.status === "historical";
                         return source ? (
-                          <div key={i} className={`accordion-row ${i % 2 === 0 ? 'even' : 'odd'} ${isHistorical ? 'historical' : ''}`}>
+                          <div
+                            key={i}
+                            className={`accordion-row ${i % 2 === 0 ? "even" : "odd"} ${isHistorical ? "historical" : ""}`}
+                          >
                             <button
                               onClick={() => onRelatedClick(source.id)}
                               className="accordion-row-button"
                               style={isHistorical ? { opacity: 0.6 } : undefined}
                             >
                               <div className="accordion-row-name">
-                                {isHistorical && <span style={{ color: '#9ca3af', marginRight: '0.5rem' }}>📜</span>}
+                                {isHistorical && (
+                                  <span style={{ color: "#9ca3af", marginRight: "0.5rem" }}>
+                                    📜
+                                  </span>
+                                )}
                                 {source.name}
                               </div>
                               <div className="accordion-row-kind">
-                                ({source.kind}) <span style={{ color: isHistorical ? '#9ca3af' : '#93c5fd', fontWeight: 'bold' }}>
-                                  [S:{strength.toFixed(2)}{distance !== undefined ? ` D:${distance.toFixed(2)}` : ''}]
+                                ({source.kind}){" "}
+                                <span
+                                  style={{
+                                    color: isHistorical ? "#9ca3af" : "#93c5fd",
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  [S:{strength.toFixed(2)}
+                                  {distance !== undefined ? ` D:${distance.toFixed(2)}` : ""}]
                                 </span>
                                 {isHistorical && rel.archivedAt && (
-                                  <span style={{ color: '#9ca3af', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
+                                  <span
+                                    style={{
+                                      color: "#9ca3af",
+                                      fontSize: "0.75rem",
+                                      marginLeft: "0.5rem",
+                                    }}
+                                  >
                                     archived @{rel.archivedAt}
                                   </span>
                                 )}

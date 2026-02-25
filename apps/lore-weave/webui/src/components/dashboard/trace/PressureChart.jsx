@@ -2,11 +2,11 @@
  * PressureChart - Multi-line pressure visualization using visx
  */
 
-import React from 'react';
-import { LinePath } from '@visx/shape';
-import { AxisLeft, AxisBottom } from '@visx/axis';
-import { GridRows, GridColumns } from '@visx/grid';
-import { PRESSURE_COLORS } from './SimulationTraceVisx';
+import React from "react";
+import { LinePath } from "@visx/shape";
+import { AxisLeft, AxisBottom } from "@visx/axis";
+import { GridRows, GridColumns } from "@visx/grid";
+import { PRESSURE_COLORS } from "./SimulationTraceVisx";
 
 /**
  * Pressure chart component
@@ -28,7 +28,7 @@ export default function PressureChart({
     return null;
   }
 
-  const visiblePressures = pressureIds.filter(id => !hiddenPressures.has(id));
+  const visiblePressures = pressureIds.filter((id) => !hiddenPressures.has(id));
   // Chart area height is from margin.top to chartBottom (height param)
   const chartAreaHeight = height - margin.top;
   const zeroY = yScale(0);
@@ -72,8 +72,8 @@ export default function PressureChart({
           <LinePath
             key={pressureId}
             data={data}
-            x={d => xScale(d.tick)}
-            y={d => yScale(d[pressureId] ?? 0)}
+            x={(d) => xScale(d.tick)}
+            y={(d) => yScale(d[pressureId] ?? 0)}
             stroke={color}
             strokeWidth={2}
             strokeLinecap="round"
@@ -88,10 +88,10 @@ export default function PressureChart({
         stroke="#93c5fd"
         tickStroke="#93c5fd"
         tickLabelProps={() => ({
-          fill: '#93c5fd',
+          fill: "#93c5fd",
           fontSize: 11,
-          textAnchor: 'end',
-          dy: '0.33em',
+          textAnchor: "end",
+          dy: "0.33em",
           dx: -4,
         })}
         numTicks={5}
@@ -106,9 +106,9 @@ export default function PressureChart({
         stroke="#93c5fd"
         tickStroke="#93c5fd"
         tickLabelProps={() => ({
-          fill: '#93c5fd',
+          fill: "#93c5fd",
           fontSize: 11,
-          textAnchor: 'middle',
+          textAnchor: "middle",
           dy: 4,
         })}
         numTicks={Math.min(10, data.length)}

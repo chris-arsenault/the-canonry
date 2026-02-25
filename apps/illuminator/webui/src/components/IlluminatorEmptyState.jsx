@@ -1,6 +1,13 @@
 import "./IlluminatorEmptyState.css";
+import React from "react";
+import PropTypes from "prop-types";
 
-export default function IlluminatorEmptyState({ canImport, isDataSyncing, handleDataSync, dataSyncStatus }) {
+export default function IlluminatorEmptyState({
+  canImport,
+  isDataSyncing,
+  handleDataSync,
+  dataSyncStatus,
+}) {
   return (
     <div className="illuminator-empty-state">
       <div className="illuminator-empty-state-icon">&#x2728;</div>
@@ -39,7 +46,7 @@ export default function IlluminatorEmptyState({ canImport, isDataSyncing, handle
       )}
       {dataSyncStatus && (
         <div
-          className={`ies-sync-status ${dataSyncStatus.type === "error" ? "ies-sync-status--error" : "ies-sync-status--success"}`}
+          className={`ies-sync-status ${dataSyncStatus.type === "error" ? "ies-sync-status-error" : "ies-sync-status-success"}`}
         >
           {dataSyncStatus.message}
         </div>
@@ -47,3 +54,10 @@ export default function IlluminatorEmptyState({ canImport, isDataSyncing, handle
     </div>
   );
 }
+
+IlluminatorEmptyState.propTypes = {
+  canImport: PropTypes.bool,
+  isDataSyncing: PropTypes.bool,
+  handleDataSync: PropTypes.func,
+  dataSyncStatus: PropTypes.object,
+};

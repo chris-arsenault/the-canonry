@@ -1,13 +1,17 @@
-import { useState, useRef, lazy, Suspense, useMemo, useEffect, useCallback } from 'react';
-import type { WorldState, Filters, EntityKind, LoreData } from '../types/world.ts';
-import { applyFilters, applyTemporalFilter, getProminenceLevels } from '../utils/dataTransform.ts';
-import CoordinateMapView from './CoordinateMapView.tsx';
-import FilterPanel from './FilterPanel.tsx';
-import EntityDetail from './EntityDetail.tsx';
-import TimelineControl from './TimelineControl.tsx';
-import StatsPanel from './StatsPanel.tsx';
-import './WorldExplorer.css';
-import { buildProminenceScale, DEFAULT_PROMINENCE_DISTRIBUTION, type ProminenceScale } from '@canonry/world-schema';
+import { useState, useRef, lazy, Suspense, useMemo, useEffect, useCallback } from "react";
+import type { WorldState, Filters, EntityKind, LoreData } from "../types/world.ts";
+import { applyFilters, applyTemporalFilter, getProminenceLevels } from "../utils/dataTransform.ts";
+import CoordinateMapView from "./CoordinateMapView.tsx";
+import FilterPanel from "./FilterPanel.tsx";
+import EntityDetail from "./EntityDetail.tsx";
+import TimelineControl from "./TimelineControl.tsx";
+import StatsPanel from "./StatsPanel.tsx";
+import "./WorldExplorer.css";
+import {
+  buildProminenceScale,
+  DEFAULT_PROMINENCE_DISTRIBUTION,
+  type ProminenceScale,
+} from "@canonry/world-schema";
 
 /**
  * Parse entity ID from URL hash
@@ -15,7 +19,7 @@ import { buildProminenceScale, DEFAULT_PROMINENCE_DISTRIBUTION, type ProminenceS
  */
 function parseHashEntityId(): string | undefined {
   const hash = window.location.hash;
-  if (!hash || hash === '#/' || hash === '#') {
+  if (!hash || hash === "#/" || hash === "#") {
     return undefined;
   }
   // Match #/entity/{entityId}
@@ -28,7 +32,7 @@ function parseHashEntityId(): string | undefined {
  */
 function buildEntityHash(entityId: string | undefined): string {
   if (!entityId) {
-    return '#/';
+    return "#/";
   }
   return `#/entity/${encodeURIComponent(entityId)}`;
 }
@@ -38,17 +42,17 @@ interface WorldExplorerProps {
   loreData: LoreData | null;
 }
 
-export type EdgeMetric = 'strength' | 'distance' | 'none';
-export type ViewMode = 'graph3d' | 'graph2d' | 'map' | 'timeline';
+export type EdgeMetric = "strength" | "distance" | "none";
+export type ViewMode = "graph3d" | "graph2d" | "map" | "timeline";
 
-const GraphView = lazy(() => import('./GraphView.tsx'));
-const GraphView3D = lazy(() => import('./GraphView3D.tsx'));
-const TimelineView3D = lazy(() => import('./TimelineView3D.tsx'));
+const GraphView = lazy(() => import("./GraphView.tsx"));
+const GraphView3D = lazy(() => import("./GraphView3D.tsx"));
+const TimelineView3D = lazy(() => import("./TimelineView3D.tsx"));
 
 function detectWebGL(): boolean {
   try {
-    const canvas = document.createElement('canvas');
-    return !!(canvas.getContext('webgl2') || canvas.getContext('webgl'));
+    const canvas = document.createElement("canvas");
+    return !!(canvas.getContext("webgl2") || canvas.getContext("webgl"));
   } catch {
     return false;
   }
@@ -58,11 +62,13 @@ const webglAvailable = detectWebGL();
 
 export default function WorldExplorer({ worldData, loreData }: WorldExplorerProps) {
   // Initialize from hash on mount
-  const [selectedEntityId, setSelectedEntityId] = useState<string | undefined>(() => parseHashEntityId());
+  const [selectedEntityId, setSelectedEntityId] = useState<string | undefined>(() =>
+    parseHashEntityId()
+  );
   const [currentTick, setCurrentTick] = useState<number>(worldData.metadata.tick);
   const [isStatsPanelOpen, setIsStatsPanelOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>(webglAvailable ? 'graph3d' : 'graph2d');
-  const [edgeMetric, setEdgeMetric] = useState<EdgeMetric>('strength');
+  const [viewMode, setViewMode] = useState<ViewMode>(webglAvailable ? "graph3d" : "graph2d");
+  const [edgeMetric, setEdgeMetric] = useState<EdgeMetric>("strength");
   const recalculateLayoutRef = useRef<(() => void) | null>(null);
 
   // Sync hash changes to state (for back/forward buttons)
@@ -72,8 +78,8 @@ export default function WorldExplorer({ worldData, loreData }: WorldExplorerProp
       setSelectedEntityId(entityId);
     };
 
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
   // Handle entity selection - updates hash which triggers state update via hashchange
@@ -85,12 +91,12 @@ export default function WorldExplorer({ worldData, loreData }: WorldExplorerProp
   }, []);
 
   // Get UI configuration from schema
-  const entityKinds = worldData.schema.entityKinds.map(ek => ek.kind);
+  const entityKinds = worldData.schema.entityKinds.map((ek) => ek.kind);
   const defaultMinProminence = getProminenceLevels(worldData.schema)[0];
   const prominenceScale = useMemo<ProminenceScale>(() => {
     const values = worldData.hardState
       .map((entity) => entity.prominence)
-      .filter((value) => typeof value === 'number' && Number.isFinite(value));
+      .filter((value) => typeof value === "number" && Number.isFinite(value));
     return buildProminenceScale(values, { distribution: DEFAULT_PROMINENCE_DISTRIBUTION });
   }, [worldData]);
 
@@ -99,20 +105,17 @@ export default function WorldExplorer({ worldData, loreData }: WorldExplorerProp
     minProminence: defaultMinProminence,
     timeRange: [0, worldData.metadata.tick],
     tags: [],
-    searchQuery: '',
+    searchQuery: "",
     relationshipTypes: [],
     minStrength: 0.0,
     showCatalyzedBy: false,
-    showHistoricalRelationships: false
+    showHistoricalRelationships: false,
   });
 
   // Apply temporal filter first, then regular filters
   const temporalData = applyTemporalFilter(worldData, currentTick);
   const filteredData = applyFilters(temporalData, filters, prominenceScale);
-  const loadingFallback = useMemo(
-    () => <div className="world-loading">Loading view…</div>,
-    []
-  );
+  const loadingFallback = useMemo(() => <div className="world-loading">Loading view…</div>, []);
 
   return (
     <div className="world-explorer">
@@ -134,7 +137,7 @@ export default function WorldExplorer({ worldData, loreData }: WorldExplorerProp
         {/* Graph View */}
         <main className="world-graph-container">
           <Suspense fallback={loadingFallback}>
-            {viewMode === 'graph3d' && (
+            {viewMode === "graph3d" && (
               <GraphView3D
                 key={`3d-view-${edgeMetric}`}
                 data={filteredData}
@@ -145,18 +148,20 @@ export default function WorldExplorer({ worldData, loreData }: WorldExplorerProp
                 prominenceScale={prominenceScale}
               />
             )}
-            {viewMode === 'graph2d' && (
+            {viewMode === "graph2d" && (
               <GraphView
                 key="2d-view"
                 data={filteredData}
                 selectedNodeId={selectedEntityId}
                 onNodeSelect={handleEntitySelect}
                 showCatalyzedBy={filters.showCatalyzedBy}
-                onRecalculateLayoutRef={(handler) => { recalculateLayoutRef.current = handler; }}
+                onRecalculateLayoutRef={(handler) => {
+                  recalculateLayoutRef.current = handler;
+                }}
                 prominenceScale={prominenceScale}
               />
             )}
-            {viewMode === 'timeline' && (
+            {viewMode === "timeline" && (
               <TimelineView3D
                 key={`timeline-view-${edgeMetric}`}
                 data={filteredData}
@@ -168,7 +173,7 @@ export default function WorldExplorer({ worldData, loreData }: WorldExplorerProp
               />
             )}
           </Suspense>
-          {viewMode === 'map' && (
+          {viewMode === "map" && (
             <CoordinateMapView
               key="map-view"
               data={filteredData}

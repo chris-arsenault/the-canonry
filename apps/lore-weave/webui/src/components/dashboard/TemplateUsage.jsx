@@ -2,7 +2,7 @@
  * TemplateUsage - Shows template usage stats and system health
  */
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 function FilterStepsList({ filterSteps }) {
   return (
@@ -12,7 +12,7 @@ function FilterStepsList({ filterSteps }) {
         const prevRemaining = idx > 0 ? filterSteps[idx - 1].remaining : step.remaining;
         const eliminated = prevRemaining - step.remaining;
         return (
-          <li key={idx} className={isBlocked ? 'lw-blocked-step' : ''}>
+          <li key={idx} className={isBlocked ? "lw-blocked-step" : ""}>
             <span className="lw-step-desc">{step.description}</span>
             <span className="lw-step-count">
               {step.remaining}
@@ -49,14 +49,12 @@ function VariableBreakdown({ diagnoses }) {
           <div className="lw-variable-header">
             <span className="lw-variable-icon">📊</span>
             <span className="lw-variable-name">${diag.name}</span>
-            {diag.fromType === 'related' ? (
+            {diag.fromType === "related" ? (
               <span className="lw-variable-source">
                 via {diag.relationshipKind} from {diag.relatedTo}
               </span>
             ) : diag.kind ? (
-              <span className="lw-variable-source">
-                from {diag.kind}
-              </span>
+              <span className="lw-variable-source">from {diag.kind}</span>
             ) : null}
           </div>
           <FilterStepsList filterSteps={diag.filterSteps} />
@@ -69,20 +67,18 @@ function VariableBreakdown({ diagnoses }) {
 function UnusedTemplateItem({ template }) {
   const [expanded, setExpanded] = useState(false);
   const hasFailedRules = template.failedRules && template.failedRules.length > 0;
-  const hasSelectionDiagnosis = template.selectionDiagnosis && template.selectionDiagnosis.filterSteps?.length > 0;
+  const hasSelectionDiagnosis =
+    template.selectionDiagnosis && template.selectionDiagnosis.filterSteps?.length > 0;
   const hasVariableDiagnoses = template.variableDiagnoses && template.variableDiagnoses.length > 0;
-  const icon = hasFailedRules ? '🚫' : '🎯';
+  const icon = hasFailedRules ? "🚫" : "🎯";
 
   return (
     <div className="lw-unused-template">
-      <div
-        className="lw-unused-template-header"
-        onClick={() => setExpanded(!expanded)}
-      >
+      <div className="lw-unused-template-header" onClick={() => setExpanded(!expanded)}>
         <span className="lw-unused-icon">{icon}</span>
         <span className="lw-unused-name">{template.templateId}</span>
         <span className="lw-unused-summary">{template.summary}</span>
-        <span className="lw-unused-expand">{expanded ? '▲' : '▼'}</span>
+        <span className="lw-unused-expand">{expanded ? "▲" : "▼"}</span>
       </div>
       {expanded && (
         <div className="lw-unused-details">
@@ -97,14 +93,13 @@ function UnusedTemplateItem({ template }) {
           ) : hasVariableDiagnoses ? (
             <>
               <div className="lw-targets-found">
-                Found {template.selectionCount} valid target{template.selectionCount !== 1 ? 's' : ''}
+                Found {template.selectionCount} valid target
+                {template.selectionCount !== 1 ? "s" : ""}
               </div>
               <VariableBreakdown diagnoses={template.variableDiagnoses} />
             </>
           ) : (
-            <div className="lw-no-targets">
-              Found {template.selectionCount} valid targets
-            </div>
+            <div className="lw-no-targets">Found {template.selectionCount} valid targets</div>
           )}
         </div>
       )}
@@ -134,7 +129,7 @@ export default function TemplateUsage({ templateUsage, systemHealth }) {
     );
   }
 
-  const maxCount = Math.max(...templateUsage.usage.map(t => t.count), 1);
+  const maxCount = Math.max(...templateUsage.usage.map((t) => t.count), 1);
   const unusedCount = templateUsage.unusedTemplates?.length || 0;
 
   return (
@@ -144,25 +139,29 @@ export default function TemplateUsage({ templateUsage, systemHealth }) {
           <span>🔧</span>
           Template Usage
         </div>
-        <span style={{ fontSize: '12px', color: 'var(--lw-text-muted)' }}>
+        <span style={{ fontSize: "12px", color: "var(--lw-text-muted)" }}>
           {templateUsage.uniqueTemplatesUsed}/{templateUsage.totalTemplates} used
         </span>
       </div>
       <div className="lw-panel-content">
         {/* System health indicator */}
         {systemHealth && (
-          <div className="lw-health-indicator" style={{ marginBottom: '12px' }}>
+          <div className="lw-health-indicator" style={{ marginBottom: "12px" }}>
             <div
               className={`lw-health-dot ${systemHealth.status}`}
               style={{
-                backgroundColor: systemHealth.status === 'stable' ? 'var(--lw-success)' :
-                                systemHealth.status === 'functional' ? 'var(--lw-warning)' : 'var(--lw-danger)'
+                backgroundColor:
+                  systemHealth.status === "stable"
+                    ? "var(--lw-success)"
+                    : systemHealth.status === "functional"
+                      ? "var(--lw-warning)"
+                      : "var(--lw-danger)",
               }}
             />
             <span className="lw-health-text">
               System Health: {(systemHealth.populationHealth * 100).toFixed(0)}%
             </span>
-            <span style={{ fontSize: '12px', color: 'var(--lw-text-muted)', marginLeft: 'auto' }}>
+            <span style={{ fontSize: "12px", color: "var(--lw-text-muted)", marginLeft: "auto" }}>
               {systemHealth.status}
             </span>
           </div>
@@ -170,9 +169,13 @@ export default function TemplateUsage({ templateUsage, systemHealth }) {
 
         {/* Top templates */}
         <div className="lw-template-list">
-          {templateUsage.usage.slice(0, 8).map(template => {
-            const fillColor = template.status === 'saturated' ? 'var(--lw-danger)' :
-                             template.status === 'warning' ? 'var(--lw-warning)' : 'var(--lw-accent)';
+          {templateUsage.usage.slice(0, 8).map((template) => {
+            const fillColor =
+              template.status === "saturated"
+                ? "var(--lw-danger)"
+                : template.status === "warning"
+                  ? "var(--lw-warning)"
+                  : "var(--lw-accent)";
             return (
               <div key={template.templateId} className="lw-template-item">
                 <span className="lw-template-name" title={template.templateId}>
@@ -183,7 +186,7 @@ export default function TemplateUsage({ templateUsage, systemHealth }) {
                     className="lw-template-fill"
                     style={{
                       width: `${(template.count / maxCount) * 100}%`,
-                      backgroundColor: fillColor
+                      backgroundColor: fillColor,
                     }}
                   />
                 </div>
@@ -196,16 +199,13 @@ export default function TemplateUsage({ templateUsage, systemHealth }) {
         {/* Unused templates section */}
         {unusedCount > 0 && (
           <div className="lw-unused-section">
-            <div
-              className="lw-unused-header"
-              onClick={() => setShowUnused(!showUnused)}
-            >
-              <span className="lw-unused-toggle">{showUnused ? '▼' : '▶'}</span>
+            <div className="lw-unused-header" onClick={() => setShowUnused(!showUnused)}>
+              <span className="lw-unused-toggle">{showUnused ? "▼" : "▶"}</span>
               <span className="lw-unused-title">Unused Templates ({unusedCount})</span>
             </div>
             {showUnused && (
               <div className="lw-unused-list">
-                {templateUsage.unusedTemplates.map(template => (
+                {templateUsage.unusedTemplates.map((template) => (
                   <UnusedTemplateItem key={template.templateId} template={template} />
                 ))}
               </div>

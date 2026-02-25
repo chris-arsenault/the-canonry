@@ -129,7 +129,11 @@ export async function loadBundleViaManifest(manifestUrl, setBundleRequestUrl) {
   const data = await fetchJson(coreUrl);
 
   const normalized = validateAndNormalizeBundle(data, coreUrl);
-  configureNarrativeBackend(manifest, manifestBaseUrl, normalized.worldData?.metadata?.simulationRunId);
+  configureNarrativeBackend(
+    manifest,
+    manifestBaseUrl,
+    normalized.worldData?.metadata?.simulationRunId
+  );
   return normalized;
 }
 

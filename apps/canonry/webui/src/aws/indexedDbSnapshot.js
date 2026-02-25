@@ -1,14 +1,14 @@
-import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 
-const SNAPSHOT_KEY_SUFFIX = 'indexeddb-snapshot.json';
-const SKIPPED_STORES = new Set(['imageBlobs']);
+const SNAPSHOT_KEY_SUFFIX = "indexeddb-snapshot.json";
+const SKIPPED_STORES = new Set(["imageBlobs"]);
 
 function toS3Key(...parts) {
   return parts
     .filter(Boolean)
-    .map((part) => part.replace(/^\/+|\/+$/g, ''))
+    .map((part) => part.replace(/^\/+|\/+$/g, ""))
     .filter(Boolean)
-    .join('/');
+    .join("/");
 }
 
 function blobToBase64(blob) {
@@ -16,7 +16,7 @@ function blobToBase64(blob) {
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result;
-      const base64 = dataUrl.split(',')[1] || '';
+      const base64 = dataUrl.split(",")[1] || "";
       resolve(base64);
     };
     reader.onerror = () => reject(reader.error);
@@ -30,7 +30,7 @@ function base64ToBlob(base64, type) {
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-  return new Blob([bytes], { type: type || 'application/octet-stream' });
+  return new Blob([bytes], { type: type || "application/octet-stream" });
 }
 
 async function serializeValue(value) {
@@ -41,13 +41,13 @@ async function serializeValue(value) {
   }
   if (value instanceof ArrayBuffer) {
     const bytes = new Uint8Array(value);
-    let binary = '';
+    let binary = "";
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
     return { __arraybuffer: true, data: btoa(binary) };
   }
   if (ArrayBuffer.isView(value)) {
     const bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-    let binary = '';
+    let binary = "";
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
     return { __typedarray: true, kind: value.constructor.name, data: btoa(binary) };
   }
@@ -61,7 +61,7 @@ async function serializeValue(value) {
     }
     return result;
   }
-  if (typeof value === 'object') {
+  if (typeof value === "object") {
     const result = {};
     for (const key of Object.keys(value)) {
       result[key] = await serializeValue(value[key]);
@@ -73,23 +73,23 @@ async function serializeValue(value) {
 
 function deserializeValue(value) {
   if (value === null || value === undefined) return value;
-  if (typeof value !== 'object') return value;
-  if (value.__blob === true && typeof value.data === 'string') {
+  if (typeof value !== "object") return value;
+  if (value.__blob === true && typeof value.data === "string") {
     return base64ToBlob(value.data, value.type);
   }
-  if (value.__arraybuffer === true && typeof value.data === 'string') {
+  if (value.__arraybuffer === true && typeof value.data === "string") {
     const binary = atob(value.data);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     return bytes.buffer;
   }
-  if (value.__typedarray === true && typeof value.data === 'string') {
+  if (value.__typedarray === true && typeof value.data === "string") {
     const binary = atob(value.data);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     return bytes;
   }
-  if (value.__date === true && typeof value.value === 'string') {
+  if (value.__date === true && typeof value.value === "string") {
     return new Date(value.value);
   }
   if (Array.isArray(value)) {
@@ -109,7 +109,7 @@ function serializeKey(key) {
 }
 
 function deserializeKey(key) {
-  if (key && typeof key === 'object' && key.__date === true) return new Date(key.value);
+  if (key && typeof key === "object" && key.__date === true) return new Date(key.value);
   if (Array.isArray(key)) return key.map(deserializeKey);
   return key;
 }
@@ -136,7 +136,7 @@ function openDbReadOnly(name, version) {
 
 function readAllFromStore(db, storeName) {
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readonly');
+    const tx = db.transaction(storeName, "readonly");
     const store = tx.objectStore(storeName);
     const keysReq = store.getAllKeys();
     const valsReq = store.getAll();
@@ -152,7 +152,7 @@ function readAllFromStore(db, storeName) {
 }
 
 function getStoreSchema(db, storeName) {
-  const tx = db.transaction(storeName, 'readonly');
+  const tx = db.transaction(storeName, "readonly");
   const store = tx.objectStore(storeName);
   const schema = {
     keyPath: store.keyPath,
@@ -186,7 +186,9 @@ function openDbForImport(name, snapshotVersion, storeSchemas) {
       const db = probe.result;
       const currentVersion = db.version;
       const existingStores = Array.from(db.objectStoreNames);
-      console.log(`[snapshot] "${name}" exists at v${currentVersion}, stores: [${existingStores.join(', ')}]`);
+      console.log(
+        `[snapshot] "${name}" exists at v${currentVersion}, stores: [${existingStores.join(", ")}]`
+      );
       db.close();
 
       // Now reopen at the max of current and snapshot version so we can add missing stores
@@ -221,7 +223,9 @@ function openDbForImport(name, snapshotVersion, storeSchemas) {
             console.log(`[snapshot]   store "${storeName}" already exists, keeping`);
             continue;
           }
-          console.log(`[snapshot]   creating store "${storeName}" (keyPath=${JSON.stringify(schema.keyPath)})`);
+          console.log(
+            `[snapshot]   creating store "${storeName}" (keyPath=${JSON.stringify(schema.keyPath)})`
+          );
           const storeOpts = {};
           if (schema.keyPath != null) storeOpts.keyPath = schema.keyPath;
           if (schema.autoIncrement) storeOpts.autoIncrement = true;
@@ -252,7 +256,9 @@ function openDbForImport(name, snapshotVersion, storeSchemas) {
         // Safety: if upgrade is still pending after 10s, reject
         if (!upgrade.result) {
           console.error(`[snapshot] "${name}" upgrade timed out (blocked by open connections)`);
-          try { upgrade.result?.close(); } catch (_) {}
+          try {
+            upgrade.result?.close();
+          } catch (_) {}
           reject(new Error(`Database "${name}" upgrade blocked — close other tabs and retry`));
         }
       }, 10000);
@@ -312,7 +318,7 @@ function createFreshDatabase(name, version, storeSchemas) {
 
 function clearStore(db, storeName) {
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readwrite');
+    const tx = db.transaction(storeName, "readwrite");
     const store = tx.objectStore(storeName);
     store.clear();
     tx.oncomplete = () => {
@@ -331,16 +337,14 @@ function writeRecordsToStore(db, storeName, records, hasInlineKey) {
     const n = records.length;
     const logInterval = n > 0 ? Math.max(1, Math.floor(n / 5)) : 1;
     console.log(`[snapshot]   writing ${n} records to "${storeName}"...`);
-    const tx = db.transaction(storeName, 'readwrite');
+    const tx = db.transaction(storeName, "readwrite");
     const store = tx.objectStore(storeName);
     let written = 0;
     let errors = 0;
     for (const record of records) {
       const value = deserializeValue(record.value);
       const idx = written;
-      const req = hasInlineKey
-        ? store.put(value)
-        : store.put(value, deserializeKey(record.key));
+      const req = hasInlineKey ? store.put(value) : store.put(value, deserializeKey(record.key));
       req.onsuccess = () => {
         if (idx % logInterval === 0) {
           console.log(`[snapshot]   "${storeName}" ${idx + 1}/${n}`);
@@ -355,7 +359,7 @@ function writeRecordsToStore(db, storeName, records, hasInlineKey) {
       written++;
     }
     tx.oncomplete = () => {
-      const suffix = errors ? ` (${errors} errors)` : '';
+      const suffix = errors ? ` (${errors} errors)` : "";
       console.log(`[snapshot]   "${storeName}" done: ${written} records${suffix}`);
       resolve(written);
     };
@@ -369,24 +373,24 @@ function writeRecordsToStore(db, storeName, records, hasInlineKey) {
 // --- Export ---
 
 export async function exportIndexedDbToS3(s3, config, onProgress) {
-  if (!s3) throw new Error('Missing S3 client');
+  if (!s3) throw new Error("Missing S3 client");
   const bucket = config?.imageBucket?.trim();
-  if (!bucket) throw new Error('Missing image bucket');
-  const basePrefix = config?.imagePrefix?.trim() || '';
+  if (!bucket) throw new Error("Missing image bucket");
+  const basePrefix = config?.imagePrefix?.trim() || "";
 
   const report = (detail) => {
     console.log(`[snapshot/export] ${detail}`);
     onProgress?.({ detail });
   };
 
-  report('Enumerating databases...');
+  report("Enumerating databases...");
   const dbList = await indexedDB.databases();
   if (!dbList || dbList.length === 0) {
-    throw new Error('No IndexedDB databases found');
+    throw new Error("No IndexedDB databases found");
   }
 
   const snapshot = {
-    format: 'canonry-indexeddb-snapshot',
+    format: "canonry-indexeddb-snapshot",
     version: 1,
     exportedAt: new Date().toISOString(),
     databases: {},
@@ -437,22 +441,26 @@ export async function exportIndexedDbToS3(s3, config, onProgress) {
     snapshot.databases[name] = dbSnapshot;
   }
 
-  report('Uploading to S3...');
+  report("Uploading to S3...");
   const body = JSON.stringify(snapshot);
   const key = toS3Key(basePrefix, SNAPSHOT_KEY_SUFFIX);
 
-  await s3.send(new PutObjectCommand({
-    Bucket: bucket,
-    Key: key,
-    Body: body,
-    ContentType: 'application/json',
-    CacheControl: 'no-store, must-revalidate',
-  }));
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: body,
+      ContentType: "application/json",
+      CacheControl: "no-store, must-revalidate",
+    })
+  );
 
   const sizeMb = (body.length / (1024 * 1024)).toFixed(1);
   const dbCount = Object.keys(snapshot.databases).length;
-  const storeCount = Object.values(snapshot.databases)
-    .reduce((sum, db) => sum + Object.keys(db.stores).length, 0);
+  const storeCount = Object.values(snapshot.databases).reduce(
+    (sum, db) => sum + Object.keys(db.stores).length,
+    0
+  );
 
   console.log(`[snapshot/export] Done: ${dbCount} databases, ${storeCount} stores, ${sizeMb} MB`);
 
@@ -469,13 +477,13 @@ export async function exportIndexedDbToS3(s3, config, onProgress) {
 
 async function readS3BodyAsText(body) {
   if (!body) return null;
-  if (typeof body.transformToString === 'function') return body.transformToString();
-  if (typeof body.text === 'function') return body.text();
-  if (typeof body.arrayBuffer === 'function') {
+  if (typeof body.transformToString === "function") return body.transformToString();
+  if (typeof body.text === "function") return body.text();
+  if (typeof body.arrayBuffer === "function") {
     const buffer = await body.arrayBuffer();
     return new TextDecoder().decode(buffer);
   }
-  if (typeof body[Symbol.asyncIterator] === 'function') {
+  if (typeof body[Symbol.asyncIterator] === "function") {
     const chunks = [];
     for await (const chunk of body) chunks.push(chunk);
     const blob = new Blob(chunks);
@@ -499,31 +507,33 @@ async function getExistingDatabases() {
 }
 
 export async function importIndexedDbFromS3(s3, config, onProgress) {
-  if (!s3) throw new Error('Missing S3 client');
+  if (!s3) throw new Error("Missing S3 client");
   const bucket = config?.imageBucket?.trim();
-  if (!bucket) throw new Error('Missing image bucket');
-  const basePrefix = config?.imagePrefix?.trim() || '';
+  if (!bucket) throw new Error("Missing image bucket");
+  const basePrefix = config?.imagePrefix?.trim() || "";
 
   const report = (detail) => {
     console.log(`[snapshot/import] ${detail}`);
     onProgress?.({ detail });
   };
 
-  report('Downloading snapshot from S3...');
+  report("Downloading snapshot from S3...");
   const key = toS3Key(basePrefix, SNAPSHOT_KEY_SUFFIX);
   const response = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
   const text = await readS3BodyAsText(response.Body);
-  if (!text) throw new Error('Empty snapshot file');
+  if (!text) throw new Error("Empty snapshot file");
 
   report(`Parsing snapshot (${(text.length / (1024 * 1024)).toFixed(1)} MB)...`);
   const snapshot = JSON.parse(text);
-  if (snapshot.format !== 'canonry-indexeddb-snapshot') {
+  if (snapshot.format !== "canonry-indexeddb-snapshot") {
     throw new Error(`Unknown snapshot format: ${snapshot.format}`);
   }
 
   const existingDbs = await getExistingDatabases();
   const dbNames = Object.keys(snapshot.databases);
-  console.log(`[snapshot/import] Snapshot from ${snapshot.exportedAt}, ${dbNames.length} databases: [${dbNames.join(', ')}]. Local: [${Array.from(existingDbs.keys()).join(', ')}]`);
+  console.log(
+    `[snapshot/import] Snapshot from ${snapshot.exportedAt}, ${dbNames.length} databases: [${dbNames.join(", ")}]. Local: [${Array.from(existingDbs.keys()).join(", ")}]`
+  );
 
   const warnings = [];
   let totalStoresRestored = 0;
@@ -534,7 +544,9 @@ export async function importIndexedDbFromS3(s3, config, onProgress) {
     const dbSnapshot = snapshot.databases[name];
     const snapshotStoreNames = Object.keys(dbSnapshot.stores);
 
-    report(`Restoring ${name} v${dbSnapshot.version} (${i + 1}/${dbNames.length}) — ${snapshotStoreNames.length} stores [${snapshotStoreNames.join(', ')}]`);
+    report(
+      `Restoring ${name} v${dbSnapshot.version} (${i + 1}/${dbNames.length}) — ${snapshotStoreNames.length} stores [${snapshotStoreNames.join(", ")}]`
+    );
 
     // Build schema map for store creation
     const storeSchemas = {};
@@ -600,7 +612,9 @@ export async function importIndexedDbFromS3(s3, config, onProgress) {
     console.log(`[snapshot/import] "${name}" done`);
   }
 
-  console.log(`[snapshot/import] Import complete: ${totalStoresRestored} stores, ${totalRecordsWritten} records`);
+  console.log(
+    `[snapshot/import] Import complete: ${totalStoresRestored} stores, ${totalRecordsWritten} records`
+  );
   if (warnings.length) {
     console.warn(`[snapshot/import] Warnings (${warnings.length}):`, warnings);
   }

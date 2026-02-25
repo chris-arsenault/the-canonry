@@ -5,8 +5,8 @@
 .itab-version-warning {
   margin-bottom: 16px;
   padding: 12px 16px;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgb(245 158 11 / 10%);
+  border: 1px solid rgb(245 158 11 / 30%);
   border-radius: 8px;
 }
 
@@ -32,12 +32,12 @@
   font-size: 12px;
 }
 
-.itab-analyze-btn--disabled {
+.itab-analyze-btn-disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.itab-analyze-btn--enabled {
+.itab-analyze-btn-enabled {
   cursor: pointer;
   opacity: 1;
 }
@@ -131,12 +131,12 @@
   font-weight: 500;
 }
 
-.itab-apply-btn--disabled {
+.itab-apply-btn-disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.itab-apply-btn--enabled {
+.itab-apply-btn-enabled {
   cursor: pointer;
   opacity: 1;
 }
@@ -167,7 +167,7 @@
   object-fit: contain;
 }
 
-.itab-cover-img--clickable {
+.itab-cover-img-clickable {
   cursor: pointer;
 }
 
@@ -207,23 +207,23 @@
   margin-top: 4px;
 }
 
-.itab-cover-status--default {
+.itab-cover-status-default {
   color: var(--text-muted);
 }
 
-.itab-cover-status--pending {
+.itab-cover-status-pending {
   color: #f59e0b;
 }
 
-.itab-cover-status--generating {
+.itab-cover-status-generating {
   color: var(--text-muted);
 }
 
-.itab-cover-status--complete {
+.itab-cover-status-complete {
   color: #10b981;
 }
 
-.itab-cover-status--failed {
+.itab-cover-status-failed {
   color: #ef4444;
 }
 
@@ -259,12 +259,12 @@
   white-space: nowrap;
 }
 
-.itab-cover-btn--disabled {
+.itab-cover-btn-disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.itab-cover-btn--enabled {
+.itab-cover-btn-enabled {
   cursor: pointer;
   opacity: 1;
 }

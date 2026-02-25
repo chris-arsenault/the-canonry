@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import PropTypes from "prop-types";
 import "./WorkspaceHeader.css";
 
 export default function WorkspaceHeader({
@@ -44,11 +45,7 @@ export default function WorkspaceHeader({
       </div>
       <div className="chronicle-workspace-header-actions">
         {!isComplete && onAccept && (
-          <button
-            onClick={onAccept}
-            disabled={isGenerating}
-            className="wsh-btn-accept"
-          >
+          <button onClick={onAccept} disabled={isGenerating} className="wsh-btn-accept">
             Accept &#x2713;
           </button>
         )}
@@ -61,18 +58,11 @@ export default function WorkspaceHeader({
             Unpublish
           </button>
         )}
-        <button
-          onClick={onRegenerate}
-          disabled={isGenerating}
-          className="wsh-btn-regenerate"
-        >
+        <button onClick={onRegenerate} disabled={isGenerating} className="wsh-btn-regenerate">
           &#x27F3; {isComplete ? "Restart" : "Regenerate"}
         </button>
         <div className="workspace-overflow-menu" ref={menuRef}>
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="wsh-btn-overflow"
-          >
+          <button onClick={() => setMenuOpen(!menuOpen)} className="wsh-btn-overflow">
             &hellip;
           </button>
           {menuOpen && (
@@ -96,3 +86,14 @@ export default function WorkspaceHeader({
     </div>
   );
 }
+
+WorkspaceHeader.propTypes = {
+  item: PropTypes.object,
+  wordCount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  isGenerating: PropTypes.bool,
+  isComplete: PropTypes.bool,
+  onAccept: PropTypes.func,
+  onRegenerate: PropTypes.func,
+  onExport: PropTypes.func,
+  onUnpublish: PropTypes.func,
+};

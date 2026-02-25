@@ -2,17 +2,17 @@
  * VariableSelectionEditor - Edit a VariableSelectionRule
  */
 
-import React from 'react';
-import { ReferenceDropdown, ChipSelect, NumberInput } from './index';
-import { VARIABLE_PICK_STRATEGIES } from '../generators/constants';
-import { SelectionFiltersEditor } from '../generators/filters';
+import React from "react";
+import { ReferenceDropdown, ChipSelect, NumberInput } from "./index";
+import { VARIABLE_PICK_STRATEGIES } from "../generators/constants";
+import { SelectionFiltersEditor } from "../generators/filters";
 
 // Helper to determine selection mode
 function getSelectionMode(select) {
-  if (!select?.from || select.from === 'graph') return 'graph';
-  if (typeof select.from === 'object' && 'path' in select.from) return 'path';
-  if (typeof select.from === 'object' && 'relatedTo' in select.from) return 'related';
-  return 'graph';
+  if (!select?.from || select.from === "graph") return "graph";
+  if (typeof select.from === "object" && "path" in select.from) return "path";
+  if (typeof select.from === "object" && "relatedTo" in select.from) return "related";
+  return "graph";
 }
 
 export function VariableSelectionEditor({
@@ -26,8 +26,8 @@ export function VariableSelectionEditor({
 }) {
   const select = value || {};
   const selectionMode = getSelectionMode(select);
-  const isRelatedMode = selectionMode === 'related';
-  const isPathMode = selectionMode === 'path';
+  const isRelatedMode = selectionMode === "related";
+  const isPathMode = selectionMode === "path";
   const fromSpec = isRelatedMode ? select.from : null;
   const pathSpec = isPathMode ? select.from : null;
 
@@ -56,52 +56,59 @@ export function VariableSelectionEditor({
   };
 
   const setMode = (mode) => {
-    if (mode === 'graph') {
-      onChange({ ...select, from: 'graph' });
+    if (mode === "graph") {
+      onChange({ ...select, from: "graph" });
       return;
     }
-    if (mode === 'path') {
-      const startRef = availableRefs[0] || '$self';
+    if (mode === "path") {
+      const startRef = availableRefs[0] || "$self";
       onChange({
         ...select,
         from: {
-          path: [{ from: startRef, via: '', direction: 'both' }],
+          path: [{ from: startRef, via: "", direction: "both" }],
         },
       });
       return;
     }
-    const relatedTo = availableRefs[0] || '$target';
+    const relatedTo = availableRefs[0] || "$target";
     onChange({
       ...select,
-      from: { relatedTo, relationshipKind: '', direction: 'both' },
+      from: { relatedTo, relationshipKind: "", direction: "both" },
     });
   };
 
   const updatePathStep = (index, step) => {
     const path = [...(pathSpec?.path || [])];
     path[index] = step;
-    updateSelect('from', { path });
+    updateSelect("from", { path });
   };
 
   const addPathStep = () => {
     const path = [...(pathSpec?.path || [])];
-    path.push({ via: '', direction: 'both' });
-    updateSelect('from', { path });
+    path.push({ via: "", direction: "both" });
+    updateSelect("from", { path });
   };
 
   const removePathStep = (index) => {
     const path = (pathSpec?.path || []).filter((_, i) => i !== index);
     if (path.length === 0) {
       // Switch back to graph mode if no steps left
-      setMode('graph');
+      setMode("graph");
     } else {
-      updateSelect('from', { path });
+      updateSelect("from", { path });
     }
   };
 
   const updateFrom = (field, fieldValue) => {
-    const nextFrom = { ...(fromSpec || { relatedTo: availableRefs[0] || '$target', relationshipKind: '', direction: 'both' }), [field]: fieldValue };
-    updateSelect('from', nextFrom);
+    const nextFrom = {
+      ...(fromSpec || {
+        relatedTo: availableRefs[0] || "$target",
+        relationshipKind: "",
+        direction: "both",
+      }),
+      [field]: fieldValue,
+    };
+    updateSelect("from", nextFrom);
   };
 
   return (
@@ -112,16 +119,16 @@ export function VariableSelectionEditor({
           value={selectionMode}
           onChange={(v) => setMode(v)}
           options={[
-            { value: 'graph', label: 'Graph (by entity kind)' },
-            { value: 'related', label: 'Related Entities (single hop)' },
-            { value: 'path', label: 'Path Traversal (multi-hop)' },
+            { value: "graph", label: "Graph (by entity kind)" },
+            { value: "related", label: "Related Entities (single hop)" },
+            { value: "path", label: "Path Traversal (multi-hop)" },
           ]}
         />
 
-        {selectionMode === 'graph' && (
+        {selectionMode === "graph" && (
           <ReferenceDropdown
             label="Entity Kind"
-            value={select.kind || ''}
+            value={select.kind || ""}
             onChange={(v) => updateSelectMultiple({ kind: v || undefined, subtypes: undefined })}
             options={entityKindOptions}
             placeholder="Any kind"
@@ -132,35 +139,35 @@ export function VariableSelectionEditor({
           <>
             <ReferenceDropdown
               label="Related To"
-              value={fromSpec?.relatedTo || availableRefs[0] || '$target'}
-              onChange={(v) => updateFrom('relatedTo', v)}
+              value={fromSpec?.relatedTo || availableRefs[0] || "$target"}
+              onChange={(v) => updateFrom("relatedTo", v)}
               options={availableRefs.map((r) => ({ value: r, label: r }))}
               placeholder="Select entity..."
             />
             <ReferenceDropdown
               label="Relationship Kind"
-              value={fromSpec?.relationshipKind || ''}
-              onChange={(v) => updateFrom('relationshipKind', v)}
+              value={fromSpec?.relationshipKind || ""}
+              onChange={(v) => updateFrom("relationshipKind", v)}
               options={relationshipKindOptions}
               placeholder="Select relationship..."
             />
             <ReferenceDropdown
               label="Direction"
-              value={fromSpec?.direction || 'both'}
-              onChange={(v) => updateFrom('direction', v)}
+              value={fromSpec?.direction || "both"}
+              onChange={(v) => updateFrom("direction", v)}
               options={[
-                { value: 'both', label: 'Both' },
-                { value: 'src', label: 'Source (outgoing)' },
-                { value: 'dst', label: 'Destination (incoming)' },
+                { value: "both", label: "Both" },
+                { value: "src", label: "Source (outgoing)" },
+                { value: "dst", label: "Destination (incoming)" },
               ]}
             />
           </>
         )}
 
         {isPathMode && (
-          <div style={{ gridColumn: '1 / -1' }}>
+          <div style={{ gridColumn: "1 / -1" }}>
             <label className="label">Path Steps</label>
-            <div className="info-box-text" style={{ marginBottom: '12px', fontSize: '12px' }}>
+            <div className="info-box-text" style={{ marginBottom: "12px", fontSize: "12px" }}>
               Multi-hop traversal from the starting entity through relationships.
             </div>
           </div>
@@ -169,8 +176,8 @@ export function VariableSelectionEditor({
         {showPickStrategy && (
           <ReferenceDropdown
             label="Pick Strategy"
-            value={select.pickStrategy || ''}
-            onChange={(v) => updateSelect('pickStrategy', v || undefined)}
+            value={select.pickStrategy || ""}
+            onChange={(v) => updateSelect("pickStrategy", v || undefined)}
             options={VARIABLE_PICK_STRATEGIES}
             placeholder="Select..."
           />
@@ -181,7 +188,7 @@ export function VariableSelectionEditor({
             <label className="label">Max Results</label>
             <NumberInput
               value={select.maxResults}
-              onChange={(v) => updateSelect('maxResults', v)}
+              onChange={(v) => updateSelect("maxResults", v)}
               min={1}
               integer
               allowEmpty
@@ -192,10 +199,10 @@ export function VariableSelectionEditor({
       </div>
 
       {isPathMode && (
-        <div style={{ marginTop: '16px' }}>
+        <div style={{ marginTop: "16px" }}>
           {(pathSpec?.path || []).map((step, index) => (
-            <div key={index} className="item-card" style={{ marginBottom: '12px' }}>
-              <div className="item-card-header" style={{ padding: '12px' }}>
+            <div key={index} className="item-card" style={{ marginBottom: "12px" }}>
+              <div className="item-card-header" style={{ padding: "12px" }}>
                 <div className="item-card-icon">🔗</div>
                 <div className="item-card-info">
                   <div className="item-card-title">Step {index + 1}</div>
@@ -213,7 +220,7 @@ export function VariableSelectionEditor({
                   {index === 0 && (
                     <ReferenceDropdown
                       label="Start From"
-                      value={step.from || availableRefs[0] || '$self'}
+                      value={step.from || availableRefs[0] || "$self"}
                       onChange={(v) => updatePathStep(index, { ...step, from: v })}
                       options={availableRefs.map((r) => ({ value: r, label: r }))}
                       placeholder="Select entity..."
@@ -221,24 +228,24 @@ export function VariableSelectionEditor({
                   )}
                   <ReferenceDropdown
                     label="Via Relationship"
-                    value={step.via || ''}
+                    value={step.via || ""}
                     onChange={(v) => updatePathStep(index, { ...step, via: v })}
                     options={relationshipKindOptions}
                     placeholder="Select relationship..."
                   />
                   <ReferenceDropdown
                     label="Direction"
-                    value={step.direction || 'both'}
+                    value={step.direction || "both"}
                     onChange={(v) => updatePathStep(index, { ...step, direction: v })}
                     options={[
-                      { value: 'both', label: 'Both' },
-                      { value: 'src', label: 'Source (outgoing)' },
-                      { value: 'dst', label: 'Destination (incoming)' },
+                      { value: "both", label: "Both" },
+                      { value: "src", label: "Source (outgoing)" },
+                      { value: "dst", label: "Destination (incoming)" },
                     ]}
                   />
                   <ReferenceDropdown
                     label="Target Kind (optional)"
-                    value={step.targetKind || ''}
+                    value={step.targetKind || ""}
                     onChange={(v) => updatePathStep(index, { ...step, targetKind: v || undefined })}
                     options={entityKindOptions}
                     placeholder="Any kind"
@@ -254,10 +261,10 @@ export function VariableSelectionEditor({
       )}
 
       {(isRelatedMode || isPathMode) && (
-        <div style={{ marginTop: '16px' }}>
+        <div style={{ marginTop: "16px" }}>
           <ReferenceDropdown
             label="Filter by Entity Kind (optional)"
-            value={select.kind || ''}
+            value={select.kind || ""}
             onChange={(v) => updateSelectMultiple({ kind: v || undefined, subtypes: undefined })}
             options={entityKindOptions}
             placeholder="Any kind"
@@ -266,61 +273,64 @@ export function VariableSelectionEditor({
       )}
 
       {select.kind && (
-        <div style={{ marginTop: '16px' }}>
+        <div style={{ marginTop: "16px" }}>
           <ChipSelect
             label="Subtypes (optional)"
             value={select.subtypes || []}
-            onChange={(v) => updateSelect('subtypes', v.length > 0 ? v : undefined)}
+            onChange={(v) => updateSelect("subtypes", v.length > 0 ? v : undefined)}
             options={getSubtypeOptions(select.kind)}
             placeholder="Any subtype"
           />
         </div>
       )}
 
-      <div style={{ marginTop: '16px' }}>
+      <div style={{ marginTop: "16px" }}>
         <label className="label">Status Filter (optional)</label>
         <input
           type="text"
-          value={select.status || ''}
-          onChange={(e) => updateSelect('status', e.target.value || undefined)}
+          value={select.status || ""}
+          onChange={(e) => updateSelect("status", e.target.value || undefined)}
           className="input"
           placeholder="e.g., active"
         />
       </div>
 
-      <div style={{ marginTop: '16px' }}>
+      <div style={{ marginTop: "16px" }}>
         <label className="label">Not Status (optional)</label>
         <input
           type="text"
-          value={select.notStatus || ''}
-          onChange={(e) => updateSelect('notStatus', e.target.value || undefined)}
+          value={select.notStatus || ""}
+          onChange={(e) => updateSelect("notStatus", e.target.value || undefined)}
           className="input"
           placeholder="e.g., dead"
         />
       </div>
 
-      <div style={{ marginTop: '24px' }}>
+      <div style={{ marginTop: "24px" }}>
         <label className="label">Selection Filters</label>
-        <div className="info-box-text" style={{ marginBottom: '12px', fontSize: '12px' }}>
+        <div className="info-box-text" style={{ marginBottom: "12px", fontSize: "12px" }}>
           Optional filters to narrow down which entities can be selected. All filters must pass.
         </div>
         <SelectionFiltersEditor
           filters={select.filters}
-          onChange={(filters) => updateSelect('filters', filters.length > 0 ? filters : undefined)}
+          onChange={(filters) => updateSelect("filters", filters.length > 0 ? filters : undefined)}
           schema={schema}
           availableRefs={availableRefs}
         />
       </div>
 
       {allowPreferFilters && (
-        <div style={{ marginTop: '24px' }}>
+        <div style={{ marginTop: "24px" }}>
           <label className="label">Prefer Filters (optional)</label>
-          <div className="info-box-text" style={{ marginBottom: '12px', fontSize: '12px' }}>
-            Preferred matches. If no entities match these filters, selection falls back to all matches.
+          <div className="info-box-text" style={{ marginBottom: "12px", fontSize: "12px" }}>
+            Preferred matches. If no entities match these filters, selection falls back to all
+            matches.
           </div>
           <SelectionFiltersEditor
             filters={select.preferFilters}
-            onChange={(filters) => updateSelect('preferFilters', filters.length > 0 ? filters : undefined)}
+            onChange={(filters) =>
+              updateSelect("preferFilters", filters.length > 0 ? filters : undefined)
+            }
             schema={schema}
             availableRefs={availableRefs}
           />

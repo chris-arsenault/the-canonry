@@ -12,7 +12,8 @@
  * - Visual Thesis/Traits configuration (collapsible)
  */
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import PropTypes from "prop-types";
 import { LocalTextArea } from "@penguin-tales/shared-components";
 import { useEntityNavList, useEntityNavItems } from "../lib/db/entitySelectors";
 import { useEntityStore } from "../lib/db/entityStore";
@@ -259,6 +260,13 @@ function TemplateSection({ section, value, onChange, disabled }) {
   );
 }
 
+TemplateSection.propTypes = {
+  section: PropTypes.object,
+  value: PropTypes.any,
+  onChange: PropTypes.func,
+  disabled: PropTypes.bool,
+};
+
 function KindSelector({ kinds, selectedKind, onSelectKind }) {
   return (
     <div className="illuminator-kind-selector">
@@ -274,6 +282,12 @@ function KindSelector({ kinds, selectedKind, onSelectKind }) {
     </div>
   );
 }
+
+KindSelector.propTypes = {
+  kinds: PropTypes.array,
+  selectedKind: PropTypes.string,
+  onSelectKind: PropTypes.func,
+};
 
 // Default guidance for a kind that doesn't exist yet
 function getDefaultKindGuidance(kind) {
@@ -631,15 +645,14 @@ export default function EntityGuidanceEditor({
                 </div>
                 <div className="ege-relationships-list">
                   {selectedRelationships.slice(0, 6).map((rel, i) => (
-                    <span
-                      key={i}
-                      className="ege-relationship-badge"
-                    >
+                    <span key={i} className="ege-relationship-badge">
                       {rel.kind}: {rel.targetName}
                     </span>
                   ))}
                   {selectedRelationships.length > 6 && (
-                    <span className="ege-relationships-more">+{selectedRelationships.length - 6} more</span>
+                    <span className="ege-relationships-more">
+                      +{selectedRelationships.length - 6} more
+                    </span>
                   )}
                 </div>
               </div>
@@ -650,3 +663,11 @@ export default function EntityGuidanceEditor({
     </div>
   );
 }
+
+EntityGuidanceEditor.propTypes = {
+  entityGuidance: PropTypes.object,
+  onEntityGuidanceChange: PropTypes.func,
+  worldContext: PropTypes.object,
+  worldSchema: PropTypes.object,
+  simulationMetadata: PropTypes.object,
+};

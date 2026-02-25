@@ -1,4 +1,4 @@
-import type { WorldState } from '../types/world.ts';
+import type { WorldState } from "../types/world.ts";
 
 const MAX_ISSUES = 20;
 
@@ -15,37 +15,37 @@ export function validateWorldData(worldData: WorldState): string[] {
   };
 
   if (!worldData?.schema) {
-    addIssue('World data is missing schema.');
+    addIssue("World data is missing schema.");
     return issues;
   }
 
   const { schema } = worldData;
 
   if (!schema.entityKinds || schema.entityKinds.length === 0) {
-    addIssue('Schema requires entityKinds.');
+    addIssue("Schema requires entityKinds.");
   }
 
   if (!schema.relationshipKinds || schema.relationshipKinds.length === 0) {
-    addIssue('Schema requires relationshipKinds.');
+    addIssue("Schema requires relationshipKinds.");
   }
 
   if (!schema.cultures || schema.cultures.length === 0) {
-    addIssue('Schema requires cultures.');
+    addIssue("Schema requires cultures.");
   }
 
   if (!schema.uiConfig) {
-    addIssue('Schema requires uiConfig.');
+    addIssue("Schema requires uiConfig.");
   }
 
   const prominenceLevels = schema.uiConfig?.prominenceLevels;
   const prominenceColors = schema.uiConfig?.prominenceColors;
 
   if (!prominenceLevels || prominenceLevels.length === 0) {
-    addIssue('Schema.uiConfig.prominenceLevels is required.');
+    addIssue("Schema.uiConfig.prominenceLevels is required.");
   }
 
   if (!prominenceColors || Object.keys(prominenceColors).length === 0) {
-    addIssue('Schema.uiConfig.prominenceColors is required.');
+    addIssue("Schema.uiConfig.prominenceColors is required.");
   }
 
   if (prominenceLevels && prominenceColors) {
@@ -56,10 +56,10 @@ export function validateWorldData(worldData: WorldState): string[] {
     });
   }
 
-  const axisIds = new Set((schema.axisDefinitions || []).map(axis => axis.id));
-  const kindById = new Map(schema.entityKinds?.map(kind => [kind.kind, kind]));
-  const cultureIds = new Set(schema.cultures?.map(culture => culture.id));
-  const relationshipKinds = new Set(schema.relationshipKinds?.map(kind => kind.kind));
+  const axisIds = new Set((schema.axisDefinitions || []).map((axis) => axis.id));
+  const kindById = new Map(schema.entityKinds?.map((kind) => [kind.kind, kind]));
+  const cultureIds = new Set(schema.cultures?.map((culture) => culture.id));
+  const relationshipKinds = new Set(schema.relationshipKinds?.map((kind) => kind.kind));
 
   schema.entityKinds?.forEach((kind) => {
     if (!kind.style?.color) {
@@ -73,10 +73,14 @@ export function validateWorldData(worldData: WorldState): string[] {
     });
 
     const axes = kind.semanticPlane?.axes;
-    const axisRefs = [axes?.x?.axisId, axes?.y?.axisId, axes?.z?.axisId].filter(Boolean) as string[];
+    const axisRefs = [axes?.x?.axisId, axes?.y?.axisId, axes?.z?.axisId].filter(
+      Boolean
+    ) as string[];
     axisRefs.forEach((axisId) => {
       if (!axisIds.has(axisId)) {
-        addIssue(`Axis "${axisId}" referenced by kind "${kind.kind}" is missing in schema.axisDefinitions.`);
+        addIssue(
+          `Axis "${axisId}" referenced by kind "${kind.kind}" is missing in schema.axisDefinitions.`
+        );
       }
     });
 
@@ -113,11 +117,13 @@ export function validateWorldData(worldData: WorldState): string[] {
     }
 
     if (prominenceLevels) {
-      if (typeof entity.prominence === 'string') {
+      if (typeof entity.prominence === "string") {
         if (!prominenceLevels.includes(entity.prominence)) {
-          addIssue(`Entity "${entity.id}" uses prominence "${entity.prominence}" not in schema.uiConfig.prominenceLevels.`);
+          addIssue(
+            `Entity "${entity.id}" uses prominence "${entity.prominence}" not in schema.uiConfig.prominenceLevels.`
+          );
         }
-      } else if (typeof entity.prominence === 'number') {
+      } else if (typeof entity.prominence === "number") {
         if (!Number.isFinite(entity.prominence) || entity.prominence < 0 || entity.prominence > 5) {
           addIssue(`Entity "${entity.id}" has invalid numeric prominence "${entity.prominence}".`);
         }
@@ -127,7 +133,12 @@ export function validateWorldData(worldData: WorldState): string[] {
     }
 
     const coords = entity.coordinates;
-    if (!coords || typeof coords.x !== 'number' || typeof coords.y !== 'number' || typeof coords.z !== 'number') {
+    if (
+      !coords ||
+      typeof coords.x !== "number" ||
+      typeof coords.y !== "number" ||
+      typeof coords.z !== "number"
+    ) {
       addIssue(`Entity "${entity.id}" is missing valid coordinates.`);
     }
   });

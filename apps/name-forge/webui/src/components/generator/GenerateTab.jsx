@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
-import { TagSelector, NumberInput } from '@penguin-tales/shared-components';
-import { generateTestNames } from '../../lib/browser-generator.js';
+import { useState, useMemo } from "react";
+import { TagSelector, NumberInput } from "@penguin-tales/shared-components";
+import { generateTestNames } from "../../lib/browser-generator.js";
 
 /**
  * Generate Tab - Full control over name generation
@@ -12,14 +12,14 @@ import { generateTestNames } from '../../lib/browser-generator.js';
 function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
   // Use lifted state if provided, otherwise use local state
   const [localState, setLocalState] = useState({
-    selectedCulture: '',
-    selectedProfile: '',
-    selectedKind: '',
-    selectedSubKind: '',
+    selectedCulture: "",
+    selectedProfile: "",
+    selectedKind: "",
+    selectedSubKind: "",
     tags: [],
-    prominence: '',
+    prominence: "",
     count: 20,
-    contextPairs: [{ key: '', value: '' }] // Start with one empty row
+    contextPairs: [{ key: "", value: "" }], // Start with one empty row
   });
 
   // Use formState from parent if available
@@ -35,7 +35,7 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
     tags,
     prominence,
     count,
-    contextPairs
+    contextPairs,
   } = state;
 
   // Update helpers
@@ -52,7 +52,7 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
 
   // Get available options from schema
   const cultureIds = Object.keys(cultures || {});
-  const entityKinds = worldSchema?.entityKinds?.map(e => e.kind) || [];
+  const entityKinds = worldSchema?.entityKinds?.map((e) => e.kind) || [];
   const tagRegistry = worldSchema?.tagRegistry || [];
 
   // Get profiles for selected culture
@@ -64,21 +64,21 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
   // Auto-select first profile when culture changes
   useMemo(() => {
     if (availableProfiles.length > 0 && !selectedProfile) {
-      updateField('selectedProfile', availableProfiles[0].id);
+      updateField("selectedProfile", availableProfiles[0].id);
     } else if (availableProfiles.length === 0 && selectedProfile) {
-      updateField('selectedProfile', '');
+      updateField("selectedProfile", "");
     }
   }, [availableProfiles]);
 
   // Get subkinds for selected entity kind
   const subKinds = useMemo(() => {
     if (!selectedKind || !worldSchema?.entityKinds) return [];
-    const entity = worldSchema.entityKinds.find(e => e.kind === selectedKind);
-    return entity?.subtypes?.map(s => s.id) || [];
+    const entity = worldSchema.entityKinds.find((e) => e.kind === selectedKind);
+    return entity?.subtypes?.map((s) => s.id) || [];
   }, [selectedKind, worldSchema]);
 
   // Prominence levels
-  const prominenceLevels = ['forgotten', 'marginal', 'recognized', 'renowned', 'mythic'];
+  const prominenceLevels = ["forgotten", "marginal", "recognized", "renowned", "mythic"];
 
   // Get the culture for generation
   const getSelectedCulture = () => {
@@ -88,19 +88,19 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
 
   // Context pair handlers
   const handleAddContextPair = () => {
-    updateField('contextPairs', [...contextPairs, { key: '', value: '' }]);
+    updateField("contextPairs", [...contextPairs, { key: "", value: "" }]);
   };
 
   const handleRemoveContextPair = (index) => {
     const newPairs = contextPairs.filter((_, i) => i !== index);
     // Always keep at least one row
-    updateField('contextPairs', newPairs.length > 0 ? newPairs : [{ key: '', value: '' }]);
+    updateField("contextPairs", newPairs.length > 0 ? newPairs : [{ key: "", value: "" }]);
   };
 
   const handleUpdateContextPair = (index, field, value) => {
     const updated = [...contextPairs];
     updated[index] = { ...updated[index], [field]: value };
-    updateField('contextPairs', updated);
+    updateField("contextPairs", updated);
   };
 
   const handleGenerate = async () => {
@@ -111,11 +111,11 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
       const culture = getSelectedCulture();
 
       if (!culture) {
-        throw new Error('No culture selected.');
+        throw new Error("No culture selected.");
       }
 
       if (!culture?.naming?.profiles || culture.naming.profiles.length === 0) {
-        throw new Error('No profile found. Create a profile in Workshop → Profiles.');
+        throw new Error("No profile found. Create a profile in Workshop → Profiles.");
       }
 
       // Parse tags for condition matching
@@ -133,7 +133,7 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
       if (selectedKind) userContext.entityKind = selectedKind;
       if (selectedSubKind) userContext.subtype = selectedSubKind;
       if (prominence) userContext.prominence = prominence;
-      if (tagList.length > 0) userContext.tags = tagList.join(',');
+      if (tagList.length > 0) userContext.tags = tagList.join(",");
 
       // Generate names - pass culture directly
       const result = await generateTestNames({
@@ -145,7 +145,7 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
         kind: selectedKind || undefined,
         subtype: selectedSubKind || undefined,
         prominence: prominence || undefined,
-        tags: tagList
+        tags: tagList,
       });
 
       setGeneratedNames(result.names || []);
@@ -161,7 +161,7 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(generatedNames.join('\n'));
+    navigator.clipboard.writeText(generatedNames.join("\n"));
   };
 
   const handleCopyJson = () => {
@@ -193,11 +193,11 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
               <select
                 value={selectedCulture}
                 onChange={(e) => {
-                  setState({ ...state, selectedCulture: e.target.value, selectedProfile: '' });
+                  setState({ ...state, selectedCulture: e.target.value, selectedProfile: "" });
                 }}
               >
                 <option value="">Select a culture...</option>
-                {cultureIds.map(id => (
+                {cultureIds.map((id) => (
                   <option key={id} value={id}>
                     {cultures[id]?.name || id}
                   </option>
@@ -210,14 +210,16 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
               <label>Profile</label>
               <select
                 value={selectedProfile}
-                onChange={(e) => updateField('selectedProfile', e.target.value)}
+                onChange={(e) => updateField("selectedProfile", e.target.value)}
                 disabled={availableProfiles.length === 0}
               >
                 {availableProfiles.length === 0 ? (
                   <option value="">No profiles available</option>
                 ) : (
-                  availableProfiles.map(p => (
-                    <option key={p.id} value={p.id}>{p.id}</option>
+                  availableProfiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.id}
+                    </option>
                   ))
                 )}
               </select>
@@ -234,12 +236,14 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
                 <select
                   value={selectedKind}
                   onChange={(e) => {
-                    setState({ ...state, selectedKind: e.target.value, selectedSubKind: '' });
+                    setState({ ...state, selectedKind: e.target.value, selectedSubKind: "" });
                   }}
                 >
                   <option value="">Any type</option>
-                  {entityKinds.map(kind => (
-                    <option key={kind} value={kind}>{kind}</option>
+                  {entityKinds.map((kind) => (
+                    <option key={kind} value={kind}>
+                      {kind}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -249,12 +253,14 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
                 <label>Subtype</label>
                 <select
                   value={selectedSubKind}
-                  onChange={(e) => updateField('selectedSubKind', e.target.value)}
+                  onChange={(e) => updateField("selectedSubKind", e.target.value)}
                   disabled={subKinds.length === 0}
                 >
                   <option value="">Any subtype</option>
-                  {subKinds.map(sub => (
-                    <option key={sub} value={sub}>{sub}</option>
+                  {subKinds.map((sub) => (
+                    <option key={sub} value={sub}>
+                      {sub}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -264,7 +270,7 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
                 <label>Tags</label>
                 <TagSelector
                   value={tags || []}
-                  onChange={(vals) => updateField('tags', vals)}
+                  onChange={(vals) => updateField("tags", vals)}
                   tagRegistry={tagRegistry}
                   placeholder="Select tags..."
                 />
@@ -275,11 +281,13 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
                 <label>Prominence</label>
                 <select
                   value={prominence}
-                  onChange={(e) => updateField('prominence', e.target.value)}
+                  onChange={(e) => updateField("prominence", e.target.value)}
                 >
                   <option value="">Any prominence</option>
-                  {prominenceLevels.map(level => (
-                    <option key={level} value={level}>{level}</option>
+                  {prominenceLevels.map((level) => (
+                    <option key={level} value={level}>
+                      {level}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -303,14 +311,14 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
                   <input
                     className="key"
                     value={pair.key}
-                    onChange={(e) => handleUpdateContextPair(idx, 'key', e.target.value)}
+                    onChange={(e) => handleUpdateContextPair(idx, "key", e.target.value)}
                     placeholder="key"
                   />
                   <span className="separator">=</span>
                   <input
                     className="value"
                     value={pair.value}
-                    onChange={(e) => handleUpdateContextPair(idx, 'value', e.target.value)}
+                    onChange={(e) => handleUpdateContextPair(idx, "value", e.target.value)}
                     placeholder="value"
                   />
                   <button
@@ -332,7 +340,7 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
               <label>Number of Names</label>
               <NumberInput
                 value={count}
-                onChange={(v) => updateField('count', v ?? 1)}
+                onChange={(v) => updateField("count", v ?? 1)}
                 min={1}
                 max={100}
                 integer
@@ -345,20 +353,17 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
               onClick={handleGenerate}
               disabled={!canGenerate || !hasProfile || generating}
             >
-              {generating ? 'Generating...' : `Generate ${count} Names`}
+              {generating ? "Generating..." : `Generate ${count} Names`}
             </button>
 
             {/* Status Messages */}
             {canGenerate && !hasProfile && (
               <div className="warning mt-md">
-                No profile found for {selectedCulture}.
-                Go to Workshop → Profiles to create one.
+                No profile found for {selectedCulture}. Go to Workshop → Profiles to create one.
               </div>
             )}
 
-            {error && (
-              <div className="error mt-md">{error}</div>
-            )}
+            {error && <div className="error mt-md">{error}</div>}
           </div>
 
           {/* Strategy Usage */}
@@ -382,11 +387,22 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
             <div className="card mt-md">
               <h4 className="mt-0 mb-sm">Active Culture</h4>
               <div className="culture-preview">
-                <div><strong>Profile:</strong> {selectedProfile || culture.naming?.profiles?.[0]?.id}</div>
-                <div><strong>Profiles:</strong> {culture.naming?.profiles?.length || 0}</div>
-                <div><strong>Domains:</strong> {culture.naming?.domains?.length || 0}</div>
-                <div><strong>Grammars:</strong> {culture.naming?.grammars?.length || 0}</div>
-                <div><strong>Lexeme Lists:</strong> {Object.keys(culture.naming?.lexemeLists || {}).length}</div>
+                <div>
+                  <strong>Profile:</strong> {selectedProfile || culture.naming?.profiles?.[0]?.id}
+                </div>
+                <div>
+                  <strong>Profiles:</strong> {culture.naming?.profiles?.length || 0}
+                </div>
+                <div>
+                  <strong>Domains:</strong> {culture.naming?.domains?.length || 0}
+                </div>
+                <div>
+                  <strong>Grammars:</strong> {culture.naming?.grammars?.length || 0}
+                </div>
+                <div>
+                  <strong>Lexeme Lists:</strong>{" "}
+                  {Object.keys(culture.naming?.lexemeLists || {}).length}
+                </div>
               </div>
             </div>
           )}
@@ -404,8 +420,12 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
               </h3>
               {generatedNames.length > 0 && (
                 <div className="flex gap-sm">
-                  <button className="secondary sm" onClick={handleCopy}>Copy Text</button>
-                  <button className="secondary sm" onClick={handleCopyJson}>Copy JSON</button>
+                  <button className="secondary sm" onClick={handleCopy}>
+                    Copy Text
+                  </button>
+                  <button className="secondary sm" onClick={handleCopyJson}>
+                    Copy JSON
+                  </button>
                 </div>
               )}
             </div>
@@ -421,24 +441,26 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
               <div className="results-grid">
                 {generatedNames.map((name, i) => {
                   const debug = debugInfo[i];
-                  const tooltipLines = debug ? [
-                    `Group: ${debug.groupUsed}`,
-                    `Strategy: ${debug.strategyUsed}`,
-                    `Type: ${debug.strategyType}`,
-                    '',
-                    'Group Matching:',
-                    ...(debug.groupMatching || []).map(g =>
-                      `  ${g.matched ? '✓' : '✗'} ${g.groupName}: ${g.reason || ''}`
-                    )
-                  ] : [];
-                  const tooltip = tooltipLines.join('\n');
+                  const tooltipLines = debug
+                    ? [
+                        `Group: ${debug.groupUsed}`,
+                        `Strategy: ${debug.strategyUsed}`,
+                        `Type: ${debug.strategyType}`,
+                        "",
+                        "Group Matching:",
+                        ...(debug.groupMatching || []).map(
+                          (g) => `  ${g.matched ? "✓" : "✗"} ${g.groupName}: ${g.reason || ""}`
+                        ),
+                      ]
+                    : [];
+                  const tooltip = tooltipLines.join("\n");
 
                   return (
                     <div
                       key={i}
-                      className={`name-card ${debug?.strategyType === 'fallback' ? 'fallback' : ''}`}
+                      className={`name-card ${debug?.strategyType === "fallback" ? "fallback" : ""}`}
                       onClick={() => navigator.clipboard.writeText(name)}
-                      title={tooltip || 'Click to copy'}
+                      title={tooltip || "Click to copy"}
                     >
                       {name}
                       {debug && (

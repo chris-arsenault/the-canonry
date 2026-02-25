@@ -1,16 +1,28 @@
-import React from 'react';
+import React from "react";
 
 /**
  * Test panel for generating test names from a profile
  */
-export default function TestPanel({ profile, testNames, testLoading, testError, strategyUsage, onTest, onClose }) {
+export default function TestPanel({
+  profile,
+  testNames,
+  testLoading,
+  testError,
+  strategyUsage,
+  onTest,
+  onClose,
+}) {
   return (
     <div className="test-panel">
       <div className="flex justify-between align-center mb-md">
         <h4 className="mt-0 mb-0">Test: {profile.id}</h4>
         <div className="flex gap-sm">
-          <button className="primary text-small" onClick={() => onTest(profile, 10)} disabled={testLoading}>
-            {testLoading ? '...' : 'Generate'}
+          <button
+            className="primary text-small"
+            onClick={() => onTest(profile, 10)}
+            disabled={testLoading}
+          >
+            {testLoading ? "..." : "Generate"}
           </button>
           <button className="secondary text-small" onClick={onClose}>
             Close
@@ -18,9 +30,7 @@ export default function TestPanel({ profile, testNames, testLoading, testError, 
         </div>
       </div>
 
-      {testError && (
-        <div className="error mb-md text-small">{testError}</div>
-      )}
+      {testError && <div className="error mb-md text-small">{testError}</div>}
 
       {strategyUsage && (
         <div className="strategy-usage-panel">
@@ -43,9 +53,7 @@ export default function TestPanel({ profile, testNames, testLoading, testError, 
           ))}
         </div>
       ) : (
-        <p className="text-muted text-small mt-0 mb-0">
-          Click Generate to test this profile
-        </p>
+        <p className="text-muted text-small mt-0 mb-0">Click Generate to test this profile</p>
       )}
     </div>
   );

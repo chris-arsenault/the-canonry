@@ -1,6 +1,8 @@
 import ChronicleImagePanel from "../ChronicleImagePanel";
 import { CoverImageControls } from "../CoverImageControls";
 import "./PipelineTab.css";
+import React from "react";
+import PropTypes from "prop-types";
 
 // ============================================================================
 // Refinement Checklist Row
@@ -23,41 +25,29 @@ function RefinementRow({
     <div className="pt-refrow">
       <div className="pt-refrow-content">
         <div className="pt-refrow-title">
-          <span className={`pt-refrow-checkbox ${done ? "pt-refrow-checkbox--done" : "pt-refrow-checkbox--pending"}`}>
+          <span
+            className={`pt-refrow-checkbox ${done ? "pt-refrow-checkbox-done" : "pt-refrow-checkbox-pending"}`}
+          >
             {done ? "\u2611" : "\u2610"}
           </span>
           {label}
         </div>
-        <div className="pt-refrow-description">
-          {description}
-        </div>
+        <div className="pt-refrow-description">{description}</div>
         {done && (
           <div className="pt-refrow-meta">
             Done - {formatTimestamp(done)}
             {state.model ? ` - ${state.model}` : ""}
           </div>
         )}
-        {indicator && done && (
-          <div className="pt-refrow-indicator">
-            {indicator}
-          </div>
-        )}
-        {!done && !running && (
-          <div className="pt-refrow-meta">
-            Not run yet
-          </div>
-        )}
-        {running && (
-          <div className="pt-refrow-meta">
-            Running...
-          </div>
-        )}
+        {indicator && done && <div className="pt-refrow-indicator">{indicator}</div>}
+        {!done && !running && <div className="pt-refrow-meta">Not run yet</div>}
+        {running && <div className="pt-refrow-meta">Running...</div>}
       </div>
       {onAction && (
         <button
           onClick={onAction}
           disabled={isGenerating || running}
-          className={`pt-refrow-btn ${isGenerating || running ? "pt-refrow-btn--disabled" : "pt-refrow-btn--enabled"}`}
+          className={`pt-refrow-btn ${isGenerating || running ? "pt-refrow-btn-disabled" : "pt-refrow-btn-enabled"}`}
         >
           {actionLabel || (done ? "Regenerate" : "Generate")}
         </button>
@@ -121,9 +111,7 @@ export default function PipelineTab({
       <div className="pt-checklist">
         <div className="pt-checklist-header">
           <span>Refinements</span>
-          <span className="pt-checklist-count">
-            {completedCount}/5 complete
-          </span>
+          <span className="pt-checklist-count">{completedCount}/5 complete</span>
         </div>
         <div className="pt-checklist-items">
           <RefinementRow
@@ -140,7 +128,7 @@ export default function PipelineTab({
             <div className="pt-refrow-content">
               <div className="pt-refrow-title">
                 <span
-                  className={`pt-refrow-checkbox ${titleState.generatedAt ? "pt-refrow-checkbox--done" : "pt-refrow-checkbox--pending"}`}
+                  className={`pt-refrow-checkbox ${titleState.generatedAt ? "pt-refrow-checkbox-done" : "pt-refrow-checkbox-pending"}`}
                 >
                   {titleState.generatedAt ? "\u2611" : "\u2610"}
                 </span>
@@ -168,26 +156,18 @@ export default function PipelineTab({
                 </div>
               )}
               {item.titleFragments?.length > 0 && (
-                <div className="pt-title-fragments">
-                  ~ {item.titleFragments.join(" \u00b7 ")}
-                </div>
+                <div className="pt-title-fragments">~ {item.titleFragments.join(" \u00b7 ")}</div>
               )}
               {!titleState.generatedAt && !titleState.running && (
-                <div className="pt-refrow-meta">
-                  Not run yet
-                </div>
+                <div className="pt-refrow-meta">Not run yet</div>
               )}
-              {titleState.running && (
-                <div className="pt-refrow-meta">
-                  Running...
-                </div>
-              )}
+              {titleState.running && <div className="pt-refrow-meta">Running...</div>}
             </div>
             {onGenerateTitle && (
               <button
                 onClick={onGenerateTitle}
                 disabled={isGenerating || titleState.running}
-                className={`pt-refrow-btn ${isGenerating || titleState.running ? "pt-refrow-btn--disabled" : "pt-refrow-btn--enabled"}`}
+                className={`pt-refrow-btn ${isGenerating || titleState.running ? "pt-refrow-btn-disabled" : "pt-refrow-btn-enabled"}`}
               >
                 {titleState.generatedAt ? "Regenerate" : "Generate"}
               </button>
@@ -216,7 +196,7 @@ export default function PipelineTab({
               <div>
                 <div className="pt-refrow-title">
                   <span
-                    className={`pt-refrow-checkbox ${item.cohesionReport ? "pt-refrow-checkbox--done" : "pt-refrow-checkbox--pending"}`}
+                    className={`pt-refrow-checkbox ${item.cohesionReport ? "pt-refrow-checkbox-done" : "pt-refrow-checkbox-pending"}`}
                   >
                     {item.cohesionReport ? "\u2611" : "\u2610"}
                   </span>
@@ -234,7 +214,7 @@ export default function PipelineTab({
               <button
                 onClick={onValidate}
                 disabled={isGenerating}
-                className={`pt-refrow-btn ${isGenerating ? "pt-refrow-btn--disabled" : "pt-refrow-btn--enabled"}`}
+                className={`pt-refrow-btn ${isGenerating ? "pt-refrow-btn-disabled" : "pt-refrow-btn-enabled"}`}
               >
                 {item.cohesionReport ? "Revalidate" : "Validate"}
               </button>

@@ -2,21 +2,26 @@
  * GeneratorsEditor - Main component for editing generators
  */
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { CategorySection, AddCard } from '../shared';
-import { GeneratorModal } from './GeneratorModal';
-import { GeneratorListCard } from './cards';
-import { buildStorageKey, clearStoredValue, loadStoredValue, saveStoredValue } from '../../utils/persistence';
+import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { CategorySection, AddCard } from "../shared";
+import { GeneratorModal } from "./GeneratorModal";
+import { GeneratorListCard } from "./cards";
+import {
+  buildStorageKey,
+  clearStoredValue,
+  loadStoredValue,
+  saveStoredValue,
+} from "../../utils/persistence";
 
 // Default icons for entity kinds (used when schema doesn't provide one)
 const DEFAULT_KIND_ICONS = {
-  npc: '👤',
-  location: '📍',
-  faction: '🏛️',
-  ability: '✨',
-  rule: '📜',
-  era: '🕰️',
-  occurrence: '⚡',
+  npc: "👤",
+  location: "📍",
+  faction: "🏛️",
+  ability: "✨",
+  rule: "📜",
+  era: "🕰️",
+  occurrence: "⚡",
 };
 
 /**
@@ -28,11 +33,19 @@ const DEFAULT_KIND_ICONS = {
  * @param {Array} props.eras - Available era definitions
  * @param {Object} props.usageMap - Schema usage map for validation
  */
-export default function GeneratorsEditor({ projectId, generators = [], onChange, schema, pressures = [], eras = [], usageMap }) {
-  const selectionKey = buildStorageKey(projectId, 'generators:selected');
+export default function GeneratorsEditor({
+  projectId,
+  generators = [],
+  onChange,
+  schema,
+  pressures = [],
+  eras = [],
+  usageMap,
+}) {
+  const selectionKey = buildStorageKey(projectId, "generators:selected");
   const [selectedId, setSelectedId] = useState(() => {
     const stored = loadStoredValue(selectionKey);
-    return typeof stored === 'string' ? stored : null;
+    return typeof stored === "string" ? stored : null;
   });
   const [expandedCategories, setExpandedCategories] = useState({});
 
@@ -47,7 +60,7 @@ export default function GeneratorsEditor({ projectId, generators = [], onChange,
     (schema?.entityKinds || []).forEach((ek) => {
       info[ek.kind] = {
         label: ek.description || ek.name || ek.kind,
-        icon: ek.icon || DEFAULT_KIND_ICONS[ek.kind] || '📦',
+        icon: ek.icon || DEFAULT_KIND_ICONS[ek.kind] || "📦",
       };
     });
     return info;
@@ -59,8 +72,8 @@ export default function GeneratorsEditor({ projectId, generators = [], onChange,
 
     generators.forEach((generator) => {
       // Get primary creation kind (first entity created, or target kind if no creation)
-      const createdKinds = (generator.creation || []).map(c => c.kind).filter(Boolean);
-      const primaryKind = createdKinds[0] || generator.selection?.kind || 'uncategorized';
+      const createdKinds = (generator.creation || []).map((c) => c.kind).filter(Boolean);
+      const primaryKind = createdKinds[0] || generator.selection?.kind || "uncategorized";
 
       if (!groups[primaryKind]) {
         groups[primaryKind] = [];
@@ -74,7 +87,7 @@ export default function GeneratorsEditor({ projectId, generators = [], onChange,
   // Get ordered list of categories
   const categories = useMemo(() => {
     // Order by schema entity kinds first, then any uncategorized
-    const schemaKinds = (schema?.entityKinds || []).map(ek => ek.kind);
+    const schemaKinds = (schema?.entityKinds || []).map((ek) => ek.kind);
     const usedKinds = Object.keys(groupedGenerators);
 
     // Sort: schema kinds in order, then others alphabetically
@@ -90,9 +103,9 @@ export default function GeneratorsEditor({ projectId, generators = [], onChange,
 
   // Initialize expanded state for new categories
   useEffect(() => {
-    setExpandedCategories(prev => {
+    setExpandedCategories((prev) => {
       const updated = { ...prev };
-      categories.forEach(cat => {
+      categories.forEach((cat) => {
         if (updated[cat] === undefined) {
           updated[cat] = true; // Start expanded
         }
@@ -103,7 +116,7 @@ export default function GeneratorsEditor({ projectId, generators = [], onChange,
 
   useEffect(() => {
     const stored = loadStoredValue(selectionKey);
-    setSelectedId(typeof stored === 'string' ? stored : null);
+    setSelectedId(typeof stored === "string" ? stored : null);
   }, [selectionKey]);
 
   useEffect(() => {
@@ -122,25 +135,38 @@ export default function GeneratorsEditor({ projectId, generators = [], onChange,
     }
   }, [selectedId, selectedIndex, selectionKey]);
 
-  const handleGeneratorChange = useCallback((updated) => {
-    if (selectedIndex !== null && selectedIndex < generators.length) {
-      const newGenerators = [...generators];
-      newGenerators[selectedIndex] = updated;
-      onChange(newGenerators);
-    }
-  }, [generators, onChange, selectedIndex]);
+  const handleGeneratorChange = useCallback(
+    (updated) => {
+      if (selectedIndex !== null && selectedIndex < generators.length) {
+        const newGenerators = [...generators];
+        newGenerators[selectedIndex] = updated;
+        onChange(newGenerators);
+      }
+    },
+    [generators, onChange, selectedIndex]
+  );
 
-  const handleToggle = useCallback((generator) => {
-    const index = generators.findIndex((g) => g.id === generator.id);
-    if (index >= 0) {
-      const newGenerators = [...generators];
-      newGenerators[index] = { ...generator, enabled: generator.enabled === false ? true : false };
-      onChange(newGenerators);
-    }
-  }, [generators, onChange]);
+  const handleToggle = useCallback(
+    (generator) => {
+      const index = generators.findIndex((g) => g.id === generator.id);
+      if (index >= 0) {
+        const newGenerators = [...generators];
+        newGenerators[index] = {
+          ...generator,
+          enabled: generator.enabled === false ? true : false,
+        };
+        onChange(newGenerators);
+      }
+    },
+    [generators, onChange]
+  );
 
   const handleDelete = useCallback(() => {
-    if (selectedIndex !== null && selectedGenerator && confirm(`Delete generator "${selectedGenerator.name || selectedGenerator.id}"?`)) {
+    if (
+      selectedIndex !== null &&
+      selectedGenerator &&
+      confirm(`Delete generator "${selectedGenerator.name || selectedGenerator.id}"?`)
+    ) {
       const newGenerators = [...generators];
       newGenerators.splice(selectedIndex, 1);
       onChange(newGenerators);
@@ -151,9 +177,9 @@ export default function GeneratorsEditor({ projectId, generators = [], onChange,
   const handleAdd = useCallback(() => {
     const newGenerator = {
       id: `generator_${Date.now()}`,
-      name: 'New Generator',
+      name: "New Generator",
       applicability: [],
-      selection: { strategy: 'by_kind', kind: 'location', pickStrategy: 'random' },
+      selection: { strategy: "by_kind", kind: "location", pickStrategy: "random" },
       creation: [],
       relationships: [],
       stateUpdates: [],
@@ -175,44 +201,49 @@ export default function GeneratorsEditor({ projectId, generators = [], onChange,
   }, [generators, onChange, selectedGenerator]);
 
   const toggleCategoryExpand = useCallback((kind) => {
-    setExpandedCategories(prev => ({
+    setExpandedCategories((prev) => ({
       ...prev,
       [kind]: !prev[kind],
     }));
   }, []);
 
-  const toggleAllInCategory = useCallback((kind) => {
-    const categoryItems = groupedGenerators[kind] || [];
-    const allEnabled = categoryItems.every(g => g.enabled !== false);
-    const newEnabled = !allEnabled;
+  const toggleAllInCategory = useCallback(
+    (kind) => {
+      const categoryItems = groupedGenerators[kind] || [];
+      const allEnabled = categoryItems.every((g) => g.enabled !== false);
+      const newEnabled = !allEnabled;
 
-    // Get IDs of generators in this category
-    const categoryIds = new Set(categoryItems.map(g => g.id));
+      // Get IDs of generators in this category
+      const categoryIds = new Set(categoryItems.map((g) => g.id));
 
-    const newGenerators = generators.map(g => {
-      if (categoryIds.has(g.id)) {
-        return { ...g, enabled: newEnabled };
-      }
-      return g;
-    });
-    onChange(newGenerators);
-  }, [generators, groupedGenerators, onChange]);
+      const newGenerators = generators.map((g) => {
+        if (categoryIds.has(g.id)) {
+          return { ...g, enabled: newEnabled };
+        }
+        return g;
+      });
+      onChange(newGenerators);
+    },
+    [generators, groupedGenerators, onChange]
+  );
 
   return (
     <div className="editor-container">
       <div className="header">
         <h1 className="title">Generators</h1>
-        <p className="subtitle">Configure entity generators that populate your world. Click a generator to edit.</p>
+        <p className="subtitle">
+          Configure entity generators that populate your world. Click a generator to edit.
+        </p>
       </div>
 
       {/* Category sections */}
       {categories.map((kind) => {
         const kindInfo = entityKindInfo[kind] || {
           label: kind.charAt(0).toUpperCase() + kind.slice(1),
-          icon: DEFAULT_KIND_ICONS[kind] || '📦',
+          icon: DEFAULT_KIND_ICONS[kind] || "📦",
         };
         const categoryItems = groupedGenerators[kind] || [];
-        const allEnabled = categoryItems.every(g => g.enabled !== false);
+        const allEnabled = categoryItems.every((g) => g.enabled !== false);
 
         return (
           <CategorySection
@@ -244,19 +275,19 @@ export default function GeneratorsEditor({ projectId, generators = [], onChange,
       </div>
 
       {selectedGenerator && (
-          <GeneratorModal
-            generator={selectedGenerator}
-            onChange={handleGeneratorChange}
-            onClose={() => setSelectedId(null)}
-            onDelete={handleDelete}
-            onDuplicate={handleDuplicate}
-            schema={schema}
-            pressures={pressures}
-            eras={eras}
-            usageMap={usageMap}
-            tagRegistry={schema.tagRegistry || []}
-          />
-        )}
+        <GeneratorModal
+          generator={selectedGenerator}
+          onChange={handleGeneratorChange}
+          onClose={() => setSelectedId(null)}
+          onDelete={handleDelete}
+          onDuplicate={handleDuplicate}
+          schema={schema}
+          pressures={pressures}
+          eras={eras}
+          usageMap={usageMap}
+          tagRegistry={schema.tagRegistry || []}
+        />
+      )}
     </div>
   );
 }

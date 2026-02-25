@@ -2,9 +2,9 @@
  * TestTab - Test name generation for a profile
  */
 
-import { useState } from 'react';
-import { NumberInput } from '@penguin-tales/shared-components';
-import { generateTestNames } from '../../../../../lib/browser-generator.js';
+import { useState } from "react";
+import { NumberInput } from "@penguin-tales/shared-components";
+import { generateTestNames } from "../../../../../lib/browser-generator.js";
 
 export default function TestTab({ profile, cultureConfig }) {
   const [testNames, setTestNames] = useState([]);
@@ -51,18 +51,12 @@ export default function TestTab({ profile, cultureConfig }) {
             integer
           />
         </div>
-        <button
-          className="primary"
-          onClick={handleTestNames}
-          disabled={testLoading}
-        >
-          {testLoading ? 'Generating...' : 'Generate Names'}
+        <button className="primary" onClick={handleTestNames} disabled={testLoading}>
+          {testLoading ? "Generating..." : "Generate Names"}
         </button>
       </div>
 
-      {testError && (
-        <div className="error-box">{testError}</div>
-      )}
+      {testError && <div className="error-box">{testError}</div>}
 
       {strategyUsage && Object.keys(strategyUsage).length > 0 && (
         <div className="strategy-usage-summary">

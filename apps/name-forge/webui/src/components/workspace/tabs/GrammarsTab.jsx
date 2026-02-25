@@ -1,21 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
-import { MARKOV_MODELS, CONTEXT_KEYS, COMMON_LITERALS, GRAMMAR_MODIFIERS } from '../../constants';
-import { previewGrammarNames } from '../../../lib/browser-generator';
-import { CopyGrammarModal } from './CopyGrammarModal';
+import { useState, useEffect, useRef } from "react";
+import { MARKOV_MODELS, CONTEXT_KEYS, COMMON_LITERALS, GRAMMAR_MODIFIERS } from "../../constants";
+import { previewGrammarNames } from "../../../lib/browser-generator";
+import { CopyGrammarModal } from "./CopyGrammarModal";
 
 function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChange, allCultures }) {
-  const [mode, setMode] = useState('view');
+  const [mode, setMode] = useState("view");
   const [editingGrammar, setEditingGrammar] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [formData, setFormData] = useState({
     id: `${cultureId}_grammar`,
-    start: 'name',
-    capitalization: '',
-    rules: {}
+    start: "name",
+    capitalization: "",
+    rules: {},
   });
-  const [newRuleKey, setNewRuleKey] = useState('');
-  const [newRuleValue, setNewRuleValue] = useState('');
+  const [newRuleKey, setNewRuleKey] = useState("");
+  const [newRuleValue, setNewRuleValue] = useState("");
   const [editingRuleKey, setEditingRuleKey] = useState(null); // Track which rule is being edited
 
   // Autosave refs
@@ -30,7 +30,7 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
 
   // Autosave effect
   useEffect(() => {
-    if (mode !== 'edit' || !editingGrammar) return;
+    if (mode !== "edit" || !editingGrammar) return;
 
     const formDataStr = JSON.stringify(formData);
     if (formDataStr === lastSavedFormDataRef.current) return;
@@ -48,11 +48,11 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
       if (lastSavedIdRef.current) {
         idsToRemove.add(lastSavedIdRef.current);
       }
-      if (editingGrammar !== 'new') {
+      if (editingGrammar !== "new") {
         idsToRemove.add(editingGrammar);
       }
 
-      const newGrammars = [...grammars.filter(g => !idsToRemove.has(g.id)), formData];
+      const newGrammars = [...grammars.filter((g) => !idsToRemove.has(g.id)), formData];
 
       onGrammarsChange(newGrammars);
       lastSavedFormDataRef.current = formDataStr;
@@ -67,7 +67,7 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
   }, [formData, mode, editingGrammar]);
 
   useEffect(() => {
-    if (mode === 'view') {
+    if (mode === "view") {
       lastSavedFormDataRef.current = null;
       lastSavedIdRef.current = null;
     }
@@ -76,9 +76,15 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
   const handleAddRule = () => {
     if (!newRuleKey.trim() || !newRuleValue.trim()) return;
 
-    const newProductions = newRuleValue.split('|').map(p =>
-      p.trim().split(/\s+/).filter(s => s)
-    ).filter(p => p.length > 0);
+    const newProductions = newRuleValue
+      .split("|")
+      .map((p) =>
+        p
+          .trim()
+          .split(/\s+/)
+          .filter((s) => s)
+      )
+      .filter((p) => p.length > 0);
 
     if (editingRuleKey) {
       // Update mode: replace the rule entirely
@@ -98,26 +104,26 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
         ...formData,
         rules: {
           ...formData.rules,
-          [newRuleKey]: mergedProductions
-        }
+          [newRuleKey]: mergedProductions,
+        },
       });
     }
-    setNewRuleKey('');
-    setNewRuleValue('');
+    setNewRuleKey("");
+    setNewRuleValue("");
   };
 
   const handleEditRule = (key) => {
     const productions = formData.rules[key] || [];
     // Convert productions back to string format: "prod1 | prod2 | prod3"
-    const valueStr = productions.map(p => p.join(' ')).join(' | ');
+    const valueStr = productions.map((p) => p.join(" ")).join(" | ");
     setNewRuleKey(key);
     setNewRuleValue(valueStr);
     setEditingRuleKey(key);
   };
 
   const handleCancelEdit = () => {
-    setNewRuleKey('');
-    setNewRuleValue('');
+    setNewRuleKey("");
+    setNewRuleValue("");
     setEditingRuleKey(null);
   };
 
@@ -135,60 +141,64 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
     if (lastSavedIdRef.current) {
       idsToRemove.add(lastSavedIdRef.current);
     }
-    if (editingGrammar !== 'new') {
+    if (editingGrammar !== "new") {
       idsToRemove.add(editingGrammar);
     }
 
-    const newGrammars = [...grammars.filter(g => !idsToRemove.has(g.id)), formData];
+    const newGrammars = [...grammars.filter((g) => !idsToRemove.has(g.id)), formData];
 
     onGrammarsChange(newGrammars);
-    setMode('view');
+    setMode("view");
     setEditingGrammar(null);
   };
 
   const handleDelete = (id) => {
-    const newGrammars = grammars.filter(g => g.id !== id);
+    const newGrammars = grammars.filter((g) => g.id !== id);
     onGrammarsChange(newGrammars);
   };
 
   const handleEdit = (grammar) => {
     setEditingGrammar(grammar.id);
     setFormData(grammar);
-    setMode('edit');
+    setMode("edit");
   };
 
   const handleAddNew = () => {
-    setEditingGrammar('new');
+    setEditingGrammar("new");
     setFormData({
       id: `${cultureId}_grammar`,
-      start: 'name',
-      capitalization: '',
-      rules: {}
+      start: "name",
+      capitalization: "",
+      rules: {},
     });
-    setMode('edit');
+    setMode("edit");
   };
 
   const insertIntoRule = (text) => {
-    setNewRuleValue(prev => prev ? `${prev} ${text}` : text);
+    setNewRuleValue((prev) => (prev ? `${prev} ${text}` : text));
   };
 
   // Get available lexeme lists
-  const availableLexemeLists = Object.keys(lexemeLists).map(id => ({ id, source: 'local' }));
+  const availableLexemeLists = Object.keys(lexemeLists).map((id) => ({ id, source: "local" }));
 
   // View mode
-  if (mode === 'view') {
+  if (mode === "view") {
     return (
       <div>
         <div className="tab-header">
           <h3 className="mt-0">Context-Free Grammars</h3>
           <div className="flex gap-sm">
-            <button className="secondary" onClick={() => setShowHelp(true)}>? Help</button>
+            <button className="secondary" onClick={() => setShowHelp(true)}>
+              ? Help
+            </button>
             {allCultures && Object.keys(allCultures).length > 1 && (
               <button className="secondary" onClick={() => setShowCopyModal(true)}>
                 Copy from...
               </button>
             )}
-            <button className="primary" onClick={handleAddNew}>+ New Grammar</button>
+            <button className="primary" onClick={handleAddNew}>
+              + New Grammar
+            </button>
           </div>
         </div>
 
@@ -212,8 +222,14 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
                   <div>
                     <strong>{grammar.id}</strong>
                     <div className="text-small text-muted mt-xs">
-                      Start: <code>{grammar.start}</code> • {Object.keys(grammar.rules || {}).length} rules
-                      {grammar.capitalization && <> • Case: <code>{grammar.capitalization}</code></>}
+                      Start: <code>{grammar.start}</code> •{" "}
+                      {Object.keys(grammar.rules || {}).length} rules
+                      {grammar.capitalization && (
+                        <>
+                          {" "}
+                          • Case: <code>{grammar.capitalization}</code>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-sm">
@@ -225,11 +241,7 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
                     </button>
                   </div>
                 </div>
-                <GrammarPreview
-                  grammar={grammar}
-                  domains={domains}
-                  lexemeLists={lexemeLists}
-                />
+                <GrammarPreview grammar={grammar} domains={domains} lexemeLists={lexemeLists} />
               </div>
             ))}
           </div>
@@ -241,11 +253,15 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
             cultureId={cultureId}
             cultureConfig={cultureConfig}
             allCultures={allCultures}
-            existingGrammarIds={grammars.map(g => g.id)}
+            existingGrammarIds={grammars.map((g) => g.id)}
             onCopy={(copiedGrammar, copiedLexemeLists) => {
               const newGrammars = [...grammars, copiedGrammar];
               // If copying lexeme lists, do atomic update with grammar
-              if (copiedLexemeLists && Object.keys(copiedLexemeLists).length > 0 && onLexemesChange) {
+              if (
+                copiedLexemeLists &&
+                Object.keys(copiedLexemeLists).length > 0 &&
+                onLexemesChange
+              ) {
                 const updatedLists = { ...lexemeLists, ...copiedLexemeLists };
                 onLexemesChange(updatedLists, undefined, newGrammars);
               } else {
@@ -264,10 +280,20 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
   return (
     <div>
       <div className="tab-header">
-        <h3 className="mt-0">{editingGrammar === 'new' ? 'New Grammar' : 'Edit Grammar'}</h3>
+        <h3 className="mt-0">{editingGrammar === "new" ? "New Grammar" : "Edit Grammar"}</h3>
         <div className="flex gap-sm">
-          <button className="primary" onClick={handleSave}>Save</button>
-          <button className="secondary" onClick={() => { setMode('view'); setEditingGrammar(null); }}>Cancel</button>
+          <button className="primary" onClick={handleSave}>
+            Save
+          </button>
+          <button
+            className="secondary"
+            onClick={() => {
+              setMode("view");
+              setEditingGrammar(null);
+            }}
+          >
+            Cancel
+          </button>
         </div>
       </div>
 
@@ -293,8 +319,10 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
       <div className="form-group">
         <label>Capitalization</label>
         <select
-          value={formData.capitalization || ''}
-          onChange={(e) => setFormData({ ...formData, capitalization: e.target.value || undefined })}
+          value={formData.capitalization || ""}
+          onChange={(e) =>
+            setFormData({ ...formData, capitalization: e.target.value || undefined })
+          }
         >
           <option value="">None</option>
           <option value="titleWords">Each Word Capitalized</option>
@@ -304,11 +332,18 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
           <option value="mixed">MiXeD (alternating)</option>
         </select>
         <small className="text-muted">
-          e.g., "king of north" → {formData.capitalization === 'titleWords' ? '"King Of North"' :
-            formData.capitalization === 'title' ? '"King of north"' :
-            formData.capitalization === 'allcaps' ? '"KING OF NORTH"' :
-            formData.capitalization === 'lowercase' ? '"king of north"' :
-            formData.capitalization === 'mixed' ? '"KiNg Of NoRtH"' : 'unchanged'}
+          e.g., "king of north" →{" "}
+          {formData.capitalization === "titleWords"
+            ? '"King Of North"'
+            : formData.capitalization === "title"
+              ? '"King of north"'
+              : formData.capitalization === "allcaps"
+                ? '"KING OF NORTH"'
+                : formData.capitalization === "lowercase"
+                  ? '"king of north"'
+                  : formData.capitalization === "mixed"
+                    ? '"KiNg Of NoRtH"'
+                    : "unchanged"}
         </small>
       </div>
 
@@ -318,13 +353,13 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
       {Object.keys(formData.rules).length > 0 && (
         <div className="mb-md">
           {Object.entries(formData.rules).map(([key, productions]) => (
-            <div key={key} className={`rule-card ${editingRuleKey === key ? 'editing' : ''}`}>
+            <div key={key} className={`rule-card ${editingRuleKey === key ? "editing" : ""}`}>
               <div className="font-mono text-small flex-1">
                 <strong className="text-gold">{key}</strong>
                 <span className="text-muted"> → </span>
                 {productions.map((prod, i) => (
                   <span key={i}>
-                    <span className="text-light">{prod.join(' ')}</span>
+                    <span className="text-light">{prod.join(" ")}</span>
                     {i < productions.length - 1 && <span className="text-muted"> | </span>}
                   </span>
                 ))}
@@ -372,7 +407,7 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
             placeholder="slot:lexeme_id | literal | other_nonterminal"
           />
           <button className="primary" onClick={handleAddRule}>
-            {editingRuleKey ? 'Update' : 'Add'}
+            {editingRuleKey ? "Update" : "Add"}
           </button>
           {editingRuleKey && (
             <button className="secondary" onClick={handleCancelEdit}>
@@ -393,7 +428,7 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
             title="Lexeme Lists"
             items={availableLexemeLists.map(({ id }) => ({
               code: `slot:${id}`,
-              title: 'Lexeme list'
+              title: "Lexeme list",
             }))}
             onInsert={insertIntoRule}
             variant="gold"
@@ -401,12 +436,8 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
         )}
 
         {/* Click-to-insert: Domain Phonology */}
-        {domains.map(domain => (
-          <DomainInsertSection
-            key={domain.id}
-            domain={domain}
-            onInsert={insertIntoRule}
-          />
+        {domains.map((domain) => (
+          <DomainInsertSection key={domain.id} domain={domain} onInsert={insertIntoRule} />
         ))}
 
         {/* Click-to-insert: Markov Chain Models */}
@@ -415,7 +446,7 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
           subtitle="(statistically-generated names)"
           items={MARKOV_MODELS.map(({ id, name, desc }) => ({
             code: `markov:${id}`,
-            title: `${name}: ${desc}`
+            title: `${name}: ${desc}`,
           }))}
           onInsert={insertIntoRule}
           variant="purple"
@@ -427,7 +458,7 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
         {/* Common literals */}
         <ClickToInsertSection
           title="Common Literals"
-          items={COMMON_LITERALS.map(lit => ({ code: lit, title: lit }))}
+          items={COMMON_LITERALS.map((lit) => ({ code: lit, title: lit }))}
           onInsert={insertIntoRule}
           variant="muted"
         />
@@ -435,7 +466,6 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
         {/* Modifiers */}
         <ModifiersSection onInsert={insertIntoRule} />
       </CollapsiblePanel>
-
     </div>
   );
 }
@@ -449,21 +479,17 @@ function CollapsiblePanel({ title, defaultExpanded = true, children }) {
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className={`collapsible-header ${expanded ? 'expanded' : ''}`}
+        className={`collapsible-header ${expanded ? "expanded" : ""}`}
       >
         <span>{title}</span>
-        <span className={`collapsible-arrow ${expanded ? 'expanded' : ''}`}>▼</span>
+        <span className={`collapsible-arrow ${expanded ? "expanded" : ""}`}>▼</span>
       </button>
-      {expanded && (
-        <div className="collapsible-content">
-          {children}
-        </div>
-      )}
+      {expanded && <div className="collapsible-content">{children}</div>}
     </div>
   );
 }
 
-function ClickToInsertSection({ title, subtitle, items, onInsert, variant = 'blue' }) {
+function ClickToInsertSection({ title, subtitle, items, onInsert, variant = "blue" }) {
   return (
     <div className={`insert-panel ${variant}`}>
       <div className="insert-panel-title">
@@ -500,20 +526,14 @@ function DomainInsertSection({ domain, onInsert }) {
         >
           domain:{domain.id}
         </code>
-        <span className="text-xs text-muted ml-sm">
-          (generates phonotactic names)
-        </span>
+        <span className="text-xs text-muted ml-sm">(generates phonotactic names)</span>
       </div>
 
       {domain.morphology?.prefixes?.length > 0 && (
         <div className="mb-sm">
           <span className="text-xs text-muted">Prefixes: </span>
           {domain.morphology.prefixes.slice(0, 8).map((p, i) => (
-            <code
-              key={i}
-              className="morph-chip"
-              onClick={() => onInsert(p)}
-            >
+            <code key={i} className="morph-chip" onClick={() => onInsert(p)}>
               {p}
             </code>
           ))}
@@ -524,11 +544,7 @@ function DomainInsertSection({ domain, onInsert }) {
         <div>
           <span className="text-xs text-muted">Suffixes: </span>
           {domain.morphology.suffixes.slice(0, 8).map((s, i) => (
-            <code
-              key={i}
-              className="morph-chip"
-              onClick={() => onInsert(s)}
-            >
+            <code key={i} className="morph-chip" onClick={() => onInsert(s)}>
               {s}
             </code>
           ))}
@@ -641,11 +657,17 @@ function GrammarHelpModal({ onClose }) {
   };
 
   return (
-    <div className="modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
+    <div
+      className="modal-overlay"
+      onMouseDown={handleOverlayMouseDown}
+      onClick={handleOverlayClick}
+    >
       <div className="modal-content help-modal">
         <div className="tab-header mb-md">
           <h3 className="mt-0">Context-Free Grammars</h3>
-          <button className="secondary" onClick={onClose}>Close</button>
+          <button className="secondary" onClick={onClose}>
+            Close
+          </button>
         </div>
 
         <div className="help-content">
@@ -661,52 +683,105 @@ function GrammarHelpModal({ onClose }) {
 
           <h4>Syntax</h4>
           <ul className="text-small">
-            <li><code>slot:id</code> - Lexeme list</li>
-            <li><code>domain:id</code> - Phonotactic name</li>
-            <li><code>markov:id</code> - Markov chain name</li>
-            <li><code>context:key</code> - Related entity name</li>
-            <li><code>^</code> - Join without space:
+            <li>
+              <code>slot:id</code> - Lexeme list
+            </li>
+            <li>
+              <code>domain:id</code> - Phonotactic name
+            </li>
+            <li>
+              <code>markov:id</code> - Markov chain name
+            </li>
+            <li>
+              <code>context:key</code> - Related entity name
+            </li>
+            <li>
+              <code>^</code> - Join without space:
               <ul>
-                <li><code>domain:x^'s</code> → &lt;domain&gt;'s</li>
-                <li><code>^'slot:x</code> → '&lt;slot&gt;</li>
-                <li><code>domain:x^'^slot:y</code> → &lt;domain&gt;'&lt;slot&gt;</li>
+                <li>
+                  <code>domain:x^'s</code> → &lt;domain&gt;'s
+                </li>
+                <li>
+                  <code>^'slot:x</code> → '&lt;slot&gt;
+                </li>
+                <li>
+                  <code>domain:x^'^slot:y</code> → &lt;domain&gt;'&lt;slot&gt;
+                </li>
               </ul>
             </li>
-            <li><code>~</code> - Per-token capitalization:
+            <li>
+              <code>~</code> - Per-token capitalization:
               <ul>
-                <li><code>~cap</code> / <code>~c</code> - Capitalized</li>
-                <li><code>~lower</code> / <code>~l</code> - lowercase</li>
-                <li><code>~upper</code> / <code>~u</code> - UPPERCASE</li>
-                <li><code>~title</code> / <code>~t</code> - Title Case</li>
+                <li>
+                  <code>~cap</code> / <code>~c</code> - Capitalized
+                </li>
+                <li>
+                  <code>~lower</code> / <code>~l</code> - lowercase
+                </li>
+                <li>
+                  <code>~upper</code> / <code>~u</code> - UPPERCASE
+                </li>
+                <li>
+                  <code>~title</code> / <code>~t</code> - Title Case
+                </li>
               </ul>
-              <div className="mt-xs">Example: <code>domain:x~cap domain:y~lower^'^slot:z~cap</code></div>
+              <div className="mt-xs">
+                Example: <code>domain:x~cap domain:y~lower^'^slot:z~cap</code>
+              </div>
               <div>→ "Capital lower'Capital"</div>
             </li>
-            <li><code>~</code> - Morphological derivations (transform words):
+            <li>
+              <code>~</code> - Morphological derivations (transform words):
               <ul>
-                <li><code>~er</code> - Agentive: hunt → hunter, forge → forger</li>
-                <li><code>~est</code> - Superlative: deep → deepest, grim → grimmest</li>
-                <li><code>~comp</code> - Comparative: dark → darker, swift → swifter</li>
-                <li><code>~ing</code> - Gerund: burn → burning, forge → forging</li>
-                <li><code>~ed</code> - Past: curse → cursed, slay → slain</li>
-                <li><code>~poss</code> - Possessive: storm → storm's, darkness → darkness'</li>
+                <li>
+                  <code>~er</code> - Agentive: hunt → hunter, forge → forger
+                </li>
+                <li>
+                  <code>~est</code> - Superlative: deep → deepest, grim → grimmest
+                </li>
+                <li>
+                  <code>~comp</code> - Comparative: dark → darker, swift → swifter
+                </li>
+                <li>
+                  <code>~ing</code> - Gerund: burn → burning, forge → forging
+                </li>
+                <li>
+                  <code>~ed</code> - Past: curse → cursed, slay → slain
+                </li>
+                <li>
+                  <code>~poss</code> - Possessive: storm → storm's, darkness → darkness'
+                </li>
               </ul>
-              <div className="mt-xs">Example: <code>slot:verbs~er</code> → "Hunter"</div>
-              <div>Combine: <code>slot:adj~est~cap</code> → "Deepest"</div>
-              <div className="text-muted mt-xs">Handles irregulars: break→broken, good→best, lie→liar</div>
+              <div className="mt-xs">
+                Example: <code>slot:verbs~er</code> → "Hunter"
+              </div>
+              <div>
+                Combine: <code>slot:adj~est~cap</code> → "Deepest"
+              </div>
+              <div className="text-muted mt-xs">
+                Handles irregulars: break→broken, good→best, lie→liar
+              </div>
             </li>
-            <li><code>|</code> - Alternatives</li>
+            <li>
+              <code>|</code> - Alternatives
+            </li>
           </ul>
 
           <h4>Capitalization</h4>
-          <p className="text-small">
-            Controls how the final generated name is formatted:
-          </p>
+          <p className="text-small">Controls how the final generated name is formatted:</p>
           <ul className="text-small">
-            <li><strong>Each Word Capitalized</strong> - "king of north" → "King Of North"</li>
-            <li><strong>First Letter Only</strong> - "king of north" → "King of north"</li>
-            <li><strong>ALL CAPS / lowercase</strong> - Force case</li>
-            <li><strong>MiXeD</strong> - "king of north" → "KiNg Of NoRtH"</li>
+            <li>
+              <strong>Each Word Capitalized</strong> - "king of north" → "King Of North"
+            </li>
+            <li>
+              <strong>First Letter Only</strong> - "king of north" → "King of north"
+            </li>
+            <li>
+              <strong>ALL CAPS / lowercase</strong> - Force case
+            </li>
+            <li>
+              <strong>MiXeD</strong> - "king of north" → "KiNg Of NoRtH"
+            </li>
           </ul>
         </div>
       </div>
@@ -737,7 +812,7 @@ function GrammarPreview({ grammar, domains, lexemeLists }) {
       grammar,
       domains,
       lexemeLists,
-      count: 6
+      count: 6,
     })
       .then((result) => {
         if (!cancelled) {
@@ -794,7 +869,9 @@ function GrammarPreview({ grammar, domains, lexemeLists }) {
     <div className="grammar-preview">
       <div className="grammar-preview-names">
         {names.map((name, i) => (
-          <span key={i} className="grammar-preview-name">{name}</span>
+          <span key={i} className="grammar-preview-name">
+            {name}
+          </span>
         ))}
       </div>
     </div>

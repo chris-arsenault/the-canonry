@@ -9,9 +9,9 @@
  * Uses a grouped list view with expandable sections for detailed views.
  */
 
-import React, { useMemo } from 'react';
-import './dependency-viewer.css';
-import { DependencySection, UsageBadges } from './components';
+import React, { useMemo } from "react";
+import "./dependency-viewer.css";
+import { DependencySection, UsageBadges } from "./components";
 
 export default function DependencyViewer({ usageMap }) {
   // Prepare entity kinds data
@@ -21,8 +21,11 @@ export default function DependencyViewer({ usageMap }) {
       .map(([kind, usage]) => ({
         id: kind,
         usage,
-        totalUsage: (usage.generators?.length || 0) + (usage.systems?.length || 0) +
-                    (usage.actions?.length || 0) + (usage.pressures?.length || 0),
+        totalUsage:
+          (usage.generators?.length || 0) +
+          (usage.systems?.length || 0) +
+          (usage.actions?.length || 0) +
+          (usage.pressures?.length || 0),
       }))
       .sort((a, b) => b.totalUsage - a.totalUsage);
   }, [usageMap]);
@@ -34,8 +37,11 @@ export default function DependencyViewer({ usageMap }) {
       .map(([kind, usage]) => ({
         id: kind,
         usage,
-        totalUsage: (usage.generators?.length || 0) + (usage.systems?.length || 0) +
-                    (usage.actions?.length || 0) + (usage.pressures?.length || 0),
+        totalUsage:
+          (usage.generators?.length || 0) +
+          (usage.systems?.length || 0) +
+          (usage.actions?.length || 0) +
+          (usage.pressures?.length || 0),
       }))
       .sort((a, b) => b.totalUsage - a.totalUsage);
   }, [usageMap]);
@@ -47,7 +53,10 @@ export default function DependencyViewer({ usageMap }) {
       .map(([id, usage]) => ({
         id,
         usage,
-        totalUsage: (usage.generators?.length || 0) + (usage.systems?.length || 0) + (usage.actions?.length || 0),
+        totalUsage:
+          (usage.generators?.length || 0) +
+          (usage.systems?.length || 0) +
+          (usage.actions?.length || 0),
       }))
       .sort((a, b) => b.totalUsage - a.totalUsage);
   }, [usageMap]);
@@ -83,8 +92,11 @@ export default function DependencyViewer({ usageMap }) {
       .map(([tag, usage]) => ({
         id: tag,
         usage,
-        totalUsage: (usage.generators?.length || 0) + (usage.systems?.length || 0) +
-                    (usage.actions?.length || 0) + (usage.pressures?.length || 0),
+        totalUsage:
+          (usage.generators?.length || 0) +
+          (usage.systems?.length || 0) +
+          (usage.actions?.length || 0) +
+          (usage.pressures?.length || 0),
       }))
       .sort((a, b) => b.totalUsage - a.totalUsage);
   }, [usageMap]);
@@ -110,7 +122,7 @@ export default function DependencyViewer({ usageMap }) {
       {item.eraCount > 0 ? (
         <div className="dependency-used-by-list">
           <span className="dependency-badge dependency-badge-era">
-            {item.eraCount} era{item.eraCount !== 1 ? 's' : ''}
+            {item.eraCount} era{item.eraCount !== 1 ? "s" : ""}
           </span>
         </div>
       ) : (
@@ -128,19 +140,19 @@ export default function DependencyViewer({ usageMap }) {
         </div>
         <div className="dependency-viewer-legend">
           <div className="dependency-legend-item">
-            <div className="dependency-legend-dot" style={{ backgroundColor: '#60a5fa' }} />
+            <div className="dependency-legend-dot" style={{ backgroundColor: "#60a5fa" }} />
             <span>Generators</span>
           </div>
           <div className="dependency-legend-item">
-            <div className="dependency-legend-dot" style={{ backgroundColor: '#a855f7' }} />
+            <div className="dependency-legend-dot" style={{ backgroundColor: "#a855f7" }} />
             <span>Systems</span>
           </div>
           <div className="dependency-legend-item">
-            <div className="dependency-legend-dot" style={{ backgroundColor: '#22c55e' }} />
+            <div className="dependency-legend-dot" style={{ backgroundColor: "#22c55e" }} />
             <span>Actions</span>
           </div>
           <div className="dependency-legend-item">
-            <div className="dependency-legend-dot" style={{ backgroundColor: '#ec4899' }} />
+            <div className="dependency-legend-dot" style={{ backgroundColor: "#ec4899" }} />
             <span>Eras</span>
           </div>
         </div>
@@ -161,12 +173,7 @@ export default function DependencyViewer({ usageMap }) {
         renderItem={renderSchemaItem}
       />
 
-      <DependencySection
-        title="Tags"
-        icon="🏷️"
-        items={tagsData}
-        renderItem={renderSchemaItem}
-      />
+      <DependencySection title="Tags" icon="🏷️" items={tagsData} renderItem={renderSchemaItem} />
 
       <DependencySection
         title="Pressures"

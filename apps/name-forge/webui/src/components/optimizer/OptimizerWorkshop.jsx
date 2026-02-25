@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { optimizeDomain as runOptimizer } from '../../lib/browser-optimizer.js';
-import { ALGORITHMS } from './constants';
-import DomainSelector from './DomainSelector';
-import OptimizerSettings from './OptimizerSettings';
-import ResultsModal from './ResultsModal';
+import React, { useState, useEffect, useMemo } from "react";
+import { optimizeDomain as runOptimizer } from "../../lib/browser-optimizer.js";
+import { ALGORITHMS } from "./constants";
+import DomainSelector from "./DomainSelector";
+import OptimizerSettings from "./OptimizerSettings";
+import ResultsModal from "./ResultsModal";
 
 /**
  * Optimizer Workshop - Dedicated UI for domain optimization
@@ -15,7 +15,7 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
   const [expandedCultures, setExpandedCultures] = useState(new Set());
 
   // Algorithm and settings state
-  const [algorithm, setAlgorithm] = useState('hillclimb');
+  const [algorithm, setAlgorithm] = useState("hillclimb");
   const [algorithmParams, setAlgorithmParams] = useState({});
   const [validationSettings, setValidationSettings] = useState({
     requiredNames: 500,
@@ -32,7 +32,7 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
 
   // Optimization state
   const [optimizing, setOptimizing] = useState(false);
-  const [progress, setProgress] = useState({ current: 0, total: 0, currentDomain: '' });
+  const [progress, setProgress] = useState({ current: 0, total: 0, currentDomain: "" });
   const [results, setResults] = useState([]);
   const [logs, setLogs] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -42,7 +42,7 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
     const domains = [];
     Object.entries(cultures || {}).forEach(([cultureId, culture]) => {
       const naming = culture?.naming || {};
-      (naming.domains || []).forEach(domain => {
+      (naming.domains || []).forEach((domain) => {
         domains.push({
           ...domain,
           cultureId,
@@ -67,7 +67,7 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
 
   // Toggle culture expansion
   const toggleCulture = (cultureId) => {
-    setExpandedCultures(prev => {
+    setExpandedCultures((prev) => {
       const next = new Set(prev);
       if (next.has(cultureId)) {
         next.delete(cultureId);
@@ -80,7 +80,7 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
 
   // Toggle domain selection
   const toggleDomain = (domainId) => {
-    setSelectedDomains(prev => {
+    setSelectedDomains((prev) => {
       const next = new Set(prev);
       if (next.has(domainId)) {
         next.delete(domainId);
@@ -93,12 +93,12 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
 
   // Select/deselect all domains in a culture
   const toggleAllInCulture = (cultureId) => {
-    const cultureDomains = allDomains.filter(d => d.cultureId === cultureId);
-    const allSelected = cultureDomains.every(d => selectedDomains.has(d.id));
+    const cultureDomains = allDomains.filter((d) => d.cultureId === cultureId);
+    const allSelected = cultureDomains.every((d) => selectedDomains.has(d.id));
 
-    setSelectedDomains(prev => {
+    setSelectedDomains((prev) => {
       const next = new Set(prev);
-      cultureDomains.forEach(d => {
+      cultureDomains.forEach((d) => {
         if (allSelected) {
           next.delete(d.id);
         } else {
@@ -111,7 +111,7 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
 
   // Select all domains
   const selectAll = () => {
-    setSelectedDomains(new Set(allDomains.map(d => d.id)));
+    setSelectedDomains(new Set(allDomains.map((d) => d.id)));
   };
 
   // Deselect all domains
@@ -120,42 +120,45 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
   };
 
   // Add log entry
-  const addLog = (message, type = 'info') => {
-    setLogs(prev => [...prev, { message, type, timestamp: new Date().toISOString() }]);
+  const addLog = (message, type = "info") => {
+    setLogs((prev) => [...prev, { message, type, timestamp: new Date().toISOString() }]);
   };
 
   // Run optimization (now runs in browser, no API needed)
   const handleOptimize = async () => {
-    const domainsToOptimize = allDomains.filter(d => selectedDomains.has(d.id));
+    const domainsToOptimize = allDomains.filter((d) => selectedDomains.has(d.id));
 
     if (domainsToOptimize.length === 0) {
-      addLog('No domains selected', 'error');
+      addLog("No domains selected", "error");
       return;
     }
 
     setOptimizing(true);
     setResults([]);
     setLogs([]);
-    setProgress({ current: 0, total: domainsToOptimize.length, currentDomain: '' });
+    setProgress({ current: 0, total: domainsToOptimize.length, currentDomain: "" });
     setShowModal(true);
 
-    addLog(`Starting optimization of ${domainsToOptimize.length} domain(s) using ${ALGORITHMS[algorithm].name}`, 'info');
-    addLog('Running in browser (no server required)', 'info');
+    addLog(
+      `Starting optimization of ${domainsToOptimize.length} domain(s) using ${ALGORITHMS[algorithm].name}`,
+      "info"
+    );
+    addLog("Running in browser (no server required)", "info");
 
     const newResults = [];
 
     for (let i = 0; i < domainsToOptimize.length; i++) {
       const domain = domainsToOptimize[i];
       setProgress({ current: i + 1, total: domainsToOptimize.length, currentDomain: domain.id });
-      addLog(`[${i + 1}/${domainsToOptimize.length}] Optimizing ${domain.id}...`, 'info');
+      addLog(`[${i + 1}/${domainsToOptimize.length}] Optimizing ${domain.id}...`, "info");
 
       try {
         // Get all sibling domains for separation metric
-        const siblingDomains = allDomains.filter(d => d.id !== domain.id);
+        const siblingDomains = allDomains.filter((d) => d.id !== domain.id);
 
         // Progress callback for real-time updates
         const onProgress = (message) => {
-          addLog(`  ${message}`, 'info');
+          addLog(`  ${message}`, "info");
         };
 
         // Run optimizer directly in browser
@@ -182,7 +185,10 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
           success: true,
         };
         newResults.push(result);
-        addLog(`  ${domain.id}: ${(result.initialFitness || 0).toFixed(3)} -> ${(result.finalFitness || 0).toFixed(3)} (+${((result.improvement || 0) * 100).toFixed(1)}%)`, 'success');
+        addLog(
+          `  ${domain.id}: ${(result.initialFitness || 0).toFixed(3)} -> ${(result.finalFitness || 0).toFixed(3)} (+${((result.improvement || 0) * 100).toFixed(1)}%)`,
+          "success"
+        );
       } catch (error) {
         newResults.push({
           domainId: domain.id,
@@ -190,36 +196,39 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
           error: error.message,
           success: false,
         });
-        addLog(`  ${domain.id}: Error - ${error.message}`, 'error');
+        addLog(`  ${domain.id}: Error - ${error.message}`, "error");
       }
     }
 
     setResults(newResults);
     setOptimizing(false);
-    setProgress({ current: 0, total: 0, currentDomain: '' });
+    setProgress({ current: 0, total: 0, currentDomain: "" });
 
-    const successCount = newResults.filter(r => r.success).length;
-    addLog(`Optimization complete: ${successCount}/${domainsToOptimize.length} succeeded`, successCount === domainsToOptimize.length ? 'success' : 'warning');
+    const successCount = newResults.filter((r) => r.success).length;
+    addLog(
+      `Optimization complete: ${successCount}/${domainsToOptimize.length} succeeded`,
+      successCount === domainsToOptimize.length ? "success" : "warning"
+    );
   };
 
   // Save results to local storage (IndexedDB)
   const handleSaveResults = async () => {
-    const successfulResults = results.filter(r => r.success);
+    const successfulResults = results.filter((r) => r.success);
     if (successfulResults.length === 0) {
-      addLog('No successful results to save', 'error');
+      addLog("No successful results to save", "error");
       return;
     }
 
     if (!onCulturesChange) {
-      addLog('Cannot save: no storage handler provided', 'error');
+      addLog("Cannot save: no storage handler provided", "error");
       return;
     }
 
-    addLog(`Saving ${successfulResults.length} optimized domain(s) to browser storage...`, 'info');
+    addLog(`Saving ${successfulResults.length} optimized domain(s) to browser storage...`, "info");
 
     // Group by culture
     const byCulture = {};
-    successfulResults.forEach(r => {
+    successfulResults.forEach((r) => {
       if (!byCulture[r.cultureId]) {
         byCulture[r.cultureId] = [];
       }
@@ -235,8 +244,8 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
       if (!naming.domains) continue;
 
       // Replace optimized domains
-      const updatedDomains = naming.domains.map(domain => {
-        const optimized = cultureResults.find(r => r.domainId === domain.id);
+      const updatedDomains = naming.domains.map((domain) => {
+        const optimized = cultureResults.find((r) => r.domainId === domain.id);
         return optimized ? optimized.optimizedConfig : domain;
       });
 
@@ -248,26 +257,26 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
         },
       };
 
-      addLog(`  Updated ${cultureResults.length} domain(s) in ${cultureId}`, 'success');
+      addLog(`  Updated ${cultureResults.length} domain(s) in ${cultureId}`, "success");
     }
 
     // Save via callback
     try {
       await onCulturesChange(updatedCultures);
-      addLog('Save complete (stored in browser)', 'success');
+      addLog("Save complete (stored in browser)", "success");
     } catch (error) {
-      addLog(`Save failed: ${error.message}`, 'error');
+      addLog(`Save failed: ${error.message}`, "error");
     }
   };
 
   // Group domains by culture
   const domainsByCulture = useMemo(() => {
     const grouped = {};
-    allDomains.forEach(domain => {
+    allDomains.forEach((domain) => {
       if (!grouped[domain.cultureId]) {
         grouped[domain.cultureId] = {
           name: domain.cultureName,
-          domains: []
+          domains: [],
         };
       }
       grouped[domain.cultureId].domains.push(domain);

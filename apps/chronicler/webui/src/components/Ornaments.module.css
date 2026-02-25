@@ -3,7 +3,7 @@
  */
 
 /* ParchmentTexture - dynamic background via CSS custom properties */
-.parchmentTexture {
+.parchment-texture {
   background-image: var(--parchment-url);
   background-repeat: repeat;
   background-size: var(--parchment-size);
@@ -13,59 +13,59 @@
 }
 
 /* PageFrame */
-.pageFrame {
+.page-frame {
   position: absolute;
   inset: 0;
   pointer-events: none;
   overflow: hidden;
 }
 
-.cornerBase {
+.corner-base {
   position: absolute;
   width: 140px;
   height: 140px;
   pointer-events: none;
 }
 
-.cornerTopLeft {
-  composes: cornerBase;
+.corner-top-left {
+  composes: cornerbase;
   top: 0;
   left: 0;
 }
 
-.cornerTopRight {
-  composes: cornerBase;
+.corner-top-right {
+  composes: cornerbase;
   top: 0;
   right: 0;
   transform: scaleX(-1);
 }
 
-.cornerBottomLeft {
-  composes: cornerBase;
+.corner-bottom-left {
+  composes: cornerbase;
   bottom: 0;
   left: 0;
   transform: scaleY(-1);
 }
 
-.cornerBottomRight {
-  composes: cornerBase;
+.corner-bottom-right {
+  composes: cornerbase;
   bottom: 0;
   right: 0;
   transform: scale(-1);
 }
 
 /* FrostEdge */
-.frostFlipped {
+.frost-flipped {
   transform: scaleY(-1);
 }
 
 /* ParchmentDebugPanel */
-.debugPanel {
+.debug-panel {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 100;
-  background: rgba(20, 16, 12, 0.95);
+  background: rgb(20 16 12 / 95%);
   border: 1px solid #c49a5c;
   border-radius: 8px;
   padding: 12px;
@@ -77,12 +77,12 @@
   color: #e8dcc8;
 }
 
-.debugBtn {
+.debug-btn {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 100;
-  background: rgba(20, 16, 12, 0.8);
+  background: rgb(20 16 12 / 80%);
   border: 1px solid #c49a5c;
   border-radius: 6px;
   padding: 4px 10px;
@@ -92,18 +92,18 @@
   color: #c49a5c;
 }
 
-.debugHeader {
+.debug-header {
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
 }
 
-.debugTitle {
+.debug-title {
   color: #c49a5c;
   font-weight: bold;
 }
 
-.debugClose {
+.debug-close {
   background: none;
   border: none;
   color: #c49a5c;
@@ -111,34 +111,34 @@
   font-size: 14px;
 }
 
-.sliderRow {
+.slider-row {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-bottom: 6px;
 }
 
-.sliderLabel {
+.slider-label {
   width: 85px;
   flex-shrink: 0;
   color: #c4b99a;
 }
 
-.sliderInput {
+.slider-input {
   flex: 1;
   accent-color: #c49a5c;
 }
 
-.sliderValue {
+.slider-value {
   width: 42px;
   text-align: right;
   color: #8a7d6b;
   flex-shrink: 0;
 }
 
-.resetBtn {
+.reset-btn {
   background: none;
-  border: 1px solid rgba(196, 164, 112, 0.3);
+  border: 1px solid rgb(196 164 112 / 30%);
   border-radius: 4px;
   padding: 3px 10px;
   color: #c4b99a;

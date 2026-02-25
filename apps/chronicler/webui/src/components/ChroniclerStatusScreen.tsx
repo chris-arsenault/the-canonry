@@ -1,4 +1,5 @@
 import styles from "./ChroniclerStatusScreen.module.css";
+import React from "react";
 
 interface ChroniclerStatusScreenProps {
   loading: boolean;

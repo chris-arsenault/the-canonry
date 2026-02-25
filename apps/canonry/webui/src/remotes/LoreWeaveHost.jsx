@@ -2,14 +2,14 @@
  * LoreWeaveHost - Loads and hosts the Lore Weave remote module
  */
 
-import React, { Suspense, lazy } from 'react';
-import RemotePlaceholder from './RemotePlaceholder';
-import { colors, typography } from '../theme';
+import React, { Suspense, lazy } from "react";
+import RemotePlaceholder from "./RemotePlaceholder";
+import { colors, typography } from "../theme";
 
 // Lazy load the remote module
 const LoreWeaveRemote = lazy(() =>
-  import('loreWeave/LoreWeaveRemote').catch((err) => {
-    console.error('[LoreWeaveHost] Failed to load remote:', err);
+  import("loreWeave/LoreWeaveRemote").catch((err) => {
+    console.error("[LoreWeaveHost] Failed to load remote:", err);
     return {
       default: () => (
         <RemotePlaceholder
@@ -24,14 +24,14 @@ const LoreWeaveRemote = lazy(() =>
 
 const styles = {
   container: {
-    height: '100%',
-    overflow: 'auto',
+    height: "100%",
+    overflow: "auto",
   },
   loading: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
     color: colors.textMuted,
     fontSize: typography.sizeLg,
     fontFamily: typography.fontFamily,
@@ -39,9 +39,9 @@ const styles = {
 };
 
 const loadingFallback = React.createElement(
-  'div',
+  "div",
   { style: styles.loading },
-  'Loading Lore Weave...'
+  "Loading Lore Weave..."
 );
 
 export default function LoreWeaveHost({

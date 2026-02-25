@@ -29,12 +29,12 @@
 
 .ctab-diff-added {
   margin-left: 6px;
-  color: rgba(34, 197, 94, 0.8);
+  color: rgb(34 197 94 / 80%);
 }
 
 .ctab-diff-removed {
   margin-left: 4px;
-  color: rgba(239, 68, 68, 0.8);
+  color: rgb(239 68 68 / 80%);
 }
 
 .ctab-toolbar-actions {
@@ -53,20 +53,20 @@
   color: var(--text-secondary);
 }
 
-.ctab-toolbar-btn--disabled {
+.ctab-toolbar-btn-disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.ctab-qc-indicator--clean {
+.ctab-qc-indicator-clean {
   color: #22c55e;
 }
 
-.ctab-qc-indicator--minor {
+.ctab-qc-indicator-minor {
   color: #f59e0b;
 }
 
-.ctab-qc-indicator--major {
+.ctab-qc-indicator-major {
   color: #ef4444;
 }
 
@@ -86,14 +86,14 @@
 }
 
 .ctab-diff-span-added {
-  background: rgba(34, 197, 94, 0.2);
+  background: rgb(34 197 94 / 20%);
   color: var(--text-primary);
   border-radius: 2px;
   padding: 0 1px;
 }
 
 .ctab-diff-span-removed {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgb(239 68 68 / 20%);
   color: var(--text-secondary);
   border-radius: 2px;
   padding: 0 1px;
@@ -120,7 +120,7 @@
   user-select: none;
 }
 
-.ctab-summary-header--expanded {
+.ctab-summary-header-expanded {
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -173,20 +173,20 @@
   user-select: none;
 }
 
-.ctab-tertiary-header--expandable {
+.ctab-tertiary-header-expandable {
   cursor: pointer;
 }
 
-.ctab-tertiary-header--default {
+.ctab-tertiary-header-default {
   cursor: default;
 }
 
-.ctab-tertiary-header--expanded {
+.ctab-tertiary-header-expanded {
   border-bottom: 1px solid var(--border-color);
   border-radius: 8px 8px 0 0;
 }
 
-.ctab-tertiary-header--collapsed {
+.ctab-tertiary-header-collapsed {
   border-radius: 8px;
 }
 
@@ -209,12 +209,12 @@
   color: var(--text-secondary);
 }
 
-.ctab-detect-btn--enabled {
+.ctab-detect-btn-enabled {
   cursor: pointer;
   opacity: 1;
 }
 
-.ctab-detect-btn--disabled {
+.ctab-detect-btn-disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
@@ -243,14 +243,14 @@
   user-select: none;
 }
 
-.ctab-tertiary-chip--accepted {
+.ctab-tertiary-chip-accepted {
   background: var(--bg-primary);
   color: var(--text-secondary);
   opacity: 1;
   text-decoration: none;
 }
 
-.ctab-tertiary-chip--rejected {
+.ctab-tertiary-chip-rejected {
   background: transparent;
   color: var(--text-muted);
   opacity: 0.5;
@@ -275,7 +275,7 @@
   border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 8px 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
   z-index: 100;
   min-width: 200px;
   max-width: 360px;
@@ -294,11 +294,11 @@
   font-size: 11px;
   line-height: 1.5;
   color: var(--text-secondary);
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .ctab-tooltip-match-highlight {
-  background: rgba(245, 158, 11, 0.2);
+  background: rgb(245 158 11 / 20%);
   color: var(--text-primary);
   font-weight: 600;
   border-radius: 2px;

@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
-import { NumberInput } from '@penguin-tales/shared-components';
-import { LEXEME_CATEGORIES, WORD_STYLE_PRESETS } from '../../constants';
-import { generateLexemesWithAnthropic } from '../../../lib/anthropicClient';
-import { CopyLexemeModal } from './CopyLexemeModal';
+import { useState, useMemo } from "react";
+import { NumberInput } from "@penguin-tales/shared-components";
+import { LEXEME_CATEGORIES, WORD_STYLE_PRESETS } from "../../constants";
+import { generateLexemesWithAnthropic } from "../../../lib/anthropicClient";
+import { CopyLexemeModal } from "./CopyLexemeModal";
 
 function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCultures }) {
-  const [mode, setMode] = useState('view'); // 'view', 'create-spec', 'edit-spec', 'create-manual', 'edit-list'
+  const [mode, setMode] = useState("view"); // 'view', 'create-spec', 'edit-spec', 'create-manual', 'edit-list'
   const [selectedList, setSelectedList] = useState(null);
   const [editingListId, setEditingListId] = useState(null);
   const [editingSpecId, setEditingSpecId] = useState(null);
@@ -16,21 +16,21 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
   // Form state for spec creation
   const [specForm, setSpecForm] = useState({
     id: `${cultureId}_nouns`,
-    pos: 'noun',
-    style: '',
-    wordStylePreset: 'none',
+    pos: "noun",
+    style: "",
+    wordStylePreset: "none",
     wordStyle: null,
     targetCount: 30,
     maxWords: 1,
-    qualityFilter: { minLength: 3, maxLength: 15 }
+    qualityFilter: { minLength: 3, maxLength: 15 },
   });
 
   // Form state for manual/edit list
   const [listForm, setListForm] = useState({
-    id: '',
-    description: '',
-    entries: '',
-    source: 'manual'
+    id: "",
+    description: "",
+    entries: "",
+    source: "manual",
   });
 
   // Get culture-level lexeme data
@@ -41,93 +41,97 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
   const handleSaveSpec = () => {
     const newSpec = {
       ...specForm,
-      cultureId
+      cultureId,
     };
     // Don't save preset key to spec, just the wordStyle object
     delete newSpec.wordStylePreset;
 
-    const updatedSpecs = [...lexemeSpecs.filter(s => s.id !== newSpec.id), newSpec];
+    const updatedSpecs = [...lexemeSpecs.filter((s) => s.id !== newSpec.id), newSpec];
     onLexemesChange(undefined, updatedSpecs);
-    setMode('view');
+    setMode("view");
     setEditingSpecId(null);
     setSpecForm({
       id: `${cultureId}_nouns`,
-      pos: 'noun',
-      style: '',
-      wordStylePreset: 'none',
+      pos: "noun",
+      style: "",
+      wordStylePreset: "none",
       wordStyle: null,
       targetCount: 30,
       maxWords: 1,
-      qualityFilter: { minLength: 3, maxLength: 15 }
+      qualityFilter: { minLength: 3, maxLength: 15 },
     });
   };
 
   const handleEditSpec = (spec) => {
     // Try to match wordStyle to a preset
-    let matchedPreset = 'none';
+    let matchedPreset = "none";
     if (spec.wordStyle) {
       for (const [key, preset] of Object.entries(WORD_STYLE_PRESETS)) {
-        if (preset.wordStyle && JSON.stringify(preset.wordStyle) === JSON.stringify(spec.wordStyle)) {
+        if (
+          preset.wordStyle &&
+          JSON.stringify(preset.wordStyle) === JSON.stringify(spec.wordStyle)
+        ) {
           matchedPreset = key;
           break;
         }
       }
-      if (matchedPreset === 'none') {
-        matchedPreset = 'custom'; // Has wordStyle but doesn't match any preset
+      if (matchedPreset === "none") {
+        matchedPreset = "custom"; // Has wordStyle but doesn't match any preset
       }
     }
 
     setSpecForm({
       id: spec.id,
-      pos: spec.pos || 'noun',
-      style: spec.style || '',
+      pos: spec.pos || "noun",
+      style: spec.style || "",
       wordStylePreset: matchedPreset,
       wordStyle: spec.wordStyle || null,
       targetCount: spec.targetCount || 30,
       maxWords: spec.maxWords || 1,
-      qualityFilter: spec.qualityFilter || { minLength: 3, maxLength: 15 }
+      qualityFilter: spec.qualityFilter || { minLength: 3, maxLength: 15 },
     });
     setEditingSpecId(spec.id);
-    setMode('edit-spec');
+    setMode("edit-spec");
   };
 
   const handleDeleteSpec = (specId) => {
-    const updatedSpecs = lexemeSpecs.filter(s => s.id !== specId);
+    const updatedSpecs = lexemeSpecs.filter((s) => s.id !== specId);
     onLexemesChange(undefined, updatedSpecs);
   };
 
   const handleSaveList = () => {
     if (!listForm.id.trim()) {
-      setError('Please enter a list ID');
+      setError("Please enter a list ID");
       return;
     }
 
     const entries = listForm.entries
       .split(/[\n,]/)
-      .map(e => e.trim())
-      .filter(e => e);
+      .map((e) => e.trim())
+      .filter((e) => e);
 
     if (entries.length === 0) {
-      setError('Please enter at least one entry');
+      setError("Please enter at least one entry");
       return;
     }
 
     const newList = {
       id: listForm.id,
-      description: listForm.description || (listForm.source === 'manual' ? 'Manual list' : 'Generated list'),
+      description:
+        listForm.description || (listForm.source === "manual" ? "Manual list" : "Generated list"),
       entries: entries,
-      source: listForm.source
+      source: listForm.source,
     };
 
     const updatedLists = {
       ...lexemeLists,
-      [listForm.id]: newList
+      [listForm.id]: newList,
     };
 
     onLexemesChange(updatedLists, undefined);
-    setMode('view');
+    setMode("view");
     setEditingListId(null);
-    setListForm({ id: '', description: '', entries: '', source: 'manual' });
+    setListForm({ id: "", description: "", entries: "", source: "manual" });
     setError(null);
   };
 
@@ -136,29 +140,31 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
     if (list) {
       setListForm({
         id: list.id,
-        description: list.description || '',
-        entries: list.entries?.join('\n') || '',
-        source: list.source || 'manual'
+        description: list.description || "",
+        entries: list.entries?.join("\n") || "",
+        source: list.source || "manual",
       });
       setEditingListId(listId);
-      setMode('edit-list');
+      setMode("edit-list");
     }
   };
 
   const handleCreateManual = () => {
     setListForm({
       id: `${cultureId}_manual`,
-      description: '',
-      entries: '',
-      source: 'manual'
+      description: "",
+      entries: "",
+      source: "manual",
     });
     setEditingListId(null);
-    setMode('create-manual');
+    setMode("create-manual");
   };
 
   const handleGenerate = async (spec) => {
     if (!apiKey) {
-      setError('API key required. Click "Set API Key" in the header to enter your Anthropic API key.');
+      setError(
+        'API key required. Click "Set API Key" in the header to enter your Anthropic API key.'
+      );
       return;
     }
 
@@ -170,14 +176,14 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
 
       const newList = {
         id: spec.id,
-        description: `Generated ${spec.pos} list: ${spec.style || 'classic fantasy'}`,
+        description: `Generated ${spec.pos} list: ${spec.style || "classic fantasy"}`,
         entries: entries,
-        source: 'llm'
+        source: "llm",
       };
 
       const updatedLists = {
         ...lexemeLists,
-        [spec.id]: newList
+        [spec.id]: newList,
       };
 
       onLexemesChange(updatedLists, undefined);
@@ -197,7 +203,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
   };
 
   // View mode - show existing lists and specs
-  if (mode === 'view') {
+  if (mode === "view") {
     return (
       <div>
         <div className="tab-header">
@@ -208,7 +214,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
                 Copy from...
               </button>
             )}
-            <button className="primary" onClick={() => setMode('create-spec')}>
+            <button className="primary" onClick={() => setMode("create-spec")}>
               + New Spec
             </button>
             <button className="secondary" onClick={handleCreateManual}>
@@ -233,7 +239,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
           <div className="mb-lg">
             <h4 className="mb-sm">Generation Specs ({lexemeSpecs.length})</h4>
             <div className="grid gap-sm">
-              {lexemeSpecs.map(spec => {
+              {lexemeSpecs.map((spec) => {
                 const hasGenerated = lexemeLists[spec.id];
                 const category = LEXEME_CATEGORIES[spec.pos];
                 return (
@@ -247,14 +253,15 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
                       )}
                       {spec.wordStyle && (
                         <span className="badge word-style">
-                          {spec.wordStyle.etymology || 'mixed'}
-                          {spec.wordStyle.syllables?.max === 1 && ' • mono'}
+                          {spec.wordStyle.etymology || "mixed"}
+                          {spec.wordStyle.syllables?.max === 1 && " • mono"}
                         </span>
                       )}
                       <div className="spec-card-meta">
                         {category?.label || spec.pos} • {spec.targetCount} entries
                         {spec.maxWords > 1 && ` • up to ${spec.maxWords} words each`}
-                        {spec.style && ` • ${spec.style.substring(0, 40)}${spec.style.length > 40 ? '...' : ''}`}
+                        {spec.style &&
+                          ` • ${spec.style.substring(0, 40)}${spec.style.length > 40 ? "..." : ""}`}
                       </div>
                     </div>
                     <div className="flex gap-sm">
@@ -271,7 +278,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
                         onClick={() => handleGenerate(spec)}
                         disabled={loading}
                       >
-                        {loading ? '...' : hasGenerated ? 'Regenerate' : 'Generate'}
+                        {loading ? "..." : hasGenerated ? "Regenerate" : "Generate"}
                       </button>
                       <button className="danger sm" onClick={() => handleDeleteSpec(spec.id)}>
                         Delete
@@ -286,7 +293,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
 
         {/* Generated & Manual Lists Section */}
         <div className="split-layout">
-          <div className={`split-layout-main ${selectedList ? 'has-sidebar' : ''}`}>
+          <div className={`split-layout-main ${selectedList ? "has-sidebar" : ""}`}>
             <h4 className="mb-sm">Lexeme Lists ({Object.keys(lexemeLists).length})</h4>
 
             {Object.keys(lexemeLists).length === 0 ? (
@@ -304,27 +311,33 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
                   return (
                     <div
                       key={listId}
-                      className={`list-item ${isSelected ? 'selected' : ''}`}
+                      className={`list-item ${isSelected ? "selected" : ""}`}
                       onClick={() => setSelectedList(listId)}
                     >
                       <div className="list-item-header">
                         <div>
                           <strong>{listId}</strong>
-                          <span className={`badge ${list.source === 'manual' ? 'manual' : 'llm'}`}>
-                            {list.source === 'manual' ? 'Manual' : 'LLM'}
+                          <span className={`badge ${list.source === "manual" ? "manual" : "llm"}`}>
+                            {list.source === "manual" ? "Manual" : "LLM"}
                           </span>
                           <div className="list-item-meta">{list.entries?.length || 0} entries</div>
                         </div>
                         <div className="flex gap-sm">
                           <button
                             className="secondary sm"
-                            onClick={(e) => { e.stopPropagation(); handleEditList(listId); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditList(listId);
+                            }}
                           >
                             Edit
                           </button>
                           <button
                             className="danger sm"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteList(listId); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteList(listId);
+                            }}
                           >
                             Delete
                           </button>
@@ -343,8 +356,12 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
               <div className="list-viewer-header">
                 <h4>{selectedList}</h4>
                 <div className="flex gap-sm">
-                  <button className="secondary sm" onClick={() => handleEditList(selectedList)}>Edit</button>
-                  <button className="secondary sm" onClick={() => setSelectedList(null)}>Close</button>
+                  <button className="secondary sm" onClick={() => handleEditList(selectedList)}>
+                    Edit
+                  </button>
+                  <button className="secondary sm" onClick={() => setSelectedList(null)}>
+                    Close
+                  </button>
                 </div>
               </div>
 
@@ -353,7 +370,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
               )}
 
               <div className="list-viewer-content">
-                {lexemeLists[selectedList].entries?.join('\n')}
+                {lexemeLists[selectedList].entries?.join("\n")}
               </div>
             </div>
           )}
@@ -377,20 +394,31 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
   }
 
   // Create/Edit Spec Mode
-  if (mode === 'create-spec' || mode === 'edit-spec') {
-    const isEditing = mode === 'edit-spec';
+  if (mode === "create-spec" || mode === "edit-spec") {
+    const isEditing = mode === "edit-spec";
     return (
       <div>
         <div className="tab-header">
-          <h3>{isEditing ? 'Edit Lexeme Spec' : 'New Lexeme Spec'}</h3>
+          <h3>{isEditing ? "Edit Lexeme Spec" : "New Lexeme Spec"}</h3>
           <div className="flex gap-sm">
-            <button className="primary" onClick={handleSaveSpec}>Save</button>
-            <button className="secondary" onClick={() => { setMode('view'); setEditingSpecId(null); }}>Cancel</button>
+            <button className="primary" onClick={handleSaveSpec}>
+              Save
+            </button>
+            <button
+              className="secondary"
+              onClick={() => {
+                setMode("view");
+                setEditingSpecId(null);
+              }}
+            >
+              Cancel
+            </button>
           </div>
         </div>
 
         <p className="text-muted tab-intro">
-          Define what kind of semantic building blocks to generate. These will be combined via grammar rules into names.
+          Define what kind of semantic building blocks to generate. These will be combined via
+          grammar rules into names.
         </p>
 
         {error && <div className="error mb-md">{error}</div>}
@@ -403,7 +431,10 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
             placeholder={`${cultureId}_nouns`}
             disabled={isEditing}
           />
-          <small className="text-muted">Unique identifier for this spec. Use with <code>slot:{specForm.id || 'id'}</code> in grammars.</small>
+          <small className="text-muted">
+            Unique identifier for this spec. Use with <code>slot:{specForm.id || "id"}</code> in
+            grammars.
+          </small>
         </div>
 
         <div className="form-grid-2">
@@ -414,23 +445,43 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
               onChange={(e) => setSpecForm({ ...specForm, pos: e.target.value })}
             >
               <optgroup label="Grammatical">
-                {['noun', 'verb', 'adjective', 'abstract', 'core'].map(key => (
-                  <option key={key} value={key}>{LEXEME_CATEGORIES[key].label}</option>
+                {["noun", "verb", "adjective", "abstract", "core"].map((key) => (
+                  <option key={key} value={key}>
+                    {LEXEME_CATEGORIES[key].label}
+                  </option>
                 ))}
               </optgroup>
               <optgroup label="Name Components">
-                {['title', 'epithet', 'prefix', 'suffix', 'connector'].map(key => (
-                  <option key={key} value={key}>{LEXEME_CATEGORIES[key].label}</option>
+                {["title", "epithet", "prefix", "suffix", "connector"].map((key) => (
+                  <option key={key} value={key}>
+                    {LEXEME_CATEGORIES[key].label}
+                  </option>
                 ))}
               </optgroup>
               <optgroup label="Semantic">
-                {['place', 'creature', 'element', 'material', 'celestial', 'color', 'kinship', 'occupation', 'virtue', 'vice', 'number'].map(key => (
-                  <option key={key} value={key}>{LEXEME_CATEGORIES[key].label}</option>
+                {[
+                  "place",
+                  "creature",
+                  "element",
+                  "material",
+                  "celestial",
+                  "color",
+                  "kinship",
+                  "occupation",
+                  "virtue",
+                  "vice",
+                  "number",
+                ].map((key) => (
+                  <option key={key} value={key}>
+                    {LEXEME_CATEGORIES[key].label}
+                  </option>
                 ))}
               </optgroup>
               <optgroup label="Organizations">
-                {['collective', 'organization'].map(key => (
-                  <option key={key} value={key}>{LEXEME_CATEGORIES[key].label}</option>
+                {["collective", "organization"].map((key) => (
+                  <option key={key} value={key}>
+                    {LEXEME_CATEGORIES[key].label}
+                  </option>
                 ))}
               </optgroup>
             </select>
@@ -447,19 +498,22 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
                 setSpecForm({
                   ...specForm,
                   wordStylePreset: presetKey,
-                  wordStyle: preset?.wordStyle || null
+                  wordStyle: preset?.wordStyle || null,
                 });
               }}
             >
               {Object.entries(WORD_STYLE_PRESETS).map(([key, preset]) => (
-                <option key={key} value={key}>{preset.label}</option>
+                <option key={key} value={key}>
+                  {preset.label}
+                </option>
               ))}
-              {specForm.wordStylePreset === 'custom' && (
+              {specForm.wordStylePreset === "custom" && (
                 <option value="custom">Custom (edited)</option>
               )}
             </select>
             <small className="text-muted">
-              {WORD_STYLE_PRESETS[specForm.wordStylePreset]?.description || 'Structural constraints for word generation'}
+              {WORD_STYLE_PRESETS[specForm.wordStylePreset]?.description ||
+                "Structural constraints for word generation"}
             </small>
           </div>
 
@@ -504,10 +558,12 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
             <label>Min Length</label>
             <NumberInput
               value={specForm.qualityFilter.minLength}
-              onChange={(v) => setSpecForm({
-                ...specForm,
-                qualityFilter: { ...specForm.qualityFilter, minLength: v ?? 3 }
-              })}
+              onChange={(v) =>
+                setSpecForm({
+                  ...specForm,
+                  qualityFilter: { ...specForm.qualityFilter, minLength: v ?? 3 },
+                })
+              }
               integer
             />
           </div>
@@ -515,36 +571,47 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
             <label>Max Length</label>
             <NumberInput
               value={specForm.qualityFilter.maxLength}
-              onChange={(v) => setSpecForm({
-                ...specForm,
-                qualityFilter: { ...specForm.qualityFilter, maxLength: v ?? 15 }
-              })}
+              onChange={(v) =>
+                setSpecForm({
+                  ...specForm,
+                  qualityFilter: { ...specForm.qualityFilter, maxLength: v ?? 15 },
+                })
+              }
               integer
             />
           </div>
         </div>
-
       </div>
     );
   }
 
   // Create Manual / Edit List Mode
-  if (mode === 'create-manual' || mode === 'edit-list') {
-    const isEditing = mode === 'edit-list';
+  if (mode === "create-manual" || mode === "edit-list") {
+    const isEditing = mode === "edit-list";
     return (
       <div>
         <div className="tab-header">
-          <h3>{isEditing ? 'Edit List' : 'Create Manual List'}</h3>
+          <h3>{isEditing ? "Edit List" : "Create Manual List"}</h3>
           <div className="flex gap-sm">
-            <button className="primary" onClick={handleSaveList}>Save</button>
-            <button className="secondary" onClick={() => { setMode('view'); setEditingListId(null); }}>Cancel</button>
+            <button className="primary" onClick={handleSaveList}>
+              Save
+            </button>
+            <button
+              className="secondary"
+              onClick={() => {
+                setMode("view");
+                setEditingListId(null);
+              }}
+            >
+              Cancel
+            </button>
           </div>
         </div>
 
         <p className="text-muted tab-intro">
           {isEditing
-            ? 'Edit the entries in this lexeme list. One entry per line.'
-            : 'Manually create a lexeme list. Perfect for titles, connectors, and culture-specific terms.'}
+            ? "Edit the entries in this lexeme list. One entry per line."
+            : "Manually create a lexeme list. Perfect for titles, connectors, and culture-specific terms."}
         </p>
 
         {error && <div className="error mb-md">{error}</div>}
@@ -557,7 +624,9 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
             placeholder={`${cultureId}_titles`}
             disabled={isEditing}
           />
-          <small className="text-muted">Use this ID with <code>slot:{listForm.id || 'list_id'}</code> in grammars</small>
+          <small className="text-muted">
+            Use this ID with <code>slot:{listForm.id || "list_id"}</code> in grammars
+          </small>
         </div>
 
         <div className="form-group">
@@ -570,7 +639,9 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
         </div>
 
         <div className="form-group">
-          <label>Entries ({listForm.entries.split(/[\n,]/).filter(e => e.trim()).length} items)</label>
+          <label>
+            Entries ({listForm.entries.split(/[\n,]/).filter((e) => e.trim()).length} items)
+          </label>
           <textarea
             value={listForm.entries}
             onChange={(e) => setListForm({ ...listForm, entries: e.target.value })}
