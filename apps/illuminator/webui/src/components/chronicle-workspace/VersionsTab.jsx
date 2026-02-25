@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import ChronicleVersionSelector from "./ChronicleVersionSelector";
 import { getCallConfig } from "../../lib/llmModelSettings";
+import "./VersionsTab.css";
 
 /** Format LLM config for display */
 function formatLLMConfig(config) {
@@ -58,7 +59,7 @@ export default function VersionsTab({
   return (
     <div>
       {/* Version Selector */}
-      <div style={{ marginBottom: "16px" }}>
+      <div className="vtab-selector-wrap">
         <ChronicleVersionSelector
           versions={versions}
           selectedVersionId={selectedVersionId}
@@ -73,46 +74,18 @@ export default function VersionsTab({
       </div>
 
       {/* Compare & Combine */}
-      <div
-        style={{
-          marginBottom: "16px",
-          padding: "12px 16px",
-          background: "var(--bg-secondary)",
-          border: "1px solid var(--border-color)",
-          borderRadius: "8px",
-        }}
-      >
-        <div style={{ fontSize: "13px", fontWeight: 500, marginBottom: "10px" }}>
+      <div className="vtab-section">
+        <div className="vtab-section-title">
           Version Analysis
-          <span
-            style={{
-              marginLeft: "8px",
-              color: "var(--text-muted)",
-              fontSize: "12px",
-              fontWeight: 400,
-            }}
-          >
+          <span className="vtab-section-title-count">
             ({versions.length} version{versions.length !== 1 ? "s" : ""} available)
           </span>
         </div>
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+        <div className="vtab-button-row">
           <button
             onClick={onCompareVersions}
             disabled={isGenerating || compareRunning || combineRunning || versions.length < 2}
-            style={{
-              padding: "8px 14px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              color: "var(--text-secondary)",
-              cursor:
-                isGenerating || compareRunning || combineRunning || versions.length < 2
-                  ? "not-allowed"
-                  : "pointer",
-              opacity:
-                isGenerating || compareRunning || combineRunning || versions.length < 2 ? 0.6 : 1,
-              fontSize: "12px",
-            }}
+            className="vtab-action-btn"
           >
             {compareRunning ? "Comparing..." : "Compare Versions"}
           </button>
@@ -125,30 +98,7 @@ export default function VersionsTab({
               copyEditRunning ||
               versions.length < 2
             }
-            style={{
-              padding: "8px 14px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              color: "var(--text-secondary)",
-              cursor:
-                isGenerating ||
-                compareRunning ||
-                combineRunning ||
-                copyEditRunning ||
-                versions.length < 2
-                  ? "not-allowed"
-                  : "pointer",
-              opacity:
-                isGenerating ||
-                compareRunning ||
-                combineRunning ||
-                copyEditRunning ||
-                versions.length < 2
-                  ? 0.6
-                  : 1,
-              fontSize: "12px",
-            }}
+            className="vtab-action-btn"
           >
             {combineRunning ? "Combining..." : "Combine Versions"}
           </button>
@@ -162,30 +112,7 @@ export default function VersionsTab({
               !item.assembledContent
             }
             title="Polish pass — smooths voice, trims to word count target, tightens prose. Produces a new version."
-            style={{
-              padding: "8px 14px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              color: "var(--text-secondary)",
-              cursor:
-                isGenerating ||
-                compareRunning ||
-                combineRunning ||
-                copyEditRunning ||
-                !item.assembledContent
-                  ? "not-allowed"
-                  : "pointer",
-              opacity:
-                isGenerating ||
-                compareRunning ||
-                combineRunning ||
-                copyEditRunning ||
-                !item.assembledContent
-                  ? 0.6
-                  : 1,
-              fontSize: "12px",
-            }}
+            className="vtab-action-btn"
           >
             {copyEditRunning ? "Copy-editing..." : "Copy-edit"}
           </button>
@@ -223,26 +150,17 @@ export default function VersionsTab({
             }}
             disabled={isGenerating}
             title="Dump generationHistory to console"
-            style={{
-              padding: "8px 14px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              color: "var(--text-secondary)",
-              cursor: isGenerating ? "not-allowed" : "pointer",
-              opacity: isGenerating ? 0.6 : 1,
-              fontSize: "12px",
-            }}
+            className="vtab-action-btn"
           >
             Dump Versions
           </button>
         </div>
-        <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "8px" }}>
+        <div className="vtab-hint-text">
           {versions.length < 2
             ? "Create a new version first to enable comparison and combination."
             : "Compare produces an analysis report. Combine synthesizes all drafts into a new version. Copy-edit polishes the active version."}
           {item.comparisonReport && !item.combineInstructions && (
-            <span style={{ color: "var(--warning-color, #e6a700)" }}>
+            <span className="vtab-warning-text">
               {" "}
               Combine instructions missing — combine will use generic criteria.
               {onUpdateCombineInstructions && (
@@ -251,16 +169,7 @@ export default function VersionsTab({
                     setCombineInstructionsDraft("");
                     setEditingCombineInstructions(true);
                   }}
-                  style={{
-                    marginLeft: "6px",
-                    padding: "1px 6px",
-                    background: "none",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "3px",
-                    color: "var(--text-muted)",
-                    cursor: "pointer",
-                    fontSize: "11px",
-                  }}
+                  className="vtab-inline-btn"
                 >
                   Set manually
                 </button>
@@ -268,7 +177,7 @@ export default function VersionsTab({
             </span>
           )}
           {item.combineInstructions && (
-            <span style={{ color: "var(--success-color, #4caf50)" }}>
+            <span className="vtab-success-text">
               {" "}
               Combine instructions ready.
               {onUpdateCombineInstructions && (
@@ -277,16 +186,7 @@ export default function VersionsTab({
                     setCombineInstructionsDraft(item.combineInstructions);
                     setEditingCombineInstructions(true);
                   }}
-                  style={{
-                    marginLeft: "6px",
-                    padding: "1px 6px",
-                    background: "none",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "3px",
-                    color: "var(--text-muted)",
-                    cursor: "pointer",
-                    fontSize: "11px",
-                  }}
+                  className="vtab-inline-btn"
                 >
                   Edit
                 </button>
@@ -297,57 +197,29 @@ export default function VersionsTab({
 
         {/* Combine Instructions Editor */}
         {editingCombineInstructions && (
-          <div style={{ marginTop: "8px" }}>
+          <div className="vtab-instructions-editor">
             <textarea
               value={combineInstructionsDraft}
               onChange={(e) => setCombineInstructionsDraft(e.target.value)}
               placeholder="Enter combine instructions — editorial direction for how to merge versions..."
-              style={{
-                width: "100%",
-                minHeight: "80px",
-                padding: "8px",
-                fontSize: "12px",
-                lineHeight: 1.5,
-                background: "var(--bg-primary)",
-                border: "1px solid var(--border-color)",
-                borderRadius: "4px",
-                color: "var(--text-primary)",
-                resize: "vertical",
-                fontFamily: "inherit",
-              }}
+              className="vtab-textarea"
             />
-            <div style={{ display: "flex", gap: "6px", marginTop: "6px" }}>
+            <div className="vtab-editor-actions">
               <button
                 onClick={() => {
                   onUpdateCombineInstructions(combineInstructionsDraft.trim());
                   setEditingCombineInstructions(false);
                 }}
                 disabled={!combineInstructionsDraft.trim()}
-                style={{
-                  padding: "3px 10px",
-                  background: combineInstructionsDraft.trim()
-                    ? "var(--accent-color, #6366f1)"
-                    : "var(--bg-tertiary)",
-                  border: "none",
-                  borderRadius: "4px",
-                  color: combineInstructionsDraft.trim() ? "#fff" : "var(--text-muted)",
-                  cursor: combineInstructionsDraft.trim() ? "pointer" : "not-allowed",
-                  fontSize: "11px",
-                }}
+                className="vtab-save-btn"
+                // eslint-disable-next-line local/no-inline-styles -- dynamic save button appearance from draft state
+                style={{ '--vtab-save-bg': combineInstructionsDraft.trim() ? 'var(--accent-color, #6366f1)' : 'var(--bg-tertiary)', '--vtab-save-color': combineInstructionsDraft.trim() ? '#fff' : 'var(--text-muted)', '--vtab-save-cursor': combineInstructionsDraft.trim() ? 'pointer' : 'not-allowed' }}
               >
                 Save
               </button>
               <button
                 onClick={() => setEditingCombineInstructions(false)}
-                style={{
-                  padding: "3px 10px",
-                  background: "none",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "4px",
-                  color: "var(--text-muted)",
-                  cursor: "pointer",
-                  fontSize: "11px",
-                }}
+                className="vtab-cancel-btn"
               >
                 Cancel
               </button>
@@ -357,15 +229,7 @@ export default function VersionsTab({
                     onUpdateCombineInstructions("");
                     setEditingCombineInstructions(false);
                   }}
-                  style={{
-                    padding: "3px 10px",
-                    background: "none",
-                    border: "1px solid var(--error-color, #ef4444)",
-                    borderRadius: "4px",
-                    color: "var(--error-color, #ef4444)",
-                    cursor: "pointer",
-                    fontSize: "11px",
-                  }}
+                  className="vtab-clear-btn"
                 >
                   Clear
                 </button>
@@ -376,20 +240,12 @@ export default function VersionsTab({
       </div>
 
       {/* Create New Version */}
-      <div
-        style={{
-          marginBottom: "16px",
-          padding: "12px 16px",
-          background: "var(--bg-secondary)",
-          border: "1px solid var(--border-color)",
-          borderRadius: "8px",
-        }}
-      >
-        <div style={{ fontSize: "13px", fontWeight: 500, marginBottom: "10px" }}>
+      <div className="vtab-section">
+        <div className="vtab-section-title">
           Create New Version
         </div>
 
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "12px" }}>
+        <div className="vtab-button-row-mb">
           {/* Regenerate with existing perspective */}
           <button
             onClick={() => onRegenerateWithSampling?.()}
@@ -401,30 +257,7 @@ export default function VersionsTab({
               !item.generationUserPrompt
             }
             title="Reuse stored prompts with current LLM sampling settings (fast, same perspective)"
-            style={{
-              padding: "8px 16px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              color: "var(--text-secondary)",
-              cursor:
-                isGenerating ||
-                compareRunning ||
-                combineRunning ||
-                !item.generationSystemPrompt ||
-                !item.generationUserPrompt
-                  ? "not-allowed"
-                  : "pointer",
-              opacity:
-                isGenerating ||
-                compareRunning ||
-                combineRunning ||
-                !item.generationSystemPrompt ||
-                !item.generationUserPrompt
-                  ? 0.6
-                  : 1,
-              fontSize: "12px",
-            }}
+            className="vtab-regen-btn"
           >
             {isGenerating ? "Generating..." : "Regenerate with existing perspective"}
           </button>
@@ -434,20 +267,7 @@ export default function VersionsTab({
             onClick={() => onRegenerateFull?.()}
             disabled={isGenerating || compareRunning || combineRunning || !onRegenerateFull}
             title="Run fresh perspective synthesis with current world facts & tone (slower, may differ significantly)"
-            style={{
-              padding: "8px 16px",
-              background: "var(--accent-primary)",
-              border: "none",
-              borderRadius: "6px",
-              color: "white",
-              cursor:
-                isGenerating || compareRunning || combineRunning || !onRegenerateFull
-                  ? "not-allowed"
-                  : "pointer",
-              opacity:
-                isGenerating || compareRunning || combineRunning || !onRegenerateFull ? 0.6 : 1,
-              fontSize: "12px",
-            }}
+            className="vtab-regen-primary-btn"
           >
             {isGenerating ? "Generating..." : "Regenerate with new perspective"}
           </button>
@@ -458,35 +278,25 @@ export default function VersionsTab({
               onClick={() => onRegenerateCreative?.()}
               disabled={isGenerating || compareRunning || combineRunning}
               title="Same PS, different generation prompt — neutral framing, softened structure, no craft posture. Reuses existing perspective synthesis."
-              style={{
-                padding: "8px 16px",
-                background: "#b45309",
-                border: "none",
-                borderRadius: "6px",
-                color: "white",
-                cursor:
-                  isGenerating || compareRunning || combineRunning ? "not-allowed" : "pointer",
-                opacity: isGenerating || compareRunning || combineRunning ? 0.6 : 1,
-                fontSize: "12px",
-              }}
+              className="vtab-regen-creative-btn"
             >
               {isGenerating ? "Generating..." : "Creative freedom"}
             </button>
           )}
         </div>
 
-        <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-          <span style={{ fontWeight: 500 }}>LLM Config:</span>{" "}
+        <div className="vtab-llm-config">
+          <span className="vtab-llm-config-label">LLM Config:</span>{" "}
           <span title="perspective.synthesis">perspective: {llmConfigDisplay.perspective}</span>
           {" · "}
           <span title="chronicle.generation">generation: {llmConfigDisplay.generation}</span>
           {(!item.generationSystemPrompt || !item.generationUserPrompt) && (
-            <span style={{ color: "var(--warning-color, #e6a700)", marginLeft: "8px" }}>
+            <span className="vtab-warning-inline">
               Existing perspective unavailable (legacy chronicle).
             </span>
           )}
           {!onRegenerateFull && (
-            <span style={{ color: "var(--warning-color, #e6a700)", marginLeft: "8px" }}>
+            <span className="vtab-warning-inline">
               New perspective requires toneFragments and canonFactsWithMetadata.
             </span>
           )}
@@ -495,29 +305,12 @@ export default function VersionsTab({
 
       {/* Comparison Report */}
       {item.comparisonReport && (
-        <div
-          style={{
-            marginBottom: "16px",
-            background: "var(--bg-secondary)",
-            border: "1px solid var(--border-color)",
-            borderRadius: "8px",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              padding: "12px 16px",
-              background: "var(--bg-tertiary)",
-              borderBottom: "1px solid var(--border-color)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <span style={{ fontSize: "13px", fontWeight: 500 }}>Comparison Report</span>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <div className="vtab-report-section">
+          <div className="vtab-report-header">
+            <span className="vtab-report-title">Comparison Report</span>
+            <div className="vtab-report-actions">
               {item.comparisonReportGeneratedAt && (
-                <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                <span className="vtab-report-timestamp">
                   {new Date(item.comparisonReportGeneratedAt).toLocaleString()}
                 </span>
               )}
@@ -531,31 +324,13 @@ export default function VersionsTab({
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
-                style={{
-                  padding: "2px 8px",
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "4px",
-                  color: "var(--text-muted)",
-                  cursor: "pointer",
-                  fontSize: "11px",
-                }}
+                className="vtab-export-btn"
               >
                 Export
               </button>
             </div>
           </div>
-          <div
-            style={{
-              padding: "16px",
-              maxHeight: "400px",
-              overflowY: "auto",
-              fontSize: "13px",
-              lineHeight: 1.7,
-              whiteSpace: "pre-wrap",
-              color: "var(--text-primary)",
-            }}
-          >
+          <div className="vtab-report-body">
             {item.comparisonReport}
           </div>
         </div>

@@ -3,6 +3,7 @@ import globals from "globals";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
+import reactPerf from "eslint-plugin-react-perf";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import sonarjs from "eslint-plugin-sonarjs";
 import prettier from "eslint-config-prettier";
@@ -90,6 +91,7 @@ export default tseslint.config(
       react,
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      "react-perf": reactPerf,
       "jsx-a11y": jsxA11y,
       local: { rules: { "max-jsx-props": maxJsxProps, "no-inline-styles": noInlineStyles } },
     },
@@ -115,6 +117,11 @@ export default tseslint.config(
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
       "no-unused-vars": "off",
+      "react-perf/jsx-no-new-object-as-prop": ["warn", { nativeAllowList: "all" }],
+      "react-perf/jsx-no-new-array-as-prop": "off",
+      "react-perf/jsx-no-new-function-as-prop": "off",
+      "react-perf/jsx-no-jsx-as-prop": ["warn", { nativeAllowList: "all" }],
+      "react/jsx-no-constructed-context-values": "warn",
       "local/max-jsx-props": ["warn", { max: 12 }],
       "local/no-inline-styles": "warn",
     },

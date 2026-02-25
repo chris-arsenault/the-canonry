@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import "./ChronicleVersionSelector.css";
 
 export default function ChronicleVersionSelector({
   versions,
@@ -34,7 +35,7 @@ export default function ChronicleVersionSelector({
   };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+    <div className="cvs-container">
       <select
         value={selectedVersionId}
         onChange={(e) => {
@@ -42,8 +43,7 @@ export default function ChronicleVersionSelector({
           setConfirmingDeleteId(null);
         }}
         disabled={disabled}
-        className="illuminator-select"
-        style={{ width: "auto", minWidth: "240px", fontSize: "12px", padding: "4px 6px" }}
+        className="illuminator-select cvs-select-version"
       >
         {versions.map((version) => (
           <option key={version.id} value={version.id}>
@@ -55,8 +55,7 @@ export default function ChronicleVersionSelector({
         value={compareToVersionId}
         onChange={(e) => onSelectCompareVersion(e.target.value)}
         disabled={disabled}
-        className="illuminator-select"
-        style={{ width: "auto", minWidth: "160px", fontSize: "12px", padding: "4px 6px" }}
+        className="illuminator-select cvs-select-compare"
         title="Select a version to diff against"
       >
         <option value="">Compare to...</option>
@@ -69,32 +68,14 @@ export default function ChronicleVersionSelector({
           ))}
       </select>
       {isActive ? (
-        <span
-          style={{
-            fontSize: "11px",
-            padding: "2px 8px",
-            background: "rgba(16, 185, 129, 0.15)",
-            color: "#10b981",
-            borderRadius: "999px",
-            fontWeight: 500,
-          }}
-        >
+        <span className="cvs-active-badge">
           Active
         </span>
       ) : (
         <button
           onClick={() => onSetActiveVersion?.(selectedVersionId)}
           disabled={disabled || !onSetActiveVersion}
-          style={{
-            padding: "6px 12px",
-            fontSize: "11px",
-            background: "var(--bg-tertiary)",
-            border: "1px solid var(--border-color)",
-            borderRadius: "6px",
-            color: "var(--text-secondary)",
-            cursor: disabled || !onSetActiveVersion ? "not-allowed" : "pointer",
-            opacity: disabled || !onSetActiveVersion ? 0.6 : 1,
-          }}
+          className="cvs-btn-make-active"
         >
           Make Active
         </button>
@@ -105,17 +86,7 @@ export default function ChronicleVersionSelector({
           onBlur={() => setConfirmingDeleteId(null)}
           disabled={disabled}
           title={confirmingDelete ? "Click again to confirm deletion" : "Delete this version"}
-          style={{
-            padding: "6px 12px",
-            fontSize: "11px",
-            background: confirmingDelete ? "var(--error-color, #ef4444)" : "var(--bg-tertiary)",
-            border: `1px solid ${confirmingDelete ? "var(--error-color, #ef4444)" : "var(--border-color)"}`,
-            borderRadius: "6px",
-            color: confirmingDelete ? "#fff" : "var(--text-muted)",
-            cursor: disabled ? "not-allowed" : "pointer",
-            opacity: disabled ? 0.6 : 1,
-            transition: "background 0.15s, color 0.15s, border-color 0.15s",
-          }}
+          className={`cvs-btn-delete${confirmingDelete ? " cvs-btn-delete--confirming" : ""}`}
         >
           {confirmingDelete ? "Confirm Delete" : "Delete"}
         </button>

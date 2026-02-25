@@ -1,0 +1,671 @@
+/* ReferenceTab.css — co-located styles for ReferenceTab.jsx */
+
+/* ============================================================================
+ * PerspectiveSynthesisViewer
+ * ============================================================================ */
+
+.ref-tab-synth {
+  margin-bottom: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ref-tab-synth__header {
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.ref-tab-synth__header--expanded {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ref-tab-synth__toggle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ref-tab-synth__title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ref-tab-synth__meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.ref-tab-synth__body {
+  padding: 16px;
+}
+
+/* Tabs */
+.ref-tab-synth__tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.ref-tab-synth__tab-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 400;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ref-tab-synth__tab-btn--active {
+  font-weight: 600;
+  background: var(--accent-primary);
+  color: white;
+}
+
+/* Section heading (reused across many sections) */
+.ref-tab-section-heading {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.ref-tab-section-heading--mb8 {
+  margin-bottom: 8px;
+}
+
+/* Section wrapper */
+.ref-tab-section {
+  margin-bottom: 16px;
+}
+
+/* Text blocks */
+.ref-tab-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ref-tab-text--brief {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  white-space: pre-wrap;
+}
+
+/* Vertical list */
+.ref-tab-vlist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ref-tab-vlist--tight {
+  gap: 6px;
+}
+
+/* Card items (facets, directives, voice entries, entities, facts, dynamics, cultures) */
+.ref-tab-card {
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+.ref-tab-card--accent-left {
+  border-left: 3px solid var(--accent-color);
+}
+
+.ref-tab-card--accent-secondary {
+  border-left: 3px solid var(--accent-secondary, #8b5cf6);
+}
+
+.ref-tab-card--accent-tertiary {
+  border-left: 3px solid var(--accent-tertiary, #f59e0b);
+}
+
+.ref-tab-card--accent-green {
+  border-left: 3px solid #10b981;
+}
+
+.ref-tab-card--accent-cyan {
+  border-left: 3px solid #06b6d4;
+}
+
+.ref-tab-card__id {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--accent-color);
+  margin-bottom: 4px;
+}
+
+.ref-tab-card__body {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.ref-tab-card__heading {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-secondary, #8b5cf6);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.ref-tab-card__heading--tertiary {
+  color: var(--accent-tertiary, #f59e0b);
+}
+
+.ref-tab-card__heading--cyan {
+  color: #06b6d4;
+}
+
+/* Motifs */
+.ref-tab-motifs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ref-tab-motif {
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Metadata footer */
+.ref-tab-synth__footer {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+  margin-top: 8px;
+}
+
+/* Input tab specific */
+.ref-tab-card--style {
+  font-size: 12px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent-secondary, #8b5cf6);
+}
+
+.ref-tab-card__name {
+  font-weight: 500;
+}
+
+.ref-tab-card__inline-meta {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.ref-tab-card__sub {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Entity entry */
+.ref-tab-entity {
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.ref-tab-entity__name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ref-tab-entity__meta {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.ref-tab-entity__summary {
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+/* Fact entry */
+.ref-tab-fact {
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.ref-tab-fact--constraint {
+  border-left: 3px solid #f59e0b;
+}
+
+.ref-tab-fact--normal {
+  border-left: 3px solid var(--accent-color);
+}
+
+.ref-tab-fact__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ref-tab-fact__id {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ref-tab-fact__badge {
+  padding: 2px 6px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  font-size: 10px;
+  border-radius: 4px;
+}
+
+.ref-tab-fact__text {
+  color: var(--text-secondary);
+}
+
+/* Culture identity */
+.ref-tab-culture {
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+.ref-tab-culture__name {
+  font-weight: 500;
+  font-size: 12px;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+.ref-tab-culture__traits {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ref-tab-culture__trait-key {
+  color: var(--text-muted);
+}
+
+/* Constellation analysis */
+.ref-tab-constellation {
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.ref-tab-constellation__row {
+  margin-bottom: 8px;
+}
+
+.ref-tab-constellation__row:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+ * FactCoverageGrid
+ * ============================================================================ */
+
+.ref-tab-fcg {
+  margin-bottom: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.ref-tab-fcg__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.ref-tab-fcg__title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ref-tab-fcg__legend {
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 10px;
+}
+
+.ref-tab-fcg__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0 16px;
+}
+
+.ref-tab-fcg__entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  font-size: 11px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ref-tab-fcg__symbol {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.ref-tab-fcg__fact-id {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ref-tab-fcg__included {
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+/* ============================================================================
+ * FactCoverageViewer
+ * ============================================================================ */
+
+.ref-tab-fcv {
+  margin-bottom: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ref-tab-fcv__header {
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.ref-tab-fcv__header--expanded {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ref-tab-fcv__body {
+  padding: 12px 16px;
+}
+
+.ref-tab-fcv__entry {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+}
+
+.ref-tab-fcv__entry-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ref-tab-fcv__symbol {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.ref-tab-fcv__fact-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.ref-tab-fcv__faceted {
+  color: #8b7355;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.ref-tab-fcv__evidence {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 2px;
+  margin-left: 20px;
+}
+
+.ref-tab-fcv__meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  text-align: right;
+}
+
+/* ============================================================================
+ * TemporalContextEditor
+ * ============================================================================ */
+
+.ref-tab-temporal {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.ref-tab-temporal__title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.ref-tab-temporal__empty {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ref-tab-temporal__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.ref-tab-temporal__label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ref-tab-temporal__select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 12px;
+  min-width: 200px;
+}
+
+.ref-tab-temporal__update-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+}
+
+.ref-tab-temporal__update-btn--disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ref-tab-temporal__update-btn--enabled {
+  cursor: pointer;
+  opacity: 1;
+}
+
+.ref-tab-temporal__info {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ref-tab-temporal__info-label {
+  color: var(--text-muted);
+}
+
+/* Timeline area */
+.ref-tab-temporal__timeline {
+  margin-top: 16px;
+}
+
+.ref-tab-temporal__timeline-heading {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.ref-tab-temporal__no-events {
+  margin-top: 16px;
+  padding: 20px 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Temporal narrative section */
+.ref-tab-temporal__narrative {
+  margin-top: 16px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+}
+
+.ref-tab-temporal__narrative-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.ref-tab-temporal__narrative-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.ref-tab-temporal__check-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.ref-tab-temporal__check-btn--disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ref-tab-temporal__check-btn--enabled {
+  cursor: pointer;
+  opacity: 1;
+}
+
+.ref-tab-temporal__narrative-text {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border-left: 3px solid #06b6d4;
+  white-space: pre-wrap;
+}
+
+/* Temporal check report */
+.ref-tab-temporal__report {
+  margin-top: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ref-tab-temporal__report-header {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ref-tab-temporal__report-title {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ref-tab-temporal__report-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ref-tab-temporal__report-date {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.ref-tab-temporal__export-btn {
+  padding: 2px 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.ref-tab-temporal__report-body {
+  padding: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  color: var(--text-primary);
+}

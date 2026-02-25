@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import "./WorkspaceHeader.css";
 
 export default function WorkspaceHeader({
   item,
@@ -46,17 +47,7 @@ export default function WorkspaceHeader({
           <button
             onClick={onAccept}
             disabled={isGenerating}
-            style={{
-              padding: "8px 18px",
-              background: "var(--accent-primary)",
-              border: "none",
-              borderRadius: "6px",
-              color: "white",
-              cursor: isGenerating ? "not-allowed" : "pointer",
-              opacity: isGenerating ? 0.6 : 1,
-              fontSize: "13px",
-              fontWeight: 500,
-            }}
+            className="wsh-btn-accept"
           >
             Accept &#x2713;
           </button>
@@ -64,15 +55,7 @@ export default function WorkspaceHeader({
         {isComplete && onUnpublish && (
           <button
             onClick={onUnpublish}
-            style={{
-              padding: "8px 16px",
-              fontSize: "12px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              cursor: "pointer",
-              color: "var(--text-secondary)",
-            }}
+            className="wsh-btn-unpublish"
             title="Revert to assembly review without discarding content"
           >
             Unpublish
@@ -81,32 +64,14 @@ export default function WorkspaceHeader({
         <button
           onClick={onRegenerate}
           disabled={isGenerating}
-          style={{
-            padding: "8px 16px",
-            background: "var(--bg-tertiary)",
-            border: "1px solid var(--border-color)",
-            borderRadius: "6px",
-            color: "var(--text-secondary)",
-            cursor: isGenerating ? "not-allowed" : "pointer",
-            opacity: isGenerating ? 0.6 : 1,
-            fontSize: "12px",
-          }}
+          className="wsh-btn-regenerate"
         >
           &#x27F3; {isComplete ? "Restart" : "Regenerate"}
         </button>
         <div className="workspace-overflow-menu" ref={menuRef}>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            style={{
-              padding: "8px 10px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              color: "var(--text-secondary)",
-              cursor: "pointer",
-              fontSize: "14px",
-              lineHeight: 1,
-            }}
+            className="wsh-btn-overflow"
           >
             &hellip;
           </button>

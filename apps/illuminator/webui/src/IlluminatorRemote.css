@@ -1,0 +1,10 @@
+/* IlluminatorRemote.css -- co-located styles for IlluminatorRemote.jsx */
+
+.ilr-api-key-warning {
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  font-size: 13px;
+}

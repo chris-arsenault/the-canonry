@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import HistorianMarginNotes from "../HistorianMarginNotes";
 import HistorianToneSelector, { TONE_META } from "../HistorianToneSelector";
 import { computeBackportProgress } from "../../lib/chronicleTypes";
+import "./HistorianTab.css";
 
 function BackportLoreButton({ item, onBackportLore, isGenerating }) {
   const { done, total } = useMemo(
@@ -23,34 +24,18 @@ function BackportLoreButton({ item, onBackportLore, isGenerating }) {
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+    <div className="htab-backport-row">
       <button
         onClick={onBackportLore}
         disabled={isGenerating}
-        style={{
-          padding: "8px 16px",
-          fontSize: "12px",
-          background: "var(--bg-tertiary)",
-          border: "1px solid var(--border-color)",
-          borderRadius: "6px",
-          cursor: isGenerating ? "not-allowed" : "pointer",
-          color: "var(--text-secondary)",
-          opacity: isGenerating ? 0.6 : 1,
-        }}
+        className="htab-backport-btn"
         title={tooltip}
       >
         {label}
       </button>
       {done > 0 && (
         <span
-          style={{
-            fontSize: "11px",
-            color: allDone ? "#10b981" : "#f59e0b",
-            fontWeight: 500,
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-          }}
+          className={`htab-backport-status ${allDone ? "htab-backport-status--complete" : "htab-backport-status--partial"}`}
           title={`${done}/${total} entities backported`}
         >
           &#x21C4; {done}/{total}
@@ -85,19 +70,11 @@ export default function HistorianTab({
     <div>
       {/* Tone Assignment */}
       {onSetAssignedTone && (
-        <div
-          style={{
-            marginBottom: "20px",
-            padding: "16px",
-            background: "var(--bg-secondary)",
-            borderRadius: "8px",
-            border: "1px solid var(--border-color)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px" }}>
-            <div style={{ fontSize: "14px", fontWeight: 600 }}>Tone</div>
+        <div className="htab-section">
+          <div className="htab-tone-header">
+            <div className="htab-section-title">Tone</div>
             {item.toneRanking?.ranking && (
-              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+              <div className="htab-tone-ranking">
                 Ranked:{" "}
                 {item.toneRanking.ranking.map((tone, i) => {
                   const meta = TONE_META[tone];
@@ -105,6 +82,7 @@ export default function HistorianTab({
                   return (
                     <span
                       key={i}
+                      // eslint-disable-next-line local/no-inline-styles -- dynamic opacity based on rank index
                       style={{ opacity: i === 0 ? 1 : i === 1 ? 0.6 : 0.4 }}
                       title={perTone || item.toneRanking.rationale || undefined}
                     >
@@ -119,24 +97,14 @@ export default function HistorianTab({
               <button
                 onClick={onDetectTone}
                 disabled={isGenerating}
-                style={{
-                  padding: "2px 8px",
-                  fontSize: "10px",
-                  background: "var(--bg-tertiary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "3px",
-                  cursor: isGenerating ? "not-allowed" : "pointer",
-                  color: "var(--text-secondary)",
-                  opacity: isGenerating ? 0.6 : 1,
-                  marginLeft: "auto",
-                }}
+                className="htab-tone-detect-btn"
                 title="Run LLM tone detection for this chronicle"
               >
                 Detect
               </button>
             )}
           </div>
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          <div className="htab-tone-buttons">
             {ANNOTATION_TONES.map((tone) => {
               const meta = TONE_META[tone];
               const isAssigned = item.assignedTone === tone;
@@ -145,19 +113,7 @@ export default function HistorianTab({
                 <button
                   key={tone}
                   onClick={() => onSetAssignedTone(tone)}
-                  style={{
-                    padding: "5px 12px",
-                    fontSize: "12px",
-                    background: isAssigned ? "var(--bg-tertiary)" : "transparent",
-                    border: isAssigned
-                      ? "1px solid var(--text-muted)"
-                      : "1px solid var(--border-color)",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    color: isAssigned ? "var(--text-primary)" : "var(--text-secondary)",
-                    fontWeight: isAssigned ? 600 : 400,
-                    opacity: isAssigned ? 1 : 0.7,
-                  }}
+                  className={`htab-tone-btn ${isAssigned ? "htab-tone-btn--active" : ""}`}
                   title={perTone || meta?.description || tone}
                 >
                   {meta?.symbol} {meta?.label || tone}
@@ -170,17 +126,9 @@ export default function HistorianTab({
 
       {/* Historian Review */}
       {onHistorianReview && (
-        <div
-          style={{
-            marginBottom: "20px",
-            padding: "16px",
-            background: "var(--bg-secondary)",
-            borderRadius: "8px",
-            border: "1px solid var(--border-color)",
-          }}
-        >
-          <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "12px" }}>Annotate</div>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+        <div className="htab-section">
+          <div className="htab-section-title htab-section-title--mb12">Annotate</div>
+          <div className="htab-annotate-row">
             {item.assignedTone &&
               (() => {
                 const meta = TONE_META[item.assignedTone];
@@ -188,22 +136,10 @@ export default function HistorianTab({
                   <button
                     onClick={() => onHistorianReview(item.assignedTone)}
                     disabled={isGenerating || isHistorianActive}
-                    style={{
-                      padding: "8px 16px",
-                      fontSize: "12px",
-                      background: "var(--bg-tertiary)",
-                      border: "1px solid var(--border-color)",
-                      borderRadius: "6px",
-                      cursor: isGenerating || isHistorianActive ? "not-allowed" : "pointer",
-                      color: "var(--text-secondary)",
-                      opacity: isGenerating || isHistorianActive ? 0.6 : 1,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
+                    className="htab-annotate-btn"
                     title={`Run historian review with assigned tone: ${meta?.label || item.assignedTone}`}
                   >
-                    <span style={{ fontSize: "14px" }}>{meta?.symbol || "?"}</span>
+                    <span className="htab-annotate-btn-symbol">{meta?.symbol || "?"}</span>
                     {item.historianNotes?.length > 0 ? "Re-annotate" : "Annotate"} (
                     {meta?.label || item.assignedTone})
                   </button>
@@ -213,11 +149,10 @@ export default function HistorianTab({
               onSelect={(tone) => onHistorianReview(tone)}
               disabled={isGenerating || isHistorianActive}
               hasNotes={item.historianNotes?.length > 0}
-              style={{ display: "inline-block" }}
               label={item.assignedTone ? "Override" : undefined}
             />
             {!item.assignedTone && (
-              <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+              <div className="htab-annotate-hint">
                 Select a tone to generate historian margin notes.
               </div>
             )}
@@ -227,7 +162,7 @@ export default function HistorianTab({
 
       {/* Margin Notes */}
       {item.historianNotes?.length > 0 && (
-        <div style={{ marginBottom: "20px" }}>
+        <div className="htab-margin-notes">
           <HistorianMarginNotes
             notes={item.historianNotes}
             sourceText={item.finalContent}
@@ -243,36 +178,19 @@ export default function HistorianTab({
 
       {/* Historian Prep */}
       {onGeneratePrep && (
-        <div
-          style={{
-            marginBottom: "20px",
-            padding: "16px",
-            background: "var(--bg-secondary)",
-            borderRadius: "8px",
-            border: "1px solid var(--border-color)",
-          }}
-        >
-          <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "8px" }}>
+        <div className="htab-section">
+          <div className="htab-section-title htab-section-title--mb8">
             Historian Prep
           </div>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "12px" }}>
+          <div className="htab-prep-description">
             Private reading notes in the historian's voice — observations and thematic threads for
             era narrative input.
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div className="htab-prep-actions">
             <button
               onClick={onGeneratePrep}
               disabled={isGenerating}
-              style={{
-                padding: "8px 16px",
-                fontSize: "12px",
-                background: "var(--bg-tertiary)",
-                border: "1px solid var(--border-color)",
-                borderRadius: "6px",
-                cursor: isGenerating ? "not-allowed" : "pointer",
-                color: "var(--text-secondary)",
-                opacity: isGenerating ? 0.6 : 1,
-              }}
+              className="htab-prep-btn"
               title={
                 item.historianPrep
                   ? "Regenerate historian reading notes for this chronicle"
@@ -283,7 +201,7 @@ export default function HistorianTab({
             </button>
             {item.historianPrepGeneratedAt && (
               <span
-                style={{ fontSize: "11px", color: "var(--text-muted)" }}
+                className="htab-prep-date"
                 title={`Generated ${new Date(item.historianPrepGeneratedAt).toLocaleString()}`}
               >
                 Generated {new Date(item.historianPrepGeneratedAt).toLocaleDateString()}
@@ -291,21 +209,7 @@ export default function HistorianTab({
             )}
           </div>
           {item.historianPrep && (
-            <div
-              style={{
-                marginTop: "12px",
-                padding: "12px",
-                background: "var(--bg-primary)",
-                border: "1px solid var(--border-color)",
-                borderRadius: "6px",
-                fontSize: "13px",
-                lineHeight: "1.6",
-                color: "var(--text-secondary)",
-                whiteSpace: "pre-wrap",
-                maxHeight: "300px",
-                overflow: "auto",
-              }}
-            >
+            <div className="htab-prep-content">
               {item.historianPrep}
             </div>
           )}
@@ -314,15 +218,8 @@ export default function HistorianTab({
 
       {/* Lore Backport */}
       {onBackportLore && (
-        <div
-          style={{
-            padding: "16px",
-            background: "var(--bg-secondary)",
-            borderRadius: "8px",
-            border: "1px solid var(--border-color)",
-          }}
-        >
-          <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "12px" }}>
+        <div className="htab-section">
+          <div className="htab-lore-title">
             Lore Integration
           </div>
           <BackportLoreButton
@@ -337,14 +234,7 @@ export default function HistorianTab({
         !onBackportLore &&
         !onGeneratePrep &&
         !(item.historianNotes?.length > 0) && (
-          <div
-            style={{
-              fontSize: "13px",
-              color: "var(--text-muted)",
-              padding: "24px",
-              textAlign: "center",
-            }}
-          >
+          <div className="htab-empty">
             No historian tools available for this chronicle.
           </div>
         )}

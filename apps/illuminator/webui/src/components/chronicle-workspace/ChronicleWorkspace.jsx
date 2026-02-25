@@ -19,6 +19,7 @@ import { findEntityMentions } from "../../lib/wikiLinkService";
 import { useChronicleStore } from "../../lib/db/chronicleStore";
 import { getEntitiesForRun, createEntity } from "../../lib/db/entityRepository";
 import CreateEntityModal from "../CreateEntityModal";
+import "./ChronicleWorkspace.css";
 
 const wordCount = (content) => content?.split(/\s+/).filter(Boolean).length || 0;
 
@@ -708,109 +709,43 @@ export default function ChronicleWorkspace({
           const hasPending = !!item?.pendingTitle;
           return (
             <div
-              style={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: "rgba(0, 0, 0, 0.6)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                zIndex: 1000,
-              }}
+              className="cw-title-overlay"
               onClick={() => {
                 if (hasPending) handleRejectTitle();
               }}
             >
               <div
-                style={{
-                  background: "var(--bg-primary)",
-                  borderRadius: "12px",
-                  padding: "24px",
-                  maxWidth: "480px",
-                  width: "90%",
-                  boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
-                }}
+                className="cw-title-dialog"
                 onClick={(e) => e.stopPropagation()}
               >
                 {!hasPending ? (
                   <>
-                    <h3 style={{ margin: "0 0 16px 0", fontSize: "18px" }}>Generating Title...</h3>
-                    <div style={{ marginBottom: "16px" }}>
-                      <div
-                        style={{
-                          fontSize: "13px",
-                          color: "var(--text-muted)",
-                          marginBottom: "4px",
-                        }}
-                      >
+                    <h3 className="cw-title-heading">Generating Title...</h3>
+                    <div className="cw-generating-current">
+                      <div className="cw-generating-current-label">
                         Current
                       </div>
-                      <div style={{ fontSize: "15px", fontWeight: 500 }}>{item.title}</div>
+                      <div className="cw-generating-current-value">{item.title}</div>
                     </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        color: "var(--text-muted)",
-                        fontSize: "13px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          display: "inline-block",
-                          width: "14px",
-                          height: "14px",
-                          border: "2px solid var(--text-muted)",
-                          borderTopColor: "transparent",
-                          borderRadius: "50%",
-                          animation: "spin 1s linear infinite",
-                        }}
-                      />
+                    <div className="cw-generating-spinner-row">
+                      <span className="cw-spinner" />
                       Generating title candidates...
                     </div>
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                   </>
                 ) : (
                   <>
-                    <h3 style={{ margin: "0 0 16px 0", fontSize: "18px" }}>Choose Title</h3>
+                    <h3 className="cw-title-heading">Choose Title</h3>
                     {item.pendingTitleFragments?.length > 0 && (
-                      <div
-                        style={{
-                          marginBottom: "14px",
-                          padding: "10px 12px",
-                          background: "var(--bg-tertiary)",
-                          borderRadius: "8px",
-                          border: "1px solid var(--border-color)",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            color: "var(--text-muted)",
-                            marginBottom: "6px",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}
-                        >
+                      <div className="cw-fragments-box">
+                        <div className="cw-fragments-label">
                           Extracted Fragments
                         </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "var(--text-secondary)",
-                            lineHeight: 1.6,
-                            fontStyle: "italic",
-                          }}
-                        >
+                        <div className="cw-fragments-list">
                           {item.pendingTitleFragments.map((f, i) => (
                             <span key={i}>
                               {f}
                               {i < item.pendingTitleFragments.length - 1 ? (
-                                <span style={{ color: "var(--text-muted)", margin: "0 6px" }}>
+                                <span className="cw-fragment-separator">
                                   &middot;
                                 </span>
                               ) : (
@@ -821,33 +756,12 @@ export default function ChronicleWorkspace({
                         </div>
                       </div>
                     )}
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "6px",
-                        marginBottom: "16px",
-                      }}
-                    >
+                    <div className="cw-candidates-list">
                       <button
                         onClick={() => handleAcceptTitle(item.pendingTitle)}
-                        style={{
-                          display: "flex",
-                          alignItems: "baseline",
-                          gap: "8px",
-                          padding: "10px 12px",
-                          fontSize: "14px",
-                          fontWeight: 600,
-                          background: "var(--bg-secondary)",
-                          border: "2px solid #2563eb",
-                          borderRadius: "8px",
-                          cursor: "pointer",
-                          color: "var(--text-primary)",
-                          textAlign: "left",
-                          width: "100%",
-                        }}
+                        className="cw-candidate-primary"
                       >
-                        <span style={{ color: "#2563eb", fontSize: "12px", flexShrink: 0 }}>
+                        <span className="cw-candidate-primary-icon">
                           &#x2726;
                         </span>
                         {item.pendingTitle}
@@ -858,57 +772,25 @@ export default function ChronicleWorkspace({
                           <button
                             key={i}
                             onClick={() => handleAcceptTitle(candidate)}
-                            style={{
-                              display: "flex",
-                              alignItems: "baseline",
-                              gap: "8px",
-                              padding: "8px 12px",
-                              fontSize: "13px",
-                              background: "var(--bg-secondary)",
-                              border: "1px solid var(--border-color)",
-                              borderRadius: "6px",
-                              cursor: "pointer",
-                              color: "var(--text-secondary)",
-                              textAlign: "left",
-                              width: "100%",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.borderColor = "var(--text-muted)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderColor = "var(--border-color)";
-                            }}
+                            className="cw-candidate-alt"
                           >
-                            <span style={{ opacity: 0.4, fontSize: "11px", flexShrink: 0 }}>
+                            <span className="cw-candidate-alt-icon">
                               &#x25C7;
                             </span>
                             {candidate}
                           </button>
                         ))}
                     </div>
-                    <div
-                      style={{
-                        borderTop: "1px solid var(--border-color)",
-                        paddingTop: "12px",
-                        marginBottom: "16px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          color: "var(--text-muted)",
-                          marginBottom: "6px",
-                        }}
-                      >
+                    <div className="cw-custom-title-section">
+                      <div className="cw-custom-title-label">
                         Custom title
                       </div>
-                      <div style={{ display: "flex", gap: "8px" }}>
+                      <div className="cw-custom-title-row">
                         <input
-                          className="illuminator-input"
+                          className="illuminator-input cw-custom-title-input"
                           value={customTitle}
                           onChange={(e) => setCustomTitle(e.target.value)}
                           placeholder="Enter a custom title..."
-                          style={{ flex: 1, fontSize: "13px", padding: "8px 10px" }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               const trimmed = e.currentTarget.value.trim();
@@ -922,34 +804,16 @@ export default function ChronicleWorkspace({
                             if (trimmed) handleAcceptTitle(trimmed);
                           }}
                           disabled={!customTitle.trim()}
-                          style={{
-                            padding: "8px 12px",
-                            fontSize: "12px",
-                            background: customTitle.trim()
-                              ? "var(--accent-primary)"
-                              : "var(--bg-tertiary)",
-                            border: "1px solid var(--border-color)",
-                            borderRadius: "6px",
-                            cursor: customTitle.trim() ? "pointer" : "not-allowed",
-                            color: customTitle.trim() ? "white" : "var(--text-muted)",
-                          }}
+                          className={`cw-custom-title-use-btn ${customTitle.trim() ? "cw-custom-title-use-btn--active" : "cw-custom-title-use-btn--disabled"}`}
                         >
                           Use
                         </button>
                       </div>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <div className="cw-title-footer">
                       <button
                         onClick={handleRejectTitle}
-                        style={{
-                          padding: "8px 16px",
-                          fontSize: "13px",
-                          background: "var(--bg-tertiary)",
-                          border: "1px solid var(--border-color)",
-                          borderRadius: "6px",
-                          cursor: "pointer",
-                          color: "var(--text-secondary)",
-                        }}
+                        className="cw-keep-current-btn"
                       >
                         Keep Current
                       </button>
