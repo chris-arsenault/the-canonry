@@ -250,10 +250,9 @@ function CoverHeroImage({
       <img
         src={imageUrl}
         alt={title}
-        className={styles.coverHeroImage}
+        className={`${styles.coverHeroImage}${onOpen ? ` ${styles.coverHeroImageClickable}` : ""}`}
         onError={() => setError(true)}
         onClick={() => onOpen?.(imageUrl)}
-        style={{ cursor: onOpen ? "zoom-in" : undefined }}
       />
       <div className={styles.coverHeroOverlay}>
         <h1 className={styles.chronicleTitleHero}>{title}</h1>
@@ -435,9 +434,10 @@ function HistorianCallout({
 
   if (layoutMode === "margin") {
     return (
-      <aside className={styles.marginCallout} style={{ borderLeftColor: color }}>
-        <div className={styles.marginCalloutLabel} style={{ color }}>
-          {indexLabel && <span style={{ marginRight: "4px" }}>{indexLabel}</span>}
+      // eslint-disable-next-line local/no-inline-styles -- dynamic color per historian note type
+      <aside className={styles.marginCallout} style={{ '--note-color': color } as React.CSSProperties}>
+        <div className={styles.marginCalloutLabel}>
+          {indexLabel && <span className={styles.noteIndexLabel}>{indexLabel}</span>}
           {icon} {label}
         </div>
         {note.text}
@@ -445,38 +445,12 @@ function HistorianCallout({
     );
   }
 
-  // Flow mode: floated right with inline styles
+  // Flow mode: floated right callout
   return (
-    <aside
-      style={{
-        float: "right",
-        clear: "right",
-        width: "300px",
-        margin: "4px -40px 8px 20px",
-        padding: "14px 16px",
-        background: "rgba(196, 154, 92, 0.06)",
-        borderLeft: `3px solid ${color}`,
-        borderRadius: "0 4px 4px 0",
-        fontSize: "14px",
-        fontFamily: 'Georgia, "Times New Roman", serif',
-        fontStyle: "italic",
-        color: "var(--color-text-secondary, #c4b99a)",
-        lineHeight: "1.7",
-      }}
-    >
-      <div
-        style={{
-          fontSize: "10px",
-          fontWeight: 700,
-          color,
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-          marginBottom: "6px",
-          fontStyle: "normal",
-          fontFamily: "var(--font-family-ui, system-ui, sans-serif)",
-        }}
-      >
-        {indexLabel && <span style={{ marginRight: "4px" }}>{indexLabel}</span>}
+    // eslint-disable-next-line local/no-inline-styles -- dynamic color per historian note type
+    <aside className={styles.flowCallout} style={{ '--note-color': color } as React.CSSProperties}>
+      <div className={styles.noteTypeLabel}>
+        {indexLabel && <span className={styles.noteIndexLabel}>{indexLabel}</span>}
         {icon} {label}
       </div>
       {note.text}
@@ -508,39 +482,10 @@ function HistorianFootnoteTooltip({
   if (left + tooltipWidth > window.innerWidth - 10) left = window.innerWidth - tooltipWidth - 10;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        left,
-        top: position.y + 8,
-        width: tooltipWidth,
-        padding: "12px 16px",
-        background: "var(--color-bg-elevated, #3a3228)",
-        borderLeft: `3px solid ${color}`,
-        borderRadius: "0 4px 4px 0",
-        boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
-        fontSize: "14px",
-        fontFamily: 'Georgia, "Times New Roman", serif',
-        fontStyle: "italic",
-        color: "var(--color-text-secondary, #c4b99a)",
-        lineHeight: "1.7",
-        zIndex: 1000,
-        pointerEvents: "none",
-      }}
-    >
-      <div
-        style={{
-          fontSize: "10px",
-          fontWeight: 700,
-          color,
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-          marginBottom: "6px",
-          fontStyle: "normal",
-          fontFamily: "var(--font-family-ui, system-ui, sans-serif)",
-        }}
-      >
-        {indexLabel && <span style={{ marginRight: "4px" }}>{indexLabel}</span>}
+    // eslint-disable-next-line local/no-inline-styles -- dynamic position and color
+    <div className={styles.footnoteTooltip} style={{ '--tooltip-left': `${left}px`, '--tooltip-top': `${position.y + 8}px`, '--note-color': color } as React.CSSProperties}>
+      <div className={styles.noteTypeLabel}>
+        {indexLabel && <span className={styles.noteIndexLabel}>{indexLabel}</span>}
         {icon} {label}
       </div>
       {note.text}
@@ -733,9 +678,10 @@ function SectionWithImages({
             <li
               key={note.noteId}
               className={styles.footnoteItem}
-              style={{ borderLeftColor: color }}
+              // eslint-disable-next-line local/no-inline-styles -- dynamic color per note type
+              style={{ '--note-color': color } as React.CSSProperties}
             >
-              <span className={styles.footnoteLabel} style={{ color }}>
+              <span className={styles.footnoteLabel}>
                 {icon} {label}
               </span>
               <span className={styles.footnoteText}>{note.text}</span>
@@ -998,7 +944,8 @@ function SectionWithImages({
                 else calloutRefs.current.delete(idx);
               }}
               className={styles.sidenoteCallout}
-              style={{ top: resolvedPositions.get(idx) ?? 0 }}
+              // eslint-disable-next-line local/no-inline-styles -- dynamic vertical position computed by layout engine
+              style={{ '--sidenote-top': `${resolvedPositions.get(idx) ?? 0}px` } as React.CSSProperties}
             >
               <HistorianCallout note={note} noteIndex={idx} layoutMode="margin" />
             </div>
@@ -1062,7 +1009,8 @@ function EntityPreviewCard({
   const initial = entity.name.charAt(0).toUpperCase();
 
   return (
-    <div className={styles.previewCard} style={{ left, top }}>
+    // eslint-disable-next-line local/no-inline-styles -- dynamic position from mouse hover
+    <div className={styles.previewCard} style={{ '--preview-left': `${left}px`, '--preview-top': `${top}px` } as React.CSSProperties}>
       <div className={styles.previewHeader}>
         {imageUrl ? (
           <img src={imageUrl} alt="" className={styles.previewThumbnail} />
@@ -1216,6 +1164,7 @@ function MarkdownSection({
     >
       <MDEditor.Markdown
         source={processedContent}
+        // eslint-disable-next-line local/no-inline-styles -- required by MDEditor.Markdown component API
         style={{ backgroundColor: "transparent", color: "var(--color-text-secondary)" }}
       />
       <style>{`
@@ -1788,10 +1737,7 @@ export default function WikiPageView({
         )}
         {/* Era narrative subtitle */}
         {isEraNarrative && page.eraNarrative && (
-          <div
-            className={styles.summary}
-            style={{ textAlign: "center", fontStyle: "italic", opacity: 0.7, fontSize: "13px" }}
-          >
+          <div className={styles.eraNarrativeSubtitle}>
             Era Narrative (synthetic) · {page.eraNarrative.tone}
           </div>
         )}
@@ -1951,7 +1897,8 @@ export default function WikiPageView({
                 <button
                   key={section.id}
                   className={styles.tocItem}
-                  style={{ paddingLeft: `${(section.level - 1) * 16}px` }}
+                  // eslint-disable-next-line local/no-inline-styles -- dynamic indent depth per section level
+                  style={{ '--toc-indent': `${(section.level - 1) * 16}px` } as React.CSSProperties}
                   onClick={() => {
                     const el = document.getElementById(section.id);
                     el?.scrollIntoView({ behavior: "smooth" });
@@ -2095,18 +2042,8 @@ export default function WikiPageView({
               );
               if (unmatched.length === 0) return null;
               return (
-                <div style={{ marginTop: "16px", marginBottom: "12px" }}>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      color: "var(--color-accent, #c49a5c)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
-                      marginBottom: "6px",
-                      fontFamily: "var(--font-family-ui, system-ui, sans-serif)",
-                    }}
-                  >
+                <div className={styles.unmatchedNotesSection}>
+                  <div className={styles.unmatchedNotesHeading}>
                     Historian's Notes
                   </div>
                   {unmatched.map((note) => {
@@ -2117,31 +2054,11 @@ export default function WikiPageView({
                     return (
                       <div
                         key={note.noteId}
-                        style={{
-                          margin: "6px 0 6px 16px",
-                          padding: "10px 14px",
-                          background: "rgba(196, 154, 92, 0.06)",
-                          borderLeft: `3px solid ${color}`,
-                          borderRadius: "0 4px 4px 0",
-                          fontSize: "14px",
-                          fontFamily: 'Georgia, "Times New Roman", serif',
-                          fontStyle: "italic",
-                          color: "var(--color-text-secondary, #c4b99a)",
-                          lineHeight: "1.7",
-                        }}
+                        className={styles.unmatchedNoteCard}
+                        // eslint-disable-next-line local/no-inline-styles -- dynamic color per note type
+                        style={{ '--note-color': color } as React.CSSProperties}
                       >
-                        <div
-                          style={{
-                            fontSize: "10px",
-                            fontWeight: 700,
-                            color,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                            marginBottom: "6px",
-                            fontStyle: "normal",
-                            fontFamily: "var(--font-family-ui, system-ui, sans-serif)",
-                          }}
-                        >
+                        <div className={styles.noteTypeLabel}>
                           {icon} {label}
                         </div>
                         {note.text}

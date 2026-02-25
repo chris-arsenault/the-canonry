@@ -272,6 +272,10 @@ body {
   line-height: 1.6;
 }
 
+.state-detail + .state-detail {
+  margin-top: 12px;
+}
+
 .state-actions {
   margin-top: 18px;
   display: flex;

@@ -8,6 +8,7 @@ import sonarjs from "eslint-plugin-sonarjs";
 import prettier from "eslint-config-prettier";
 import tseslint from "typescript-eslint";
 import maxJsxProps from "./eslint-rules/max-jsx-props.js";
+import noInlineStyles from "./eslint-rules/no-inline-styles.js";
 
 export default tseslint.config(
   {
@@ -90,7 +91,7 @@ export default tseslint.config(
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
       "jsx-a11y": jsxA11y,
-      local: { rules: { "max-jsx-props": maxJsxProps } },
+      local: { rules: { "max-jsx-props": maxJsxProps, "no-inline-styles": noInlineStyles } },
     },
     languageOptions: {
       globals: {
@@ -115,6 +116,7 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
       "no-unused-vars": "off",
       "local/max-jsx-props": ["warn", { max: 12 }],
+      "local/no-inline-styles": "warn",
     },
   },
 

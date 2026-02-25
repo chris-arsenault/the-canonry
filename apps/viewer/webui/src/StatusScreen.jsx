@@ -21,7 +21,7 @@ export default function StatusScreen({ status, error, bundleRequestUrl, onRetry,
             <div className="state-detail">
               {error?.message || "Failed to load the viewer bundle."}
             </div>
-            <div className="state-detail" style={{ marginTop: "12px" }}>
+            <div className="state-detail">
               Expected at: {bundleRequestUrl}
             </div>
             <div className="state-actions">

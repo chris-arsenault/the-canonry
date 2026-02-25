@@ -139,7 +139,7 @@ export default function ChronicleSeedViewer({
             )}
             {seed.temporalContext.touchedEraIds?.length ? (
               <div>
-                <div className={styles.fieldLabel} style={{ marginBottom: "4px" }}>
+                <div className={styles.fieldLabelSpaced}>
                   Touched Eras:
                 </div>
                 <div className={styles.idList}>

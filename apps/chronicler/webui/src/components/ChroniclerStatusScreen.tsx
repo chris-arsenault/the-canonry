@@ -1,18 +1,4 @@
-const containerStyle = {
-  height: "100%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "var(--color-bg-primary, #352a1e)",
-  color: "var(--color-text-muted, #8a7d6b)",
-} as const;
-
-const titleStyle = {
-  fontSize: "18px",
-  color: "var(--color-text-primary, #e8dcc8)",
-  marginBottom: "8px",
-  fontFamily: '"Playfair Display", Georgia, serif',
-} as const;
+import styles from "./ChroniclerStatusScreen.module.css";
 
 interface ChroniclerStatusScreenProps {
   loading: boolean;
@@ -25,10 +11,10 @@ export default function ChroniclerStatusScreen({
 }: Readonly<ChroniclerStatusScreenProps>) {
   if (loading) {
     return (
-      <div style={containerStyle}>
-        <div style={{ textAlign: "center" }}>
-          <div style={titleStyle}>Loading World Data</div>
-          <div style={{ fontSize: "14px" }}>Reading from local storage...</div>
+      <div className={styles.container}>
+        <div className={styles.content}>
+          <div className={styles.title}>Loading World Data</div>
+          <div className={styles.detail}>Reading from local storage...</div>
         </div>
       </div>
     );
@@ -36,22 +22,22 @@ export default function ChroniclerStatusScreen({
 
   if (loadError) {
     return (
-      <div style={containerStyle}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "48px", marginBottom: "16px" }}>&#x2756;</div>
-          <div style={titleStyle}>World Data Unavailable</div>
-          <div style={{ fontSize: "14px" }}>{loadError}</div>
+      <div className={styles.container}>
+        <div className={styles.content}>
+          <div className={styles.icon}>&#x2756;</div>
+          <div className={styles.title}>World Data Unavailable</div>
+          <div className={styles.detail}>{loadError}</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={containerStyle}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: "48px", marginBottom: "16px" }}>&#x2756;</div>
-        <div style={titleStyle}>No World Data</div>
-        <div style={{ fontSize: "14px" }}>
+    <div className={styles.container}>
+      <div className={styles.content}>
+        <div className={styles.icon}>&#x2756;</div>
+        <div className={styles.title}>No World Data</div>
+        <div className={styles.detail}>
           Run a simulation in Lore Weave and enrich it with Illuminator to view the world chronicle.
         </div>
       </div>

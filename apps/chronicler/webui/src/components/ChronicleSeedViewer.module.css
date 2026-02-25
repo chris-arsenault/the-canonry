@@ -183,3 +183,8 @@
 .closeButton:hover {
   border-color: var(--color-accent);
 }
+
+.fieldLabelSpaced {
+  composes: fieldLabel;
+  margin-bottom: var(--spacing-xs);
+}

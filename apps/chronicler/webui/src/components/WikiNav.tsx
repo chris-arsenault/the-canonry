@@ -227,10 +227,9 @@ export default function WikiNav({
               return (
                 <div key={era.eraId}>
                   <button
-                    className={styles.sectionTitleCollapsible}
+                    className={styles.eraSectionTitle}
                     onClick={() => toggleEra(era.eraId)}
                     aria-expanded={isExpanded}
-                    style={{ paddingLeft: "4px", fontSize: "var(--font-size-sm)" }}
                   >
                     <span className={styles.collapseIcon}>{isExpanded ? "▼" : "▶"}</span>
                     {era.eraName}
@@ -244,9 +243,8 @@ export default function WikiNav({
                           const isActive = currentPageId === narrativePage.id;
                           return (
                             <button
-                              className={isActive ? styles.navItemActive : styles.navItem}
+                              className={isActive ? styles.navItemEraNarrativeActive : styles.navItemEraNarrative}
                               onClick={() => onNavigate(narrativePage.id)}
-                              style={{ paddingLeft: "24px", fontStyle: "italic" }}
                             >
                               Era Narrative
                             </button>
@@ -254,10 +252,9 @@ export default function WikiNav({
                         })()}
                       <button
                         className={
-                          currentPageId === eraAllId ? styles.navItemActive : styles.navItem
+                          currentPageId === eraAllId ? styles.navItemIndentedActive : styles.navItemIndented
                         }
                         onClick={() => onNavigate(eraAllId)}
-                        style={{ paddingLeft: "24px" }}
                       >
                         View All
                         <span
@@ -269,10 +266,9 @@ export default function WikiNav({
                       {era.stories.length > 0 && (
                         <button
                           className={
-                            currentPageId === eraStoriesId ? styles.navItemActive : styles.navItem
+                            currentPageId === eraStoriesId ? styles.navItemIndentedActive : styles.navItemIndented
                           }
                           onClick={() => onNavigate(eraStoriesId)}
-                          style={{ paddingLeft: "24px" }}
                         >
                           Stories
                           <span
@@ -287,10 +283,9 @@ export default function WikiNav({
                       {era.documents.length > 0 && (
                         <button
                           className={
-                            currentPageId === eraDocsId ? styles.navItemActive : styles.navItem
+                            currentPageId === eraDocsId ? styles.navItemIndentedActive : styles.navItemIndented
                           }
                           onClick={() => onNavigate(eraDocsId)}
-                          style={{ paddingLeft: "24px" }}
                         >
                           Documents
                           <span

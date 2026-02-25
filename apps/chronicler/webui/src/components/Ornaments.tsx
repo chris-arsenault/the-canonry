@@ -16,6 +16,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import parchmentSrc from "../assets/textures/parchment.jpg";
 import vellumSrc from "../assets/textures/vellum.jpg";
+import ornStyles from "./Ornaments.module.css";
 
 /* =========================================
    Image processing pipeline
@@ -260,17 +261,15 @@ export function ParchmentTexture({
   const tileSize = WORK_SIZE * 2;
 
   return (
+    // eslint-disable-next-line local/no-inline-styles -- dynamic texture URL and opacity from canvas pipeline
     <div
       aria-hidden
-      className={className}
+      className={`${className ?? ""} ${ornStyles.parchmentTexture}`}
       style={{
-        backgroundImage: `url(${textureUrl})`,
-        backgroundRepeat: "repeat",
-        backgroundSize: `${tileSize}px ${tileSize}px`,
-        opacity: config.opacity,
-        mixBlendMode: "soft-light",
-        pointerEvents: "none",
-      }}
+        '--parchment-url': `url(${textureUrl})`,
+        '--parchment-size': `${tileSize}px ${tileSize}px`,
+        '--parchment-opacity': config.opacity,
+      } as React.CSSProperties}
     />
   );
 }
@@ -279,50 +278,6 @@ export function ParchmentTexture({
    ParchmentDebugPanel
    Temporary config popup for tuning params.
    ========================================= */
-
-const PANEL: React.CSSProperties = {
-  position: "absolute",
-  top: 8,
-  right: 8,
-  zIndex: 100,
-  background: "rgba(20,16,12,0.95)",
-  border: "1px solid #c49a5c",
-  borderRadius: 8,
-  padding: 12,
-  width: 300,
-  maxHeight: "80vh",
-  overflowY: "auto",
-  fontFamily: "system-ui, sans-serif",
-  fontSize: 11,
-  color: "#e8dcc8",
-};
-const BTN: React.CSSProperties = {
-  position: "absolute",
-  top: 8,
-  right: 8,
-  zIndex: 100,
-  background: "rgba(20,16,12,0.8)",
-  border: "1px solid #c49a5c",
-  borderRadius: 6,
-  padding: "4px 10px",
-  cursor: "pointer",
-  fontFamily: "system-ui, sans-serif",
-  fontSize: 11,
-  color: "#c49a5c",
-};
-const SLIDER_ROW: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-  marginBottom: 6,
-};
-const LABEL_S: React.CSSProperties = { width: 85, flexShrink: 0, color: "#c4b99a" };
-const VAL_S: React.CSSProperties = {
-  width: 42,
-  textAlign: "right",
-  color: "#8a7d6b",
-  flexShrink: 0,
-};
 
 function Slider({
   label,
@@ -340,8 +295,8 @@ function Slider({
   onChange: (v: number) => void;
 }) {
   return (
-    <div style={SLIDER_ROW}>
-      <span style={LABEL_S}>{label}</span>
+    <div className={ornStyles.sliderRow}>
+      <span className={ornStyles.sliderLabel}>{label}</span>
       <input
         type="range"
         min={min}
@@ -349,9 +304,9 @@ function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        style={{ flex: 1, accentColor: "#c49a5c" }}
+        className={ornStyles.sliderInput}
       />
-      <span style={VAL_S}>{step >= 1 ? value : value.toFixed(2)}</span>
+      <span className={ornStyles.sliderValue}>{step >= 1 ? value : value.toFixed(2)}</span>
     </div>
   );
 }
@@ -374,24 +329,18 @@ export function ParchmentDebugPanel({
 
   if (!open)
     return (
-      <button style={BTN} onClick={() => setOpen(true)}>
+      <button className={ornStyles.debugBtn} onClick={() => setOpen(true)}>
         Parchment Config
       </button>
     );
 
   return (
-    <div style={PANEL}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-        <strong style={{ color: "#c49a5c" }}>Parchment Config</strong>
+    <div className={ornStyles.debugPanel}>
+      <div className={ornStyles.debugHeader}>
+        <strong className={ornStyles.debugTitle}>Parchment Config</strong>
         <button
           onClick={() => setOpen(false)}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#c49a5c",
-            cursor: "pointer",
-            fontSize: 14,
-          }}
+          className={ornStyles.debugClose}
         >
           ✕
         </button>
@@ -424,16 +373,7 @@ export function ParchmentDebugPanel({
 
       <button
         onClick={() => onChange({ ...DEFAULT_PARCHMENT_CONFIG })}
-        style={{
-          background: "none",
-          border: "1px solid rgba(196,164,112,0.3)",
-          borderRadius: 4,
-          padding: "3px 10px",
-          color: "#c4b99a",
-          cursor: "pointer",
-          fontSize: 10,
-          marginTop: 6,
-        }}
+        className={ornStyles.resetBtn}
       >
         Reset Defaults
       </button>
@@ -504,33 +444,25 @@ function ScrollCorner() {
 }
 
 export function PageFrame({ className }: { className?: string }) {
-  const base: React.CSSProperties = {
-    position: "absolute",
-    width: 140,
-    height: 140,
-    pointerEvents: "none",
-  };
-
   return (
     <div
       aria-hidden="true"
-      className={className}
-      style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}
+      className={`${className ?? ""} ${ornStyles.pageFrame}`}
     >
       {/* Top-left */}
-      <div style={{ ...base, top: 0, left: 0 }}>
+      <div className={ornStyles.cornerTopLeft}>
         <ScrollCorner />
       </div>
       {/* Top-right */}
-      <div style={{ ...base, top: 0, right: 0, transform: "scaleX(-1)" }}>
+      <div className={ornStyles.cornerTopRight}>
         <ScrollCorner />
       </div>
       {/* Bottom-left */}
-      <div style={{ ...base, bottom: 0, left: 0, transform: "scaleY(-1)" }}>
+      <div className={ornStyles.cornerBottomLeft}>
         <ScrollCorner />
       </div>
       {/* Bottom-right */}
-      <div style={{ ...base, bottom: 0, right: 0, transform: "scale(-1)" }}>
+      <div className={ornStyles.cornerBottomRight}>
         <ScrollCorner />
       </div>
     </div>
@@ -614,11 +546,10 @@ export function FrostEdge({
     <svg
       aria-hidden="true"
       viewBox="0 0 260 12"
-      className={className}
+      className={`${className ?? ""}${position === "bottom" ? ` ${ornStyles.frostFlipped}` : ""}`}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="none"
-      style={position === "bottom" ? { transform: "scaleY(-1)" } : undefined}
     >
       {/* Frost background band — visible blue-tinted bar */}
       <rect x="0" y="6" width="260" height="6" fill="#8ab4c4" opacity="0.12" />

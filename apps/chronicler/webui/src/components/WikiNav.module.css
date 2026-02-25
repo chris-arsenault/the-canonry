@@ -263,3 +263,32 @@
   composes: itemMeta;
   color: var(--color-accent-light);
 }
+
+/* Era sub-section title: smaller, less padding than top-level */
+.eraSectionTitle {
+  composes: sectionTitleCollapsible;
+  padding-left: 4px;
+  font-size: var(--font-size-sm);
+}
+
+/* Indented sub-items under an era section */
+.navItemIndented {
+  composes: navItem;
+  padding-left: 24px;
+}
+
+.navItemIndentedActive {
+  composes: navItemActive;
+  padding-left: 24px;
+}
+
+/* Era narrative item: indented + italic */
+.navItemEraNarrative {
+  composes: navItemIndented;
+  font-style: italic;
+}
+
+.navItemEraNarrativeActive {
+  composes: navItemIndentedActive;
+  font-style: italic;
+}

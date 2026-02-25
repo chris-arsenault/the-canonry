@@ -299,6 +299,7 @@
   color: var(--color-accent);
   cursor: pointer;
   padding: var(--spacing-xs) 0;
+  padding-left: var(--toc-indent, 0);
   display: block;
   text-decoration: none;
   border: none;
@@ -383,6 +384,7 @@
 
 .sidenoteCallout {
   position: absolute;
+  top: var(--sidenote-top, 0);
   width: 100%;
 }
 
@@ -744,6 +746,8 @@
 
 .previewCard {
   position: fixed;
+  left: var(--preview-left, 0);
+  top: var(--preview-top, 0);
   z-index: var(--z-modal);
   width: 260px;
   background-color: var(--color-bg-secondary);
@@ -1013,7 +1017,7 @@
 /* Margin callout: compact for side column */
 .marginCallout {
   padding: var(--spacing-sm);
-  border-left: 2px solid var(--color-accent);
+  border-left: 2px solid var(--note-color, var(--color-accent));
   background: rgba(196, 154, 92, 0.04);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-size: var(--font-size-xs);
@@ -1031,6 +1035,7 @@
   margin-bottom: 4px;
   font-style: normal;
   font-family: var(--font-family-ui);
+  color: var(--note-color);
 }
 
 /* On small screens, collapse margins to inline */
@@ -1163,7 +1168,7 @@
   gap: 8px;
   align-items: baseline;
   padding: 6px 0 6px 12px;
-  border-left: 2px solid var(--color-border, #4a4035);
+  border-left: 2px solid var(--note-color, var(--color-border, #4a4035));
   font-size: var(--font-size-sm, 13px);
   line-height: 1.6;
   color: var(--color-text-secondary, #c4b99a);
@@ -1187,9 +1192,113 @@
   letter-spacing: 0.5px;
   font-family: var(--font-family-ui, system-ui, sans-serif);
   font-style: normal;
+  color: var(--note-color);
 }
 
 .footnoteText {
   font-family: Georgia, "Times New Roman", serif;
   font-style: italic;
+}
+
+/* ===================
+   Inline Style Extractions
+   Classes below replace inline styles from WikiPage.tsx
+   =================== */
+
+/* Cover hero image with optional zoom cursor */
+.coverHeroImageClickable {
+  cursor: zoom-in;
+}
+
+/* Era narrative subtitle: centered italic */
+.eraNarrativeSubtitle {
+  text-align: center;
+  font-style: italic;
+  opacity: 0.7;
+  font-size: var(--font-size-sm);
+}
+
+/* Historian note index label spacing */
+.noteIndexLabel {
+  margin-right: 4px;
+}
+
+/* Flow-mode historian callout (floated right) */
+.flowCallout {
+  float: right;
+  clear: right;
+  width: 300px;
+  margin: 4px -40px 8px 20px;
+  padding: 14px 16px;
+  background: rgba(196, 154, 92, 0.06);
+  border-left: 3px solid var(--note-color, var(--color-accent));
+  border-radius: 0 4px 4px 0;
+  font-size: 14px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  color: var(--color-text-secondary, #c4b99a);
+  line-height: 1.7;
+}
+
+/* Historian note type label (shared between flow, tooltip, unmatched) */
+.noteTypeLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  font-style: normal;
+  font-family: var(--font-family-ui, system-ui, sans-serif);
+  color: var(--note-color);
+}
+
+/* Footnote tooltip: positioned callout on hover */
+.footnoteTooltip {
+  position: fixed;
+  left: var(--tooltip-left, 0);
+  top: var(--tooltip-top, 0);
+  width: 340px;
+  padding: 12px 16px;
+  background: var(--color-bg-elevated, #3a3228);
+  border-left: 3px solid var(--note-color, var(--color-accent));
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  font-size: 14px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  color: var(--color-text-secondary, #c4b99a);
+  line-height: 1.7;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* Unmatched historian notes container */
+.unmatchedNotesSection {
+  margin-top: 16px;
+  margin-bottom: 12px;
+}
+
+/* Unmatched notes heading */
+.unmatchedNotesHeading {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent, #c49a5c);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  font-family: var(--font-family-ui, system-ui, sans-serif);
+}
+
+/* Individual unmatched note card */
+.unmatchedNoteCard {
+  margin: 6px 0 6px 16px;
+  padding: 10px 14px;
+  background: rgba(196, 154, 92, 0.06);
+  border-left: 3px solid var(--note-color, var(--color-accent));
+  border-radius: 0 4px 4px 0;
+  font-size: 14px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  color: var(--color-text-secondary, #c4b99a);
+  line-height: 1.7;
 }
