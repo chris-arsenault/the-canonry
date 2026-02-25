@@ -6,18 +6,18 @@
  * maintaining world coherence.
  */
 
-import type { LLMClient } from './llmClient';
-import type { EntityContext, EraContext, ChronicleRoleAssignment } from './chronicleTypes';
-import type { EntityConstellation } from './constellationAnalyzer';
-import type { ResolvedLLMCallConfig } from './llmModelSettings';
+import type { LLMClient } from "./llmClient";
+import type { EntityContext, EraContext, ChronicleRoleAssignment } from "./chronicleTypes";
+import type { EntityConstellation } from "./constellationAnalyzer";
+import type { ResolvedLLMCallConfig } from "./llmModelSettings";
 import {
   type NarrativeStyle,
   type ProminenceScale,
   buildProminenceScale,
   DEFAULT_PROMINENCE_DISTRIBUTION,
   prominenceLabelFromScale,
-} from '@canonry/world-schema';
-import { runTextCall } from './llmTextCall';
+} from "@canonry/world-schema";
+import { runTextCall } from "./llmTextCall";
 
 // =============================================================================
 // Types
@@ -26,7 +26,7 @@ import { runTextCall } from './llmTextCall';
 /**
  * Fact type determines how the fact is used in generation.
  */
-export type FactType = 'world_truth' | 'generation_constraint';
+export type FactType = "world_truth" | "generation_constraint";
 
 /**
  * Canon fact for perspective synthesis.
@@ -170,10 +170,11 @@ Your goal: Help the author write fiction that matches the narrative style's inte
 
 IMPORTANT: Output ONLY valid JSON. No markdown, no explanation, no commentary.`;
 
-const normalizeToken = (value: string): string =>
-  value.toLowerCase().replace(/[^a-z0-9]+/g, '');
+const normalizeToken = (value: string): string => value.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
-function resolveWorldDynamics(input: PerspectiveSynthesisInput): Array<{ id: string; text: string }> {
+function resolveWorldDynamics(
+  input: PerspectiveSynthesisInput
+): Array<{ id: string; text: string }> {
   const { worldDynamics, entities, focalEra, constellation } = input;
   if (!worldDynamics || worldDynamics.length === 0) return [];
 
@@ -190,12 +191,14 @@ function resolveWorldDynamics(input: PerspectiveSynthesisInput): Array<{ id: str
 
       const cultureMatch =
         cultures.length === 0 ||
-        cultures.includes('*') ||
-        cultures.some((c) => presentCultureIds.includes(c) || cultureTokenSet.has(normalizeToken(c)));
+        cultures.includes("*") ||
+        cultures.some(
+          (c) => presentCultureIds.includes(c) || cultureTokenSet.has(normalizeToken(c))
+        );
 
       const kindMatch =
         kinds.length === 0 ||
-        kinds.includes('*') ||
+        kinds.includes("*") ||
         kinds.some((k) => entityKindsSet.has(k) || kindTokenSet.has(normalizeToken(k)));
 
       return cultureMatch && kindMatch;
@@ -228,18 +231,19 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
     roleAssignments,
   } = input;
   const prominenceScale = buildProminenceScale(
-    entities
-      .map((e) => Number(e.prominence))
-      .filter((value) => Number.isFinite(value)),
+    entities.map((e) => Number(e.prominence)).filter((value) => Number.isFinite(value)),
     { distribution: DEFAULT_PROMINENCE_DISTRIBUTION }
   );
-  const resolveProminenceLabel = (value: EntityContext['prominence'] | number | undefined, scale: ProminenceScale) => {
-    if (value == null) return 'unknown';
-    if (typeof value === 'number') {
+  const resolveProminenceLabel = (
+    value: EntityContext["prominence"] | number | undefined,
+    scale: ProminenceScale
+  ) => {
+    if (value == null) return "unknown";
+    if (typeof value === "number") {
       return prominenceLabelFromScale(value, scale);
     }
     const trimmed = String(value).trim();
-    if (!trimmed) return 'unknown';
+    if (!trimmed) return "unknown";
     if (scale.labels.includes(trimmed)) return trimmed;
     const numeric = Number(trimmed);
     if (Number.isFinite(numeric)) {
@@ -260,30 +264,33 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
   const entitySummaries = entities
     .slice(0, 10)
     .map((e) => {
-      const tags = e.tags && Object.keys(e.tags).length > 0
-        ? ` [${Object.entries(e.tags).map(([k, v]) => `${k}=${v}`).join(', ')}]`
-        : '';
+      const tags =
+        e.tags && Object.keys(e.tags).length > 0
+          ? ` [${Object.entries(e.tags)
+              .map(([k, v]) => `${k}=${v}`)
+              .join(", ")}]`
+          : "";
       const prominenceLabel = resolveProminenceLabel(e.prominence, prominenceScale);
       const assignment = roleByEntityId.get(e.id);
       const roleLabel = assignment
-        ? `, role: ${assignment.role}${assignment.isPrimary ? ' (primary)' : ''}`
-        : '';
-      return `- ${e.name} (${e.kind}, ${e.culture || 'unknown'}, ${prominenceLabel}${roleLabel})${tags}: ${e.summary || '(no summary)'}`;
+        ? `, role: ${assignment.role}${assignment.isPrimary ? " (primary)" : ""}`
+        : "";
+      return `- ${e.name} (${e.kind}, ${e.culture || "unknown"}, ${prominenceLabel}${roleLabel})${tags}: ${e.summary || "(no summary)"}`;
     })
-    .join('\n');
+    .join("\n");
 
   // All world truth facts (not generation constraints, not disabled)
   const worldTruthFacts = (factsWithMetadata || []).filter(
-    (f) => f.type !== 'generation_constraint' && !f.disabled
+    (f) => f.type !== "generation_constraint" && !f.disabled
   );
   const requiredFacts = worldTruthFacts.filter((f) => f.required);
   const worldTruthFactsDisplay = worldTruthFacts
-    .map((f) => `- [${f.id}]${f.required ? ' (REQUIRED)' : ''}: ${f.text}`)
-    .join('\n');
+    .map((f) => `- [${f.id}]${f.required ? " (REQUIRED)" : ""}: ${f.text}`)
+    .join("\n");
 
   // Cultural identities for ALL present cultures (full, untruncated)
   const presentCultureIds = Object.keys(constellation.cultures);
-  let culturalIdentitiesDisplay = 'No cultural identities provided.';
+  let culturalIdentitiesDisplay = "No cultural identities provided.";
   if (culturalIdentities && presentCultureIds.length > 0) {
     const presentIdentities = presentCultureIds
       .filter((id) => culturalIdentities[id])
@@ -291,51 +298,56 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
         const traits = culturalIdentities[cultureId];
         const traitLines = Object.entries(traits)
           .map(([key, value]) => `  ${key}: ${value}`)
-          .join('\n');
+          .join("\n");
         return `## ${cultureId}\n${traitLines}`;
       });
     if (presentIdentities.length > 0) {
-      culturalIdentitiesDisplay = presentIdentities.join('\n\n');
+      culturalIdentitiesDisplay = presentIdentities.join("\n\n");
     }
   }
 
   // Narrative style context - include prose instructions so synthesis matches style tone
-  let narrativeStyleDisplay = 'No specific narrative style.';
+  let narrativeStyleDisplay = "No specific narrative style.";
   if (narrativeStyle) {
     const styleParts = [
       `Name: ${narrativeStyle.name}`,
       `Format: ${narrativeStyle.format}`,
       narrativeStyle.description ? `Description: ${narrativeStyle.description}` : null,
-      narrativeStyle.tags?.length ? `Tags: ${narrativeStyle.tags.join(', ')}` : null,
-      narrativeStyle.proseInstructions ? `\nProse guidance:\n${narrativeStyle.proseInstructions}` : null,
-      narrativeStyle.craftPosture ? `\nCraft posture (density and restraint):\n${narrativeStyle.craftPosture}` : null,
+      narrativeStyle.tags?.length ? `Tags: ${narrativeStyle.tags.join(", ")}` : null,
+      narrativeStyle.proseInstructions
+        ? `\nProse guidance:\n${narrativeStyle.proseInstructions}`
+        : null,
+      narrativeStyle.craftPosture
+        ? `\nCraft posture (density and restraint):\n${narrativeStyle.craftPosture}`
+        : null,
     ].filter(Boolean);
-    narrativeStyleDisplay = styleParts.join('\n');
+    narrativeStyleDisplay = styleParts.join("\n");
   }
 
   // Prose hints for entity kinds
-  let proseHintsDisplay = 'No entity portrayal guidelines provided.';
+  let proseHintsDisplay = "No entity portrayal guidelines provided.";
   if (proseHints && Object.keys(proseHints).length > 0) {
-    const entityKinds = new Set(entities.map(e => e.kind));
+    const entityKinds = new Set(entities.map((e) => e.kind));
     const relevantHints = Object.entries(proseHints)
       .filter(([kind]) => entityKinds.has(kind))
       .map(([kind, hint]) => `  ${kind}: ${hint}`);
     if (relevantHints.length > 0) {
-      proseHintsDisplay = relevantHints.join('\n');
+      proseHintsDisplay = relevantHints.join("\n");
     }
   }
 
   // World dynamics — filter to relevant cultures/kinds, apply era overrides
   const resolvedWorldDynamics = resolveWorldDynamics(input);
-  const worldDynamicsDisplay = resolvedWorldDynamics.length > 0
-    ? resolvedWorldDynamics.map((d) => `- ${d.text}`).join('\n')
-    : 'No world dynamics declared.';
+  const worldDynamicsDisplay =
+    resolvedWorldDynamics.length > 0
+      ? resolvedWorldDynamics.map((d) => `- ${d.text}`).join("\n")
+      : "No world dynamics declared.";
 
   const requestedMin = factSelection?.minCount;
   const requestedMax = factSelection?.maxCount;
   const hasCustomRange =
-    (typeof requestedMin === 'number' && requestedMin > 0) ||
-    (typeof requestedMax === 'number' && requestedMax > 0);
+    (typeof requestedMin === "number" && requestedMin > 0) ||
+    (typeof requestedMax === "number" && requestedMax > 0);
 
   // Compute effective min/max, respecting required facts floor
   const effectiveMin = hasCustomRange
@@ -356,8 +368,9 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
       facetSelectionInstruction = `Select ${effectiveMin}-${effectiveMax}`;
     }
   } else {
-    factSelectionLine = 'Fact selection target: default (4-6). Required facts must still be included.';
-    facetSelectionInstruction = 'Select 4-6';
+    factSelectionLine =
+      "Fact selection target: default (4-6). Required facts must still be included.";
+    facetSelectionInstruction = "Select 4-6";
   }
 
   // Narrative direction block (only when provided)
@@ -367,7 +380,7 @@ The author has specified this concrete direction for the chronicle:
 "${narrativeDirection}"
 
 Your perspective brief, entity directives, motifs, and fact facets must all serve this specific narrative. Treat this as the organizing thesis — every synthesis decision should support it.\n`
-    : '';
+    : "";
 
   return {
     resolvedWorldDynamics,
@@ -380,7 +393,7 @@ CORE TONE (applies to all chronicles):
 ${toneFragments.core}
 
 WORLD FACTS (truths about this world):
-${worldTruthFactsDisplay || 'No world facts provided.'}
+${worldTruthFactsDisplay || "No world facts provided."}
 
 CULTURAL IDENTITIES (for cultures present in this chronicle):
 ${culturalIdentitiesDisplay}
@@ -394,19 +407,25 @@ ${worldDynamicsDisplay}
 === THIS CHRONICLE'S CONSTELLATION ===
 
 Summary: ${constellation.focusSummary}
-Cultures present: ${presentCultureIds.join(', ') || 'mixed/unknown'}
-Culture balance: ${constellation.cultureBalance}${constellation.dominantCulture ? ` (dominant: ${constellation.dominantCulture})` : ''}
-Entity types: ${Object.entries(constellation.kinds).map(([k, v]) => `${k}(${v})`).join(', ')}
-Prominent themes: ${constellation.prominentTags.join(', ') || 'none identified'}
-Relationship kinds: ${Object.entries(constellation.relationshipKinds).map(([k, v]) => `${k}(${v})`).join(', ') || 'none'}
-Era: ${focalEra?.name || 'unspecified'}
+Cultures present: ${presentCultureIds.join(", ") || "mixed/unknown"}
+Culture balance: ${constellation.cultureBalance}${constellation.dominantCulture ? ` (dominant: ${constellation.dominantCulture})` : ""}
+Entity types: ${Object.entries(constellation.kinds)
+      .map(([k, v]) => `${k}(${v})`)
+      .join(", ")}
+Prominent themes: ${constellation.prominentTags.join(", ") || "none identified"}
+Relationship kinds: ${
+      Object.entries(constellation.relationshipKinds)
+        .map(([k, v]) => `${k}(${v})`)
+        .join(", ") || "none"
+    }
+Era: ${focalEra?.name || "unspecified"}
 
 ENTITIES IN THIS CHRONICLE:
 ${entitySummaries}
 
 === FACT SELECTION ===
 ${factSelectionLine}
-${requiredFacts.length > 0 ? `Required facts: ${requiredFacts.map((f) => f.id).join(', ')}` : 'Required facts: none'}
+${requiredFacts.length > 0 ? `Required facts: ${requiredFacts.map((f) => f.id).join(", ")}` : "Required facts: none"}
 
 === YOUR TASK ===
 
@@ -458,7 +477,7 @@ export async function synthesizePerspective(
 
   // Separate generation constraints (always included verbatim, not sent to LLM)
   const generationConstraints = (factsWithMetadata || []).filter(
-    (f) => f.type === 'generation_constraint' && !f.disabled
+    (f) => f.type === "generation_constraint" && !f.disabled
   );
 
   // Build prompt with ALL baseline material - let LLM do the refinement
@@ -470,7 +489,7 @@ export async function synthesizePerspective(
   // Make LLM call
   const callResult = await runTextCall({
     llmClient,
-    callType: 'perspective.synthesis',
+    callType: "perspective.synthesis",
     callConfig,
     systemPrompt: SYSTEM_PROMPT,
     prompt: userPrompt,
@@ -483,32 +502,32 @@ export async function synthesizePerspective(
     const text = callResult.result.text.trim();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error('No JSON object found in response');
+      throw new Error("No JSON object found in response");
     }
     const parsed = JSON.parse(jsonMatch[0]);
 
     if (!parsed.brief) {
-      throw new Error('Missing brief in synthesis');
+      throw new Error("Missing brief in synthesis");
     }
 
     // Normalize facets
     const facets: FactFacet[] = Array.isArray(parsed.facets)
       ? parsed.facets.map((f: { factId?: string; interpretation?: string }) => ({
-          factId: f.factId || '',
-          interpretation: f.interpretation || '',
+          factId: f.factId || "",
+          interpretation: f.interpretation || "",
         }))
       : [];
 
     // Normalize suggestedMotifs
     const suggestedMotifs: string[] = Array.isArray(parsed.suggestedMotifs)
-      ? parsed.suggestedMotifs.filter((m: unknown): m is string => typeof m === 'string')
+      ? parsed.suggestedMotifs.filter((m: unknown): m is string => typeof m === "string")
       : [];
 
     // Normalize narrativeVoice
     const narrativeVoice: Record<string, string> = {};
-    if (parsed.narrativeVoice && typeof parsed.narrativeVoice === 'object') {
+    if (parsed.narrativeVoice && typeof parsed.narrativeVoice === "object") {
       for (const [key, value] of Object.entries(parsed.narrativeVoice as Record<string, unknown>)) {
-        if (typeof value === 'string') {
+        if (typeof value === "string") {
           narrativeVoice[key] = value;
         }
       }
@@ -519,15 +538,14 @@ export async function synthesizePerspective(
       ? parsed.entityDirectives
           .filter((d: { entityId?: string; directive?: string }) => d.entityId && d.directive)
           .map((d: { entityId?: string; entityName?: string; directive?: string }) => ({
-            entityId: d.entityId || '',
-            entityName: d.entityName || '',
-            directive: d.directive || '',
+            entityId: d.entityId || "",
+            entityName: d.entityName || "",
+            directive: d.directive || "",
           }))
       : [];
 
-    const temporalNarrative = typeof parsed.temporalNarrative === 'string'
-      ? parsed.temporalNarrative
-      : undefined;
+    const temporalNarrative =
+      typeof parsed.temporalNarrative === "string" ? parsed.temporalNarrative : undefined;
 
     synthesis = {
       brief: parsed.brief,
@@ -545,13 +563,13 @@ export async function synthesizePerspective(
 
   // Enforce required facts and max count (if configured)
   const worldTruthFacts = (factsWithMetadata || []).filter(
-    (f) => f.type !== 'generation_constraint' && !f.disabled
+    (f) => f.type !== "generation_constraint" && !f.disabled
   );
   const requiredFacts = worldTruthFacts.filter((f) => f.required);
   const requiredIds = requiredFacts.map((f) => f.id).filter(Boolean);
   const requestedMax = input.factSelection?.maxCount;
   const enforcedMax =
-    typeof requestedMax === 'number' && requestedMax > 0
+    typeof requestedMax === "number" && requestedMax > 0
       ? Math.max(requestedMax, requiredIds.length)
       : requiredIds.length > 6
         ? requiredIds.length
@@ -571,8 +589,8 @@ export async function synthesizePerspective(
   const buildFallbackInterpretation = (factId: string): string => {
     const focus = input.constellation?.focusSummary
       ? `In this ${input.constellation.focusSummary} chronicle, `
-      : 'In this chronicle, ';
-    const era = input.focalEra?.name ? `set in the ${input.focalEra.name} era, ` : '';
+      : "In this chronicle, ";
+    const era = input.focalEra?.name ? `set in the ${input.focalEra.name} era, ` : "";
     return `${focus}${era}this truth is foregrounded, shaping the stakes and how the entities interpret events.`;
   };
 

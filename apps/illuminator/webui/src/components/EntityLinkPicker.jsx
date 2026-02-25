@@ -5,12 +5,12 @@
  * and inserts wiki-style links at the cursor position.
  */
 
-import { useState, useMemo, useRef } from 'react';
-import { useEntityNavList } from '../lib/db/entitySelectors';
+import { useState, useMemo, useRef } from "react";
+import { useEntityNavList } from "../lib/db/entitySelectors";
 
 export default function EntityLinkPicker({ onSelect, onClose }) {
   const entities = useEntityNavList();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const mouseDownOnOverlay = useRef(false);
 
   const handleOverlayMouseDown = (e) => {
@@ -45,7 +45,11 @@ export default function EntityLinkPicker({ onSelect, onClose }) {
   };
 
   return (
-    <div className="static-page-modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
+    <div
+      className="static-page-modal-overlay"
+      onMouseDown={handleOverlayMouseDown}
+      onClick={handleOverlayClick}
+    >
       <div className="static-page-modal">
         <div className="static-page-modal-header">
           <h3>Insert Entity Link</h3>
@@ -67,7 +71,7 @@ export default function EntityLinkPicker({ onSelect, onClose }) {
           <div className="entity-link-list">
             {filteredEntities.length === 0 ? (
               <div className="entity-link-empty">
-                {search ? 'No entities match your search' : 'No entities available'}
+                {search ? "No entities match your search" : "No entities available"}
               </div>
             ) : (
               filteredEntities.map((entity) => (

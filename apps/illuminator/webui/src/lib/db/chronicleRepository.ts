@@ -5,7 +5,7 @@
  * IlluminatorDatabase instead of a standalone IndexedDB store.
  */
 
-import { db } from './illuminatorDb';
+import { db } from "./illuminatorDb";
 import type {
   ChronicleRecord,
   ChronicleGenerationVersion,
@@ -14,11 +14,17 @@ import type {
   EntityUsageStats,
   NarrativeStyleUsageStats,
   VersionStep,
-} from '../chronicleTypes';
-import type { ChronicleTemporalContext, CohesionReport, ChronicleImageRefs, ChronicleCoverImage, EraTemporalInfo } from '../chronicleTypes';
-import type { ChronicleStep } from '../enrichmentTypes';
-import type { HistorianNote } from '../historianTypes';
-import type { ChronicleRoleAssignment, ChronicleFocusType } from '../chronicleTypes';
+} from "../chronicleTypes";
+import type {
+  ChronicleTemporalContext,
+  CohesionReport,
+  ChronicleImageRefs,
+  ChronicleCoverImage,
+  EraTemporalInfo,
+} from "../chronicleTypes";
+import type { ChronicleStep } from "../enrichmentTypes";
+import type { HistorianNote } from "../historianTypes";
+import type { ChronicleRoleAssignment, ChronicleFocusType } from "../chronicleTypes";
 
 // ============================================================================
 // Re-exports (types stay in chronicleStorage for now)
@@ -52,7 +58,7 @@ export function deriveTitleFromRoles(roleAssignments: ChronicleRoleAssignment[])
   const primary = roleAssignments.filter((r) => r.isPrimary);
   if (primary.length === 0) {
     const first = roleAssignments[0];
-    return first ? `Chronicle of ${first.entityName}` : 'Untitled Chronicle';
+    return first ? `Chronicle of ${first.entityName}` : "Untitled Chronicle";
   }
   if (primary.length === 1) {
     return `Chronicle of ${primary[0].entityName}`;
@@ -68,8 +74,8 @@ export function deriveTitleFromRoles(roleAssignments: ChronicleRoleAssignment[])
  */
 export function deriveFocusType(roleAssignments: ChronicleRoleAssignment[]): ChronicleFocusType {
   const primaryCount = roleAssignments.filter((r) => r.isPrimary).length;
-  if (primaryCount <= 1) return 'single';
-  return 'ensemble';
+  if (primaryCount <= 1) return "single";
+  return "ensemble";
 }
 
 // ============================================================================
@@ -83,17 +89,17 @@ function countWords(text: string | undefined): number {
 
 function normalizeVersionId(versionId: string | undefined): string | undefined {
   if (!versionId) return versionId;
-  if (versionId.startsWith('current_')) {
-    return `version_${versionId.slice('current_'.length)}`;
+  if (versionId.startsWith("current_")) {
+    return `version_${versionId.slice("current_".length)}`;
   }
   return versionId;
 }
 
 function parseVersionTimestamp(versionId: string | undefined): number | null {
   if (!versionId) return null;
-  if (!versionId.startsWith('version_')) return null;
-  const suffix = versionId.slice('version_'.length);
-  const raw = suffix.split('_')[0];
+  if (!versionId.startsWith("version_")) return null;
+  const suffix = versionId.slice("version_".length);
+  const raw = suffix.split("_")[0];
   if (!raw) return null;
   const parsed = Number(raw);
   return Number.isFinite(parsed) ? parsed : null;
@@ -131,10 +137,7 @@ function getVersionIdForTimestamp(
   return versions.find((v) => v.generatedAt === generatedAt)?.versionId;
 }
 
-function createUniqueVersionId(
-  existingIds: Set<string>,
-  generatedAt: number
-): string {
+function createUniqueVersionId(existingIds: Set<string>, generatedAt: number): string {
   const base = `version_${generatedAt}`;
   if (!existingIds.has(base)) return base;
   let counter = 1;
@@ -144,9 +147,10 @@ function createUniqueVersionId(
   return `${base}_${counter}`;
 }
 
-function dedupeVersions(
-  versions: ChronicleGenerationVersion[]
-): { versions: ChronicleGenerationVersion[]; changed: boolean } {
+function dedupeVersions(versions: ChronicleGenerationVersion[]): {
+  versions: ChronicleGenerationVersion[];
+  changed: boolean;
+} {
   let changed = false;
   const byId = new Map<string, ChronicleGenerationVersion>();
 
@@ -178,7 +182,7 @@ function dedupeVersions(
 }
 
 function buildGenerationVersion(record: ChronicleRecord): ChronicleGenerationVersion | null {
-  const content = record.finalContent || record.assembledContent || '';
+  const content = record.finalContent || record.assembledContent || "";
   if (!content) return null;
 
   const generatedAt = record.assembledAt ?? record.createdAt;
@@ -188,14 +192,14 @@ function buildGenerationVersion(record: ChronicleRecord): ChronicleGenerationVer
     generatedAt,
     content,
     wordCount: countWords(content),
-    model: record.model || 'unknown',
+    model: record.model || "unknown",
     sampling: record.generationSampling,
     systemPrompt:
       record.generationSystemPrompt ||
-      '(prompt not stored - chronicle generated before prompt storage was implemented)',
+      "(prompt not stored - chronicle generated before prompt storage was implemented)",
     userPrompt:
       record.generationUserPrompt ||
-      '(prompt not stored - chronicle generated before prompt storage was implemented)',
+      "(prompt not stored - chronicle generated before prompt storage was implemented)",
     step: record.generationStep,
   };
 }
@@ -231,22 +235,22 @@ function ensureChronicleVersions(record: ChronicleRecord): boolean {
   if (hasAssembled) {
     const generatedAt = record.assembledAt ?? record.createdAt;
     const existingId = getVersionIdForTimestamp(versions, generatedAt);
-    const currentVersionId = existingId
-      || createUniqueVersionId(new Set(versions.map((v) => v.versionId)), generatedAt);
+    const currentVersionId =
+      existingId || createUniqueVersionId(new Set(versions.map((v) => v.versionId)), generatedAt);
     const existingIndex = versions.findIndex((v) => v.versionId === currentVersionId);
     const systemPrompt =
       record.generationSystemPrompt ||
-      '(prompt not stored - chronicle generated before prompt storage was implemented)';
+      "(prompt not stored - chronicle generated before prompt storage was implemented)";
     const userPrompt =
       record.generationUserPrompt ||
-      '(prompt not stored - chronicle generated before prompt storage was implemented)';
+      "(prompt not stored - chronicle generated before prompt storage was implemented)";
     if (existingIndex === -1) {
       versions.push({
         versionId: currentVersionId,
         generatedAt,
-        content: record.assembledContent || '',
+        content: record.assembledContent || "",
         wordCount: countWords(record.assembledContent),
-        model: record.model || 'unknown',
+        model: record.model || "unknown",
         sampling: record.generationSampling,
         systemPrompt,
         userPrompt,
@@ -258,7 +262,7 @@ function ensureChronicleVersions(record: ChronicleRecord): boolean {
       const next = {
         ...existing,
         generatedAt,
-        content: record.assembledContent || '',
+        content: record.assembledContent || "",
         wordCount: countWords(record.assembledContent),
         model: record.model || existing.model,
         sampling: record.generationSampling ?? existing.sampling,
@@ -300,15 +304,24 @@ function ensureChronicleVersions(record: ChronicleRecord): boolean {
       record.activeVersionId = latest?.versionId;
       changed = true;
     }
-    if (record.acceptedVersionId && !versions.some((v) => v.versionId === record.acceptedVersionId)) {
+    if (
+      record.acceptedVersionId &&
+      !versions.some((v) => v.versionId === record.acceptedVersionId)
+    ) {
       record.acceptedVersionId = record.activeVersionId;
       changed = true;
     }
-    if (record.summaryTargetVersionId && !versions.some((v) => v.versionId === record.summaryTargetVersionId)) {
+    if (
+      record.summaryTargetVersionId &&
+      !versions.some((v) => v.versionId === record.summaryTargetVersionId)
+    ) {
       record.summaryTargetVersionId = record.activeVersionId;
       changed = true;
     }
-    if (record.imageRefsTargetVersionId && !versions.some((v) => v.versionId === record.imageRefsTargetVersionId)) {
+    if (
+      record.imageRefsTargetVersionId &&
+      !versions.some((v) => v.versionId === record.imageRefsTargetVersionId)
+    ) {
       record.imageRefsTargetVersionId = record.activeVersionId;
       changed = true;
     }
@@ -376,7 +389,7 @@ export async function createChronicleShell(
     entrypointId: metadata.entrypointId,
 
     // Generation state - starts as 'generating'
-    status: 'generating',
+    status: "generating",
     editVersion: 0,
     validationStale: false,
     totalEstimatedCost: 0,
@@ -415,7 +428,7 @@ export async function createChronicle(
     sampling: metadata.generationSampling,
     systemPrompt: metadata.generationSystemPrompt,
     userPrompt: metadata.generationUserPrompt,
-    step: 'generate',
+    step: "generate",
   };
   const record: ChronicleRecord = {
     chronicleId,
@@ -445,10 +458,10 @@ export async function createChronicle(
     generationSystemPrompt: metadata.generationSystemPrompt,
     generationUserPrompt: metadata.generationUserPrompt,
     generationSampling: metadata.generationSampling,
-    generationStep: 'generate',
+    generationStep: "generate",
     generationHistory: [initialVersion],
     activeVersionId,
-    status: 'assembly_ready',
+    status: "assembly_ready",
     assembledContent: metadata.assembledContent,
     assembledAt,
     editVersion: 0,
@@ -486,16 +499,16 @@ export async function updateChronicleAssembly(
   const versionId = createUniqueVersionId(existingIds, generatedAt);
   const systemPrompt =
     record.generationSystemPrompt ||
-    '(prompt not stored - chronicle generated before prompt storage was implemented)';
+    "(prompt not stored - chronicle generated before prompt storage was implemented)";
   const userPrompt =
     record.generationUserPrompt ||
-    '(prompt not stored - chronicle generated before prompt storage was implemented)';
+    "(prompt not stored - chronicle generated before prompt storage was implemented)";
   const nextVersion: ChronicleGenerationVersion = {
     versionId,
     generatedAt,
     content: assembledContent,
     wordCount: countWords(assembledContent),
-    model: record.model || 'unknown',
+    model: record.model || "unknown",
     sampling: record.generationSampling,
     systemPrompt,
     userPrompt,
@@ -505,7 +518,7 @@ export async function updateChronicleAssembly(
 
   record.assembledContent = assembledContent;
   record.assembledAt = generatedAt;
-  record.status = 'assembly_ready';
+  record.status = "assembly_ready";
   record.failureStep = undefined;
   record.failureReason = undefined;
   record.failedAt = undefined;
@@ -532,14 +545,14 @@ export async function regenerateChronicleAssembly(
     systemPrompt: string;
     userPrompt: string;
     model: string;
-    sampling?: ChronicleRecord['generationSampling'];
+    sampling?: ChronicleRecord["generationSampling"];
     cost: { estimated: number; actual: number; inputTokens: number; outputTokens: number };
     step?: VersionStep;
   }
 ): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
-  if (record.status === 'complete' || record.finalContent) {
+  if (record.status === "complete" || record.finalContent) {
     throw new Error(`Chronicle ${chronicleId} is already accepted`);
   }
   if (!updates.sampling) {
@@ -565,7 +578,7 @@ export async function regenerateChronicleAssembly(
 
   record.assembledContent = updates.assembledContent;
   record.assembledAt = generatedAt;
-  record.status = 'assembly_ready';
+  record.status = "assembly_ready";
   record.generationSystemPrompt = updates.systemPrompt;
   record.generationUserPrompt = updates.userPrompt;
   record.generationSampling = updates.sampling;
@@ -613,16 +626,16 @@ export async function updateChronicleEdit(
   const versionId = createUniqueVersionId(existingIds, generatedAt);
   const systemPrompt =
     record.generationSystemPrompt ||
-    '(prompt not stored - chronicle generated before prompt storage was implemented)';
+    "(prompt not stored - chronicle generated before prompt storage was implemented)";
   const userPrompt =
     record.generationUserPrompt ||
-    '(prompt not stored - chronicle generated before prompt storage was implemented)';
+    "(prompt not stored - chronicle generated before prompt storage was implemented)";
   const nextVersion: ChronicleGenerationVersion = {
     versionId,
     generatedAt,
     content: assembledContent,
     wordCount: countWords(assembledContent),
-    model: record.model || 'unknown',
+    model: record.model || "unknown",
     sampling: record.generationSampling,
     systemPrompt,
     userPrompt,
@@ -641,7 +654,7 @@ export async function updateChronicleEdit(
   record.summaryModel = undefined;
   // Preserve imageRefs and coverImage - user decides via keep/regenerate UI
   record.validationStale = false;
-  record.status = 'editing';
+  record.status = "editing";
   record.failureStep = undefined;
   record.failureReason = undefined;
   record.failedAt = undefined;
@@ -668,7 +681,7 @@ export async function updateChronicleFailure(
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
 
-  record.status = 'failed';
+  record.status = "failed";
   record.failureStep = step;
   record.failureReason = reason;
   record.failedAt = Date.now();
@@ -690,7 +703,7 @@ export async function updateChronicleCohesion(
 
   record.cohesionReport = cohesionReport;
   record.validatedAt = Date.now();
-  record.status = 'validation_ready';
+  record.status = "validation_ready";
   record.failureStep = undefined;
   record.failureReason = undefined;
   record.failedAt = undefined;
@@ -741,7 +754,7 @@ export async function updateChronicleTemporalCheckReport(
 
 export async function updateChronicleQuickCheckReport(
   chronicleId: string,
-  report: import('../chronicleTypes').QuickCheckReport,
+  report: import("../chronicleTypes").QuickCheckReport
 ): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
@@ -758,7 +771,7 @@ export async function updateChronicleQuickCheckReport(
  */
 export async function updateChronicleFactCoverage(
   chronicleId: string,
-  report: import('../chronicleTypes').FactCoverageReport,
+  report: import("../chronicleTypes").FactCoverageReport
 ): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
@@ -780,7 +793,7 @@ export async function repairFactCoverageWasFaceted(): Promise<number> {
   for (const record of all) {
     if (!record.factCoverageReport?.entries?.length) continue;
     const facetedIds = new Set(
-      (record.perspectiveSynthesis?.facets ?? []).map((f: { factId: string }) => f.factId),
+      (record.perspectiveSynthesis?.facets ?? []).map((f: { factId: string }) => f.factId)
     );
     let changed = false;
     for (const entry of record.factCoverageReport.entries) {
@@ -805,11 +818,18 @@ export async function repairFactCoverageWasFaceted(): Promise<number> {
  * Returns a Map of factId → strength percentage (0-100).
  * Weighted: integral=3, prevalent=2, mentioned=1, missing=0, divided by max possible.
  */
-export async function computeCorpusFactStrength(simulationRunId: string): Promise<Map<string, number>> {
-  const chronicles = await db.chronicles.where('simulationRunId').equals(simulationRunId).toArray();
+export async function computeCorpusFactStrength(
+  simulationRunId: string
+): Promise<Map<string, number>> {
+  const chronicles = await db.chronicles.where("simulationRunId").equals(simulationRunId).toArray();
   const totals = new Map<string, { weighted: number; count: number }>();
 
-  const ratingWeight: Record<string, number> = { integral: 3, prevalent: 2, mentioned: 1, missing: 0 };
+  const ratingWeight: Record<string, number> = {
+    integral: 3,
+    prevalent: 2,
+    mentioned: 1,
+    missing: 0,
+  };
 
   for (const chronicle of chronicles) {
     if (!chronicle.factCoverageReport?.entries?.length) continue;
@@ -840,13 +860,13 @@ export interface ReinforcementCounts {
  * Scans both chronicle.reinforcedFacts and entity.enrichment.reinforcedFacts.
  */
 export async function computeAnnotationReinforcementCounts(
-  simulationRunId: string,
+  simulationRunId: string
 ): Promise<ReinforcementCounts> {
   const counts = new Map<string, number>();
   let totalAnnotationsWithGuidance = 0;
 
   // Chronicle reinforcements
-  const chronicles = await db.chronicles.where('simulationRunId').equals(simulationRunId).toArray();
+  const chronicles = await db.chronicles.where("simulationRunId").equals(simulationRunId).toArray();
   for (const c of chronicles) {
     if (!c.reinforcedFacts?.length) continue;
     totalAnnotationsWithGuidance++;
@@ -856,7 +876,7 @@ export async function computeAnnotationReinforcementCounts(
   }
 
   // Entity reinforcements
-  const entities = await db.entities.where('simulationRunId').equals(simulationRunId).toArray();
+  const entities = await db.entities.where("simulationRunId").equals(simulationRunId).toArray();
   for (const e of entities) {
     const rf = e.enrichment?.reinforcedFacts;
     if (!rf?.length) continue;
@@ -874,7 +894,7 @@ export async function computeAnnotationReinforcementCounts(
  */
 export async function updateChronicleTertiaryCast(
   chronicleId: string,
-  entries: import('../chronicleTypes').TertiaryCastEntry[],
+  entries: import("../chronicleTypes").TertiaryCastEntry[]
 ): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
@@ -939,7 +959,7 @@ export async function updateChronicleTitle(
   candidates: string[],
   fragments: string[],
   cost: { estimated: number; actual: number; inputTokens: number; outputTokens: number },
-  model: string,
+  model: string
 ): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
@@ -1025,14 +1045,14 @@ export async function updateChronicleImageRef(
   chronicleId: string,
   refId: string,
   updates: {
-    status?: 'pending' | 'generating' | 'complete' | 'failed';
+    status?: "pending" | "generating" | "complete" | "failed";
     generatedImageId?: string;
     error?: string;
     anchorText?: string;
     anchorIndex?: number;
     caption?: string;
-    size?: 'small' | 'medium' | 'large' | 'full-width';
-    justification?: 'left' | 'right' | null;
+    size?: "small" | "medium" | "large" | "full-width";
+    justification?: "left" | "right" | null;
     sceneDescription?: string;
   }
 ): Promise<void> {
@@ -1047,10 +1067,12 @@ export async function updateChronicleImageRef(
 
   const ref = record.imageRefs.refs[refIndex];
   const wantsPromptUpdates =
-    updates.status !== undefined || updates.generatedImageId !== undefined ||
-    updates.error !== undefined || updates.sceneDescription !== undefined;
+    updates.status !== undefined ||
+    updates.generatedImageId !== undefined ||
+    updates.error !== undefined ||
+    updates.sceneDescription !== undefined;
 
-  if (wantsPromptUpdates && ref.type !== 'prompt_request') {
+  if (wantsPromptUpdates && ref.type !== "prompt_request") {
     throw new Error(`Image ref ${refId} is not a prompt request`);
   }
 
@@ -1073,7 +1095,7 @@ export async function updateChronicleImageRef(
   }
 
   // Apply prompt request updates
-  if (ref.type === 'prompt_request') {
+  if (ref.type === "prompt_request") {
     if (updates.sceneDescription !== undefined) ref.sceneDescription = updates.sceneDescription;
     if (updates.status !== undefined) ref.status = updates.status;
     if (updates.generatedImageId !== undefined) {
@@ -1107,7 +1129,7 @@ export async function updateChronicleImageRef(
  */
 export async function applyImageRefSelections(
   chronicleId: string,
-  selections: Array<{ refId: string; action: 'reuse' | 'regenerate' | 'skip' }>,
+  selections: Array<{ refId: string; action: "reuse" | "regenerate" | "skip" }>,
   newTargetVersionId: string
 ): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
@@ -1119,16 +1141,16 @@ export async function applyImageRefSelections(
   // Filter and transform refs based on selections
   const updatedRefs = record.imageRefs.refs
     .filter((ref) => {
-      const action = selectionMap.get(ref.refId) ?? 'reuse';
-      return action !== 'skip';
+      const action = selectionMap.get(ref.refId) ?? "reuse";
+      return action !== "skip";
     })
     .map((ref) => {
-      const action = selectionMap.get(ref.refId) ?? 'reuse';
-      if (action === 'regenerate' && ref.type === 'prompt_request') {
+      const action = selectionMap.get(ref.refId) ?? "reuse";
+      if (action === "regenerate" && ref.type === "prompt_request") {
         // Reset prompt request refs for regeneration
         return {
           ...ref,
-          status: 'pending' as const,
+          status: "pending" as const,
           generatedImageId: undefined,
           error: undefined,
         };
@@ -1176,7 +1198,7 @@ export async function updateChronicleCoverImage(
 export async function updateChronicleCoverImageStatus(
   chronicleId: string,
   updates: {
-    status: 'pending' | 'generating' | 'complete' | 'failed';
+    status: "pending" | "generating" | "complete" | "failed";
     generatedImageId?: string;
     error?: string;
   }
@@ -1227,10 +1249,10 @@ export async function updateChronicleTemporalContext(
  */
 export async function refreshEraSummariesInChronicles(
   simulationRunId: string,
-  currentEras: EraTemporalInfo[],
+  currentEras: EraTemporalInfo[]
 ): Promise<number> {
-  const summaryMap = new Map(currentEras.map(e => [e.id, e.summary || '']));
-  const records = await db.chronicles.where('simulationRunId').equals(simulationRunId).toArray();
+  const summaryMap = new Map(currentEras.map((e) => [e.id, e.summary || ""]));
+  const records = await db.chronicles.where("simulationRunId").equals(simulationRunId).toArray();
 
   const toUpdate: ChronicleRecord[] = [];
 
@@ -1239,7 +1261,7 @@ export async function refreshEraSummariesInChronicles(
 
     // Patch temporalContext.allEras + focalEra
     if (record.temporalContext) {
-      const patchedAllEras = record.temporalContext.allEras.map(era => {
+      const patchedAllEras = record.temporalContext.allEras.map((era) => {
         const newSummary = summaryMap.get(era.id);
         if (newSummary !== undefined && newSummary !== era.summary) {
           changed = true;
@@ -1267,7 +1289,10 @@ export async function refreshEraSummariesInChronicles(
     // Patch perspectiveSynthesis.focalEra.description
     if (record.perspectiveSynthesis?.focalEra?.id) {
       const newSummary = summaryMap.get(record.perspectiveSynthesis.focalEra.id);
-      if (newSummary !== undefined && newSummary !== record.perspectiveSynthesis.focalEra.description) {
+      if (
+        newSummary !== undefined &&
+        newSummary !== record.perspectiveSynthesis.focalEra.description
+      ) {
         changed = true;
         record.perspectiveSynthesis = {
           ...record.perspectiveSynthesis,
@@ -1313,7 +1338,7 @@ export async function acceptChronicle(
   record.acceptedVersionId = acceptedVersionId;
   record.activeVersionId = acceptedVersionId;
   record.acceptedAt = Date.now();
-  record.status = 'complete';
+  record.status = "complete";
   record.updatedAt = Date.now();
 
   await db.chronicles.put(record);
@@ -1329,7 +1354,7 @@ export async function unpublishChronicle(chronicleId: string): Promise<void> {
   delete record.finalContent;
   delete record.acceptedAt;
   delete record.acceptedVersionId;
-  record.status = 'assembly_ready';
+  record.status = "assembly_ready";
   record.updatedAt = Date.now();
 
   await db.chronicles.put(record);
@@ -1345,7 +1370,7 @@ export async function updateChronicleActiveVersion(
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
 
-  if (record.status === 'complete' || record.finalContent) {
+  if (record.status === "complete" || record.finalContent) {
     throw new Error(`Chronicle ${chronicleId} is accepted; unpublish before changing versions`);
   }
 
@@ -1390,7 +1415,7 @@ export async function deleteChronicleVersion(
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
 
-  if (record.status === 'complete' || record.finalContent) {
+  if (record.status === "complete" || record.finalContent) {
     throw new Error(`Chronicle ${chronicleId} is accepted; unpublish before deleting versions`);
   }
 
@@ -1443,7 +1468,7 @@ export async function deleteChronicleVersion(
  */
 export async function updateChronicleEntityBackportStatus(
   chronicleId: string,
-  entries: import('../chronicleTypes').EntityBackportEntry[],
+  entries: import("../chronicleTypes").EntityBackportEntry[]
 ): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
@@ -1465,7 +1490,7 @@ export async function updateChronicleHistorianNotes(
   chronicleId: string,
   historianNotes: HistorianNote[],
   prompts?: { systemPrompt: string; userPrompt: string },
-  reinforcedFacts?: string[],
+  reinforcedFacts?: string[]
 ): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
@@ -1490,7 +1515,7 @@ export async function startChronicleValidation(chronicleId: string): Promise<voi
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
 
-  record.status = 'validating';
+  record.status = "validating";
   record.updatedAt = Date.now();
 
   await db.chronicles.put(record);
@@ -1509,9 +1534,9 @@ export async function startChronicleValidation(chronicleId: string): Promise<voi
 export async function batchUpdateChronicleEraYears(
   assignments: Array<{ chronicleId: string; eraYear: number; eraYearReasoning?: string }>
 ): Promise<number> {
-  const ids = assignments.map(a => a.chronicleId);
-  const records = await db.chronicles.where('chronicleId').anyOf(ids).toArray();
-  const recordMap = new Map(records.map(r => [r.chronicleId, r]));
+  const ids = assignments.map((a) => a.chronicleId);
+  const records = await db.chronicles.where("chronicleId").anyOf(ids).toArray();
+  const recordMap = new Map(records.map((r) => [r.chronicleId, r]));
   const now = Date.now();
 
   const toUpdate: ChronicleRecord[] = [];
@@ -1542,8 +1567,10 @@ export async function getChronicle(chronicleId: string): Promise<ChronicleRecord
 /**
  * Get all chronicles for a specific simulation run
  */
-export async function getChroniclesForSimulation(simulationRunId: string): Promise<ChronicleRecord[]> {
-  const records = await db.chronicles.where('simulationRunId').equals(simulationRunId).toArray();
+export async function getChroniclesForSimulation(
+  simulationRunId: string
+): Promise<ChronicleRecord[]> {
+  const records = await db.chronicles.where("simulationRunId").equals(simulationRunId).toArray();
   const updates: ChronicleRecord[] = [];
   for (const record of records) {
     if (ensureChronicleVersions(record)) {
@@ -1603,7 +1630,7 @@ export async function getEntityUsageStats(
 
   for (const chronicle of chronicles) {
     // Only count chronicles that have been generated (not just shells)
-    if (chronicle.status === 'generating') continue;
+    if (chronicle.status === "generating") continue;
 
     for (const entityId of chronicle.selectedEntityIds) {
       const existing = stats.get(entityId);
@@ -1665,7 +1692,10 @@ export async function getNarrativeStyleUsageStats(
  */
 export async function reconcileBackportStatusFromEntities(
   simulationRunId: string,
-  entities: Array<{ id: string; enrichment?: { chronicleBackrefs?: Array<{ chronicleId: string }> } }>,
+  entities: Array<{
+    id: string;
+    enrichment?: { chronicleBackrefs?: Array<{ chronicleId: string }> };
+  }>
 ): Promise<number> {
   const chronicles = await getChroniclesForSimulation(simulationRunId);
 
@@ -1674,7 +1704,7 @@ export async function reconcileBackportStatusFromEntities(
   for (const entity of entities) {
     const refs = entity.enrichment?.chronicleBackrefs;
     if (refs && refs.length > 0) {
-      entityBackrefs.set(entity.id, new Set(refs.map(r => r.chronicleId)));
+      entityBackrefs.set(entity.id, new Set(refs.map((r) => r.chronicleId)));
     }
   }
 
@@ -1691,11 +1721,11 @@ export async function reconcileBackportStatusFromEntities(
     }
 
     // Build new status map from actual backrefs only
-    const newStatus: Record<string, import('../chronicleTypes').EntityBackportEntry> = {};
+    const newStatus: Record<string, import("../chronicleTypes").EntityBackportEntry> = {};
     for (const entityId of eligibleIds) {
       const backrefSet = entityBackrefs.get(entityId);
       if (backrefSet && backrefSet.has(chronicle.chronicleId)) {
-        newStatus[entityId] = { entityId, status: 'backported', updatedAt: now };
+        newStatus[entityId] = { entityId, status: "backported", updatedAt: now };
       }
     }
 
@@ -1703,9 +1733,10 @@ export async function reconcileBackportStatusFromEntities(
     const oldStatus = chronicle.entityBackportStatus || {};
     const oldKeys = Object.keys(oldStatus).sort();
     const newKeys = Object.keys(newStatus).sort();
-    const changed = oldKeys.length !== newKeys.length
-      || oldKeys.some((k, i) => k !== newKeys[i])
-      || oldKeys.some(k => oldStatus[k].status !== newStatus[k]?.status);
+    const changed =
+      oldKeys.length !== newKeys.length ||
+      oldKeys.some((k, i) => k !== newKeys[i]) ||
+      oldKeys.some((k) => oldStatus[k].status !== newStatus[k]?.status);
 
     if (changed) {
       chronicle.entityBackportStatus = newStatus;
@@ -1755,13 +1786,17 @@ export async function updateChronicleToneRanking(
   ranking: [string, string, string],
   rationale: string,
   cost?: number,
-  rationales?: Record<string, string>,
+  rationales?: Record<string, string>
 ): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
 
   record.toneRanking = {
-    ranking: ranking as [import('../historianTypes').HistorianTone, import('../historianTypes').HistorianTone, import('../historianTypes').HistorianTone],
+    ranking: ranking as [
+      import("../historianTypes").HistorianTone,
+      import("../historianTypes").HistorianTone,
+      import("../historianTypes").HistorianTone,
+    ],
     rationale,
     rationales,
     generatedAt: Date.now(),
@@ -1774,12 +1809,12 @@ export async function updateChronicleToneRanking(
 
 export async function updateChronicleAssignedTone(
   chronicleId: string,
-  tone: string,
+  tone: string
 ): Promise<void> {
   const record = await db.chronicles.get(chronicleId);
   if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
 
-  record.assignedTone = tone as import('../historianTypes').HistorianTone;
+  record.assignedTone = tone as import("../historianTypes").HistorianTone;
   record.updatedAt = Date.now();
 
   await db.chronicles.put(record);

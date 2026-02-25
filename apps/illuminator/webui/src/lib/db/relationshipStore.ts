@@ -11,16 +11,14 @@
  * Dexie remains the source of truth.
  */
 
-import { create } from 'zustand';
-import type { WorldRelationship } from '@canonry/world-schema';
-import type { PersistedRelationship } from './illuminatorDb';
-import * as relationshipRepo from './relationshipRepository';
+import { create } from "zustand";
+import type { WorldRelationship } from "@canonry/world-schema";
+import type { PersistedRelationship } from "./illuminatorDb";
+import * as relationshipRepo from "./relationshipRepository";
 
 export type RelationshipIndex = Map<string, WorldRelationship[]>;
 
-function buildRelationshipIndex(
-  relationships: WorldRelationship[] = []
-): RelationshipIndex {
+function buildRelationshipIndex(relationships: WorldRelationship[] = []): RelationshipIndex {
   const index: RelationshipIndex = new Map();
 
   for (const rel of relationships) {
@@ -76,7 +74,7 @@ export const useRelationshipStore = create<RelationshipStoreState>((set, get) =>
         loading: false,
       });
     } catch (err) {
-      console.error('[RelationshipStore] Failed to initialize:', err);
+      console.error("[RelationshipStore] Failed to initialize:", err);
       set({
         error: err instanceof Error ? err.message : String(err),
         loading: false,

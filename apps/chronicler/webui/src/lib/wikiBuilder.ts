@@ -26,19 +26,19 @@ import type {
   Region,
   NarrativeEvent,
   ImageAspect,
-} from '../types/world.ts';
-import type { ChronicleRecord } from './chronicleStorage.ts';
-import { getChronicleContent } from './chronicleStorage.ts';
-import type { StaticPage } from './staticPageStorage.ts';
-import type { EraNarrativeViewRecord } from './eraNarrativeStorage.ts';
-import { applyWikiLinks } from './entityLinking.ts';
+} from "../types/world.ts";
+import type { ChronicleRecord } from "./chronicleStorage.ts";
+import { getChronicleContent } from "./chronicleStorage.ts";
+import type { StaticPage } from "./staticPageStorage.ts";
+import type { EraNarrativeViewRecord } from "./eraNarrativeStorage.ts";
+import { applyWikiLinks } from "./entityLinking.ts";
 import {
   buildProminenceScale,
   DEFAULT_PROMINENCE_DISTRIBUTION,
   prominenceLabelFromScale,
   type ProminenceScale,
-} from '@canonry/world-schema';
-import { resolveAnchorPhrase } from './fuzzyAnchor.ts';
+} from "@canonry/world-schema";
+import { resolveAnchorPhrase } from "./fuzzyAnchor.ts";
 
 // Re-export for backwards compatibility
 export { applyWikiLinks };
@@ -53,13 +53,13 @@ interface ChronicleImageRef {
   anchorText: string;
   /** Character index where anchorText was found (fallback if text changes) */
   anchorIndex?: number;
-  size: 'small' | 'medium' | 'large' | 'full-width';
-  justification?: 'left' | 'right';
+  size: "small" | "medium" | "large" | "full-width";
+  justification?: "left" | "right";
   caption?: string;
-  type: 'entity_ref' | 'prompt_request';
+  type: "entity_ref" | "prompt_request";
   entityId?: string;
   sceneDescription?: string;
-  status?: 'pending' | 'generating' | 'complete' | 'failed';
+  status?: "pending" | "generating" | "complete" | "failed";
   generatedImageId?: string;
 }
 
@@ -89,7 +89,15 @@ export function buildWikiPages(
 
   // Build entity pages
   for (const entity of worldData.hardState) {
-    const page = buildEntityPage(entity, worldData, loreIndex, imageIndex, aliasIndex, resolvedProminenceScale, chronicles);
+    const page = buildEntityPage(
+      entity,
+      worldData,
+      loreIndex,
+      imageIndex,
+      aliasIndex,
+      resolvedProminenceScale,
+      chronicles
+    );
     pages.push(page);
   }
 
@@ -113,7 +121,7 @@ function resolveProminenceScale(
   if (prominenceScale) return prominenceScale;
   const values = worldData.hardState
     .map((entity) => entity.prominence)
-    .filter((value) => typeof value === 'number' && Number.isFinite(value));
+    .filter((value) => typeof value === "number" && Number.isFinite(value));
   return buildProminenceScale(values, { distribution: DEFAULT_PROMINENCE_DISTRIBUTION });
 }
 
@@ -123,7 +131,7 @@ function resolveProminenceScale(
  *       "Aurora Stack" -> { namespace: undefined, baseName: "Aurora Stack" }
  */
 function parseNamespace(title: string): { namespace?: string; baseName: string } {
-  const colonIndex = title.indexOf(':');
+  const colonIndex = title.indexOf(":");
   if (colonIndex > 0 && colonIndex < title.length - 1) {
     return {
       namespace: title.slice(0, colonIndex).trim(),
@@ -205,7 +213,10 @@ function buildLinkableNamesForBacklinks(
 /**
  * Look up a region by ID across all entity kinds
  */
-function findRegionById(worldData: WorldState, regionId: string): { region: Region; entityKind: string } | null {
+function findRegionById(
+  worldData: WorldState,
+  regionId: string
+): { region: Region; entityKind: string } | null {
   for (const kindDef of worldData.schema.entityKinds) {
     const seedRegions = kindDef.semanticPlane?.regions ?? [];
     const emergentRegions = worldData.coordinateState?.emergentRegions?.[kindDef.kind] ?? [];
@@ -231,7 +242,7 @@ export function buildPageIndex(
   chronicles: ChronicleRecord[] = [],
   staticPages: StaticPage[] = [],
   prominenceScale?: ProminenceScale,
-  eraNarratives: EraNarrativeViewRecord[] = [],
+  eraNarratives: EraNarrativeViewRecord[] = []
 ): WikiPageIndex {
   const resolvedProminenceScale = resolveProminenceScale(worldData, prominenceScale);
   const entries: PageIndexEntry[] = [];
@@ -241,7 +252,7 @@ export function buildPageIndex(
   const bySlug = new Map<string, string>();
 
   // Build entity name lookup for resolving linked entity names to IDs
-  const entityByName = new Map(worldData.hardState.map(e => [e.name.toLowerCase(), e.id]));
+  const entityByName = new Map(worldData.hardState.map((e) => [e.name.toLowerCase(), e.id]));
 
   // Note: loreIndex is not built here - it's only needed for full page builds (buildPageById)
   // Summary/description/aliases are now read directly from entity fields
@@ -251,7 +262,7 @@ export function buildPageIndex(
   // (their name/slug lookups will redirect to the era narrative page instead)
   const eraNarrativeByEraId = new Map<string, EraNarrativeViewRecord>();
   for (const narrative of eraNarratives) {
-    if (narrative.status === 'complete' && narrative.content) {
+    if (narrative.status === "complete" && narrative.content) {
       eraNarrativeByEraId.set(narrative.eraId, narrative);
     }
   }
@@ -259,24 +270,24 @@ export function buildPageIndex(
   // Build entity index entries
   for (const entity of worldData.hardState) {
     // Summary and description are now directly on entity
-    const summary = entity.summary || '';
+    const summary = entity.summary || "";
     // Aliases are in enrichment.text (the old lore record format is dead code)
     const aliases = Array.isArray(entity.enrichment?.text?.aliases)
       ? entity.enrichment.text.aliases
-        .filter((alias): alias is string => typeof alias === 'string')
-        .map((alias) => alias.trim())
-        .filter(Boolean)
+          .filter((alias): alias is string => typeof alias === "string")
+          .map((alias) => alias.trim())
+          .filter(Boolean)
       : [];
 
     // When an era has a completed narrative, suppress the era entity page:
     // keep it in byId (for direct ID lookups) but exclude from entries/byName/bySlug
     // so it doesn't appear in lists, search, or name-based link resolution.
-    const hasEraNarrative = entity.kind === 'era' && eraNarrativeByEraId.has(entity.id);
+    const hasEraNarrative = entity.kind === "era" && eraNarrativeByEraId.has(entity.id);
 
     const entry: PageIndexEntry = {
       id: entity.id,
       title: entity.name,
-      type: entity.kind === 'era' ? 'era' : 'entity',
+      type: entity.kind === "era" ? "era" : "entity",
       slug: slugify(entity.name),
       summary: summary || undefined,
       aliases: aliases.length > 0 ? aliases : undefined,
@@ -325,7 +336,7 @@ export function buildPageIndex(
     const entry: PageIndexEntry = {
       id: narrative.narrativeId,
       title: narrative.eraName,
-      type: 'era_narrative',
+      type: "era_narrative",
       slug: narrativeSlug,
       summary: narrative.thesis || undefined,
       categories: [],
@@ -333,11 +344,12 @@ export function buildPageIndex(
         eraId: narrative.eraId,
         tone: narrative.tone,
         thesis: narrative.thesis,
-        sourceChronicleIds: narrative.sourceChronicles.map(s => s.chronicleId),
+        sourceChronicleIds: narrative.sourceChronicles.map((s) => s.chronicleId),
       },
-      coverImageId: narrative.coverImage?.status === 'complete' && narrative.coverImage?.generatedImageId
-        ? narrative.coverImage.generatedImageId
-        : undefined,
+      coverImageId:
+        narrative.coverImage?.status === "complete" && narrative.coverImage?.generatedImageId
+          ? narrative.coverImage.generatedImageId
+          : undefined,
       linkedEntities: [], // Computed on full page build
       lastUpdated: narrative.updatedAt,
     };
@@ -364,12 +376,12 @@ export function buildPageIndex(
 
     const title = chronicle.title;
     const titleSlug = slugify(title);
-    const chronicleSlug = titleSlug ? `chronicle/${titleSlug}` : '';
+    const chronicleSlug = titleSlug ? `chronicle/${titleSlug}` : "";
 
     const entry: PageIndexEntry = {
       id: chronicle.chronicleId,
       title,
-      type: 'chronicle',
+      type: "chronicle",
       slug: chronicleSlug,
       summary: chronicle.summary || undefined,
       categories: [],
@@ -382,9 +394,10 @@ export function buildPageIndex(
         selectedRelationshipIds: chronicle.selectedRelationshipIds,
         temporalContext: chronicle.temporalContext,
       },
-      coverImageId: chronicle.coverImage?.status === 'complete' && chronicle.coverImage?.generatedImageId
-        ? chronicle.coverImage.generatedImageId
-        : undefined,
+      coverImageId:
+        chronicle.coverImage?.status === "complete" && chronicle.coverImage?.generatedImageId
+          ? chronicle.coverImage.generatedImageId
+          : undefined,
       linkedEntities: chronicle.selectedEntityIds,
       lastUpdated: chronicle.acceptedAt || chronicle.updatedAt,
     };
@@ -430,9 +443,11 @@ export function buildPageIndex(
 
   // Backlink extraction for chronicle index entries (match auto-linking behavior)
   if (chronicles.length > 0) {
-    const chronicleById = new Map(chronicles.map(chronicle => [chronicle.chronicleId, chronicle]));
+    const chronicleById = new Map(
+      chronicles.map((chronicle) => [chronicle.chronicleId, chronicle])
+    );
     for (const entry of entries) {
-      if (entry.type !== 'chronicle') continue;
+      if (entry.type !== "chronicle") continue;
       const chronicle = chronicleById.get(entry.id);
       if (!chronicle) continue;
       const linked = new Set(entry.linkedEntities);
@@ -444,12 +459,12 @@ export function buildPageIndex(
       if (content) {
         const linkedContent = applyWikiLinks(content, linkableNames);
         const extracted = extractLinkedEntities(
-          [{ id: 'temp', heading: '', level: 2, content: linkedContent }],
+          [{ id: "temp", heading: "", level: 2, content: linkedContent }],
           worldData,
           byAlias,
           byName
         );
-        extracted.forEach(id => linked.add(id));
+        extracted.forEach((id) => linked.add(id));
       }
 
       entry.linkedEntities = Array.from(linked);
@@ -488,7 +503,7 @@ export function buildPageIndex(
     const entry: PageIndexEntry = {
       id: staticPage.pageId,
       title: staticPage.title,
-      type: 'static',
+      type: "static",
       slug: buildStaticPageSlug(staticPage),
       summary: staticPage.summary || undefined,
       categories: [],
@@ -506,7 +521,7 @@ export function buildPageIndex(
       bySlug.set(entry.slug, entry.id);
     }
     // Legacy URL support: previous static page hashes used "page/{slug}"
-    const legacySlug = staticPage.slug ? `page/${staticPage.slug}` : '';
+    const legacySlug = staticPage.slug ? `page/${staticPage.slug}` : "";
     if (legacySlug && !bySlug.has(legacySlug)) {
       bySlug.set(legacySlug, entry.id);
     }
@@ -528,7 +543,7 @@ export function buildPageIndex(
   }
 
   const categories: WikiCategory[] = Array.from(categoryMap.values())
-    .map(cat => ({ ...cat, type: 'auto' as const }))
+    .map((cat) => ({ ...cat, type: "auto" as const }))
     .sort((a, b) => b.pageCount - a.pageCount);
 
   // Add category entries to index
@@ -536,10 +551,10 @@ export function buildPageIndex(
     const entry: PageIndexEntry = {
       id: `category-${category.id}`,
       title: `Category: ${category.name}`,
-      type: 'category',
+      type: "category",
       slug: `category/${slugify(category.name)}`,
       categories: [],
-      linkedEntities: entries.filter(e => e.categories.includes(category.id)).map(e => e.id),
+      linkedEntities: entries.filter((e) => e.categories.includes(category.id)).map((e) => e.id),
       lastUpdated: Date.now(),
     };
     entries.push(entry);
@@ -552,17 +567,17 @@ export function buildPageIndex(
     const regionPageId = `region:${region.id}`;
     // Find entities in this region
     const entitiesInRegion = worldData.hardState.filter(
-      e => e.regionId === region.id || e.allRegionIds?.includes(region.id)
+      (e) => e.regionId === region.id || e.allRegionIds?.includes(region.id)
     );
 
     const entry: PageIndexEntry = {
       id: regionPageId,
       title: region.label,
-      type: 'region',
+      type: "region",
       slug: `region/${slugify(region.label)}`,
       summary: region.description,
       categories: [`region-${entityKind}`],
-      linkedEntities: entitiesInRegion.map(e => e.id),
+      linkedEntities: entitiesInRegion.map((e) => e.id),
       lastUpdated: region.createdAt ?? Date.now(),
     };
 
@@ -579,7 +594,7 @@ export function buildPageIndex(
   const byBaseName = new Map<string, DisambiguationEntry[]>();
   for (const entry of entries) {
     // Skip category entries from disambiguation
-    if (entry.type === 'category') continue;
+    if (entry.type === "category") continue;
 
     const { namespace, baseName } = parseNamespace(entry.title);
     const baseNameLower = baseName.toLowerCase();
@@ -623,7 +638,7 @@ export function buildPageById(
   chronicles: ChronicleRecord[] = [],
   staticPages: StaticPage[] = [],
   prominenceScale?: ProminenceScale,
-  eraNarratives: EraNarrativeViewRecord[] = [],
+  eraNarratives: EraNarrativeViewRecord[] = []
 ): WikiPage | null {
   const resolvedProminenceScale = resolveProminenceScale(worldData, prominenceScale);
   let indexEntry = pageIndex.byId.get(pageId);
@@ -641,36 +656,44 @@ export function buildPageById(
   const aliasIndex = pageIndex.byAlias;
 
   // Entity page
-  if (indexEntry.type === 'entity' || indexEntry.type === 'era') {
-    const entity = worldData.hardState.find(e => e.id === pageId);
+  if (indexEntry.type === "entity" || indexEntry.type === "era") {
+    const entity = worldData.hardState.find((e) => e.id === pageId);
     if (!entity) return null;
-    return buildEntityPage(entity, worldData, loreIndex, imageIndex, aliasIndex, resolvedProminenceScale, chronicles);
+    return buildEntityPage(
+      entity,
+      worldData,
+      loreIndex,
+      imageIndex,
+      aliasIndex,
+      resolvedProminenceScale,
+      chronicles
+    );
   }
 
   // Era narrative page - long-form era synthesis
-  if (indexEntry.type === 'era_narrative') {
-    const narrative = eraNarratives.find(n => n.narrativeId === pageId);
+  if (indexEntry.type === "era_narrative") {
+    const narrative = eraNarratives.find((n) => n.narrativeId === pageId);
     if (!narrative) return null;
     return buildEraNarrativePage(narrative, worldData, aliasIndex, pageIndex.byName);
   }
 
   // Chronicle page - look up in ChronicleRecords
-  if (indexEntry.type === 'chronicle') {
-    const chronicle = chronicles.find(c => c.chronicleId === pageId);
+  if (indexEntry.type === "chronicle") {
+    const chronicle = chronicles.find((c) => c.chronicleId === pageId);
     if (!chronicle) return null;
     return buildChroniclePageFromChronicle(chronicle, worldData, aliasIndex, pageIndex.byName);
   }
 
   // Category page
-  if (indexEntry.type === 'category') {
-    const catId = pageId.replace('category-', '');
-    const category = pageIndex.categories.find(c => c.id === catId);
+  if (indexEntry.type === "category") {
+    const catId = pageId.replace("category-", "");
+    const category = pageIndex.categories.find((c) => c.id === catId);
     if (!category) return null;
 
     // Build minimal page list for category
     const pagesInCategory = pageIndex.entries
-      .filter(e => e.categories.includes(catId))
-      .map(e => ({
+      .filter((e) => e.categories.includes(catId))
+      .map((e) => ({
         id: e.id,
         title: e.title,
         type: e.type,
@@ -686,16 +709,22 @@ export function buildPageById(
   }
 
   // Static page - look up in StaticPages
-  if (indexEntry.type === 'static') {
-    const staticPage = staticPages.find(p => p.pageId === pageId);
+  if (indexEntry.type === "static") {
+    const staticPage = staticPages.find((p) => p.pageId === pageId);
     if (!staticPage) return null;
-    return buildStaticPageFromStaticPage(staticPage, worldData, loreData, aliasIndex, pageIndex.byName);
+    return buildStaticPageFromStaticPage(
+      staticPage,
+      worldData,
+      loreData,
+      aliasIndex,
+      pageIndex.byName
+    );
   }
 
   // Region page
-  if (indexEntry.type === 'region') {
+  if (indexEntry.type === "region") {
     // Extract region ID from page ID (format: "region:region_id")
-    const regionId = pageId.replace('region:', '');
+    const regionId = pageId.replace("region:", "");
     const regionInfo = findRegionById(worldData, regionId);
     if (!regionInfo) return null;
     return buildRegionPage(regionInfo.region, regionInfo.entityKind, worldData, aliasIndex);
@@ -712,7 +741,7 @@ function buildEraNarrativePage(
   narrative: EraNarrativeViewRecord,
   worldData: WorldState,
   aliasIndex: Map<string, string>,
-  pageNameIndex?: Map<string, string>,
+  pageNameIndex?: Map<string, string>
 ): WikiPage {
   const content = narrative.content;
   const narrativeSlug = `era-narrative/${slugify(narrative.eraName)}`;
@@ -723,32 +752,32 @@ function buildEraNarrativePage(
   // Attach image refs to sections — adapt era narrative refs to the chronicle ref shape
   if (narrative.imageRefs?.refs) {
     const adaptedRefs: ChronicleImageRef[] = narrative.imageRefs.refs
-      .map(ref => {
-        if (ref.type === 'chronicle_ref' && ref.imageId) {
+      .map((ref) => {
+        if (ref.type === "chronicle_ref" && ref.imageId) {
           // Chronicle ref already has imageId — present as a completed prompt_request
           return {
             refId: ref.refId,
             anchorText: ref.anchorText,
             anchorIndex: ref.anchorIndex,
-            size: ref.size as ChronicleImageRef['size'],
+            size: ref.size as ChronicleImageRef["size"],
             justification: ref.justification,
             caption: ref.caption,
-            type: 'prompt_request' as const,
-            status: 'complete' as const,
+            type: "prompt_request" as const,
+            status: "complete" as const,
             generatedImageId: ref.imageId,
           };
         }
-        if (ref.type === 'prompt_request') {
+        if (ref.type === "prompt_request") {
           return {
             refId: ref.refId,
             anchorText: ref.anchorText,
             anchorIndex: ref.anchorIndex,
-            size: ref.size as ChronicleImageRef['size'],
+            size: ref.size as ChronicleImageRef["size"],
             justification: ref.justification,
             caption: ref.caption,
-            type: 'prompt_request' as const,
+            type: "prompt_request" as const,
             sceneDescription: ref.sceneDescription,
-            status: ref.status as ChronicleImageRef['status'],
+            status: ref.status as ChronicleImageRef["status"],
             generatedImageId: ref.generatedImageId,
           };
         }
@@ -762,26 +791,32 @@ function buildEraNarrativePage(
   }
 
   const linkableNames = buildLinkableNamesForBacklinks(worldData, pageNameIndex);
-  const linkedSections = sections.map(section => ({
+  const linkedSections = sections.map((section) => ({
     ...section,
     content: applyWikiLinks(section.content, linkableNames),
   }));
 
-  const linkedEntities = extractLinkedEntities(linkedSections, worldData, aliasIndex, pageNameIndex);
+  const linkedEntities = extractLinkedEntities(
+    linkedSections,
+    worldData,
+    aliasIndex,
+    pageNameIndex
+  );
 
   // Source chronicles section
-  const sourceChronicleIds = narrative.sourceChronicles.map(s => s.chronicleId);
+  const sourceChronicleIds = narrative.sourceChronicles.map((s) => s.chronicleId);
 
   // Cover image
-  const coverImageId = narrative.coverImage?.status === 'complete' && narrative.coverImage?.generatedImageId
-    ? narrative.coverImage.generatedImageId
-    : undefined;
+  const coverImageId =
+    narrative.coverImage?.status === "complete" && narrative.coverImage?.generatedImageId
+      ? narrative.coverImage.generatedImageId
+      : undefined;
 
   return {
     id: narrative.narrativeId,
     slug: narrativeSlug,
     title: narrative.eraName,
-    type: 'era_narrative',
+    type: "era_narrative",
     eraNarrative: {
       eraId: narrative.eraId,
       tone: narrative.tone,
@@ -812,18 +847,18 @@ function buildEraNarrativeSections(content: string): { sections: WikiSection[] }
 
   let body = trimmed;
   // Strip leading H1 if present (era name as title is shown separately)
-  if (body.startsWith('# ')) {
-    const lines = body.split('\n');
-    body = lines.slice(1).join('\n').trim();
+  if (body.startsWith("# ")) {
+    const lines = body.split("\n");
+    body = lines.slice(1).join("\n").trim();
   }
 
   const sections: WikiSection[] = [];
-  let currentHeading = 'Narrative';
+  let currentHeading = "Narrative";
   let buffer: string[] = [];
   let sectionIndex = 0;
 
   const flush = () => {
-    const sectionBody = buffer.join('\n').trim();
+    const sectionBody = buffer.join("\n").trim();
     if (!sectionBody) return;
     sections.push({
       id: `era-narrative-section-${sectionIndex}`,
@@ -834,10 +869,10 @@ function buildEraNarrativeSections(content: string): { sections: WikiSection[] }
     sectionIndex++;
   };
 
-  for (const line of body.split('\n')) {
-    if (line.startsWith('## ')) {
+  for (const line of body.split("\n")) {
+    if (line.startsWith("## ")) {
       flush();
-      currentHeading = line.replace(/^##\s+/, '').trim() || 'Narrative';
+      currentHeading = line.replace(/^##\s+/, "").trim() || "Narrative";
       buffer = [];
       continue;
     }
@@ -849,8 +884,8 @@ function buildEraNarrativeSections(content: string): { sections: WikiSection[] }
   // If no sections were created (no ## headings), wrap entire content as one section
   if (sections.length === 0 && body) {
     sections.push({
-      id: 'era-narrative-section-0',
-      heading: 'Narrative',
+      id: "era-narrative-section-0",
+      heading: "Narrative",
       level: 2,
       content: body,
     });
@@ -871,31 +906,33 @@ function buildChroniclePageFromChronicle(
   const content = getChronicleContent(chronicle);
   const title = chronicle.title;
   const titleSlug = slugify(title);
-  const chronicleSlug = titleSlug ? `chronicle/${titleSlug}` : '';
+  const chronicleSlug = titleSlug ? `chronicle/${titleSlug}` : "";
 
   // Extract image refs from chronicle
   const imageRefs = chronicle.imageRefs;
 
   const { sections } = buildChronicleSections(content, imageRefs, worldData);
-  const summary = chronicle.summary || '';
+  const summary = chronicle.summary || "";
 
   const linkableNames = buildLinkableNamesForBacklinks(worldData, pageNameIndex);
-  const linkedSections = sections.map(section => ({
+  const linkedSections = sections.map((section) => ({
     ...section,
     content: applyWikiLinks(section.content, linkableNames),
   }));
 
-  const linkedEntities = Array.from(new Set([
-    ...chronicle.selectedEntityIds,
-    ...extractLinkedEntities(linkedSections, worldData, aliasIndex, pageNameIndex),
-    ...(chronicle.entrypointId ? [chronicle.entrypointId] : []),
-  ]));
+  const linkedEntities = Array.from(
+    new Set([
+      ...chronicle.selectedEntityIds,
+      ...extractLinkedEntities(linkedSections, worldData, aliasIndex, pageNameIndex),
+      ...(chronicle.entrypointId ? [chronicle.entrypointId] : []),
+    ])
+  );
 
   return {
     id: chronicle.chronicleId,
     slug: chronicleSlug,
     title,
-    type: 'chronicle',
+    type: "chronicle",
     chronicle: {
       format: chronicle.format,
       entrypointId: chronicle.entrypointId,
@@ -908,12 +945,19 @@ function buildChroniclePageFromChronicle(
     content: {
       sections,
       summary: summary || undefined,
-      coverImageId: chronicle.coverImage?.status === 'complete' && chronicle.coverImage?.generatedImageId
-        ? chronicle.coverImage.generatedImageId
-        : undefined,
+      coverImageId:
+        chronicle.coverImage?.status === "complete" && chronicle.coverImage?.generatedImageId
+          ? chronicle.coverImage.generatedImageId
+          : undefined,
       historianNotes: (chronicle.historianNotes || [])
-        .filter(n => (n.display || (n.enabled === false ? 'disabled' : 'full')) !== 'disabled')
-        .map(n => ({ noteId: n.noteId, anchorPhrase: n.anchorPhrase, text: n.text, type: n.type, display: (n.display || (n.enabled === false ? 'disabled' : 'full')) as 'popout' | 'full' })),
+        .filter((n) => (n.display || (n.enabled === false ? "disabled" : "full")) !== "disabled")
+        .map((n) => ({
+          noteId: n.noteId,
+          anchorPhrase: n.anchorPhrase,
+          text: n.text,
+          type: n.type,
+          display: (n.display || (n.enabled === false ? "disabled" : "full")) as "popout" | "full",
+        })),
     },
     categories: [],
     linkedEntities,
@@ -941,49 +985,49 @@ function processTemplateVariables(content: string, ctx: TemplateContext): string
     const trimmed = variable.trim();
 
     // {{world.context}} - World metadata summary
-    if (trimmed === 'world.context') {
+    if (trimmed === "world.context") {
       // WorldMetadata doesn't have description, return era info instead
       const era = worldData.metadata?.era;
       const tick = worldData.metadata?.tick;
-      return era ? `Era: ${era}${tick ? ` (Tick ${tick})` : ''}` : '';
+      return era ? `Era: ${era}${tick ? ` (Tick ${tick})` : ""}` : "";
     }
 
     // {{cultures}} - List of cultures
-    if (trimmed === 'cultures') {
+    if (trimmed === "cultures") {
       const cultures = worldData.schema?.cultures || [];
-      if (cultures.length === 0) return '_No cultures defined_';
-      return cultures.map((c: { id: string; name?: string }) =>
-        `- **${c.name || c.id}**`
-      ).join('\n');
+      if (cultures.length === 0) return "_No cultures defined_";
+      return cultures
+        .map((c: { id: string; name?: string }) => `- **${c.name || c.id}**`)
+        .join("\n");
     }
 
     // {{eras}} - List of eras
-    if (trimmed === 'eras') {
-      const eras = worldData.hardState.filter(e => e.kind === 'era');
-      if (eras.length === 0) return '_No eras_';
-      return eras.map(e => `- [[${e.name}]]`).join('\n');
+    if (trimmed === "eras") {
+      const eras = worldData.hardState.filter((e) => e.kind === "era");
+      if (eras.length === 0) return "_No eras_";
+      return eras.map((e) => `- [[${e.name}]]`).join("\n");
     }
 
     // {{stats}} - World statistics
-    if (trimmed === 'stats') {
+    if (trimmed === "stats") {
       const entityCount = worldData.hardState.length;
       const relCount = worldData.relationships.length;
-      const eraCount = worldData.hardState.filter(e => e.kind === 'era').length;
+      const eraCount = worldData.hardState.filter((e) => e.kind === "era").length;
       return `- **Entities:** ${entityCount}\n- **Relationships:** ${relCount}\n- **Eras:** ${eraCount}`;
     }
 
     // {{entity:Name}} - Entity summary
-    if (trimmed.startsWith('entity:')) {
+    if (trimmed.startsWith("entity:")) {
       const entityName = trimmed.slice(7).trim();
       const entity = worldData.hardState.find(
-        e => e.name.toLowerCase() === entityName.toLowerCase()
+        (e) => e.name.toLowerCase() === entityName.toLowerCase()
       );
       if (!entity) return `_Entity "${entityName}" not found_`;
-      return `**[[${entity.name}]]** (${entity.kind}${entity.subtype ? ` - ${entity.subtype}` : ''})`;
+      return `**[[${entity.name}]]** (${entity.kind}${entity.subtype ? ` - ${entity.subtype}` : ""})`;
     }
 
     // {{kinds}} - List of entity kinds with counts
-    if (trimmed === 'kinds') {
+    if (trimmed === "kinds") {
       const kindCounts = new Map<string, number>();
       for (const e of worldData.hardState) {
         kindCounts.set(e.kind, (kindCounts.get(e.kind) || 0) + 1);
@@ -991,7 +1035,7 @@ function processTemplateVariables(content: string, ctx: TemplateContext): string
       return Array.from(kindCounts.entries())
         .sort((a, b) => b[1] - a[1])
         .map(([kind, count]) => `- **${kind}:** ${count}`)
-        .join('\n');
+        .join("\n");
     }
 
     // Unknown variable - return as-is
@@ -1025,27 +1069,29 @@ function buildStaticPageFromStaticPage(
     linkableNames.push({ name: entity.name, id: entity.id });
   }
   for (const [name, id] of pageNameIndex) {
-    if (!linkableNames.some(n => n.name.toLowerCase() === name)) {
+    if (!linkableNames.some((n) => n.name.toLowerCase() === name)) {
       linkableNames.push({ name, id });
     }
   }
 
   // Extract linked entities by scanning for name mentions (for backlinks)
   const linkedContent = applyWikiLinks(processedContent, linkableNames);
-  const linkedEntities = Array.from(new Set([
-    ...extractLinkedEntities(
-      [{ id: 'temp', heading: '', level: 2, content: linkedContent }],
-      worldData,
-      aliasIndex,
-      pageNameIndex
-    ),
-  ]));
+  const linkedEntities = Array.from(
+    new Set([
+      ...extractLinkedEntities(
+        [{ id: "temp", heading: "", level: 2, content: linkedContent }],
+        worldData,
+        aliasIndex,
+        pageNameIndex
+      ),
+    ])
+  );
 
   return {
     id: staticPage.pageId,
     slug: buildStaticPageSlug(staticPage),
     title: staticPage.title,
-    type: 'static',
+    type: "static",
     static: {
       pageId: staticPage.pageId,
       status: staticPage.status,
@@ -1071,36 +1117,36 @@ function buildStaticPageSections(content: string): { sections: WikiSection[] } {
   }
 
   let body = trimmed;
-  let pageTitle = '';
+  let pageTitle = "";
 
   // Extract title from first heading if present
-  if (body.startsWith('# ')) {
-    const lines = body.split('\n');
-    pageTitle = lines[0].replace(/^#\s+/, '').trim();
-    body = lines.slice(1).join('\n').trim();
+  if (body.startsWith("# ")) {
+    const lines = body.split("\n");
+    pageTitle = lines[0].replace(/^#\s+/, "").trim();
+    body = lines.slice(1).join("\n").trim();
   }
 
   const sections: WikiSection[] = [];
-  let currentHeading = pageTitle || 'Content';
+  let currentHeading = pageTitle || "Content";
   let buffer: string[] = [];
   let sectionIndex = 0;
 
   const flush = () => {
-    const sectionBody = buffer.join('\n').trim();
+    const sectionBody = buffer.join("\n").trim();
     if (!sectionBody) return;
     sections.push({
       id: `static-section-${sectionIndex}`,
-      heading: currentHeading || 'Content',
+      heading: currentHeading || "Content",
       level: 2,
       content: sectionBody,
     });
     sectionIndex++;
   };
 
-  for (const line of body.split('\n')) {
-    if (line.startsWith('## ')) {
+  for (const line of body.split("\n")) {
+    if (line.startsWith("## ")) {
       flush();
-      currentHeading = line.replace(/^##\s+/, '').trim() || 'Content';
+      currentHeading = line.replace(/^##\s+/, "").trim() || "Content";
       buffer = [];
       continue;
     }
@@ -1111,8 +1157,8 @@ function buildStaticPageSections(content: string): { sections: WikiSection[] } {
 
   if (sections.length === 0 && body) {
     sections.push({
-      id: 'static-section-0',
-      heading: pageTitle || 'Content',
+      id: "static-section-0",
+      heading: pageTitle || "Content",
       level: 2,
       content: body,
     });
@@ -1130,7 +1176,7 @@ function buildChroniclePagesFromChronicles(
   aliasIndex: Map<string, string>
 ): WikiPage[] {
   return chronicles
-    .filter(chronicle => getChronicleContent(chronicle)) // Only chronicles with content
+    .filter((chronicle) => getChronicleContent(chronicle)) // Only chronicles with content
     .map((chronicle) => buildChroniclePageFromChronicle(chronicle, worldData, aliasIndex));
 }
 
@@ -1145,32 +1191,32 @@ function buildChronicleSections(
   }
 
   let body = trimmed;
-  if (body.startsWith('# ')) {
-    const lines = body.split('\n');
-    body = lines.slice(1).join('\n').trim();
+  if (body.startsWith("# ")) {
+    const lines = body.split("\n");
+    body = lines.slice(1).join("\n").trim();
   }
 
   const sections: WikiSection[] = [];
-  let currentHeading = 'Chronicle';
+  let currentHeading = "Chronicle";
   let buffer: string[] = [];
   let sectionIndex = 0;
 
   const flush = () => {
-    const sectionBody = buffer.join('\n').trim();
+    const sectionBody = buffer.join("\n").trim();
     if (!sectionBody) return;
     sections.push({
       id: `chronicle-section-${sectionIndex}`,
-      heading: currentHeading || 'Chronicle',
+      heading: currentHeading || "Chronicle",
       level: 2,
       content: sectionBody,
     });
     sectionIndex++;
   };
 
-  for (const line of body.split('\n')) {
-    if (line.startsWith('## ')) {
+  for (const line of body.split("\n")) {
+    if (line.startsWith("## ")) {
       flush();
-      currentHeading = line.replace(/^##\s+/, '').trim() || 'Chronicle';
+      currentHeading = line.replace(/^##\s+/, "").trim() || "Chronicle";
       buffer = [];
       continue;
     }
@@ -1181,19 +1227,19 @@ function buildChronicleSections(
 
   if (sections.length === 0) {
     sections.push({
-      id: 'chronicle-section-0',
-      heading: 'Chronicle',
+      id: "chronicle-section-0",
+      heading: "Chronicle",
       level: 2,
       content: body,
     });
   }
 
   if (DEBUG_WIKI_BUILDER) {
-    console.log('[wikiBuilder] buildChronicleSections:', {
+    console.log("[wikiBuilder] buildChronicleSections:", {
       contentLength: content.length,
       sectionCount: sections.length,
-      sectionHeadings: sections.map(s => s.heading),
-      sectionLengths: sections.map(s => s.content.length),
+      sectionHeadings: sections.map((s) => s.heading),
+      sectionLengths: sections.map((s) => s.content.length),
       imageRefsCount: imageRefs?.refs?.length ?? 0,
     });
   }
@@ -1204,9 +1250,12 @@ function buildChronicleSections(
   }
 
   if (DEBUG_WIKI_BUILDER) {
-    console.log('[wikiBuilder] After image attachment:', {
-      sectionsWithImages: sections.filter(s => s.images && s.images.length > 0).length,
-      imagesPerSection: sections.map(s => ({ heading: s.heading, imageCount: s.images?.length ?? 0 })),
+    console.log("[wikiBuilder] After image attachment:", {
+      sectionsWithImages: sections.filter((s) => s.images && s.images.length > 0).length,
+      imagesPerSection: sections.map((s) => ({
+        heading: s.heading,
+        imageCount: s.images?.length ?? 0,
+      })),
     });
   }
 
@@ -1216,10 +1265,7 @@ function buildChronicleSections(
 /**
  * Find which section contains the anchor text
  */
-function findSectionForAnchor(
-  sections: WikiSection[],
-  anchorText: string
-): WikiSection | null {
+function findSectionForAnchor(sections: WikiSection[], anchorText: string): WikiSection | null {
   if (!anchorText || sections.length === 0) {
     return sections.length > 0 ? sections[0] : null;
   }
@@ -1232,7 +1278,10 @@ function findSectionForAnchor(
   }
 
   // Not found - return first section as fallback
-  console.warn('[wikiBuilder] Anchor text not found in any section, using first section:', anchorText);
+  console.warn(
+    "[wikiBuilder] Anchor text not found in any section, using first section:",
+    anchorText
+  );
   return sections[0];
 }
 
@@ -1245,10 +1294,10 @@ function attachImagesToSections(
   worldData: WorldState
 ): void {
   if (DEBUG_WIKI_BUILDER) {
-    console.log('[wikiBuilder] attachImagesToSections called with:', {
+    console.log("[wikiBuilder] attachImagesToSections called with:", {
       sectionCount: sections.length,
       refCount: refs.length,
-      refs: refs.map(r => ({
+      refs: refs.map((r) => ({
         refId: r.refId,
         type: r.type,
         status: r.status,
@@ -1262,37 +1311,37 @@ function attachImagesToSections(
 
   for (const ref of refs) {
     // Skip prompt requests that aren't complete
-    if (ref.type === 'prompt_request' && ref.status !== 'complete') {
-      console.warn('[wikiBuilder] Skipping incomplete prompt_request:', ref.refId, ref.status);
+    if (ref.type === "prompt_request" && ref.status !== "complete") {
+      console.warn("[wikiBuilder] Skipping incomplete prompt_request:", ref.refId, ref.status);
       continue;
     }
 
     // Find the target section by anchor text
     const section = findSectionForAnchor(sections, ref.anchorText);
     if (!section) {
-      console.warn('[wikiBuilder] Could not find section for anchor:', ref.anchorText, ref);
+      console.warn("[wikiBuilder] Could not find section for anchor:", ref.anchorText, ref);
       continue;
     }
 
     // Resolve the image ID
     let imageId: string | undefined;
-    if (ref.type === 'entity_ref' && ref.entityId) {
+    if (ref.type === "entity_ref" && ref.entityId) {
       // Look up entity's image
-      const entity = worldData.hardState.find(e => e.id === ref.entityId);
+      const entity = worldData.hardState.find((e) => e.id === ref.entityId);
       imageId = entity?.enrichment?.image?.imageId;
       if (!imageId) {
-        console.warn('[wikiBuilder] entity_ref has no image:', ref.refId, ref.entityId);
+        console.warn("[wikiBuilder] entity_ref has no image:", ref.refId, ref.entityId);
       }
-    } else if (ref.type === 'prompt_request' && ref.generatedImageId) {
+    } else if (ref.type === "prompt_request" && ref.generatedImageId) {
       imageId = ref.generatedImageId;
-    } else if (ref.type === 'prompt_request') {
-      console.warn('[wikiBuilder] prompt_request missing generatedImageId:', ref.refId, ref);
+    } else if (ref.type === "prompt_request") {
+      console.warn("[wikiBuilder] prompt_request missing generatedImageId:", ref.refId, ref);
     }
 
     if (!imageId) continue;
 
     if (DEBUG_WIKI_BUILDER) {
-      console.log('[wikiBuilder] Attaching image:', {
+      console.log("[wikiBuilder] Attaching image:", {
         refId: ref.refId,
         type: ref.type,
         imageId,
@@ -1310,8 +1359,8 @@ function attachImagesToSections(
     // Add the image to the section
     const sectionImage: WikiSectionImage = {
       refId: ref.refId,
-      type: ref.type === 'entity_ref' ? 'entity_ref' : 'chronicle_image',
-      entityId: ref.type === 'entity_ref' ? ref.entityId : undefined,
+      type: ref.type === "entity_ref" ? "entity_ref" : "chronicle_image",
+      entityId: ref.type === "entity_ref" ? ref.entityId : undefined,
       imageId,
       anchorText: ref.anchorText,
       anchorIndex: ref.anchorIndex,
@@ -1338,21 +1387,21 @@ function buildEntityPage(
 ): WikiPage {
   const entityLore = loreIndex.get(entity.id) || [];
   // Summary and description are now directly on entity
-  const summary = entity.summary || '';
+  const summary = entity.summary || "";
   // Aliases are in enrichment.text
   const aliases = Array.isArray(entity.enrichment?.text?.aliases)
     ? entity.enrichment.text.aliases
-      .filter((alias): alias is string => typeof alias === 'string')
-      .map((alias) => alias.trim())
-      .filter(Boolean)
+        .filter((alias): alias is string => typeof alias === "string")
+        .map((alias) => alias.trim())
+        .filter(Boolean)
     : [];
-  const eraChapter = entityLore.find(l => l.type === 'era_chapter');
-  const entityChronicle = entityLore.find(l => l.type === 'entity_chronicle');
-  const enhancedPage = entityLore.find(l => l.type === 'enhanced_entity_page');
+  const eraChapter = entityLore.find((l) => l.type === "era_chapter");
+  const entityChronicle = entityLore.find((l) => l.type === "entity_chronicle");
+  const enhancedPage = entityLore.find((l) => l.type === "enhanced_entity_page");
 
   // Get relationships
   const relationships = worldData.relationships.filter(
-    r => r.src === entity.id || r.dst === entity.id
+    (r) => r.src === entity.id || r.dst === entity.id
   );
 
   // Build sections
@@ -1373,7 +1422,7 @@ function buildEntityPage(
   } else if (entity.description) {
     sections.push({
       id: `section-${sectionIndex++}`,
-      heading: 'Overview',
+      heading: "Overview",
       level: 2,
       content: entity.description,
     });
@@ -1394,7 +1443,7 @@ function buildEntityPage(
     } else {
       sections.push({
         id: `section-${sectionIndex++}`,
-        heading: 'Chronicle',
+        heading: "Chronicle",
         level: 2,
         content: entityChronicle.text,
       });
@@ -1402,7 +1451,7 @@ function buildEntityPage(
   }
 
   // Era chapter content (for era entities)
-  if (entity.kind === 'era' && eraChapter?.text) {
+  if (entity.kind === "era" && eraChapter?.text) {
     // If chapter has structured sections from wikiContent, use those
     if (eraChapter.wikiContent?.sections && eraChapter.wikiContent.sections.length > 0) {
       for (const section of eraChapter.wikiContent.sections) {
@@ -1416,7 +1465,7 @@ function buildEntityPage(
     } else {
       sections.push({
         id: `section-${sectionIndex++}`,
-        heading: 'Chronicle',
+        heading: "Chronicle",
         level: 2,
         content: eraChapter.text,
       });
@@ -1428,7 +1477,7 @@ function buildEntityPage(
     const relContent = formatRelationships(entity.id, relationships, worldData);
     sections.push({
       id: `section-${sectionIndex++}`,
-      heading: 'Relationships',
+      heading: "Relationships",
       level: 2,
       content: relContent,
     });
@@ -1447,27 +1496,35 @@ function buildEntityPage(
     id: entity.id,
     slug: slugify(entity.name),
     title: entity.name,
-    type: entity.kind === 'era' ? 'era' : 'entity',
+    type: entity.kind === "era" ? "era" : "entity",
     aliases: aliases.length > 0 ? aliases : undefined,
     content: {
       sections,
       summary: summary || undefined,
       infobox,
       historianNotes: (entity.enrichment?.historianNotes || [])
-        .filter(n => (n.display || (n.enabled === false ? 'disabled' : 'full')) !== 'disabled')
-        .map(n => ({ noteId: n.noteId, anchorPhrase: n.anchorPhrase, text: n.text, type: n.type, display: (n.display || (n.enabled === false ? 'disabled' : 'full')) as 'popout' | 'full' })),
+        .filter((n) => (n.display || (n.enabled === false ? "disabled" : "full")) !== "disabled")
+        .map((n) => ({
+          noteId: n.noteId,
+          anchorPhrase: n.anchorPhrase,
+          text: n.text,
+          type: n.type,
+          display: (n.display || (n.enabled === false ? "disabled" : "full")) as "popout" | "full",
+        })),
     },
     categories,
     linkedEntities,
     images: imageIndex.has(entity.id)
-      ? [{
-          entityId: entity.id,
-          path: imageIndex.get(entity.id)!.path,
-          caption: entity.name,
-          width: imageIndex.get(entity.id)!.width,
-          height: imageIndex.get(entity.id)!.height,
-          aspect: imageIndex.get(entity.id)!.aspect,
-        }]
+      ? [
+          {
+            entityId: entity.id,
+            path: imageIndex.get(entity.id)!.path,
+            caption: entity.name,
+            width: imageIndex.get(entity.id)!.width,
+            height: imageIndex.get(entity.id)!.height,
+            aspect: imageIndex.get(entity.id)!.aspect,
+          },
+        ]
       : [],
     lastUpdated: entity.updatedAt || entity.createdAt,
   };
@@ -1478,19 +1535,22 @@ function buildEntityPage(
  */
 function formatRelationships(
   entityId: string,
-  relationships: WorldState['relationships'],
+  relationships: WorldState["relationships"],
   worldData: WorldState
 ): string {
-  const entityMap = new Map(worldData.hardState.map(e => [e.id, e]));
+  const entityMap = new Map(worldData.hardState.map((e) => [e.id, e]));
 
   // Build a map to detect bidirectional relationships
   // Key: "kind:otherId", Value: { outgoing: rel | null, incoming: rel | null }
-  const relMap = new Map<string, {
-    otherId: string;
-    kind: string;
-    outgoing: WorldState['relationships'][0] | null;
-    incoming: WorldState['relationships'][0] | null;
-  }>();
+  const relMap = new Map<
+    string,
+    {
+      otherId: string;
+      kind: string;
+      outgoing: WorldState["relationships"][0] | null;
+      incoming: WorldState["relationships"][0] | null;
+    }
+  >();
 
   for (const rel of relationships) {
     const isOutgoing = rel.src === entityId;
@@ -1512,7 +1572,7 @@ function formatRelationships(
   interface RelRow {
     entity: string;
     entityName: string;
-    direction: '→' | '←' | '↔';
+    direction: "→" | "←" | "↔";
     status: string;
     since: string;
   }
@@ -1524,16 +1584,16 @@ function formatRelationships(
     if (!other) continue;
 
     // Determine direction
-    let direction: '→' | '←' | '↔';
-    let primaryRel: WorldState['relationships'][0];
+    let direction: "→" | "←" | "↔";
+    let primaryRel: WorldState["relationships"][0];
     if (entry.outgoing && entry.incoming) {
-      direction = '↔';
+      direction = "↔";
       primaryRel = entry.outgoing; // Use outgoing for metadata
     } else if (entry.outgoing) {
-      direction = '→';
+      direction = "→";
       primaryRel = entry.outgoing;
     } else {
-      direction = '←';
+      direction = "←";
       primaryRel = entry.incoming!;
     }
 
@@ -1541,8 +1601,8 @@ function formatRelationships(
       entity: `[[${other.name}]]`,
       entityName: other.name,
       direction,
-      status: primaryRel.status || 'active',
-      since: primaryRel.createdAt != null ? `Tick ${primaryRel.createdAt}` : '—',
+      status: primaryRel.status || "active",
+      since: primaryRel.createdAt != null ? `Tick ${primaryRel.createdAt}` : "—",
     };
 
     if (!rowsByKind.has(entry.kind)) {
@@ -1566,31 +1626,33 @@ function formatRelationships(
   // Build rows for each pair, sorted by kind then direction
   const pairRows: { kind: string; direction: string; entities: string[] }[] = [];
   for (const [pairKey, rows] of byPair) {
-    const [kind, direction] = pairKey.split(':');
+    const [kind, direction] = pairKey.split(":");
     // Sort entities alphabetically
     const entities = rows
       .sort((a, b) => a.entityName.localeCompare(b.entityName))
-      .map(r => r.entity);
+      .map((r) => r.entity);
     pairRows.push({ kind, direction, entities });
   }
 
   // Sort by kind, then by direction (↔ first, then →, then ←)
-  const dirOrder = { '↔': 0, '→': 1, '←': 2 };
+  const dirOrder = { "↔": 0, "→": 1, "←": 2 };
   pairRows.sort((a, b) => {
     if (a.kind !== b.kind) return a.kind.localeCompare(b.kind);
-    return (dirOrder[a.direction as keyof typeof dirOrder] || 0) -
-           (dirOrder[b.direction as keyof typeof dirOrder] || 0);
+    return (
+      (dirOrder[a.direction as keyof typeof dirOrder] || 0) -
+      (dirOrder[b.direction as keyof typeof dirOrder] || 0)
+    );
   });
 
   // Build table
   const lines: string[] = [];
-  lines.push('| Relation | Dir | Entities |');
-  lines.push('|----------|:---:|----------|');
+  lines.push("| Relation | Dir | Entities |");
+  lines.push("|----------|:---:|----------|");
   for (const row of pairRows) {
-    lines.push(`| ${row.kind} | ${row.direction} | ${row.entities.join(', ')} |`);
+    lines.push(`| ${row.kind} | ${row.direction} | ${row.entities.join(", ")} |`);
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -1602,26 +1664,29 @@ function buildEntityInfobox(
   imageIndex: Map<string, ImageInfo>,
   prominenceScale: ProminenceScale
 ): WikiInfobox {
-  const fields: WikiInfobox['fields'] = [];
+  const fields: WikiInfobox["fields"] = [];
 
-  fields.push({ label: 'Type', value: entity.kind });
+  fields.push({ label: "Type", value: entity.kind });
   if (entity.subtype) {
-    fields.push({ label: 'Subtype', value: entity.subtype });
+    fields.push({ label: "Subtype", value: entity.subtype });
   }
-  fields.push({ label: 'Status', value: entity.status });
-  fields.push({ label: 'Prominence', value: prominenceLabelFromScale(entity.prominence, prominenceScale) });
+  fields.push({ label: "Status", value: entity.status });
+  fields.push({
+    label: "Prominence",
+    value: prominenceLabelFromScale(entity.prominence, prominenceScale),
+  });
   if (entity.culture) {
-    fields.push({ label: 'Culture', value: entity.culture });
+    fields.push({ label: "Culture", value: entity.culture });
   }
 
   // Find era if applicable
   const activeEra = worldData.relationships.find(
-    r => r.src === entity.id && r.kind === 'active_during'
+    (r) => r.src === entity.id && r.kind === "active_during"
   );
   if (activeEra) {
-    const era = worldData.hardState.find(e => e.id === activeEra.dst);
+    const era = worldData.hardState.find((e) => e.id === activeEra.dst);
     if (era) {
-      fields.push({ label: 'Era', value: era.name, linkedEntity: era.id });
+      fields.push({ label: "Era", value: era.name, linkedEntity: era.id });
     }
   }
 
@@ -1629,8 +1694,8 @@ function buildEntityInfobox(
   if (entity.tags && Object.keys(entity.tags).length > 0) {
     const tagPairs = Object.entries(entity.tags)
       .map(([k, v]) => (v === true ? k : `${k}:${v}`))
-      .join(', ');
-    fields.push({ label: 'Tags', value: tagPairs });
+      .join(", ");
+    fields.push({ label: "Tags", value: tagPairs });
   }
 
   // Region (if any) - look up region name and link to region page
@@ -1638,12 +1703,12 @@ function buildEntityInfobox(
     const regionInfo = findRegionById(worldData, entity.regionId);
     if (regionInfo) {
       fields.push({
-        label: 'Region',
+        label: "Region",
         value: regionInfo.region.label,
-        linkedEntity: `region:${entity.regionId}`
+        linkedEntity: `region:${entity.regionId}`,
       });
     } else {
-      fields.push({ label: 'Region', value: entity.regionId });
+      fields.push({ label: "Region", value: entity.regionId });
     }
   }
 
@@ -1651,12 +1716,12 @@ function buildEntityInfobox(
   if (entity.coordinates) {
     const { x, y, z } = entity.coordinates;
     const coordStr = `(${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)})`;
-    fields.push({ label: 'Coords', value: coordStr });
+    fields.push({ label: "Coords", value: coordStr });
   }
 
   const imageInfo = imageIndex.get(entity.id);
   return {
-    type: entity.kind === 'era' ? 'era' : 'entity',
+    type: entity.kind === "era" ? "era" : "entity",
     fields,
     image: imageInfo
       ? {
@@ -1701,7 +1766,7 @@ function buildEntityCategories(
 
   // By era
   const activeEra = worldData.relationships.find(
-    r => r.src === entity.id && r.kind === 'active_during'
+    (r) => r.src === entity.id && r.kind === "active_during"
   );
   if (activeEra) {
     categories.push(`era-${activeEra.dst}`);
@@ -1713,10 +1778,7 @@ function buildEntityCategories(
 /**
  * Build all categories from pages
  */
-export function buildCategories(
-  _worldData: WorldState,
-  pages: WikiPage[]
-): WikiCategory[] {
+export function buildCategories(_worldData: WorldState, pages: WikiPage[]): WikiCategory[] {
   void _worldData; // Reserved for future category enrichment
   const categoryMap = new Map<string, WikiCategory>();
 
@@ -1727,7 +1789,7 @@ export function buildCategories(
         categoryMap.set(catId, {
           id: catId,
           name: formatCategoryName(catId),
-          type: 'auto',
+          type: "auto",
           pageCount: 0,
         });
       }
@@ -1742,29 +1804,27 @@ export function buildCategories(
  * Build a category page
  */
 function buildCategoryPage(category: WikiCategory, pages: WikiPage[]): WikiPage {
-  const pagesInCategory = pages.filter(p => p.categories.includes(category.id));
+  const pagesInCategory = pages.filter((p) => p.categories.includes(category.id));
 
-  const content = pagesInCategory
-    .map(p => `- [[${p.title}]]`)
-    .join('\n');
+  const content = pagesInCategory.map((p) => `- [[${p.title}]]`).join("\n");
 
   return {
     id: `category-${category.id}`,
     slug: `category/${slugify(category.name)}`,
     title: `Category: ${category.name}`,
-    type: 'category',
+    type: "category",
     content: {
       sections: [
         {
-          id: 'pages',
-          heading: 'Pages',
+          id: "pages",
+          heading: "Pages",
           level: 2,
           content,
         },
       ],
     },
     categories: [],
-    linkedEntities: pagesInCategory.map(p => p.id),
+    linkedEntities: pagesInCategory.map((p) => p.id),
     images: [],
     lastUpdated: Date.now(),
   };
@@ -1781,7 +1841,7 @@ function buildRegionPage(
 ): WikiPage {
   // Find all entities in this region
   const entitiesInRegion = worldData.hardState.filter(
-    e => e.regionId === region.id || e.allRegionIds?.includes(region.id)
+    (e) => e.regionId === region.id || e.allRegionIds?.includes(region.id)
   );
 
   // Group entities by kind
@@ -1802,25 +1862,25 @@ function buildRegionPage(
     overviewLines.push(region.description);
   }
   if (region.culture) {
-    const culture = worldData.schema.cultures.find(c => c.id === region.culture);
+    const culture = worldData.schema.cultures.find((c) => c.id === region.culture);
     overviewLines.push(`**Culture:** ${culture?.name ?? region.culture}`);
   }
   overviewLines.push(`**Entity Kind:** ${entityKind}`);
   overviewLines.push(`**Total Entities:** ${entitiesInRegion.length}`);
 
   sections.push({
-    id: 'overview',
-    heading: 'Overview',
+    id: "overview",
+    heading: "Overview",
     level: 2,
-    content: overviewLines.join('\n\n'),
+    content: overviewLines.join("\n\n"),
   });
 
   // Entities section with table per kind
   for (const [kind, entities] of byKind) {
     const rows = entities
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map(e => `| [[${e.name}]] | ${e.subtype} | ${e.status} |`)
-      .join('\n');
+      .map((e) => `| [[${e.name}]] | ${e.subtype} | ${e.status} |`)
+      .join("\n");
 
     const tableContent = `| Name | Subtype | Status |\n|------|---------|--------|\n${rows}`;
 
@@ -1836,13 +1896,13 @@ function buildRegionPage(
     id: `region:${region.id}`,
     slug: `region/${slugify(region.label)}`,
     title: region.label,
-    type: 'region',
+    type: "region",
     content: {
       sections,
       summary: region.description,
     },
     categories: [`region-${entityKind}`],
-    linkedEntities: entitiesInRegion.map(e => e.id),
+    linkedEntities: entitiesInRegion.map((e) => e.id),
     images: [],
     lastUpdated: region.createdAt ?? Date.now(),
   };
@@ -1853,13 +1913,13 @@ function buildRegionPage(
  */
 function formatCategoryName(catId: string): string {
   // Remove prefix and capitalize
-  const parts = catId.split('-');
+  const parts = catId.split("-");
   if (parts.length >= 2) {
     const type = parts[0];
-    const value = parts.slice(1).join('-');
-    return `${capitalize(type)}: ${capitalize(value.replace(/_/g, ' '))}`;
+    const value = parts.slice(1).join("-");
+    return `${capitalize(type)}: ${capitalize(value.replace(/_/g, " "))}`;
   }
-  return capitalize(catId.replace(/_/g, ' '));
+  return capitalize(catId.replace(/_/g, " "));
 }
 
 /**
@@ -1874,7 +1934,7 @@ function extractLinkedEntities(
   pageNameIndex?: Map<string, string>
 ): string[] {
   const linked: Set<string> = new Set();
-  const entityByName = new Map(worldData.hardState.map(e => [e.name.toLowerCase(), e.id]));
+  const entityByName = new Map(worldData.hardState.map((e) => [e.name.toLowerCase(), e.id]));
 
   for (const section of sections) {
     // Find [[Entity Name]] patterns
@@ -1960,9 +2020,10 @@ function buildImageIndex(
     // If it's already an object URL (blob:) or data URL, use it directly
     // Otherwise transform file path to web path
     const path = img.localPath;
-    const webPath = path.startsWith('blob:') || path.startsWith('data:')
-      ? path
-      : path.replace('output/images/', 'images/');
+    const webPath =
+      path.startsWith("blob:") || path.startsWith("data:")
+        ? path
+        : path.replace("output/images/", "images/");
 
     // Get dimensions from imageData results (entity.enrichment.image only has imageId)
     const width = img.width;
@@ -1988,7 +2049,7 @@ function buildAliasIndex(worldData: WorldState): Map<string, string> {
       : [];
 
     for (const alias of aliases) {
-      if (typeof alias !== 'string') continue;
+      if (typeof alias !== "string") continue;
       const normalized = alias.trim().toLowerCase();
       if (!normalized) continue;
       if (!index.has(normalized)) {
@@ -2006,8 +2067,8 @@ function buildAliasIndex(worldData: WorldState): Map<string, string> {
 function slugify(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 /**

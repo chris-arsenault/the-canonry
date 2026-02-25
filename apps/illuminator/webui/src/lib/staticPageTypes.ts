@@ -5,7 +5,7 @@
  * user-authored static pages and their input structures.
  */
 
-export type StaticPageStatus = 'draft' | 'published';
+export type StaticPageStatus = "draft" | "published";
 
 export interface StaticPage {
   pageId: string;

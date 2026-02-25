@@ -5,8 +5,8 @@
  * Much faster than individual checkboxes for bulk selection.
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { tickToX, xToTick } from '../../../lib/chronicle/timelineUtils';
+import { useState, useCallback, useRef, useEffect } from "react";
+import { tickToX, xToTick } from "../../../lib/chronicle/timelineUtils";
 
 interface TimelineBrushProps {
   width: number;
@@ -21,7 +21,7 @@ interface TimelineBrushProps {
   minSelectionWidth?: number;
 }
 
-type DragMode = 'none' | 'left' | 'right' | 'move' | 'create';
+type DragMode = "none" | "left" | "right" | "move" | "create";
 
 export default function TimelineBrush({
   width,
@@ -33,7 +33,7 @@ export default function TimelineBrush({
   minSelectionWidth = 20,
 }: TimelineBrushProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [dragMode, setDragMode] = useState<DragMode>('none');
+  const [dragMode, setDragMode] = useState<DragMode>("none");
   const [dragStart, setDragStart] = useState<{ x: number; selection: [number, number] | null }>({
     x: 0,
     selection: null,
@@ -49,14 +49,11 @@ export default function TimelineBrush({
       }
     : null;
 
-  const getMouseX = useCallback(
-    (e: React.MouseEvent | MouseEvent) => {
-      if (!svgRef.current) return 0;
-      const rect = svgRef.current.getBoundingClientRect();
-      return e.clientX - rect.left;
-    },
-    []
-  );
+  const getMouseX = useCallback((e: React.MouseEvent | MouseEvent) => {
+    if (!svgRef.current) return 0;
+    const rect = svgRef.current.getBoundingClientRect();
+    return e.clientX - rect.left;
+  }, []);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent, mode: DragMode) => {
@@ -73,7 +70,7 @@ export default function TimelineBrush({
       const x = getMouseX(e);
       // If clicking outside selection, start creating new selection
       if (!selectionPx || x < selectionPx.left - handleSize || x > selectionPx.right + handleSize) {
-        setDragMode('create');
+        setDragMode("create");
         const tick = xToTick(x, extent, width, padding);
         setDragStart({ x, selection: [tick, tick] });
         onSelectionChange([tick, tick]);
@@ -83,13 +80,13 @@ export default function TimelineBrush({
   );
 
   useEffect(() => {
-    if (dragMode === 'none') return;
+    if (dragMode === "none") return;
 
     const handleMouseMove = (e: MouseEvent) => {
       const x = getMouseX(e);
       const dx = x - dragStart.x;
 
-      if (dragMode === 'create') {
+      if (dragMode === "create") {
         const startTick = dragStart.selection![0];
         const currentTick = xToTick(x, extent, width, padding);
         const newSelection: [number, number] =
@@ -102,16 +99,28 @@ export default function TimelineBrush({
 
       const [startTick, endTick] = dragStart.selection;
 
-      if (dragMode === 'left') {
-        const newLeft = xToTick(tickToX(startTick, extent, width, padding) + dx, extent, width, padding);
+      if (dragMode === "left") {
+        const newLeft = xToTick(
+          tickToX(startTick, extent, width, padding) + dx,
+          extent,
+          width,
+          padding
+        );
         const clamped = Math.min(newLeft, endTick - 1);
         onSelectionChange([Math.max(extent[0], clamped), endTick]);
-      } else if (dragMode === 'right') {
-        const newRight = xToTick(tickToX(endTick, extent, width, padding) + dx, extent, width, padding);
+      } else if (dragMode === "right") {
+        const newRight = xToTick(
+          tickToX(endTick, extent, width, padding) + dx,
+          extent,
+          width,
+          padding
+        );
         const clamped = Math.max(newRight, startTick + 1);
         onSelectionChange([startTick, Math.min(extent[1], clamped)]);
-      } else if (dragMode === 'move') {
-        const tickDelta = xToTick(dragStart.x + dx, extent, width, padding) - xToTick(dragStart.x, extent, width, padding);
+      } else if (dragMode === "move") {
+        const tickDelta =
+          xToTick(dragStart.x + dx, extent, width, padding) -
+          xToTick(dragStart.x, extent, width, padding);
         let newStart = startTick + tickDelta;
         let newEnd = endTick + tickDelta;
 
@@ -132,29 +141,29 @@ export default function TimelineBrush({
     };
 
     const handleMouseUp = () => {
-      setDragMode('none');
+      setDragMode("none");
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
     };
   }, [dragMode, dragStart, extent, width, padding, getMouseX, onSelectionChange]);
 
   const getCursor = (mode: DragMode) => {
     switch (mode) {
-      case 'left':
-      case 'right':
-        return 'ew-resize';
-      case 'move':
-        return 'grab';
-      case 'create':
-        return 'crosshair';
+      case "left":
+      case "right":
+        return "ew-resize";
+      case "move":
+        return "grab";
+      case "create":
+        return "crosshair";
       default:
-        return 'crosshair';
+        return "crosshair";
     }
   };
 
@@ -163,7 +172,7 @@ export default function TimelineBrush({
       ref={svgRef}
       width={width}
       height={height}
-      style={{ cursor: getCursor(dragMode === 'none' ? 'create' : dragMode), display: 'block' }}
+      style={{ cursor: getCursor(dragMode === "none" ? "create" : dragMode), display: "block" }}
       onMouseDown={handleBackgroundMouseDown}
     >
       {/* Background track */}
@@ -191,8 +200,8 @@ export default function TimelineBrush({
             fill="rgba(99, 102, 241, 0.3)"
             stroke="var(--accent-color)"
             strokeWidth={1}
-            style={{ cursor: 'grab' }}
-            onMouseDown={(e) => handleMouseDown(e, 'move')}
+            style={{ cursor: "grab" }}
+            onMouseDown={(e) => handleMouseDown(e, "move")}
           />
 
           {/* Left handle */}
@@ -203,8 +212,8 @@ export default function TimelineBrush({
             height={24}
             rx={2}
             fill="var(--accent-color)"
-            style={{ cursor: 'ew-resize' }}
-            onMouseDown={(e) => handleMouseDown(e, 'left')}
+            style={{ cursor: "ew-resize" }}
+            onMouseDown={(e) => handleMouseDown(e, "left")}
           />
 
           {/* Right handle */}
@@ -215,8 +224,8 @@ export default function TimelineBrush({
             height={24}
             rx={2}
             fill="var(--accent-color)"
-            style={{ cursor: 'ew-resize' }}
-            onMouseDown={(e) => handleMouseDown(e, 'right')}
+            style={{ cursor: "ew-resize" }}
+            onMouseDown={(e) => handleMouseDown(e, "right")}
           />
 
           {/* Selection label */}
@@ -228,7 +237,7 @@ export default function TimelineBrush({
               fontSize="10"
               fontWeight="500"
               fill="var(--accent-color)"
-              style={{ pointerEvents: 'none' }}
+              style={{ pointerEvents: "none" }}
             >
               {selection[0]} – {selection[1]}
             </text>
@@ -244,7 +253,7 @@ export default function TimelineBrush({
           textAnchor="middle"
           fontSize="11"
           fill="var(--text-muted)"
-          style={{ pointerEvents: 'none' }}
+          style={{ pointerEvents: "none" }}
         >
           Drag to select time range
         </text>

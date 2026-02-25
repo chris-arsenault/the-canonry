@@ -5,8 +5,8 @@
  * Each pill shows status and can be clicked to re-expand the modal.
  */
 
-import { useFloatingPillStore, type FloatingPill } from '../lib/db/floatingPillStore';
-import { useThinkingStore } from '../lib/db/thinkingStore';
+import { useFloatingPillStore, type FloatingPill } from "../lib/db/floatingPillStore";
+import { useThinkingStore } from "../lib/db/thinkingStore";
 
 function Pill({ pill, onNavigate }: { pill: FloatingPill; onNavigate?: (tabId: string) => void }) {
   const expand = useFloatingPillStore((s) => s.expand);
@@ -19,18 +19,18 @@ function Pill({ pill, onNavigate }: { pill: FloatingPill; onNavigate?: (tabId: s
   return (
     <div
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '6px 12px',
-        background: 'var(--bg-primary)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '20px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-        cursor: 'pointer',
-        fontSize: '12px',
-        minWidth: '160px',
-        transition: 'box-shadow 0.15s',
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        padding: "6px 12px",
+        background: "var(--bg-primary)",
+        border: "1px solid var(--border-color)",
+        borderRadius: "20px",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+        cursor: "pointer",
+        fontSize: "12px",
+        minWidth: "160px",
+        transition: "box-shadow 0.15s",
       }}
       onClick={() => {
         if (pill.tabId && onNavigate) onNavigate(pill.tabId);
@@ -39,21 +39,19 @@ function Pill({ pill, onNavigate }: { pill: FloatingPill; onNavigate?: (tabId: s
       title="Click to expand"
     >
       {/* Status dot */}
-      <span style={{
-        width: '8px',
-        height: '8px',
-        borderRadius: '50%',
-        background: pill.statusColor,
-        flexShrink: 0,
-      }} />
+      <span
+        style={{
+          width: "8px",
+          height: "8px",
+          borderRadius: "50%",
+          background: pill.statusColor,
+          flexShrink: 0,
+        }}
+      />
 
       {/* Label + status */}
-      <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
-        {pill.label}
-      </span>
-      <span style={{ color: 'var(--text-muted)', marginLeft: 'auto' }}>
-        {pill.statusText}
-      </span>
+      <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>{pill.label}</span>
+      <span style={{ color: "var(--text-muted)", marginLeft: "auto" }}>{pill.statusText}</span>
 
       {/* Thinking icon */}
       {hasThinking && (
@@ -64,10 +62,10 @@ function Pill({ pill, onNavigate }: { pill: FloatingPill; onNavigate?: (tabId: s
           }}
           title="View thinking"
           style={{
-            cursor: 'pointer',
-            fontSize: '13px',
+            cursor: "pointer",
+            fontSize: "13px",
             opacity: 0.7,
-            marginLeft: '4px',
+            marginLeft: "4px",
           }}
         >
           ✦
@@ -83,16 +81,18 @@ export function FloatingPills({ onNavigate }: { onNavigate?: (tabId: string) => 
   if (pills.size === 0) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: '16px',
-      right: '16px',
-      zIndex: 9999,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px',
-      alignItems: 'flex-end',
-    }}>
+    <div
+      style={{
+        position: "fixed",
+        bottom: "16px",
+        right: "16px",
+        zIndex: 9999,
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        alignItems: "flex-end",
+      }}
+    >
       {Array.from(pills.values()).map((pill) => (
         <Pill key={pill.id} pill={pill} onNavigate={onNavigate} />
       ))}

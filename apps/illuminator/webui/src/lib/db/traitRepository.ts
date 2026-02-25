@@ -6,8 +6,8 @@
  * - Used traits are project + simulationRunId + entityKind scoped (run-specific)
  */
 
-import { db } from './illuminatorDb';
-import type { TraitPalette, UsedTraitRecord, PaletteItem, TraitGuidance } from '../traitTypes';
+import { db } from "./illuminatorDb";
+import type { TraitPalette, UsedTraitRecord, PaletteItem, TraitGuidance } from "../traitTypes";
 
 export type { TraitPalette, UsedTraitRecord, PaletteItem, TraitGuidance };
 
@@ -41,23 +41,23 @@ export async function updatePaletteItems(
   updates: {
     removeIds?: string[];
     merges?: Array<{ keepId: string; mergeFromIds: string[]; newDescription: string }>;
-    newItems?: Omit<PaletteItem, 'id' | 'timesUsed' | 'addedAt'>[];
+    newItems?: Omit<PaletteItem, "id" | "timesUsed" | "addedAt">[];
   }
 ): Promise<TraitPalette> {
   const existing = await getPalette(projectId, entityKind);
   const items = existing?.items || [];
   const now = Date.now();
 
-  let filtered = items.filter(item => !updates.removeIds?.includes(item.id));
+  let filtered = items.filter((item) => !updates.removeIds?.includes(item.id));
 
   for (const merge of updates.merges || []) {
-    const keepItem = filtered.find(i => i.id === merge.keepId);
+    const keepItem = filtered.find((i) => i.id === merge.keepId);
     if (keepItem) {
       keepItem.description = merge.newDescription;
-      const mergedItems = items.filter(i => merge.mergeFromIds.includes(i.id));
+      const mergedItems = items.filter((i) => merge.mergeFromIds.includes(i.id));
       keepItem.timesUsed += mergedItems.reduce((sum, i) => sum + i.timesUsed, 0);
     }
-    filtered = filtered.filter(i => !merge.mergeFromIds.includes(i.id));
+    filtered = filtered.filter((i) => !merge.mergeFromIds.includes(i.id));
   }
 
   for (const newItem of updates.newItems || []) {
@@ -93,15 +93,15 @@ export async function incrementPaletteUsage(
   const palette = await getPalette(projectId, entityKind);
   if (!palette || palette.items.length === 0) return;
 
-  const traitLower = traits.map(t => t.toLowerCase()).join(' ');
+  const traitLower = traits.map((t) => t.toLowerCase()).join(" ");
   let updated = false;
 
   for (const item of palette.items) {
     const categoryWords = item.category.toLowerCase().split(/\s+/);
-    const exampleWords = item.examples.flatMap(e => e.toLowerCase().split(/\s+/));
+    const exampleWords = item.examples.flatMap((e) => e.toLowerCase().split(/\s+/));
     const allWords = [...categoryWords, ...exampleWords];
 
-    const matches = allWords.filter(w => w.length > 4 && traitLower.includes(w));
+    const matches = allWords.filter((w) => w.length > 4 && traitLower.includes(w));
     if (matches.length >= 2) {
       item.timesUsed += 1;
       updated = true;
@@ -160,14 +160,9 @@ export async function getUsedTraitsForRun(
   if (!projectId || !simulationRunId || !entityKind) return [];
 
   // Filter in memory — Dexie compound index not declared, use simple index
-  const records = await db.usedTraits
-    .where('simulationRunId')
-    .equals(simulationRunId)
-    .toArray();
+  const records = await db.usedTraits.where("simulationRunId").equals(simulationRunId).toArray();
 
-  return records.filter(
-    r => r.projectId === projectId && r.entityKind === entityKind
-  );
+  return records.filter((r) => r.projectId === projectId && r.entityKind === entityKind);
 }
 
 export async function getHistoricalTraits(
@@ -177,24 +172,21 @@ export async function getHistoricalTraits(
   if (!projectId || !entityKind) return [];
 
   const records = await db.usedTraits
-    .where('entityKind')
+    .where("entityKind")
     .equals(entityKind)
-    .filter(r => r.projectId === projectId)
+    .filter((r) => r.projectId === projectId)
     .toArray();
 
-  return records.flatMap(r => r.traits);
+  return records.flatMap((r) => r.traits);
 }
 
-export async function countUsedTraits(
-  projectId: string,
-  entityKind: string
-): Promise<number> {
+export async function countUsedTraits(projectId: string, entityKind: string): Promise<number> {
   if (!projectId || !entityKind) return 0;
 
   return db.usedTraits
-    .where('entityKind')
+    .where("entityKind")
     .equals(entityKind)
-    .filter(r => r.projectId === projectId)
+    .filter((r) => r.projectId === projectId)
     .count();
 }
 
@@ -202,15 +194,12 @@ export async function countUsedTraits(
 // Trait Guidance
 // ---------------------------------------------------------------------------
 
-function selectCategoriesWeighted(
-  items: PaletteItem[],
-  count: number
-): PaletteItem[] {
+function selectCategoriesWeighted(items: PaletteItem[], count: number): PaletteItem[] {
   if (items.length === 0) return [];
   if (items.length <= count) return [...items];
 
-  const maxUsage = Math.max(...items.map(i => i.timesUsed), 1);
-  const weights = items.map(item => {
+  const maxUsage = Math.max(...items.map((i) => i.timesUsed), 1);
+  const weights = items.map((item) => {
     return (maxUsage + 1) / (item.timesUsed + 1);
   });
 
@@ -242,7 +231,7 @@ function selectCategoriesWeighted(
 function categoryMatchesSubtype(item: PaletteItem, subtype: string): boolean {
   if (!item.subtypes || item.subtypes.length === 0) return false;
   const subtypeLower = subtype.toLowerCase();
-  return item.subtypes.some(s => s.toLowerCase() === subtypeLower);
+  return item.subtypes.some((s) => s.toLowerCase() === subtypeLower);
 }
 
 export async function getTraitGuidance(
@@ -264,7 +253,7 @@ export async function getTraitGuidance(
     return {
       assignedCategories: [],
       categoryUsage,
-      selectionMethod: 'fallback',
+      selectionMethod: "fallback",
     };
   }
 
@@ -292,14 +281,14 @@ export async function getTraitGuidance(
     return {
       assignedCategories: [],
       categoryUsage,
-      selectionMethod: 'fallback',
+      selectionMethod: "fallback",
     };
   }
 
   return {
     assignedCategories: assigned,
     categoryUsage,
-    selectionMethod: 'weighted-random',
+    selectionMethod: "weighted-random",
   };
 }
 
@@ -312,18 +301,18 @@ export async function deleteUsedTraitsForRun(
   simulationRunId: string
 ): Promise<number> {
   const records = await db.usedTraits
-    .where('simulationRunId')
+    .where("simulationRunId")
     .equals(simulationRunId)
-    .filter(r => r.projectId === projectId)
+    .filter((r) => r.projectId === projectId)
     .toArray();
 
   if (records.length === 0) return 0;
-  await db.usedTraits.bulkDelete(records.map(r => r.id));
+  await db.usedTraits.bulkDelete(records.map((r) => r.id));
   return records.length;
 }
 
 export async function exportPalettes(projectId: string): Promise<TraitPalette[]> {
-  return db.traitPalettes.where('projectId').equals(projectId).toArray();
+  return db.traitPalettes.where("projectId").equals(projectId).toArray();
 }
 
 export async function importPalettes(palettes: TraitPalette[]): Promise<void> {

@@ -2,8 +2,8 @@
  * Static Page Repository — Dexie-backed static page storage
  */
 
-import { db } from './illuminatorDb';
-import type { StaticPage, StaticPageStatus } from '../staticPageTypes';
+import { db } from "./illuminatorDb";
+import type { StaticPage, StaticPageStatus } from "../staticPageTypes";
 
 export type { StaticPage, StaticPageStatus };
 
@@ -14,10 +14,10 @@ export function generatePageId(): string {
 export function generateSlug(title: string): string {
   return title
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
     .substring(0, 100);
 }
 
@@ -38,11 +38,11 @@ export function extractEntityLinks(content: string): string[] {
 
 export function countWords(content: string): number {
   const plainText = content
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/\[\[([^\]]+)\]\]/g, '$1')
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
-    .replace(/[#*_~`>]/g, '')
-    .replace(/\n+/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\[\[([^\]]+)\]\]/g, "$1")
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+    .replace(/[#*_~`>]/g, "")
+    .replace(/\n+/g, " ")
     .trim();
 
   if (!plainText) return 0;
@@ -66,7 +66,7 @@ export interface UpdateStaticPageInput {
 
 export async function createStaticPage(input: CreateStaticPageInput): Promise<StaticPage> {
   const now = Date.now();
-  const content = input.content ?? '';
+  const content = input.content ?? "";
 
   const page: StaticPage = {
     pageId: generatePageId(),
@@ -75,7 +75,7 @@ export async function createStaticPage(input: CreateStaticPageInput): Promise<St
     slug: generateSlug(input.title),
     content,
     summary: input.summary,
-    status: input.status ?? 'draft',
+    status: input.status ?? "draft",
     createdAt: now,
     updatedAt: now,
     linkedEntityIds: extractEntityLinks(content),
@@ -119,14 +119,14 @@ export async function getStaticPage(pageId: string): Promise<StaticPage | undefi
 }
 
 export async function getStaticPagesForProject(projectId: string): Promise<StaticPage[]> {
-  const pages = await db.staticPages.where('projectId').equals(projectId).toArray();
+  const pages = await db.staticPages.where("projectId").equals(projectId).toArray();
   pages.sort((a, b) => b.updatedAt - a.updatedAt);
   return pages;
 }
 
 export async function getPublishedStaticPagesForProject(projectId: string): Promise<StaticPage[]> {
   const pages = await getStaticPagesForProject(projectId);
-  return pages.filter((page) => page.status === 'published');
+  return pages.filter((page) => page.status === "published");
 }
 
 export async function deleteStaticPage(pageId: string): Promise<void> {
@@ -136,6 +136,6 @@ export async function deleteStaticPage(pageId: string): Promise<void> {
 export async function deleteStaticPagesForProject(projectId: string): Promise<number> {
   const pages = await getStaticPagesForProject(projectId);
   if (pages.length === 0) return 0;
-  await db.staticPages.bulkDelete(pages.map(p => p.pageId));
+  await db.staticPages.bulkDelete(pages.map((p) => p.pageId));
   return pages.length;
 }

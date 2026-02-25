@@ -2,26 +2,26 @@
  * ChronicleIndex - list view for accepted chronicles
  */
 
-import { useMemo, useState } from 'react';
-import type { WikiPage } from '../types/world.ts';
-import styles from './ChronicleIndex.module.css';
+import { useMemo, useState } from "react";
+import type { WikiPage } from "../types/world.ts";
+import styles from "./ChronicleIndex.module.css";
 
 interface ChronicleIndexProps {
   chronicles: WikiPage[];
   /** Era narrative pages to show at the top of their era groups */
   eraNarrativePages?: WikiPage[];
   filter:
-    | { kind: 'all' }
-    | { kind: 'format'; format: 'story' | 'document' }
-    | { kind: 'type'; typeId: string }
-    | { kind: 'era'; eraId: string; format?: 'story' | 'document' };
+    | { kind: "all" }
+    | { kind: "format"; format: "story" | "document" }
+    | { kind: "type"; typeId: string }
+    | { kind: "era"; eraId: string; format?: "story" | "document" };
   onNavigate: (pageId: string) => void;
 }
 
 const SORT_OPTIONS = [
-  { value: 'updated_desc', label: 'Recently updated' },
-  { value: 'era_asc', label: 'Era (earliest)' },
-  { value: 'era_desc', label: 'Era (latest)' },
+  { value: "updated_desc", label: "Recently updated" },
+  { value: "era_asc", label: "Era (earliest)" },
+  { value: "era_desc", label: "Era (latest)" },
 ];
 
 function formatChronicleSubtype(typeId: string): string {
@@ -29,7 +29,7 @@ function formatChronicleSubtype(typeId: string): string {
     .split(/[-_]+/)
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
+    .join(" ");
 }
 
 export default function ChronicleIndex({
@@ -38,16 +38,16 @@ export default function ChronicleIndex({
   filter,
   onNavigate,
 }: ChronicleIndexProps) {
-  const [sortMode, setSortMode] = useState('era_asc');
+  const [sortMode, setSortMode] = useState("era_asc");
 
   const filtered = useMemo(() => {
     return chronicles
       .filter((page) => page.chronicle)
       .filter((page) => {
-        if (filter.kind === 'all') return true;
-        if (filter.kind === 'format') return page.chronicle?.format === filter.format;
-        if (filter.kind === 'type') return page.chronicle?.narrativeStyleId === filter.typeId;
-        if (filter.kind === 'era') {
+        if (filter.kind === "all") return true;
+        if (filter.kind === "format") return page.chronicle?.format === filter.format;
+        if (filter.kind === "type") return page.chronicle?.narrativeStyleId === filter.typeId;
+        if (filter.kind === "era") {
           const focalEraId = page.chronicle?.temporalContext?.focalEra?.id;
           if (focalEraId !== filter.eraId) return false;
           if (filter.format && page.chronicle?.format !== filter.format) return false;
@@ -61,34 +61,34 @@ export default function ChronicleIndex({
     const getEraInfo = (page: WikiPage) => {
       const focalEra = page.chronicle?.temporalContext?.focalEra;
       if (!focalEra) {
-        return { order: Number.POSITIVE_INFINITY, name: '', hasEra: false };
+        return { order: Number.POSITIVE_INFINITY, name: "", hasEra: false };
       }
-      if (typeof focalEra.order === 'number') {
-        return { order: focalEra.order, name: focalEra.name || '', hasEra: true };
+      if (typeof focalEra.order === "number") {
+        return { order: focalEra.order, name: focalEra.name || "", hasEra: true };
       }
-      if (typeof focalEra.startTick === 'number') {
-        return { order: focalEra.startTick, name: focalEra.name || '', hasEra: true };
+      if (typeof focalEra.startTick === "number") {
+        return { order: focalEra.startTick, name: focalEra.name || "", hasEra: true };
       }
-      return { order: Number.POSITIVE_INFINITY, name: focalEra.name || '', hasEra: true };
+      return { order: Number.POSITIVE_INFINITY, name: focalEra.name || "", hasEra: true };
     };
 
     return [...filtered].sort((a, b) => {
       switch (sortMode) {
-        case 'era_asc': {
+        case "era_asc": {
           const eraA = getEraInfo(a);
           const eraB = getEraInfo(b);
           if (eraA.hasEra !== eraB.hasEra) return eraA.hasEra ? -1 : 1;
           if (eraA.order !== eraB.order) return eraA.order - eraB.order;
           return eraA.name.localeCompare(eraB.name);
         }
-        case 'era_desc': {
+        case "era_desc": {
           const eraA = getEraInfo(a);
           const eraB = getEraInfo(b);
           if (eraA.hasEra !== eraB.hasEra) return eraA.hasEra ? -1 : 1;
           if (eraA.order !== eraB.order) return eraB.order - eraA.order;
           return eraB.name.localeCompare(eraA.name);
         }
-        case 'updated_desc':
+        case "updated_desc":
         default:
           return (b.lastUpdated || 0) - (a.lastUpdated || 0);
       }
@@ -107,36 +107,48 @@ export default function ChronicleIndex({
   }, [eraNarrativePages]);
 
   const groupedByEra = useMemo(() => {
-    const groups = new Map<string, { label: string; order: number; hasEra: boolean; items: WikiPage[] }>();
+    const groups = new Map<
+      string,
+      { label: string; order: number; hasEra: boolean; items: WikiPage[] }
+    >();
 
     const getEraInfo = (page: WikiPage) => {
       const focalEra = page.chronicle?.temporalContext?.focalEra;
       if (!focalEra) {
-        return { order: Number.POSITIVE_INFINITY, label: 'Unknown Era', hasEra: false };
+        return { order: Number.POSITIVE_INFINITY, label: "Unknown Era", hasEra: false };
       }
-      if (typeof focalEra.order === 'number') {
-        return { order: focalEra.order, label: focalEra.name || 'Unknown Era', hasEra: true };
+      if (typeof focalEra.order === "number") {
+        return { order: focalEra.order, label: focalEra.name || "Unknown Era", hasEra: true };
       }
-      if (typeof focalEra.startTick === 'number') {
-        return { order: focalEra.startTick, label: focalEra.name || 'Unknown Era', hasEra: true };
+      if (typeof focalEra.startTick === "number") {
+        return { order: focalEra.startTick, label: focalEra.name || "Unknown Era", hasEra: true };
       }
-      return { order: Number.POSITIVE_INFINITY, label: focalEra.name || 'Unknown Era', hasEra: true };
+      return {
+        order: Number.POSITIVE_INFINITY,
+        label: focalEra.name || "Unknown Era",
+        hasEra: true,
+      };
     };
 
     for (const page of sorted) {
       const info = getEraInfo(page);
       if (!groups.has(info.label)) {
-        groups.set(info.label, { label: info.label, order: info.order, hasEra: info.hasEra, items: [] });
+        groups.set(info.label, {
+          label: info.label,
+          order: info.order,
+          hasEra: info.hasEra,
+          items: [],
+        });
       }
       groups.get(info.label)?.items.push(page);
     }
 
     const entries = Array.from(groups.values());
-    if (sortMode === 'era_asc' || sortMode === 'era_desc') {
+    if (sortMode === "era_asc" || sortMode === "era_desc") {
       entries.sort((a, b) => {
         if (a.hasEra !== b.hasEra) return a.hasEra ? -1 : 1;
         if (a.order !== b.order) {
-          return sortMode === 'era_asc' ? a.order - b.order : b.order - a.order;
+          return sortMode === "era_asc" ? a.order - b.order : b.order - a.order;
         }
         return a.label.localeCompare(b.label);
       });
@@ -146,36 +158,38 @@ export default function ChronicleIndex({
 
   // Get era name for era-based filters
   const eraName = useMemo(() => {
-    if (filter.kind !== 'era') return null;
+    if (filter.kind !== "era") return null;
     const chronicle = chronicles.find(
       (c) => c.chronicle?.temporalContext?.focalEra?.id === filter.eraId
     );
-    return chronicle?.chronicle?.temporalContext?.focalEra?.name || 'Unknown Era';
+    return chronicle?.chronicle?.temporalContext?.focalEra?.name || "Unknown Era";
   }, [chronicles, filter]);
 
-  const heading = filter.kind === 'format'
-    ? filter.format === 'story'
-      ? 'Stories'
-      : 'Documents'
-    : filter.kind === 'type'
-    ? `${formatChronicleSubtype(filter.typeId)} Chronicles`
-    : filter.kind === 'era'
-    ? filter.format === 'story'
-      ? `Stories: ${eraName}`
-      : filter.format === 'document'
-      ? `Documents: ${eraName}`
-      : `Chronicles: ${eraName}`
-    : 'Chronicles';
+  const heading =
+    filter.kind === "format"
+      ? filter.format === "story"
+        ? "Stories"
+        : "Documents"
+      : filter.kind === "type"
+        ? `${formatChronicleSubtype(filter.typeId)} Chronicles`
+        : filter.kind === "era"
+          ? filter.format === "story"
+            ? `Stories: ${eraName}`
+            : filter.format === "document"
+              ? `Documents: ${eraName}`
+              : `Chronicles: ${eraName}`
+          : "Chronicles";
 
-  const description = filter.kind === 'all'
-    ? 'Accepted chronicles from Illuminator.'
-    : filter.kind === 'format'
-    ? `Accepted ${filter.format === 'story' ? 'stories' : 'documents'} from Illuminator.`
-    : filter.kind === 'era'
-    ? filter.format
-      ? `${filter.format === 'story' ? 'Stories' : 'Documents'} set during the ${eraName}.`
-      : `Chronicles set during the ${eraName}.`
-    : `Accepted chronicles of type ${formatChronicleSubtype(filter.typeId)}.`;
+  const description =
+    filter.kind === "all"
+      ? "Accepted chronicles from Illuminator."
+      : filter.kind === "format"
+        ? `Accepted ${filter.format === "story" ? "stories" : "documents"} from Illuminator.`
+        : filter.kind === "era"
+          ? filter.format
+            ? `${filter.format === "story" ? "Stories" : "Documents"} set during the ${eraName}.`
+            : `Chronicles set during the ${eraName}.`
+          : `Accepted chronicles of type ${formatChronicleSubtype(filter.typeId)}.`;
 
   if (sorted.length === 0) {
     return (
@@ -216,32 +230,31 @@ export default function ChronicleIndex({
             <div className={styles.groupHeader}>{group.label}</div>
             <div className={styles.groupItems}>
               {/* Era narrative at the top of the group */}
-              {eraNarrativeByEraName.has(group.label) && (() => {
-                const narrativePage = eraNarrativeByEraName.get(group.label)!;
-                const thesis = narrativePage.content?.summary || '';
-                return (
-                  <button
-                    key={narrativePage.id}
-                    className={styles.item}
-                    onClick={() => onNavigate(narrativePage.id)}
-                  >
-                    <div className={styles.itemHeader}>
-                      <span className={styles.itemTitle}>{narrativePage.title}</span>
-                      <div className={styles.badgeGroup}>
-                        <span className={styles.badge}>Era Narrative</span>
-                        <span className={styles.badgeSecondary}>synthetic</span>
+              {eraNarrativeByEraName.has(group.label) &&
+                (() => {
+                  const narrativePage = eraNarrativeByEraName.get(group.label)!;
+                  const thesis = narrativePage.content?.summary || "";
+                  return (
+                    <button
+                      key={narrativePage.id}
+                      className={styles.item}
+                      onClick={() => onNavigate(narrativePage.id)}
+                    >
+                      <div className={styles.itemHeader}>
+                        <span className={styles.itemTitle}>{narrativePage.title}</span>
+                        <div className={styles.badgeGroup}>
+                          <span className={styles.badge}>Era Narrative</span>
+                          <span className={styles.badgeSecondary}>synthetic</span>
+                        </div>
                       </div>
-                    </div>
-                    {thesis && (
-                      <div className={styles.itemSummary}>{thesis}</div>
-                    )}
-                  </button>
-                );
-              })()}
+                      {thesis && <div className={styles.itemSummary}>{thesis}</div>}
+                    </button>
+                  );
+                })()}
               {group.items.map((page) => {
-                const eraLabel = page.chronicle?.temporalContext?.focalEra?.name || 'Unknown Era';
+                const eraLabel = page.chronicle?.temporalContext?.focalEra?.name || "Unknown Era";
                 const isMultiEra = page.chronicle?.temporalContext?.isMultiEra;
-                const formatLabel = page.chronicle?.format === 'document' ? 'Document' : 'Story';
+                const formatLabel = page.chronicle?.format === "document" ? "Document" : "Story";
                 const subtypeLabel = page.chronicle?.narrativeStyleId
                   ? formatChronicleSubtype(page.chronicle.narrativeStyleId)
                   : null;
@@ -249,17 +262,11 @@ export default function ChronicleIndex({
                   .filter((role) => role.isPrimary)
                   .map((role) => role.entityName)
                   .filter(Boolean);
-                const primaryLabel = primaryEntities.length > 0
-                  ? primaryEntities.join(', ')
-                  : null;
-                const summary = page.content?.summary || '';
+                const primaryLabel = primaryEntities.length > 0 ? primaryEntities.join(", ") : null;
+                const summary = page.content?.summary || "";
 
                 return (
-                  <button
-                    key={page.id}
-                    className={styles.item}
-                    onClick={() => onNavigate(page.id)}
-                  >
+                  <button key={page.id} className={styles.item} onClick={() => onNavigate(page.id)}>
                     <div className={styles.itemHeader}>
                       <span className={styles.itemTitle}>{page.title}</span>
                       <div className={styles.badgeGroup}>
@@ -274,9 +281,7 @@ export default function ChronicleIndex({
                       {isMultiEra && <span>Multi-era</span>}
                       {primaryLabel && <span>Primary: {primaryLabel}</span>}
                     </div>
-                    {summary && (
-                      <div className={styles.itemSummary}>{summary}</div>
-                    )}
+                    {summary && <div className={styles.itemSummary}>{summary}</div>}
                   </button>
                 );
               })}

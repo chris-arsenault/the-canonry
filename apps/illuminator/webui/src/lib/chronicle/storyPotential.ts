@@ -5,7 +5,7 @@
  * helping users identify which entities make good narrative entry points.
  */
 
-import type { EntityContext, RelationshipContext, NarrativeEventContext } from '../chronicleTypes';
+import type { EntityContext, RelationshipContext, NarrativeEventContext } from "../chronicleTypes";
 
 /**
  * Story potential across 5 dimensions (each 0-1 normalized)
@@ -51,7 +51,7 @@ export interface ConnectedEntity {
 const WEIGHTS = {
   connections: 0.25,
   temporalSpan: 0.15,
-  roleDiversity: 0.20,
+  roleDiversity: 0.2,
   eventInvolvement: 0.25,
   prominence: 0.15,
 };
@@ -79,7 +79,7 @@ export function computeStoryPotential(
     maxEras: number;
   }
 ): StoryPotential {
-  const entity = entities.find(e => e.id === entityId);
+  const entity = entities.find((e) => e.id === entityId);
   if (!entity) {
     return {
       connections: 0,
@@ -92,7 +92,7 @@ export function computeStoryPotential(
   }
 
   // Count connections
-  const entityRels = relationships.filter(r => r.src === entityId || r.dst === entityId);
+  const entityRels = relationships.filter((r) => r.src === entityId || r.dst === entityId);
   const connectionCount = entityRels.length;
 
   // Get connected entity kinds
@@ -102,35 +102,31 @@ export function computeStoryPotential(
   }
   const connectedKinds = new Set<string>();
   for (const id of connectedIds) {
-    const connected = entities.find(e => e.id === id);
+    const connected = entities.find((e) => e.id === id);
     if (connected) connectedKinds.add(connected.kind);
   }
 
   // Count events and get eras
-  const entityEvents = events.filter(e =>
-    e.subjectId === entityId ||
-    e.objectId === entityId ||
-    e.participants?.some(p => p.id === entityId)
+  const entityEvents = events.filter(
+    (e) =>
+      e.subjectId === entityId ||
+      e.objectId === entityId ||
+      e.participants?.some((p) => p.id === entityId)
   );
   const eventCount = entityEvents.length;
-  const eraIds = new Set(entityEvents.map(e => e.era));
+  const eraIds = new Set(entityEvents.map((e) => e.era));
 
   // Normalize values
-  const connections = maxValues.maxConnections > 0
-    ? Math.min(connectionCount / maxValues.maxConnections, 1)
-    : 0;
+  const connections =
+    maxValues.maxConnections > 0 ? Math.min(connectionCount / maxValues.maxConnections, 1) : 0;
 
-  const temporalSpan = maxValues.maxEras > 0
-    ? Math.min(eraIds.size / maxValues.maxEras, 1)
-    : 0;
+  const temporalSpan = maxValues.maxEras > 0 ? Math.min(eraIds.size / maxValues.maxEras, 1) : 0;
 
-  const roleDiversity = maxValues.maxKinds > 0
-    ? Math.min(connectedKinds.size / maxValues.maxKinds, 1)
-    : 0;
+  const roleDiversity =
+    maxValues.maxKinds > 0 ? Math.min(connectedKinds.size / maxValues.maxKinds, 1) : 0;
 
-  const eventInvolvement = maxValues.maxEvents > 0
-    ? Math.min(eventCount / maxValues.maxEvents, 1)
-    : 0;
+  const eventInvolvement =
+    maxValues.maxEvents > 0 ? Math.min(eventCount / maxValues.maxEvents, 1) : 0;
 
   const prominence = normalizeProminence(entity.prominence);
 
@@ -161,12 +157,15 @@ export function computeAllStoryPotentials(
   events: NarrativeEventContext[]
 ): Map<string, EntityWithPotential> {
   // First pass: compute raw values for normalization
-  const rawStats = new Map<string, {
-    connectionCount: number;
-    eventCount: number;
-    connectedKinds: string[];
-    eraIds: string[];
-  }>();
+  const rawStats = new Map<
+    string,
+    {
+      connectionCount: number;
+      eventCount: number;
+      connectedKinds: string[];
+      eraIds: string[];
+    }
+  >();
 
   let maxConnections = 0;
   let maxEvents = 0;
@@ -175,10 +174,10 @@ export function computeAllStoryPotentials(
 
   for (const entity of entities) {
     // Skip era entities
-    if (entity.kind === 'era') continue;
+    if (entity.kind === "era") continue;
 
     // Count connections
-    const entityRels = relationships.filter(r => r.src === entity.id || r.dst === entity.id);
+    const entityRels = relationships.filter((r) => r.src === entity.id || r.dst === entity.id);
     const connectionCount = entityRels.length;
 
     // Get connected entity kinds
@@ -188,20 +187,21 @@ export function computeAllStoryPotentials(
     }
     const connectedKinds: string[] = [];
     for (const id of connectedIds) {
-      const connected = entities.find(e => e.id === id);
+      const connected = entities.find((e) => e.id === id);
       if (connected && !connectedKinds.includes(connected.kind)) {
         connectedKinds.push(connected.kind);
       }
     }
 
     // Count events and eras
-    const entityEvents = events.filter(e =>
-      e.subjectId === entity.id ||
-      e.objectId === entity.id ||
-      e.participants?.some(p => p.id === entity.id)
+    const entityEvents = events.filter(
+      (e) =>
+        e.subjectId === entity.id ||
+        e.objectId === entity.id ||
+        e.participants?.some((p) => p.id === entity.id)
     );
     const eventCount = entityEvents.length;
-    const eraIds = [...new Set(entityEvents.map(e => e.era))];
+    const eraIds = [...new Set(entityEvents.map((e) => e.era))];
 
     rawStats.set(entity.id, {
       connectionCount,
@@ -222,18 +222,12 @@ export function computeAllStoryPotentials(
   const maxValues = { maxConnections, maxEvents, maxKinds, maxEras };
 
   for (const entity of entities) {
-    if (entity.kind === 'era') continue;
+    if (entity.kind === "era") continue;
 
     const stats = rawStats.get(entity.id);
     if (!stats) continue;
 
-    const potential = computeStoryPotential(
-      entity.id,
-      entities,
-      relationships,
-      events,
-      maxValues
-    );
+    const potential = computeStoryPotential(entity.id, entities, relationships, events, maxValues);
 
     result.set(entity.id, {
       ...entity,
@@ -256,7 +250,7 @@ export function getConnectedEntities(
   entities: EntityContext[],
   relationships: RelationshipContext[]
 ): ConnectedEntity[] {
-  const entityMap = new Map(entities.map(e => [e.id, e]));
+  const entityMap = new Map(entities.map((e) => [e.id, e]));
   const connected: ConnectedEntity[] = [];
 
   for (const rel of relationships) {
@@ -270,9 +264,9 @@ export function getConnectedEntities(
 
     if (connectedId) {
       const entity = entityMap.get(connectedId);
-      if (entity && entity.kind !== 'era') {
+      if (entity && entity.kind !== "era") {
         // Avoid duplicates but track all relationship kinds
-        const existing = connected.find(c => c.id === connectedId);
+        const existing = connected.find((c) => c.id === connectedId);
         if (!existing) {
           connected.push({
             id: connectedId,
@@ -295,7 +289,7 @@ export function getConnectedEntities(
 export function getUniqueKinds(entities: EntityContext[]): string[] {
   const kinds = new Set<string>();
   for (const entity of entities) {
-    if (entity.kind !== 'era') {
+    if (entity.kind !== "era") {
       kinds.add(entity.kind);
     }
   }

@@ -6,27 +6,27 @@
  * v2: chronicles, images, costs, traits, run stores, static pages, styles
  */
 
-import Dexie, { type Table } from 'dexie';
+import Dexie, { type Table } from "dexie";
 import type {
   WorldEntity,
   WorldRelationship,
   NarrativeEvent,
   CanonrySchemaSlice,
   CoordinateState,
-} from '@canonry/world-schema';
-import type { EntityEnrichment } from '../enrichmentTypes';
-import type { ChronicleRecord } from '../chronicleTypes';
-import type { ImageRecord, ImageType, ImageAspect, ImageBlobRecord } from '../imageTypes';
-import type { CostRecord, CostType, CostRecordInput, CostSummary } from '../costTypes';
-import type { TraitPalette, UsedTraitRecord, PaletteItem, TraitGuidance } from '../traitTypes';
-import type { HistorianRun } from '../historianTypes';
-import type { EraNarrativeRecord } from '../eraNarrativeTypes';
-import type { SummaryRevisionRun } from '../summaryRevisionTypes';
-import type { DynamicsRun } from '../dynamicsGenerationTypes';
-import type { StaticPage, StaticPageStatus } from '../staticPageTypes';
-import type { StyleLibrary } from '@canonry/world-schema';
-import type { ContentTreeState, PageLayoutOverride } from '../preprint/prePrintTypes';
-import type { RunIndexRecord } from './indexTypes';
+} from "@canonry/world-schema";
+import type { EntityEnrichment } from "../enrichmentTypes";
+import type { ChronicleRecord } from "../chronicleTypes";
+import type { ImageRecord, ImageType, ImageAspect, ImageBlobRecord } from "../imageTypes";
+import type { CostRecord, CostType, CostRecordInput, CostSummary } from "../costTypes";
+import type { TraitPalette, UsedTraitRecord, PaletteItem, TraitGuidance } from "../traitTypes";
+import type { HistorianRun } from "../historianTypes";
+import type { EraNarrativeRecord } from "../eraNarrativeTypes";
+import type { SummaryRevisionRun } from "../summaryRevisionTypes";
+import type { DynamicsRun } from "../dynamicsGenerationTypes";
+import type { StaticPage, StaticPageStatus } from "../staticPageTypes";
+import type { StyleLibrary } from "@canonry/world-schema";
+import type { ContentTreeState, PageLayoutOverride } from "../preprint/prePrintTypes";
+import type { RunIndexRecord } from "./indexTypes";
 
 // ---------------------------------------------------------------------------
 // Types — entities + events (v1)
@@ -101,14 +101,24 @@ export interface StyleLibraryRecord {
 
 export type {
   ChronicleRecord,
-  ImageRecord, ImageType, ImageAspect, ImageBlobRecord,
-  CostRecord, CostType, CostRecordInput, CostSummary,
-  TraitPalette, UsedTraitRecord, PaletteItem, TraitGuidance,
+  ImageRecord,
+  ImageType,
+  ImageAspect,
+  ImageBlobRecord,
+  CostRecord,
+  CostType,
+  CostRecordInput,
+  CostSummary,
+  TraitPalette,
+  UsedTraitRecord,
+  PaletteItem,
+  TraitGuidance,
   HistorianRun,
   EraNarrativeRecord,
   SummaryRevisionRun,
   DynamicsRun,
-  StaticPage, StaticPageStatus,
+  StaticPage,
+  StaticPageStatus,
   StyleLibrary,
   StyleLibraryRecord,
   ContentTreeState,
@@ -147,69 +157,71 @@ class IlluminatorDatabase extends Dexie {
   pageLayouts!: Table<PageLayoutOverride, [string, string]>;
 
   constructor() {
-    super('illuminator');
+    super("illuminator");
 
     // v1 — entity enrichment DAL
     this.version(1).stores({
-      entities: 'id, simulationRunId, kind, [simulationRunId+kind]',
-      narrativeEvents: 'id, simulationRunId',
+      entities: "id, simulationRunId, kind, [simulationRunId+kind]",
+      narrativeEvents: "id, simulationRunId",
     });
 
     // v2 — consolidate all remaining IndexedDB stores
     this.version(2).stores({
       // Existing (unchanged — Dexie requires re-declaring them)
-      entities: 'id, simulationRunId, kind, [simulationRunId+kind]',
-      narrativeEvents: 'id, simulationRunId',
+      entities: "id, simulationRunId, kind, [simulationRunId+kind]",
+      narrativeEvents: "id, simulationRunId",
 
       // Chronicles (from canonry-chronicles)
-      chronicles: 'chronicleId, simulationRunId, projectId',
+      chronicles: "chronicleId, simulationRunId, projectId",
 
       // Images (from canonry-images)
-      images: 'imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt',
+      images:
+        "imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt",
 
       // Costs (from canonry-costs)
-      costs: 'id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp',
+      costs: "id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp",
 
       // Trait palettes + usage (from canonry-traits)
-      traitPalettes: 'id, projectId, entityKind',
-      usedTraits: 'id, projectId, simulationRunId, entityKind, entityId',
+      traitPalettes: "id, projectId, entityKind",
+      usedTraits: "id, projectId, simulationRunId, entityKind, entityId",
 
       // Run stores (from canonry-historian, canonry-summary-revision, canonry-dynamics-generation)
-      historianRuns: 'runId, projectId, status, createdAt',
-      summaryRevisionRuns: 'runId, projectId, status, createdAt',
-      dynamicsRuns: 'runId, projectId, status, createdAt',
+      historianRuns: "runId, projectId, status, createdAt",
+      summaryRevisionRuns: "runId, projectId, status, createdAt",
+      dynamicsRuns: "runId, projectId, status, createdAt",
 
       // Static pages (from canonry-static-pages)
-      staticPages: 'pageId, projectId, slug, status, updatedAt',
+      staticPages: "pageId, projectId, slug, status, updatedAt",
 
       // Style library (from illuminator-styles)
-      styleLibrary: 'id',
+      styleLibrary: "id",
     });
 
     // v3 — split image blobs into separate table for fast metadata queries
     this.version(3)
       .stores({
         // All existing tables (must redeclare)
-        entities: 'id, simulationRunId, kind, [simulationRunId+kind]',
-        narrativeEvents: 'id, simulationRunId',
-        chronicles: 'chronicleId, simulationRunId, projectId',
-        images: 'imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt',
-        costs: 'id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp',
-        traitPalettes: 'id, projectId, entityKind',
-        usedTraits: 'id, projectId, simulationRunId, entityKind, entityId',
-        historianRuns: 'runId, projectId, status, createdAt',
-        summaryRevisionRuns: 'runId, projectId, status, createdAt',
-        dynamicsRuns: 'runId, projectId, status, createdAt',
-        staticPages: 'pageId, projectId, slug, status, updatedAt',
-        styleLibrary: 'id',
+        entities: "id, simulationRunId, kind, [simulationRunId+kind]",
+        narrativeEvents: "id, simulationRunId",
+        chronicles: "chronicleId, simulationRunId, projectId",
+        images:
+          "imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt",
+        costs: "id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp",
+        traitPalettes: "id, projectId, entityKind",
+        usedTraits: "id, projectId, simulationRunId, entityKind, entityId",
+        historianRuns: "runId, projectId, status, createdAt",
+        summaryRevisionRuns: "runId, projectId, status, createdAt",
+        dynamicsRuns: "runId, projectId, status, createdAt",
+        staticPages: "pageId, projectId, slug, status, updatedAt",
+        styleLibrary: "id",
 
         // New: blob-only table for image binary data
-        imageBlobs: 'imageId',
+        imageBlobs: "imageId",
       })
       .upgrade(async (tx) => {
-        console.log('[IlluminatorDB] v3 upgrade: splitting image blobs into separate table...');
-        const imagesTable = tx.table('images');
-        const blobsTable = tx.table('imageBlobs');
+        console.log("[IlluminatorDB] v3 upgrade: splitting image blobs into separate table...");
+        const imagesTable = tx.table("images");
+        const blobsTable = tx.table("imageBlobs");
 
         const allImages = await imagesTable.toArray();
         let migrated = 0;
@@ -226,179 +238,188 @@ class IlluminatorDatabase extends Dexie {
           delete record.blob;
         });
 
-        console.log(`[IlluminatorDB] v3 upgrade complete: ${migrated}/${allImages.length} blobs migrated`);
+        console.log(
+          `[IlluminatorDB] v3 upgrade complete: ${migrated}/${allImages.length} blobs migrated`
+        );
       });
 
     // v4 — content tree for pre-print ordering
     this.version(4).stores({
       // All existing tables (must redeclare)
-      entities: 'id, simulationRunId, kind, [simulationRunId+kind]',
-      narrativeEvents: 'id, simulationRunId',
-      chronicles: 'chronicleId, simulationRunId, projectId',
-      images: 'imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt',
-      costs: 'id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp',
-      traitPalettes: 'id, projectId, entityKind',
-      usedTraits: 'id, projectId, simulationRunId, entityKind, entityId',
-      historianRuns: 'runId, projectId, status, createdAt',
-      summaryRevisionRuns: 'runId, projectId, status, createdAt',
-      dynamicsRuns: 'runId, projectId, status, createdAt',
-      staticPages: 'pageId, projectId, slug, status, updatedAt',
-      styleLibrary: 'id',
-      imageBlobs: 'imageId',
+      entities: "id, simulationRunId, kind, [simulationRunId+kind]",
+      narrativeEvents: "id, simulationRunId",
+      chronicles: "chronicleId, simulationRunId, projectId",
+      images:
+        "imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt",
+      costs: "id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp",
+      traitPalettes: "id, projectId, entityKind",
+      usedTraits: "id, projectId, simulationRunId, entityKind, entityId",
+      historianRuns: "runId, projectId, status, createdAt",
+      summaryRevisionRuns: "runId, projectId, status, createdAt",
+      dynamicsRuns: "runId, projectId, status, createdAt",
+      staticPages: "pageId, projectId, slug, status, updatedAt",
+      styleLibrary: "id",
+      imageBlobs: "imageId",
 
       // New: content tree for pre-print book structure
-      contentTrees: '[projectId+simulationRunId]',
+      contentTrees: "[projectId+simulationRunId]",
     });
 
     // v5 — relationships store (decouple from hard state)
     this.version(5).stores({
       // All existing tables (must redeclare)
-      entities: 'id, simulationRunId, kind, [simulationRunId+kind]',
-      narrativeEvents: 'id, simulationRunId',
-      chronicles: 'chronicleId, simulationRunId, projectId',
-      images: 'imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt',
-      costs: 'id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp',
-      traitPalettes: 'id, projectId, entityKind',
-      usedTraits: 'id, projectId, simulationRunId, entityKind, entityId',
-      historianRuns: 'runId, projectId, status, createdAt',
-      summaryRevisionRuns: 'runId, projectId, status, createdAt',
-      dynamicsRuns: 'runId, projectId, status, createdAt',
-      staticPages: 'pageId, projectId, slug, status, updatedAt',
-      styleLibrary: 'id',
-      imageBlobs: 'imageId',
-      contentTrees: '[projectId+simulationRunId]',
+      entities: "id, simulationRunId, kind, [simulationRunId+kind]",
+      narrativeEvents: "id, simulationRunId",
+      chronicles: "chronicleId, simulationRunId, projectId",
+      images:
+        "imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt",
+      costs: "id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp",
+      traitPalettes: "id, projectId, entityKind",
+      usedTraits: "id, projectId, simulationRunId, entityKind, entityId",
+      historianRuns: "runId, projectId, status, createdAt",
+      summaryRevisionRuns: "runId, projectId, status, createdAt",
+      dynamicsRuns: "runId, projectId, status, createdAt",
+      staticPages: "pageId, projectId, slug, status, updatedAt",
+      styleLibrary: "id",
+      imageBlobs: "imageId",
+      contentTrees: "[projectId+simulationRunId]",
 
       // New: relationships (no separate ID in schema, use compound key)
-      relationships: '[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind',
+      relationships: "[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind",
     });
 
     // v6 — slot root metadata (discrete fields only)
     this.version(6).stores({
       // All existing tables (must redeclare)
-      entities: 'id, simulationRunId, kind, [simulationRunId+kind]',
-      narrativeEvents: 'id, simulationRunId',
-      chronicles: 'chronicleId, simulationRunId, projectId',
-      images: 'imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt',
-      costs: 'id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp',
-      traitPalettes: 'id, projectId, entityKind',
-      usedTraits: 'id, projectId, simulationRunId, entityKind, entityId',
-      historianRuns: 'runId, projectId, status, createdAt',
-      summaryRevisionRuns: 'runId, projectId, status, createdAt',
-      dynamicsRuns: 'runId, projectId, status, createdAt',
-      staticPages: 'pageId, projectId, slug, status, updatedAt',
-      styleLibrary: 'id',
-      imageBlobs: 'imageId',
-      contentTrees: '[projectId+simulationRunId]',
-      relationships: '[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind',
+      entities: "id, simulationRunId, kind, [simulationRunId+kind]",
+      narrativeEvents: "id, simulationRunId",
+      chronicles: "chronicleId, simulationRunId, projectId",
+      images:
+        "imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt",
+      costs: "id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp",
+      traitPalettes: "id, projectId, entityKind",
+      usedTraits: "id, projectId, simulationRunId, entityKind, entityId",
+      historianRuns: "runId, projectId, status, createdAt",
+      summaryRevisionRuns: "runId, projectId, status, createdAt",
+      dynamicsRuns: "runId, projectId, status, createdAt",
+      staticPages: "pageId, projectId, slug, status, updatedAt",
+      styleLibrary: "id",
+      imageBlobs: "imageId",
+      contentTrees: "[projectId+simulationRunId]",
+      relationships: "[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind",
 
       // New: slot root metadata
-      simulationSlots: '[projectId+slotIndex], projectId, slotIndex, simulationRunId',
+      simulationSlots: "[projectId+slotIndex], projectId, slotIndex, simulationRunId",
     });
 
     // v7 — schema + coordinate state persistence (shared read access)
     this.version(7).stores({
       // All existing tables (must redeclare)
-      entities: 'id, simulationRunId, kind, [simulationRunId+kind]',
-      narrativeEvents: 'id, simulationRunId',
-      chronicles: 'chronicleId, simulationRunId, projectId',
-      images: 'imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt',
-      costs: 'id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp',
-      traitPalettes: 'id, projectId, entityKind',
-      usedTraits: 'id, projectId, simulationRunId, entityKind, entityId',
-      historianRuns: 'runId, projectId, status, createdAt',
-      summaryRevisionRuns: 'runId, projectId, status, createdAt',
-      dynamicsRuns: 'runId, projectId, status, createdAt',
-      staticPages: 'pageId, projectId, slug, status, updatedAt',
-      styleLibrary: 'id',
-      imageBlobs: 'imageId',
-      contentTrees: '[projectId+simulationRunId]',
-      relationships: '[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind',
-      simulationSlots: '[projectId+slotIndex], projectId, slotIndex, simulationRunId',
+      entities: "id, simulationRunId, kind, [simulationRunId+kind]",
+      narrativeEvents: "id, simulationRunId",
+      chronicles: "chronicleId, simulationRunId, projectId",
+      images:
+        "imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt",
+      costs: "id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp",
+      traitPalettes: "id, projectId, entityKind",
+      usedTraits: "id, projectId, simulationRunId, entityKind, entityId",
+      historianRuns: "runId, projectId, status, createdAt",
+      summaryRevisionRuns: "runId, projectId, status, createdAt",
+      dynamicsRuns: "runId, projectId, status, createdAt",
+      staticPages: "pageId, projectId, slug, status, updatedAt",
+      styleLibrary: "id",
+      imageBlobs: "imageId",
+      contentTrees: "[projectId+simulationRunId]",
+      relationships: "[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind",
+      simulationSlots: "[projectId+slotIndex], projectId, slotIndex, simulationRunId",
 
       // New: schema + coordinate state
-      worldSchemas: 'projectId',
-      coordinateStates: 'simulationRunId',
+      worldSchemas: "projectId",
+      coordinateStates: "simulationRunId",
     });
 
     // v8 — era narratives table
     this.version(8).stores({
       // All existing tables (must redeclare)
-      entities: 'id, simulationRunId, kind, [simulationRunId+kind]',
-      narrativeEvents: 'id, simulationRunId',
-      chronicles: 'chronicleId, simulationRunId, projectId',
-      images: 'imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt',
-      costs: 'id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp',
-      traitPalettes: 'id, projectId, entityKind',
-      usedTraits: 'id, projectId, simulationRunId, entityKind, entityId',
-      historianRuns: 'runId, projectId, status, createdAt',
-      summaryRevisionRuns: 'runId, projectId, status, createdAt',
-      dynamicsRuns: 'runId, projectId, status, createdAt',
-      staticPages: 'pageId, projectId, slug, status, updatedAt',
-      styleLibrary: 'id',
-      imageBlobs: 'imageId',
-      contentTrees: '[projectId+simulationRunId]',
-      relationships: '[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind',
-      simulationSlots: '[projectId+slotIndex], projectId, slotIndex, simulationRunId',
-      worldSchemas: 'projectId',
-      coordinateStates: 'simulationRunId',
+      entities: "id, simulationRunId, kind, [simulationRunId+kind]",
+      narrativeEvents: "id, simulationRunId",
+      chronicles: "chronicleId, simulationRunId, projectId",
+      images:
+        "imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt",
+      costs: "id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp",
+      traitPalettes: "id, projectId, entityKind",
+      usedTraits: "id, projectId, simulationRunId, entityKind, entityId",
+      historianRuns: "runId, projectId, status, createdAt",
+      summaryRevisionRuns: "runId, projectId, status, createdAt",
+      dynamicsRuns: "runId, projectId, status, createdAt",
+      staticPages: "pageId, projectId, slug, status, updatedAt",
+      styleLibrary: "id",
+      imageBlobs: "imageId",
+      contentTrees: "[projectId+simulationRunId]",
+      relationships: "[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind",
+      simulationSlots: "[projectId+slotIndex], projectId, slotIndex, simulationRunId",
+      worldSchemas: "projectId",
+      coordinateStates: "simulationRunId",
 
       // New: era narratives
-      eraNarratives: 'narrativeId, projectId, simulationRunId, eraId, status, createdAt',
+      eraNarratives: "narrativeId, projectId, simulationRunId, eraId, status, createdAt",
     });
 
     // v9 — precomputed run-scoped indexes
     this.version(9).stores({
       // All existing tables (must redeclare)
-      entities: 'id, simulationRunId, kind, [simulationRunId+kind]',
-      narrativeEvents: 'id, simulationRunId',
-      chronicles: 'chronicleId, simulationRunId, projectId',
-      images: 'imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt',
-      costs: 'id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp',
-      traitPalettes: 'id, projectId, entityKind',
-      usedTraits: 'id, projectId, simulationRunId, entityKind, entityId',
-      historianRuns: 'runId, projectId, status, createdAt',
-      summaryRevisionRuns: 'runId, projectId, status, createdAt',
-      dynamicsRuns: 'runId, projectId, status, createdAt',
-      staticPages: 'pageId, projectId, slug, status, updatedAt',
-      styleLibrary: 'id',
-      imageBlobs: 'imageId',
-      contentTrees: '[projectId+simulationRunId]',
-      relationships: '[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind',
-      simulationSlots: '[projectId+slotIndex], projectId, slotIndex, simulationRunId',
-      worldSchemas: 'projectId',
-      coordinateStates: 'simulationRunId',
-      eraNarratives: 'narrativeId, projectId, simulationRunId, eraId, status, createdAt',
+      entities: "id, simulationRunId, kind, [simulationRunId+kind]",
+      narrativeEvents: "id, simulationRunId",
+      chronicles: "chronicleId, simulationRunId, projectId",
+      images:
+        "imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt",
+      costs: "id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp",
+      traitPalettes: "id, projectId, entityKind",
+      usedTraits: "id, projectId, simulationRunId, entityKind, entityId",
+      historianRuns: "runId, projectId, status, createdAt",
+      summaryRevisionRuns: "runId, projectId, status, createdAt",
+      dynamicsRuns: "runId, projectId, status, createdAt",
+      staticPages: "pageId, projectId, slug, status, updatedAt",
+      styleLibrary: "id",
+      imageBlobs: "imageId",
+      contentTrees: "[projectId+simulationRunId]",
+      relationships: "[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind",
+      simulationSlots: "[projectId+slotIndex], projectId, slotIndex, simulationRunId",
+      worldSchemas: "projectId",
+      coordinateStates: "simulationRunId",
+      eraNarratives: "narrativeId, projectId, simulationRunId, eraId, status, createdAt",
 
       // New: precomputed run-scoped indexes
-      runIndexes: 'simulationRunId',
+      runIndexes: "simulationRunId",
     });
 
     // v10 — per-page layout overrides
     this.version(10).stores({
       // All existing tables (must redeclare)
-      entities: 'id, simulationRunId, kind, [simulationRunId+kind]',
-      narrativeEvents: 'id, simulationRunId',
-      chronicles: 'chronicleId, simulationRunId, projectId',
-      images: 'imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt',
-      costs: 'id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp',
-      traitPalettes: 'id, projectId, entityKind',
-      usedTraits: 'id, projectId, simulationRunId, entityKind, entityId',
-      historianRuns: 'runId, projectId, status, createdAt',
-      summaryRevisionRuns: 'runId, projectId, status, createdAt',
-      dynamicsRuns: 'runId, projectId, status, createdAt',
-      staticPages: 'pageId, projectId, slug, status, updatedAt',
-      styleLibrary: 'id',
-      imageBlobs: 'imageId',
-      contentTrees: '[projectId+simulationRunId]',
-      relationships: '[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind',
-      simulationSlots: '[projectId+slotIndex], projectId, slotIndex, simulationRunId',
-      worldSchemas: 'projectId',
-      coordinateStates: 'simulationRunId',
-      eraNarratives: 'narrativeId, projectId, simulationRunId, eraId, status, createdAt',
-      runIndexes: 'simulationRunId',
+      entities: "id, simulationRunId, kind, [simulationRunId+kind]",
+      narrativeEvents: "id, simulationRunId",
+      chronicles: "chronicleId, simulationRunId, projectId",
+      images:
+        "imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt",
+      costs: "id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp",
+      traitPalettes: "id, projectId, entityKind",
+      usedTraits: "id, projectId, simulationRunId, entityKind, entityId",
+      historianRuns: "runId, projectId, status, createdAt",
+      summaryRevisionRuns: "runId, projectId, status, createdAt",
+      dynamicsRuns: "runId, projectId, status, createdAt",
+      staticPages: "pageId, projectId, slug, status, updatedAt",
+      styleLibrary: "id",
+      imageBlobs: "imageId",
+      contentTrees: "[projectId+simulationRunId]",
+      relationships: "[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind",
+      simulationSlots: "[projectId+slotIndex], projectId, slotIndex, simulationRunId",
+      worldSchemas: "projectId",
+      coordinateStates: "simulationRunId",
+      eraNarratives: "narrativeId, projectId, simulationRunId, eraId, status, createdAt",
+      runIndexes: "simulationRunId",
 
       // New: per-page layout overrides for pre-print
-      pageLayouts: '[simulationRunId+pageId], simulationRunId',
+      pageLayouts: "[simulationRunId+pageId], simulationRunId",
     });
   }
 }
@@ -409,7 +430,7 @@ export const db = new IlluminatorDatabase();
 // close THIS connection so the upgrade isn't blocked. This is critical in
 // workers (service worker, shared worker) which persist across page navigations
 // and would otherwise block schema upgrades indefinitely.
-db.on('versionchange', () => {
-  console.log('[IlluminatorDB] Version change detected, closing connection for upgrade');
+db.on("versionchange", () => {
+  console.log("[IlluminatorDB] Version change detected, closing connection for upgrade");
   db.close();
 });

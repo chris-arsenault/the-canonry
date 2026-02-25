@@ -4,33 +4,37 @@
  * All Dexie access for relationships goes through this module.
  */
 
-import type { WorldRelationship } from '@canonry/world-schema';
-import { db, type PersistedRelationship } from './illuminatorDb';
+import type { WorldRelationship } from "@canonry/world-schema";
+import { db, type PersistedRelationship } from "./illuminatorDb";
 
 // ---------------------------------------------------------------------------
 // Seed
 // ---------------------------------------------------------------------------
 
 export async function isRelationshipsSeeded(simulationRunId: string): Promise<boolean> {
-  const count = await db.relationships
-    .where('simulationRunId')
-    .equals(simulationRunId)
-    .count();
-  console.log('[RelationshipRepo] isRelationshipsSeeded', { simulationRunId, count, seeded: count > 0 });
+  const count = await db.relationships.where("simulationRunId").equals(simulationRunId).count();
+  console.log("[RelationshipRepo] isRelationshipsSeeded", {
+    simulationRunId,
+    count,
+    seeded: count > 0,
+  });
   return count > 0;
 }
 
 export async function seedRelationships(
   simulationRunId: string,
-  relationships: WorldRelationship[],
+  relationships: WorldRelationship[]
 ): Promise<void> {
-  console.log('[RelationshipRepo] seedRelationships', { simulationRunId, count: relationships.length });
+  console.log("[RelationshipRepo] seedRelationships", {
+    simulationRunId,
+    count: relationships.length,
+  });
   const records: PersistedRelationship[] = relationships.map((rel) => ({
     ...rel,
     simulationRunId,
   }));
   await db.relationships.bulkPut(records);
-  console.log('[RelationshipRepo] seedRelationships complete');
+  console.log("[RelationshipRepo] seedRelationships complete");
 }
 
 /**
@@ -39,17 +43,15 @@ export async function seedRelationships(
  */
 export async function patchRelationships(
   simulationRunId: string,
-  relationships: WorldRelationship[],
+  relationships: WorldRelationship[]
 ): Promise<number> {
   if (!relationships?.length) return 0;
 
   const existing = await db.relationships
-    .where('simulationRunId')
+    .where("simulationRunId")
     .equals(simulationRunId)
     .toArray();
-  const existingKeys = new Set(
-    existing.map((rel) => `${rel.src}:${rel.dst}:${rel.kind}`)
-  );
+  const existingKeys = new Set(existing.map((rel) => `${rel.src}:${rel.dst}:${rel.kind}`));
 
   const toAdd: PersistedRelationship[] = [];
   for (const rel of relationships) {
@@ -71,13 +73,16 @@ export async function patchRelationships(
 // ---------------------------------------------------------------------------
 
 export async function getRelationshipsForRun(
-  simulationRunId: string,
+  simulationRunId: string
 ): Promise<PersistedRelationship[]> {
   const relationships = await db.relationships
-    .where('simulationRunId')
+    .where("simulationRunId")
     .equals(simulationRunId)
     .toArray();
-  console.log('[RelationshipRepo] getRelationshipsForRun', { simulationRunId, count: relationships.length });
+  console.log("[RelationshipRepo] getRelationshipsForRun", {
+    simulationRunId,
+    count: relationships.length,
+  });
   return relationships;
 }
 
@@ -87,16 +92,16 @@ export async function getRelationshipsForRun(
  */
 export async function getRelationshipsForEntity(
   simulationRunId: string,
-  entityId: string,
+  entityId: string
 ): Promise<PersistedRelationship[]> {
   const [asSrc, asDst] = await Promise.all([
     db.relationships
-      .where('src')
+      .where("src")
       .equals(entityId)
       .and((r) => r.simulationRunId === simulationRunId)
       .toArray(),
     db.relationships
-      .where('dst')
+      .where("dst")
       .equals(entityId)
       .and((r) => r.simulationRunId === simulationRunId)
       .toArray(),
@@ -118,5 +123,5 @@ export async function getRelationshipsForEntity(
 // ---------------------------------------------------------------------------
 
 export async function deleteRelationshipsForRun(simulationRunId: string): Promise<void> {
-  await db.relationships.where('simulationRunId').equals(simulationRunId).delete();
+  await db.relationships.where("simulationRunId").equals(simulationRunId).delete();
 }

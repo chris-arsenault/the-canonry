@@ -17,17 +17,22 @@
  * - abort: Cancel current task (if possible)
  */
 
-import type { EnrichmentType, WorkerTask, WorkerResult, EnrichmentResult } from '../lib/enrichmentTypes';
+import type {
+  EnrichmentType,
+  WorkerTask,
+  WorkerResult,
+  EnrichmentResult,
+} from "../lib/enrichmentTypes";
 import {
   type WorkerConfig,
   type WorkerInbound,
   type WorkerOutbound,
   createClients,
   executeTask as executeEnrichmentTask,
-} from './enrichmentCore';
-import type { LLMClient } from '../lib/llmClient';
-import type { ImageClient } from '../lib/imageClient';
-import * as entityRepo from '../lib/db/entityRepository';
+} from "./enrichmentCore";
+import type { LLMClient } from "../lib/llmClient";
+import type { ImageClient } from "../lib/imageClient";
+import * as entityRepo from "../lib/db/entityRepository";
 
 // Worker context
 const ctx: Worker = self as unknown as Worker;
@@ -54,33 +59,43 @@ async function persistResult(task: WorkerTask, result?: EnrichmentResult): Promi
   if (!result || !task.entityId) return;
 
   try {
-    if (task.type === 'visualThesis' && result.visualThesis) {
-      await entityRepo.applyVisualThesisResult(task.entityId, result.visualThesis, result.visualTraits || [], {
-        generatedAt: result.generatedAt,
-        model: result.model,
-        estimatedCost: result.estimatedCost,
-        actualCost: result.actualCost,
-        inputTokens: result.inputTokens,
-        outputTokens: result.outputTokens,
-        chainDebug: result.chainDebug,
-      });
-    } else if (task.type === 'description' && result.description) {
-      await entityRepo.applyDescriptionResult(task.entityId, {
-        text: {
-          aliases: result.aliases || [],
-          visualThesis: result.visualThesis,
-          visualTraits: result.visualTraits || [],
+    if (task.type === "visualThesis" && result.visualThesis) {
+      await entityRepo.applyVisualThesisResult(
+        task.entityId,
+        result.visualThesis,
+        result.visualTraits || [],
+        {
           generatedAt: result.generatedAt,
           model: result.model,
           estimatedCost: result.estimatedCost,
           actualCost: result.actualCost,
           inputTokens: result.inputTokens,
           outputTokens: result.outputTokens,
-          debug: result.debug,
           chainDebug: result.chainDebug,
+        }
+      );
+    } else if (task.type === "description" && result.description) {
+      await entityRepo.applyDescriptionResult(
+        task.entityId,
+        {
+          text: {
+            aliases: result.aliases || [],
+            visualThesis: result.visualThesis,
+            visualTraits: result.visualTraits || [],
+            generatedAt: result.generatedAt,
+            model: result.model,
+            estimatedCost: result.estimatedCost,
+            actualCost: result.actualCost,
+            inputTokens: result.inputTokens,
+            outputTokens: result.outputTokens,
+            debug: result.debug,
+            chainDebug: result.chainDebug,
+          },
         },
-      }, result.summary, result.description);
-    } else if (task.type === 'image' && result.imageId && task.imageType !== 'chronicle') {
+        result.summary,
+        result.description
+      );
+    } else if (task.type === "image" && result.imageId && task.imageType !== "chronicle") {
       await entityRepo.applyImageResult(task.entityId, {
         imageId: result.imageId,
         generatedAt: result.generatedAt,
@@ -94,7 +109,7 @@ async function persistResult(task: WorkerTask, result?: EnrichmentResult): Promi
         height: result.height,
         aspect: result.aspect,
       });
-    } else if (task.type === 'entityChronicle' && result.chronicleId) {
+    } else if (task.type === "entityChronicle" && result.chronicleId) {
       await entityRepo.applyEntityChronicleResult(task.entityId, {
         chronicleId: result.chronicleId,
         generatedAt: result.generatedAt,
@@ -106,7 +121,7 @@ async function persistResult(task: WorkerTask, result?: EnrichmentResult): Promi
       });
     }
   } catch (err) {
-    console.warn('[Worker] Failed to persist to Dexie:', err);
+    console.warn("[Worker] Failed to persist to Dexie:", err);
   }
 }
 
@@ -118,7 +133,7 @@ async function executeTask(task: WorkerTask): Promise<WorkerResult> {
   currentTaskId = task.id;
   isAborted = false;
 
-  emit({ type: 'started', taskId: task.id });
+  emit({ type: "started", taskId: task.id });
 
   const checkAborted = () => isAborted;
   const taskConfig = task.llmCallSettings
@@ -126,10 +141,10 @@ async function executeTask(task: WorkerTask): Promise<WorkerResult> {
     : config!;
 
   const onThinkingDelta = (delta: string) => {
-    emit({ type: 'thinking_delta', taskId: task.id, delta });
+    emit({ type: "thinking_delta", taskId: task.id, delta });
   };
   const onTextDelta = (delta: string) => {
-    emit({ type: 'text_delta', taskId: task.id, delta });
+    emit({ type: "text_delta", taskId: task.id, delta });
   };
 
   try {
@@ -169,7 +184,7 @@ async function executeTask(task: WorkerTask): Promise<WorkerResult> {
       entityId: task.entityId,
       type: task.type,
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   } finally {
     currentTaskId = null;
@@ -184,22 +199,22 @@ ctx.onmessage = async (event: MessageEvent<WorkerInbound>) => {
   const message = event.data;
 
   switch (message.type) {
-    case 'init': {
+    case "init": {
       config = message.config;
-      console.log('[Worker] Init - LLM call settings:', config.llmCallSettings);
+      console.log("[Worker] Init - LLM call settings:", config.llmCallSettings);
       const clients = createClients(config);
       llmClient = clients.llmClient;
       imageClient = clients.imageClient;
-      emit({ type: 'ready' });
+      emit({ type: "ready" });
       break;
     }
 
-    case 'execute': {
+    case "execute": {
       if (!config) {
         emit({
-          type: 'error',
+          type: "error",
           taskId: message.task.id,
-          error: 'Worker not initialized - call init first',
+          error: "Worker not initialized - call init first",
         });
         break;
       }
@@ -208,26 +223,26 @@ ctx.onmessage = async (event: MessageEvent<WorkerInbound>) => {
 
       if (result.success) {
         await persistResult(message.task, result.result);
-        emit({ type: 'complete', result });
+        emit({ type: "complete", result });
       } else {
         emit({
-          type: 'error',
+          type: "error",
           taskId: result.id,
-          error: result.error || 'Unknown error',
+          error: result.error || "Unknown error",
           debug: result.debug,
         });
       }
       break;
     }
 
-    case 'abort': {
+    case "abort": {
       isAborted = true;
       const taskIdToAbort = message.taskId || currentTaskId;
       if (taskIdToAbort) {
         emit({
-          type: 'error',
+          type: "error",
           taskId: taskIdToAbort,
-          error: 'Task aborted by user',
+          error: "Task aborted by user",
         });
       }
       break;

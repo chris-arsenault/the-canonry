@@ -12,11 +12,8 @@ import type {
   NarrativeEventContext,
   ChronicleTemporalContext,
   EraTemporalInfo,
-} from '../chronicleTypes';
-import {
-  collapseBidirectionalRelationships,
-  type CollapsedRelationship,
-} from '../selectionWizard';
+} from "../chronicleTypes";
+import { collapseBidirectionalRelationships, type CollapsedRelationship } from "../selectionWizard";
 import {
   type NarrativeStyle,
   type StoryNarrativeStyle,
@@ -25,10 +22,10 @@ import {
   buildProminenceScale,
   DEFAULT_PROMINENCE_DISTRIBUTION,
   prominenceLabelFromScale,
-} from '@canonry/world-schema';
-import type { V2SelectionResult } from './types';
+} from "@canonry/world-schema";
+import type { V2SelectionResult } from "./types";
 
-import type { EntityDirective } from '../../perspectiveSynthesizer';
+import type { EntityDirective } from "../../perspectiveSynthesizer";
 
 // =============================================================================
 // Entity Formatting
@@ -38,15 +35,15 @@ import type { EntityDirective } from '../../perspectiveSynthesizer';
  * Format a single entity with full details (for entry point).
  */
 function resolveProminenceLabel(
-  value: EntityContext['prominence'] | number | undefined,
+  value: EntityContext["prominence"] | number | undefined,
   scale: ProminenceScale
 ): string {
-  if (value == null) return 'unknown';
-  if (typeof value === 'number') {
+  if (value == null) return "unknown";
+  if (typeof value === "number") {
     return prominenceLabelFromScale(value, scale);
   }
   const trimmed = String(value).trim();
-  if (!trimmed) return 'unknown';
+  if (!trimmed) return "unknown";
   if (scale.labels.includes(trimmed)) return trimmed;
   const numeric = Number(trimmed);
   if (Number.isFinite(numeric)) {
@@ -55,7 +52,9 @@ function resolveProminenceLabel(
   return trimmed;
 }
 
-function buildProminenceScaleForEntities(entities: Array<EntityContext | undefined>): ProminenceScale {
+function buildProminenceScaleForEntities(
+  entities: Array<EntityContext | undefined>
+): ProminenceScale {
   const values = entities
     .filter((e): e is EntityContext => Boolean(e))
     .map((e) => Number(e.prominence))
@@ -64,21 +63,24 @@ function buildProminenceScaleForEntities(entities: Array<EntityContext | undefin
 }
 
 function formatEntityFull(e: EntityContext, scale: ProminenceScale): string {
-  const desc = e.description || '(no description available)';
-  const tags = e.tags && Object.keys(e.tags).length > 0
-    ? Object.entries(e.tags).map(([k, v]) => `${k}=${v}`).join(', ')
-    : null;
+  const desc = e.description || "(no description available)";
+  const tags =
+    e.tags && Object.keys(e.tags).length > 0
+      ? Object.entries(e.tags)
+          .map(([k, v]) => `${k}=${v}`)
+          .join(", ")
+      : null;
 
   const lines = [
-    `Kind: ${e.kind}${e.subtype ? `/${e.subtype}` : ''}`,
+    `Kind: ${e.kind}${e.subtype ? `/${e.subtype}` : ""}`,
     `Prominence: ${resolveProminenceLabel(e.prominence, scale)}`,
     e.culture ? `Culture: ${e.culture}` : null,
     tags ? `Tags: ${tags}` : null,
-    '',
+    "",
     desc,
   ].filter((line) => line !== null);
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -86,9 +88,9 @@ function formatEntityFull(e: EntityContext, scale: ProminenceScale): string {
  * Uses ### to nest under ## Supporting Characters section.
  */
 function formatEntityBrief(e: EntityContext, scale: ProminenceScale): string {
-  const desc = e.description || '(no description available)';
-  return `### ${e.name} (${e.kind}${e.subtype ? `/${e.subtype}` : ''})
-Prominence: ${resolveProminenceLabel(e.prominence, scale)}${e.culture ? `, Culture: ${e.culture}` : ''}
+  const desc = e.description || "(no description available)";
+  return `### ${e.name} (${e.kind}${e.subtype ? `/${e.subtype}` : ""})
+Prominence: ${resolveProminenceLabel(e.prominence, scale)}${e.culture ? `, Culture: ${e.culture}` : ""}
 ${desc}`;
 }
 
@@ -108,14 +110,14 @@ function formatCollapsedRelationship(collapsed: CollapsedRelationship): string {
  */
 function formatEvent(e: NarrativeEventContext): string {
   const significance = Math.round(e.significance * 100);
-  const subjectLine = e.subjectName ? ` (subject: ${e.subjectName})` : '';
-  const objectLine = e.objectName ? ` (object: ${e.objectName})` : '';
-  const participantNames = e.participants?.map(p => p.name).filter(Boolean) ?? [];
-  const uniqueParticipants = Array.from(new Set(participantNames))
-    .filter(name => name !== e.subjectName && name !== e.objectName);
-  const participantsLine = uniqueParticipants.length > 0
-    ? ` (participants: ${uniqueParticipants.join(', ')})`
-    : '';
+  const subjectLine = e.subjectName ? ` (subject: ${e.subjectName})` : "";
+  const objectLine = e.objectName ? ` (object: ${e.objectName})` : "";
+  const participantNames = e.participants?.map((p) => p.name).filter(Boolean) ?? [];
+  const uniqueParticipants = Array.from(new Set(participantNames)).filter(
+    (name) => name !== e.subjectName && name !== e.objectName
+  );
+  const participantsLine =
+    uniqueParticipants.length > 0 ? ` (participants: ${uniqueParticipants.join(", ")})` : "";
   return `- [${e.eventKind}, ${significance}%] ${e.headline}${subjectLine}${objectLine}${participantsLine}`;
 }
 
@@ -128,21 +130,20 @@ function formatEvent(e: NarrativeEventContext): string {
  * Contains world context only - style/tone guidance is handled separately.
  */
 function buildWorldSection(context: ChronicleGenerationContext): string {
-  const lines = [
-    `# World: ${context.worldName}`,
-    context.worldDescription || '',
-  ].filter(Boolean);
+  const lines = [`# World: ${context.worldName}`, context.worldDescription || ""].filter(Boolean);
 
   if (context.canonFacts && context.canonFacts.length > 0) {
-    lines.push('');
-    lines.push('Canon Facts:');
-    lines.push('(Facts marked with [FACET: ...] include a lens specific to this chronicle. Prioritize the facet - it shows how the universal truth applies to these particular entities and circumstances. The base fact provides context; the facet is your guide.)');
+    lines.push("");
+    lines.push("Canon Facts:");
+    lines.push(
+      "(Facts marked with [FACET: ...] include a lens specific to this chronicle. Prioritize the facet - it shows how the universal truth applies to these particular entities and circumstances. The base fact provides context; the facet is your guide.)"
+    );
     for (const fact of context.canonFacts) {
       lines.push(`- ${fact}`);
     }
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -154,22 +155,22 @@ function buildDataSection(selection: V2SelectionResult): string {
 
   if (selection.relationships.length > 0) {
     const collapsed = collapseBidirectionalRelationships(selection.relationships);
-    lines.push('# Relationships');
+    lines.push("# Relationships");
     for (const rel of collapsed) {
       lines.push(formatCollapsedRelationship(rel));
     }
   }
 
   if (selection.events.length > 0) {
-    if (lines.length > 0) lines.push('');
-    lines.push('# TIMELINE');
-    lines.push('## Events');
+    if (lines.length > 0) lines.push("");
+    lines.push("# TIMELINE");
+    lines.push("## Events");
     for (const evt of selection.events) {
       lines.push(formatEvent(evt));
     }
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -180,9 +181,9 @@ function buildTemporalSection(
   temporalContext: ChronicleTemporalContext | undefined,
   temporalNarrative: string | undefined
 ): string {
-  if (!temporalContext && !temporalNarrative) return '';
+  if (!temporalContext && !temporalNarrative) return "";
 
-  const lines: string[] = ['# Historical Context'];
+  const lines: string[] = ["# Historical Context"];
 
   if (temporalContext) {
     const focal = temporalContext.focalEra;
@@ -194,24 +195,26 @@ function buildTemporalSection(
     }
 
     // World timeline (natural language) - always show
-    lines.push('');
+    lines.push("");
     lines.push(buildWorldTimeline(temporalContext.allEras, focal.id));
 
     // Note about events from other eras
     if (temporalContext.isMultiEra) {
-      lines.push('');
-      lines.push('Some events listed may be from earlier eras. Treat these as historical background that shaped the present, not as scenes to dramatize.');
+      lines.push("");
+      lines.push(
+        "Some events listed may be from earlier eras. Treat these as historical background that shaped the present, not as scenes to dramatize."
+      );
     }
   }
 
   // Synthesized dynamics (from perspective synthesis)
   if (temporalNarrative) {
-    lines.push('');
-    lines.push('## Current Conditions');
+    lines.push("");
+    lines.push("## Current Conditions");
     lines.push(temporalNarrative);
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -219,10 +222,10 @@ function buildTemporalSection(
  */
 function withArticle(name: string): string {
   // If name starts with "The ", convert to lowercase "the "
-  if (name.startsWith('The ')) {
-    return 'the ' + name.slice(4);
+  if (name.startsWith("The ")) {
+    return "the " + name.slice(4);
   }
-  return 'the ' + name;
+  return "the " + name;
 }
 
 /**
@@ -231,9 +234,9 @@ function withArticle(name: string): string {
  */
 function buildWorldTimeline(eras: EraTemporalInfo[], focalEraId: string): string {
   const sorted = [...eras].sort((a, b) => a.order - b.order);
-  const focalIndex = sorted.findIndex(e => e.id === focalEraId);
+  const focalIndex = sorted.findIndex((e) => e.id === focalEraId);
 
-  if (focalIndex === -1) return '';
+  if (focalIndex === -1) return "";
 
   const past = sorted.slice(0, focalIndex);
   const current = sorted[focalIndex];
@@ -242,18 +245,18 @@ function buildWorldTimeline(eras: EraTemporalInfo[], focalEraId: string): string
   const parts: string[] = [];
 
   if (past.length > 0) {
-    const pastNames = past.map(e => withArticle(e.name)).join(', then ');
+    const pastNames = past.map((e) => withArticle(e.name)).join(", then ");
     parts.push(`The world passed through ${pastNames}.`);
   }
 
   parts.push(`It now exists in ${withArticle(current.name)}.`);
 
   if (future.length > 0) {
-    const futureNames = future.map(e => withArticle(e.name)).join(', then ');
-    parts.push(`${futureNames} ${future.length === 1 ? 'lies' : 'lie'} ahead.`);
+    const futureNames = future.map((e) => withArticle(e.name)).join(", then ");
+    parts.push(`${futureNames} ${future.length === 1 ? "lies" : "lie"} ahead.`);
   }
 
-  return parts.join(' ');
+  return parts.join(" ");
 }
 
 /**
@@ -266,75 +269,73 @@ function buildNameBankSection(
   entities: EntityContext[]
 ): string {
   if (!nameBank || Object.keys(nameBank).length === 0) {
-    return '';
+    return "";
   }
 
   const entityCultures = new Set(
-    entities.map(e => e.culture).filter((c): c is string => Boolean(c))
+    entities.map((e) => e.culture).filter((c): c is string => Boolean(c))
   );
 
-  const lines: string[] = ['# Name Bank'];
-  lines.push('Culture-appropriate names for invented characters:');
+  const lines: string[] = ["# Name Bank"];
+  lines.push("Culture-appropriate names for invented characters:");
 
   // Cultures from entities first
   for (const cultureId of entityCultures) {
     if (nameBank[cultureId] && nameBank[cultureId].length > 0) {
-      lines.push(`- ${cultureId}: ${nameBank[cultureId].join(', ')}`);
+      lines.push(`- ${cultureId}: ${nameBank[cultureId].join(", ")}`);
     }
   }
 
   // Any additional cultures in name bank
   for (const [cultureId, names] of Object.entries(nameBank)) {
     if (!entityCultures.has(cultureId) && names.length > 0) {
-      lines.push(`- ${cultureId}: ${names.join(', ')}`);
+      lines.push(`- ${cultureId}: ${names.join(", ")}`);
     }
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
  * Build the narrative voice section.
  * Renders the synthesized voice from perspective synthesis as key-value pairs.
  */
-function buildNarrativeVoiceSection(
-  narrativeVoice: Record<string, string> | undefined
-): string {
+function buildNarrativeVoiceSection(narrativeVoice: Record<string, string> | undefined): string {
   if (!narrativeVoice || Object.keys(narrativeVoice).length === 0) {
-    return '';
+    return "";
   }
 
-  const lines: string[] = ['# Story Bible: Tone & Atmosphere'];
-  lines.push('Reference notes on emotional texture — draw on these:');
-  lines.push('');
+  const lines: string[] = ["# Story Bible: Tone & Atmosphere"];
+  lines.push("Reference notes on emotional texture — draw on these:");
+  lines.push("");
 
   for (const [key, value] of Object.entries(narrativeVoice)) {
     lines.push(`**${key}**: ${value}`);
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
  * Build the entity directives section.
  * Renders per-entity writing directives from perspective synthesis.
  */
-function buildEntityDirectivesSection(
-  entityDirectives: EntityDirective[] | undefined
-): string {
+function buildEntityDirectivesSection(entityDirectives: EntityDirective[] | undefined): string {
   if (!entityDirectives || entityDirectives.length === 0) {
-    return '';
+    return "";
   }
 
-  const lines: string[] = ['# Story Bible: Character Notes'];
-  lines.push('Background on relationships and history — bring alive through specificity, don\'t explain:');
-  lines.push('');
+  const lines: string[] = ["# Story Bible: Character Notes"];
+  lines.push(
+    "Background on relationships and history — bring alive through specificity, don't explain:"
+  );
+  lines.push("");
 
   for (const directive of entityDirectives) {
     lines.push(`**${directive.entityName}**: ${directive.directive}`);
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -347,27 +348,34 @@ function buildNarrativeLensSection(
   scale: ProminenceScale
 ): string {
   if (!context.lensEntity) {
-    return '';
+    return "";
   }
 
   const entity = context.lensEntity;
-  const desc = entity.description || entity.summary || '(no description available)';
-  const tags = entity.tags && Object.keys(entity.tags).length > 0
-    ? Object.entries(entity.tags).map(([k, v]) => `${k}=${v}`).join(', ')
-    : null;
+  const desc = entity.description || entity.summary || "(no description available)";
+  const tags =
+    entity.tags && Object.keys(entity.tags).length > 0
+      ? Object.entries(entity.tags)
+          .map(([k, v]) => `${k}=${v}`)
+          .join(", ")
+      : null;
 
-  const lines: string[] = ['# Narrative Lens'];
-  lines.push('This story exists in the shadow of:');
-  lines.push('');
-  lines.push(`## ${entity.name} (${entity.kind}${entity.subtype ? `/${entity.subtype}` : ''})`);
-  lines.push(`Prominence: ${resolveProminenceLabel(entity.prominence, scale)}${entity.culture ? `, Culture: ${entity.culture}` : ''}`);
+  const lines: string[] = ["# Narrative Lens"];
+  lines.push("This story exists in the shadow of:");
+  lines.push("");
+  lines.push(`## ${entity.name} (${entity.kind}${entity.subtype ? `/${entity.subtype}` : ""})`);
+  lines.push(
+    `Prominence: ${resolveProminenceLabel(entity.prominence, scale)}${entity.culture ? `, Culture: ${entity.culture}` : ""}`
+  );
   if (tags) lines.push(`Tags: ${tags}`);
-  lines.push('');
+  lines.push("");
   lines.push(desc);
-  lines.push('');
-  lines.push('Lens Guidance: This entity is NOT a character in the story. It is the context — the constraint, the backdrop, the thing everyone knows but no one can change. It should be felt in characters\' choices, in what is possible and impossible, in what goes unsaid. Reference it naturally, never explain it to the reader as if they don\'t know it.');
+  lines.push("");
+  lines.push(
+    "Lens Guidance: This entity is NOT a character in the story. It is the context — the constraint, the backdrop, the thing everyone knows but no one can change. It should be felt in characters' choices, in what is possible and impossible, in what goes unsaid. Reference it naturally, never explain it to the reader as if they don't know it."
+  );
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 // =============================================================================
@@ -379,10 +387,8 @@ function buildNarrativeLensSection(
  * Only emits content when narrativeDirection is present.
  * When empty/undefined, returns empty string — no prompt change.
  */
-function buildNarrativeDirectionSection(
-  narrativeDirection: string | undefined
-): string {
-  if (!narrativeDirection) return '';
+function buildNarrativeDirectionSection(narrativeDirection: string | undefined): string {
+  if (!narrativeDirection) return "";
 
   return `# Narrative Direction
 This chronicle has a specific narrative purpose:
@@ -399,12 +405,12 @@ Write to fulfill this direction. Every structural and tonal choice should serve 
  * Uses the unified narrativeInstructions field.
  */
 function buildStoryStructureSection(style: StoryNarrativeStyle): string {
-  const lines: string[] = ['# Narrative Structure'];
+  const lines: string[] = ["# Narrative Structure"];
 
   // Scene count guidance
   if (style.pacing?.sceneCount) {
     lines.push(`Target: ${style.pacing.sceneCount.min}-${style.pacing.sceneCount.max} scenes`);
-    lines.push('');
+    lines.push("");
   }
 
   // Narrative instructions (plot structure, scenes, beats, emotional arcs)
@@ -412,7 +418,7 @@ function buildStoryStructureSection(style: StoryNarrativeStyle): string {
     lines.push(style.narrativeInstructions);
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -426,31 +432,34 @@ function buildUnifiedCastSection(
   prominenceScale: ProminenceScale
 ): string {
   const lines: string[] = [`# Cast (${selection.entities.length} characters)`];
-  lines.push('');
-  lines.push('**Temporal context**: Entity descriptions reflect their CURRENT state — who they became, how they ended up. This chronicle depicts PAST EVENTS when characters who are now dead/changed were alive and active. Write them as they WERE during the story, not as they ARE now.');
+  lines.push("");
+  lines.push(
+    "**Temporal context**: Entity descriptions reflect their CURRENT state — who they became, how they ended up. This chronicle depicts PAST EVENTS when characters who are now dead/changed were alive and active. Write them as they WERE during the story, not as they ARE now."
+  );
 
   // Role expectations first - so LLM knows what to look for
   if (style.roles && style.roles.length > 0) {
-    lines.push('');
-    lines.push('## Narrative Roles');
-    lines.push('Assign characters from below to these roles:');
+    lines.push("");
+    lines.push("## Narrative Roles");
+    lines.push("Assign characters from below to these roles:");
     for (const role of style.roles) {
-      const countStr = role.count.min === role.count.max
-        ? `${role.count.min}`
-        : `${role.count.min}-${role.count.max}`;
+      const countStr =
+        role.count.min === role.count.max
+          ? `${role.count.min}`
+          : `${role.count.min}-${role.count.max}`;
       lines.push(`- **${role.role}** (${countStr}): ${role.description}`);
     }
   }
 
   // Primary characters
-  const primaryEntities = selection.entities.filter(e => primaryEntityIds.has(e.id));
-  const supportingEntities = selection.entities.filter(e => !primaryEntityIds.has(e.id));
+  const primaryEntities = selection.entities.filter((e) => primaryEntityIds.has(e.id));
+  const supportingEntities = selection.entities.filter((e) => !primaryEntityIds.has(e.id));
 
   if (primaryEntities.length > 0) {
-    lines.push('');
-    lines.push('## Primary Characters');
+    lines.push("");
+    lines.push("## Primary Characters");
     for (const entity of primaryEntities) {
-      lines.push('');
+      lines.push("");
       lines.push(`### ${entity.name}`);
       lines.push(formatEntityFull(entity, prominenceScale));
     }
@@ -458,15 +467,15 @@ function buildUnifiedCastSection(
 
   // Supporting characters
   if (supportingEntities.length > 0) {
-    lines.push('');
-    lines.push('## Supporting Characters');
+    lines.push("");
+    lines.push("## Supporting Characters");
     for (const entity of supportingEntities) {
-      lines.push('');
+      lines.push("");
       lines.push(formatEntityBrief(entity, prominenceScale));
     }
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -474,7 +483,7 @@ function buildUnifiedCastSection(
  */
 function buildEventUsageSection(style: StoryNarrativeStyle): string {
   if (!style.eventInstructions) {
-    return '';
+    return "";
   }
 
   return `# How to Use Events
@@ -486,23 +495,20 @@ ${style.eventInstructions}`;
  * Combines world tone/voice guidance with prose instructions from the narrative style.
  * This is the single location for all writing style guidance.
  */
-function buildUnifiedStyleSection(
-  tone: string | undefined,
-  style: StoryNarrativeStyle
-): string {
+function buildUnifiedStyleSection(tone: string | undefined, style: StoryNarrativeStyle): string {
   const lines: string[] = [`# Writing Style`];
   let hasContent = false;
 
   // World tone/voice guidance (may contain detailed style instructions)
   if (tone) {
-    lines.push('');
+    lines.push("");
     lines.push(tone);
     hasContent = true;
   }
 
   // Prose instructions from narrative style (tone, dialogue, description, world elements, avoid)
   if (style.proseInstructions) {
-    if (hasContent) lines.push('');
+    if (hasContent) lines.push("");
     lines.push(`## Prose: ${style.name}`);
     lines.push(style.proseInstructions);
     hasContent = true;
@@ -510,14 +516,14 @@ function buildUnifiedStyleSection(
 
   // Craft posture - authorial density and restraint constraints
   if (style.craftPosture) {
-    if (hasContent) lines.push('');
+    if (hasContent) lines.push("");
     lines.push(`## Craft Posture`);
-    lines.push('How to relate to the material — density, withholding, and elaboration:');
+    lines.push("How to relate to the material — density, withholding, and elaboration:");
     lines.push(style.craftPosture);
     hasContent = true;
   }
 
-  return hasContent ? lines.join('\n') : '';
+  return hasContent ? lines.join("\n") : "";
 }
 
 /**
@@ -555,7 +561,7 @@ function buildStoryPrompt(
   const wordRange = `${pacing.totalWordCount.min}-${pacing.totalWordCount.max}`;
   const sceneRange = pacing.sceneCount
     ? `${pacing.sceneCount.min}-${pacing.sceneCount.max}`
-    : '4-5';
+    : "4-5";
 
   // === TASK DATA ===
 
@@ -626,7 +632,7 @@ Requirements:
     dataSection,
   ].filter(Boolean);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 // =============================================================================
@@ -643,7 +649,9 @@ function getDocumentWordCount(style: DocumentNarrativeStyle): { min: number; max
     return style.pacing.wordCount;
   }
   // Legacy format fallback
-  const legacy = style as unknown as { documentConfig?: { wordCount?: { min: number; max: number } } };
+  const legacy = style as unknown as {
+    documentConfig?: { wordCount?: { min: number; max: number } };
+  };
   if (legacy.documentConfig?.wordCount) {
     return legacy.documentConfig.wordCount;
   }
@@ -667,7 +675,12 @@ function getDocumentInstructions(style: DocumentNarrativeStyle): string {
       contentInstructions?: string;
       voice?: string;
       toneKeywords?: string[];
-      sections?: Array<{ name: string; purpose: string; wordCountTarget?: number; optional?: boolean }>;
+      sections?: Array<{
+        name: string;
+        purpose: string;
+        wordCountTarget?: number;
+        optional?: boolean;
+      }>;
     };
   };
   if (legacy.documentConfig) {
@@ -677,23 +690,23 @@ function getDocumentInstructions(style: DocumentNarrativeStyle): string {
       lines.push(`Document Type: ${doc.documentType}`);
     }
     if (doc.contentInstructions) {
-      lines.push('', doc.contentInstructions);
+      lines.push("", doc.contentInstructions);
     }
     if (doc.voice) {
-      lines.push('', `Voice: ${doc.voice}`);
+      lines.push("", `Voice: ${doc.voice}`);
     }
     if (doc.toneKeywords?.length) {
-      lines.push(`Tone: ${doc.toneKeywords.join(', ')}`);
+      lines.push(`Tone: ${doc.toneKeywords.join(", ")}`);
     }
     if (doc.sections?.length) {
-      lines.push('', 'Sections:');
+      lines.push("", "Sections:");
       doc.sections.forEach((s, i) => {
         lines.push(`${i + 1}. ${s.name}: ${s.purpose}`);
       });
     }
-    return lines.join('\n');
+    return lines.join("\n");
   }
-  return '';
+  return "";
 }
 
 /**
@@ -703,32 +716,40 @@ function getDocumentInstructions(style: DocumentNarrativeStyle): string {
 function buildDocumentInstructionsSection(style: DocumentNarrativeStyle): string {
   const instructions = getDocumentInstructions(style);
   if (!instructions) {
-    return style.craftPosture ? `# Document Instructions\n\n## Craft Posture\nHow to relate to the material — density, withholding, and elaboration:\n${style.craftPosture}` : '';
+    return style.craftPosture
+      ? `# Document Instructions\n\n## Craft Posture\nHow to relate to the material — density, withholding, and elaboration:\n${style.craftPosture}`
+      : "";
   }
 
   const lines = [`# Document Instructions`, instructions];
 
   if (style.craftPosture) {
-    lines.push('');
+    lines.push("");
     lines.push(`## Craft Posture`);
-    lines.push('How to relate to the material — density, withholding, and elaboration:');
+    lines.push("How to relate to the material — density, withholding, and elaboration:");
     lines.push(style.craftPosture);
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
  * Get roles from document style.
  * Handles both new format (roles) and legacy format (entityRules.roles).
  */
-function getDocumentRoles(style: DocumentNarrativeStyle): Array<{ role: string; count: { min: number; max: number }; description: string }> {
+function getDocumentRoles(
+  style: DocumentNarrativeStyle
+): Array<{ role: string; count: { min: number; max: number }; description: string }> {
   // New format
   if (style.roles && style.roles.length > 0) {
     return style.roles;
   }
   // Legacy format fallback
-  const legacy = style as unknown as { entityRules?: { roles?: Array<{ role: string; count: { min: number; max: number }; description: string }> } };
+  const legacy = style as unknown as {
+    entityRules?: {
+      roles?: Array<{ role: string; count: { min: number; max: number }; description: string }>;
+    };
+  };
   if (legacy.entityRules?.roles) {
     return legacy.entityRules.roles;
   }
@@ -749,7 +770,7 @@ function getDocumentEventInstructions(style: DocumentNarrativeStyle): string {
   if (legacy.documentConfig?.eventUsage) {
     return legacy.documentConfig.eventUsage;
   }
-  return '';
+  return "";
 }
 
 /**
@@ -758,7 +779,7 @@ function getDocumentEventInstructions(style: DocumentNarrativeStyle): string {
 function buildDocumentEventUsageSection(style: DocumentNarrativeStyle): string {
   const instructions = getDocumentEventInstructions(style);
   if (!instructions) {
-    return '';
+    return "";
   }
 
   return `# How to Use Events
@@ -775,7 +796,7 @@ ${instructions}`;
  * PS brief + motifs + narrative style proseInstructions.
  */
 function buildDocumentStyleSection(tone: string | undefined): string {
-  if (!tone) return '';
+  if (!tone) return "";
   return `# Perspective\n\n${tone}`;
 }
 
@@ -790,32 +811,35 @@ function buildUnifiedDocumentCastSection(
   prominenceScale: ProminenceScale
 ): string {
   const lines: string[] = [`# Cast (${selection.entities.length} characters)`];
-  lines.push('');
-  lines.push('**Temporal context**: Entity descriptions reflect their CURRENT state — who they became, how they ended up. This chronicle depicts PAST EVENTS when characters who are now dead/changed were alive and active. Write them as they WERE during the story, not as they ARE now.');
+  lines.push("");
+  lines.push(
+    "**Temporal context**: Entity descriptions reflect their CURRENT state — who they became, how they ended up. This chronicle depicts PAST EVENTS when characters who are now dead/changed were alive and active. Write them as they WERE during the story, not as they ARE now."
+  );
   const roles = getDocumentRoles(style);
 
   // Role expectations first - so LLM knows what to look for
   if (roles.length > 0) {
-    lines.push('');
-    lines.push('## Document Roles');
-    lines.push('Assign characters from below to these roles:');
+    lines.push("");
+    lines.push("## Document Roles");
+    lines.push("Assign characters from below to these roles:");
     for (const role of roles) {
-      const countStr = role.count.min === role.count.max
-        ? `${role.count.min}`
-        : `${role.count.min}-${role.count.max}`;
+      const countStr =
+        role.count.min === role.count.max
+          ? `${role.count.min}`
+          : `${role.count.min}-${role.count.max}`;
       lines.push(`- **${role.role}** (${countStr}): ${role.description}`);
     }
   }
 
   // Primary characters
-  const primaryEntities = selection.entities.filter(e => primaryEntityIds.has(e.id));
-  const supportingEntities = selection.entities.filter(e => !primaryEntityIds.has(e.id));
+  const primaryEntities = selection.entities.filter((e) => primaryEntityIds.has(e.id));
+  const supportingEntities = selection.entities.filter((e) => !primaryEntityIds.has(e.id));
 
   if (primaryEntities.length > 0) {
-    lines.push('');
-    lines.push('## Primary Characters');
+    lines.push("");
+    lines.push("## Primary Characters");
     for (const entity of primaryEntities) {
-      lines.push('');
+      lines.push("");
       lines.push(`### ${entity.name}`);
       lines.push(formatEntityFull(entity, prominenceScale));
     }
@@ -823,15 +847,15 @@ function buildUnifiedDocumentCastSection(
 
   // Supporting characters
   if (supportingEntities.length > 0) {
-    lines.push('');
-    lines.push('## Supporting Characters');
+    lines.push("");
+    lines.push("## Supporting Characters");
     for (const entity of supportingEntities) {
-      lines.push('');
+      lines.push("");
       lines.push(formatEntityBrief(entity, prominenceScale));
     }
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -898,7 +922,12 @@ Requirements:
   // === WORLD DATA ===
 
   // 7. CAST (unified roles + characters)
-  const castSection = buildUnifiedDocumentCastSection(selection, primaryEntityIds, style, prominenceScale);
+  const castSection = buildUnifiedDocumentCastSection(
+    selection,
+    primaryEntityIds,
+    style,
+    prominenceScale
+  );
 
   // 7b. NARRATIVE LENS (contextual frame entity)
   const lensSection = buildNarrativeLensSection(context, prominenceScale);
@@ -936,7 +965,7 @@ Requirements:
     dataSection,
   ].filter(Boolean);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 // =============================================================================
@@ -960,7 +989,7 @@ export function buildV2Prompt(
     context.lensEntity,
   ]);
 
-  if (style.format === 'story') {
+  if (style.format === "story") {
     return buildStoryPrompt(
       context,
       selection,
@@ -990,13 +1019,14 @@ export function buildV2Prompt(
  * Rough estimate: 1 token ~= 0.75 words, plus buffer.
  */
 export function getMaxTokensFromStyle(style: NarrativeStyle): number {
-  const maxWords = style.format === 'story'
-    ? (style as StoryNarrativeStyle).pacing.totalWordCount.max
-    : getDocumentWordCount(style as DocumentNarrativeStyle).max;
+  const maxWords =
+    style.format === "story"
+      ? (style as StoryNarrativeStyle).pacing.totalWordCount.max
+      : getDocumentWordCount(style as DocumentNarrativeStyle).max;
 
   // Add 50% buffer for safety, but never go below a practical minimum.
   const minAutoMaxTokens = 1024;
-  const estimated = Math.ceil(maxWords / 0.75 * 1.5);
+  const estimated = Math.ceil((maxWords / 0.75) * 1.5);
   return Math.max(estimated, minAutoMaxTokens);
 }
 
@@ -1005,7 +1035,7 @@ export function getMaxTokensFromStyle(style: NarrativeStyle): number {
  * Describes prompt structure and establishes guidance hierarchy.
  */
 export function getV2SystemPrompt(style: NarrativeStyle): string {
-  if (style.format === 'story') {
+  if (style.format === "story") {
     return `You are an expert fantasy author writing engaging fiction. Your readers expect vivid characters, emotional truth, and prose that lands.
 
 Your prompt contains:
@@ -1104,14 +1134,14 @@ Tone & Atmosphere and Character Notes are pre-synthesized guidance — follow th
  */
 export function buildCreativeStoryPrompt(
   context: ChronicleGenerationContext,
-  selection: V2SelectionResult,
+  selection: V2SelectionResult
 ): string {
   const style = context.narrativeStyle as StoryNarrativeStyle;
   const pacing = style.pacing;
   const wordRange = `${pacing.totalWordCount.min}-${pacing.totalWordCount.max}`;
   const sceneRange = pacing.sceneCount
     ? `${pacing.sceneCount.min}-${pacing.sceneCount.max}`
-    : '4-5';
+    : "4-5";
 
   const primaryEntityIds = new Set(context.focus?.primaryEntityIds || []);
   const prominenceScale = buildProminenceScaleForEntities([
@@ -1138,27 +1168,29 @@ Find the one image the reader won't forget. Build outward from there.
   const eventSection = buildEventUsageSection(style);
 
   // 4. NARRATIVE VOICE — V0-style header (not "Story Bible")
-  let narrativeVoiceSection = '';
+  let narrativeVoiceSection = "";
   if (context.narrativeVoice && Object.keys(context.narrativeVoice).length > 0) {
-    const voiceLines: string[] = ['# Tone & Atmosphere'];
-    voiceLines.push('Synthesized prose guidance for this chronicle:');
-    voiceLines.push('');
+    const voiceLines: string[] = ["# Tone & Atmosphere"];
+    voiceLines.push("Synthesized prose guidance for this chronicle:");
+    voiceLines.push("");
     for (const [key, value] of Object.entries(context.narrativeVoice)) {
       voiceLines.push(`**${key}**: ${value}`);
     }
-    narrativeVoiceSection = voiceLines.join('\n');
+    narrativeVoiceSection = voiceLines.join("\n");
   }
 
   // 5. ENTITY WRITING DIRECTIVES — V0-style header (not "Story Bible")
-  let entityDirectivesSection = '';
+  let entityDirectivesSection = "";
   if (context.entityDirectives && context.entityDirectives.length > 0) {
-    const directiveLines: string[] = ['# Character Notes'];
-    directiveLines.push('Specific guidance for writing each entity — interpret creatively, don\'t reproduce this language directly:');
-    directiveLines.push('');
+    const directiveLines: string[] = ["# Character Notes"];
+    directiveLines.push(
+      "Specific guidance for writing each entity — interpret creatively, don't reproduce this language directly:"
+    );
+    directiveLines.push("");
     for (const directive of context.entityDirectives) {
       directiveLines.push(`**${directive.entityName}**: ${directive.directive}`);
     }
-    entityDirectivesSection = directiveLines.join('\n');
+    entityDirectivesSection = directiveLines.join("\n");
   }
 
   // 6. WRITING STYLE — same as structured, including craft posture
@@ -1206,7 +1238,7 @@ Find the one image the reader won't forget. Build outward from there.
     dataSection,
   ].filter(Boolean);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 /**
@@ -1214,22 +1246,22 @@ Find the one image the reader won't forget. Build outward from there.
  * Same beat sheet content but framed as a starting shape rather than prescription.
  */
 function buildCreativeStructureSection(style: StoryNarrativeStyle): string {
-  const lines: string[] = ['# Narrative Structure'];
-  lines.push('One possible shape for this story. Use it, adapt it, or find a better one.');
+  const lines: string[] = ["# Narrative Structure"];
+  lines.push("One possible shape for this story. Use it, adapt it, or find a better one.");
 
   // Scene count guidance
   if (style.pacing?.sceneCount) {
-    lines.push('');
+    lines.push("");
     lines.push(`Target: ${style.pacing.sceneCount.min}-${style.pacing.sceneCount.max} scenes`);
   }
 
   // Narrative instructions (plot structure, scenes, beats, emotional arcs)
   if (style.narrativeInstructions) {
-    lines.push('');
+    lines.push("");
     lines.push(style.narrativeInstructions);
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -1238,22 +1270,22 @@ function buildCreativeStructureSection(style: StoryNarrativeStyle): string {
  * removing them produces safer, more median output, not wilder output.
  */
 function buildCreativeStyleSection(
-  tone: ChronicleGenerationContext['tone'],
-  style: StoryNarrativeStyle,
+  tone: ChronicleGenerationContext["tone"],
+  style: StoryNarrativeStyle
 ): string {
   const lines: string[] = [`# Writing Style`];
   let hasContent = false;
 
   // World tone/voice guidance (may contain detailed style instructions)
   if (tone) {
-    lines.push('');
+    lines.push("");
     lines.push(tone);
     hasContent = true;
   }
 
   // Prose instructions from narrative style (tone, dialogue, description, world elements, avoid)
   if (style.proseInstructions) {
-    if (hasContent) lines.push('');
+    if (hasContent) lines.push("");
     lines.push(`## Prose: ${style.name}`);
     lines.push(style.proseInstructions);
     hasContent = true;
@@ -1262,12 +1294,12 @@ function buildCreativeStyleSection(
   // Craft posture - same as structured. Research shows craft constraints
   // produce more creative output than open freedom.
   if (style.craftPosture) {
-    if (hasContent) lines.push('');
+    if (hasContent) lines.push("");
     lines.push(`## Craft Posture`);
-    lines.push('How to relate to the material — density, withholding, and elaboration:');
+    lines.push("How to relate to the material — density, withholding, and elaboration:");
     lines.push(style.craftPosture);
     hasContent = true;
   }
 
-  return hasContent ? lines.join('\n') : '';
+  return hasContent ? lines.join("\n") : "";
 }

@@ -9,23 +9,23 @@
  * to cast member summaries and descriptions.
  */
 
-import type { WorkerTask } from '../../lib/enrichmentTypes';
-import type { TaskContext } from './taskTypes';
-import type { TaskResult } from '../types';
+import type { WorkerTask } from "../../lib/enrichmentTypes";
+import type { TaskContext } from "./taskTypes";
+import type { TaskResult } from "../types";
 import type {
   SummaryRevisionLLMResponse,
   RevisionEntityContext,
-} from '../../lib/summaryRevisionTypes';
+} from "../../lib/summaryRevisionTypes";
 import {
   type ProminenceScale,
   buildProminenceScale,
   DEFAULT_PROMINENCE_DISTRIBUTION,
   prominenceLabelFromScale,
-} from '@canonry/world-schema';
-import { getRevisionRun, updateRevisionRun } from '../../lib/db/summaryRevisionRepository';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
-import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepository';
+} from "@canonry/world-schema";
+import { getRevisionRun, updateRevisionRun } from "../../lib/db/summaryRevisionRepository";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
+import { saveCostRecordWithDefaults, type CostType } from "../../lib/db/costRepository";
 
 // ============================================================================
 // System Prompt
@@ -187,23 +187,24 @@ function buildUserPrompt(
   entities: RevisionEntityContext[],
   chronicleText: string,
   perspectiveSynthesisJson: string,
-  customInstructions?: string,
+  customInstructions?: string
 ): string {
   const sections: string[] = [];
-  let chronicleFormat = '';
+  let chronicleFormat = "";
   const prominenceScale = buildProminenceScale(
-    entities
-      .map((e) => Number(e.prominence))
-      .filter((value) => Number.isFinite(value)),
+    entities.map((e) => Number(e.prominence)).filter((value) => Number.isFinite(value)),
     { distribution: DEFAULT_PROMINENCE_DISTRIBUTION }
   );
-  const resolveProminenceLabel = (value: RevisionEntityContext['prominence'] | number | undefined, scale: ProminenceScale) => {
-    if (value == null) return 'unknown';
-    if (typeof value === 'number') {
+  const resolveProminenceLabel = (
+    value: RevisionEntityContext["prominence"] | number | undefined,
+    scale: ProminenceScale
+  ) => {
+    if (value == null) return "unknown";
+    if (typeof value === "number") {
       return prominenceLabelFromScale(value, scale);
     }
     const trimmed = String(value).trim();
-    if (!trimmed) return 'unknown';
+    if (!trimmed) return "unknown";
     if (scale.labels.includes(trimmed)) return trimmed;
     const numeric = Number(trimmed);
     if (Number.isFinite(numeric)) {
@@ -219,32 +220,42 @@ function buildUserPrompt(
   if (perspectiveSynthesisJson) {
     try {
       const synthesis = JSON.parse(perspectiveSynthesisJson);
-      chronicleFormat = synthesis.chronicleFormat || '';
+      chronicleFormat = synthesis.chronicleFormat || "";
       const synthParts: string[] = [];
 
       if (synthesis.brief) {
         synthParts.push(`Brief: ${synthesis.brief}`);
       }
       if (synthesis.facets?.length) {
-        synthParts.push(`Faceted Facts:\n${synthesis.facets.map((f: { factId: string; interpretation: string }) => `  - [${f.factId}] ${f.interpretation}`).join('\n')}`);
+        synthParts.push(
+          `Faceted Facts:\n${synthesis.facets.map((f: { factId: string; interpretation: string }) => `  - [${f.factId}] ${f.interpretation}`).join("\n")}`
+        );
       }
       if (synthesis.narrativeVoice && Object.keys(synthesis.narrativeVoice).length) {
-        synthParts.push(`Narrative Voice:\n${Object.entries(synthesis.narrativeVoice).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`);
+        synthParts.push(
+          `Narrative Voice:\n${Object.entries(synthesis.narrativeVoice)
+            .map(([k, v]) => `  ${k}: ${v}`)
+            .join("\n")}`
+        );
       }
       if (synthesis.entityDirectives?.length) {
-        synthParts.push(`Entity Directives:\n${synthesis.entityDirectives.map((d: { entityName: string; directive: string }) => `  - ${d.entityName}: ${d.directive}`).join('\n')}`);
+        synthParts.push(
+          `Entity Directives:\n${synthesis.entityDirectives.map((d: { entityName: string; directive: string }) => `  - ${d.entityName}: ${d.directive}`).join("\n")}`
+        );
       }
       if (synthesis.suggestedMotifs?.length) {
-        synthParts.push(`Motifs: ${synthesis.suggestedMotifs.join(', ')}`);
+        synthParts.push(`Motifs: ${synthesis.suggestedMotifs.join(", ")}`);
       }
 
       if (synthParts.length > 0) {
-        sections.push(`=== PERSPECTIVE SYNTHESIS ===\n${synthParts.join('\n\n')}`);
+        sections.push(`=== PERSPECTIVE SYNTHESIS ===\n${synthParts.join("\n\n")}`);
       }
 
       // Narrative direction (optional) — helps distinguish direction-specific framing from durable lore
       if (synthesis.narrativeDirection) {
-        sections.push(`=== NARRATIVE DIRECTION ===\nThis chronicle was written with a specific narrative direction: "${synthesis.narrativeDirection}"\nConsider this when evaluating which details are chronicle-specific framing vs. durable lore worth backporting.`);
+        sections.push(
+          `=== NARRATIVE DIRECTION ===\nThis chronicle was written with a specific narrative direction: "${synthesis.narrativeDirection}"\nConsider this when evaluating which details are chronicle-specific framing vs. durable lore worth backporting.`
+        );
       }
     } catch {
       // If JSON parsing fails, include as raw text
@@ -253,24 +264,28 @@ function buildUserPrompt(
   }
 
   // Separate cast and lens entities
-  const castEntities = entities.filter(e => !e.isLens);
-  const lensEntities = entities.filter(e => e.isLens);
+  const castEntities = entities.filter((e) => !e.isLens);
+  const lensEntities = entities.filter((e) => e.isLens);
 
   function formatEntityBlock(e: RevisionEntityContext): string {
     const parts: string[] = [];
     const displayName = e.chronicleName || e.name;
-    const lensTag = e.isLens ? ' [NARRATIVE LENS]' : '';
-    const primaryTag = e.isPrimary ? ' [PRIMARY]' : '';
-    parts.push(`### ${displayName} (${e.kind}${e.subtype ? ` / ${e.subtype}` : ''})${lensTag}${primaryTag}`);
+    const lensTag = e.isLens ? " [NARRATIVE LENS]" : "";
+    const primaryTag = e.isPrimary ? " [PRIMARY]" : "";
+    parts.push(
+      `### ${displayName} (${e.kind}${e.subtype ? ` / ${e.subtype}` : ""})${lensTag}${primaryTag}`
+    );
     if (e.chronicleName && e.chronicleName !== e.name) {
       parts.push(`Canonical name: ${e.name}`);
     }
     if (e.aliases?.length) {
-      parts.push(`Also known as: ${e.aliases.join(', ')}`);
+      parts.push(`Also known as: ${e.aliases.join(", ")}`);
     }
     parts.push(`ID: ${e.id}`);
-    const chronicleRole = e.isPrimary ? 'primary' : 'supporting';
-    parts.push(`Prominence: ${resolveProminenceLabel(e.prominence, prominenceScale)} | Chronicle Role: ${chronicleRole} | Culture: ${e.culture} | Status: ${e.status}`);
+    const chronicleRole = e.isPrimary ? "primary" : "supporting";
+    parts.push(
+      `Prominence: ${resolveProminenceLabel(e.prominence, prominenceScale)} | Chronicle Role: ${chronicleRole} | Culture: ${e.culture} | Status: ${e.status}`
+    );
 
     if (e.kindFocus) {
       parts.push(`Description Focus (${e.kind}): ${e.kindFocus}`);
@@ -284,7 +299,7 @@ function buildUserPrompt(
       const relLines = e.relationships.map(
         (r) => `  - ${r.kind} → ${r.targetName} (${r.targetKind})`
       );
-      parts.push(`Relationships:\n${relLines.join('\n')}`);
+      parts.push(`Relationships:\n${relLines.join("\n")}`);
     }
 
     parts.push(`Summary: ${e.summary}`);
@@ -303,34 +318,42 @@ function buildUserPrompt(
     }
 
     if (e.existingAnchorPhrases?.length) {
-      parts.push(`Existing Anchor Phrases (PRESERVE in description):\n${e.existingAnchorPhrases.map((a: string) => `  - "${a}"`).join('\n')}`);
+      parts.push(
+        `Existing Anchor Phrases (PRESERVE in description):\n${e.existingAnchorPhrases.map((a: string) => `  - "${a}"`).join("\n")}`
+      );
     }
 
-    return parts.join('\n');
+    return parts.join("\n");
   }
 
   // Cast entities section
   const castLines = castEntities.map(formatEntityBlock);
-  sections.push(`=== CAST (${castEntities.length} entities) ===\n\n${castLines.join('\n\n---\n\n')}`);
+  sections.push(
+    `=== CAST (${castEntities.length} entities) ===\n\n${castLines.join("\n\n---\n\n")}`
+  );
 
   // Lens entities section (if any)
   if (lensEntities.length > 0) {
     const lensLines = lensEntities.map(formatEntityBlock);
-    sections.push(`=== NARRATIVE LENS (${lensEntities.length} ${lensEntities.length === 1 ? 'entity' : 'entities'}) ===\nThese entities provided contextual framing for the chronicle — they are not cast members. Apply a higher bar: only update if the chronicle reveals genuinely new facts about the entity itself.\n\n${lensLines.join('\n\n---\n\n')}`);
+    sections.push(
+      `=== NARRATIVE LENS (${lensEntities.length} ${lensEntities.length === 1 ? "entity" : "entities"}) ===\nThese entities provided contextual framing for the chronicle — they are not cast members. Apply a higher bar: only update if the chronicle reveals genuinely new facts about the entity itself.\n\n${lensLines.join("\n\n---\n\n")}`
+    );
   }
 
   // Per-entity task framing — re-anchor the model at each entity boundary
-  const documentFormatNote = chronicleFormat === 'document'
-    ? `\nThis chronicle is written in document format — it reports events and outcomes factually. Extract institutional outcomes, status changes, and territorial shifts. Attribute each fact to the entity that owns it.`
-    : '';
+  const documentFormatNote =
+    chronicleFormat === "document"
+      ? `\nThis chronicle is written in document format — it reports events and outcomes factually. Extract institutional outcomes, status changes, and territorial shifts. Attribute each fact to the entity that owns it.`
+      : "";
 
   const criticalNote = customInstructions
     ? `\nCRITICAL — USER INSTRUCTIONS: ${customInstructions}`
-    : '';
+    : "";
 
-  const entityTaskBlocks = entities.map((e) => {
-    if (e.isLens) {
-      return `--- UPDATE: ${e.name} (${e.kind}) [NARRATIVE LENS] ---
+  const entityTaskBlocks = entities
+    .map((e) => {
+      if (e.isLens) {
+        return `--- UPDATE: ${e.name} (${e.kind}) [NARRATIVE LENS] ---
 This entity was the narrative lens — contextual framing, not a cast member. It was referenced or invoked but did not act as a character. Apply a HIGH BAR for changes.
 
 For ${e.name}, ask:
@@ -338,8 +361,8 @@ For ${e.name}, ask:
 2. Merely being referenced, invoked, or serving as backdrop is NOT new lore. Skip those.
 3. If there IS new lore: compress into 1 sentence. Most lens entities need NO update.
 4. Final check: would this change make sense without knowing this chronicle used ${e.name} as a lens?${criticalNote}`;
-    }
-    return `--- UPDATE: ${e.name} (${e.kind}) ---
+      }
+      return `--- UPDATE: ${e.name} (${e.kind}) ---
 You are writing the standalone wiki article for ${e.name}. A reader may arrive at this page knowing nothing about this chronicle. Every sentence must be about ${e.name}. Every reference to another entity, event, or artifact must be introduced with a brief identifying clause or omitted.
 
 For ${e.name}, follow the thinking steps:
@@ -350,11 +373,12 @@ For ${e.name}, follow the thinking steps:
 5. Match the existing description's tense. Use past tense for chronicle actions, present tense for lasting consequences. Never use "currently," "now," or "remains" for chronicle-sourced states.
 6. Avoid resolution language — no adverbs or phrases that signal arc completion, personal growth, or thematic conclusions.
 7. Final check: would every sentence make sense to someone who has never read this chronicle?${criticalNote}`;
-  }).join('\n\n');
+    })
+    .join("\n\n");
 
   const criticalSection = customInstructions
     ? `\n\n## CRITICAL — User Instructions\n\nThe following user-provided instructions override default behavior. Apply them to EVERY entity update:\n\n${customInstructions}\n`
-    : '';
+    : "";
 
   sections.push(`=== YOUR TASK ===${criticalSection}
 Process each entity below independently. For each one, reset your focus — you are writing that entity's wiki article, not summarizing the chronicle.${documentFormatNote}
@@ -368,7 +392,7 @@ General rules:
 
 ${entityTaskBlocks}`);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 // ============================================================================
@@ -382,12 +406,12 @@ async function executeChronicleLoreBackportTask(
   const { config, llmClient, isAborted } = context;
 
   if (!llmClient.isEnabled()) {
-    return { success: false, error: 'Text generation not configured - missing Anthropic API key' };
+    return { success: false, error: "Text generation not configured - missing Anthropic API key" };
   }
 
   const runId = task.chronicleId; // Repurposing chronicleId field for runId
   if (!runId) {
-    return { success: false, error: 'runId (chronicleId) required for chronicle lore backport' };
+    return { success: false, error: "runId (chronicleId) required for chronicle lore backport" };
   }
 
   // Read current run state
@@ -399,27 +423,27 @@ async function executeChronicleLoreBackportTask(
   // Single batch (index 0)
   const batchIndex = run.currentBatchIndex;
   const batch = run.batches[batchIndex];
-  if (!batch || batch.status !== 'pending') {
+  if (!batch || batch.status !== "pending") {
     return { success: false, error: `No pending batch at index ${batchIndex}` };
   }
 
   // Mark batch as generating
   const updatedBatches = [...run.batches];
-  updatedBatches[batchIndex] = { ...batch, status: 'generating' };
-  await updateRevisionRun(runId, { status: 'generating', batches: updatedBatches });
+  updatedBatches[batchIndex] = { ...batch, status: "generating" };
+  await updateRevisionRun(runId, { status: "generating", batches: updatedBatches });
 
   // Entity data is passed via the task prompt field as JSON
   let entities: RevisionEntityContext[];
   try {
     entities = JSON.parse(task.prompt);
   } catch {
-    const errorMsg = 'Failed to parse entity context from task prompt';
-    updatedBatches[batchIndex] = { ...batch, status: 'failed', error: errorMsg };
-    await updateRevisionRun(runId, { status: 'failed', batches: updatedBatches });
+    const errorMsg = "Failed to parse entity context from task prompt";
+    updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };
+    await updateRevisionRun(runId, { status: "failed", batches: updatedBatches });
     return { success: false, error: errorMsg };
   }
 
-  const callConfig = getCallConfig(config, 'revision.loreBackport');
+  const callConfig = getCallConfig(config, "revision.loreBackport");
 
   // Chronicle text is stored in worldDynamicsContext (repurposed)
   // Perspective synthesis JSON is stored in staticPagesContext (repurposed)
@@ -429,13 +453,13 @@ async function executeChronicleLoreBackportTask(
     entities,
     run.worldDynamicsContext,
     run.staticPagesContext,
-    customInstructions,
+    customInstructions
   );
 
   try {
     const callResult = await runTextCall({
       llmClient,
-      callType: 'revision.loreBackport',
+      callType: "revision.loreBackport",
       callConfig,
       systemPrompt: SYSTEM_PROMPT,
       prompt: userPrompt,
@@ -443,16 +467,16 @@ async function executeChronicleLoreBackportTask(
     });
 
     if (isAborted()) {
-      updatedBatches[batchIndex] = { ...batch, status: 'failed', error: 'Task aborted' };
-      await updateRevisionRun(runId, { status: 'failed', batches: updatedBatches });
-      return { success: false, error: 'Task aborted' };
+      updatedBatches[batchIndex] = { ...batch, status: "failed", error: "Task aborted" };
+      await updateRevisionRun(runId, { status: "failed", batches: updatedBatches });
+      return { success: false, error: "Task aborted" };
     }
 
     const resultText = callResult.result.text?.trim();
     if (callResult.result.error || !resultText) {
-      const errorMsg = `LLM call failed: ${callResult.result.error || 'No text returned'}`;
-      updatedBatches[batchIndex] = { ...batch, status: 'failed', error: errorMsg };
-      await updateRevisionRun(runId, { status: 'run_reviewing', batches: updatedBatches });
+      const errorMsg = `LLM call failed: ${callResult.result.error || "No text returned"}`;
+      updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };
+      await updateRevisionRun(runId, { status: "run_reviewing", batches: updatedBatches });
       return { success: false, error: errorMsg };
     }
 
@@ -460,27 +484,27 @@ async function executeChronicleLoreBackportTask(
     let parsed: SummaryRevisionLLMResponse;
     try {
       const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON object found');
+      if (!jsonMatch) throw new Error("No JSON object found");
       parsed = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed.patches)) throw new Error('Missing patches array');
+      if (!Array.isArray(parsed.patches)) throw new Error("Missing patches array");
 
       // Normalize description: LLM returns string[] (paragraphs), join to single string
       for (const patch of parsed.patches) {
         if (Array.isArray(patch.description)) {
-          patch.description = patch.description.join('\n\n');
+          patch.description = patch.description.join("\n\n");
         }
       }
     } catch (err) {
       const errorMsg = `Failed to parse LLM response: ${err instanceof Error ? err.message : String(err)}`;
-      updatedBatches[batchIndex] = { ...batch, status: 'failed', error: errorMsg };
-      await updateRevisionRun(runId, { status: 'run_reviewing', batches: updatedBatches });
+      updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };
+      await updateRevisionRun(runId, { status: "run_reviewing", batches: updatedBatches });
       return { success: false, error: errorMsg };
     }
 
     // Update batch with patches — single batch so always run_reviewing
     updatedBatches[batchIndex] = {
       ...batch,
-      status: 'complete',
+      status: "complete",
       patches: parsed.patches,
       inputTokens: callResult.usage.inputTokens,
       outputTokens: callResult.usage.outputTokens,
@@ -488,7 +512,7 @@ async function executeChronicleLoreBackportTask(
     };
 
     await updateRevisionRun(runId, {
-      status: 'run_reviewing',
+      status: "run_reviewing",
       batches: updatedBatches,
       totalInputTokens: run.totalInputTokens + callResult.usage.inputTokens,
       totalOutputTokens: run.totalOutputTokens + callResult.usage.outputTokens,
@@ -502,7 +526,7 @@ async function executeChronicleLoreBackportTask(
       entityId: task.entityId,
       entityName: task.entityName,
       entityKind: task.entityKind,
-      type: 'chronicleLoreBackport' as CostType,
+      type: "chronicleLoreBackport" as CostType,
       model: callConfig.model,
       estimatedCost: callResult.estimate.estimatedCost,
       actualCost: callResult.usage.actualCost,
@@ -523,13 +547,13 @@ async function executeChronicleLoreBackportTask(
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    updatedBatches[batchIndex] = { ...batch, status: 'failed', error: errorMsg };
-    await updateRevisionRun(runId, { status: 'run_reviewing', batches: updatedBatches });
+    updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };
+    await updateRevisionRun(runId, { status: "run_reviewing", batches: updatedBatches });
     return { success: false, error: `Chronicle lore backport failed: ${errorMsg}` };
   }
 }
 
 export const chronicleLoreBackportTask = {
-  type: 'chronicleLoreBackport' as const,
+  type: "chronicleLoreBackport" as const,
   execute: executeChronicleLoreBackportTask,
 };

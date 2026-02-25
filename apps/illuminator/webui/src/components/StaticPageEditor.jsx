@@ -5,21 +5,15 @@
  * custom toolbar buttons for entity links and images.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
-import MDEditor from '@uiw/react-md-editor';
-import EntityLinkPicker from './EntityLinkPicker';
-import ImageRefPicker from './ImageRefPicker';
+import { useState, useCallback, useEffect, useRef } from "react";
+import MDEditor from "@uiw/react-md-editor";
+import EntityLinkPicker from "./EntityLinkPicker";
+import ImageRefPicker from "./ImageRefPicker";
 
-export default function StaticPageEditor({
-  page,
-  projectId,
-  onSave,
-  onDelete,
-  onPublishToggle,
-}) {
-  const [title, setTitle] = useState(page?.title || '');
-  const [content, setContent] = useState(page?.content || '');
-  const [summary, setSummary] = useState(page?.summary || '');
+export default function StaticPageEditor({ page, projectId, onSave, onDelete, onPublishToggle }) {
+  const [title, setTitle] = useState(page?.title || "");
+  const [content, setContent] = useState(page?.content || "");
+  const [summary, setSummary] = useState(page?.summary || "");
   const [showEntityPicker, setShowEntityPicker] = useState(false);
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -27,9 +21,9 @@ export default function StaticPageEditor({
 
   // Reset state when page changes
   useEffect(() => {
-    setTitle(page?.title || '');
-    setContent(page?.content || '');
-    setSummary(page?.summary || '');
+    setTitle(page?.title || "");
+    setContent(page?.content || "");
+    setSummary(page?.summary || "");
     setIsDirty(false);
   }, [page?.pageId]);
 
@@ -63,7 +57,7 @@ export default function StaticPageEditor({
   };
 
   const handleContentChange = (value) => {
-    setContent(value || '');
+    setContent(value || "");
     setIsDirty(true);
   };
 
@@ -80,7 +74,7 @@ export default function StaticPageEditor({
 
   const handleImageSelect = useCallback((imageRef) => {
     // Insert at cursor or append to content
-    setContent((prev) => prev + '\n\n' + imageRef + '\n\n');
+    setContent((prev) => prev + "\n\n" + imageRef + "\n\n");
     setIsDirty(true);
   }, []);
 
@@ -122,7 +116,7 @@ export default function StaticPageEditor({
         <div className="static-page-editor-actions">
           <span
             className={`static-page-status-badge ${page.status}`}
-            title={page.status === 'published' ? 'Visible in Chronicler' : 'Draft only'}
+            title={page.status === "published" ? "Visible in Chronicler" : "Draft only"}
           >
             {page.status}
           </span>
@@ -132,9 +126,9 @@ export default function StaticPageEditor({
           </button>
           <button
             className="static-page-button"
-            onClick={() => onPublishToggle(page.status === 'published' ? 'draft' : 'published')}
+            onClick={() => onPublishToggle(page.status === "published" ? "draft" : "published")}
           >
-            {page.status === 'published' ? 'Unpublish' : 'Publish'}
+            {page.status === "published" ? "Unpublish" : "Publish"}
           </button>
           <button className="static-page-button danger" onClick={onDelete}>
             Delete

@@ -5,12 +5,12 @@
  * UI and zustand call these functions only — never talk to Dexie directly.
  */
 
-import type { WorldEntity } from '@canonry/world-schema';
-import { db, type PersistedEntity } from './illuminatorDb';
-import type { EntityPatch } from '../entityRename';
-import { applyReplacements, type FieldReplacement } from '../entityRename';
-import type { EntityEnrichment, DescriptionChainDebug } from '../enrichmentTypes';
-import { resolveAnchorPhrase, extractWordsAroundIndex } from '../fuzzyAnchor';
+import type { WorldEntity } from "@canonry/world-schema";
+import { db, type PersistedEntity } from "./illuminatorDb";
+import type { EntityPatch } from "../entityRename";
+import { applyReplacements, type FieldReplacement } from "../entityRename";
+import type { EntityEnrichment, DescriptionChainDebug } from "../enrichmentTypes";
+import { resolveAnchorPhrase, extractWordsAroundIndex } from "../fuzzyAnchor";
 
 // ---------------------------------------------------------------------------
 // Seed (Phase 1 bridge — replaced by Lore Weave write in future)
@@ -20,10 +20,7 @@ import { resolveAnchorPhrase, extractWordsAroundIndex } from '../fuzzyAnchor';
  * Check whether entities have already been seeded for this simulation run.
  */
 export async function isSeeded(simulationRunId: string): Promise<boolean> {
-  const count = await db.entities
-    .where('simulationRunId')
-    .equals(simulationRunId)
-    .count();
+  const count = await db.entities.where("simulationRunId").equals(simulationRunId).count();
   return count > 0;
 }
 
@@ -33,7 +30,7 @@ export async function isSeeded(simulationRunId: string): Promise<boolean> {
  */
 export async function seedEntities(
   simulationRunId: string,
-  entities: WorldEntity[],
+  entities: WorldEntity[]
 ): Promise<void> {
   const records: PersistedEntity[] = entities.map((e) => ({
     ...e,
@@ -52,10 +49,10 @@ export async function seedEntities(
  */
 export async function createEntity(
   simulationRunId: string,
-  entity: Omit<WorldEntity, 'id' | 'createdAt' | 'updatedAt'>,
+  entity: Omit<WorldEntity, "id" | "createdAt" | "updatedAt">
 ): Promise<PersistedEntity> {
   if (!simulationRunId) {
-    throw new Error('simulationRunId is required to create an entity');
+    throw new Error("simulationRunId is required to create an entity");
   }
   const now = Date.now();
   const id = `manual_${entity.kind}_${now}_${Math.random().toString(36).slice(2, 8)}`;
@@ -71,8 +68,8 @@ export async function createEntity(
 }
 
 export async function deleteEntity(entityId: string): Promise<void> {
-  if (!entityId.startsWith('manual_')) {
-    throw new Error('Only manually-created entities can be deleted');
+  if (!entityId.startsWith("manual_")) {
+    throw new Error("Only manually-created entities can be deleted");
   }
   await db.entities.delete(entityId);
 }
@@ -84,16 +81,16 @@ export async function deleteEntity(entityId: string): Promise<void> {
  */
 export async function patchEntitiesFromHardState(
   simulationRunId: string,
-  entities: WorldEntity[],
+  entities: WorldEntity[]
 ): Promise<{ added: number; patched: number }> {
   if (!entities?.length) return { added: 0, patched: 0 };
 
-  const existing = await db.entities.where('simulationRunId').equals(simulationRunId).toArray();
+  const existing = await db.entities.where("simulationRunId").equals(simulationRunId).toArray();
   const existingById = new Map(existing.map((e) => [e.id, e]));
   let added = 0;
   let patched = 0;
 
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     for (const worldEntity of entities) {
       const current = existingById.get(worldEntity.id);
       if (!current) {
@@ -104,7 +101,7 @@ export async function patchEntitiesFromHardState(
 
       const updates: Partial<PersistedEntity> = {};
       for (const [key, value] of Object.entries(worldEntity)) {
-        if (key === 'enrichment') continue;
+        if (key === "enrichment") continue;
         if (value === undefined || value === null) continue;
         const currentValue = (current as any)[key];
         if (currentValue === undefined || currentValue === null) {
@@ -136,22 +133,19 @@ export async function getEntitiesByIds(entityIds: string[]): Promise<PersistedEn
 }
 
 export async function getEntitiesForRun(simulationRunId: string): Promise<PersistedEntity[]> {
-  return db.entities.where('simulationRunId').equals(simulationRunId).toArray();
+  return db.entities.where("simulationRunId").equals(simulationRunId).toArray();
 }
 
 export async function getEntityIdsForRun(simulationRunId: string): Promise<string[]> {
-  const ids = await db.entities.where('simulationRunId').equals(simulationRunId).primaryKeys();
+  const ids = await db.entities.where("simulationRunId").equals(simulationRunId).primaryKeys();
   return ids.map((id) => String(id));
 }
 
 export async function getEntitiesByKind(
   simulationRunId: string,
-  kind: string,
+  kind: string
 ): Promise<PersistedEntity[]> {
-  return db.entities
-    .where('[simulationRunId+kind]')
-    .equals([simulationRunId, kind])
-    .toArray();
+  return db.entities.where("[simulationRunId+kind]").equals([simulationRunId, kind]).toArray();
 }
 
 // ---------------------------------------------------------------------------
@@ -161,14 +155,14 @@ export async function getEntitiesByKind(
 export async function updateEntityField(
   entityId: string,
   field: string,
-  value: unknown,
+  value: unknown
 ): Promise<void> {
   await db.entities.update(entityId, { [field]: value });
 }
 
 export async function updateEntityFields(
   entityId: string,
-  fields: Partial<PersistedEntity>,
+  fields: Partial<PersistedEntity>
 ): Promise<void> {
   await db.entities.update(entityId, fields);
 }
@@ -191,11 +185,11 @@ export async function applyRename(
   newName: string,
   entityPatches: EntityPatch[],
   simulationRunId: string,
-  addOldNameAsAlias?: boolean,
+  addOldNameAsAlias?: boolean
 ): Promise<string[]> {
   const updatedIds: string[] = [];
 
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     // 1. Target entity: update name + slugAlias + optional text alias
     if (targetEntityId) {
       const target = await db.entities.get(targetEntityId);
@@ -236,20 +230,20 @@ export async function applyRename(
       const updates: Partial<PersistedEntity> = {};
 
       for (const [key, value] of Object.entries(patch.changes)) {
-        if (!key.startsWith('__replacements_')) continue;
-        const field = key.replace('__replacements_', '');
+        if (!key.startsWith("__replacements_")) continue;
+        const field = key.replace("__replacements_", "");
         const replacements: FieldReplacement[] = JSON.parse(value);
 
-        if (field === 'summary' && typeof entity.summary === 'string') {
+        if (field === "summary" && typeof entity.summary === "string") {
           updates.summary = applyReplacements(entity.summary, replacements);
           changed = true;
-        } else if (field === 'description' && typeof entity.description === 'string') {
+        } else if (field === "description" && typeof entity.description === "string") {
           updates.description = applyReplacements(entity.description, replacements);
           changed = true;
-        } else if (field === 'narrativeHint' && typeof entity.narrativeHint === 'string') {
+        } else if (field === "narrativeHint" && typeof entity.narrativeHint === "string") {
           updates.narrativeHint = applyReplacements(entity.narrativeHint, replacements);
           changed = true;
-        } else if (field.startsWith('enrichment.descriptionHistory[')) {
+        } else if (field.startsWith("enrichment.descriptionHistory[")) {
           const idxMatch = field.match(/\[(\d+)\]/);
           if (idxMatch && entity.enrichment?.descriptionHistory) {
             const idx = parseInt(idxMatch[1], 10);
@@ -291,9 +285,9 @@ export async function applyDescriptionResult(
   entityId: string,
   enrichment: Partial<EntityEnrichment>,
   summary?: string | null,
-  description?: string,
+  description?: string
 ): Promise<void> {
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
 
@@ -304,7 +298,7 @@ export async function applyDescriptionResult(
       history.push({
         description: entity.description,
         replacedAt: Date.now(),
-        source: 'description-task',
+        source: "description-task",
       });
       baseEnrichment = { ...baseEnrichment, descriptionHistory: history };
     }
@@ -335,9 +329,9 @@ export async function applyVisualThesisResult(
     inputTokens?: number;
     outputTokens?: number;
     chainDebug?: DescriptionChainDebug;
-  },
+  }
 ): Promise<void> {
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
     const existingText = entity.enrichment?.text;
@@ -366,9 +360,9 @@ export async function applyVisualThesisResult(
  */
 export async function applyImageResult(
   entityId: string,
-  imageEnrichment: EntityEnrichment['image'],
+  imageEnrichment: EntityEnrichment["image"]
 ): Promise<void> {
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
     await db.entities.update(entityId, {
@@ -382,9 +376,9 @@ export async function applyImageResult(
  */
 export async function applyEntityChronicleResult(
   entityId: string,
-  chronicleEnrichment: EntityEnrichment['entityChronicle'],
+  chronicleEnrichment: EntityEnrichment["entityChronicle"]
 ): Promise<void> {
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
     await db.entities.update(entityId, {
@@ -403,9 +397,9 @@ export async function applyEntityChronicleResult(
 export async function assignImage(
   entityId: string,
   imageId: string,
-  imageMetadata?: { generatedAt?: number; model?: string; revisedPrompt?: string },
+  imageMetadata?: { generatedAt?: number; model?: string; revisedPrompt?: string }
 ): Promise<void> {
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
     await db.entities.update(entityId, {
@@ -414,7 +408,7 @@ export async function assignImage(
         image: {
           imageId,
           generatedAt: imageMetadata?.generatedAt || Date.now(),
-          model: imageMetadata?.model || 'assigned',
+          model: imageMetadata?.model || "assigned",
           revisedPrompt: imageMetadata?.revisedPrompt,
           estimatedCost: 0,
           actualCost: 0,
@@ -430,9 +424,9 @@ export async function assignImage(
  */
 export async function updateDescriptionManual(
   entityId: string,
-  description: string,
+  description: string
 ): Promise<void> {
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
 
@@ -444,7 +438,7 @@ export async function updateDescriptionManual(
       history.push({
         description: entity.description,
         replacedAt: Date.now(),
-        source: 'manual',
+        source: "manual",
       });
       enrichment = { ...enrichment, descriptionHistory: history };
     }
@@ -461,11 +455,8 @@ export async function updateDescriptionManual(
 /**
  * Manually update an entity's summary. Sets lockedSummary to prevent enrichment overwrites.
  */
-export async function updateSummaryManual(
-  entityId: string,
-  summary: string,
-): Promise<void> {
-  await db.transaction('rw', db.entities, async () => {
+export async function updateSummaryManual(entityId: string, summary: string): Promise<void> {
+  await db.transaction("rw", db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
     await db.entities.update(entityId, { summary, lockedSummary: true });
@@ -476,7 +467,7 @@ export async function updateSummaryManual(
  * Undo the last description change by popping from descriptionHistory.
  */
 export async function undoDescription(entityId: string): Promise<void> {
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
     const history = [...(entity.enrichment?.descriptionHistory || [])];
@@ -495,9 +486,9 @@ export async function undoDescription(entityId: string): Promise<void> {
  */
 export async function restoreDescriptionFromHistory(
   entityId: string,
-  historyIndex: number,
+  historyIndex: number
 ): Promise<void> {
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
     const history = [...(entity.enrichment?.descriptionHistory || [])];
@@ -510,7 +501,7 @@ export async function restoreDescriptionFromHistory(
       history.push({
         description: entity.description,
         replacedAt: Date.now(),
-        source: 'version-restore',
+        source: "version-restore",
       });
     }
 
@@ -529,9 +520,9 @@ export async function restoreDescriptionFromHistory(
  */
 export async function updateBackrefs(
   entityId: string,
-  backrefs: NonNullable<EntityEnrichment['chronicleBackrefs']>,
+  backrefs: NonNullable<EntityEnrichment["chronicleBackrefs"]>
 ): Promise<void> {
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
     await db.entities.update(entityId, {
@@ -547,14 +538,16 @@ export async function updateBackrefs(
 /**
  * Update the text aliases on an entity.
  */
-export async function updateAliases(
-  entityId: string,
-  aliases: string[],
-): Promise<void> {
-  await db.transaction('rw', db.entities, async () => {
+export async function updateAliases(entityId: string, aliases: string[]): Promise<void> {
+  await db.transaction("rw", db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
-    const text = entity.enrichment?.text || { aliases: [], visualTraits: [], generatedAt: 0, model: '' };
+    const text = entity.enrichment?.text || {
+      aliases: [],
+      visualTraits: [],
+      generatedAt: 0,
+      model: "",
+    };
     await db.entities.update(entityId, {
       enrichment: { ...entity.enrichment, text: { ...text, aliases } },
     });
@@ -578,12 +571,12 @@ interface RevisionPatch {
  */
 export async function applyRevisionPatches(
   patches: RevisionPatch[],
-  source: string,
+  source: string
 ): Promise<string[]> {
   if (!patches?.length) return [];
   const updatedIds: string[] = [];
 
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     for (const patch of patches) {
       const entity = await db.entities.get(patch.entityId);
       if (!entity) continue;
@@ -627,16 +620,16 @@ export async function revalidateBackrefs(
   options?: {
     chronicleId?: string;
     fuzzyFallback?: boolean;
-  },
+  }
 ): Promise<void> {
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     for (const patch of patches) {
       if (!patch.description && !options?.chronicleId) continue;
 
       const entity = await db.entities.get(patch.entityId);
       if (!entity) continue;
 
-      const desc = patch.description || entity.description || '';
+      const desc = patch.description || entity.description || "";
       let backrefs = [...(entity.enrichment?.chronicleBackrefs || [])];
       if (backrefs.length === 0 && !patch.anchorPhrase) continue;
 
@@ -649,7 +642,7 @@ export async function revalidateBackrefs(
             if (options?.fuzzyFallback && entity.description) {
               const oldIndex = entity.description.indexOf(br.anchorPhrase);
               if (oldIndex >= 0) {
-                const newIndex = Math.round(oldIndex / entity.description.length * desc.length);
+                const newIndex = Math.round((oldIndex / entity.description.length) * desc.length);
                 const fallbackPhrase = extractWordsAroundIndex(desc, newIndex, 5);
                 if (fallbackPhrase) {
                   return { ...br, anchorPhrase: fallbackPhrase };
@@ -698,10 +691,10 @@ export async function revalidateBackrefs(
  */
 export async function setHistorianNotes(
   entityId: string,
-  notes: NonNullable<EntityEnrichment['historianNotes']>,
-  reinforcedFacts?: string[],
+  notes: NonNullable<EntityEnrichment["historianNotes"]>,
+  reinforcedFacts?: string[]
 ): Promise<void> {
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     const entity = await db.entities.get(entityId);
     if (!entity) return;
     const enrichment = { ...entity.enrichment, historianNotes: notes };
@@ -729,14 +722,14 @@ export async function setHistorianNotes(
  */
 export async function resetEntitiesToPreBackportState(
   simulationRunId: string,
-  entitiesOverride?: PersistedEntity[],
+  entitiesOverride?: PersistedEntity[]
 ): Promise<{ resetCount: number; entityIds: string[] }> {
   const entities = entitiesOverride?.length
     ? entitiesOverride
     : await getEntitiesForRun(simulationRunId);
   const resetEntityIds: string[] = [];
 
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     const existing = await db.entities.bulkGet(entities.map((entity) => entity.id));
     const existingIds = new Set(existing.filter(Boolean).map((entity) => entity!.id));
 
@@ -745,7 +738,7 @@ export async function resetEntitiesToPreBackportState(
       if (history.length === 0) continue;
 
       // Find the first 'lore-backport' entry
-      const firstBackportIndex = history.findIndex((h) => h.source === 'lore-backport');
+      const firstBackportIndex = history.findIndex((h) => h.source === "lore-backport");
       if (firstBackportIndex === -1) continue; // Never backported
 
       // The description in that entry is the pre-backport state
@@ -791,7 +784,7 @@ export async function resetEntitiesToPreBackportState(
 // ---------------------------------------------------------------------------
 
 export async function deleteEntitiesForRun(simulationRunId: string): Promise<void> {
-  await db.entities.where('simulationRunId').equals(simulationRunId).delete();
+  await db.entities.where("simulationRunId").equals(simulationRunId).delete();
 }
 
 /**
@@ -800,11 +793,9 @@ export async function deleteEntitiesForRun(simulationRunId: string): Promise<voi
  *
  * Returns the count of entities modified.
  */
-export async function convertLongEditionsToLegacy(
-  entityIds: string[],
-): Promise<number> {
+export async function convertLongEditionsToLegacy(entityIds: string[]): Promise<number> {
   let modified = 0;
-  await db.transaction('rw', db.entities, async () => {
+  await db.transaction("rw", db.entities, async () => {
     for (const entityId of entityIds) {
       const entity = await db.entities.get(entityId);
       if (!entity) continue;
@@ -812,8 +803,8 @@ export async function convertLongEditionsToLegacy(
       const history = [...(entity.enrichment?.descriptionHistory || [])];
       let changed = false;
       for (let i = 0; i < history.length; i++) {
-        if (history[i].source === 'historian-edition') {
-          history[i] = { ...history[i], source: 'legacy-copy-edit' };
+        if (history[i].source === "historian-edition") {
+          history[i] = { ...history[i], source: "legacy-copy-edit" };
           changed = true;
         }
       }

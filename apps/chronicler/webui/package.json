@@ -13,12 +13,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@canonry/world-schema": "file:../../../packages/world-schema",
+    "@canonry/world-schema": "workspace:*",
     "@uiw/react-md-editor": "^4.0.11",
     "fuse.js": "^7.1.0",
-    "@penguin-tales/image-store": "file:../../../packages/image-store",
-    "@penguin-tales/narrative-store": "file:../../../packages/narrative-store",
-    "@penguin-tales/world-store": "file:../../../packages/world-store",
+    "@penguin-tales/image-store": "workspace:*",
+    "@penguin-tales/narrative-store": "workspace:*",
+    "@penguin-tales/world-store": "workspace:*",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zustand": "^5.0.2"

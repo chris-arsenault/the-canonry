@@ -13,13 +13,13 @@ import type {
   EraTemporalInfo,
   ChronicleTemporalContext,
   TemporalScope,
-} from '../chronicleTypes';
+} from "../chronicleTypes";
 import type {
   NarrativeStyle,
   RoleDefinition,
   EntityCategory,
   EntityKindDefinition,
-} from '@canonry/world-schema';
+} from "@canonry/world-schema";
 
 // =============================================================================
 // Category Resolution
@@ -57,7 +57,7 @@ function kindMatchesCategories(
 
 function resolveEntityEraId(entity: EntityContext | undefined): string | undefined {
   if (!entity) return undefined;
-  if (typeof entity.eraId === 'string' && entity.eraId) return entity.eraId;
+  if (typeof entity.eraId === "string" && entity.eraId) return entity.eraId;
   return undefined;
 }
 
@@ -169,19 +169,30 @@ export function computeEntityMetrics(
   entity: EntityContext,
   ctx: MetricsContext
 ): EntitySelectionMetrics {
-  const { entryPointId, relationships, distances, usageStats, entryPointEras, currentCastCategories, currentCastRelTypes, kindToCategory } = ctx;
+  const {
+    entryPointId,
+    relationships,
+    distances,
+    usageStats,
+    entryPointEras,
+    currentCastCategories,
+    currentCastRelTypes,
+    kindToCategory,
+  } = ctx;
 
   // Distance
   const distance = distances.get(entity.id) ?? 99;
 
   // Average relationship strength to entry point
   const relsToEntry = relationships.filter(
-    r => (r.src === entity.id && r.dst === entryPointId) ||
-         (r.dst === entity.id && r.src === entryPointId)
+    (r) =>
+      (r.src === entity.id && r.dst === entryPointId) ||
+      (r.dst === entity.id && r.src === entryPointId)
   );
-  const avgStrength = relsToEntry.length > 0
-    ? relsToEntry.reduce((sum, r) => sum + (r.strength ?? 0.5), 0) / relsToEntry.length
-    : 0;
+  const avgStrength =
+    relsToEntry.length > 0
+      ? relsToEntry.reduce((sum, r) => sum + (r.strength ?? 0.5), 0) / relsToEntry.length
+      : 0;
 
   // Usage count
   const usage = usageStats.get(entity.id);
@@ -189,20 +200,19 @@ export function computeEntityMetrics(
 
   // Era alignment - check if entity shares any era with entry point
   const entityEraId = resolveEntityEraId(entity);
-  const eraAligned = entryPointEras.size === 0 ||
-    (entityEraId !== undefined && entryPointEras.has(entityEraId));
+  const eraAligned =
+    entryPointEras.size === 0 || (entityEraId !== undefined && entryPointEras.has(entityEraId));
 
   // Category novelty
   const entityCategory = kindToCategory.get(entity.kind);
-  const addsNewCategory = entityCategory !== undefined && !currentCastCategories.has(entityCategory);
+  const addsNewCategory =
+    entityCategory !== undefined && !currentCastCategories.has(entityCategory);
 
   // Relationship type diversity
   const entityRelTypes = new Set(
-    relationships
-      .filter(r => r.src === entity.id || r.dst === entity.id)
-      .map(r => r.kind)
+    relationships.filter((r) => r.src === entity.id || r.dst === entity.id).map((r) => r.kind)
   );
-  const newRelTypes = [...entityRelTypes].filter(t => !currentCastRelTypes.has(t)).length;
+  const newRelTypes = [...entityRelTypes].filter((t) => !currentCastRelTypes.has(t)).length;
 
   return {
     entityId: entity.id,
@@ -227,18 +237,16 @@ export function computeAllEntityMetrics(
   currentAssignments: ChronicleRoleAssignment[],
   kindToCategory: Map<string, EntityCategory>
 ): Map<string, EntitySelectionMetrics> {
-  const entryPointEraId = resolveEntityEraId(
-    candidates.find(e => e.id === entryPointId)
-  );
+  const entryPointEraId = resolveEntityEraId(candidates.find((e) => e.id === entryPointId));
   const entryPointEras = new Set(entryPointEraId ? [entryPointEraId] : []);
 
   // Get current cast's categories and relationship types
-  const assignedIds = new Set(currentAssignments.map(a => a.entityId));
+  const assignedIds = new Set(currentAssignments.map((a) => a.entityId));
   const currentCastCategories = new Set<EntityCategory>();
   const currentCastRelTypes = new Set<string>();
 
   for (const assignment of currentAssignments) {
-    const entity = candidates.find(e => e.id === assignment.entityId);
+    const entity = candidates.find((e) => e.id === assignment.entityId);
     if (entity) {
       const cat = kindToCategory.get(entity.kind);
       if (cat) currentCastCategories.add(cat);
@@ -277,14 +285,17 @@ export function computeAllEntityMetrics(
 /**
  * Compute temporal scope from tick range.
  */
-export function computeTemporalScope(tickRange: [number, number], isMultiEra: boolean): TemporalScope {
+export function computeTemporalScope(
+  tickRange: [number, number],
+  isMultiEra: boolean
+): TemporalScope {
   const duration = tickRange[1] - tickRange[0];
 
-  if (isMultiEra) return 'saga';
-  if (duration >= 50) return 'saga';
-  if (duration >= 20) return 'arc';
-  if (duration >= 5) return 'episode';
-  return 'moment';
+  if (isMultiEra) return "saga";
+  if (duration >= 50) return "saga";
+  if (duration >= 20) return "arc";
+  if (duration >= 5) return "episode";
+  return "moment";
 }
 
 /**
@@ -296,7 +307,7 @@ export function findEraForEvent(
 ): EraTemporalInfo | undefined {
   // Direct ID match (event.era should match era.id)
   if (event.era) {
-    const byId = eras.find(e => e.id === event.era);
+    const byId = eras.find((e) => e.id === event.era);
     if (byId) return byId;
   }
   return undefined;
@@ -333,7 +344,7 @@ export function computeFocalEra(
     }
   }
 
-  return eras.find(e => e.id === focalEraId) || eras[0];
+  return eras.find((e) => e.id === focalEraId) || eras[0];
 }
 
 /**
@@ -379,7 +390,7 @@ export function computeTemporalContext(
 
   // Compute focal era (use override if provided)
   const overrideEra = focalEraOverrideId
-    ? eras.find(e => e.id === focalEraOverrideId)
+    ? eras.find((e) => e.id === focalEraOverrideId)
     : undefined;
   const focalEra = overrideEra || computeFocalEra(events, eras) || eras[0];
 
@@ -416,10 +427,10 @@ function buildTemporalDescription(
   const duration = tickRange[1] - tickRange[0];
 
   const scopeDescriptions: Record<TemporalScope, string> = {
-    moment: 'a brief moment',
-    episode: 'a short episode',
-    arc: 'an extended arc',
-    saga: 'an epic saga',
+    moment: "a brief moment",
+    episode: "a short episode",
+    arc: "an extended arc",
+    saga: "an epic saga",
   };
 
   if (isMultiEra) {
@@ -511,14 +522,10 @@ export function computeAllEventMetrics(
   const metricsMap = new Map<string, EventSelectionMetrics>();
 
   for (const event of events) {
-    metricsMap.set(event.id, computeEventMetrics(
-      event,
-      entryPointId,
-      entryPointTick,
-      focalEraId,
-      eras,
-      assignedEntityIds
-    ));
+    metricsMap.set(
+      event.id,
+      computeEventMetrics(event, entryPointId, entryPointTick, focalEraId, eras, assignedEntityIds)
+    );
   }
 
   return metricsMap;
@@ -578,7 +585,7 @@ export function suggestEventSelection(
   maxEvents: number = 8,
   preferFocalEra: boolean = true
 ): string[] {
-  const scored = events.map(event => {
+  const scored = events.map((event) => {
     const metrics = metricsMap.get(event.id);
     if (!metrics) return { id: event.id, score: 0 };
     return {
@@ -589,7 +596,7 @@ export function suggestEventSelection(
 
   scored.sort((a, b) => b.score - a.score);
 
-  return scored.slice(0, maxEvents).map(s => s.id);
+  return scored.slice(0, maxEvents).map((s) => s.id);
 }
 
 // =============================================================================
@@ -607,7 +614,7 @@ export function filterCandidatesByStyleRules(
 ): EntityContext[] {
   return candidates.filter((entity) => {
     // Exclude era entities - they are time periods, not cast members
-    if (entity.kind === 'era') return false;
+    if (entity.kind === "era") return false;
     return true;
   });
 }
@@ -716,7 +723,7 @@ export function suggestRoleAssignments(
   const usedEntityIds = new Set<string>();
 
   // Find entry point entity
-  const entryPoint = candidates.find(e => e.id === entryPointId);
+  const entryPoint = candidates.find((e) => e.id === entryPointId);
 
   // Build role scores for all candidates
   const roleScores = new Map<string, Array<{ entity: EntityContext; score: number }>>();
@@ -734,9 +741,18 @@ export function suggestRoleAssignments(
   }
 
   // Assign entry point to first protagonist-like role
-  const protagonistRoles = ['protagonist', 'hero', 'doomed', 'focal-point', 'investigator', 'subject', 'player', 'consciousness'];
+  const protagonistRoles = [
+    "protagonist",
+    "hero",
+    "doomed",
+    "focal-point",
+    "investigator",
+    "subject",
+    "player",
+    "consciousness",
+  ];
   if (entryPoint) {
-    const firstProtagonistRole = roles.find(r => protagonistRoles.includes(r.role));
+    const firstProtagonistRole = roles.find((r) => protagonistRoles.includes(r.role));
     if (firstProtagonistRole) {
       // Entry point is always primary
       assignments.push({
@@ -753,7 +769,7 @@ export function suggestRoleAssignments(
   // Assign remaining roles greedily, respecting min counts
   for (const roleDef of roles) {
     // Skip if already assigned (e.g., protagonist role)
-    const existingCount = assignments.filter(a => a.role === roleDef.role).length;
+    const existingCount = assignments.filter((a) => a.role === roleDef.role).length;
     if (existingCount >= roleDef.count.max) continue;
 
     const scores = roleScores.get(roleDef.role) || [];
@@ -800,13 +816,15 @@ export function validateRoleAssignments(
 
   // Check each role's min/max constraints
   for (const roleDef of roles) {
-    const roleCount = assignments.filter(a => a.role === roleDef.role).length;
+    const roleCount = assignments.filter((a) => a.role === roleDef.role).length;
 
     if (roleCount < roleDef.count.min) {
       if (roleDef.count.min === 1) {
         errors.push(`Role "${roleDef.role}" requires at least 1 entity`);
       } else {
-        errors.push(`Role "${roleDef.role}" requires at least ${roleDef.count.min} entities (has ${roleCount})`);
+        errors.push(
+          `Role "${roleDef.role}" requires at least ${roleDef.count.min} entities (has ${roleCount})`
+        );
       }
     }
 
@@ -823,7 +841,7 @@ export function validateRoleAssignments(
   }
   for (const [entityId, count] of entityCounts) {
     if (count > 1) {
-      const entity = assignments.find(a => a.entityId === entityId);
+      const entity = assignments.find((a) => a.entityId === entityId);
       warnings.push(`Entity "${entity?.entityName}" is assigned to ${count} roles`);
     }
   }
@@ -847,13 +865,11 @@ export function getRelevantRelationships(
   allRelationships: RelationshipContext[],
   extraEntityIds?: Iterable<string>
 ): RelationshipContext[] {
-  const assignedIds = new Set(assignments.map(a => a.entityId));
+  const assignedIds = new Set(assignments.map((a) => a.entityId));
   if (extraEntityIds) {
     for (const id of extraEntityIds) assignedIds.add(id);
   }
-  return allRelationships.filter(
-    r => assignedIds.has(r.src) && assignedIds.has(r.dst)
-  );
+  return allRelationships.filter((r) => assignedIds.has(r.src) && assignedIds.has(r.dst));
 }
 
 /**
@@ -892,7 +908,7 @@ export function collapseBidirectionalRelationships(
   // Index relationships by normalized key (sorted src/dst + kind)
   const byNormalizedKey = new Map<string, RelationshipContext[]>();
   for (const rel of relationships) {
-    const normalizedKey = [rel.src, rel.dst].sort().join(':') + ':' + rel.kind;
+    const normalizedKey = [rel.src, rel.dst].sort().join(":") + ":" + rel.kind;
     const existing = byNormalizedKey.get(normalizedKey) || [];
     existing.push(rel);
     byNormalizedKey.set(normalizedKey, existing);
@@ -906,7 +922,7 @@ export function collapseBidirectionalRelationships(
     // Check for reverse relationship
     const reverseId = makeRelationshipId(rel.dst, rel.src, rel.kind);
     const reverseRel = relationships.find(
-      r => r.src === rel.dst && r.dst === rel.src && r.kind === rel.kind
+      (r) => r.src === rel.dst && r.dst === rel.src && r.kind === rel.kind
     );
 
     if (reverseRel && !processed.has(reverseId)) {
@@ -953,14 +969,15 @@ export function getRelevantEvents(
   _eventRules?: unknown, // Deprecated - event selection rules removed
   _options?: GetRelevantEventsOptions
 ): NarrativeEventContext[] {
-  const assignedIds = new Set(assignments.map(a => a.entityId));
+  const assignedIds = new Set(assignments.map((a) => a.entityId));
 
   // Return all events involving assigned entities - no artificial limit
   // Final selection is limited to MAX_CHRONICLE_EVENTS in the UI
-  return allEvents.filter(e =>
-    e.eventKind === 'creation_batch' ||
-    (e.subjectId && assignedIds.has(e.subjectId)) ||
-    (e.objectId && assignedIds.has(e.objectId))
+  return allEvents.filter(
+    (e) =>
+      e.eventKind === "creation_batch" ||
+      (e.subjectId && assignedIds.has(e.subjectId)) ||
+      (e.objectId && assignedIds.has(e.objectId))
   );
 }
 
@@ -991,9 +1008,7 @@ export function isProminenceOnlyChronicleEvent(
   }
 
   // Only consider stateChanges for assigned entities
-  const relevantChanges = event.stateChanges.filter(
-    sc => assignedEntityIds.has(sc.entityId)
-  );
+  const relevantChanges = event.stateChanges.filter((sc) => assignedEntityIds.has(sc.entityId));
 
   // If no relevant changes, not prominence-only
   if (relevantChanges.length === 0) {
@@ -1001,7 +1016,7 @@ export function isProminenceOnlyChronicleEvent(
   }
 
   // Check if ALL relevant changes are prominence changes
-  return relevantChanges.every(sc => sc.field === 'prominence');
+  return relevantChanges.every((sc) => sc.field === "prominence");
 }
 
 /**
@@ -1018,12 +1033,9 @@ export function filterChronicleEvents(
   assignedEntityIds: Set<string>,
   options: ChronicleEventFilterOptions = {}
 ): NarrativeEventContext[] {
-  const {
-    minSignificance = 0,
-    excludeProminenceOnly = true,
-  } = options;
+  const { minSignificance = 0, excludeProminenceOnly = true } = options;
 
-  return events.filter(event => {
+  return events.filter((event) => {
     // Filter by significance threshold
     if (event.significance < minSignificance) {
       return false;
@@ -1063,43 +1075,39 @@ export function buildWizardSelectionContext(
   const { includeErasInNeighborhood = false } = options;
 
   // Build set of era entity IDs for filtering
-  const eraEntityIds = new Set(
-    allEntities.filter(e => e.kind === 'era').map(e => e.id)
-  );
+  const eraEntityIds = new Set(allEntities.filter((e) => e.kind === "era").map((e) => e.id));
 
   // Filter relationships for graph traversal - exclude those involving era nodes
   const graphRelationships = includeErasInNeighborhood
     ? allRelationships
-    : allRelationships.filter(r => !eraEntityIds.has(r.src) && !eraEntityIds.has(r.dst));
+    : allRelationships.filter((r) => !eraEntityIds.has(r.src) && !eraEntityIds.has(r.dst));
 
   // Build 2-hop neighborhood
   const neighborGraph = buildNeighborGraph(graphRelationships, entryPoint.id, 2);
 
   // Filter entities to those in the neighborhood
-  const neighborEntities = allEntities.filter(e => neighborGraph.ids.has(e.id));
+  const neighborEntities = allEntities.filter((e) => neighborGraph.ids.has(e.id));
 
   // Apply style filters (entityRules deprecated, just passes through)
-  const filteredCandidates = filterCandidatesByStyleRules(
-    neighborEntities,
-    undefined
-  );
+  const filteredCandidates = filterCandidatesByStyleRules(neighborEntities, undefined);
 
   // Ensure entry point is included
-  const candidates = filteredCandidates.some(e => e.id === entryPoint.id)
+  const candidates = filteredCandidates.some((e) => e.id === entryPoint.id)
     ? filteredCandidates
     : [entryPoint, ...filteredCandidates];
 
   // Get relationships between candidates
-  const candidateIds = new Set(candidates.map(e => e.id));
+  const candidateIds = new Set(candidates.map((e) => e.id));
   const candidateRelationships = allRelationships.filter(
-    r => candidateIds.has(r.src) && candidateIds.has(r.dst)
+    (r) => candidateIds.has(r.src) && candidateIds.has(r.dst)
   );
 
   // Get events involving candidates + world-structuring events (always available)
-  const candidateEvents = allEvents.filter(e =>
-    e.eventKind === 'creation_batch' ||
-    (e.subjectId && candidateIds.has(e.subjectId)) ||
-    (e.objectId && candidateIds.has(e.objectId))
+  const candidateEvents = allEvents.filter(
+    (e) =>
+      e.eventKind === "creation_batch" ||
+      (e.subjectId && candidateIds.has(e.subjectId)) ||
+      (e.objectId && candidateIds.has(e.objectId))
   );
 
   return {

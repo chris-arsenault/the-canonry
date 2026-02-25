@@ -5,23 +5,23 @@
  * live here, not in a React hook, so they persist across ChroniclePanel remounts.
  */
 
-import { create } from 'zustand';
-import { getEnqueue } from './enrichmentQueueBridge';
+import { create } from "zustand";
+import { getEnqueue } from "./enrichmentQueueBridge";
 import {
   getChronicle,
   getChroniclesForSimulation,
   updateChronicleAssignedTone,
-} from './chronicleRepository';
-import { useIlluminatorConfigStore } from './illuminatorConfigStore';
-import { assignCorpusTones, countDistribution } from '../../hooks/useToneRanking';
-import type { ChronicleNavItem } from './chronicleNav';
-import type { HistorianTone } from '../historianTypes';
+} from "./chronicleRepository";
+import { useIlluminatorConfigStore } from "./illuminatorConfigStore";
+import { assignCorpusTones, countDistribution } from "../../hooks/useToneRanking";
+import type { ChronicleNavItem } from "./chronicleNav";
+import type { HistorianTone } from "../historianTypes";
 import type {
   ToneRankingProgress,
   ToneRankingChronicleSummary,
   ToneAssignmentPreview,
   ToneAssignmentEntry,
-} from '../../hooks/useToneRanking';
+} from "../../hooks/useToneRanking";
 
 // ============================================================================
 // Store
@@ -44,11 +44,11 @@ interface ToneRankingStoreState {
 }
 
 const IDLE_PROGRESS: ToneRankingProgress = {
-  status: 'idle',
+  status: "idle",
   chronicles: [],
   totalChronicles: 0,
   processedChronicles: 0,
-  currentTitle: '',
+  currentTitle: "",
   totalCost: 0,
   failedChronicles: [],
 };
@@ -74,7 +74,7 @@ export const useToneRankingStore = create<ToneRankingStoreState>((set, get) => (
     if (activeFlag) return;
 
     const eligible = chronicleItems.filter(
-      (c) => (c.status === 'complete' || c.status === 'assembly_ready') && c.hasSummary,
+      (c) => (c.status === "complete" || c.status === "assembly_ready") && c.hasSummary
     );
 
     const chronicles: ToneRankingChronicleSummary[] = eligible.map((c) => ({
@@ -86,8 +86,8 @@ export const useToneRankingStore = create<ToneRankingStoreState>((set, get) => (
       set({
         progress: {
           ...IDLE_PROGRESS,
-          status: 'failed',
-          error: 'No eligible chronicles (need summary, no existing ranking)',
+          status: "failed",
+          error: "No eligible chronicles (need summary, no existing ranking)",
         },
       });
       return;
@@ -98,7 +98,7 @@ export const useToneRankingStore = create<ToneRankingStoreState>((set, get) => (
     set({
       progress: {
         ...IDLE_PROGRESS,
-        status: 'confirming',
+        status: "confirming",
         chronicles,
         totalChronicles: chronicles.length,
       },
@@ -112,7 +112,9 @@ export const useToneRankingStore = create<ToneRankingStoreState>((set, get) => (
     activeFlag = true;
     cancelledFlag = false;
 
-    set((s) => ({ progress: { ...s.progress, status: 'running', currentTitle: 'Loading chronicles...' } }));
+    set((s) => ({
+      progress: { ...s.progress, status: "running", currentTitle: "Loading chronicles..." },
+    }));
 
     (async () => {
       try {
@@ -138,14 +140,21 @@ export const useToneRankingStore = create<ToneRankingStoreState>((set, get) => (
             chronicleId: chron.chronicleId,
             title: chron.title,
             summary: record.summary,
-            format: record.format || 'story',
+            format: record.format || "story",
             narrativeStyleName: record.narrativeStyle?.name,
             brief: record.perspectiveSynthesis?.brief,
           });
         }
 
         if (bulkEntries.length === 0) {
-          set((s) => ({ progress: { ...s.progress, status: 'failed', error: 'No chronicles with summaries found', currentTitle: '' } }));
+          set((s) => ({
+            progress: {
+              ...s.progress,
+              status: "failed",
+              error: "No chronicles with summaries found",
+              currentTitle: "",
+            },
+          }));
           return;
         }
 
@@ -156,28 +165,30 @@ export const useToneRankingStore = create<ToneRankingStoreState>((set, get) => (
         set((s) => ({
           progress: {
             ...s.progress,
-            currentTitle: `Ranking ${bulkEntries.length} chronicles in ${batchCount} batch${batchCount > 1 ? 'es' : ''}...`,
+            currentTitle: `Ranking ${bulkEntries.length} chronicles in ${batchCount} batch${batchCount > 1 ? "es" : ""}...`,
             totalChronicles: bulkEntries.length,
           },
         }));
 
         const syntheticEntity = {
-          id: 'bulk-tone-ranking',
-          name: 'Bulk Tone Ranking',
-          kind: 'chronicle',
-          subtype: '',
-          prominence: 'recognized',
-          culture: '',
-          status: 'active',
-          description: '',
+          id: "bulk-tone-ranking",
+          name: "Bulk Tone Ranking",
+          kind: "chronicle",
+          subtype: "",
+          prominence: "recognized",
+          culture: "",
+          status: "active",
+          description: "",
           tags: {},
         };
 
-        getEnqueue()([{
-          entity: syntheticEntity as never,
-          type: 'bulkToneRanking' as const,
-          prompt: JSON.stringify(bulkEntries),
-        }]);
+        getEnqueue()([
+          {
+            entity: syntheticEntity as never,
+            type: "bulkToneRanking" as const,
+            prompt: JSON.stringify(bulkEntries),
+          },
+        ]);
 
         // Poll for incremental progress
         let lastUpdatedCount = 0;
@@ -205,9 +216,10 @@ export const useToneRankingStore = create<ToneRankingStoreState>((set, get) => (
                 ...s.progress,
                 processedChronicles: updatedCount,
                 totalCost,
-                currentTitle: updatedCount >= bulkEntries.length
-                  ? ''
-                  : `Batch ${currentBatch + 1}/${batchCount} — ${updatedCount}/${bulkEntries.length} ranked`,
+                currentTitle:
+                  updatedCount >= bulkEntries.length
+                    ? ""
+                    : `Batch ${currentBatch + 1}/${batchCount} — ${updatedCount}/${bulkEntries.length} ranked`,
               },
             }));
           }
@@ -216,8 +228,8 @@ export const useToneRankingStore = create<ToneRankingStoreState>((set, get) => (
             set((s) => ({
               progress: {
                 ...s.progress,
-                status: 'complete',
-                currentTitle: '',
+                status: "complete",
+                currentTitle: "",
                 processedChronicles: updatedCount,
                 totalCost,
               },
@@ -227,15 +239,15 @@ export const useToneRankingStore = create<ToneRankingStoreState>((set, get) => (
         }
 
         if (cancelledFlag) {
-          set((s) => ({ progress: { ...s.progress, status: 'cancelled', currentTitle: '' } }));
+          set((s) => ({ progress: { ...s.progress, status: "cancelled", currentTitle: "" } }));
         }
       } catch (err) {
-        console.error('[Tone Ranking] Fatal error:', err);
+        console.error("[Tone Ranking] Fatal error:", err);
         set((s) => ({
           progress: {
             ...s.progress,
-            status: 'failed',
-            currentTitle: '',
+            status: "failed",
+            currentTitle: "",
             error: err instanceof Error ? err.message : String(err),
           },
         }));
@@ -250,7 +262,7 @@ export const useToneRankingStore = create<ToneRankingStoreState>((set, get) => (
     cancelledFlag = true;
     scanData = null;
     const { progress } = get();
-    if (progress.status === 'confirming') {
+    if (progress.status === "confirming") {
       set({ progress: IDLE_PROGRESS });
     }
   },

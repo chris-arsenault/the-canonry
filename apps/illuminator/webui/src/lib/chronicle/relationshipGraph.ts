@@ -1,4 +1,4 @@
-import type { EntityContext, RelationshipContext } from '../chronicleTypes';
+import type { EntityContext, RelationshipContext } from "../chronicleTypes";
 
 export interface SharedNeighborLink {
   neighborId: string;
@@ -35,9 +35,7 @@ export function buildEntityLookup(
   return lookup;
 }
 
-function buildAdjacency(
-  relationships: RelationshipContext[]
-): Map<string, RelationshipContext[]> {
+function buildAdjacency(relationships: RelationshipContext[]): Map<string, RelationshipContext[]> {
   const adjacency = new Map<string, RelationshipContext[]>();
 
   for (const rel of relationships) {

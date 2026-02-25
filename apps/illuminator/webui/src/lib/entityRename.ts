@@ -6,20 +6,20 @@
  * as wikiLinkService.ts (lowercase ASCII slug, word-boundary matching).
  */
 
-import type { ChronicleRecord } from './db/chronicleRepository';
+import type { ChronicleRecord } from "./db/chronicleRepository";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 /** How closely related this match source is to the entity being renamed. */
-export type MatchTier = 'self' | 'related' | 'cast' | 'participant' | 'mention' | 'general';
+export type MatchTier = "self" | "related" | "cast" | "participant" | "mention" | "general";
 
 export interface RenameMatch {
   /** Unique match ID */
   id: string;
   /** Where the match was found */
-  sourceType: 'entity' | 'chronicle' | 'event';
+  sourceType: "entity" | "chronicle" | "event";
   /** Entity ID, chronicle ID, or event ID */
   sourceId: string;
   /** Entity name, chronicle title, or event description snippet (for display) */
@@ -27,7 +27,7 @@ export interface RenameMatch {
   /** Which field contains the match */
   field: string;
   /** full = complete name, partial = sub-sequence, metadata = denormalized field, id_slug = entity ID reference */
-  matchType: 'full' | 'partial' | 'metadata' | 'id_slug';
+  matchType: "full" | "partial" | "metadata" | "id_slug";
   /** The original text span that matched */
   matchedText: string;
   /** Character offset in the field's text */
@@ -44,7 +44,7 @@ export interface RenameMatch {
 
 export interface MatchDecision {
   matchId: string;
-  action: 'accept' | 'reject' | 'edit';
+  action: "accept" | "reject" | "edit";
   /** Custom replacement text (only for 'edit') */
   editText?: string;
 }
@@ -107,25 +107,22 @@ function normalizeForMatch(text: string): NormalizedText {
       indexMap.push(i);
       prevSeparator = false;
     } else if (!prevSeparator) {
-      normalizedChars.push('-');
+      normalizedChars.push("-");
       indexMap.push(i);
       prevSeparator = true;
     }
   }
 
-  while (normalizedChars.length > 0 && normalizedChars[0] === '-') {
+  while (normalizedChars.length > 0 && normalizedChars[0] === "-") {
     normalizedChars.shift();
     indexMap.shift();
   }
-  while (
-    normalizedChars.length > 0 &&
-    normalizedChars[normalizedChars.length - 1] === '-'
-  ) {
+  while (normalizedChars.length > 0 && normalizedChars[normalizedChars.length - 1] === "-") {
     normalizedChars.pop();
     indexMap.pop();
   }
 
-  return { normalized: normalizedChars.join(''), indexMap };
+  return { normalized: normalizedChars.join(""), indexMap };
 }
 
 function normalizeSlug(text: string): string {
@@ -137,9 +134,34 @@ function normalizeSlug(text: string): string {
 // ---------------------------------------------------------------------------
 
 const STOP_WORDS = new Set([
-  'the', 'a', 'an', 'of', 'in', 'on', 'at', 'to', 'for', 'and', 'or',
-  'but', 'is', 'was', 'are', 'were', 'be', 'been', 'by', 'with', 'from',
-  'as', 'its', 'that', 'this', 'it', 'no', 'not',
+  "the",
+  "a",
+  "an",
+  "of",
+  "in",
+  "on",
+  "at",
+  "to",
+  "for",
+  "and",
+  "or",
+  "but",
+  "is",
+  "was",
+  "are",
+  "were",
+  "be",
+  "been",
+  "by",
+  "with",
+  "from",
+  "as",
+  "its",
+  "that",
+  "this",
+  "it",
+  "no",
+  "not",
 ]);
 
 /**
@@ -148,9 +170,7 @@ const STOP_WORDS = new Set([
  */
 function generatePartials(name: string): string[] {
   // Split on non-alpha-numeric to get raw words
-  const words = name
-    .split(/[^a-zA-Z0-9]+/)
-    .filter((w) => w.length > 0);
+  const words = name.split(/[^a-zA-Z0-9]+/).filter((w) => w.length > 0);
 
   if (words.length <= 1) return [];
 
@@ -160,7 +180,7 @@ function generatePartials(name: string): string[] {
   // Generate all contiguous sub-sequences of words
   for (let start = 0; start < words.length; start++) {
     for (let end = start + 1; end <= words.length; end++) {
-      const fragment = words.slice(start, end).join(' ');
+      const fragment = words.slice(start, end).join(" ");
       const slug = normalizeSlug(fragment);
 
       // Skip: empty, too short, stop words standing alone, or the full name itself
@@ -197,7 +217,7 @@ function findAllOccurrences(
   slug: string,
   normalizedText: string,
   indexMap: number[],
-  originalText: string,
+  originalText: string
 ): RawMatch[] {
   if (!slug || !normalizedText) return [];
 
@@ -211,8 +231,8 @@ function findAllOccurrences(
     const matchEnd = idx + slug.length;
 
     // Check word boundaries
-    const beforeOk = idx === 0 || normalizedText[idx - 1] === '-';
-    const afterOk = matchEnd === normalizedText.length || normalizedText[matchEnd] === '-';
+    const beforeOk = idx === 0 || normalizedText[idx - 1] === "-";
+    const afterOk = matchEnd === normalizedText.length || normalizedText[matchEnd] === "-";
 
     if (beforeOk && afterOk) {
       const rawStart = indexMap[idx];
@@ -232,7 +252,7 @@ function findAllOccurrences(
         // Stop at apostrophes — trailing apostrophes are grammatical (possessive/
         // contraction), not part of the entity name. Apostrophes *within* names
         // (e.g. O'Brien) are already captured via the indexMap within the match span.
-        if (ch === "'" || ch === '\u2019') break;
+        if (ch === "'" || ch === "\u2019") break;
         // Include trailing non-alphanumeric, non-space chars (like ~ or ])
         rawEnd++;
       }
@@ -257,7 +277,7 @@ function extractContext(
   text: string,
   start: number,
   end: number,
-  contextSize: number = 60,
+  contextSize: number = 60
 ): { before: string; after: string } {
   const beforeStart = Math.max(0, start - contextSize);
   const afterEnd = Math.min(text.length, end + contextSize);
@@ -265,8 +285,8 @@ function extractContext(
   let before = text.slice(beforeStart, start);
   let after = text.slice(end, afterEnd);
 
-  if (beforeStart > 0) before = '...' + before;
-  if (afterEnd < text.length) after = after + '...';
+  if (beforeStart > 0) before = "..." + before;
+  if (afterEnd < text.length) after = after + "...";
 
   return { before, after };
 }
@@ -329,7 +349,7 @@ export async function scanForReferences(
   entities: ScanEntity[],
   chronicles: ChronicleRecord[],
   relationships?: ScanRelationship[],
-  narrativeEvents?: ScanNarrativeEvent[],
+  narrativeEvents?: ScanNarrativeEvent[]
 ): Promise<RenameScanResult> {
   matchIdCounter = 0;
   const matches: RenameMatch[] = [];
@@ -337,7 +357,7 @@ export async function scanForReferences(
   const partialSlugs = generatePartials(oldName);
 
   // Current tier label — set before each scan pass, read by match-push sites.
-  let currentTier: MatchTier = 'general';
+  let currentTier: MatchTier = "general";
 
   // Track positions covered by full matches to exclude from partial results
   // Key: `${sourceType}:${sourceId}:${field}`, Value: Set of `${start}:${end}`
@@ -356,7 +376,7 @@ export async function scanForReferences(
     const set = coveredPositions.get(key);
     if (!set) return false;
     for (const entry of set) {
-      const [cs, ce] = entry.split(':').map(Number);
+      const [cs, ce] = entry.split(":").map(Number);
       // Overlap if ranges intersect
       if (start < ce && end > cs) return true;
     }
@@ -364,11 +384,11 @@ export async function scanForReferences(
   }
 
   function scanTextField(
-    sourceType: 'entity' | 'chronicle' | 'event',
+    sourceType: "entity" | "chronicle" | "event",
     sourceId: string,
     sourceName: string,
     field: string,
-    text: string | undefined | null,
+    text: string | undefined | null
   ) {
     if (!text) return;
 
@@ -386,7 +406,7 @@ export async function scanForReferences(
         sourceId,
         sourceName,
         field,
-        matchType: 'full',
+        matchType: "full",
         matchedText: m.matchedText,
         position: m.start,
         contextBefore: ctx.before,
@@ -408,7 +428,7 @@ export async function scanForReferences(
           sourceId,
           sourceName,
           field,
-          matchType: 'partial',
+          matchType: "partial",
           matchedText: m.matchedText,
           position: m.start,
           contextBefore: ctx.before,
@@ -456,22 +476,24 @@ export async function scanForReferences(
   function scanEntityTextFields(
     entity: ScanEntity,
     scanFn: (
-      sourceType: 'entity' | 'chronicle' | 'event',
+      sourceType: "entity" | "chronicle" | "event",
       sourceId: string,
       sourceName: string,
       field: string,
-      text: string | undefined | null,
-    ) => void,
+      text: string | undefined | null
+    ) => void
   ) {
-    scanFn('entity', entity.id, entity.name, 'summary', entity.summary);
-    scanFn('entity', entity.id, entity.name, 'description', entity.description);
-    scanFn('entity', entity.id, entity.name, 'narrativeHint', entity.narrativeHint);
+    scanFn("entity", entity.id, entity.name, "summary", entity.summary);
+    scanFn("entity", entity.id, entity.name, "description", entity.description);
+    scanFn("entity", entity.id, entity.name, "narrativeHint", entity.narrativeHint);
     if (entity.enrichment?.descriptionHistory) {
       for (let i = 0; i < entity.enrichment.descriptionHistory.length; i++) {
         scanFn(
-          'entity', entity.id, entity.name,
+          "entity",
+          entity.id,
+          entity.name,
           `enrichment.descriptionHistory[${i}].description`,
-          entity.enrichment.descriptionHistory[i].description,
+          entity.enrichment.descriptionHistory[i].description
         );
       }
     }
@@ -479,22 +501,22 @@ export async function scanForReferences(
 
   // --- Full + partial scan (for self, related, cast) ---
   function scanTextFieldFullAndPartial(
-    sourceType: 'entity' | 'chronicle' | 'event',
+    sourceType: "entity" | "chronicle" | "event",
     sourceId: string,
     sourceName: string,
     field: string,
-    text: string | undefined | null,
+    text: string | undefined | null
   ) {
     scanTextField(sourceType, sourceId, sourceName, field, text);
   }
 
   // --- Full name only scan (for general sweep) ---
   function scanTextFieldFullNameOnly(
-    sourceType: 'entity' | 'chronicle' | 'event',
+    sourceType: "entity" | "chronicle" | "event",
     sourceId: string,
     sourceName: string,
     field: string,
-    text: string | undefined | null,
+    text: string | undefined | null
   ) {
     if (!text) return;
 
@@ -512,7 +534,7 @@ export async function scanForReferences(
         sourceId,
         sourceName,
         field,
-        matchType: 'full',
+        matchType: "full",
         matchedText: m.matchedText,
         position: m.start,
         contextBefore: ctx.before,
@@ -525,7 +547,7 @@ export async function scanForReferences(
   // =========================================================================
   // 1. SELF: The renamed entity's own fields (full + partial)
   // =========================================================================
-  currentTier = 'self';
+  currentTier = "self";
   const selfEntity = entityById.get(entityId);
   if (selfEntity) {
     scanEntityTextFields(selfEntity, scanTextFieldFullAndPartial);
@@ -534,7 +556,7 @@ export async function scanForReferences(
   // =========================================================================
   // 2. RELATED: Entities connected via relationship FK (full + partial)
   // =========================================================================
-  currentTier = 'related';
+  currentTier = "related";
   for (const relEntityId of relatedEntityIds) {
     const relEntity = entityById.get(relEntityId);
     if (!relEntity) continue;
@@ -544,7 +566,7 @@ export async function scanForReferences(
   // =========================================================================
   // 3. CAST CHRONICLES: Chronicles where entity is a cast member (full + partial + metadata)
   // =========================================================================
-  currentTier = 'cast';
+  currentTier = "cast";
   for (const chronicle of chronicles) {
     if (!castChronicleIds.has(chronicle.chronicleId)) continue;
 
@@ -558,11 +580,11 @@ export async function scanForReferences(
         if (ra.entityId === entityId) {
           matches.push({
             id: nextMatchId(),
-            sourceType: 'chronicle',
+            sourceType: "chronicle",
             sourceId: cId,
             sourceName: cTitle,
             field: `roleAssignments[${i}].entityName`,
-            matchType: 'metadata',
+            matchType: "metadata",
             matchedText: ra.entityName,
             position: 0,
             contextBefore: `Role: ${ra.role}`,
@@ -576,14 +598,14 @@ export async function scanForReferences(
     if (chronicle.lens && chronicle.lens.entityId === entityId) {
       matches.push({
         id: nextMatchId(),
-        sourceType: 'chronicle',
+        sourceType: "chronicle",
         sourceId: cId,
         sourceName: cTitle,
-        field: 'lens.entityName',
-        matchType: 'metadata',
+        field: "lens.entityName",
+        matchType: "metadata",
         matchedText: chronicle.lens.entityName,
         position: 0,
-        contextBefore: 'Lens:',
+        contextBefore: "Lens:",
         contextAfter: `(${chronicle.lens.entityKind})`,
         tier: currentTier,
       });
@@ -595,15 +617,15 @@ export async function scanForReferences(
         if (ed.entityId === entityId) {
           matches.push({
             id: nextMatchId(),
-            sourceType: 'chronicle',
+            sourceType: "chronicle",
             sourceId: cId,
             sourceName: cTitle,
             field: `generationContext.entityDirectives[${i}].entityName`,
-            matchType: 'metadata',
+            matchType: "metadata",
             matchedText: ed.entityName,
             position: 0,
-            contextBefore: 'Directive:',
-            contextAfter: ed.directive.slice(0, 40) + (ed.directive.length > 40 ? '...' : ''),
+            contextBefore: "Directive:",
+            contextAfter: ed.directive.slice(0, 40) + (ed.directive.length > 40 ? "..." : ""),
             tier: currentTier,
           });
         }
@@ -611,16 +633,24 @@ export async function scanForReferences(
     }
 
     // Text field matches (full + partial since this entity is in the cast)
-    scanTextFieldFullAndPartial('chronicle', cId, cTitle, 'assembledContent', chronicle.assembledContent);
-    scanTextFieldFullAndPartial('chronicle', cId, cTitle, 'finalContent', chronicle.finalContent);
-    scanTextFieldFullAndPartial('chronicle', cId, cTitle, 'summary', chronicle.summary);
+    scanTextFieldFullAndPartial(
+      "chronicle",
+      cId,
+      cTitle,
+      "assembledContent",
+      chronicle.assembledContent
+    );
+    scanTextFieldFullAndPartial("chronicle", cId, cTitle, "finalContent", chronicle.finalContent);
+    scanTextFieldFullAndPartial("chronicle", cId, cTitle, "summary", chronicle.summary);
 
     if (chronicle.generationHistory) {
       for (const version of chronicle.generationHistory) {
         scanTextFieldFullAndPartial(
-          'chronicle', cId, cTitle,
+          "chronicle",
+          cId,
+          cTitle,
           `generationHistory.${version.versionId}`,
-          version.content,
+          version.content
         );
       }
     }
@@ -630,7 +660,7 @@ export async function scanForReferences(
   // 4. GENERAL SWEEP: All other entities and chronicles (FULL NAME ONLY)
   //    No partial matches here to avoid noise from common word fragments.
   // =========================================================================
-  currentTier = 'general';
+  currentTier = "general";
   const scannedEntityIds = new Set([entityId, ...relatedEntityIds]);
   for (const entity of entities) {
     if (scannedEntityIds.has(entity.id)) continue;
@@ -649,11 +679,11 @@ export async function scanForReferences(
         if (ra.entityId === entityId) {
           matches.push({
             id: nextMatchId(),
-            sourceType: 'chronicle',
+            sourceType: "chronicle",
             sourceId: cId,
             sourceName: cTitle,
             field: `roleAssignments[${i}].entityName`,
-            matchType: 'metadata',
+            matchType: "metadata",
             matchedText: ra.entityName,
             position: 0,
             contextBefore: `Role: ${ra.role}`,
@@ -667,30 +697,38 @@ export async function scanForReferences(
     if (chronicle.lens && chronicle.lens.entityId === entityId) {
       matches.push({
         id: nextMatchId(),
-        sourceType: 'chronicle',
+        sourceType: "chronicle",
         sourceId: cId,
         sourceName: cTitle,
-        field: 'lens.entityName',
-        matchType: 'metadata',
+        field: "lens.entityName",
+        matchType: "metadata",
         matchedText: chronicle.lens.entityName,
         position: 0,
-        contextBefore: 'Lens:',
+        contextBefore: "Lens:",
         contextAfter: `(${chronicle.lens.entityKind})`,
         tier: currentTier,
       });
     }
 
     // Full name only text search
-    scanTextFieldFullNameOnly('chronicle', cId, cTitle, 'assembledContent', chronicle.assembledContent);
-    scanTextFieldFullNameOnly('chronicle', cId, cTitle, 'finalContent', chronicle.finalContent);
-    scanTextFieldFullNameOnly('chronicle', cId, cTitle, 'summary', chronicle.summary);
+    scanTextFieldFullNameOnly(
+      "chronicle",
+      cId,
+      cTitle,
+      "assembledContent",
+      chronicle.assembledContent
+    );
+    scanTextFieldFullNameOnly("chronicle", cId, cTitle, "finalContent", chronicle.finalContent);
+    scanTextFieldFullNameOnly("chronicle", cId, cTitle, "summary", chronicle.summary);
 
     if (chronicle.generationHistory) {
       for (const version of chronicle.generationHistory) {
         scanTextFieldFullNameOnly(
-          'chronicle', cId, cTitle,
+          "chronicle",
+          cId,
+          cTitle,
           `generationHistory.${version.versionId}`,
-          version.content,
+          version.content
         );
       }
     }
@@ -719,11 +757,10 @@ export async function scanForReferences(
 
     for (const event of narrativeEvents) {
       const eId = event.id;
-      const eName = event.description.length > 60
-        ? event.description.slice(0, 57) + '...'
-        : event.description;
+      const eName =
+        event.description.length > 60 ? event.description.slice(0, 57) + "..." : event.description;
       const isParticipant = participantEventIds.has(eId);
-      currentTier = isParticipant ? 'participant' : 'mention';
+      currentTier = isParticipant ? "participant" : "mention";
       const scan = isParticipant ? scanTextFieldFullAndPartial : scanTextFieldFullNameOnly;
 
       // Structured name fields (metadata matches for participant events)
@@ -731,15 +768,15 @@ export async function scanForReferences(
         if (event.subject.id === entityId) {
           matches.push({
             id: nextMatchId(),
-            sourceType: 'event',
+            sourceType: "event",
             sourceId: eId,
             sourceName: eName,
-            field: 'subject.name',
-            matchType: 'metadata',
+            field: "subject.name",
+            matchType: "metadata",
             matchedText: event.subject.name,
             position: 0,
-            contextBefore: 'Subject:',
-            contextAfter: '',
+            contextBefore: "Subject:",
+            contextAfter: "",
             tier: currentTier,
           });
         }
@@ -748,15 +785,15 @@ export async function scanForReferences(
           if (pe.entity.id === entityId) {
             matches.push({
               id: nextMatchId(),
-              sourceType: 'event',
+              sourceType: "event",
               sourceId: eId,
               sourceName: eName,
               field: `participantEffects[${pi}].entity.name`,
-              matchType: 'metadata',
+              matchType: "metadata",
               matchedText: pe.entity.name,
               position: 0,
-              contextBefore: 'Participant:',
-              contextAfter: '',
+              contextBefore: "Participant:",
+              contextAfter: "",
               tier: currentTier,
             });
           }
@@ -765,15 +802,15 @@ export async function scanForReferences(
             if (eff.relatedEntity && eff.relatedEntity.id === entityId) {
               matches.push({
                 id: nextMatchId(),
-                sourceType: 'event',
+                sourceType: "event",
                 sourceId: eId,
                 sourceName: eName,
                 field: `participantEffects[${pi}].effects[${ei}].relatedEntity.name`,
-                matchType: 'metadata',
+                matchType: "metadata",
                 matchedText: eff.relatedEntity.name,
                 position: 0,
                 contextBefore: `Related entity (${pe.entity.name}):`,
-                contextAfter: '',
+                contextAfter: "",
                 tier: currentTier,
               });
             }
@@ -782,8 +819,8 @@ export async function scanForReferences(
       }
 
       // Free-text fields
-      scan('event', eId, eName, 'description', event.description);
-      scan('event', eId, eName, 'action', event.action);
+      scan("event", eId, eName, "description", event.description);
+      scan("event", eId, eName, "action", event.action);
 
       // Scan effect descriptions for participant events
       if (isParticipant) {
@@ -791,9 +828,11 @@ export async function scanForReferences(
           const pe = event.participantEffects[pi];
           for (let ei = 0; ei < pe.effects.length; ei++) {
             scan(
-              'event', eId, eName,
+              "event",
+              eId,
+              eName,
               `participantEffects[${pi}].effects[${ei}].description`,
-              pe.effects[ei].description,
+              pe.effects[ei].description
             );
           }
         }
@@ -809,19 +848,19 @@ export async function scanForReferences(
       if (rel.src !== entityId && rel.dst !== entityId) continue;
       const otherId = rel.src === entityId ? rel.dst : rel.src;
       const otherName = entityById.get(otherId)?.name || otherId;
-      const direction = rel.src === entityId ? 'outgoing' : 'incoming';
+      const direction = rel.src === entityId ? "outgoing" : "incoming";
       matches.push({
         id: nextMatchId(),
-        sourceType: 'entity',
+        sourceType: "entity",
         sourceId: otherId,
         sourceName: otherName,
         field: `relationship.${rel.kind}`,
-        matchType: 'id_slug',
+        matchType: "id_slug",
         matchedText: entityId,
         position: 0,
         contextBefore: `${direction} ${rel.kind}:`,
-        contextAfter: `→ ${otherName}${rel.status === 'historical' ? ' (historical)' : ''}`,
-        tier: 'related',
+        contextAfter: `→ ${otherName}${rel.status === "historical" ? " (historical)" : ""}`,
+        tier: "related",
       });
     }
   }
@@ -830,16 +869,16 @@ export async function scanForReferences(
     if (chronicle.selectedEntityIds?.includes(entityId)) {
       matches.push({
         id: nextMatchId(),
-        sourceType: 'chronicle',
+        sourceType: "chronicle",
         sourceId: chronicle.chronicleId,
         sourceName: chronicle.title,
-        field: 'selectedEntityIds',
-        matchType: 'id_slug',
+        field: "selectedEntityIds",
+        matchType: "id_slug",
         matchedText: entityId,
         position: 0,
-        contextBefore: 'Cast member:',
+        contextBefore: "Cast member:",
         contextAfter: `(${chronicle.selectedEntityIds.length} entities in chronicle)`,
-        tier: 'cast',
+        tier: "cast",
       });
     }
   }
@@ -853,12 +892,12 @@ export async function scanForReferences(
 
 /** Strip the leading "..." display prefix from contextBefore */
 function rawCtxBefore(ctx: string): string {
-  return ctx.startsWith('...') ? ctx.slice(3) : ctx;
+  return ctx.startsWith("...") ? ctx.slice(3) : ctx;
 }
 
 /** Strip the trailing "..." display suffix from contextAfter */
 function rawCtxAfter(ctx: string): string {
-  return ctx.endsWith('...') ? ctx.slice(0, -3) : ctx;
+  return ctx.endsWith("...") ? ctx.slice(0, -3) : ctx;
 }
 
 /** Is this match at the start of a sentence? */
@@ -867,12 +906,12 @@ function isAtSentenceStart(rawBefore: string): boolean {
   const trimmed = rawBefore.trimEnd();
   if (trimmed.length === 0) return true;
   const last = trimmed[trimmed.length - 1];
-  return '.!?:\n'.includes(last);
+  return ".!?:\n".includes(last);
 }
 
 interface PrecedingArticle {
   text: string;
-  normalized: 'the' | 'a' | 'an';
+  normalized: "the" | "a" | "an";
   length: number;
 }
 
@@ -881,7 +920,7 @@ function findPrecedingArticle(rawBefore: string): PrecedingArticle | null {
   const m = rawBefore.match(/(the|an?)\s+$/i);
   if (!m) return null;
   const fullMatch = m[0]; // e.g. "the ", "The  ", "a ", "an "
-  const norm = m[1].toLowerCase() as 'the' | 'a' | 'an';
+  const norm = m[1].toLowerCase() as "the" | "a" | "an";
   // Verify word boundary: char before the article must not be alphanumeric
   const beforeArticle = rawBefore.slice(0, rawBefore.length - fullMatch.length);
   if (beforeArticle.length > 0) {
@@ -891,23 +930,35 @@ function findPrecedingArticle(rawBefore: string): PrecedingArticle | null {
   return { text: fullMatch, normalized: norm, length: fullMatch.length };
 }
 
-type CasePattern = 'allCaps' | 'allLower' | 'mixed';
+type CasePattern = "allCaps" | "allLower" | "mixed";
 
 function detectCasePattern(text: string): CasePattern {
-  const letters = text.replace(/[^a-zA-Z]/g, '');
-  if (letters.length === 0) return 'mixed';
-  if (letters === letters.toUpperCase()) return 'allCaps';
-  if (letters === letters.toLowerCase()) return 'allLower';
-  return 'mixed';
+  const letters = text.replace(/[^a-zA-Z]/g, "");
+  if (letters.length === 0) return "mixed";
+  if (letters === letters.toUpperCase()) return "allCaps";
+  if (letters === letters.toLowerCase()) return "allLower";
+  return "mixed";
 }
 
 // Common words starting with vowel letters but consonant sounds (yoo-, yew-)
 const CONSONANT_SOUND_VOWEL_PREFIXES = [
-  'uni', 'use', 'used', 'user', 'using', 'usual', 'usually',
-  'unique', 'union', 'unit', 'united', 'universal', 'university', 'euro',
+  "uni",
+  "use",
+  "used",
+  "user",
+  "using",
+  "usual",
+  "usually",
+  "unique",
+  "union",
+  "unit",
+  "united",
+  "universal",
+  "university",
+  "euro",
 ];
 // Common words starting with consonant letters but vowel sounds (silent h)
-const VOWEL_SOUND_CONSONANT_PREFIXES = ['hour', 'honest', 'honor', 'honour', 'heir', 'herb'];
+const VOWEL_SOUND_CONSONANT_PREFIXES = ["hour", "honest", "honor", "honour", "heir", "herb"];
 
 /** Heuristic: does text start with a vowel sound? */
 function startsWithVowelSound(text: string): boolean {
@@ -920,7 +971,7 @@ function startsWithVowelSound(text: string): boolean {
   for (const prefix of VOWEL_SOUND_CONSONANT_PREFIXES) {
     if (firstWord.startsWith(prefix)) return true;
   }
-  return 'aeiou'.includes(firstWord[0]);
+  return "aeiou".includes(firstWord[0]);
 }
 
 interface AdjustedReplacement {
@@ -939,7 +990,7 @@ export function adjustReplacementForGrammar(
   contextAfter: string,
   matchPosition: number,
   matchedText: string,
-  replacement: string,
+  replacement: string
 ): AdjustedReplacement {
   let adjPosition = matchPosition;
   let adjOriginalLength = matchedText.length;
@@ -951,9 +1002,9 @@ export function adjustReplacementForGrammar(
   const casePattern = detectCasePattern(matchedText);
 
   // ── Rule 1: Case Echo ──
-  if (casePattern === 'allCaps') {
+  if (casePattern === "allCaps") {
     adjReplacement = adjReplacement.toUpperCase();
-  } else if (casePattern === 'allLower') {
+  } else if (casePattern === "allLower") {
     adjReplacement = adjReplacement.toLowerCase();
   }
 
@@ -966,7 +1017,7 @@ export function adjustReplacementForGrammar(
     const thePrefix = adjReplacement.match(/^(the\s+)/i)![0];
     const replacementWithoutThe = adjReplacement.slice(thePrefix.length);
 
-    if (precedingArticle.normalized === 'the') {
+    if (precedingArticle.normalized === "the") {
       // "the Gore-Ruin" → "the End War" — keep preceding "the", strip from replacement
       adjReplacement = replacementWithoutThe;
     } else {
@@ -974,13 +1025,13 @@ export function adjustReplacementForGrammar(
       adjPosition = matchPosition - precedingArticle.length;
       adjOriginalLength = matchedText.length + precedingArticle.length;
       const wasCapitalized = /^[A-Z]/.test(precedingArticle.text);
-      adjReplacement = (wasCapitalized ? 'The ' : 'the ') + replacementWithoutThe;
+      adjReplacement = (wasCapitalized ? "The " : "the ") + replacementWithoutThe;
     }
     articleAbsorbed = true;
   }
 
   // ── Rule 3: Mid-sentence article lowercasing ──
-  if (!sentenceStart && casePattern !== 'allCaps' && !articleAbsorbed) {
+  if (!sentenceStart && casePattern !== "allCaps" && !articleAbsorbed) {
     const articleMatch = adjReplacement.match(/^(The|A|An)\b/);
     if (articleMatch) {
       adjReplacement = articleMatch[1].toLowerCase() + adjReplacement.slice(articleMatch[1].length);
@@ -989,14 +1040,16 @@ export function adjustReplacementForGrammar(
 
   // ── Rule 4: A/an agreement ──
   if (
-    precedingArticle && !replacementStartsWithThe && !articleAbsorbed &&
-    (precedingArticle.normalized === 'a' || precedingArticle.normalized === 'an')
+    precedingArticle &&
+    !replacementStartsWithThe &&
+    !articleAbsorbed &&
+    (precedingArticle.normalized === "a" || precedingArticle.normalized === "an")
   ) {
     const needsAn = startsWithVowelSound(adjReplacement);
-    const hasAn = precedingArticle.normalized === 'an';
+    const hasAn = precedingArticle.normalized === "an";
 
     if (needsAn !== hasAn) {
-      const correctArticle = needsAn ? 'an' : 'a';
+      const correctArticle = needsAn ? "an" : "a";
       const wasCapitalized = /^[A-Z]/.test(precedingArticle.text);
       const casedArticle = wasCapitalized
         ? correctArticle[0].toUpperCase() + correctArticle.slice(1)
@@ -1004,25 +1057,29 @@ export function adjustReplacementForGrammar(
 
       adjPosition = matchPosition - precedingArticle.length;
       adjOriginalLength = matchedText.length + precedingArticle.length;
-      adjReplacement = casedArticle + ' ' + adjReplacement;
+      adjReplacement = casedArticle + " " + adjReplacement;
     }
   }
 
   // ── Rule 5: Possessive transfer ──
-  const possessiveMatch = rawAfter.match(/^(?:'\u0073|\u2019s|'(?=[^a-zA-Z]|$)|\u2019(?=[^a-zA-Z]|$))/);
+  const possessiveMatch = rawAfter.match(
+    /^(?:'\u0073|\u2019s|'(?=[^a-zA-Z]|$)|\u2019(?=[^a-zA-Z]|$))/
+  );
   if (possessiveMatch) {
     const possessiveText = possessiveMatch[0];
     const alreadyPossessive =
-      adjReplacement.endsWith("'s") || adjReplacement.endsWith('\u2019s') ||
-      adjReplacement.endsWith("'") || adjReplacement.endsWith('\u2019');
+      adjReplacement.endsWith("'s") ||
+      adjReplacement.endsWith("\u2019s") ||
+      adjReplacement.endsWith("'") ||
+      adjReplacement.endsWith("\u2019");
 
     if (!alreadyPossessive) {
       adjOriginalLength += possessiveText.length;
-      const lastChar = adjReplacement[adjReplacement.length - 1]?.toLowerCase() ?? '';
-      const useBareSuffix = lastChar === 's' || lastChar === 'x' || lastChar === 'z';
-      const apostrophe = possessiveText.includes('\u2019') ? '\u2019' : "'";
+      const lastChar = adjReplacement[adjReplacement.length - 1]?.toLowerCase() ?? "";
+      const useBareSuffix = lastChar === "s" || lastChar === "x" || lastChar === "z";
+      const apostrophe = possessiveText.includes("\u2019") ? "\u2019" : "'";
 
-      adjReplacement += useBareSuffix ? apostrophe : (apostrophe + 's');
+      adjReplacement += useBareSuffix ? apostrophe : apostrophe + "s";
     }
   }
 
@@ -1048,7 +1105,8 @@ export function applyReplacements(text: string, replacements: FieldReplacement[]
   const sorted = [...replacements].sort((a, b) => b.position - a.position);
   let result = text;
   for (const r of sorted) {
-    result = result.slice(0, r.position) + r.replacement + result.slice(r.position + r.originalLength);
+    result =
+      result.slice(0, r.position) + r.replacement + result.slice(r.position + r.originalLength);
   }
   return result;
 }
@@ -1059,7 +1117,7 @@ export function applyReplacements(text: string, replacements: FieldReplacement[]
 export function buildRenamePatches(
   scanResult: RenameScanResult,
   newName: string,
-  decisions: MatchDecision[],
+  decisions: MatchDecision[]
 ): RenamePatches {
   const decisionMap = new Map(decisions.map((d) => [d.matchId, d]));
 
@@ -1076,12 +1134,12 @@ export function buildRenamePatches(
 
   for (const match of scanResult.matches) {
     const decision = decisionMap.get(match.id);
-    if (!decision || decision.action === 'reject') continue;
+    if (!decision || decision.action === "reject") continue;
 
-    const replacementText = decision.action === 'edit' ? (decision.editText ?? newName) : newName;
+    const replacementText = decision.action === "edit" ? (decision.editText ?? newName) : newName;
 
-    if (match.matchType === 'metadata') {
-      if (match.sourceType === 'event') {
+    if (match.matchType === "metadata") {
+      if (match.sourceType === "event") {
         // Event metadata: structured name fields (subject.name, participant names, etc.)
         const meta = eventMetaUpdates.get(match.sourceId) || {};
         meta[match.field] = replacementText;
@@ -1090,18 +1148,21 @@ export function buildRenamePatches(
         // Chronicle metadata: denormalized fields
         const meta = chronicleMetaUpdates.get(match.sourceId) || {};
 
-        if (match.field.startsWith('roleAssignments[')) {
+        if (match.field.startsWith("roleAssignments[")) {
           const idxMatch = match.field.match(/\[(\d+)\]/);
           if (idxMatch) {
             const idx = parseInt(idxMatch[1], 10);
             if (!meta.roleAssignments) {
               meta._roleAssignmentUpdates = meta._roleAssignmentUpdates || [];
-              (meta as any)._roleAssignmentUpdates.push({ index: idx, entityName: replacementText });
+              (meta as any)._roleAssignmentUpdates.push({
+                index: idx,
+                entityName: replacementText,
+              });
             }
           }
-        } else if (match.field === 'lens.entityName') {
+        } else if (match.field === "lens.entityName") {
           (meta as any)._lensNameUpdate = replacementText;
-        } else if (match.field.startsWith('generationContext.entityDirectives[')) {
+        } else if (match.field.startsWith("generationContext.entityDirectives[")) {
           const idxMatch = match.field.match(/\[(\d+)\]/);
           if (idxMatch) {
             const idx = parseInt(idxMatch[1], 10);
@@ -1115,15 +1176,19 @@ export function buildRenamePatches(
     } else {
       // Text field replacement — apply grammar adjustment for accepts only
       // Edit mode uses the user's exact text (preserves intentional casing)
-      const isEdit = decision.action === 'edit';
+      const isEdit = decision.action === "edit";
       const adjusted = isEdit
-        ? { position: match.position, originalLength: match.matchedText.length, replacement: replacementText }
+        ? {
+            position: match.position,
+            originalLength: match.matchedText.length,
+            replacement: replacementText,
+          }
         : adjustReplacementForGrammar(
             match.contextBefore,
             match.contextAfter,
             match.position,
             match.matchedText,
-            replacementText,
+            replacementText
           );
       const replacement: FieldReplacement = {
         position: adjusted.position,
@@ -1131,21 +1196,21 @@ export function buildRenamePatches(
         replacement: adjusted.replacement,
       };
 
-      if (match.sourceType === 'entity') {
+      if (match.sourceType === "entity") {
         const existing = entityPatchMap.get(match.sourceId) || {};
         const rKey = `__replacements_${match.field}`;
         const list: FieldReplacement[] = existing[rKey] ? JSON.parse(existing[rKey]) : [];
         list.push(replacement);
         existing[rKey] = JSON.stringify(list);
         entityPatchMap.set(match.sourceId, existing);
-      } else if (match.sourceType === 'chronicle') {
+      } else if (match.sourceType === "chronicle") {
         const existing = chroniclePatchMap.get(match.sourceId) || {};
         const rKey = `__replacements_${match.field}`;
         const list: FieldReplacement[] = (existing[rKey] as FieldReplacement[]) || [];
         list.push(replacement);
         existing[rKey] = list;
         chroniclePatchMap.set(match.sourceId, existing);
-      } else if (match.sourceType === 'event') {
+      } else if (match.sourceType === "event") {
         const existing = eventPatchMap.get(match.sourceId) || {};
         const rKey = `__replacements_${match.field}`;
         const list: FieldReplacement[] = existing[rKey] ? JSON.parse(existing[rKey]) : [];
@@ -1192,7 +1257,7 @@ export function applyEntityPatches<T extends ScanEntity>(
   entities: T[],
   patches: EntityPatch[],
   targetEntityId: string | null,
-  newName: string,
+  newName: string
 ): T[] {
   const patchMap = new Map(patches.map((p) => [p.entityId, p]));
 
@@ -1220,16 +1285,16 @@ export function applyEntityPatches<T extends ScanEntity>(
 
     // Apply text replacements
     for (const [key, value] of Object.entries(patch.changes)) {
-      if (!key.startsWith('__replacements_')) continue;
-      const field = key.replace('__replacements_', '');
+      if (!key.startsWith("__replacements_")) continue;
+      const field = key.replace("__replacements_", "");
       const replacements: FieldReplacement[] = JSON.parse(value);
 
-      if (field === 'summary' || field === 'description' || field === 'narrativeHint') {
+      if (field === "summary" || field === "description" || field === "narrativeHint") {
         const originalText = (entity as any)[field];
-        if (typeof originalText === 'string') {
+        if (typeof originalText === "string") {
           (updated as any)[field] = applyReplacements(originalText, replacements);
         }
-      } else if (field.startsWith('enrichment.descriptionHistory[')) {
+      } else if (field.startsWith("enrichment.descriptionHistory[")) {
         // Parse index from: enrichment.descriptionHistory[N].description
         const idxMatch = field.match(/\[(\d+)\]/);
         if (idxMatch && entity.enrichment?.descriptionHistory) {
@@ -1266,7 +1331,7 @@ export function applyEntityPatches<T extends ScanEntity>(
 export async function applyChroniclePatches(
   patches: ChroniclePatch[],
   getChronicle: (id: string) => Promise<ChronicleRecord | undefined>,
-  putChronicle: (record: ChronicleRecord) => Promise<void>,
+  putChronicle: (record: ChronicleRecord) => Promise<void>
 ): Promise<number> {
   let successCount = 0;
 
@@ -1282,8 +1347,8 @@ export async function applyChroniclePatches(
 
       // Apply metadata updates
       if ((patch.fieldUpdates as any)._roleAssignmentUpdates) {
-        const updates: Array<{ index: number; entityName: string }> =
-          (patch.fieldUpdates as any)._roleAssignmentUpdates;
+        const updates: Array<{ index: number; entityName: string }> = (patch.fieldUpdates as any)
+          ._roleAssignmentUpdates;
         updated.roleAssignments = [...chronicle.roleAssignments];
         for (const u of updates) {
           if (updated.roleAssignments[u.index]) {
@@ -1302,9 +1367,12 @@ export async function applyChroniclePatches(
         };
       }
 
-      if ((patch.fieldUpdates as any)._directiveUpdates && chronicle.generationContext?.entityDirectives) {
-        const updates: Array<{ index: number; entityName: string }> =
-          (patch.fieldUpdates as any)._directiveUpdates;
+      if (
+        (patch.fieldUpdates as any)._directiveUpdates &&
+        chronicle.generationContext?.entityDirectives
+      ) {
+        const updates: Array<{ index: number; entityName: string }> = (patch.fieldUpdates as any)
+          ._directiveUpdates;
         updated.generationContext = {
           ...chronicle.generationContext,
           entityDirectives: [...chronicle.generationContext.entityDirectives],
@@ -1321,13 +1389,13 @@ export async function applyChroniclePatches(
 
       // Apply text field replacements
       for (const [key, value] of Object.entries(patch.fieldUpdates)) {
-        if (!key.startsWith('__replacements_')) continue;
-        const field = key.replace('__replacements_', '');
+        if (!key.startsWith("__replacements_")) continue;
+        const field = key.replace("__replacements_", "");
         const replacements = value as FieldReplacement[];
 
-        if (field.startsWith('generationHistory.')) {
+        if (field.startsWith("generationHistory.")) {
           // Handle generation history versions
-          const versionId = field.replace('generationHistory.', '');
+          const versionId = field.replace("generationHistory.", "");
           if (updated.generationHistory) {
             updated.generationHistory = updated.generationHistory.map((v) => {
               if (v.versionId === versionId) {
@@ -1336,11 +1404,11 @@ export async function applyChroniclePatches(
               return v;
             });
           }
-        } else if (field === 'assembledContent' && typeof updated.assembledContent === 'string') {
+        } else if (field === "assembledContent" && typeof updated.assembledContent === "string") {
           updated.assembledContent = applyReplacements(updated.assembledContent, replacements);
-        } else if (field === 'finalContent' && typeof updated.finalContent === 'string') {
+        } else if (field === "finalContent" && typeof updated.finalContent === "string") {
           updated.finalContent = applyReplacements(updated.finalContent, replacements);
-        } else if (field === 'summary' && typeof updated.summary === 'string') {
+        } else if (field === "summary" && typeof updated.summary === "string") {
           updated.summary = applyReplacements(updated.summary, replacements);
         }
       }
@@ -1362,7 +1430,7 @@ export async function applyChroniclePatches(
  */
 export function applyNarrativeEventPatches<T extends ScanNarrativeEvent>(
   events: T[],
-  patches: EventPatch[],
+  patches: EventPatch[]
 ): T[] {
   if (patches.length === 0) return events;
 
@@ -1375,22 +1443,27 @@ export function applyNarrativeEventPatches<T extends ScanNarrativeEvent>(
     const updated: any = { ...event };
 
     for (const [key, value] of Object.entries(patch.changes)) {
-      if (key.startsWith('__replacements_')) {
+      if (key.startsWith("__replacements_")) {
         // Text field replacements
-        const field = key.replace('__replacements_', '');
+        const field = key.replace("__replacements_", "");
         const replacements: FieldReplacement[] = JSON.parse(value);
 
-        if (field === 'description' && typeof updated.description === 'string') {
+        if (field === "description" && typeof updated.description === "string") {
           updated.description = applyReplacements(updated.description, replacements);
-        } else if (field === 'action' && typeof updated.action === 'string') {
+        } else if (field === "action" && typeof updated.action === "string") {
           updated.action = applyReplacements(updated.action, replacements);
-        } else if (field.startsWith('participantEffects[')) {
+        } else if (field.startsWith("participantEffects[")) {
           // Parse: participantEffects[N].effects[M].description
-          const idxMatch = field.match(/participantEffects\[(\d+)\]\.effects\[(\d+)\]\.description/);
+          const idxMatch = field.match(
+            /participantEffects\[(\d+)\]\.effects\[(\d+)\]\.description/
+          );
           if (idxMatch) {
             const pi = parseInt(idxMatch[1], 10);
             const ei = parseInt(idxMatch[2], 10);
-            if (!updated.participantEffects || updated.participantEffects === event.participantEffects) {
+            if (
+              !updated.participantEffects ||
+              updated.participantEffects === event.participantEffects
+            ) {
               updated.participantEffects = [...event.participantEffects];
             }
             if (updated.participantEffects[pi]) {
@@ -1399,18 +1472,24 @@ export function applyNarrativeEventPatches<T extends ScanNarrativeEvent>(
                 pe.effects = [...event.participantEffects[pi].effects];
               }
               if (pe.effects[ei]) {
-                pe.effects[ei] = { ...pe.effects[ei], description: applyReplacements(pe.effects[ei].description, replacements) };
+                pe.effects[ei] = {
+                  ...pe.effects[ei],
+                  description: applyReplacements(pe.effects[ei].description, replacements),
+                };
               }
               updated.participantEffects[pi] = pe;
             }
           }
         }
-      } else if (key === 'subject.name') {
+      } else if (key === "subject.name") {
         // Structured name field: subject.name
         updated.subject = { ...event.subject, name: value };
-      } else if (key.startsWith('participantEffects[')) {
+      } else if (key.startsWith("participantEffects[")) {
         // Structured name: participantEffects[N].entity.name or participantEffects[N].effects[M].relatedEntity.name
-        if (!updated.participantEffects || updated.participantEffects === event.participantEffects) {
+        if (
+          !updated.participantEffects ||
+          updated.participantEffects === event.participantEffects
+        ) {
           updated.participantEffects = [...event.participantEffects];
         }
 
@@ -1425,7 +1504,9 @@ export function applyNarrativeEventPatches<T extends ScanNarrativeEvent>(
           }
         }
 
-        const relatedMatch = key.match(/^participantEffects\[(\d+)\]\.effects\[(\d+)\]\.relatedEntity\.name$/);
+        const relatedMatch = key.match(
+          /^participantEffects\[(\d+)\]\.effects\[(\d+)\]\.relatedEntity\.name$/
+        );
         if (relatedMatch) {
           const pi = parseInt(relatedMatch[1], 10);
           const ei = parseInt(relatedMatch[2], 10);
@@ -1461,8 +1542,8 @@ export function applyNarrativeEventPatches<T extends ScanNarrativeEvent>(
 function replaceAllCaseInsensitive(text: string, oldName: string, newName: string): string {
   if (!text || !oldName) return text;
   // Escape regex special chars in oldName
-  const escaped = oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return text.replace(new RegExp(escaped, 'gi'), newName);
+  const escaped = oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return text.replace(new RegExp(escaped, "gi"), newName);
 }
 
 /**
@@ -1481,22 +1562,21 @@ export function patchNarrativeHistory<T extends ScanNarrativeEvent>(
   events: T[],
   entityId: string,
   oldName: string,
-  newName: string,
+  newName: string
 ): { events: T[]; patchCount: number } {
   let patchCount = 0;
 
   const patched = events.map((event) => {
     // Quick check: is this entity involved at all?
     const isSubject = event.subject.id === entityId;
-    const participantIdx = event.participantEffects.findIndex(
-      (pe) => pe.entity.id === entityId,
-    );
+    const participantIdx = event.participantEffects.findIndex((pe) => pe.entity.id === entityId);
     // Also check if old name appears anywhere in the event text
-    const hasTextMatch = event.description.toLowerCase().includes(oldName.toLowerCase())
-      || event.action.toLowerCase().includes(oldName.toLowerCase());
+    const hasTextMatch =
+      event.description.toLowerCase().includes(oldName.toLowerCase()) ||
+      event.action.toLowerCase().includes(oldName.toLowerCase());
 
     const hasRelatedRef = event.participantEffects.some((pe) =>
-      pe.effects.some((eff) => eff.relatedEntity?.id === entityId),
+      pe.effects.some((eff) => eff.relatedEntity?.id === entityId)
     );
 
     if (!isSubject && participantIdx === -1 && !hasTextMatch && !hasRelatedRef) {
@@ -1563,13 +1643,21 @@ export function patchNarrativeHistory<T extends ScanNarrativeEvent>(
     }
 
     // Patch top-level text fields
-    const patchedDesc = replaceAllCaseInsensitive(updated.description || event.description, oldName, newName);
+    const patchedDesc = replaceAllCaseInsensitive(
+      updated.description || event.description,
+      oldName,
+      newName
+    );
     if (patchedDesc !== (updated.description || event.description)) {
       updated.description = patchedDesc;
       didChange = true;
     }
 
-    const patchedAction = replaceAllCaseInsensitive(updated.action || event.action, oldName, newName);
+    const patchedAction = replaceAllCaseInsensitive(
+      updated.action || event.action,
+      oldName,
+      newName
+    );
     if (patchedAction !== (updated.action || event.action)) {
       updated.action = patchedAction;
       didChange = true;

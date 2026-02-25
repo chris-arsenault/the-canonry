@@ -1,4 +1,4 @@
-const DB_NAME = 'illuminator';
+const DB_NAME = "illuminator";
 const DB_VERSION = 8;
 
 interface IndexSpec {
@@ -14,154 +14,154 @@ interface StoreSpec {
 
 const STORE_SPECS: StoreSpec[] = [
   {
-    name: 'entities',
-    keyPath: 'id',
+    name: "entities",
+    keyPath: "id",
     indexes: [
-      { name: 'simulationRunId', keyPath: 'simulationRunId' },
-      { name: 'kind', keyPath: 'kind' },
-      { name: '[simulationRunId+kind]', keyPath: ['simulationRunId', 'kind'] },
+      { name: "simulationRunId", keyPath: "simulationRunId" },
+      { name: "kind", keyPath: "kind" },
+      { name: "[simulationRunId+kind]", keyPath: ["simulationRunId", "kind"] },
     ],
   },
   {
-    name: 'narrativeEvents',
-    keyPath: 'id',
-    indexes: [{ name: 'simulationRunId', keyPath: 'simulationRunId' }],
+    name: "narrativeEvents",
+    keyPath: "id",
+    indexes: [{ name: "simulationRunId", keyPath: "simulationRunId" }],
   },
   {
-    name: 'relationships',
-    keyPath: ['simulationRunId', 'src', 'dst', 'kind'],
+    name: "relationships",
+    keyPath: ["simulationRunId", "src", "dst", "kind"],
     indexes: [
-      { name: 'simulationRunId', keyPath: 'simulationRunId' },
-      { name: 'src', keyPath: 'src' },
-      { name: 'dst', keyPath: 'dst' },
-      { name: 'kind', keyPath: 'kind' },
+      { name: "simulationRunId", keyPath: "simulationRunId" },
+      { name: "src", keyPath: "src" },
+      { name: "dst", keyPath: "dst" },
+      { name: "kind", keyPath: "kind" },
     ],
   },
   {
-    name: 'simulationSlots',
-    keyPath: ['projectId', 'slotIndex'],
+    name: "simulationSlots",
+    keyPath: ["projectId", "slotIndex"],
     indexes: [
-      { name: 'projectId', keyPath: 'projectId' },
-      { name: 'slotIndex', keyPath: 'slotIndex' },
-      { name: 'simulationRunId', keyPath: 'simulationRunId' },
+      { name: "projectId", keyPath: "projectId" },
+      { name: "slotIndex", keyPath: "slotIndex" },
+      { name: "simulationRunId", keyPath: "simulationRunId" },
     ],
   },
-  { name: 'worldSchemas', keyPath: 'projectId', indexes: [] },
-  { name: 'coordinateStates', keyPath: 'simulationRunId', indexes: [] },
+  { name: "worldSchemas", keyPath: "projectId", indexes: [] },
+  { name: "coordinateStates", keyPath: "simulationRunId", indexes: [] },
   {
-    name: 'chronicles',
-    keyPath: 'chronicleId',
+    name: "chronicles",
+    keyPath: "chronicleId",
     indexes: [
-      { name: 'simulationRunId', keyPath: 'simulationRunId' },
-      { name: 'projectId', keyPath: 'projectId' },
-    ],
-  },
-  {
-    name: 'staticPages',
-    keyPath: 'pageId',
-    indexes: [
-      { name: 'projectId', keyPath: 'projectId' },
-      { name: 'slug', keyPath: 'slug' },
-      { name: 'status', keyPath: 'status' },
-      { name: 'updatedAt', keyPath: 'updatedAt' },
+      { name: "simulationRunId", keyPath: "simulationRunId" },
+      { name: "projectId", keyPath: "projectId" },
     ],
   },
   {
-    name: 'images',
-    keyPath: 'imageId',
+    name: "staticPages",
+    keyPath: "pageId",
     indexes: [
-      { name: 'projectId', keyPath: 'projectId' },
-      { name: 'entityId', keyPath: 'entityId' },
-      { name: 'chronicleId', keyPath: 'chronicleId' },
-      { name: 'entityKind', keyPath: 'entityKind' },
-      { name: 'entityCulture', keyPath: 'entityCulture' },
-      { name: 'model', keyPath: 'model' },
-      { name: 'imageType', keyPath: 'imageType' },
-      { name: 'generatedAt', keyPath: 'generatedAt' },
+      { name: "projectId", keyPath: "projectId" },
+      { name: "slug", keyPath: "slug" },
+      { name: "status", keyPath: "status" },
+      { name: "updatedAt", keyPath: "updatedAt" },
     ],
   },
   {
-    name: 'imageBlobs',
-    keyPath: 'imageId',
+    name: "images",
+    keyPath: "imageId",
+    indexes: [
+      { name: "projectId", keyPath: "projectId" },
+      { name: "entityId", keyPath: "entityId" },
+      { name: "chronicleId", keyPath: "chronicleId" },
+      { name: "entityKind", keyPath: "entityKind" },
+      { name: "entityCulture", keyPath: "entityCulture" },
+      { name: "model", keyPath: "model" },
+      { name: "imageType", keyPath: "imageType" },
+      { name: "generatedAt", keyPath: "generatedAt" },
+    ],
+  },
+  {
+    name: "imageBlobs",
+    keyPath: "imageId",
     indexes: [],
   },
   {
-    name: 'costs',
-    keyPath: 'id',
+    name: "costs",
+    keyPath: "id",
     indexes: [
-      { name: 'projectId', keyPath: 'projectId' },
-      { name: 'simulationRunId', keyPath: 'simulationRunId' },
-      { name: 'entityId', keyPath: 'entityId' },
-      { name: 'chronicleId', keyPath: 'chronicleId' },
-      { name: 'type', keyPath: 'type' },
-      { name: 'model', keyPath: 'model' },
-      { name: 'timestamp', keyPath: 'timestamp' },
+      { name: "projectId", keyPath: "projectId" },
+      { name: "simulationRunId", keyPath: "simulationRunId" },
+      { name: "entityId", keyPath: "entityId" },
+      { name: "chronicleId", keyPath: "chronicleId" },
+      { name: "type", keyPath: "type" },
+      { name: "model", keyPath: "model" },
+      { name: "timestamp", keyPath: "timestamp" },
     ],
   },
   {
-    name: 'traitPalettes',
-    keyPath: 'id',
+    name: "traitPalettes",
+    keyPath: "id",
     indexes: [
-      { name: 'projectId', keyPath: 'projectId' },
-      { name: 'entityKind', keyPath: 'entityKind' },
+      { name: "projectId", keyPath: "projectId" },
+      { name: "entityKind", keyPath: "entityKind" },
     ],
   },
   {
-    name: 'usedTraits',
-    keyPath: 'id',
+    name: "usedTraits",
+    keyPath: "id",
     indexes: [
-      { name: 'projectId', keyPath: 'projectId' },
-      { name: 'simulationRunId', keyPath: 'simulationRunId' },
-      { name: 'entityKind', keyPath: 'entityKind' },
-      { name: 'entityId', keyPath: 'entityId' },
+      { name: "projectId", keyPath: "projectId" },
+      { name: "simulationRunId", keyPath: "simulationRunId" },
+      { name: "entityKind", keyPath: "entityKind" },
+      { name: "entityId", keyPath: "entityId" },
     ],
   },
   {
-    name: 'historianRuns',
-    keyPath: 'runId',
+    name: "historianRuns",
+    keyPath: "runId",
     indexes: [
-      { name: 'projectId', keyPath: 'projectId' },
-      { name: 'status', keyPath: 'status' },
-      { name: 'createdAt', keyPath: 'createdAt' },
+      { name: "projectId", keyPath: "projectId" },
+      { name: "status", keyPath: "status" },
+      { name: "createdAt", keyPath: "createdAt" },
     ],
   },
   {
-    name: 'summaryRevisionRuns',
-    keyPath: 'runId',
+    name: "summaryRevisionRuns",
+    keyPath: "runId",
     indexes: [
-      { name: 'projectId', keyPath: 'projectId' },
-      { name: 'status', keyPath: 'status' },
-      { name: 'createdAt', keyPath: 'createdAt' },
+      { name: "projectId", keyPath: "projectId" },
+      { name: "status", keyPath: "status" },
+      { name: "createdAt", keyPath: "createdAt" },
     ],
   },
   {
-    name: 'dynamicsRuns',
-    keyPath: 'runId',
+    name: "dynamicsRuns",
+    keyPath: "runId",
     indexes: [
-      { name: 'projectId', keyPath: 'projectId' },
-      { name: 'status', keyPath: 'status' },
-      { name: 'createdAt', keyPath: 'createdAt' },
+      { name: "projectId", keyPath: "projectId" },
+      { name: "status", keyPath: "status" },
+      { name: "createdAt", keyPath: "createdAt" },
     ],
   },
   {
-    name: 'styleLibrary',
-    keyPath: 'id',
+    name: "styleLibrary",
+    keyPath: "id",
     indexes: [],
   },
   {
-    name: 'contentTrees',
-    keyPath: ['projectId', 'simulationRunId'],
+    name: "contentTrees",
+    keyPath: ["projectId", "simulationRunId"],
     indexes: [],
   },
   {
-    name: 'eraNarratives',
-    keyPath: 'narrativeId',
+    name: "eraNarratives",
+    keyPath: "narrativeId",
     indexes: [
-      { name: 'projectId', keyPath: 'projectId' },
-      { name: 'simulationRunId', keyPath: 'simulationRunId' },
-      { name: 'eraId', keyPath: 'eraId' },
-      { name: 'status', keyPath: 'status' },
-      { name: 'createdAt', keyPath: 'createdAt' },
+      { name: "projectId", keyPath: "projectId" },
+      { name: "simulationRunId", keyPath: "simulationRunId" },
+      { name: "eraId", keyPath: "eraId" },
+      { name: "status", keyPath: "status" },
+      { name: "createdAt", keyPath: "createdAt" },
     ],
   },
 ];
@@ -200,7 +200,7 @@ function openIlluminatorDbForWrite(): Promise<IDBDatabase> {
       resolve(db);
     };
 
-    request.onerror = () => reject(request.error || new Error('Failed to open illuminator DB'));
+    request.onerror = () => reject(request.error || new Error("Failed to open illuminator DB"));
   });
 }
 
@@ -214,8 +214,8 @@ function requestToPromise<T = unknown>(request: IDBRequest<T>): Promise<T> {
 function waitForTransaction(tx: IDBTransaction): Promise<void> {
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
-    tx.onabort = () => reject(tx.error || new Error('Transaction aborted'));
-    tx.onerror = () => reject(tx.error || new Error('Transaction failed'));
+    tx.onabort = () => reject(tx.error || new Error("Transaction aborted"));
+    tx.onerror = () => reject(tx.error || new Error("Transaction failed"));
   });
 }
 
@@ -251,8 +251,15 @@ export async function overwriteWorldDataInDexie({
   chronicles = [],
   staticPages = [],
   eraNarratives = [],
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-}: { projectId: string; slotIndex?: number; worldData: any; chronicles?: any[]; staticPages?: any[]; eraNarratives?: any[] }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+}: {
+  projectId: string;
+  slotIndex?: number;
+  worldData: any;
+  chronicles?: any[];
+  staticPages?: any[];
+  eraNarratives?: any[];
+}) {
   if (!projectId || !worldData) return;
 
   const simulationRunId = worldData?.metadata?.simulationRunId;
@@ -262,41 +269,41 @@ export async function overwriteWorldDataInDexie({
   try {
     // Determine which stores to include in the transaction
     const storeNames = [
-      'entities',
-      'relationships',
-      'narrativeEvents',
-      'simulationSlots',
-      'worldSchemas',
-      'coordinateStates',
-      'chronicles',
-      'staticPages',
+      "entities",
+      "relationships",
+      "narrativeEvents",
+      "simulationSlots",
+      "worldSchemas",
+      "coordinateStates",
+      "chronicles",
+      "staticPages",
     ];
-    const hasEraNarrativesStore = db.objectStoreNames.contains('eraNarratives');
+    const hasEraNarrativesStore = db.objectStoreNames.contains("eraNarratives");
     if (hasEraNarrativesStore) {
-      storeNames.push('eraNarratives');
+      storeNames.push("eraNarratives");
     }
 
-    const tx = db.transaction(storeNames, 'readwrite');
+    const tx = db.transaction(storeNames, "readwrite");
 
-    const entitiesStore = tx.objectStore('entities');
-    const relationshipsStore = tx.objectStore('relationships');
-    const eventsStore = tx.objectStore('narrativeEvents');
-    const slotsStore = tx.objectStore('simulationSlots');
-    const schemasStore = tx.objectStore('worldSchemas');
-    const coordinateStore = tx.objectStore('coordinateStates');
-    const chroniclesStore = tx.objectStore('chronicles');
-    const staticPagesStore = tx.objectStore('staticPages');
-    const eraNarrativesStore = hasEraNarrativesStore ? tx.objectStore('eraNarratives') : null;
+    const entitiesStore = tx.objectStore("entities");
+    const relationshipsStore = tx.objectStore("relationships");
+    const eventsStore = tx.objectStore("narrativeEvents");
+    const slotsStore = tx.objectStore("simulationSlots");
+    const schemasStore = tx.objectStore("worldSchemas");
+    const coordinateStore = tx.objectStore("coordinateStates");
+    const chroniclesStore = tx.objectStore("chronicles");
+    const staticPagesStore = tx.objectStore("staticPages");
+    const eraNarrativesStore = hasEraNarrativesStore ? tx.objectStore("eraNarratives") : null;
 
     const deleteOps = [
-      deleteByIndex(entitiesStore, 'simulationRunId', simulationRunId),
-      deleteByIndex(relationshipsStore, 'simulationRunId', simulationRunId),
-      deleteByIndex(eventsStore, 'simulationRunId', simulationRunId),
-      deleteByIndex(chroniclesStore, 'simulationRunId', simulationRunId),
-      deleteByIndex(staticPagesStore, 'projectId', projectId),
+      deleteByIndex(entitiesStore, "simulationRunId", simulationRunId),
+      deleteByIndex(relationshipsStore, "simulationRunId", simulationRunId),
+      deleteByIndex(eventsStore, "simulationRunId", simulationRunId),
+      deleteByIndex(chroniclesStore, "simulationRunId", simulationRunId),
+      deleteByIndex(staticPagesStore, "projectId", projectId),
     ];
     if (eraNarrativesStore) {
-      deleteOps.push(deleteByIndex(eraNarrativesStore, 'simulationRunId', simulationRunId));
+      deleteOps.push(deleteByIndex(eraNarrativesStore, "simulationRunId", simulationRunId));
     }
     await Promise.all(deleteOps);
 
@@ -327,10 +334,18 @@ export async function overwriteWorldDataInDexie({
       bulkPut(eventsStore, narrativeEvents),
       requestToPromise(slotsStore.put(slotRecord)),
       worldData.schema
-        ? requestToPromise(schemasStore.put({ projectId, schema: worldData.schema, updatedAt: Date.now() }))
+        ? requestToPromise(
+            schemasStore.put({ projectId, schema: worldData.schema, updatedAt: Date.now() })
+          )
         : Promise.resolve(),
       worldData.coordinateState
-        ? requestToPromise(coordinateStore.put({ simulationRunId, coordinateState: worldData.coordinateState, updatedAt: Date.now() }))
+        ? requestToPromise(
+            coordinateStore.put({
+              simulationRunId,
+              coordinateState: worldData.coordinateState,
+              updatedAt: Date.now(),
+            })
+          )
         : Promise.resolve(),
     ]);
 
@@ -372,8 +387,8 @@ export async function appendNarrativeEventsToDexie(simulationRunId: string, even
 
   const db = await openIlluminatorDbForWrite();
   try {
-    const tx = db.transaction(['narrativeEvents'], 'readwrite');
-    const store = tx.objectStore('narrativeEvents');
+    const tx = db.transaction(["narrativeEvents"], "readwrite");
+    const store = tx.objectStore("narrativeEvents");
     const records = events.map((event) => ({ ...event, simulationRunId }));
     await bulkPut(store, records);
     await waitForTransaction(tx);

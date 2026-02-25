@@ -2,8 +2,12 @@
  * Summary Revision Repository — Dexie-backed revision run storage
  */
 
-import { db } from './illuminatorDb';
-import type { SummaryRevisionRun, SummaryRevisionRunStatus, SummaryRevisionBatch } from '../summaryRevisionTypes';
+import { db } from "./illuminatorDb";
+import type {
+  SummaryRevisionRun,
+  SummaryRevisionRunStatus,
+  SummaryRevisionBatch,
+} from "../summaryRevisionTypes";
 
 export type { SummaryRevisionRun, SummaryRevisionRunStatus, SummaryRevisionBatch };
 
@@ -29,7 +33,7 @@ export async function createRevisionRun(
     runId,
     projectId,
     simulationRunId,
-    status: 'pending',
+    status: "pending",
     batches,
     currentBatchIndex: 0,
     patchDecisions: {},
@@ -54,16 +58,19 @@ export async function getRevisionRun(runId: string): Promise<SummaryRevisionRun 
 
 export async function updateRevisionRun(
   runId: string,
-  updates: Partial<Pick<SummaryRevisionRun,
-    | 'status'
-    | 'batches'
-    | 'currentBatchIndex'
-    | 'patchDecisions'
-    | 'error'
-    | 'totalInputTokens'
-    | 'totalOutputTokens'
-    | 'totalActualCost'
-  >>
+  updates: Partial<
+    Pick<
+      SummaryRevisionRun,
+      | "status"
+      | "batches"
+      | "currentBatchIndex"
+      | "patchDecisions"
+      | "error"
+      | "totalInputTokens"
+      | "totalOutputTokens"
+      | "totalActualCost"
+    >
+  >
 ): Promise<SummaryRevisionRun> {
   const run = await db.summaryRevisionRuns.get(runId);
   if (!run) throw new Error(`Revision run ${runId} not found`);

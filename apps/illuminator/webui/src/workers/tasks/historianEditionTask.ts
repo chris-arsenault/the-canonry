@@ -11,20 +11,16 @@
  * Reordering is at the historian's editorial discretion.
  */
 
-import type { WorkerTask } from '../../lib/enrichmentTypes';
-import type { TaskContext } from './taskTypes';
-import type { TaskResult } from '../types';
-import type { SummaryRevisionLLMResponse } from '../../lib/summaryRevisionTypes';
-import type {
-  HistorianConfig,
-  HistorianNoteType,
-  HistorianTone,
-} from '../../lib/historianTypes';
-import { getRevisionRun, updateRevisionRun } from '../../lib/db/summaryRevisionRepository';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
-import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepository';
-import { compressDescriptionHistory } from '../../lib/descriptionHistoryCompression';
+import type { WorkerTask } from "../../lib/enrichmentTypes";
+import type { TaskContext } from "./taskTypes";
+import type { TaskResult } from "../types";
+import type { SummaryRevisionLLMResponse } from "../../lib/summaryRevisionTypes";
+import type { HistorianConfig, HistorianNoteType, HistorianTone } from "../../lib/historianTypes";
+import { getRevisionRun, updateRevisionRun } from "../../lib/db/summaryRevisionRepository";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
+import { saveCostRecordWithDefaults, type CostType } from "../../lib/db/costRepository";
+import { compressDescriptionHistory } from "../../lib/descriptionHistoryCompression";
 
 // ============================================================================
 // Tone Descriptions (duplicated from historianReviewTask — both tasks need
@@ -52,21 +48,21 @@ Your writing carries the weight of a long career. Resigned satire, weary black h
 // ============================================================================
 
 const PROMINENCE_MULTIPLIERS: Record<string, number> = {
-  forgotten: 1.10,
+  forgotten: 1.1,
   marginal: 1.15,
-  recognized: 1.20,
-  renowned: 1.30,
-  mythic: 1.40,
+  recognized: 1.2,
+  renowned: 1.3,
+  mythic: 1.4,
 };
 
 function computeWordBudget(
   description: string,
   prominence: string | undefined,
-  revisionCount: number,
+  revisionCount: number
 ): number {
   const base = description.split(/\s+/).length;
-  const pm = PROMINENCE_MULTIPLIERS[prominence || 'recognized'] || 1.20;
-  const dampening = 1.0 - 0.4 * Math.min(revisionCount, 15) / 15;
+  const pm = PROMINENCE_MULTIPLIERS[prominence || "recognized"] || 1.2;
+  const dampening = 1.0 - (0.4 * Math.min(revisionCount, 15)) / 15;
   return Math.ceil(base * (1.0 + (pm - 1.0) * dampening));
 }
 
@@ -85,20 +81,20 @@ ${TONE_DESCRIPTIONS[tone]}
 
 ${historianConfig.background}
 
-**Personality:** ${historianConfig.personalityTraits.join(', ')}
-**Known biases:** ${historianConfig.biases.join(', ')}
+**Personality:** ${historianConfig.personalityTraits.join(", ")}
+**Known biases:** ${historianConfig.biases.join(", ")}
 **Your stance toward this material:** ${historianConfig.stance}`);
 
   if (historianConfig.privateFacts.length > 0) {
     sections.push(`## Private Knowledge (things you know that the texts don't always reflect)
 
-${historianConfig.privateFacts.map((f) => `- ${f}`).join('\n')}`);
+${historianConfig.privateFacts.map((f) => `- ${f}`).join("\n")}`);
   }
 
   if (historianConfig.runningGags.length > 0) {
     sections.push(`## Recurring Preoccupations (these surface in your writing unbidden — not every time, but often enough)
 
-${historianConfig.runningGags.map((g) => `- ${g}`).join('\n')}`);
+${historianConfig.runningGags.map((g) => `- ${g}`).join("\n")}`);
   }
 
   sections.push(`## Editorial Discretion — Structure
@@ -164,7 +160,7 @@ Output ONLY valid JSON:
 5. **Output the complete entry.** Not a diff. The full rewritten description.
 6. **One patch only.** The patches array must contain exactly one entry for the entity.`);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 // ============================================================================
@@ -180,7 +176,12 @@ interface EditionEntityMeta {
   entityProminence?: string;
   summary?: string;
   descriptionHistory?: Array<{ description: string; source: string; replacedAt: number }>;
-  chronicleSummaries?: Array<{ chronicleId: string; title: string; format: string; summary: string }>;
+  chronicleSummaries?: Array<{
+    chronicleId: string;
+    title: string;
+    format: string;
+    summary: string;
+  }>;
   relationships?: Array<{ kind: string; targetName: string; targetKind: string }>;
   neighborSummaries?: Array<{ name: string; kind: string; summary: string }>;
   canonFacts?: string[];
@@ -188,20 +189,18 @@ interface EditionEntityMeta {
   previousNotes?: Array<{ targetName: string; anchorPhrase: string; text: string; type: string }>;
 }
 
-function buildUserPrompt(
-  description: string,
-  meta: EditionEntityMeta,
-  wordBudget: number,
-): string {
+function buildUserPrompt(description: string, meta: EditionEntityMeta, wordBudget: number): string {
   const sections: string[] = [];
 
   // Entity identity
   const identParts: string[] = [];
   identParts.push(`Name: ${meta.entityName}`);
-  identParts.push(`Kind: ${meta.entityKind}${meta.entitySubtype ? ` / ${meta.entitySubtype}` : ''}`);
+  identParts.push(
+    `Kind: ${meta.entityKind}${meta.entitySubtype ? ` / ${meta.entitySubtype}` : ""}`
+  );
   if (meta.entityCulture) identParts.push(`Culture: ${meta.entityCulture}`);
   if (meta.entityProminence) identParts.push(`Prominence: ${meta.entityProminence}`);
-  sections.push(`=== ENTITY ===\n${identParts.join('\n')}`);
+  sections.push(`=== ENTITY ===\n${identParts.join("\n")}`);
 
   // Current description
   sections.push(`=== CURRENT DESCRIPTION (active) ===\n${description}`);
@@ -210,10 +209,10 @@ function buildUserPrompt(
   if (meta.descriptionHistory && meta.descriptionHistory.length > 0) {
     const compressed = compressDescriptionHistory(meta.descriptionHistory);
     const archiveEntries = compressed.map((entry, i) => {
-      const date = new Date(entry.replacedAt).toISOString().split('T')[0];
+      const date = new Date(entry.replacedAt).toISOString().split("T")[0];
       let header = `[${i + 1}] Source: ${entry.source}`;
       if (entry.consolidatedCount) {
-        const earliest = new Date(entry.earliestDate!).toISOString().split('T')[0];
+        const earliest = new Date(entry.earliestDate!).toISOString().split("T")[0];
         header += ` (${entry.consolidatedCount} passes consolidated)`;
         header += ` | ${earliest} → ${date}`;
       } else {
@@ -221,7 +220,9 @@ function buildUserPrompt(
       }
       return `${header}\n${entry.description}`;
     });
-    sections.push(`=== DESCRIPTION ARCHIVE (oldest → newest) ===\nThese are previous versions of the description, in the order they were replaced. Each was the active description at the time.\n\n${archiveEntries.join('\n\n')}`);
+    sections.push(
+      `=== DESCRIPTION ARCHIVE (oldest → newest) ===\nThese are previous versions of the description, in the order they were replaced. Each was the active description at the time.\n\n${archiveEntries.join("\n\n")}`
+    );
   }
 
   // Summary
@@ -236,7 +237,9 @@ function buildUserPrompt(
       if (c.summary) parts[0] += `: ${c.summary}`;
       return parts[0];
     });
-    sections.push(`=== CHRONICLE SOURCES (accounts that contributed lore to this entity) ===\n${chronicleLines.join('\n')}`);
+    sections.push(
+      `=== CHRONICLE SOURCES (accounts that contributed lore to this entity) ===\n${chronicleLines.join("\n")}`
+    );
   }
 
   // Relationships
@@ -244,7 +247,7 @@ function buildUserPrompt(
     const relLines = meta.relationships.map(
       (r) => `  - ${r.kind} → ${r.targetName} (${r.targetKind})`
     );
-    sections.push(`=== RELATIONSHIPS ===\n${relLines.join('\n')}`);
+    sections.push(`=== RELATIONSHIPS ===\n${relLines.join("\n")}`);
   }
 
   // Neighbor summaries
@@ -252,15 +255,17 @@ function buildUserPrompt(
     const neighborLines = meta.neighborSummaries.map(
       (n) => `  [${n.kind}] ${n.name}: ${n.summary}`
     );
-    sections.push(`=== RELATED ENTITIES (context for accurate identifying clauses) ===\n${neighborLines.join('\n')}`);
+    sections.push(
+      `=== RELATED ENTITIES (context for accurate identifying clauses) ===\n${neighborLines.join("\n")}`
+    );
   }
 
   // World context
   if (meta.canonFacts && meta.canonFacts.length > 0) {
-    sections.push(`=== CANON FACTS ===\n${meta.canonFacts.map((f) => `- ${f}`).join('\n')}`);
+    sections.push(`=== CANON FACTS ===\n${meta.canonFacts.map((f) => `- ${f}`).join("\n")}`);
   }
   if (meta.worldDynamics && meta.worldDynamics.length > 0) {
-    sections.push(`=== WORLD DYNAMICS ===\n${meta.worldDynamics.map((d) => `- ${d}`).join('\n')}`);
+    sections.push(`=== WORLD DYNAMICS ===\n${meta.worldDynamics.map((d) => `- ${d}`).join("\n")}`);
   }
 
   // Previous notes (for voice continuity)
@@ -268,7 +273,9 @@ function buildUserPrompt(
     const noteLines = meta.previousNotes.map(
       (n) => `  [${n.type}] on "${n.targetName}": "${n.text}"`
     );
-    sections.push(`=== YOUR PREVIOUS ANNOTATIONS (maintain voice continuity) ===\n${noteLines.join('\n')}`);
+    sections.push(
+      `=== YOUR PREVIOUS ANNOTATIONS (maintain voice continuity) ===\n${noteLines.join("\n")}`
+    );
   }
 
   // Task
@@ -280,7 +287,7 @@ Prepare the definitive entry for ${meta.entityName} for your forthcoming edition
 Entity: ${meta.entityName} (${meta.entityKind})
 ID: ${meta.entityId}`);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 // ============================================================================
@@ -294,12 +301,12 @@ async function executeHistorianEditionTask(
   const { config, llmClient, isAborted } = context;
 
   if (!llmClient.isEnabled()) {
-    return { success: false, error: 'Text generation not configured - missing Anthropic API key' };
+    return { success: false, error: "Text generation not configured - missing Anthropic API key" };
   }
 
   const runId = task.chronicleId; // Repurposing chronicleId field for runId
   if (!runId) {
-    return { success: false, error: 'runId (chronicleId) required for historian edition task' };
+    return { success: false, error: "runId (chronicleId) required for historian edition task" };
   }
 
   // Read current run state
@@ -311,37 +318,37 @@ async function executeHistorianEditionTask(
   // Single batch (index 0)
   const batchIndex = run.currentBatchIndex;
   const batch = run.batches[batchIndex];
-  if (!batch || batch.status !== 'pending') {
+  if (!batch || batch.status !== "pending") {
     return { success: false, error: `No pending batch at index ${batchIndex}` };
   }
 
   // Mark batch as generating
   const updatedBatches = [...run.batches];
-  updatedBatches[batchIndex] = { ...batch, status: 'generating' };
-  await updateRevisionRun(runId, { status: 'generating', batches: updatedBatches });
+  updatedBatches[batchIndex] = { ...batch, status: "generating" };
+  await updateRevisionRun(runId, { status: "generating", batches: updatedBatches });
 
   // Parse context from staticPagesContext (all metadata packed as JSON)
   let meta: EditionEntityMeta & { historianConfig: HistorianConfig; tone: HistorianTone };
   try {
     meta = JSON.parse(run.staticPagesContext);
   } catch {
-    const errorMsg = 'Failed to parse context from staticPagesContext';
-    updatedBatches[batchIndex] = { ...batch, status: 'failed', error: errorMsg };
-    await updateRevisionRun(runId, { status: 'failed', batches: updatedBatches });
+    const errorMsg = "Failed to parse context from staticPagesContext";
+    updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };
+    await updateRevisionRun(runId, { status: "failed", batches: updatedBatches });
     return { success: false, error: errorMsg };
   }
 
   // Description is stored in worldDynamicsContext
   const description = run.worldDynamicsContext;
   if (!description) {
-    const errorMsg = 'No description found in worldDynamicsContext';
-    updatedBatches[batchIndex] = { ...batch, status: 'failed', error: errorMsg };
-    await updateRevisionRun(runId, { status: 'failed', batches: updatedBatches });
+    const errorMsg = "No description found in worldDynamicsContext";
+    updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };
+    await updateRevisionRun(runId, { status: "failed", batches: updatedBatches });
     return { success: false, error: errorMsg };
   }
 
-  const callConfig = getCallConfig(config, 'historian.edition');
-  const tone = meta.tone || 'scholarly';
+  const callConfig = getCallConfig(config, "historian.edition");
+  const tone = meta.tone || "scholarly";
   const revisionCount = (meta.descriptionHistory || []).length;
   const wordBudget = computeWordBudget(description, meta.entityProminence, revisionCount);
   const systemPrompt = buildSystemPrompt(meta.historianConfig, tone);
@@ -350,7 +357,7 @@ async function executeHistorianEditionTask(
   try {
     const callResult = await runTextCall({
       llmClient,
-      callType: 'historian.edition',
+      callType: "historian.edition",
       callConfig,
       systemPrompt,
       prompt: userPrompt,
@@ -358,16 +365,16 @@ async function executeHistorianEditionTask(
     });
 
     if (isAborted()) {
-      updatedBatches[batchIndex] = { ...batch, status: 'failed', error: 'Task aborted' };
-      await updateRevisionRun(runId, { status: 'failed', batches: updatedBatches });
-      return { success: false, error: 'Task aborted' };
+      updatedBatches[batchIndex] = { ...batch, status: "failed", error: "Task aborted" };
+      await updateRevisionRun(runId, { status: "failed", batches: updatedBatches });
+      return { success: false, error: "Task aborted" };
     }
 
     const resultText = callResult.result.text?.trim();
     if (callResult.result.error || !resultText) {
-      const errorMsg = `LLM call failed: ${callResult.result.error || 'No text returned'}`;
-      updatedBatches[batchIndex] = { ...batch, status: 'failed', error: errorMsg };
-      await updateRevisionRun(runId, { status: 'run_reviewing', batches: updatedBatches });
+      const errorMsg = `LLM call failed: ${callResult.result.error || "No text returned"}`;
+      updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };
+      await updateRevisionRun(runId, { status: "run_reviewing", batches: updatedBatches });
       return { success: false, error: errorMsg };
     }
 
@@ -375,27 +382,27 @@ async function executeHistorianEditionTask(
     let parsed: SummaryRevisionLLMResponse;
     try {
       const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON object found');
+      if (!jsonMatch) throw new Error("No JSON object found");
       parsed = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed.patches)) throw new Error('Missing patches array');
+      if (!Array.isArray(parsed.patches)) throw new Error("Missing patches array");
 
       // Normalize description: LLM returns a single markdown string or string[]
       for (const patch of parsed.patches) {
         if (Array.isArray(patch.description)) {
-          patch.description = patch.description.join('\n\n');
+          patch.description = patch.description.join("\n\n");
         }
       }
     } catch (err) {
       const errorMsg = `Failed to parse LLM response: ${err instanceof Error ? err.message : String(err)}`;
-      updatedBatches[batchIndex] = { ...batch, status: 'failed', error: errorMsg };
-      await updateRevisionRun(runId, { status: 'run_reviewing', batches: updatedBatches });
+      updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };
+      await updateRevisionRun(runId, { status: "run_reviewing", batches: updatedBatches });
       return { success: false, error: errorMsg };
     }
 
     // Update batch with patches
     updatedBatches[batchIndex] = {
       ...batch,
-      status: 'complete',
+      status: "complete",
       patches: parsed.patches,
       inputTokens: callResult.usage.inputTokens,
       outputTokens: callResult.usage.outputTokens,
@@ -403,7 +410,7 @@ async function executeHistorianEditionTask(
     };
 
     await updateRevisionRun(runId, {
-      status: 'run_reviewing',
+      status: "run_reviewing",
       batches: updatedBatches,
       totalInputTokens: run.totalInputTokens + callResult.usage.inputTokens,
       totalOutputTokens: run.totalOutputTokens + callResult.usage.outputTokens,
@@ -417,7 +424,7 @@ async function executeHistorianEditionTask(
       entityId: meta.entityId,
       entityName: meta.entityName,
       entityKind: meta.entityKind,
-      type: 'historianEdition' as CostType,
+      type: "historianEdition" as CostType,
       model: callConfig.model,
       estimatedCost: callResult.estimate.estimatedCost,
       actualCost: callResult.usage.actualCost,
@@ -438,13 +445,13 @@ async function executeHistorianEditionTask(
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    updatedBatches[batchIndex] = { ...batch, status: 'failed', error: errorMsg };
-    await updateRevisionRun(runId, { status: 'run_reviewing', batches: updatedBatches });
+    updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };
+    await updateRevisionRun(runId, { status: "run_reviewing", batches: updatedBatches });
     return { success: false, error: `Historian edition failed: ${errorMsg}` };
   }
 }
 
 export const historianEditionTask = {
-  type: 'historianEdition' as const,
+  type: "historianEdition" as const,
   execute: executeHistorianEditionTask,
 };

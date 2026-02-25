@@ -8,27 +8,24 @@
  * visual data for entities that were created manually without enrichment.
  */
 
-import type { WorkerTask, DescriptionChainDebug } from '../../lib/enrichmentTypes';
-import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepository';
+import type { WorkerTask, DescriptionChainDebug } from "../../lib/enrichmentTypes";
+import { saveCostRecordWithDefaults, type CostType } from "../../lib/db/costRepository";
 import {
   getTraitGuidance,
   registerUsedTraits,
   incrementPaletteUsage,
   type TraitGuidance,
-} from '../../lib/db/traitRepository';
-import { getEntity } from '../../lib/db/entityRepository';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
-import type { TaskHandler } from './taskTypes';
+} from "../../lib/db/traitRepository";
+import { getEntity } from "../../lib/db/entityRepository";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
+import type { TaskHandler } from "./taskTypes";
 
 // ---------------------------------------------------------------------------
 // Prompts (same as descriptionTask steps 2+3)
 // ---------------------------------------------------------------------------
 
-function buildVisualThesisPrompt(
-  kindInstructions: string,
-  visualAvoid?: string
-): string {
+function buildVisualThesisPrompt(kindInstructions: string, visualAvoid?: string): string {
   let prompt = `You distill descriptions into dominant visual signals. Your prompt contains:
 
 - Visual Context: Entity basics and culture
@@ -69,7 +66,7 @@ Output 2-4 traits, one per line. Each 3-8 words, adding something NEW.`;
   if (guidance && guidance.assignedCategories.length > 0) {
     prompt += `\n\nREQUIRED DIRECTIONS (address at least one):`;
     for (const p of guidance.assignedCategories) {
-      prompt += `\n- ${p.category}: ${p.description} (e.g., ${p.examples.slice(0, 2).join(', ')})`;
+      prompt += `\n- ${p.category}: ${p.description} (e.g., ${p.examples.slice(0, 2).join(", ")})`;
     }
   }
 
@@ -81,12 +78,15 @@ Output 2-4 traits, one per line. Each 3-8 words, adding something NEW.`;
 // ---------------------------------------------------------------------------
 
 export const visualThesisTask = {
-  type: 'visualThesis',
+  type: "visualThesis",
   async execute(task, context) {
     const { config, llmClient, isAborted } = context;
 
     if (!llmClient.isEnabled()) {
-      return { success: false, error: 'Text generation not configured - missing Anthropic API key' };
+      return {
+        success: false,
+        error: "Text generation not configured - missing Anthropic API key",
+      };
     }
 
     // Read the entity's current description from IndexedDB
@@ -95,7 +95,10 @@ export const visualThesisTask = {
       return { success: false, error: `Entity not found: ${task.entityId}` };
     }
     if (!entity.description) {
-      return { success: false, error: 'Entity has no description — run description enrichment first' };
+      return {
+        success: false,
+        error: "Entity has no description — run description enrichment first",
+      };
     }
 
     let totalInputTokens = 0;
@@ -104,19 +107,21 @@ export const visualThesisTask = {
     const chainDebug: DescriptionChainDebug = {};
 
     // Build visual context (same as descriptionTask)
-    const entityContext = task.prompt || '';
-    const visualIdentityMatch = entityContext.match(/CULTURAL VISUAL IDENTITY[^:]*:\n((?:- [A-Z_]+: .+\n?)+)/);
-    const visualIdentityContext = visualIdentityMatch ? visualIdentityMatch[0].trim() : '';
+    const entityContext = task.prompt || "";
+    const visualIdentityMatch = entityContext.match(
+      /CULTURAL VISUAL IDENTITY[^:]*:\n((?:- [A-Z_]+: .+\n?)+)/
+    );
+    const visualIdentityContext = visualIdentityMatch ? visualIdentityMatch[0].trim() : "";
 
     const visualContext = `Entity: ${task.entityName} (${task.entityKind})
-Culture: ${task.entityCulture || 'unaffiliated'}${visualIdentityContext ? `\n\n${visualIdentityContext}` : ''}`;
+Culture: ${task.entityCulture || "unaffiliated"}${visualIdentityContext ? `\n\n${visualIdentityContext}` : ""}`;
 
     // ========================================================================
     // Step 1: Visual Thesis
     // ========================================================================
-    console.log('[Worker] Visual thesis task step 1: Visual Thesis');
+    console.log("[Worker] Visual thesis task step 1: Visual Thesis");
 
-    const thesisConfig = getCallConfig(config, 'description.visualThesis');
+    const thesisConfig = getCallConfig(config, "description.visualThesis");
 
     if (!task.visualThesisInstructions) {
       return {
@@ -125,19 +130,22 @@ Culture: ${task.entityCulture || 'unaffiliated'}${visualIdentityContext ? `\n\n$
       };
     }
 
-    const thesisFraming = task.visualThesisFraming || '';
-    const thesisPrompt = `${thesisFraming ? thesisFraming + '\n\n' : ''}${visualContext}
+    const thesisFraming = task.visualThesisFraming || "";
+    const thesisPrompt = `${thesisFraming ? thesisFraming + "\n\n" : ""}${visualContext}
 
 DESCRIPTION (extract visual elements from this):
 ${entity.description}
 
 Generate the visual thesis.`;
 
-    const thesisSystemPrompt = buildVisualThesisPrompt(task.visualThesisInstructions, task.visualAvoid);
+    const thesisSystemPrompt = buildVisualThesisPrompt(
+      task.visualThesisInstructions,
+      task.visualAvoid
+    );
 
     const thesisCall = await runTextCall({
       llmClient,
-      callType: 'description.visualThesis',
+      callType: "description.visualThesis",
       callConfig: thesisConfig,
       systemPrompt: thesisSystemPrompt,
       prompt: thesisPrompt,
@@ -147,16 +155,24 @@ Generate the visual thesis.`;
     chainDebug.thesis = thesisResult.debug;
 
     if (isAborted()) {
-      return { success: false, error: 'Task aborted', debug: thesisResult.debug };
+      return { success: false, error: "Task aborted", debug: thesisResult.debug };
     }
 
     if (thesisResult.error || !thesisResult.text) {
-      return { success: false, error: `Visual thesis step failed: ${thesisResult.error || 'Empty response'}`, debug: thesisResult.debug };
+      return {
+        success: false,
+        error: `Visual thesis step failed: ${thesisResult.error || "Empty response"}`,
+        debug: thesisResult.debug,
+      };
     }
 
     const visualThesis = thesisResult.text.trim();
     if (!visualThesis) {
-      return { success: false, error: 'Visual thesis step returned empty response', debug: thesisResult.debug };
+      return {
+        success: false,
+        error: "Visual thesis step returned empty response",
+        debug: thesisResult.debug,
+      };
     }
 
     totalInputTokens += thesisCall.usage.inputTokens;
@@ -166,9 +182,9 @@ Generate the visual thesis.`;
     // ========================================================================
     // Step 2: Visual Traits
     // ========================================================================
-    console.log('[Worker] Visual thesis task step 2: Visual Traits');
+    console.log("[Worker] Visual thesis task step 2: Visual Traits");
 
-    const traitsConfig = getCallConfig(config, 'description.visualTraits');
+    const traitsConfig = getCallConfig(config, "description.visualTraits");
 
     let traitGuidance: TraitGuidance | undefined;
     try {
@@ -182,7 +198,7 @@ Generate the visual thesis.`;
         );
       }
     } catch (err) {
-      console.warn('[Worker] Failed to fetch trait guidance:', err);
+      console.warn("[Worker] Failed to fetch trait guidance:", err);
     }
 
     if (!task.visualTraitsInstructions) {
@@ -192,8 +208,8 @@ Generate the visual thesis.`;
       };
     }
 
-    const traitsFraming = task.visualTraitsFraming || '';
-    const traitsPrompt = `${traitsFraming ? traitsFraming + '\n\n' : ''}THESIS (the primary silhouette - don't repeat, expand):
+    const traitsFraming = task.visualTraitsFraming || "";
+    const traitsPrompt = `${traitsFraming ? traitsFraming + "\n\n" : ""}THESIS (the primary silhouette - don't repeat, expand):
 ${visualThesis}
 
 ${visualContext}
@@ -203,11 +219,15 @@ ${entity.description}
 
 Generate 2-4 visual traits that ADD to the thesis - features it didn't cover.`;
 
-    const traitsSystemPrompt = buildVisualTraitsPrompt(task.visualTraitsInstructions, traitGuidance, task.entitySubtype);
+    const traitsSystemPrompt = buildVisualTraitsPrompt(
+      task.visualTraitsInstructions,
+      traitGuidance,
+      task.entitySubtype
+    );
 
     const traitsCall = await runTextCall({
       llmClient,
-      callType: 'description.visualTraits',
+      callType: "description.visualTraits",
       callConfig: traitsConfig,
       systemPrompt: traitsSystemPrompt,
       prompt: traitsPrompt,
@@ -217,17 +237,21 @@ Generate 2-4 visual traits that ADD to the thesis - features it didn't cover.`;
     chainDebug.traits = traitsResult.debug;
 
     if (isAborted()) {
-      return { success: false, error: 'Task aborted', debug: traitsResult.debug };
+      return { success: false, error: "Task aborted", debug: traitsResult.debug };
     }
 
     if (traitsResult.error || !traitsResult.text) {
-      return { success: false, error: `Visual traits step failed: ${traitsResult.error || 'Empty response'}`, debug: traitsResult.debug };
+      return {
+        success: false,
+        error: `Visual traits step failed: ${traitsResult.error || "Empty response"}`,
+        debug: traitsResult.debug,
+      };
     }
 
     const visualTraits = traitsResult.text
-      .split('\n')
-      .map(line => line.replace(/^[-*\u2022]\s*/, '').trim())
-      .filter(line => line.length > 0);
+      .split("\n")
+      .map((line) => line.replace(/^[-*\u2022]\s*/, "").trim())
+      .filter((line) => line.length > 0);
 
     totalInputTokens += traitsCall.usage.inputTokens;
     totalOutputTokens += traitsCall.usage.outputTokens;
@@ -250,7 +274,7 @@ Generate 2-4 visual traits that ADD to the thesis - features it didn't cover.`;
         await incrementPaletteUsage(task.projectId, task.entityKind, visualTraits);
       }
     } catch (err) {
-      console.warn('[Worker] Failed to register traits:', err);
+      console.warn("[Worker] Failed to register traits:", err);
     }
 
     const estimatedTotals = {
@@ -265,7 +289,7 @@ Generate 2-4 visual traits that ADD to the thesis - features it didn't cover.`;
       entityId: task.entityId,
       entityName: task.entityName,
       entityKind: task.entityKind,
-      type: 'description' as CostType,
+      type: "description" as CostType,
       model: thesisConfig.model,
       estimatedCost: estimatedTotals.estimatedCost,
       actualCost: totalActualCost,
@@ -273,7 +297,9 @@ Generate 2-4 visual traits that ADD to the thesis - features it didn't cover.`;
       outputTokens: totalOutputTokens,
     });
 
-    console.log(`[Worker] Visual thesis chain complete: ${totalInputTokens} in / ${totalOutputTokens} out, $${totalActualCost.toFixed(4)}`);
+    console.log(
+      `[Worker] Visual thesis chain complete: ${totalInputTokens} in / ${totalOutputTokens} out, $${totalActualCost.toFixed(4)}`
+    );
 
     return {
       success: true,
@@ -291,4 +317,4 @@ Generate 2-4 visual traits that ADD to the thesis - features it didn't cover.`;
       debug: traitsResult.debug,
     };
   },
-} satisfies TaskHandler<WorkerTask & { type: 'visualThesis' }>;
+} satisfies TaskHandler<WorkerTask & { type: "visualThesis" }>;

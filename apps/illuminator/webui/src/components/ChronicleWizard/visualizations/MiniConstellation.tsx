@@ -5,8 +5,8 @@
  * in a circular layout around it, showing relationship structure at a glance.
  */
 
-import { useMemo } from 'react';
-import type { ConnectedEntity } from '../../../lib/chronicle/storyPotential';
+import { useMemo } from "react";
+import type { ConnectedEntity } from "../../../lib/chronicle/storyPotential";
 
 interface MiniConstellationProps {
   /** Center entity name */
@@ -21,14 +21,14 @@ interface MiniConstellationProps {
 
 // Color mapping for entity kinds
 const KIND_COLORS: Record<string, string> = {
-  person: '#6366f1',
-  faction: '#8b5cf6',
-  location: '#10b981',
-  artifact: '#f59e0b',
-  creature: '#ec4899',
-  event: '#06b6d4',
-  concept: '#84cc16',
-  organization: '#f97316',
+  person: "#6366f1",
+  faction: "#8b5cf6",
+  location: "#10b981",
+  artifact: "#f59e0b",
+  creature: "#ec4899",
+  event: "#06b6d4",
+  concept: "#84cc16",
+  organization: "#f97316",
 };
 
 export default function MiniConstellation({
@@ -41,7 +41,7 @@ export default function MiniConstellation({
   const cy = size / 2;
   const centerRadius = 16;
   const nodeRadius = 10;
-  const orbitRadius = (size / 2) - nodeRadius - 12;
+  const orbitRadius = size / 2 - nodeRadius - 12;
 
   // Limit and arrange connections
   const visibleConnections = useMemo(() => {
@@ -55,7 +55,7 @@ export default function MiniConstellation({
 
     // Take one from each kind first, then fill remaining
     const result: ConnectedEntity[] = [];
-    const kindIterators = [...byKind.values()].map(list => list[Symbol.iterator]());
+    const kindIterators = [...byKind.values()].map((list) => list[Symbol.iterator]());
 
     while (result.length < maxConnections && kindIterators.length > 0) {
       for (let i = kindIterators.length - 1; i >= 0; i--) {
@@ -94,28 +94,15 @@ export default function MiniConstellation({
   }, [visibleConnections, cx, cy, orbitRadius]);
 
   const getKindColor = (kind: string): string => {
-    return KIND_COLORS[kind.toLowerCase()] || 'var(--text-muted)';
+    return KIND_COLORS[kind.toLowerCase()] || "var(--text-muted)";
   };
 
   if (connections.length === 0) {
     return (
-      <svg width={size} height={size} style={{ display: 'block' }}>
+      <svg width={size} height={size} style={{ display: "block" }}>
         {/* Center node */}
-        <circle
-          cx={cx}
-          cy={cy}
-          r={centerRadius}
-          fill="var(--accent-color)"
-        />
-        <text
-          x={cx}
-          y={cy}
-          textAnchor="middle"
-          dy={3}
-          fontSize="10"
-          fill="white"
-          fontWeight="500"
-        >
+        <circle cx={cx} cy={cy} r={centerRadius} fill="var(--accent-color)" />
+        <text x={cx} y={cy} textAnchor="middle" dy={3} fontSize="10" fill="white" fontWeight="500">
           ★
         </text>
         <text
@@ -132,7 +119,7 @@ export default function MiniConstellation({
   }
 
   return (
-    <svg width={size} height={size} style={{ display: 'block' }}>
+    <svg width={size} height={size} style={{ display: "block" }}>
       {/* Connection lines */}
       {nodePositions.map((node, i) => {
         const color = getKindColor(node.kind);
@@ -159,13 +146,7 @@ export default function MiniConstellation({
         return (
           <g key={i}>
             {/* Node circle */}
-            <circle
-              cx={node.x}
-              cy={node.y}
-              r={nodeRadius}
-              fill={color}
-              opacity={0.9}
-            />
+            <circle cx={node.x} cy={node.y} r={nodeRadius} fill={color} opacity={0.9} />
             {/* Kind initial */}
             <text
               x={node.x}
@@ -193,33 +174,19 @@ export default function MiniConstellation({
         stroke="white"
         strokeWidth={2}
       />
-      <text
-        x={cx}
-        y={cy}
-        textAnchor="middle"
-        dy={4}
-        fontSize="12"
-        fill="white"
-        fontWeight="600"
-      >
+      <text x={cx} y={cy} textAnchor="middle" dy={4} fontSize="12" fill="white" fontWeight="600">
         ★
       </text>
 
       {/* Center label */}
-      <text
-        x={cx}
-        y={size - 6}
-        textAnchor="middle"
-        fontSize="9"
-        fill="var(--text-muted)"
-      >
+      <text x={cx} y={size - 6} textAnchor="middle" fontSize="9" fill="var(--text-muted)">
         {visibleConnections.length} connections
         {hiddenCount > 0 && ` (+${hiddenCount})`}
       </text>
 
       {/* Legend - show unique kinds */}
       {(() => {
-        const uniqueKinds = [...new Set(visibleConnections.map(c => c.kind))];
+        const uniqueKinds = [...new Set(visibleConnections.map((c) => c.kind))];
         if (uniqueKinds.length <= 4) {
           return (
             <g>

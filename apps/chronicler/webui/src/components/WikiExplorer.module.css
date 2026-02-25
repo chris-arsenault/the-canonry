@@ -130,7 +130,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .menuButton:hover {
@@ -264,7 +266,9 @@
   cursor: pointer;
   font-size: var(--font-size-sm);
   font-family: var(--font-family-ui);
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .aboutReadMore:hover {
@@ -629,13 +633,14 @@
   padding-bottom: var(--spacing-lg);
   border-bottom: 1px solid transparent;
   border-image: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(138, 180, 196, 0.15) 20%,
-    rgba(196, 154, 92, 0.2) 50%,
-    rgba(138, 180, 196, 0.15) 80%,
-    transparent 100%
-  ) 1;
+      90deg,
+      transparent 0%,
+      rgba(138, 180, 196, 0.15) 20%,
+      rgba(196, 154, 92, 0.2) 50%,
+      rgba(138, 180, 196, 0.15) 80%,
+      transparent 100%
+    )
+    1;
 }
 
 .homeTitle {
@@ -693,7 +698,9 @@
   color: var(--color-text-primary);
   cursor: pointer;
   text-align: left;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .categoryCard:hover {
@@ -741,7 +748,9 @@
   cursor: pointer;
   font-size: var(--font-size-sm);
   font-family: var(--font-family-ui);
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .aboutBannerButton:hover {
@@ -927,7 +936,10 @@
   font-size: var(--font-size-sm);
   font-family: var(--font-family-ui);
   text-transform: capitalize;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .browseTypeButton:hover {
@@ -985,7 +997,9 @@
   font-size: var(--font-size-sm);
   font-family: var(--font-family-ui);
   width: 100%;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .viewAllButton:hover {

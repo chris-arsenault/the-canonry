@@ -10,9 +10,9 @@
  * Dexie remains the source of truth. Refreshes on rename or data sync.
  */
 
-import { create } from 'zustand';
-import type { PersistedNarrativeEvent } from './illuminatorDb';
-import * as eventRepo from './eventRepository';
+import { create } from "zustand";
+import type { PersistedNarrativeEvent } from "./illuminatorDb";
+import * as eventRepo from "./eventRepository";
 
 export interface NarrativeEventStoreState {
   simulationRunId: string | null;
@@ -46,7 +46,7 @@ export const useNarrativeEventStore = create<NarrativeEventStoreState>((set, get
         loading: false,
       });
     } catch (err) {
-      console.error('[NarrativeEventStore] Failed to initialize:', err);
+      console.error("[NarrativeEventStore] Failed to initialize:", err);
       set({
         error: err instanceof Error ? err.message : String(err),
         loading: false,

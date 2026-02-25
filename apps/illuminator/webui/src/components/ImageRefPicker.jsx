@@ -5,8 +5,8 @@
  * Loads image thumbnails on-demand as they become visible.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { searchImages, getImageDataUrl } from '../lib/db/imageRepository';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { searchImages, getImageDataUrl } from "../lib/db/imageRepository";
 
 const PAGE_SIZE = 12;
 
@@ -14,9 +14,9 @@ export default function ImageRefPicker({ projectId, onSelect, onClose }) {
   const [images, setImages] = useState([]);
   const [imageUrls, setImageUrls] = useState({}); // imageId -> dataUrl cache
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [caption, setCaption] = useState('');
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [caption, setCaption] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
@@ -69,9 +69,9 @@ export default function ImageRefPicker({ projectId, onSelect, onClose }) {
         setHasMore(result.hasMore);
         setTotal(result.total);
         setSelectedImage(null);
-        setCaption('');
+        setCaption("");
       } catch (err) {
-        console.error('Failed to search images:', err);
+        console.error("Failed to search images:", err);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -100,25 +100,28 @@ export default function ImageRefPicker({ projectId, onSelect, onClose }) {
       setImages((prev) => [...prev, ...result.items]);
       setHasMore(result.hasMore);
     } catch (err) {
-      console.error('Failed to load more images:', err);
+      console.error("Failed to load more images:", err);
     } finally {
       setLoading(false);
     }
   }, [projectId, debouncedSearch, images.length, loading, hasMore]);
 
   // Lazy load image thumbnail when it comes into view
-  const loadImageUrl = useCallback(async (imageId) => {
-    if (imageUrls[imageId]) return; // Already loaded
+  const loadImageUrl = useCallback(
+    async (imageId) => {
+      if (imageUrls[imageId]) return; // Already loaded
 
-    try {
-      const dataUrl = await getImageDataUrl(imageId);
-      if (dataUrl) {
-        setImageUrls((prev) => ({ ...prev, [imageId]: dataUrl }));
+      try {
+        const dataUrl = await getImageDataUrl(imageId);
+        if (dataUrl) {
+          setImageUrls((prev) => ({ ...prev, [imageId]: dataUrl }));
+        }
+      } catch (err) {
+        console.warn(`Failed to load image ${imageId}:`, err);
       }
-    } catch (err) {
-      console.warn(`Failed to load image ${imageId}:`, err);
-    }
-  }, [imageUrls]);
+    },
+    [imageUrls]
+  );
 
   const handleInsert = () => {
     if (!selectedImage) return;
@@ -130,13 +133,15 @@ export default function ImageRefPicker({ projectId, onSelect, onClose }) {
   };
 
   return (
-    <div className="static-page-modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
+    <div
+      className="static-page-modal-overlay"
+      onMouseDown={handleOverlayMouseDown}
+      onClick={handleOverlayClick}
+    >
       <div className="static-page-modal image-picker-modal">
         <div className="static-page-modal-header">
           <h3>Insert Image</h3>
-          <span className="image-picker-count">
-            {total > 0 && `${total} images`}
-          </span>
+          <span className="image-picker-count">{total > 0 && `${total} images`}</span>
           <button className="static-page-modal-close" onClick={onClose}>
             &times;
           </button>
@@ -156,7 +161,7 @@ export default function ImageRefPicker({ projectId, onSelect, onClose }) {
             <div className="image-picker-loading">Searching images...</div>
           ) : images.length === 0 ? (
             <div className="image-picker-empty">
-              {search ? 'No images match your search' : 'No images available'}
+              {search ? "No images match your search" : "No images available"}
             </div>
           ) : (
             <>
@@ -179,7 +184,7 @@ export default function ImageRefPicker({ projectId, onSelect, onClose }) {
                   onClick={handleLoadMore}
                   disabled={loading}
                 >
-                  {loading ? 'Loading...' : `Load more (${images.length} of ${total})`}
+                  {loading ? "Loading..." : `Load more (${images.length} of ${total})`}
                 </button>
               )}
             </>
@@ -235,21 +240,15 @@ function ImageThumbnail({ image, dataUrl, isSelected, onSelect, onVisible }) {
   return (
     <button
       ref={ref}
-      className={`image-picker-item ${isSelected ? 'selected' : ''}`}
+      className={`image-picker-item ${isSelected ? "selected" : ""}`}
       onClick={onSelect}
     >
       {dataUrl ? (
-        <img
-          src={dataUrl}
-          alt={image.entityName || 'Image'}
-          className="image-picker-thumb"
-        />
+        <img src={dataUrl} alt={image.entityName || "Image"} className="image-picker-thumb" />
       ) : (
-        <div className="image-picker-thumb image-picker-placeholder">
-          Loading...
-        </div>
+        <div className="image-picker-thumb image-picker-placeholder">Loading...</div>
       )}
-      <span className="image-picker-label">{image.entityName || 'Untitled'}</span>
+      <span className="image-picker-label">{image.entityName || "Untitled"}</span>
     </button>
   );
 }

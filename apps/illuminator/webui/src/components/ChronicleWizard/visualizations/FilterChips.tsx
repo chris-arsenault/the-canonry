@@ -24,14 +24,14 @@ interface FilterChipsProps<T extends string> {
 
 // Default colors for entity kinds
 const KIND_COLORS: Record<string, string> = {
-  person: '#6366f1',
-  faction: '#8b5cf6',
-  location: '#10b981',
-  artifact: '#f59e0b',
-  creature: '#ec4899',
-  event: '#06b6d4',
-  concept: '#84cc16',
-  organization: '#f97316',
+  person: "#6366f1",
+  faction: "#8b5cf6",
+  location: "#10b981",
+  artifact: "#f59e0b",
+  creature: "#ec4899",
+  event: "#06b6d4",
+  concept: "#84cc16",
+  organization: "#f97316",
 };
 
 export default function FilterChips<T extends string>({
@@ -64,7 +64,7 @@ export default function FilterChips<T extends string>({
 
   const getChipColor = (option: T): string => {
     if (getColor) return getColor(option);
-    return KIND_COLORS[option.toLowerCase()] || 'var(--accent-color)';
+    return KIND_COLORS[option.toLowerCase()] || "var(--accent-color)";
   };
 
   const getDisplayLabel = (option: T): string => {
@@ -74,26 +74,30 @@ export default function FilterChips<T extends string>({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
       {label && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <span
+            style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase" }}
+          >
             {label}
           </span>
           {selected.size > 0 && (
             <button
               onClick={handleClearAll}
               style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--accent-color)',
-                fontSize: '10px',
-                cursor: 'pointer',
-                padding: '2px 4px',
+                background: "none",
+                border: "none",
+                color: "var(--accent-color)",
+                fontSize: "10px",
+                cursor: "pointer",
+                padding: "2px 4px",
               }}
             >
               Clear
@@ -102,12 +106,14 @@ export default function FilterChips<T extends string>({
         </div>
       )}
 
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '6px',
-      }}>
-        {options.map(option => {
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "6px",
+        }}
+      >
+        {options.map((option) => {
           const isSelected = selected.has(option);
           const color = getChipColor(option);
 
@@ -116,27 +122,27 @@ export default function FilterChips<T extends string>({
               key={option}
               onClick={() => handleChipClick(option)}
               style={{
-                padding: '4px 10px',
-                borderRadius: '12px',
-                border: isSelected ? `1px solid ${color}` : '1px solid var(--border-color)',
-                background: isSelected ? color : 'transparent',
-                color: isSelected ? 'white' : 'var(--text-secondary)',
-                fontSize: '11px',
+                padding: "4px 10px",
+                borderRadius: "12px",
+                border: isSelected ? `1px solid ${color}` : "1px solid var(--border-color)",
+                background: isSelected ? color : "transparent",
+                color: isSelected ? "white" : "var(--text-secondary)",
+                fontSize: "11px",
                 fontWeight: isSelected ? 500 : 400,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
               }}
             >
               {/* Color dot when not selected */}
               {!isSelected && (
                 <span
                   style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "50%",
                     background: color,
                   }}
                 />

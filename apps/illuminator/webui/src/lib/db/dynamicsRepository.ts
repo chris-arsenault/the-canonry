@@ -2,8 +2,8 @@
  * Dynamics Generation Repository — Dexie-backed dynamics run storage
  */
 
-import { db } from './illuminatorDb';
-import type { DynamicsRun, DynamicsRunStatus } from '../dynamicsGenerationTypes';
+import { db } from "./illuminatorDb";
+import type { DynamicsRun, DynamicsRunStatus } from "../dynamicsGenerationTypes";
 
 export type { DynamicsRun, DynamicsRunStatus };
 
@@ -22,7 +22,7 @@ export async function createDynamicsRun(
     runId,
     projectId,
     simulationRunId,
-    status: 'pending',
+    status: "pending",
     messages: [],
     totalInputTokens: 0,
     totalOutputTokens: 0,
@@ -41,16 +41,19 @@ export async function getDynamicsRun(runId: string): Promise<DynamicsRun | undef
 
 export async function updateDynamicsRun(
   runId: string,
-  updates: Partial<Pick<DynamicsRun,
-    | 'status'
-    | 'messages'
-    | 'proposedDynamics'
-    | 'userFeedback'
-    | 'error'
-    | 'totalInputTokens'
-    | 'totalOutputTokens'
-    | 'totalActualCost'
-  >>
+  updates: Partial<
+    Pick<
+      DynamicsRun,
+      | "status"
+      | "messages"
+      | "proposedDynamics"
+      | "userFeedback"
+      | "error"
+      | "totalInputTokens"
+      | "totalOutputTokens"
+      | "totalActualCost"
+    >
+  >
 ): Promise<DynamicsRun> {
   const run = await db.dynamicsRuns.get(runId);
   if (!run) throw new Error(`Dynamics run ${runId} not found`);

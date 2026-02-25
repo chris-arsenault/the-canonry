@@ -13,9 +13,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@canonry/world-schema": "file:../../../packages/world-schema",
-    "@penguin-tales/image-store": "file:../../../packages/image-store",
-    "@penguin-tales/world-store": "file:../../../packages/world-store",
+    "@canonry/world-schema": "workspace:*",
+    "@penguin-tales/image-store": "workspace:*",
+    "@penguin-tales/world-store": "workspace:*",
     "@types/cytoscape": "^3.21.9",
     "cytoscape": "^3.33.1",
     "cytoscape-cose-bilkent": "^4.1.0",

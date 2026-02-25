@@ -8,7 +8,7 @@ export type ReferenceLookup = {
 };
 
 function stripReferenceDecorators(value: string): string {
-  return value.replace(/[\[\]]/g, '');
+  return value.replace(/[\[\]]/g, "");
 }
 
 function normalizeId(value: string): string {
@@ -18,10 +18,10 @@ function normalizeId(value: string): string {
 function normalizeName(value: string): string {
   return stripReferenceDecorators(value)
     .toLowerCase()
-    .replace(/\([^)]*\)/g, ' ')
-    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
     .trim()
-    .replace(/\s+/g, ' ');
+    .replace(/\s+/g, " ");
 }
 
 export function buildReferenceLookup<T>(

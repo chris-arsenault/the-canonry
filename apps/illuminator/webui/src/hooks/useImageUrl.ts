@@ -5,11 +5,11 @@
  * Handles loading state and cleanup of object URLs.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 // Exception to the "UI never talks to IndexedDB directly" rule:
 // Image blobs are read directly from Dexie here for performance (avoid
 // extra abstraction overhead on hot image-loading paths).
-import { db } from '../lib/db/illuminatorDb';
+import { db } from "../lib/db/illuminatorDb";
 
 interface UseImageUrlResult {
   url: string | null;
@@ -37,7 +37,7 @@ export function useImageUrl(imageId: string | null | undefined): UseImageUrlResu
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [metadata, setMetadata] = useState<UseImageUrlResult['metadata']>(null);
+  const [metadata, setMetadata] = useState<UseImageUrlResult["metadata"]>(null);
 
   // Track current URL for cleanup
   const currentUrlRef = useRef<string | null>(null);
@@ -61,10 +61,7 @@ export function useImageUrl(imageId: string | null | undefined): UseImageUrlResu
 
     setLoading(true);
 
-    Promise.all([
-      db.images.get(imageId),
-      db.imageBlobs.get(imageId),
-    ])
+    Promise.all([db.images.get(imageId), db.imageBlobs.get(imageId)])
       .then(([record, blobRecord]) => {
         if (record && blobRecord?.blob) {
           const objectUrl = URL.createObjectURL(blobRecord.blob);
@@ -83,11 +80,11 @@ export function useImageUrl(imageId: string | null | undefined): UseImageUrlResu
             size: record.size,
           });
         } else {
-          setError('Image not found in storage');
+          setError("Image not found in storage");
         }
       })
       .catch((err) => {
-        setError(err.message || 'Failed to load image');
+        setError(err.message || "Failed to load image");
       })
       .finally(() => {
         setLoading(false);
@@ -108,7 +105,9 @@ export function useImageUrl(imageId: string | null | undefined): UseImageUrlResu
 /**
  * Load multiple images - useful for gallery views
  */
-export function useImageUrls(imageIds: (string | null | undefined)[]): Map<string, UseImageUrlResult> {
+export function useImageUrls(
+  imageIds: (string | null | undefined)[]
+): Map<string, UseImageUrlResult> {
   const [results, setResults] = useState<Map<string, UseImageUrlResult>>(new Map());
   const urlsRef = useRef<Map<string, string>>(new Map());
 
@@ -134,10 +133,7 @@ export function useImageUrls(imageIds: (string | null | undefined)[]): Map<strin
     setResults(initialResults);
 
     // Load metadata and blobs in parallel from split tables
-    Promise.all([
-      db.images.bulkGet(validIds),
-      db.imageBlobs.bulkGet(validIds),
-    ])
+    Promise.all([db.images.bulkGet(validIds), db.imageBlobs.bulkGet(validIds)])
       .then(([metadataRecords, blobRecords]) => {
         const newResults = new Map<string, UseImageUrlResult>();
 
@@ -170,7 +166,7 @@ export function useImageUrls(imageIds: (string | null | undefined)[]): Map<strin
             newResults.set(id, {
               url: null,
               loading: false,
-              error: 'Image not found',
+              error: "Image not found",
               metadata: null,
             });
           }
@@ -182,7 +178,12 @@ export function useImageUrls(imageIds: (string | null | undefined)[]): Map<strin
         // Fallback: mark all as errored
         const errorResults = new Map<string, UseImageUrlResult>();
         for (const id of validIds) {
-          errorResults.set(id, { url: null, loading: false, error: 'Failed to load', metadata: null });
+          errorResults.set(id, {
+            url: null,
+            loading: false,
+            error: "Failed to load",
+            metadata: null,
+          });
         }
         setResults(errorResults);
       });
@@ -194,7 +195,7 @@ export function useImageUrls(imageIds: (string | null | undefined)[]): Map<strin
       }
       urlsRef.current.clear();
     };
-  }, [imageIds.join(',')]); // Re-run when the list of IDs changes
+  }, [imageIds.join(",")]); // Re-run when the list of IDs changes
 
   return results;
 }

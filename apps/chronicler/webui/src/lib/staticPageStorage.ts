@@ -5,15 +5,15 @@
  * Pages are created/edited in Illuminator, but displayed here in Chronicler.
  */
 
-import { openIlluminatorDb } from './illuminatorDbReader';
+import { openIlluminatorDb } from "./illuminatorDbReader";
 
-const STATIC_PAGE_STORE_NAME = 'staticPages';
+const STATIC_PAGE_STORE_NAME = "staticPages";
 
 // ============================================================================
 // Types (same as Illuminator)
 // ============================================================================
 
-export type StaticPageStatus = 'draft' | 'published';
+export type StaticPageStatus = "draft" | "published";
 
 export interface StaticPage {
   pageId: string;
@@ -46,10 +46,10 @@ export async function getStaticPage(pageId: string): Promise<StaticPage | undefi
   const db = await openIlluminatorDb();
   try {
     return await new Promise((resolve, reject) => {
-      const tx = db.transaction(STATIC_PAGE_STORE_NAME, 'readonly');
+      const tx = db.transaction(STATIC_PAGE_STORE_NAME, "readonly");
       const req = tx.objectStore(STATIC_PAGE_STORE_NAME).get(pageId);
       req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error || new Error('Failed to get static page'));
+      req.onerror = () => reject(req.error || new Error("Failed to get static page"));
     });
   } finally {
     db.close();
@@ -63,17 +63,17 @@ export async function getPublishedStaticPagesForProject(projectId: string): Prom
   const db = await openIlluminatorDb();
   try {
     return await new Promise((resolve, reject) => {
-      const tx = db.transaction(STATIC_PAGE_STORE_NAME, 'readonly');
+      const tx = db.transaction(STATIC_PAGE_STORE_NAME, "readonly");
       const store = tx.objectStore(STATIC_PAGE_STORE_NAME);
-      const index = store.index('projectId');
+      const index = store.index("projectId");
       const req = index.getAll(projectId);
       req.onsuccess = () => {
         const pages = (req.result as StaticPage[])
-          .filter((page) => page.status === 'published')
+          .filter((page) => page.status === "published")
           .sort((a, b) => b.updatedAt - a.updatedAt);
         resolve(pages);
       };
-      req.onerror = () => reject(req.error || new Error('Failed to get static pages for project'));
+      req.onerror = () => reject(req.error || new Error("Failed to get static pages for project"));
     });
   } finally {
     db.close();

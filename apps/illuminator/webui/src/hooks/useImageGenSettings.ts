@@ -7,7 +7,7 @@
  * EntityBrowser, ChroniclePanel, and worker tasks.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from "react";
 
 export interface ImageGenSettings {
   artisticStyleId: string;
@@ -19,16 +19,16 @@ export interface ImageGenSettings {
   collapsedSections: string[];
 }
 
-const STORAGE_KEY = 'illuminator:imageGenSettings';
-const LEGACY_STYLE_KEY = 'illuminator:styleSelection';
+const STORAGE_KEY = "illuminator:imageGenSettings";
+const LEGACY_STYLE_KEY = "illuminator:styleSelection";
 
 const DEFAULTS: ImageGenSettings = {
-  artisticStyleId: 'random',
-  compositionStyleId: 'random',
-  colorPaletteId: 'random',
-  imageSize: 'auto',
-  imageQuality: 'auto',
-  selectedCultureId: '',
+  artisticStyleId: "random",
+  compositionStyleId: "random",
+  colorPaletteId: "random",
+  imageSize: "auto",
+  imageQuality: "auto",
+  selectedCultureId: "",
   collapsedSections: [],
 };
 
@@ -72,7 +72,7 @@ export type ImageGenSettingsUpdater = (partial: Partial<ImageGenSettings>) => vo
  * also forwarded there (for syncing with parent shell).
  */
 export function useImageGenSettings(
-  onExternalSync?: (settings: ImageGenSettings) => void,
+  onExternalSync?: (settings: ImageGenSettings) => void
 ): [ImageGenSettings, ImageGenSettingsUpdater] {
   const [settings, setSettings] = useState<ImageGenSettings>(loadSettings);
   const externalSyncRef = useRef(onExternalSync);

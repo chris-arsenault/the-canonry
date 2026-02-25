@@ -5,13 +5,10 @@
  * store and the interleaved annotation store can reuse them.
  */
 
-import type { HistorianNote } from '../historianTypes';
-import type { EnrichmentType } from '../enrichmentTypes';
-import { getEnqueue } from './enrichmentQueueBridge';
-import {
-  getHistorianRun,
-  deleteHistorianRun,
-} from './historianRepository';
+import type { HistorianNote } from "../historianTypes";
+import type { EnrichmentType } from "../enrichmentTypes";
+import { getEnqueue } from "./enrichmentQueueBridge";
+import { getHistorianRun, deleteHistorianRun } from "./historianRepository";
 
 // ============================================================================
 // Constants
@@ -40,7 +37,8 @@ export interface ReviewResult {
 export function extractReinforcedFactIds(contextJson: string): string[] | undefined {
   try {
     const ctx = JSON.parse(contextJson);
-    if (!Array.isArray(ctx.factCoverageGuidance) || ctx.factCoverageGuidance.length === 0) return undefined;
+    if (!Array.isArray(ctx.factCoverageGuidance) || ctx.factCoverageGuidance.length === 0)
+      return undefined;
     return ctx.factCoverageGuidance.map((t: { factId: string }) => t.factId).filter(Boolean);
   } catch {
     return undefined;
@@ -59,22 +57,24 @@ export function sleep(ms: number): Promise<void> {
  * Enqueue a historian review task to the enrichment worker.
  */
 export function dispatchReviewTask(runId: string): void {
-  getEnqueue()([{
-    entity: {
-      id: '__historian_review__',
-      name: 'Historian Review',
-      kind: 'system',
-      subtype: '',
-      prominence: '',
-      culture: '',
-      status: 'active',
-      description: '',
-      tags: {},
+  getEnqueue()([
+    {
+      entity: {
+        id: "__historian_review__",
+        name: "Historian Review",
+        kind: "system",
+        subtype: "",
+        prominence: "",
+        culture: "",
+        status: "active",
+        description: "",
+        tags: {},
+      },
+      type: "historianReview" as EnrichmentType,
+      prompt: "",
+      chronicleId: runId,
     },
-    type: 'historianReview' as EnrichmentType,
-    prompt: '',
-    chronicleId: runId,
-  }]);
+  ]);
 }
 
 /**
@@ -86,7 +86,7 @@ export function dispatchReviewTask(runId: string): void {
  */
 export async function pollReviewCompletion(
   runId: string,
-  isCancelled: () => boolean,
+  isCancelled: () => boolean
 ): Promise<ReviewResult | null> {
   while (true) {
     if (isCancelled()) return null;
@@ -96,17 +96,18 @@ export async function pollReviewCompletion(
     const run = await getHistorianRun(runId);
     if (!run) return null;
 
-    if (run.status === 'reviewing') {
+    if (run.status === "reviewing") {
       const cost = run.actualCost || 0;
-      const prompts = run.systemPrompt && run.userPrompt
-        ? { systemPrompt: run.systemPrompt, userPrompt: run.userPrompt }
-        : undefined;
+      const prompts =
+        run.systemPrompt && run.userPrompt
+          ? { systemPrompt: run.systemPrompt, userPrompt: run.userPrompt }
+          : undefined;
       await deleteHistorianRun(runId);
       return { notes: run.notes || [], cost, prompts };
     }
 
-    if (run.status === 'failed') {
-      const error = run.error || 'Unknown error';
+    if (run.status === "failed") {
+      const error = run.error || "Unknown error";
       await deleteHistorianRun(runId);
       throw new Error(error);
     }

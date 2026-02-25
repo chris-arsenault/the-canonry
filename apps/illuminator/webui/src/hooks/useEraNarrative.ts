@@ -14,16 +14,16 @@
  * Auto-advances on step_complete, auto-finishes after the last step.
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import type { EnrichmentType } from '../lib/enrichmentTypes';
-import type { HistorianConfig } from '../lib/historianTypes';
+import { useState, useCallback, useRef, useEffect } from "react";
+import type { EnrichmentType } from "../lib/enrichmentTypes";
+import type { HistorianConfig } from "../lib/historianTypes";
 import type {
   EraNarrativeRecord,
   EraNarrativeStep,
   EraNarrativePrepBrief,
   EraNarrativeWorldContext,
   EraNarrativeTone,
-} from '../lib/eraNarrativeTypes';
+} from "../lib/eraNarrativeTypes";
 import {
   createEraNarrative,
   getEraNarrative,
@@ -32,7 +32,7 @@ import {
   generateEraNarrativeId,
   deleteEraNarrativeVersion,
   setEraNarrativeActiveVersion,
-} from '../lib/db/eraNarrativeRepository';
+} from "../lib/db/eraNarrativeRepository";
 
 // ============================================================================
 // Types
@@ -83,8 +83,8 @@ export interface UseEraNarrativeReturn {
 const POLL_INTERVAL_MS = 2000;
 
 const NEXT_STEP: Record<EraNarrativeStep, EraNarrativeStep | null> = {
-  threads: 'generate',
-  generate: 'edit',
+  threads: "generate",
+  generate: "edit",
   edit: null,
 };
 
@@ -93,12 +93,24 @@ const NEXT_STEP: Record<EraNarrativeStep, EraNarrativeStep | null> = {
 // ============================================================================
 
 export function useEraNarrative(
-  onEnqueue: (items: Array<{
-    entity: { id: string; name: string; kind: string; subtype: string; prominence: string; culture: string; status: string; description: string; tags: Record<string, unknown> };
-    type: EnrichmentType;
-    prompt: string;
-    chronicleId?: string;
-  }>) => void,
+  onEnqueue: (
+    items: Array<{
+      entity: {
+        id: string;
+        name: string;
+        kind: string;
+        subtype: string;
+        prominence: string;
+        culture: string;
+        status: string;
+        description: string;
+        tags: Record<string, unknown>;
+      };
+      type: EnrichmentType;
+      prompt: string;
+      chronicleId?: string;
+    }>
+  ) => void
 ): UseEraNarrativeReturn {
   const [narrative, setNarrative] = useState<EraNarrativeRecord | null>(null);
   const [isActive, setIsActive] = useState(false);
@@ -117,147 +129,178 @@ export function useEraNarrative(
   useEffect(() => stopPolling, [stopPolling]);
 
   // Dispatch a worker task
-  const dispatchTask = useCallback((narrativeId: string) => {
-    const sentinelEntity = {
-      id: '__era_narrative__',
-      name: 'Era Narrative',
-      kind: 'system',
-      subtype: '',
-      prominence: '',
-      culture: '',
-      status: 'active',
-      description: '',
-      tags: {},
-    };
+  const dispatchTask = useCallback(
+    (narrativeId: string) => {
+      const sentinelEntity = {
+        id: "__era_narrative__",
+        name: "Era Narrative",
+        kind: "system",
+        subtype: "",
+        prominence: "",
+        culture: "",
+        status: "active",
+        description: "",
+        tags: {},
+      };
 
-    onEnqueue([{
-      entity: sentinelEntity,
-      type: 'eraNarrative' as EnrichmentType,
-      prompt: '',
-      chronicleId: narrativeId, // Repurposed for narrativeId
-    }]);
-  }, [onEnqueue]);
+      onEnqueue([
+        {
+          entity: sentinelEntity,
+          type: "eraNarrative" as EnrichmentType,
+          prompt: "",
+          chronicleId: narrativeId, // Repurposed for narrativeId
+        },
+      ]);
+    },
+    [onEnqueue]
+  );
 
   // Advance a narrative to its next step (shared by interactive and headless)
-  const advanceRecord = useCallback(async (narrativeId: string, currentStep: EraNarrativeStep) => {
-    const nextStep = NEXT_STEP[currentStep];
-    if (!nextStep) return;
+  const advanceRecord = useCallback(
+    async (narrativeId: string, currentStep: EraNarrativeStep) => {
+      const nextStep = NEXT_STEP[currentStep];
+      if (!nextStep) return;
 
-    await updateEraNarrative(narrativeId, {
-      status: 'pending',
-      currentStep: nextStep,
-    });
+      await updateEraNarrative(narrativeId, {
+        status: "pending",
+        currentStep: nextStep,
+      });
 
-    setNarrative((prev) => prev ? {
-      ...prev,
-      status: 'pending',
-      currentStep: nextStep,
-    } : null);
+      setNarrative((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "pending",
+              currentStep: nextStep,
+            }
+          : null
+      );
 
-    dispatchTask(narrativeId);
-  }, [dispatchTask]);
+      dispatchTask(narrativeId);
+    },
+    [dispatchTask]
+  );
 
   // Poll IndexedDB for state changes
-  const startPolling = useCallback((narrativeId: string) => {
-    stopPolling();
-    pollRef.current = setInterval(async () => {
-      const updated = await getEraNarrative(narrativeId);
-      if (!updated) return;
+  const startPolling = useCallback(
+    (narrativeId: string) => {
+      stopPolling();
+      pollRef.current = setInterval(async () => {
+        const updated = await getEraNarrative(narrativeId);
+        if (!updated) return;
 
-      setNarrative(updated);
+        setNarrative(updated);
 
-      // Terminal states always stop polling
-      if (updated.status === 'complete' || updated.status === 'failed' || updated.status === 'cancelled') {
-        stopPolling();
-        return;
-      }
-
-      if (updated.status === 'step_complete') {
-        if (headlessRef.current) {
-          // Headless: auto-advance without user interaction (skips edit)
+        // Terminal states always stop polling
+        if (
+          updated.status === "complete" ||
+          updated.status === "failed" ||
+          updated.status === "cancelled"
+        ) {
           stopPolling();
-
-          const nextStep = NEXT_STEP[updated.currentStep];
-          if (!nextStep || updated.currentStep === 'generate') {
-            // Final step (or generate in headless — skip edit): mark complete
-            await updateEraNarrative(updated.narrativeId, { status: 'complete' });
-            setNarrative((prev) => prev ? { ...prev, status: 'complete' } : null);
-          } else {
-            // Intermediate step: advance and restart polling
-            await advanceRecord(updated.narrativeId, updated.currentStep);
-            startPolling(updated.narrativeId);
-          }
-        } else {
-          // Interactive: stop polling, wait for user action
-          stopPolling();
+          return;
         }
-      }
-    }, POLL_INTERVAL_MS);
-  }, [stopPolling, advanceRecord]);
+
+        if (updated.status === "step_complete") {
+          if (headlessRef.current) {
+            // Headless: auto-advance without user interaction (skips edit)
+            stopPolling();
+
+            const nextStep = NEXT_STEP[updated.currentStep];
+            if (!nextStep || updated.currentStep === "generate") {
+              // Final step (or generate in headless — skip edit): mark complete
+              await updateEraNarrative(updated.narrativeId, { status: "complete" });
+              setNarrative((prev) => (prev ? { ...prev, status: "complete" } : null));
+            } else {
+              // Intermediate step: advance and restart polling
+              await advanceRecord(updated.narrativeId, updated.currentStep);
+              startPolling(updated.narrativeId);
+            }
+          } else {
+            // Interactive: stop polling, wait for user action
+            stopPolling();
+          }
+        }
+      }, POLL_INTERVAL_MS);
+    },
+    [stopPolling, advanceRecord]
+  );
 
   // Create a record and start
-  const createAndStart = useCallback(async (config: EraNarrativeConfig, headless: boolean) => {
-    const narrativeId = generateEraNarrativeId();
-    const now = Date.now();
+  const createAndStart = useCallback(
+    async (config: EraNarrativeConfig, headless: boolean) => {
+      const narrativeId = generateEraNarrativeId();
+      const now = Date.now();
 
-    const newRecord: EraNarrativeRecord = {
-      narrativeId,
-      projectId: config.projectId,
-      simulationRunId: config.simulationRunId,
-      eraId: config.eraId,
-      eraName: config.eraName,
-      status: 'pending',
-      tone: config.tone,
-      arcDirection: config.arcDirection || undefined,
-      historianConfigJson: JSON.stringify(config.historianConfig),
-      currentStep: 'threads',
-      prepBriefs: config.prepBriefs,
-      worldContext: config.worldContext,
-      totalInputTokens: 0,
-      totalOutputTokens: 0,
-      totalActualCost: 0,
-      createdAt: now,
-      updatedAt: now,
-    };
+      const newRecord: EraNarrativeRecord = {
+        narrativeId,
+        projectId: config.projectId,
+        simulationRunId: config.simulationRunId,
+        eraId: config.eraId,
+        eraName: config.eraName,
+        status: "pending",
+        tone: config.tone,
+        arcDirection: config.arcDirection || undefined,
+        historianConfigJson: JSON.stringify(config.historianConfig),
+        currentStep: "threads",
+        prepBriefs: config.prepBriefs,
+        worldContext: config.worldContext,
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        totalActualCost: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
 
-    headlessRef.current = headless;
-    await createEraNarrative(newRecord);
-    setNarrative(newRecord);
-    setIsActive(true);
+      headlessRef.current = headless;
+      await createEraNarrative(newRecord);
+      setNarrative(newRecord);
+      setIsActive(true);
 
-    dispatchTask(narrativeId);
-    startPolling(narrativeId);
-  }, [dispatchTask, startPolling]);
-
-  // Start interactive session
-  const startNarrative = useCallback(async (config: EraNarrativeConfig) => {
-    await createAndStart(config, false);
-  }, [createAndStart]);
-
-  // Start headless session (all steps, no pauses)
-  const startHeadless = useCallback(async (config: EraNarrativeConfig) => {
-    await createAndStart(config, true);
-  }, [createAndStart]);
-
-  // Resume an existing narrative from IndexedDB
-  const resumeNarrative = useCallback(async (narrativeId: string) => {
-    const record = await getEraNarrative(narrativeId);
-    if (!record) return;
-
-    headlessRef.current = false;
-    setNarrative(record);
-    setIsActive(true);
-
-    if (record.status === 'pending' || record.status === 'generating') {
-      // After a page refresh, the worker that was processing this step is gone.
-      // Reset to pending and re-dispatch so the step actually runs again.
-      await updateEraNarrative(narrativeId, { status: 'pending' });
-      setNarrative((prev) => prev ? { ...prev, status: 'pending' } : null);
       dispatchTask(narrativeId);
       startPolling(narrativeId);
-    }
-    // step_complete, failed, complete: just show current state, no polling needed
-  }, [dispatchTask, startPolling]);
+    },
+    [dispatchTask, startPolling]
+  );
+
+  // Start interactive session
+  const startNarrative = useCallback(
+    async (config: EraNarrativeConfig) => {
+      await createAndStart(config, false);
+    },
+    [createAndStart]
+  );
+
+  // Start headless session (all steps, no pauses)
+  const startHeadless = useCallback(
+    async (config: EraNarrativeConfig) => {
+      await createAndStart(config, true);
+    },
+    [createAndStart]
+  );
+
+  // Resume an existing narrative from IndexedDB
+  const resumeNarrative = useCallback(
+    async (narrativeId: string) => {
+      const record = await getEraNarrative(narrativeId);
+      if (!record) return;
+
+      headlessRef.current = false;
+      setNarrative(record);
+      setIsActive(true);
+
+      if (record.status === "pending" || record.status === "generating") {
+        // After a page refresh, the worker that was processing this step is gone.
+        // Reset to pending and re-dispatch so the step actually runs again.
+        await updateEraNarrative(narrativeId, { status: "pending" });
+        setNarrative((prev) => (prev ? { ...prev, status: "pending" } : null));
+        dispatchTask(narrativeId);
+        startPolling(narrativeId);
+      }
+      // step_complete, failed, complete: just show current state, no polling needed
+    },
+    [dispatchTask, startPolling]
+  );
 
   // Advance to the next step, or mark complete if at the final step
   const advanceStep = useCallback(async () => {
@@ -265,8 +308,8 @@ export function useEraNarrative(
     const nextStep = NEXT_STEP[narrative.currentStep];
     if (!nextStep) {
       // Final step — mark complete
-      await updateEraNarrative(narrative.narrativeId, { status: 'complete' });
-      setNarrative((prev) => prev ? { ...prev, status: 'complete' } : null);
+      await updateEraNarrative(narrative.narrativeId, { status: "complete" });
+      setNarrative((prev) => (prev ? { ...prev, status: "complete" } : null));
       stopPolling();
       return;
     }
@@ -278,8 +321,8 @@ export function useEraNarrative(
   const skipEdit = useCallback(async () => {
     if (!narrative) return;
 
-    await updateEraNarrative(narrative.narrativeId, { status: 'complete' });
-    setNarrative((prev) => prev ? { ...prev, status: 'complete' } : null);
+    await updateEraNarrative(narrative.narrativeId, { status: "complete" });
+    setNarrative((prev) => (prev ? { ...prev, status: "complete" } : null));
     stopPolling();
   }, [narrative, stopPolling]);
 
@@ -289,15 +332,19 @@ export function useEraNarrative(
 
     // Reset to edit step + pending so the worker picks it up
     await updateEraNarrative(narrative.narrativeId, {
-      status: 'pending',
-      currentStep: 'edit',
+      status: "pending",
+      currentStep: "edit",
     });
 
-    setNarrative((prev) => prev ? {
-      ...prev,
-      status: 'pending',
-      currentStep: 'edit',
-    } : null);
+    setNarrative((prev) =>
+      prev
+        ? {
+            ...prev,
+            status: "pending",
+            currentStep: "edit",
+          }
+        : null
+    );
 
     headlessRef.current = false;
     dispatchTask(narrative.narrativeId);
@@ -305,18 +352,24 @@ export function useEraNarrative(
   }, [narrative, dispatchTask, startPolling]);
 
   // Delete a content version (cannot delete the generate version)
-  const deleteVersion = useCallback(async (versionId: string) => {
-    if (!narrative) return;
-    const updated = await deleteEraNarrativeVersion(narrative.narrativeId, versionId);
-    setNarrative(updated);
-  }, [narrative]);
+  const deleteVersion = useCallback(
+    async (versionId: string) => {
+      if (!narrative) return;
+      const updated = await deleteEraNarrativeVersion(narrative.narrativeId, versionId);
+      setNarrative(updated);
+    },
+    [narrative]
+  );
 
   // Set the active content version
-  const setActiveVersion = useCallback(async (versionId: string) => {
-    if (!narrative) return;
-    const updated = await setEraNarrativeActiveVersion(narrative.narrativeId, versionId);
-    setNarrative(updated);
-  }, [narrative]);
+  const setActiveVersion = useCallback(
+    async (versionId: string) => {
+      if (!narrative) return;
+      const updated = await setEraNarrativeActiveVersion(narrative.narrativeId, versionId);
+      setNarrative(updated);
+    },
+    [narrative]
+  );
 
   // Cancel
   const cancel = useCallback(() => {

@@ -16,23 +16,83 @@
  */
 
 const STOP_WORDS = new Set([
-  'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-  'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'be',
-  'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
-  'would', 'could', 'should', 'may', 'might', 'shall', 'can', 'not',
-  'no', 'nor', 'so', 'yet', 'both', 'each', 'its', 'it', 'this', 'that',
-  'these', 'those', 'he', 'she', 'they', 'we', 'you', 'her', 'his',
-  'their', 'our', 'your', 'who', 'which', 'what', 'when', 'where', 'how',
+  "a",
+  "an",
+  "the",
+  "and",
+  "or",
+  "but",
+  "in",
+  "on",
+  "at",
+  "to",
+  "for",
+  "of",
+  "with",
+  "by",
+  "from",
+  "as",
+  "is",
+  "was",
+  "are",
+  "were",
+  "be",
+  "been",
+  "being",
+  "have",
+  "has",
+  "had",
+  "do",
+  "does",
+  "did",
+  "will",
+  "would",
+  "could",
+  "should",
+  "may",
+  "might",
+  "shall",
+  "can",
+  "not",
+  "no",
+  "nor",
+  "so",
+  "yet",
+  "both",
+  "each",
+  "its",
+  "it",
+  "this",
+  "that",
+  "these",
+  "those",
+  "he",
+  "she",
+  "they",
+  "we",
+  "you",
+  "her",
+  "his",
+  "their",
+  "our",
+  "your",
+  "who",
+  "which",
+  "what",
+  "when",
+  "where",
+  "how",
 ]);
 
 /** Normalize a word for comparison: lowercase, strip leading/trailing punctuation */
 function normalize(word: string): string {
-  return word.toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, '');
+  return word.toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, "");
 }
 
 /** Extract content words (non-stop, non-empty after normalization) */
 function contentWords(text: string): string[] {
-  return text.split(/\s+/)
+  return text
+    .split(/\s+/)
     .map(normalize)
     .filter((w) => w.length > 2 && !STOP_WORDS.has(w));
 }
@@ -66,7 +126,7 @@ export interface FuzzyAnchorResult {
   /** Character index where the phrase starts in the text */
   index: number;
   /** How the match was found */
-  method: 'exact' | 'fuzzy';
+  method: "exact" | "fuzzy";
 }
 
 /**
@@ -74,10 +134,7 @@ export interface FuzzyAnchorResult {
  *
  * Returns null if no reasonable match is found.
  */
-export function resolveAnchorPhrase(
-  anchorPhrase: string,
-  text: string,
-): FuzzyAnchorResult | null {
+export function resolveAnchorPhrase(anchorPhrase: string, text: string): FuzzyAnchorResult | null {
   if (!anchorPhrase || !text) return null;
 
   // 1. Exact match (case-insensitive)
@@ -88,7 +145,7 @@ export function resolveAnchorPhrase(
     return {
       phrase: text.slice(exactIdx, exactIdx + anchorPhrase.length),
       index: exactIdx,
-      method: 'exact',
+      method: "exact",
     };
   }
 
@@ -152,7 +209,7 @@ export function resolveAnchorPhrase(
       break;
     }
     const ch = text[c];
-    if ((ch === '.' || ch === '!' || ch === '?') && c + 1 < text.length && /\s/.test(text[c + 1])) {
+    if ((ch === "." || ch === "!" || ch === "?") && c + 1 < text.length && /\s/.test(text[c + 1])) {
       sentenceStart = c + 2; // skip punctuation + space
       break;
     }
@@ -162,7 +219,7 @@ export function resolveAnchorPhrase(
   let sentenceEnd = charEnd;
   for (let c = centerCharEnd; c < Math.min(text.length, charEnd + 200); c++) {
     const ch = text[c];
-    if (ch === '.' || ch === '!' || ch === '?') {
+    if (ch === "." || ch === "!" || ch === "?") {
       sentenceEnd = c + 1;
       break;
     }
@@ -197,7 +254,7 @@ export function resolveAnchorPhrase(
   return {
     phrase: candidate,
     index: finalIdx,
-    method: 'fuzzy',
+    method: "fuzzy",
   };
 }
 

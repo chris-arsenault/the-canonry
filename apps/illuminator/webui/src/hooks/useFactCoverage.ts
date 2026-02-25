@@ -9,11 +9,11 @@
  * For each chronicle: dispatch factCoverage task → poll chronicle record for results → next.
  */
 
-import { useState, useCallback, useRef } from 'react';
-import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
-import { getChronicle } from '../lib/db/chronicleRepository';
-import { useIlluminatorConfigStore } from '../lib/db/illuminatorConfigStore';
-import type { ChronicleNavItem } from '../lib/db/chronicleNav';
+import { useState, useCallback, useRef } from "react";
+import { getEnqueue } from "../lib/db/enrichmentQueueBridge";
+import { getChronicle } from "../lib/db/chronicleRepository";
+import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
+import type { ChronicleNavItem } from "../lib/db/chronicleNav";
 
 // ============================================================================
 // Types
@@ -25,7 +25,7 @@ export interface FactCoverageChronicleSummary {
 }
 
 export interface FactCoverageProgress {
-  status: 'idle' | 'confirming' | 'running' | 'complete' | 'cancelled' | 'failed';
+  status: "idle" | "confirming" | "running" | "complete" | "cancelled" | "failed";
   chronicles: FactCoverageChronicleSummary[];
   totalChronicles: number;
   processedChronicles: number;
@@ -45,11 +45,11 @@ export interface UseFactCoverageReturn {
 }
 
 const IDLE_PROGRESS: FactCoverageProgress = {
-  status: 'idle',
+  status: "idle",
   chronicles: [],
   totalChronicles: 0,
   processedChronicles: 0,
-  currentTitle: '',
+  currentTitle: "",
   totalCost: 0,
   failedChronicles: [],
 };
@@ -72,7 +72,7 @@ export function useFactCoverage(): UseFactCoverageReturn {
     facts: Array<{ id: string; text: string }>;
   } | null>(null);
 
-  const isActive = progress.status === 'running' || progress.status === 'confirming';
+  const isActive = progress.status === "running" || progress.status === "confirming";
 
   // Phase 1: Prepare
   const prepareFactCoverage = useCallback((chronicleItems: ChronicleNavItem[]) => {
@@ -80,7 +80,7 @@ export function useFactCoverage(): UseFactCoverageReturn {
 
     // Filter to eligible chronicles (have content)
     const eligible = chronicleItems.filter(
-      (c) => (c.status === 'complete' || c.status === 'assembly_ready') && c.wordCount > 0,
+      (c) => (c.status === "complete" || c.status === "assembly_ready") && c.wordCount > 0
     );
 
     const chronicles: FactCoverageChronicleSummary[] = eligible.map((c) => ({
@@ -101,8 +101,8 @@ export function useFactCoverage(): UseFactCoverageReturn {
     if (facts.length === 0) {
       setProgress({
         ...IDLE_PROGRESS,
-        status: 'failed',
-        error: 'No canon facts configured',
+        status: "failed",
+        error: "No canon facts configured",
       });
       return;
     }
@@ -111,7 +111,7 @@ export function useFactCoverage(): UseFactCoverageReturn {
 
     setProgress({
       ...IDLE_PROGRESS,
-      status: 'confirming',
+      status: "confirming",
       chronicles,
       totalChronicles: chronicles.length,
     });
@@ -125,7 +125,7 @@ export function useFactCoverage(): UseFactCoverageReturn {
     activeRef.current = true;
     cancelledRef.current = false;
 
-    setProgress((p) => ({ ...p, status: 'running' }));
+    setProgress((p) => ({ ...p, status: "running" }));
 
     (async () => {
       try {
@@ -163,16 +163,17 @@ export function useFactCoverage(): UseFactCoverageReturn {
             };
 
             // Create synthetic entity for queue dispatch (same pattern as temporal check)
-            const primaryRole = record?.roleAssignments?.find((r) => r.isPrimary) || record?.roleAssignments?.[0];
+            const primaryRole =
+              record?.roleAssignments?.find((r) => r.isPrimary) || record?.roleAssignments?.[0];
             const syntheticEntity = {
               id: primaryRole?.entityId || chron.chronicleId,
               name: primaryRole?.entityName || chron.title,
-              kind: primaryRole?.entityKind || 'chronicle',
-              subtype: '',
-              prominence: 'recognized',
-              culture: '',
-              status: 'active',
-              description: '',
+              kind: primaryRole?.entityKind || "chronicle",
+              subtype: "",
+              prominence: "recognized",
+              culture: "",
+              status: "active",
+              description: "",
               tags: {},
             };
 
@@ -180,12 +181,14 @@ export function useFactCoverage(): UseFactCoverageReturn {
             const prevTimestamp = record?.factCoverageReportGeneratedAt ?? 0;
 
             // Dispatch
-            getEnqueue()([{
-              entity: syntheticEntity as never,
-              type: 'factCoverage' as const,
-              prompt: JSON.stringify(payload),
-              chronicleId: chron.chronicleId,
-            }]);
+            getEnqueue()([
+              {
+                entity: syntheticEntity as never,
+                type: "factCoverage" as const,
+                prompt: JSON.stringify(payload),
+                chronicleId: chron.chronicleId,
+              },
+            ]);
 
             // Poll for completion
             let result: { cost: number } | null = null;
@@ -194,7 +197,10 @@ export function useFactCoverage(): UseFactCoverageReturn {
               if (cancelledRef.current) break;
 
               const updated = await getChronicle(chron.chronicleId);
-              if (updated?.factCoverageReportGeneratedAt && updated.factCoverageReportGeneratedAt > prevTimestamp) {
+              if (
+                updated?.factCoverageReportGeneratedAt &&
+                updated.factCoverageReportGeneratedAt > prevTimestamp
+              ) {
                 result = { cost: updated.factCoverageReport?.actualCost ?? 0 };
                 break;
               }
@@ -202,7 +208,6 @@ export function useFactCoverage(): UseFactCoverageReturn {
 
             if (cancelledRef.current || !result) break;
             globalCost += result.cost;
-
           } catch (err) {
             console.error(`[Fact Coverage] Chronicle "${chron.title}" failed:`, err);
             failedChronicles.push({
@@ -222,16 +227,16 @@ export function useFactCoverage(): UseFactCoverageReturn {
         }
 
         if (cancelledRef.current) {
-          setProgress((p) => ({ ...p, status: 'cancelled', currentTitle: '' }));
+          setProgress((p) => ({ ...p, status: "cancelled", currentTitle: "" }));
         } else {
-          setProgress((p) => ({ ...p, status: 'complete', currentTitle: '' }));
+          setProgress((p) => ({ ...p, status: "complete", currentTitle: "" }));
         }
       } catch (err) {
-        console.error('[Fact Coverage] Fatal error:', err);
+        console.error("[Fact Coverage] Fatal error:", err);
         setProgress((p) => ({
           ...p,
-          status: 'failed',
-          currentTitle: '',
+          status: "failed",
+          currentTitle: "",
           error: err instanceof Error ? err.message : String(err),
         }));
       } finally {
@@ -246,7 +251,7 @@ export function useFactCoverage(): UseFactCoverageReturn {
     cancelledRef.current = true;
     scanRef.current = null;
     setProgress((p) => {
-      if (p.status === 'confirming') return IDLE_PROGRESS;
+      if (p.status === "confirming") return IDLE_PROGRESS;
       return p; // running → let the loop handle it
     });
   }, []);

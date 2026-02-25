@@ -6,15 +6,15 @@
  * copy editor needs.
  */
 
-import type { PersistedEntity } from '../db/illuminatorDb';
-import type { ChronicleRecord, ChronicleImageRef } from '../chronicleTypes';
-import type { ImageRecord, ImageAspect, ImageType } from '../imageTypes';
+import type { PersistedEntity } from "../db/illuminatorDb";
+import type { ChronicleRecord, ChronicleImageRef } from "../chronicleTypes";
+import type { ImageRecord, ImageAspect, ImageType } from "../imageTypes";
 
 /** Image metadata without blob — what getAllImages() returns */
-export type ImageMetadataRecord = Omit<ImageRecord, 'blob'> & { hasBlob: boolean };
-import type { StaticPage } from '../staticPageTypes';
-import type { EraNarrativeRecord } from '../eraNarrativeTypes';
-import type { HistorianNote, HistorianNoteType } from '../historianTypes';
+export type ImageMetadataRecord = Omit<ImageRecord, "blob"> & { hasBlob: boolean };
+import type { StaticPage } from "../staticPageTypes";
+import type { EraNarrativeRecord } from "../eraNarrativeTypes";
+import type { HistorianNote, HistorianNoteType } from "../historianTypes";
 import type {
   PrePrintStats,
   WordCountBreakdown,
@@ -22,10 +22,10 @@ import type {
   ImageStats,
   CompletenessStats,
   HistorianNoteStats,
-} from './prePrintTypes';
-import type { ChronicleImageSize } from '../chronicleTypes';
-import { countWords } from '../db/staticPageRepository';
-import { resolveActiveContent } from '../db/eraNarrativeRepository';
+} from "./prePrintTypes";
+import type { ChronicleImageSize } from "../chronicleTypes";
+import { countWords } from "../db/staticPageRepository";
+import { resolveActiveContent } from "../db/eraNarrativeRepository";
 
 function countChars(text: string): number {
   return text.length;
@@ -43,11 +43,11 @@ function collectCaptions(chronicles: ChronicleRecord[]): string[] {
 }
 
 function collectHistorianNoteTexts(notes: HistorianNote[]): string {
-  return notes.map((n) => n.text).join(' ');
+  return notes.map((n) => n.text).join(" ");
 }
 
 function getPublishedContent(chronicle: ChronicleRecord): string {
-  return chronicle.finalContent || chronicle.assembledContent || '';
+  return chronicle.finalContent || chronicle.assembledContent || "";
 }
 
 export function computePrePrintStats(
@@ -59,11 +59,11 @@ export function computePrePrintStats(
 ): PrePrintStats {
   // Filter to publishable content
   const publishedChronicles = chronicles.filter(
-    (c) => c.status === 'complete' || c.status === 'assembly_ready'
+    (c) => c.status === "complete" || c.status === "assembly_ready"
   );
-  const publishedPages = staticPages.filter((p) => p.status === 'published');
+  const publishedPages = staticPages.filter((p) => p.status === "published");
   const completedNarratives = eraNarratives.filter(
-    (n) => n.status === 'complete' || n.status === 'step_complete'
+    (n) => n.status === "complete" || n.status === "step_complete"
   );
 
   // =========================================================================
@@ -71,16 +71,16 @@ export function computePrePrintStats(
   // =========================================================================
 
   const chronicleBodyTexts = publishedChronicles.map(getPublishedContent);
-  const chronicleSummaryTexts = publishedChronicles.map((c) => c.summary || '');
-  const entityDescTexts = entities.map((e) => e.description || '');
-  const entitySummaryTexts = entities.map((e) => e.summary || '');
+  const chronicleSummaryTexts = publishedChronicles.map((c) => c.summary || "");
+  const entityDescTexts = entities.map((e) => e.description || "");
+  const entitySummaryTexts = entities.map((e) => e.summary || "");
   const captionTexts = collectCaptions(publishedChronicles);
-  const pageTexts = publishedPages.map((p) => p.content || '');
+  const pageTexts = publishedPages.map((p) => p.content || "");
 
   // Era narrative content from active version (with legacy fallback)
   const narrativeTexts = completedNarratives.map((n) => {
     const { content } = resolveActiveContent(n);
-    return content || '';
+    return content || "";
   });
 
   // Historian notes: collect from both entities and chronicles
@@ -136,18 +136,26 @@ export function computePrePrintStats(
   // =========================================================================
 
   const byAspect: Record<ImageAspect, number> = { portrait: 0, landscape: 0, square: 0 };
-  const byType: Record<ImageType | 'cover', number> = { entity: 0, chronicle: 0, cover: 0 };
-  const bySize: Record<ChronicleImageSize, number> = { small: 0, medium: 0, large: 0, 'full-width': 0 };
+  const byType: Record<ImageType | "cover", number> = { entity: 0, chronicle: 0, cover: 0 };
+  const bySize: Record<ChronicleImageSize, number> = {
+    small: 0,
+    medium: 0,
+    large: 0,
+    "full-width": 0,
+  };
 
-  let minW = Infinity, maxW = 0, minH = Infinity, maxH = 0;
+  let minW = Infinity,
+    maxW = 0,
+    minH = Infinity,
+    maxH = 0;
   let hasDimensions = false;
 
   for (const img of images) {
-    const aspect = img.aspect || 'square';
+    const aspect = img.aspect || "square";
     byAspect[aspect]++;
 
-    const isCover = img.imageRefId === '__cover_image__';
-    const type = isCover ? 'cover' : (img.imageType || 'entity');
+    const isCover = img.imageRefId === "__cover_image__";
+    const type = isCover ? "cover" : img.imageType || "entity";
     byType[type]++;
 
     if (img.width && img.height) {
@@ -185,7 +193,7 @@ export function computePrePrintStats(
   // =========================================================================
 
   const entitiesWithImage = entities.filter((e) => e.enrichment?.image?.imageId).length;
-  const totalEras = entities.filter((e) => e.kind === 'era').length;
+  const totalEras = entities.filter((e) => e.kind === "era").length;
 
   const completeness: CompletenessStats = {
     entitiesTotal: entities.length,
@@ -193,27 +201,37 @@ export function computePrePrintStats(
     entitiesWithImage,
     entitiesWithSummary: entities.filter((e) => e.summary).length,
     chroniclesTotal: publishedChronicles.length,
-    chroniclesPublished: publishedChronicles.filter((c) => c.status === 'complete').length,
-    chroniclesWithHistorianNotes: publishedChronicles.filter((c) => c.historianNotes?.length).length,
-    chroniclesWithSceneImages: publishedChronicles.filter(
-      (c) => c.imageRefs?.refs?.some((r) => r.type === 'prompt_request' && r.status === 'complete')
+    chroniclesPublished: publishedChronicles.filter((c) => c.status === "complete").length,
+    chroniclesWithHistorianNotes: publishedChronicles.filter((c) => c.historianNotes?.length)
+      .length,
+    chroniclesWithSceneImages: publishedChronicles.filter((c) =>
+      c.imageRefs?.refs?.some((r) => r.type === "prompt_request" && r.status === "complete")
     ).length,
     staticPagesTotal: staticPages.length,
     staticPagesPublished: publishedPages.length,
     eraNarrativesTotal: totalEras,
-    eraNarrativesComplete: eraNarratives.filter((n) => n.status === 'complete').length,
-    eraNarrativesWithCoverImage: eraNarratives.filter(
-      (n) => n.coverImage?.status === 'complete'
-    ).length,
+    eraNarrativesComplete: eraNarratives.filter((n) => n.status === "complete").length,
+    eraNarrativesWithCoverImage: eraNarratives.filter((n) => n.coverImage?.status === "complete")
+      .length,
   };
 
   // =========================================================================
   // Historian Notes
   // =========================================================================
 
-  const noteTypes: HistorianNoteType[] = ['commentary', 'correction', 'tangent', 'skepticism', 'pedantic'];
+  const noteTypes: HistorianNoteType[] = [
+    "commentary",
+    "correction",
+    "tangent",
+    "skepticism",
+    "pedantic",
+  ];
   const byNoteType: Record<HistorianNoteType, number> = {
-    commentary: 0, correction: 0, tangent: 0, skepticism: 0, pedantic: 0,
+    commentary: 0,
+    correction: 0,
+    tangent: 0,
+    skepticism: 0,
+    pedantic: 0,
   };
   for (const note of allHistorianNotes) {
     if (byNoteType[note.type] !== undefined) {

@@ -10,35 +10,36 @@
  * module-level flags, prepare→confirm→run workflow, shared caches.
  */
 
-import { create } from 'zustand';
-import type { ChronicleNavItem } from './chronicleNav';
-import type { EntityNavItem } from './entityNav';
-import type { HistorianTone } from '../historianTypes';
-import {
-  createHistorianRun,
-  generateHistorianRunId,
-} from './historianRepository';
-import { updateChronicleHistorianNotes } from './chronicleRepository';
-import { setHistorianNotes } from './entityRepository';
-import { useChronicleStore } from './chronicleStore';
-import { reloadEntities } from '../../hooks/useEntityCrud';
+import { create } from "zustand";
+import type { ChronicleNavItem } from "./chronicleNav";
+import type { EntityNavItem } from "./entityNav";
+import type { HistorianTone } from "../historianTypes";
+import { createHistorianRun, generateHistorianRunId } from "./historianRepository";
+import { updateChronicleHistorianNotes } from "./chronicleRepository";
+import { setHistorianNotes } from "./entityRepository";
+import { useChronicleStore } from "./chronicleStore";
+import { reloadEntities } from "../../hooks/useEntityCrud";
 import {
   buildChronicleReviewContext,
   buildHistorianReviewContext,
-} from '../historianContextBuilders';
-import type { CorpusVoiceDigestCache, ReinforcementCache } from '../historianContextBuilders';
-import { dispatchReviewTask, pollReviewCompletion, extractReinforcedFactIds } from './historianRunHelpers';
+} from "../historianContextBuilders";
+import type { CorpusVoiceDigestCache, ReinforcementCache } from "../historianContextBuilders";
+import {
+  dispatchReviewTask,
+  pollReviewCompletion,
+  extractReinforcedFactIds,
+} from "./historianRunHelpers";
 
 // ============================================================================
 // Types
 // ============================================================================
 
 export type InterleavedWorkItem =
-  | { type: 'chronicle'; chronicleId: string; title: string; tone: string }
-  | { type: 'entity'; entityId: string; entityName: string; entityKind: string; tone: string };
+  | { type: "chronicle"; chronicleId: string; title: string; tone: string }
+  | { type: "entity"; entityId: string; entityName: string; entityKind: string; tone: string };
 
 export interface InterleavedAnnotationProgress {
-  status: 'idle' | 'confirming' | 'running' | 'complete' | 'cancelled' | 'failed';
+  status: "idle" | "confirming" | "running" | "complete" | "cancelled" | "failed";
   workItems: InterleavedWorkItem[];
   totalItems: number;
   processedItems: number;
@@ -53,7 +54,7 @@ export interface InterleavedAnnotationProgress {
 }
 
 const IDLE_PROGRESS: InterleavedAnnotationProgress = {
-  status: 'idle',
+  status: "idle",
   workItems: [],
   totalItems: 0,
   processedItems: 0,
@@ -80,7 +81,11 @@ const isCancelled = () => cancelledFlag;
 // ============================================================================
 
 const ORPHAN_TONE_CYCLE: HistorianTone[] = [
-  'witty', 'weary', 'forensic', 'elegiac', 'cantankerous',
+  "witty",
+  "weary",
+  "forensic",
+  "elegiac",
+  "cantankerous",
 ];
 
 /**
@@ -100,12 +105,14 @@ function computeNotesMaxOverride(index: number): number | undefined {
 
 function buildInterleavedWorkList(
   chronicleItems: ChronicleNavItem[],
-  entityNavItems: Map<string, EntityNavItem>,
+  entityNavItems: Map<string, EntityNavItem>
 ): InterleavedWorkItem[] {
   const workItems: InterleavedWorkItem[] = [];
 
   // 1. Filter eligible chronicles (complete status, no existing notes)
-  const eligible = chronicleItems.filter((c) => c.status === 'complete' && c.historianNoteCount === 0);
+  const eligible = chronicleItems.filter(
+    (c) => c.status === "complete" && c.historianNoteCount === 0
+  );
 
   // 2. Sort in chronological order: focalEraOrder → eraYear → era name
   //    Year-0 chronicles (mythology) are pushed to the end so the historian
@@ -120,7 +127,7 @@ function buildInterleavedWorkList(
     const orderB = b.focalEraOrder ?? Number.MAX_SAFE_INTEGER;
     if (orderA !== orderB) return orderA - orderB;
     if (yearA !== yearB) return yearA - yearB;
-    return (a.focalEraName || '').localeCompare(b.focalEraName || '');
+    return (a.focalEraName || "").localeCompare(b.focalEraName || "");
   });
 
   // 3. Track which entities are already scheduled or already annotated
@@ -131,12 +138,12 @@ function buildInterleavedWorkList(
 
   // 4. Interleave: each chronicle followed by its referenced entities
   for (const chron of eligible) {
-    const chronicleTone = chron.assignedTone || 'weary';
+    const chronicleTone = chron.assignedTone || "weary";
 
     workItems.push({
-      type: 'chronicle',
+      type: "chronicle",
       chronicleId: chron.chronicleId,
-      title: chron.title || chron.name || 'Untitled',
+      title: chron.title || chron.name || "Untitled",
       tone: chronicleTone,
     });
 
@@ -154,7 +161,7 @@ function buildInterleavedWorkList(
 
       scheduledEntityIds.add(role.entityId);
       workItems.push({
-        type: 'entity',
+        type: "entity",
         entityId: role.entityId,
         entityName: nav.name,
         entityKind: nav.kind,
@@ -170,7 +177,7 @@ function buildInterleavedWorkList(
     if (!nav.hasDescription) continue;
 
     workItems.push({
-      type: 'entity',
+      type: "entity",
       entityId: id,
       entityName: nav.name,
       entityKind: nav.kind,
@@ -189,7 +196,10 @@ function buildInterleavedWorkList(
 
 interface InterleavedAnnotationStore {
   progress: InterleavedAnnotationProgress;
-  prepareInterleaved: (chronicleItems: ChronicleNavItem[], entityNavItems: Map<string, EntityNavItem>) => void;
+  prepareInterleaved: (
+    chronicleItems: ChronicleNavItem[],
+    entityNavItems: Map<string, EntityNavItem>
+  ) => void;
   confirmInterleaved: () => void;
   cancelInterleaved: () => void;
   closeInterleaved: () => void;
@@ -206,12 +216,12 @@ export const useInterleavedAnnotationStore = create<InterleavedAnnotationStore>(
 
     scanData = workItems;
 
-    const chronicleCount = workItems.filter((w) => w.type === 'chronicle').length;
-    const entityCount = workItems.filter((w) => w.type === 'entity').length;
+    const chronicleCount = workItems.filter((w) => w.type === "chronicle").length;
+    const entityCount = workItems.filter((w) => w.type === "entity").length;
 
     set({
       progress: {
-        status: 'confirming',
+        status: "confirming",
         workItems,
         totalItems: workItems.length,
         processedItems: 0,
@@ -232,7 +242,7 @@ export const useInterleavedAnnotationStore = create<InterleavedAnnotationStore>(
     cancelledFlag = false;
     const workItems = scanData;
 
-    set((s) => ({ progress: { ...s.progress, status: 'running' } }));
+    set((s) => ({ progress: { ...s.progress, status: "running" } }));
 
     (async () => {
       try {
@@ -243,7 +253,10 @@ export const useInterleavedAnnotationStore = create<InterleavedAnnotationStore>(
         const failedItems: Array<{ item: InterleavedWorkItem; error: string }> = [];
 
         // Shared caches across the entire interleaved run
-        const corpusStrengthCache = { runId: null as string | null, strength: null as Map<string, number> | null };
+        const corpusStrengthCache = {
+          runId: null as string | null,
+          strength: null as Map<string, number> | null,
+        };
         const voiceDigestCache: CorpusVoiceDigestCache = { runId: null, digest: null };
         const reinforcementCache: ReinforcementCache = { runId: null, data: null };
 
@@ -256,14 +269,14 @@ export const useInterleavedAnnotationStore = create<InterleavedAnnotationStore>(
           const maxNotesOverride = computeNotesMaxOverride(itemIndex);
 
           try {
-            if (item.type === 'chronicle') {
+            if (item.type === "chronicle") {
               const config = await buildChronicleReviewContext(
                 item.chronicleId,
                 item.tone,
                 corpusStrengthCache,
                 voiceDigestCache,
                 reinforcementCache,
-                maxNotesOverride,
+                maxNotesOverride
               );
               if (!config) {
                 globalProcessed++;
@@ -281,9 +294,9 @@ export const useInterleavedAnnotationStore = create<InterleavedAnnotationStore>(
                 runId,
                 projectId: config.projectId,
                 simulationRunId: config.simulationRunId,
-                status: 'pending',
+                status: "pending",
                 tone: config.tone as HistorianTone,
-                targetType: 'chronicle',
+                targetType: "chronicle",
                 targetId: config.targetId,
                 targetName: config.targetName,
                 sourceText: config.sourceText,
@@ -310,7 +323,7 @@ export const useInterleavedAnnotationStore = create<InterleavedAnnotationStore>(
                   item.chronicleId,
                   result.notes,
                   result.prompts,
-                  reinforcedFacts,
+                  reinforcedFacts
                 );
                 // Invalidate reinforcement cache so next item sees updated counts
                 reinforcementCache.runId = null;
@@ -322,14 +335,13 @@ export const useInterleavedAnnotationStore = create<InterleavedAnnotationStore>(
               // Invalidate voice digest cache so next item sees the new notes
               voiceDigestCache.runId = null;
               voiceDigestCache.digest = null;
-
             } else {
               // Entity
               const config = await buildHistorianReviewContext(
                 item.entityId,
                 item.tone,
                 voiceDigestCache,
-                maxNotesOverride,
+                maxNotesOverride
               );
               if (!config) {
                 globalProcessed++;
@@ -347,7 +359,7 @@ export const useInterleavedAnnotationStore = create<InterleavedAnnotationStore>(
                 runId,
                 projectId: config.projectId,
                 simulationRunId: config.simulationRunId,
-                status: 'pending',
+                status: "pending",
                 tone: config.tone as HistorianTone,
                 targetType: config.targetType,
                 targetId: config.targetId,
@@ -393,15 +405,15 @@ export const useInterleavedAnnotationStore = create<InterleavedAnnotationStore>(
                 failedItems: [...failedItems],
               },
             }));
-
           } catch (err) {
-            const label = item.type === 'chronicle'
-              ? `Chronicle "${item.title}"`
-              : `Entity "${item.entityName}"`;
+            const label =
+              item.type === "chronicle"
+                ? `Chronicle "${item.title}"`
+                : `Entity "${item.entityName}"`;
             console.error(`[Interleaved Annotation] ${label} failed:`, err);
 
             globalProcessed++;
-            if (item.type === 'chronicle') processedChronicles++;
+            if (item.type === "chronicle") processedChronicles++;
             else processedEntities++;
 
             failedItems.push({
@@ -426,16 +438,18 @@ export const useInterleavedAnnotationStore = create<InterleavedAnnotationStore>(
         await reloadEntities();
 
         if (cancelledFlag) {
-          set((s) => ({ progress: { ...s.progress, status: 'cancelled', currentItem: undefined } }));
+          set((s) => ({
+            progress: { ...s.progress, status: "cancelled", currentItem: undefined },
+          }));
         } else {
-          set((s) => ({ progress: { ...s.progress, status: 'complete', currentItem: undefined } }));
+          set((s) => ({ progress: { ...s.progress, status: "complete", currentItem: undefined } }));
         }
       } catch (err) {
-        console.error('[Interleaved Annotation] Fatal error:', err);
+        console.error("[Interleaved Annotation] Fatal error:", err);
         set((s) => ({
           progress: {
             ...s.progress,
-            status: 'failed',
+            status: "failed",
             currentItem: undefined,
             error: err instanceof Error ? err.message : String(err),
           },
@@ -451,7 +465,7 @@ export const useInterleavedAnnotationStore = create<InterleavedAnnotationStore>(
     cancelledFlag = true;
     scanData = null;
     set((s) => {
-      if (s.progress.status === 'confirming') return { progress: IDLE_PROGRESS };
+      if (s.progress.status === "confirming") return { progress: IDLE_PROGRESS };
       return s;
     });
   },

@@ -5,7 +5,7 @@
  * to the ThinkingViewer modal. Each entry is keyed by enrichment task ID.
  */
 
-import { create } from 'zustand';
+import { create } from "zustand";
 
 export interface ThinkingEntry {
   taskId: string;
@@ -36,42 +36,47 @@ export const useThinkingStore = create<ThinkingStoreState>((set) => ({
   entries: new Map(),
   viewingTaskId: null,
 
-  startTask: (taskId, entityName, taskType) => set((state) => {
-    const entries = new Map(state.entries);
-    entries.set(taskId, { taskId, entityName, taskType, thinking: '', text: '', isActive: true });
-    return { entries };
-  }),
+  startTask: (taskId, entityName, taskType) =>
+    set((state) => {
+      const entries = new Map(state.entries);
+      entries.set(taskId, { taskId, entityName, taskType, thinking: "", text: "", isActive: true });
+      return { entries };
+    }),
 
-  appendDelta: (taskId, delta) => set((state) => {
-    const existing = state.entries.get(taskId);
-    if (!existing) return state;
-    const entries = new Map(state.entries);
-    entries.set(taskId, { ...existing, thinking: existing.thinking + delta });
-    return { entries };
-  }),
+  appendDelta: (taskId, delta) =>
+    set((state) => {
+      const existing = state.entries.get(taskId);
+      if (!existing) return state;
+      const entries = new Map(state.entries);
+      entries.set(taskId, { ...existing, thinking: existing.thinking + delta });
+      return { entries };
+    }),
 
-  appendTextDelta: (taskId, delta) => set((state) => {
-    const existing = state.entries.get(taskId);
-    if (!existing) return state;
-    const entries = new Map(state.entries);
-    entries.set(taskId, { ...existing, text: existing.text + delta });
-    return { entries };
-  }),
+  appendTextDelta: (taskId, delta) =>
+    set((state) => {
+      const existing = state.entries.get(taskId);
+      if (!existing) return state;
+      const entries = new Map(state.entries);
+      entries.set(taskId, { ...existing, text: existing.text + delta });
+      return { entries };
+    }),
 
-  finishTask: (taskId) => set((state) => {
-    const existing = state.entries.get(taskId);
-    if (!existing) return state;
-    const entries = new Map(state.entries);
-    entries.set(taskId, { ...existing, isActive: false });
-    return { entries };
-  }),
+  finishTask: (taskId) =>
+    set((state) => {
+      const existing = state.entries.get(taskId);
+      if (!existing) return state;
+      const entries = new Map(state.entries);
+      entries.set(taskId, { ...existing, isActive: false });
+      return { entries };
+    }),
 
-  clearTask: (taskId) => set((state) => {
-    const entries = new Map(state.entries);
-    entries.delete(taskId);
-    const viewingTaskId = state.viewingTaskId === taskId ? null : state.viewingTaskId;
-    return { entries, viewingTaskId };
-  }),
+  clearTask: (taskId) =>
+    set((state) => {
+      const entries = new Map(state.entries);
+      entries.delete(taskId);
+      const viewingTaskId = state.viewingTaskId === taskId ? null : state.viewingTaskId;
+      return { entries, viewingTaskId };
+    }),
 
   clearAll: () => set({ entries: new Map(), viewingTaskId: null }),
 

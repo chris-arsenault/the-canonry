@@ -8,13 +8,17 @@
  * Payload is JSON-serialized in the prompt field.
  */
 
-import type { WorkerTask } from '../../lib/enrichmentTypes';
-import type { TaskContext } from './taskTypes';
-import type { TaskResult } from '../types';
-import type { FactCoverageEntry, FactCoverageRating, FactCoverageReport } from '../../lib/chronicleTypes';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
-import { getChronicle, updateChronicleFactCoverage } from '../../lib/db/chronicleRepository';
+import type { WorkerTask } from "../../lib/enrichmentTypes";
+import type { TaskContext } from "./taskTypes";
+import type { TaskResult } from "../types";
+import type {
+  FactCoverageEntry,
+  FactCoverageRating,
+  FactCoverageReport,
+} from "../../lib/chronicleTypes";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
+import { getChronicle, updateChronicleFactCoverage } from "../../lib/db/chronicleRepository";
 
 // ============================================================================
 // Payload type (JSON in prompt field)
@@ -44,39 +48,47 @@ Rules:
 - Be precise in your evidence: quote or reference specific passages.
 - Return ONLY a JSON array of objects with "factId" (string), "rating" (string), and "evidence" (string, 1 sentence max). No other text.`;
 
-function buildUserPrompt(facts: Array<{ id: string; text: string }>, narrativeText: string): string {
+function buildUserPrompt(
+  facts: Array<{ id: string; text: string }>,
+  narrativeText: string
+): string {
   const factLines = facts.map((f, i) => `[${i + 1}] ${f.id}: ${f.text}`);
-  return `=== FACTS TO ASSESS ===\n${factLines.join('\n')}\n\n=== NARRATIVE TEXT ===\n${narrativeText}`;
+  return `=== FACTS TO ASSESS ===\n${factLines.join("\n")}\n\n=== NARRATIVE TEXT ===\n${narrativeText}`;
 }
 
-const VALID_RATINGS = new Set<FactCoverageRating>(['missing', 'mentioned', 'prevalent', 'integral']);
+const VALID_RATINGS = new Set<FactCoverageRating>([
+  "missing",
+  "mentioned",
+  "prevalent",
+  "integral",
+]);
 
 // ============================================================================
 // Task Handler
 // ============================================================================
 
 export const factCoverageTask = {
-  type: 'factCoverage' as const,
+  type: "factCoverage" as const,
 
   async execute(task: WorkerTask, context: TaskContext): Promise<TaskResult> {
-    const callConfig = getCallConfig(context.config, 'chronicle.factCoverage');
+    const callConfig = getCallConfig(context.config, "chronicle.factCoverage");
 
     let payload: FactCoveragePayload;
     try {
       payload = JSON.parse(task.prompt);
     } catch {
-      return { success: false, error: 'Invalid fact coverage payload' };
+      return { success: false, error: "Invalid fact coverage payload" };
     }
 
     if (!payload.chronicleId || !payload.narrativeText || !payload.facts?.length) {
-      return { success: false, error: 'Missing required fields in fact coverage payload' };
+      return { success: false, error: "Missing required fields in fact coverage payload" };
     }
 
     const userPrompt = buildUserPrompt(payload.facts, payload.narrativeText);
 
     const { result, usage } = await runTextCall({
       llmClient: context.llmClient,
-      callType: 'chronicle.factCoverage',
+      callType: "chronicle.factCoverage",
       callConfig,
       systemPrompt: SYSTEM_PROMPT,
       prompt: userPrompt,
@@ -84,20 +96,23 @@ export const factCoverageTask = {
 
     // Parse the JSON response
     const responseText = result.text.trim();
-    const jsonText = responseText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    const jsonText = responseText.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
 
     let rawEntries: Array<{ factId: string; rating: string; evidence: string }>;
     try {
       rawEntries = JSON.parse(jsonText);
-      if (!Array.isArray(rawEntries)) throw new Error('Expected array');
+      if (!Array.isArray(rawEntries)) throw new Error("Expected array");
     } catch {
-      return { success: false, error: `Failed to parse LLM response as JSON: ${responseText.slice(0, 200)}` };
+      return {
+        success: false,
+        error: `Failed to parse LLM response as JSON: ${responseText.slice(0, 200)}`,
+      };
     }
 
     // Load chronicle to check which facts were in the faceted set
     const chronicle = await getChronicle(payload.chronicleId);
     const facetedIds = new Set(
-      (chronicle?.perspectiveSynthesis?.facets ?? []).map((f: { factId: string }) => f.factId),
+      (chronicle?.perspectiveSynthesis?.facets ?? []).map((f: { factId: string }) => f.factId)
     );
 
     // Build fact lookup for text
@@ -108,9 +123,9 @@ export const factCoverageTask = {
       .filter((e) => e.factId && VALID_RATINGS.has(e.rating as FactCoverageRating))
       .map((e) => ({
         factId: e.factId,
-        factText: factTextMap.get(e.factId) ?? '',
+        factText: factTextMap.get(e.factId) ?? "",
         rating: e.rating as FactCoverageRating,
-        evidence: e.evidence || '',
+        evidence: e.evidence || "",
         wasFaceted: facetedIds.has(e.factId),
       }));
 

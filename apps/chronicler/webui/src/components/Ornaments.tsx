@@ -13,9 +13,9 @@
  * Gold: #c49a5c  |  Frost: #8ab4c4
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import parchmentSrc from '../assets/textures/parchment.jpg';
-import vellumSrc from '../assets/textures/vellum.jpg';
+import React, { useState, useEffect, useCallback } from "react";
+import parchmentSrc from "../assets/textures/parchment.jpg";
+import vellumSrc from "../assets/textures/vellum.jpg";
 
 /* =========================================
    Image processing pipeline
@@ -28,17 +28,21 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = reject;
-    img.crossOrigin = 'anonymous';
+    img.crossOrigin = "anonymous";
     img.src = src;
   });
 }
 
 /** Draw image scaled to fill a canvas of the given size */
-function drawScaled(img: HTMLImageElement | HTMLCanvasElement, w: number, h: number): HTMLCanvasElement {
-  const c = document.createElement('canvas');
+function drawScaled(
+  img: HTMLImageElement | HTMLCanvasElement,
+  w: number,
+  h: number
+): HTMLCanvasElement {
+  const c = document.createElement("canvas");
   c.width = w;
   c.height = h;
-  const ctx = c.getContext('2d')!;
+  const ctx = c.getContext("2d")!;
   ctx.drawImage(img, 0, 0, w, h);
   return c;
 }
@@ -48,10 +52,10 @@ function drawScaled(img: HTMLImageElement | HTMLCanvasElement, w: number, h: num
  * The downscale ratio controls blur strength.
  */
 function blurCanvas(src: HTMLCanvasElement, radius: number): HTMLCanvasElement {
-  const c = document.createElement('canvas');
+  const c = document.createElement("canvas");
   c.width = src.width;
   c.height = src.height;
-  const ctx = c.getContext('2d')!;
+  const ctx = c.getContext("2d")!;
 
   // Downscale factor: smaller = more blur
   const scale = Math.max(0.02, 1 / (radius * 1.5));
@@ -73,22 +77,22 @@ function frequencyBlend(
   parchmentCanvas: HTMLCanvasElement,
   vellumCanvas: HTMLCanvasElement,
   blurRadius: number,
-  strength: number,
+  strength: number
 ): HTMLCanvasElement {
   const w = parchmentCanvas.width;
   const h = parchmentCanvas.height;
 
   // Get pixel data from both sources
-  const pCtx = parchmentCanvas.getContext('2d')!;
+  const pCtx = parchmentCanvas.getContext("2d")!;
   const pData = pCtx.getImageData(0, 0, w, h).data;
 
   // Blur the parchment to extract its low-frequency component
   const blurred = blurCanvas(parchmentCanvas, blurRadius);
-  const bData = blurred.getContext('2d')!.getImageData(0, 0, w, h).data;
+  const bData = blurred.getContext("2d")!.getImageData(0, 0, w, h).data;
 
   // Get vellum data (scaled to same size)
   const vCanvas = drawScaled(vellumCanvas, w, h);
-  const vCtx = vCanvas.getContext('2d')!;
+  const vCtx = vCanvas.getContext("2d")!;
   const vImgData = vCtx.getImageData(0, 0, w, h);
   const vData = vImgData.data;
 
@@ -111,10 +115,10 @@ function frequencyBlend(
 function mirrorTile(src: HTMLCanvasElement): HTMLCanvasElement {
   const w = src.width;
   const h = src.height;
-  const c = document.createElement('canvas');
+  const c = document.createElement("canvas");
   c.width = w * 2;
   c.height = h * 2;
-  const ctx = c.getContext('2d')!;
+  const ctx = c.getContext("2d")!;
 
   // Top-left: original
   ctx.drawImage(src, 0, 0);
@@ -148,7 +152,7 @@ function canvasToObjectURL(canvas: HTMLCanvasElement): Promise<string> {
   return new Promise((resolve) => {
     canvas.toBlob((blob) => {
       resolve(URL.createObjectURL(blob!));
-    }, 'image/png');
+    }, "image/png");
   });
 }
 
@@ -157,8 +161,8 @@ function canvasToObjectURL(canvas: HTMLCanvasElement): Promise<string> {
    ========================================= */
 
 export interface ParchmentConfig {
-  opacity: number;        // overall texture visibility (0–1)
-  blurRadius: number;     // frequency split point for blending (2–20)
+  opacity: number; // overall texture visibility (0–1)
+  blurRadius: number; // frequency split point for blending (2–20)
   detailStrength: number; // how much parchment fiber detail to add (0–3)
 }
 
@@ -175,7 +179,11 @@ export const DEFAULT_PARCHMENT_CONFIG: ParchmentConfig = {
    as a repeating background with soft-light blend.
    ========================================= */
 
-export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG, prebakedUrl }: {
+export function ParchmentTexture({
+  className,
+  config = DEFAULT_PARCHMENT_CONFIG,
+  prebakedUrl,
+}: {
   className?: string;
   config?: ParchmentConfig;
   /** Pre-baked tile URL — skips runtime canvas pipeline when provided */
@@ -218,12 +226,14 @@ export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG,
           setTextureUrl(url);
         }
       } catch (err) {
-        console.error('[ParchmentTexture] Failed to generate:', err);
+        console.error("[ParchmentTexture] Failed to generate:", err);
       }
     }
 
     generate();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prebakedUrl, genKey]);
 
@@ -255,11 +265,11 @@ export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG,
       className={className}
       style={{
         backgroundImage: `url(${textureUrl})`,
-        backgroundRepeat: 'repeat',
+        backgroundRepeat: "repeat",
         backgroundSize: `${tileSize}px ${tileSize}px`,
         opacity: config.opacity,
-        mixBlendMode: 'soft-light',
-        pointerEvents: 'none',
+        mixBlendMode: "soft-light",
+        pointerEvents: "none",
       }}
     />
   );
@@ -271,63 +281,160 @@ export function ParchmentTexture({ className, config = DEFAULT_PARCHMENT_CONFIG,
    ========================================= */
 
 const PANEL: React.CSSProperties = {
-  position: 'absolute', top: 8, right: 8, zIndex: 100,
-  background: 'rgba(20,16,12,0.95)', border: '1px solid #c49a5c',
-  borderRadius: 8, padding: 12, width: 300, maxHeight: '80vh', overflowY: 'auto',
-  fontFamily: 'system-ui, sans-serif', fontSize: 11, color: '#e8dcc8',
+  position: "absolute",
+  top: 8,
+  right: 8,
+  zIndex: 100,
+  background: "rgba(20,16,12,0.95)",
+  border: "1px solid #c49a5c",
+  borderRadius: 8,
+  padding: 12,
+  width: 300,
+  maxHeight: "80vh",
+  overflowY: "auto",
+  fontFamily: "system-ui, sans-serif",
+  fontSize: 11,
+  color: "#e8dcc8",
 };
 const BTN: React.CSSProperties = {
-  position: 'absolute', top: 8, right: 8, zIndex: 100,
-  background: 'rgba(20,16,12,0.8)', border: '1px solid #c49a5c',
-  borderRadius: 6, padding: '4px 10px', cursor: 'pointer',
-  fontFamily: 'system-ui, sans-serif', fontSize: 11, color: '#c49a5c',
+  position: "absolute",
+  top: 8,
+  right: 8,
+  zIndex: 100,
+  background: "rgba(20,16,12,0.8)",
+  border: "1px solid #c49a5c",
+  borderRadius: 6,
+  padding: "4px 10px",
+  cursor: "pointer",
+  fontFamily: "system-ui, sans-serif",
+  fontSize: 11,
+  color: "#c49a5c",
 };
-const SLIDER_ROW: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 };
-const LABEL_S: React.CSSProperties = { width: 85, flexShrink: 0, color: '#c4b99a' };
-const VAL_S: React.CSSProperties = { width: 42, textAlign: 'right', color: '#8a7d6b', flexShrink: 0 };
+const SLIDER_ROW: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  marginBottom: 6,
+};
+const LABEL_S: React.CSSProperties = { width: 85, flexShrink: 0, color: "#c4b99a" };
+const VAL_S: React.CSSProperties = {
+  width: 42,
+  textAlign: "right",
+  color: "#8a7d6b",
+  flexShrink: 0,
+};
 
-function Slider({ label, value, min, max, step, onChange }: {
-  label: string; value: number; min: number; max: number; step: number;
+function Slider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
   onChange: (v: number) => void;
 }) {
   return (
     <div style={SLIDER_ROW}>
       <span style={LABEL_S}>{label}</span>
-      <input type="range" min={min} max={max} step={step} value={value}
-        onChange={e => onChange(parseFloat(e.target.value))}
-        style={{ flex: 1, accentColor: '#c49a5c' }} />
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        style={{ flex: 1, accentColor: "#c49a5c" }}
+      />
       <span style={VAL_S}>{step >= 1 ? value : value.toFixed(2)}</span>
     </div>
   );
 }
 
-export function ParchmentDebugPanel({ config, onChange }: {
+export function ParchmentDebugPanel({
+  config,
+  onChange,
+}: {
   config: ParchmentConfig;
   onChange: (c: ParchmentConfig) => void;
 }) {
   const [open, setOpen] = useState(false);
 
-  const set = useCallback((key: keyof ParchmentConfig, val: number) => {
-    onChange({ ...config, [key]: val });
-  }, [config, onChange]);
+  const set = useCallback(
+    (key: keyof ParchmentConfig, val: number) => {
+      onChange({ ...config, [key]: val });
+    },
+    [config, onChange]
+  );
 
-  if (!open) return <button style={BTN} onClick={() => setOpen(true)}>Parchment Config</button>;
+  if (!open)
+    return (
+      <button style={BTN} onClick={() => setOpen(true)}>
+        Parchment Config
+      </button>
+    );
 
   return (
     <div style={PANEL}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-        <strong style={{ color: '#c49a5c' }}>Parchment Config</strong>
-        <button onClick={() => setOpen(false)}
-          style={{ background: 'none', border: 'none', color: '#c49a5c', cursor: 'pointer', fontSize: 14 }}>✕</button>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+        <strong style={{ color: "#c49a5c" }}>Parchment Config</strong>
+        <button
+          onClick={() => setOpen(false)}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#c49a5c",
+            cursor: "pointer",
+            fontSize: 14,
+          }}
+        >
+          ✕
+        </button>
       </div>
 
-      <Slider label="Opacity" value={config.opacity} min={0} max={1} step={0.01} onChange={v => set('opacity', v)} />
-      <Slider label="Blur radius" value={config.blurRadius} min={2} max={20} step={1} onChange={v => set('blurRadius', v)} />
-      <Slider label="Detail" value={config.detailStrength} min={0} max={3} step={0.1} onChange={v => set('detailStrength', v)} />
+      <Slider
+        label="Opacity"
+        value={config.opacity}
+        min={0}
+        max={1}
+        step={0.01}
+        onChange={(v) => set("opacity", v)}
+      />
+      <Slider
+        label="Blur radius"
+        value={config.blurRadius}
+        min={2}
+        max={20}
+        step={1}
+        onChange={(v) => set("blurRadius", v)}
+      />
+      <Slider
+        label="Detail"
+        value={config.detailStrength}
+        min={0}
+        max={3}
+        step={0.1}
+        onChange={(v) => set("detailStrength", v)}
+      />
 
-      <button onClick={() => onChange({ ...DEFAULT_PARCHMENT_CONFIG })}
-        style={{ background: 'none', border: '1px solid rgba(196,164,112,0.3)', borderRadius: 4,
-          padding: '3px 10px', color: '#c4b99a', cursor: 'pointer', fontSize: 10, marginTop: 6 }}>
+      <button
+        onClick={() => onChange({ ...DEFAULT_PARCHMENT_CONFIG })}
+        style={{
+          background: "none",
+          border: "1px solid rgba(196,164,112,0.3)",
+          borderRadius: 4,
+          padding: "3px 10px",
+          color: "#c4b99a",
+          cursor: "pointer",
+          fontSize: 10,
+          marginTop: 6,
+        }}
+      >
         Reset Defaults
       </button>
     </div>
@@ -343,36 +450,46 @@ export function ParchmentDebugPanel({ config, onChange }: {
 
 function ScrollCorner() {
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 120 120"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg aria-hidden="true" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Main gold L-curve */}
       <path
         d="M6,115 L6,35 C6,16 16,6 35,6 L115,6"
-        stroke="#d4aa6c" strokeWidth="2.5" opacity="0.75" strokeLinecap="round"
+        stroke="#d4aa6c"
+        strokeWidth="2.5"
+        opacity="0.75"
+        strokeLinecap="round"
       />
       {/* Corner scroll — bold curve at the bend */}
       <path
         d="M6,35 C8,20 20,8 35,6"
-        stroke="#d4aa6c" strokeWidth="4" opacity="0.8" strokeLinecap="round"
+        stroke="#d4aa6c"
+        strokeWidth="4"
+        opacity="0.8"
+        strokeLinecap="round"
       />
       {/* Inner curl — decorative spiral at corner */}
       <path
         d="M22,42 C24,28 28,22 42,20 C34,25 28,31 26,40"
-        stroke="#d4aa6c" strokeWidth="2" opacity="0.65" strokeLinecap="round"
+        stroke="#d4aa6c"
+        strokeWidth="2"
+        opacity="0.65"
+        strokeLinecap="round"
       />
       {/* Secondary inner curve */}
       <path
         d="M14,90 L14,48 C14,28 28,14 48,14 L90,14"
-        stroke="#d4aa6c" strokeWidth="1.2" opacity="0.4" strokeLinecap="round"
+        stroke="#d4aa6c"
+        strokeWidth="1.2"
+        opacity="0.4"
+        strokeLinecap="round"
       />
       {/* Frost accent tendril */}
       <path
         d="M10,100 C10,55 18,32 42,16 L78,11"
-        stroke="#a8ccd8" strokeWidth="1.4" opacity="0.45" strokeLinecap="round"
+        stroke="#a8ccd8"
+        strokeWidth="1.4"
+        opacity="0.45"
+        strokeLinecap="round"
       />
       {/* Corner diamond */}
       <path d="M30 30 L35 23 L40 30 L35 37 Z" fill="#d4aa6c" opacity="0.7" />
@@ -388,28 +505,32 @@ function ScrollCorner() {
 
 export function PageFrame({ className }: { className?: string }) {
   const base: React.CSSProperties = {
-    position: 'absolute',
+    position: "absolute",
     width: 140,
     height: 140,
-    pointerEvents: 'none',
+    pointerEvents: "none",
   };
 
   return (
-    <div aria-hidden="true" className={className} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+    <div
+      aria-hidden="true"
+      className={className}
+      style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}
+    >
       {/* Top-left */}
       <div style={{ ...base, top: 0, left: 0 }}>
         <ScrollCorner />
       </div>
       {/* Top-right */}
-      <div style={{ ...base, top: 0, right: 0, transform: 'scaleX(-1)' }}>
+      <div style={{ ...base, top: 0, right: 0, transform: "scaleX(-1)" }}>
         <ScrollCorner />
       </div>
       {/* Bottom-left */}
-      <div style={{ ...base, bottom: 0, left: 0, transform: 'scaleY(-1)' }}>
+      <div style={{ ...base, bottom: 0, left: 0, transform: "scaleY(-1)" }}>
         <ScrollCorner />
       </div>
       {/* Bottom-right */}
-      <div style={{ ...base, bottom: 0, right: 0, transform: 'scale(-1)' }}>
+      <div style={{ ...base, bottom: 0, right: 0, transform: "scale(-1)" }}>
         <ScrollCorner />
       </div>
     </div>
@@ -483,10 +604,10 @@ export function SectionDivider({ className }: { className?: string }) {
    =================== */
 
 export function FrostEdge({
-  position = 'top',
+  position = "top",
   className,
 }: {
-  position?: 'top' | 'bottom';
+  position?: "top" | "bottom";
   className?: string;
 }) {
   return (
@@ -497,14 +618,10 @@ export function FrostEdge({
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="none"
-      style={position === 'bottom' ? { transform: 'scaleY(-1)' } : undefined}
+      style={position === "bottom" ? { transform: "scaleY(-1)" } : undefined}
     >
       {/* Frost background band — visible blue-tinted bar */}
-      <rect
-        x="0" y="6" width="260" height="6"
-        fill="#8ab4c4"
-        opacity="0.12"
-      />
+      <rect x="0" y="6" width="260" height="6" fill="#8ab4c4" opacity="0.12" />
       {/* Frost gradient fade at the bar edge */}
       <defs>
         <linearGradient id={`frost-fade-${position}`} x1="0" y1="0" x2="0" y2="1">

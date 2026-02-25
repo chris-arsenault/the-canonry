@@ -4,23 +4,23 @@
  * Shows type icon, name (editable for folders), word count, and completion status.
  */
 
-import type { NodeRendererProps } from 'react-arborist';
-import type { ContentTreeNode } from '../../lib/preprint/prePrintTypes';
+import type { NodeRendererProps } from "react-arborist";
+import type { ContentTreeNode } from "../../lib/preprint/prePrintTypes";
 
 const TYPE_ICONS: Record<string, string> = {
-  folder: '\u{1F4C1}',
-  entity: '{}',
-  chronicle: '\u2016',
-  static_page: '[]',
-  era_narrative: '\u25C6',
+  folder: "\u{1F4C1}",
+  entity: "{}",
+  chronicle: "\u2016",
+  static_page: "[]",
+  era_narrative: "\u25C6",
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  folder: 'Folder',
-  entity: 'Entity',
-  chronicle: 'Chronicle',
-  static_page: 'Page',
-  era_narrative: 'Era Narrative',
+  folder: "Folder",
+  entity: "Entity",
+  chronicle: "Chronicle",
+  static_page: "Page",
+  era_narrative: "Era Narrative",
 };
 
 interface NodeMeta {
@@ -41,17 +41,17 @@ export default function TreeNodeRenderer({
 }: NodeRendererProps<TreeNodeData>) {
   const data = node.data;
   const meta = data.meta;
-  const isFolder = data.type === 'folder';
+  const isFolder = data.type === "folder";
 
   return (
     <div
-      className={`preprint-tree-node ${node.isSelected ? 'selected' : ''} ${isFolder ? 'folder' : 'content'}`}
+      className={`preprint-tree-node ${node.isSelected ? "selected" : ""} ${isFolder ? "folder" : "content"}`}
       style={style}
       ref={dragHandle}
       onClick={() => node.isInternal && node.toggle()}
     >
       <span className="preprint-tree-node-icon" title={TYPE_LABELS[data.type] || data.type}>
-        {isFolder ? (node.isOpen ? '\u{1F4C2}' : '\u{1F4C1}') : TYPE_ICONS[data.type] || '?'}
+        {isFolder ? (node.isOpen ? "\u{1F4C2}" : "\u{1F4C1}") : TYPE_ICONS[data.type] || "?"}
       </span>
 
       {node.isEditing ? (
@@ -62,8 +62,8 @@ export default function TreeNodeRenderer({
           autoFocus
           onBlur={() => node.reset()}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') node.submit((e.target as HTMLInputElement).value);
-            if (e.key === 'Escape') node.reset();
+            if (e.key === "Enter") node.submit((e.target as HTMLInputElement).value);
+            if (e.key === "Escape") node.reset();
           }}
         />
       ) : (
@@ -88,21 +88,25 @@ export default function TreeNodeRenderer({
             className="preprint-tree-node-status"
             title={
               meta.hasDescription && meta.hasImage
-                ? 'Complete'
+                ? "Complete"
                 : meta.hasDescription
-                  ? 'Missing image'
-                  : 'Missing content'
+                  ? "Missing image"
+                  : "Missing content"
             }
             style={{
               color:
                 meta.hasDescription && meta.hasImage
-                  ? '#22c55e'
+                  ? "#22c55e"
                   : meta.hasDescription
-                    ? '#f59e0b'
-                    : '#ef4444',
+                    ? "#f59e0b"
+                    : "#ef4444",
             }}
           >
-            {meta.hasDescription && meta.hasImage ? '\u25CF' : meta.hasDescription ? '\u25D2' : '\u25CB'}
+            {meta.hasDescription && meta.hasImage
+              ? "\u25CF"
+              : meta.hasDescription
+                ? "\u25D2"
+                : "\u25CB"}
           </span>
         </span>
       )}

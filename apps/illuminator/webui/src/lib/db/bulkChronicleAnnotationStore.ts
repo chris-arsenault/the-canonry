@@ -10,18 +10,19 @@
  * Same pattern as toneRankingStore.
  */
 
-import { create } from 'zustand';
-import type { ChronicleNavItem } from './chronicleNav';
-import type { HistorianTone } from '../historianTypes';
+import { create } from "zustand";
+import type { ChronicleNavItem } from "./chronicleNav";
+import type { HistorianTone } from "../historianTypes";
+import { createHistorianRun, generateHistorianRunId } from "./historianRepository";
+import { updateChronicleHistorianNotes } from "./chronicleRepository";
+import { useChronicleStore } from "./chronicleStore";
+import { buildChronicleReviewContext } from "../historianContextBuilders";
+import type { CorpusVoiceDigestCache, ReinforcementCache } from "../historianContextBuilders";
 import {
-  createHistorianRun,
-  generateHistorianRunId,
-} from './historianRepository';
-import { updateChronicleHistorianNotes } from './chronicleRepository';
-import { useChronicleStore } from './chronicleStore';
-import { buildChronicleReviewContext } from '../historianContextBuilders';
-import type { CorpusVoiceDigestCache, ReinforcementCache } from '../historianContextBuilders';
-import { dispatchReviewTask, pollReviewCompletion, extractReinforcedFactIds } from './historianRunHelpers';
+  dispatchReviewTask,
+  pollReviewCompletion,
+  extractReinforcedFactIds,
+} from "./historianRunHelpers";
 
 // ============================================================================
 // Types
@@ -35,8 +36,8 @@ export interface BulkAnnotationChronicleSummary {
 }
 
 export interface BulkAnnotationProgress {
-  status: 'idle' | 'confirming' | 'running' | 'complete' | 'cancelled' | 'failed';
-  operation: 'run' | 'clear';
+  status: "idle" | "confirming" | "running" | "complete" | "cancelled" | "failed";
+  operation: "run" | "clear";
   chronicles: BulkAnnotationChronicleSummary[];
   totalChronicles: number;
   processedChronicles: number;
@@ -48,12 +49,12 @@ export interface BulkAnnotationProgress {
 }
 
 const IDLE_PROGRESS: BulkAnnotationProgress = {
-  status: 'idle',
-  operation: 'run',
+  status: "idle",
+  operation: "run",
   chronicles: [],
   totalChronicles: 0,
   processedChronicles: 0,
-  currentTitle: '',
+  currentTitle: "",
   totalCost: 0,
   failedChronicles: [],
 };
@@ -65,7 +66,7 @@ const IDLE_PROGRESS: BulkAnnotationProgress = {
 let activeFlag = false;
 let cancelledFlag = false;
 let scanData: {
-  operation: 'run' | 'clear';
+  operation: "run" | "clear";
   chronicles: BulkAnnotationChronicleSummary[];
 } | null = null;
 
@@ -81,7 +82,7 @@ const isCancelled = () => cancelledFlag;
 
 interface BulkChronicleAnnotationStore {
   progress: BulkAnnotationProgress;
-  prepareAnnotation: (operation: 'run' | 'clear', chronicleItems: ChronicleNavItem[]) => void;
+  prepareAnnotation: (operation: "run" | "clear", chronicleItems: ChronicleNavItem[]) => void;
   confirmAnnotation: () => void;
   cancelAnnotation: () => void;
   closeAnnotation: () => void;
@@ -95,13 +96,13 @@ export const useBulkChronicleAnnotationStore = create<BulkChronicleAnnotationSto
 
     let eligible: BulkAnnotationChronicleSummary[];
 
-    if (operation === 'run') {
+    if (operation === "run") {
       // Run: complete chronicles with finalContent
       eligible = chronicleItems
-        .filter((c) => c.status === 'complete')
+        .filter((c) => c.status === "complete")
         .map((c) => ({
           chronicleId: c.chronicleId,
-          title: c.title || c.name || 'Untitled',
+          title: c.title || c.name || "Untitled",
           assignedTone: c.assignedTone,
           hasNotes: c.historianNoteCount > 0,
         }));
@@ -111,7 +112,7 @@ export const useBulkChronicleAnnotationStore = create<BulkChronicleAnnotationSto
         .filter((c) => c.historianNoteCount > 0)
         .map((c) => ({
           chronicleId: c.chronicleId,
-          title: c.title || c.name || 'Untitled',
+          title: c.title || c.name || "Untitled",
           assignedTone: c.assignedTone,
           hasNotes: true,
         }));
@@ -123,12 +124,12 @@ export const useBulkChronicleAnnotationStore = create<BulkChronicleAnnotationSto
 
     set({
       progress: {
-        status: 'confirming',
+        status: "confirming",
         operation,
         chronicles: eligible,
         totalChronicles: eligible.length,
         processedChronicles: 0,
-        currentTitle: '',
+        currentTitle: "",
         totalCost: 0,
         failedChronicles: [],
       },
@@ -142,7 +143,7 @@ export const useBulkChronicleAnnotationStore = create<BulkChronicleAnnotationSto
     cancelledFlag = false;
     const { operation, chronicles } = scanData;
 
-    set((s) => ({ progress: { ...s.progress, status: 'running' } }));
+    set((s) => ({ progress: { ...s.progress, status: "running" } }));
 
     (async () => {
       try {
@@ -151,13 +152,16 @@ export const useBulkChronicleAnnotationStore = create<BulkChronicleAnnotationSto
         const failedChronicles: Array<{ chronicleId: string; title: string; error: string }> = [];
 
         // Corpus strength cache shared across all chronicles in this run
-        const corpusStrengthCache = { runId: null as string | null, strength: null as Map<string, number> | null };
+        const corpusStrengthCache = {
+          runId: null as string | null,
+          strength: null as Map<string, number> | null,
+        };
         // Voice digest cache — annotation quality tracking, computed once per batch
         const voiceDigestCache: CorpusVoiceDigestCache = { runId: null, digest: null };
         // Reinforcement cache — dynamic dampening for fact guidance
         const reinforcementCache: ReinforcementCache = { runId: null, data: null };
 
-        if (operation === 'clear') {
+        if (operation === "clear") {
           // Clear all historian notes
           for (const chron of chronicles) {
             if (cancelledFlag) break;
@@ -193,7 +197,7 @@ export const useBulkChronicleAnnotationStore = create<BulkChronicleAnnotationSto
           for (const chron of chronicles) {
             if (cancelledFlag) break;
 
-            const tone = chron.assignedTone || 'weary';
+            const tone = chron.assignedTone || "weary";
             set((s) => ({
               progress: { ...s.progress, currentTitle: chron.title, currentTone: tone },
             }));
@@ -204,7 +208,7 @@ export const useBulkChronicleAnnotationStore = create<BulkChronicleAnnotationSto
                 tone,
                 corpusStrengthCache,
                 voiceDigestCache,
-                reinforcementCache,
+                reinforcementCache
               );
               if (!config) {
                 globalProcessed++;
@@ -219,9 +223,9 @@ export const useBulkChronicleAnnotationStore = create<BulkChronicleAnnotationSto
                 runId,
                 projectId: config.projectId,
                 simulationRunId: config.simulationRunId,
-                status: 'pending',
+                status: "pending",
                 tone: config.tone as HistorianTone,
-                targetType: 'chronicle',
+                targetType: "chronicle",
                 targetId: config.targetId,
                 targetName: config.targetName,
                 sourceText: config.sourceText,
@@ -249,7 +253,7 @@ export const useBulkChronicleAnnotationStore = create<BulkChronicleAnnotationSto
                   chron.chronicleId,
                   result.notes,
                   result.prompts,
-                  reinforcedFacts,
+                  reinforcedFacts
                 );
                 // Invalidate reinforcement cache so next chronicle sees updated counts
                 reinforcementCache.runId = null;
@@ -266,7 +270,6 @@ export const useBulkChronicleAnnotationStore = create<BulkChronicleAnnotationSto
                   failedChronicles: [...failedChronicles],
                 },
               }));
-
             } catch (err) {
               console.error(`[Bulk Chronicle Annotation] ${chron.title} failed:`, err);
               globalProcessed++;
@@ -291,17 +294,17 @@ export const useBulkChronicleAnnotationStore = create<BulkChronicleAnnotationSto
         await useChronicleStore.getState().refreshAll();
 
         if (cancelledFlag) {
-          set((s) => ({ progress: { ...s.progress, status: 'cancelled', currentTitle: '' } }));
+          set((s) => ({ progress: { ...s.progress, status: "cancelled", currentTitle: "" } }));
         } else {
-          set((s) => ({ progress: { ...s.progress, status: 'complete', currentTitle: '' } }));
+          set((s) => ({ progress: { ...s.progress, status: "complete", currentTitle: "" } }));
         }
       } catch (err) {
-        console.error('[Bulk Chronicle Annotation] Fatal error:', err);
+        console.error("[Bulk Chronicle Annotation] Fatal error:", err);
         set((s) => ({
           progress: {
             ...s.progress,
-            status: 'failed',
-            currentTitle: '',
+            status: "failed",
+            currentTitle: "",
             error: err instanceof Error ? err.message : String(err),
           },
         }));
@@ -316,7 +319,7 @@ export const useBulkChronicleAnnotationStore = create<BulkChronicleAnnotationSto
     cancelledFlag = true;
     scanData = null;
     set((s) => {
-      if (s.progress.status === 'confirming') return { progress: IDLE_PROGRESS };
+      if (s.progress.status === "confirming") return { progress: IDLE_PROGRESS };
       return s; // running state will pick up cancellation via cancelledFlag
     });
   },

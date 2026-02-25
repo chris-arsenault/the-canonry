@@ -9,9 +9,9 @@
  * - Continue/cancel/apply controls
  */
 
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { diffWords } from 'diff';
-import { resolveAnchorPhrase } from '../lib/fuzzyAnchor';
+import { useState, useRef, useEffect, useMemo } from "react";
+import { diffWords } from "diff";
+import { resolveAnchorPhrase } from "../lib/fuzzyAnchor";
 
 // ============================================================================
 // Inline Diff View (word-level, git-style)
@@ -20,55 +20,65 @@ import { resolveAnchorPhrase } from '../lib/fuzzyAnchor';
 function InlineDiff({ current, proposed, label }) {
   if (!proposed || proposed === current) return null;
 
-  const changes = diffWords(current || '', proposed);
+  const changes = diffWords(current || "", proposed);
 
   return (
-    <div style={{ marginBottom: '10px' }}>
-      <div style={{
-        fontSize: '10px',
-        fontWeight: 600,
-        color: 'var(--text-muted)',
-        marginBottom: '6px',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px',
-      }}>
+    <div style={{ marginBottom: "10px" }}>
+      <div
+        style={{
+          fontSize: "10px",
+          fontWeight: 600,
+          color: "var(--text-muted)",
+          marginBottom: "6px",
+          textTransform: "uppercase",
+          letterSpacing: "0.5px",
+        }}
+      >
         {label}
       </div>
-      <div style={{
-        padding: '10px 12px',
-        background: 'var(--bg-tertiary)',
-        borderRadius: '4px',
-        border: '1px solid var(--border-color)',
-        fontSize: '11px',
-        lineHeight: '1.8',
-        maxHeight: '300px',
-        overflow: 'auto',
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
-      }}>
+      <div
+        style={{
+          padding: "10px 12px",
+          background: "var(--bg-tertiary)",
+          borderRadius: "4px",
+          border: "1px solid var(--border-color)",
+          fontSize: "11px",
+          lineHeight: "1.8",
+          maxHeight: "300px",
+          overflow: "auto",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}
+      >
         {changes.map((part, i) => {
           if (part.added) {
             return (
-              <span key={i} style={{
-                background: 'rgba(34, 197, 94, 0.2)',
-                color: 'var(--text-primary)',
-                borderRadius: '2px',
-                padding: '0 1px',
-                textDecoration: 'none',
-              }}>
+              <span
+                key={i}
+                style={{
+                  background: "rgba(34, 197, 94, 0.2)",
+                  color: "var(--text-primary)",
+                  borderRadius: "2px",
+                  padding: "0 1px",
+                  textDecoration: "none",
+                }}
+              >
                 {part.value}
               </span>
             );
           }
           if (part.removed) {
             return (
-              <span key={i} style={{
-                background: 'rgba(239, 68, 68, 0.2)',
-                color: 'var(--text-secondary)',
-                borderRadius: '2px',
-                padding: '0 1px',
-                textDecoration: 'line-through',
-              }}>
+              <span
+                key={i}
+                style={{
+                  background: "rgba(239, 68, 68, 0.2)",
+                  color: "var(--text-secondary)",
+                  borderRadius: "2px",
+                  padding: "0 1px",
+                  textDecoration: "line-through",
+                }}
+              >
                 {part.value}
               </span>
             );
@@ -90,44 +100,48 @@ function InlineDiff({ current, proposed, label }) {
 
 function AnchorPhraseEditor({ patch, onUpdate }) {
   const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(patch.anchorPhrase || '');
+  const [value, setValue] = useState(patch.anchorPhrase || "");
 
   // Sync when patch updates externally
   useEffect(() => {
-    setValue(patch.anchorPhrase || '');
+    setValue(patch.anchorPhrase || "");
   }, [patch.anchorPhrase]);
 
   if (!patch.anchorPhrase && !editing) return null;
 
-  const phraseInDescription = patch.anchorPhrase && patch.description &&
+  const phraseInDescription =
+    patch.anchorPhrase &&
+    patch.description &&
     resolveAnchorPhrase(patch.anchorPhrase, patch.description) !== null;
 
   if (editing) {
     return (
-      <div style={{ marginBottom: '10px' }}>
-        <div style={{
-          fontSize: '10px',
-          fontWeight: 600,
-          color: 'var(--text-muted)',
-          marginBottom: '4px',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
-        }}>
+      <div style={{ marginBottom: "10px" }}>
+        <div
+          style={{
+            fontSize: "10px",
+            fontWeight: 600,
+            color: "var(--text-muted)",
+            marginBottom: "4px",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
           Anchor Phrase
         </div>
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
           <input
             type="text"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             style={{
               flex: 1,
-              padding: '4px 8px',
-              fontSize: '11px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '4px',
-              background: 'var(--bg-tertiary)',
-              color: 'var(--text-primary)',
+              padding: "4px 8px",
+              fontSize: "11px",
+              border: "1px solid var(--border-color)",
+              borderRadius: "4px",
+              background: "var(--bg-tertiary)",
+              color: "var(--text-primary)",
             }}
           />
           <button
@@ -136,30 +150,30 @@ function AnchorPhraseEditor({ patch, onUpdate }) {
               setEditing(false);
             }}
             style={{
-              padding: '3px 8px',
-              fontSize: '10px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '4px',
-              background: 'var(--bg-tertiary)',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
+              padding: "3px 8px",
+              fontSize: "10px",
+              border: "1px solid var(--border-color)",
+              borderRadius: "4px",
+              background: "var(--bg-tertiary)",
+              color: "var(--text-primary)",
+              cursor: "pointer",
             }}
           >
             Save
           </button>
           <button
             onClick={() => {
-              setValue(patch.anchorPhrase || '');
+              setValue(patch.anchorPhrase || "");
               setEditing(false);
             }}
             style={{
-              padding: '3px 8px',
-              fontSize: '10px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '4px',
-              background: 'var(--bg-tertiary)',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
+              padding: "3px 8px",
+              fontSize: "10px",
+              border: "1px solid var(--border-color)",
+              borderRadius: "4px",
+              background: "var(--bg-tertiary)",
+              color: "var(--text-muted)",
+              cursor: "pointer",
             }}
           >
             Cancel
@@ -170,49 +184,55 @@ function AnchorPhraseEditor({ patch, onUpdate }) {
   }
 
   return (
-    <div style={{ marginBottom: '10px' }}>
-      <div style={{
-        fontSize: '10px',
-        fontWeight: 600,
-        color: 'var(--text-muted)',
-        marginBottom: '4px',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px',
-      }}>
+    <div style={{ marginBottom: "10px" }}>
+      <div
+        style={{
+          fontSize: "10px",
+          fontWeight: 600,
+          color: "var(--text-muted)",
+          marginBottom: "4px",
+          textTransform: "uppercase",
+          letterSpacing: "0.5px",
+        }}
+      >
         Anchor Phrase
         {!phraseInDescription && (
-          <span style={{ color: 'var(--warning, #f59e0b)', marginLeft: '6px', fontWeight: 400 }}>
+          <span style={{ color: "var(--warning, #f59e0b)", marginLeft: "6px", fontWeight: 400 }}>
             not found in description
           </span>
         )}
       </div>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '4px 8px',
-        background: 'var(--bg-tertiary)',
-        borderRadius: '4px',
-        border: '1px solid var(--border-color)',
-        fontSize: '11px',
-      }}>
-        <span style={{
-          flex: 1,
-          fontStyle: 'italic',
-          color: phraseInDescription ? 'var(--text-primary)' : 'var(--warning, #f59e0b)',
-        }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "4px 8px",
+          background: "var(--bg-tertiary)",
+          borderRadius: "4px",
+          border: "1px solid var(--border-color)",
+          fontSize: "11px",
+        }}
+      >
+        <span
+          style={{
+            flex: 1,
+            fontStyle: "italic",
+            color: phraseInDescription ? "var(--text-primary)" : "var(--warning, #f59e0b)",
+          }}
+        >
           &ldquo;{patch.anchorPhrase}&rdquo;
         </span>
         <button
           onClick={() => setEditing(true)}
           style={{
-            padding: '2px 6px',
-            fontSize: '9px',
-            border: '1px solid var(--border-color)',
-            borderRadius: '3px',
-            background: 'var(--bg-secondary)',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
+            padding: "2px 6px",
+            fontSize: "9px",
+            border: "1px solid var(--border-color)",
+            borderRadius: "3px",
+            background: "var(--bg-secondary)",
+            color: "var(--text-muted)",
+            cursor: "pointer",
           }}
         >
           Edit
@@ -226,44 +246,52 @@ function AnchorPhraseEditor({ patch, onUpdate }) {
 // Patch Card
 // ============================================================================
 
-function PatchCard({ patch, currentEntity, accepted, onToggle, expanded, onToggleExpand, onUpdateAnchorPhrase, descriptionBaseline }) {
+function PatchCard({
+  patch,
+  currentEntity,
+  accepted,
+  onToggle,
+  expanded,
+  onToggleExpand,
+  onUpdateAnchorPhrase,
+  descriptionBaseline,
+}) {
   const hasSummaryChange = patch.summary && patch.summary !== currentEntity?.summary;
   const baselineDesc = descriptionBaseline ?? currentEntity?.description;
   const hasDescChange = patch.description && patch.description !== baselineDesc;
 
   return (
-    <div style={{
-      background: 'var(--bg-secondary)',
-      borderRadius: '6px',
-      marginBottom: '6px',
-      borderLeft: `3px solid ${accepted !== false ? 'var(--success-color, #22c55e)' : 'var(--text-muted)'}`,
-      opacity: accepted === false ? 0.5 : 1,
-    }}>
+    <div
+      style={{
+        background: "var(--bg-secondary)",
+        borderRadius: "6px",
+        marginBottom: "6px",
+        borderLeft: `3px solid ${accepted !== false ? "var(--success-color, #22c55e)" : "var(--text-muted)"}`,
+        opacity: accepted === false ? 0.5 : 1,
+      }}
+    >
       {/* Header — always visible */}
       <div
         onClick={onToggleExpand}
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '8px 12px',
-          cursor: 'pointer',
-          userSelect: 'none',
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "8px 12px",
+          cursor: "pointer",
+          userSelect: "none",
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            {expanded ? '\u25BC' : '\u25B6'}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+            {expanded ? "\u25BC" : "\u25B6"}
           </span>
-          <span style={{ fontWeight: 600, fontSize: '12px' }}>{patch.entityName}</span>
-          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-            {patch.entityKind}
-          </span>
-          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-            {[
-              hasSummaryChange && 'summary',
-              hasDescChange && 'description',
-            ].filter(Boolean).join(' + ')}
+          <span style={{ fontWeight: 600, fontSize: "12px" }}>{patch.entityName}</span>
+          <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>{patch.entityKind}</span>
+          <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+            {[hasSummaryChange && "summary", hasDescChange && "description"]
+              .filter(Boolean)
+              .join(" + ")}
           </span>
         </div>
         <button
@@ -272,32 +300,32 @@ function PatchCard({ patch, currentEntity, accepted, onToggle, expanded, onToggl
             onToggle(patch.entityId, accepted === false);
           }}
           style={{
-            padding: '2px 8px',
-            fontSize: '10px',
-            borderRadius: '4px',
-            border: '1px solid var(--border-color)',
-            background: accepted !== false ? 'var(--success-color, #22c55e)' : 'var(--bg-tertiary)',
-            color: accepted !== false ? '#fff' : 'var(--text-secondary)',
-            cursor: 'pointer',
+            padding: "2px 8px",
+            fontSize: "10px",
+            borderRadius: "4px",
+            border: "1px solid var(--border-color)",
+            background: accepted !== false ? "var(--success-color, #22c55e)" : "var(--bg-tertiary)",
+            color: accepted !== false ? "#fff" : "var(--text-secondary)",
+            cursor: "pointer",
           }}
         >
-          {accepted !== false ? 'Accepted' : 'Rejected'}
+          {accepted !== false ? "Accepted" : "Rejected"}
         </button>
       </div>
 
       {/* Expanded diff view */}
       {expanded && (
-        <div style={{ padding: '0 12px 10px' }}>
+        <div style={{ padding: "0 12px 10px" }}>
           {hasSummaryChange && (
             <InlineDiff
-              current={currentEntity?.summary || ''}
+              current={currentEntity?.summary || ""}
               proposed={patch.summary}
               label="Summary"
             />
           )}
           {hasDescChange && (
             <InlineDiff
-              current={baselineDesc || ''}
+              current={baselineDesc || ""}
               proposed={patch.description}
               label="Description"
             />
@@ -320,47 +348,49 @@ function buildExportText(allPatches, entityLookup, patchDecisions, descriptionBa
   for (const patch of allPatches) {
     const current = entityLookup.get(patch.entityId);
     const accepted = patchDecisions[patch.entityId] !== false;
-    lines.push(`=== ${patch.entityName} (${patch.entityKind}) [${accepted ? 'ACCEPTED' : 'REJECTED'}] ===`);
-    lines.push('');
+    lines.push(
+      `=== ${patch.entityName} (${patch.entityKind}) [${accepted ? "ACCEPTED" : "REJECTED"}] ===`
+    );
+    lines.push("");
 
     const hasSummaryChange = patch.summary && patch.summary !== current?.summary;
     const baselineDesc = descriptionBaseline ?? current?.description;
     const hasDescChange = patch.description && patch.description !== baselineDesc;
 
     if (hasSummaryChange) {
-      lines.push('--- Summary ---');
-      lines.push('CURRENT:');
-      lines.push(current?.summary || '(empty)');
-      lines.push('');
-      lines.push('PROPOSED:');
+      lines.push("--- Summary ---");
+      lines.push("CURRENT:");
+      lines.push(current?.summary || "(empty)");
+      lines.push("");
+      lines.push("PROPOSED:");
       lines.push(patch.summary);
-      lines.push('');
+      lines.push("");
     }
 
     if (hasDescChange) {
-      lines.push('--- Description ---');
-      lines.push('CURRENT:');
-      lines.push(baselineDesc || '(empty)');
-      lines.push('');
-      lines.push('PROPOSED:');
+      lines.push("--- Description ---");
+      lines.push("CURRENT:");
+      lines.push(baselineDesc || "(empty)");
+      lines.push("");
+      lines.push("PROPOSED:");
       lines.push(patch.description);
-      lines.push('');
+      lines.push("");
     }
 
     if (!hasSummaryChange && !hasDescChange) {
-      lines.push('(no changes)');
-      lines.push('');
+      lines.push("(no changes)");
+      lines.push("");
     }
 
-    lines.push('');
+    lines.push("");
   }
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 function downloadText(content, filename) {
-  const blob = new Blob([content], { type: 'text/plain' });
+  const blob = new Blob([content], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   a.click();
@@ -388,7 +418,7 @@ export default function SummaryRevisionModal({
 
   // Auto-scroll on new content
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [run?.batches?.length, run?.currentBatchIndex, run?.status]);
 
   // Reset expanded state when batch changes
@@ -399,7 +429,10 @@ export default function SummaryRevisionModal({
   // Build entity lookup from entity contexts
   const [entityLookup, setEntityLookup] = useState(new Map());
   useEffect(() => {
-    if (!run || !getEntityContexts) { setEntityLookup(new Map()); return; }
+    if (!run || !getEntityContexts) {
+      setEntityLookup(new Map());
+      return;
+    }
     let cancelled = false;
     const allIds = run.batches.flatMap((b) => b.entityIds);
     Promise.resolve(getEntityContexts(allIds)).then((contexts) => {
@@ -410,24 +443,28 @@ export default function SummaryRevisionModal({
       }
       setEntityLookup(map);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [run, getEntityContexts]);
 
   if (!isActive || !run) return null;
 
-  const isGenerating = run.status === 'generating' || run.status === 'pending';
-  const isBatchReviewing = run.status === 'batch_reviewing';
-  const isRunReviewing = run.status === 'run_reviewing';
-  const isFailed = run.status === 'failed';
+  const isGenerating = run.status === "generating" || run.status === "pending";
+  const isBatchReviewing = run.status === "batch_reviewing";
+  const isRunReviewing = run.status === "run_reviewing";
+  const isFailed = run.status === "failed";
 
   const currentBatch = run.batches[run.currentBatchIndex];
   const totalBatches = run.batches.length;
-  const completedBatches = run.batches.filter((b) => b.status === 'complete' || b.status === 'failed').length;
+  const completedBatches = run.batches.filter(
+    (b) => b.status === "complete" || b.status === "failed"
+  ).length;
 
   // Collect patches for display
   const allPatches = isRunReviewing
     ? run.batches.flatMap((b) => b.patches || [])
-    : (currentBatch?.patches || []);
+    : currentBatch?.patches || [];
 
   const acceptedCount = allPatches.filter((p) => run.patchDecisions[p.entityId] !== false).length;
 
@@ -455,62 +492,74 @@ export default function SummaryRevisionModal({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 1000,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'rgba(0, 0, 0, 0.6)',
-    }}>
-      <div style={{
-        background: 'var(--bg-primary)',
-        borderRadius: '12px',
-        border: '1px solid var(--border-color)',
-        width: '900px',
-        maxWidth: '95vw',
-        maxHeight: '90vh',
-        display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-      }}>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 1000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(0, 0, 0, 0.6)",
+      }}
+    >
+      <div
+        style={{
+          background: "var(--bg-primary)",
+          borderRadius: "12px",
+          border: "1px solid var(--border-color)",
+          width: "900px",
+          maxWidth: "95vw",
+          maxHeight: "90vh",
+          display: "flex",
+          flexDirection: "column",
+          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+        }}
+      >
         {/* Header */}
-        <div style={{
-          padding: '16px 20px',
-          borderBottom: '1px solid var(--border-color)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexShrink: 0,
-        }}>
+        <div
+          style={{
+            padding: "16px 20px",
+            borderBottom: "1px solid var(--border-color)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexShrink: 0,
+          }}
+        >
           <div>
-            <h2 style={{ margin: 0, fontSize: '16px' }}>
+            <h2 style={{ margin: 0, fontSize: "16px" }}>
               Batch Revision
               {currentBatch && !isRunReviewing && (
-                <span style={{ fontWeight: 400, fontSize: '13px', color: 'var(--text-muted)', marginLeft: '8px' }}>
+                <span
+                  style={{
+                    fontWeight: 400,
+                    fontSize: "13px",
+                    color: "var(--text-muted)",
+                    marginLeft: "8px",
+                  }}
+                >
                   {currentBatch.culture}
                 </span>
               )}
             </h2>
-            <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
+            <p style={{ margin: "4px 0 0", fontSize: "11px", color: "var(--text-muted)" }}>
               {isRunReviewing
                 ? `All ${totalBatches} batches complete. Review and apply patches.`
-                : `Batch ${run.currentBatchIndex + 1} of ${totalBatches}`
-              }
+                : `Batch ${run.currentBatchIndex + 1} of ${totalBatches}`}
               {completedBatches > 0 && !isRunReviewing && ` (${completedBatches} complete)`}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
             {run.totalActualCost > 0 && (
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+              <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
                 ${run.totalActualCost.toFixed(4)}
               </span>
             )}
             <button
               onClick={onCancel}
               className="illuminator-button illuminator-button-secondary"
-              style={{ padding: '4px 12px', fontSize: '12px' }}
+              style={{ padding: "4px 12px", fontSize: "12px" }}
             >
               Cancel
             </button>
@@ -518,22 +567,28 @@ export default function SummaryRevisionModal({
         </div>
 
         {/* Scrollable content */}
-        <div style={{
-          flex: 1,
-          overflow: 'auto',
-          padding: '16px 20px',
-          minHeight: 0,
-        }}>
+        <div
+          style={{
+            flex: 1,
+            overflow: "auto",
+            padding: "16px 20px",
+            minHeight: 0,
+          }}
+        >
           {isGenerating && (
-            <div style={{
-              padding: '40px 12px',
-              fontSize: '12px',
-              color: 'var(--text-muted)',
-              textAlign: 'center',
-            }}>
-              <div style={{ marginBottom: '8px' }}>Generating revisions for batch {run.currentBatchIndex + 1}...</div>
+            <div
+              style={{
+                padding: "40px 12px",
+                fontSize: "12px",
+                color: "var(--text-muted)",
+                textAlign: "center",
+              }}
+            >
+              <div style={{ marginBottom: "8px" }}>
+                Generating revisions for batch {run.currentBatchIndex + 1}...
+              </div>
               {currentBatch && (
-                <div style={{ fontSize: '10px' }}>
+                <div style={{ fontSize: "10px" }}>
                   {currentBatch.culture} ({currentBatch.entityIds.length} entities)
                 </div>
               )}
@@ -541,15 +596,17 @@ export default function SummaryRevisionModal({
           )}
 
           {isFailed && currentBatch?.error && (
-            <div style={{
-              padding: '10px 12px',
-              background: 'var(--bg-tertiary)',
-              borderRadius: '6px',
-              borderLeft: '3px solid var(--danger)',
-              fontSize: '12px',
-              color: 'var(--danger)',
-              marginBottom: '8px',
-            }}>
+            <div
+              style={{
+                padding: "10px 12px",
+                background: "var(--bg-tertiary)",
+                borderRadius: "6px",
+                borderLeft: "3px solid var(--danger)",
+                fontSize: "12px",
+                color: "var(--danger)",
+                marginBottom: "8px",
+              }}
+            >
               {currentBatch.error}
             </div>
           )}
@@ -557,29 +614,38 @@ export default function SummaryRevisionModal({
           {/* Patches */}
           {allPatches.length > 0 && (
             <div>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '10px',
-              }}>
-                <span style={{ fontWeight: 600, fontSize: '13px' }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "10px",
+                }}
+              >
+                <span style={{ fontWeight: 600, fontSize: "13px" }}>
                   {allPatches.length} entities revised
-                  <span style={{ fontWeight: 400, fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>
+                  <span
+                    style={{
+                      fontWeight: 400,
+                      fontSize: "11px",
+                      color: "var(--text-muted)",
+                      marginLeft: "8px",
+                    }}
+                  >
                     {acceptedCount} accepted
                   </span>
                 </span>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: "flex", gap: "8px" }}>
                   <button
                     onClick={handleExport}
                     style={{
-                      padding: '2px 8px',
-                      fontSize: '10px',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '4px',
-                      background: 'var(--bg-tertiary)',
-                      color: 'var(--text-secondary)',
-                      cursor: 'pointer',
+                      padding: "2px 8px",
+                      fontSize: "10px",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "4px",
+                      background: "var(--bg-tertiary)",
+                      color: "var(--text-secondary)",
+                      cursor: "pointer",
                     }}
                   >
                     Export
@@ -587,13 +653,13 @@ export default function SummaryRevisionModal({
                   <button
                     onClick={expandAll}
                     style={{
-                      padding: '2px 8px',
-                      fontSize: '10px',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '4px',
-                      background: 'var(--bg-tertiary)',
-                      color: 'var(--text-secondary)',
-                      cursor: 'pointer',
+                      padding: "2px 8px",
+                      fontSize: "10px",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "4px",
+                      background: "var(--bg-tertiary)",
+                      color: "var(--text-secondary)",
+                      cursor: "pointer",
                     }}
                   >
                     Expand all
@@ -601,13 +667,13 @@ export default function SummaryRevisionModal({
                   <button
                     onClick={collapseAll}
                     style={{
-                      padding: '2px 8px',
-                      fontSize: '10px',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '4px',
-                      background: 'var(--bg-tertiary)',
-                      color: 'var(--text-secondary)',
-                      cursor: 'pointer',
+                      padding: "2px 8px",
+                      fontSize: "10px",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "4px",
+                      background: "var(--bg-tertiary)",
+                      color: "var(--text-secondary)",
+                      cursor: "pointer",
                     }}
                   >
                     Collapse all
@@ -631,12 +697,14 @@ export default function SummaryRevisionModal({
           )}
 
           {(isBatchReviewing || isRunReviewing) && allPatches.length === 0 && (
-            <div style={{
-              padding: '20px 12px',
-              fontSize: '12px',
-              color: 'var(--text-muted)',
-              textAlign: 'center',
-            }}>
+            <div
+              style={{
+                padding: "20px 12px",
+                fontSize: "12px",
+                color: "var(--text-muted)",
+                textAlign: "center",
+              }}
+            >
               No changes suggested for this batch.
             </div>
           )}
@@ -645,33 +713,34 @@ export default function SummaryRevisionModal({
         </div>
 
         {/* Footer */}
-        <div style={{
-          padding: '12px 20px 16px',
-          borderTop: '1px solid var(--border-color)',
-          flexShrink: 0,
-          display: 'flex',
-          gap: '8px',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-        }}>
+        <div
+          style={{
+            padding: "12px 20px 16px",
+            borderTop: "1px solid var(--border-color)",
+            flexShrink: 0,
+            display: "flex",
+            gap: "8px",
+            justifyContent: "flex-end",
+            alignItems: "center",
+          }}
+        >
           {isBatchReviewing && (
             <>
               <button
                 onClick={onAutoContine}
                 className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '6px 16px', fontSize: '12px' }}
+                style={{ padding: "6px 16px", fontSize: "12px" }}
               >
                 Auto-Continue All
               </button>
               <button
                 onClick={onContinue}
                 className="illuminator-button illuminator-button-primary"
-                style={{ padding: '6px 16px', fontSize: '12px' }}
+                style={{ padding: "6px 16px", fontSize: "12px" }}
               >
                 {run.currentBatchIndex + 1 < totalBatches
                   ? `Continue to Batch ${run.currentBatchIndex + 2}`
-                  : 'Finish Review'
-                }
+                  : "Finish Review"}
               </button>
             </>
           )}
@@ -679,7 +748,7 @@ export default function SummaryRevisionModal({
             <button
               onClick={onAccept}
               className="illuminator-button illuminator-button-primary"
-              style={{ padding: '6px 16px', fontSize: '12px' }}
+              style={{ padding: "6px 16px", fontSize: "12px" }}
             >
               Apply Accepted ({acceptedCount})
             </button>

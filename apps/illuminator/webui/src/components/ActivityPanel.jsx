@@ -7,8 +7,8 @@
  * - Recent completed/errored tasks
  */
 
-import { useMemo, useState, useRef, useCallback } from 'react';
-import { useThinkingStore } from '../lib/db/thinkingStore';
+import { useMemo, useState, useRef, useCallback } from "react";
+import { useThinkingStore } from "../lib/db/thinkingStore";
 
 function formatDuration(ms) {
   if (ms < 1000) return `${ms}ms`;
@@ -21,14 +21,14 @@ function formatTime(timestamp) {
 
 function extractAnthropicErrorMessage(debug) {
   if (!debug?.response) return null;
-  if (debug?.meta?.provider && debug.meta.provider !== 'anthropic') return null;
+  if (debug?.meta?.provider && debug.meta.provider !== "anthropic") return null;
 
   try {
     const data = JSON.parse(debug.response);
     const error = data?.error;
-    const message = typeof error?.message === 'string' ? error.message.trim() : '';
-    const type = typeof error?.type === 'string' ? error.type.trim() : '';
-    const topLevelMessage = typeof data?.message === 'string' ? data.message.trim() : '';
+    const message = typeof error?.message === "string" ? error.message.trim() : "";
+    const type = typeof error?.type === "string" ? error.type.trim() : "";
+    const topLevelMessage = typeof data?.message === "string" ? data.message.trim() : "";
 
     if (message && type) return `${type}: ${message}`;
     return message || topLevelMessage || type || null;
@@ -38,7 +38,7 @@ function extractAnthropicErrorMessage(debug) {
 }
 
 function formatActivityError(item) {
-  const baseError = item.error || '';
+  const baseError = item.error || "";
   const providerError = extractAnthropicErrorMessage(item.debug);
 
   if (!providerError) {
@@ -68,73 +68,77 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
     : null;
 
   const statusStyles = {
-    queued: { color: 'var(--text-muted)' },
-    running: { color: '#f59e0b' },
-    complete: { color: '#10b981' },
-    error: { color: '#ef4444' },
+    queued: { color: "var(--text-muted)" },
+    running: { color: "#f59e0b" },
+    complete: { color: "#10b981" },
+    error: { color: "#ef4444" },
   };
 
   const statusIcons = {
-    queued: '◷',
-    running: '◐',
-    complete: '✓',
-    error: '✗',
+    queued: "◷",
+    running: "◐",
+    complete: "✓",
+    error: "✗",
   };
   const hasDebug = Boolean(item.debug && (item.debug.request || item.debug.response));
 
   return (
     <div
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '10px 12px',
-        borderBottom: '1px solid var(--border-color)',
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        padding: "10px 12px",
+        borderBottom: "1px solid var(--border-color)",
       }}
     >
-      <span style={{ fontSize: '16px', ...statusStyles[item.status] }}>
+      <span style={{ fontSize: "16px", ...statusStyles[item.status] }}>
         {statusIcons[item.status]}
       </span>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 500, fontSize: '13px' }}>{item.entityName}</div>
-        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-          {item.type === 'description' ? 'Description' : item.type === 'image' ? 'Image' : 'Chronicle'}
+        <div style={{ fontWeight: 500, fontSize: "13px" }}>{item.entityName}</div>
+        <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+          {item.type === "description"
+            ? "Description"
+            : item.type === "image"
+              ? "Image"
+              : "Chronicle"}
           {item.entityKind && ` · ${item.entityKind}`}
         </div>
       </div>
 
       {duration !== null && (
-        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
           {formatDuration(duration)}
         </span>
       )}
 
-      {item.status === 'queued' && onCancel && (
+      {item.status === "queued" && onCancel && (
         <button
           onClick={() => onCancel(item.id)}
           className="illuminator-button-link"
-          style={{ fontSize: '11px' }}
+          style={{ fontSize: "11px" }}
         >
           Cancel
         </button>
       )}
 
-      {item.status === 'running' && onCancel && (
+      {item.status === "running" && onCancel && (
         <button
           onClick={() => onCancel(item.id)}
           className="illuminator-button-link"
-          style={{ fontSize: '11px' }}
+          style={{ fontSize: "11px" }}
         >
           Cancel
         </button>
       )}
 
-      {item.status === 'error' && onRetry && (
+      {item.status === "error" && onRetry && (
         <button
           onClick={() => onRetry(item.id)}
           className="illuminator-button-link"
-          style={{ fontSize: '11px' }}
+          style={{ fontSize: "11px" }}
         >
           Retry
         </button>
@@ -144,16 +148,16 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
         <button
           onClick={() => openThinking(item.id)}
           className="illuminator-button-link"
-          style={{ fontSize: '11px' }}
+          style={{ fontSize: "11px" }}
           title="View LLM stream (thinking + response)"
         >
           {streamEntry.isActive
             ? streamEntry.text.length > 0
               ? `${Math.round(streamEntry.text.length / 1000)}K`
               : streamEntry.thinking.length > 0
-                ? 'Thinking'
-                : '...'
-            : 'Stream'}
+                ? "Thinking"
+                : "..."
+            : "Stream"}
         </button>
       )}
 
@@ -161,7 +165,7 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
         <button
           onClick={() => onViewDebug(item)}
           className="illuminator-button-link"
-          style={{ fontSize: '11px' }}
+          style={{ fontSize: "11px" }}
         >
           View Debug
         </button>
@@ -193,18 +197,18 @@ export default function ActivityPanel({
 
   // Split queue into categories
   const { running, queued, completed, errored } = useMemo(() => {
-    const running = queue.filter((item) => item.status === 'running');
-    const queued = queue.filter((item) => item.status === 'queued');
+    const running = queue.filter((item) => item.status === "running");
+    const queued = queue.filter((item) => item.status === "queued");
     const completed = queue
-      .filter((item) => item.status === 'complete')
+      .filter((item) => item.status === "complete")
       .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
       .slice(0, 20);
-    const errored = queue.filter((item) => item.status === 'error');
+    const errored = queue.filter((item) => item.status === "error");
 
     return { running, queued, completed, errored };
   }, [queue]);
-  const debugRequest = debugItem?.debug?.request || '';
-  const debugResponse = debugItem?.debug?.response || '';
+  const debugRequest = debugItem?.debug?.request || "";
+  const debugResponse = debugItem?.debug?.response || "";
 
   return (
     <div>
@@ -212,12 +216,12 @@ export default function ActivityPanel({
       <div className="illuminator-card">
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Activity</h2>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: "flex", gap: "8px" }}>
             {queue.length > 0 && (
               <button
                 onClick={onCancelAll}
                 className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '6px 12px', fontSize: '12px' }}
+                style={{ padding: "6px 12px", fontSize: "12px" }}
               >
                 Cancel All
               </button>
@@ -226,7 +230,7 @@ export default function ActivityPanel({
               <button
                 onClick={onClearCompleted}
                 className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '6px 12px', fontSize: '12px' }}
+                style={{ padding: "6px 12px", fontSize: "12px" }}
               >
                 Clear Completed
               </button>
@@ -237,40 +241,40 @@ export default function ActivityPanel({
         {/* Stats */}
         <div
           style={{
-            display: 'flex',
-            gap: '24px',
-            padding: '12px',
-            background: 'var(--bg-tertiary)',
-            borderRadius: '4px',
+            display: "flex",
+            gap: "24px",
+            padding: "12px",
+            background: "var(--bg-tertiary)",
+            borderRadius: "4px",
           }}
         >
           <div>
-            <span style={{ fontSize: '20px', fontWeight: 600 }}>{stats.queued}</span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '6px' }}>
+            <span style={{ fontSize: "20px", fontWeight: 600 }}>{stats.queued}</span>
+            <span style={{ fontSize: "12px", color: "var(--text-muted)", marginLeft: "6px" }}>
               queued
             </span>
           </div>
           <div>
-            <span style={{ fontSize: '20px', fontWeight: 600, color: '#f59e0b' }}>
+            <span style={{ fontSize: "20px", fontWeight: 600, color: "#f59e0b" }}>
               {stats.running}
             </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '6px' }}>
+            <span style={{ fontSize: "12px", color: "var(--text-muted)", marginLeft: "6px" }}>
               running
             </span>
           </div>
           <div>
-            <span style={{ fontSize: '20px', fontWeight: 600, color: '#10b981' }}>
+            <span style={{ fontSize: "20px", fontWeight: 600, color: "#10b981" }}>
               {stats.completed}
             </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '6px' }}>
+            <span style={{ fontSize: "12px", color: "var(--text-muted)", marginLeft: "6px" }}>
               completed
             </span>
           </div>
           <div>
-            <span style={{ fontSize: '20px', fontWeight: 600, color: '#ef4444' }}>
+            <span style={{ fontSize: "20px", fontWeight: 600, color: "#ef4444" }}>
               {stats.errored}
             </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '6px' }}>
+            <span style={{ fontSize: "12px", color: "var(--text-muted)", marginLeft: "6px" }}>
               errors
             </span>
           </div>
@@ -282,11 +286,11 @@ export default function ActivityPanel({
         <div className="illuminator-card" style={{ padding: 0 }}>
           <div
             style={{
-              padding: '12px',
-              borderBottom: '1px solid var(--border-color)',
+              padding: "12px",
+              borderBottom: "1px solid var(--border-color)",
               fontWeight: 500,
-              fontSize: '13px',
-              background: 'var(--bg-tertiary)',
+              fontSize: "13px",
+              background: "var(--bg-tertiary)",
             }}
           >
             Currently Running
@@ -302,11 +306,11 @@ export default function ActivityPanel({
         <div className="illuminator-card" style={{ padding: 0 }}>
           <div
             style={{
-              padding: '12px',
-              borderBottom: '1px solid var(--border-color)',
+              padding: "12px",
+              borderBottom: "1px solid var(--border-color)",
               fontWeight: 500,
-              fontSize: '13px',
-              background: 'var(--bg-tertiary)',
+              fontSize: "13px",
+              background: "var(--bg-tertiary)",
             }}
           >
             Queued ({queued.length})
@@ -315,7 +319,14 @@ export default function ActivityPanel({
             <TaskRow key={item.id} item={item} onCancel={onCancel} onViewDebug={setDebugItem} />
           ))}
           {queued.length > 10 && (
-            <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+            <div
+              style={{
+                padding: "12px",
+                textAlign: "center",
+                color: "var(--text-muted)",
+                fontSize: "12px",
+              }}
+            >
               ... and {queued.length - 10} more
             </div>
           )}
@@ -327,12 +338,12 @@ export default function ActivityPanel({
         <div className="illuminator-card" style={{ padding: 0 }}>
           <div
             style={{
-              padding: '12px',
-              borderBottom: '1px solid var(--border-color)',
+              padding: "12px",
+              borderBottom: "1px solid var(--border-color)",
               fontWeight: 500,
-              fontSize: '13px',
-              background: 'var(--bg-tertiary)',
-              color: '#ef4444',
+              fontSize: "13px",
+              background: "var(--bg-tertiary)",
+              color: "#ef4444",
             }}
           >
             Errors ({errored.length})
@@ -345,10 +356,10 @@ export default function ActivityPanel({
                 {activityError && (
                   <div
                     style={{
-                      padding: '8px 12px 12px 40px',
-                      fontSize: '11px',
-                      color: '#ef4444',
-                      background: 'rgba(239, 68, 68, 0.1)',
+                      padding: "8px 12px 12px 40px",
+                      fontSize: "11px",
+                      color: "#ef4444",
+                      background: "rgba(239, 68, 68, 0.1)",
                     }}
                   >
                     {activityError}
@@ -365,11 +376,11 @@ export default function ActivityPanel({
         <div className="illuminator-card" style={{ padding: 0 }}>
           <div
             style={{
-              padding: '12px',
-              borderBottom: '1px solid var(--border-color)',
+              padding: "12px",
+              borderBottom: "1px solid var(--border-color)",
               fontWeight: 500,
-              fontSize: '13px',
-              background: 'var(--bg-tertiary)',
+              fontSize: "13px",
+              background: "var(--bg-tertiary)",
             }}
           >
             Recent Completed
@@ -383,38 +394,44 @@ export default function ActivityPanel({
       {/* Empty state */}
       {queue.length === 0 && (
         <div className="illuminator-card">
-          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+          <div style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
             No activity yet. Queue some enrichment tasks from the Entities tab.
           </div>
         </div>
       )}
 
       {debugItem && (
-        <div className="illuminator-modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
+        <div
+          className="illuminator-modal-overlay"
+          onMouseDown={handleOverlayMouseDown}
+          onClick={handleOverlayClick}
+        >
           <div
             className="illuminator-modal"
-            style={{ maxWidth: '900px', width: '90%', maxHeight: '85vh' }}
+            style={{ maxWidth: "900px", width: "90%", maxHeight: "85vh" }}
           >
             <div className="illuminator-modal-header">
               <h3>Network Debug</h3>
-              <button onClick={() => setDebugItem(null)} className="illuminator-modal-close">&times;</button>
+              <button onClick={() => setDebugItem(null)} className="illuminator-modal-close">
+                &times;
+              </button>
             </div>
-            <div className="illuminator-modal-body" style={{ display: 'grid', gap: '12px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            <div className="illuminator-modal-body" style={{ display: "grid", gap: "12px" }}>
+              <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
                 {debugItem.entityName}
-                {debugItem.type === 'description'
-                  ? ' · Description'
-                  : debugItem.type === 'image'
-                    ? ' · Image'
-                    : ' · Chronicle'}
+                {debugItem.type === "description"
+                  ? " · Description"
+                  : debugItem.type === "image"
+                    ? " · Image"
+                    : " · Chronicle"}
               </div>
               <div>
                 <label
                   style={{
-                    fontSize: '11px',
-                    color: 'var(--text-muted)',
-                    display: 'block',
-                    marginBottom: '6px',
+                    fontSize: "11px",
+                    color: "var(--text-muted)",
+                    display: "block",
+                    marginBottom: "6px",
                   }}
                 >
                   Request (raw)
@@ -423,16 +440,16 @@ export default function ActivityPanel({
                   className="illuminator-textarea"
                   value={debugRequest}
                   readOnly
-                  style={{ minHeight: '140px' }}
+                  style={{ minHeight: "140px" }}
                 />
               </div>
               <div>
                 <label
                   style={{
-                    fontSize: '11px',
-                    color: 'var(--text-muted)',
-                    display: 'block',
-                    marginBottom: '6px',
+                    fontSize: "11px",
+                    color: "var(--text-muted)",
+                    display: "block",
+                    marginBottom: "6px",
                   }}
                 >
                   Response (raw)
@@ -441,7 +458,7 @@ export default function ActivityPanel({
                   className="illuminator-textarea"
                   value={debugResponse}
                   readOnly
-                  style={{ minHeight: '160px' }}
+                  style={{ minHeight: "160px" }}
                 />
               </div>
             </div>

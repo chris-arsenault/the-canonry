@@ -11,8 +11,8 @@ import {
   buildProminenceScale,
   DEFAULT_PROMINENCE_DISTRIBUTION,
   prominenceThresholdFromScale,
-} from '@canonry/world-schema';
-import type { NarrativeStyle } from '@canonry/world-schema';
+} from "@canonry/world-schema";
+import type { NarrativeStyle } from "@canonry/world-schema";
 import type {
   ChronicleGenerationContext,
   ChronicleRoleAssignment,
@@ -28,7 +28,7 @@ import type {
   CanonFactWithMetadata,
   FactSelectionConfig,
   WorldDynamic,
-} from './chronicleTypes';
+} from "./chronicleTypes";
 
 interface WorldData {
   entities: Array<{
@@ -95,7 +95,7 @@ interface WorldContext {
 /**
  * Build entity context from raw entity data
  */
-function buildEntityContext(entity: WorldData['entities'][0]): EntityContext {
+function buildEntityContext(entity: WorldData["entities"][0]): EntityContext {
   return {
     id: entity.id,
     name: entity.name,
@@ -119,8 +119,8 @@ function buildEntityContext(entity: WorldData['entities'][0]): EntityContext {
  * Build relationship context with resolved entity info
  */
 function buildRelationshipContext(
-  rel: WorldData['relationships'][0],
-  entityMap: Map<string, WorldData['entities'][0]>
+  rel: WorldData["relationships"][0],
+  entityMap: Map<string, WorldData["entities"][0]>
 ): RelationshipContext {
   const src = entityMap.get(rel.src);
   const dst = entityMap.get(rel.dst);
@@ -131,28 +131,26 @@ function buildRelationshipContext(
     kind: rel.kind,
     strength: rel.strength,
     sourceName: src?.name || rel.src,
-    sourceKind: src?.kind || 'unknown',
+    sourceKind: src?.kind || "unknown",
     targetName: dst?.name || rel.dst,
-    targetKind: dst?.kind || 'unknown',
+    targetKind: dst?.kind || "unknown",
     // TODO: Add backstory from enrichment when available
     backstory: undefined,
   };
 }
 
-function resolveEntityEraId(entity: WorldData['entities'][0] | undefined): string | undefined {
+function resolveEntityEraId(entity: WorldData["entities"][0] | undefined): string | undefined {
   if (!entity) return undefined;
-  if (typeof entity.eraId === 'string' && entity.eraId) return entity.eraId;
+  if (typeof entity.eraId === "string" && entity.eraId) return entity.eraId;
   return undefined;
 }
 
-function buildEraLookup(
-  entities: WorldData['entities']
-): Map<string, WorldData['entities'][0]> {
-  const map = new Map<string, WorldData['entities'][0]>();
+function buildEraLookup(entities: WorldData["entities"]): Map<string, WorldData["entities"][0]> {
+  const map = new Map<string, WorldData["entities"][0]>();
   for (const entity of entities) {
-    if (entity.kind !== 'era') continue;
+    if (entity.kind !== "era") continue;
     map.set(entity.id, entity);
-    if (typeof entity.eraId === 'string' && entity.eraId) {
+    if (typeof entity.eraId === "string" && entity.eraId) {
       map.set(entity.eraId, entity);
     }
   }
@@ -162,7 +160,7 @@ function buildEraLookup(
 /**
  * Build era context from entity data
  */
-function buildEraContext(entity: WorldData['entities'][0]): EraContext {
+function buildEraContext(entity: WorldData["entities"][0]): EraContext {
   return {
     id: entity.eraId || entity.id,
     name: entity.name,
@@ -178,20 +176,20 @@ export function buildEventHeadline(event: {
   action?: string;
   description?: string;
 }): string {
-  const subjectName = event.subject?.name || event.subject?.id || '';
-  const action = event.action || '';
-  const base = [subjectName, action].filter(Boolean).join(' ').trim();
+  const subjectName = event.subject?.name || event.subject?.id || "";
+  const action = event.action || "";
+  const base = [subjectName, action].filter(Boolean).join(" ").trim();
   if (event.description) {
     return base ? `${base} - ${event.description}` : event.description;
   }
-  return base || '(event)';
+  return base || "(event)";
 }
 
 /**
  * Build narrative event context
  */
 function buildEventContext(
-  event: NonNullable<WorldData['narrativeHistory']>[0]
+  event: NonNullable<WorldData["narrativeHistory"]>[0]
 ): NarrativeEventContext {
   return {
     id: event.id,
@@ -205,7 +203,7 @@ function buildEventContext(
     subjectName: event.subject?.name,
     objectId: event.object?.id,
     objectName: event.object?.name,
-    participants: event.participants?.map(p => ({
+    participants: event.participants?.map((p) => ({
       id: p.id,
       name: p.name,
       kind: p.kind,
@@ -236,9 +234,9 @@ export interface ChronicleSelections {
  * Derive focus type from role assignments
  */
 function deriveFocusType(roleAssignments: ChronicleRoleAssignment[]): ChronicleFocusType {
-  const primaryCount = roleAssignments.filter(r => r.isPrimary).length;
-  if (primaryCount <= 1) return 'single';
-  return 'ensemble';
+  const primaryCount = roleAssignments.filter((r) => r.isPrimary).length;
+  if (primaryCount <= 1) return "single";
+  return "ensemble";
 }
 
 /**
@@ -250,13 +248,9 @@ function buildFocus(
   selectedRelationshipIds: string[],
   lens?: NarrativeLens
 ): ChronicleFocus {
-  const primaryEntityIds = roleAssignments
-    .filter(r => r.isPrimary)
-    .map(r => r.entityId);
-  const supportingEntityIds = roleAssignments
-    .filter(r => !r.isPrimary)
-    .map(r => r.entityId);
-  const selectedEntityIds = roleAssignments.map(r => r.entityId);
+  const primaryEntityIds = roleAssignments.filter((r) => r.isPrimary).map((r) => r.entityId);
+  const supportingEntityIds = roleAssignments.filter((r) => !r.isPrimary).map((r) => r.entityId);
+  const selectedEntityIds = roleAssignments.map((r) => r.entityId);
   // Include lens entity in selected IDs so it's available for context building
   if (lens && !selectedEntityIds.includes(lens.entityId)) {
     selectedEntityIds.push(lens.entityId);
@@ -318,11 +312,9 @@ export function buildChronicleContext(
 
   // Parse relationship IDs (format: src:dst:kind) and get selected relationships
   const relationships = selections.selectedRelationshipIds
-    .map(id => {
-      const [src, dst, kind] = id.split(':');
-      return worldData.relationships.find(
-        r => r.src === src && r.dst === dst && r.kind === kind
-      );
+    .map((id) => {
+      const [src, dst, kind] = id.split(":");
+      return worldData.relationships.find((r) => r.src === src && r.dst === dst && r.kind === kind);
     })
     .filter((r): r is NonNullable<typeof r> => r !== undefined)
     .map((r) => buildRelationshipContext(r, entityMap));
@@ -358,11 +350,11 @@ export function buildChronicleContext(
   }
 
   return {
-    worldName: worldContext.name || 'The World',
-    worldDescription: worldContext.description || '',
+    worldName: worldContext.name || "The World",
+    worldDescription: worldContext.description || "",
     // These will be populated by perspective synthesis
     canonFacts: [],
-    tone: '',
+    tone: "",
     narrativeStyle,
 
     // Input for perspective synthesis (required)
@@ -407,27 +399,25 @@ export function buildChronicleContext(
 export interface PrerequisiteCheck {
   ready: boolean;
   missing: {
-    type: 'entityDescription';
+    type: "entityDescription";
     id: string;
     name: string;
   }[];
 }
 
-export function checkPrerequisites(
-  context: ChronicleGenerationContext
-): PrerequisiteCheck {
-  const missing: PrerequisiteCheck['missing'] = [];
+export function checkPrerequisites(context: ChronicleGenerationContext): PrerequisiteCheck {
+  const missing: PrerequisiteCheck["missing"] = [];
 
   if (!context.focus?.roleAssignments) {
     return { ready: false, missing };
   }
 
   // Check that primary entities have descriptions
-  for (const role of context.focus.roleAssignments.filter(r => r.isPrimary)) {
-    const entity = context.entities.find(e => e.id === role.entityId);
+  for (const role of context.focus.roleAssignments.filter((r) => r.isPrimary)) {
+    const entity = context.entities.find((e) => e.id === role.entityId);
     if (entity && !(entity.summary && entity.description)) {
       missing.push({
-        type: 'entityDescription',
+        type: "entityDescription",
         id: entity.id,
         name: entity.name,
       });
@@ -456,7 +446,7 @@ export function summarizeContext(context: ChronicleGenerationContext): {
       .filter((value) => Number.isFinite(value)),
     { distribution: DEFAULT_PROMINENCE_DISTRIBUTION }
   );
-  const prominentThreshold = prominenceThresholdFromScale('renowned', prominenceScale);
+  const prominentThreshold = prominenceThresholdFromScale("renowned", prominenceScale);
 
   const prominentEntities = context.entities
     .filter((e) => Number(e.prominence) >= prominentThreshold)

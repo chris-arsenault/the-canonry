@@ -8,8 +8,8 @@
  * Uses pagination to avoid loading entire library.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { searchChronicleImages, loadImage } from '../lib/db/imageRepository';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { searchChronicleImages, loadImage } from "../lib/db/imageRepository";
 
 const PAGE_SIZE = 12;
 
@@ -36,7 +36,7 @@ function LazyThumbnail({ imageId, alt, style }) {
           });
         }
       },
-      { threshold: 0.1 },
+      { threshold: 0.1 }
     );
 
     observer.observe(ref.current);
@@ -56,27 +56,27 @@ function LazyThumbnail({ imageId, alt, style }) {
           src={url}
           alt={alt}
           style={{
-            position: 'absolute',
+            position: "absolute",
             top: 0,
             left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
           }}
         />
       ) : (
         <div
           style={{
-            position: 'absolute',
+            position: "absolute",
             top: 0,
             left: 0,
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '11px',
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--text-muted)",
+            fontSize: "11px",
           }}
         >
           Loading...
@@ -87,12 +87,12 @@ function LazyThumbnail({ imageId, alt, style }) {
 }
 
 function formatDate(timestamp) {
-  if (!timestamp) return '';
-  return new Date(timestamp).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+  if (!timestamp) return "";
+  return new Date(timestamp).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 
@@ -159,7 +159,7 @@ export default function ChronicleImagePicker({
         setHasMore(result.hasMore);
         setTotal(result.total);
       } catch (err) {
-        console.error('Failed to load chronicle images:', err);
+        console.error("Failed to load chronicle images:", err);
       } finally {
         setLoading(false);
       }
@@ -191,11 +191,20 @@ export default function ChronicleImagePicker({
       setImages((prev) => [...prev, ...result.items]);
       setHasMore(result.hasMore);
     } catch (err) {
-      console.error('Failed to load more images:', err);
+      console.error("Failed to load more images:", err);
     } finally {
       setLoading(false);
     }
-  }, [loading, hasMore, projectId, chronicleId, imageRefId, filterByRef, filterByChronicle, images.length]);
+  }, [
+    loading,
+    hasMore,
+    projectId,
+    chronicleId,
+    imageRefId,
+    filterByRef,
+    filterByChronicle,
+    images.length,
+  ]);
 
   // Handle selection
   const handleSelect = useCallback(() => {
@@ -228,15 +237,15 @@ export default function ChronicleImagePicker({
     if (!isOpen) return;
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') handleClose();
+      if (e.key === "Escape") handleClose();
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
     };
   }, [isOpen, handleClose]);
 
@@ -248,7 +257,7 @@ export default function ChronicleImagePicker({
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
     >
-      <div className="illuminator-modal" style={{ maxWidth: '800px', maxHeight: '85vh' }}>
+      <div className="illuminator-modal" style={{ maxWidth: "800px", maxHeight: "85vh" }}>
         <div className="illuminator-modal-header">
           <h3>Select Existing Image</h3>
           <button onClick={handleClose} className="illuminator-modal-close">
@@ -256,25 +265,25 @@ export default function ChronicleImagePicker({
           </button>
         </div>
 
-        <div className="illuminator-modal-body" style={{ padding: '0' }}>
+        <div className="illuminator-modal-body" style={{ padding: "0" }}>
           {/* Filters */}
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '20px',
-              padding: '12px 16px',
-              borderBottom: '1px solid var(--border-color)',
-              background: 'var(--bg-tertiary)',
+              display: "flex",
+              alignItems: "center",
+              gap: "20px",
+              padding: "12px 16px",
+              borderBottom: "1px solid var(--border-color)",
+              background: "var(--bg-tertiary)",
             }}
           >
             <label
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                cursor: 'pointer',
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12px",
+                cursor: "pointer",
               }}
             >
               <input
@@ -287,11 +296,11 @@ export default function ChronicleImagePicker({
 
             <label
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                cursor: 'pointer',
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12px",
+                cursor: "pointer",
               }}
             >
               <input
@@ -302,28 +311,28 @@ export default function ChronicleImagePicker({
               This chronicle only
             </label>
 
-            <span style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--text-muted)' }}>
-              {total} image{total !== 1 ? 's' : ''}
+            <span style={{ marginLeft: "auto", fontSize: "12px", color: "var(--text-muted)" }}>
+              {total} image{total !== 1 ? "s" : ""}
             </span>
           </div>
 
           {/* Image grid */}
-          <div style={{ padding: '16px', maxHeight: '450px', overflowY: 'auto' }}>
+          <div style={{ padding: "16px", maxHeight: "450px", overflowY: "auto" }}>
             {loading && images.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
                 Loading images...
               </div>
             ) : images.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
                 No images found. Try unchecking filters to see more.
               </div>
             ) : (
               <>
                 <div
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                    gap: '12px',
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                    gap: "12px",
                   }}
                 >
                   {images.map((img) => {
@@ -335,28 +344,28 @@ export default function ChronicleImagePicker({
                         key={img.imageId}
                         onClick={() => setSelectedImageId(img.imageId)}
                         style={{
-                          position: 'relative',
-                          aspectRatio: '1',
-                          borderRadius: '8px',
-                          overflow: 'hidden',
-                          cursor: 'pointer',
+                          position: "relative",
+                          aspectRatio: "1",
+                          borderRadius: "8px",
+                          overflow: "hidden",
+                          cursor: "pointer",
                           border: isSelected
-                            ? '3px solid #3b82f6'
+                            ? "3px solid #3b82f6"
                             : isCurrent
-                              ? '3px solid #10b981'
-                              : '1px solid var(--border-color)',
-                          background: 'var(--bg-tertiary)',
+                              ? "3px solid #10b981"
+                              : "1px solid var(--border-color)",
+                          background: "var(--bg-tertiary)",
                         }}
                       >
                         <LazyThumbnail
                           imageId={img.imageId}
-                          alt={img.sceneDescription || 'Chronicle image'}
+                          alt={img.sceneDescription || "Chronicle image"}
                           style={{
-                            position: 'absolute',
+                            position: "absolute",
                             top: 0,
                             left: 0,
-                            width: '100%',
-                            height: '100%',
+                            width: "100%",
+                            height: "100%",
                           }}
                         />
 
@@ -364,15 +373,15 @@ export default function ChronicleImagePicker({
                         {isCurrent && (
                           <div
                             style={{
-                              position: 'absolute',
-                              top: '4px',
-                              left: '4px',
-                              padding: '2px 6px',
-                              background: '#10b981',
-                              color: 'white',
-                              fontSize: '9px',
+                              position: "absolute",
+                              top: "4px",
+                              left: "4px",
+                              padding: "2px 6px",
+                              background: "#10b981",
+                              color: "white",
+                              fontSize: "9px",
                               fontWeight: 600,
-                              borderRadius: '4px',
+                              borderRadius: "4px",
                             }}
                           >
                             Current
@@ -382,14 +391,14 @@ export default function ChronicleImagePicker({
                         {/* Date overlay */}
                         <div
                           style={{
-                            position: 'absolute',
+                            position: "absolute",
                             bottom: 0,
                             left: 0,
                             right: 0,
-                            padding: '4px 6px',
-                            background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                            fontSize: '10px',
-                            color: 'white',
+                            padding: "4px 6px",
+                            background: "linear-gradient(transparent, rgba(0,0,0,0.7))",
+                            fontSize: "10px",
+                            color: "white",
                           }}
                         >
                           {formatDate(img.generatedAt)}
@@ -401,22 +410,22 @@ export default function ChronicleImagePicker({
 
                 {/* Load more button */}
                 {hasMore && (
-                  <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                  <div style={{ textAlign: "center", marginTop: "16px" }}>
                     <button
                       onClick={handleLoadMore}
                       disabled={loading}
                       style={{
-                        padding: '8px 20px',
-                        background: 'var(--bg-tertiary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '6px',
-                        color: 'var(--text-secondary)',
-                        cursor: loading ? 'not-allowed' : 'pointer',
+                        padding: "8px 20px",
+                        background: "var(--bg-tertiary)",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: "6px",
+                        color: "var(--text-secondary)",
+                        cursor: loading ? "not-allowed" : "pointer",
                         opacity: loading ? 0.6 : 1,
-                        fontSize: '12px',
+                        fontSize: "12px",
                       }}
                     >
-                      {loading ? 'Loading...' : `Load More (${total - images.length} remaining)`}
+                      {loading ? "Loading..." : `Load More (${total - images.length} remaining)`}
                     </button>
                   </div>
                 )}
@@ -429,23 +438,23 @@ export default function ChronicleImagePicker({
         <div
           className="illuminator-modal-footer"
           style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '8px',
-            padding: '12px 16px',
-            borderTop: '1px solid var(--border-color)',
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: "8px",
+            padding: "12px 16px",
+            borderTop: "1px solid var(--border-color)",
           }}
         >
           <button
             onClick={handleClose}
             style={{
-              padding: '8px 16px',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '6px',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              fontSize: '12px',
+              padding: "8px 16px",
+              background: "var(--bg-tertiary)",
+              border: "1px solid var(--border-color)",
+              borderRadius: "6px",
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+              fontSize: "12px",
             }}
           >
             Cancel
@@ -454,13 +463,13 @@ export default function ChronicleImagePicker({
             onClick={handleSelect}
             disabled={!selectedImageId}
             style={{
-              padding: '8px 16px',
-              background: selectedImageId ? '#3b82f6' : 'var(--bg-tertiary)',
-              border: 'none',
-              borderRadius: '6px',
-              color: selectedImageId ? 'white' : 'var(--text-muted)',
-              cursor: selectedImageId ? 'pointer' : 'not-allowed',
-              fontSize: '12px',
+              padding: "8px 16px",
+              background: selectedImageId ? "#3b82f6" : "var(--bg-tertiary)",
+              border: "none",
+              borderRadius: "6px",
+              color: selectedImageId ? "white" : "var(--text-muted)",
+              cursor: selectedImageId ? "pointer" : "not-allowed",
+              fontSize: "12px",
               fontWeight: 500,
             }}
           >

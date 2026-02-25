@@ -9,15 +9,22 @@
  * 5. Pipeline selection and generation
  */
 
-import { useEffect, useCallback, useMemo, useRef } from 'react';
-import type { NarrativeStyle, EntityKindDefinition } from '@canonry/world-schema';
-import type { EntityContext, RelationshipContext, NarrativeEventContext, EraTemporalInfo, ChronicleTemporalContext, NarrativeLens } from '../../lib/chronicleTypes';
-import { WizardProvider, useWizard, WizardStep, ChronicleSeed } from './WizardContext';
-import StyleStep from './steps/StyleStep';
-import EntryPointStep from './steps/EntryPointStep';
-import RoleAssignmentStep from './steps/RoleAssignmentStep';
-import EventResolutionStep from './steps/EventResolutionStep';
-import GenerateStep from './steps/GenerateStep';
+import { useEffect, useCallback, useMemo, useRef } from "react";
+import type { NarrativeStyle, EntityKindDefinition } from "@canonry/world-schema";
+import type {
+  EntityContext,
+  RelationshipContext,
+  NarrativeEventContext,
+  EraTemporalInfo,
+  ChronicleTemporalContext,
+  NarrativeLens,
+} from "../../lib/chronicleTypes";
+import { WizardProvider, useWizard, WizardStep, ChronicleSeed } from "./WizardContext";
+import StyleStep from "./steps/StyleStep";
+import EntryPointStep from "./steps/EntryPointStep";
+import RoleAssignmentStep from "./steps/RoleAssignmentStep";
+import EventResolutionStep from "./steps/EventResolutionStep";
+import GenerateStep from "./steps/GenerateStep";
 
 // =============================================================================
 // Types
@@ -71,11 +78,11 @@ export interface WizardGenerateConfig {
 // =============================================================================
 
 const STEP_LABELS: Record<WizardStep, string> = {
-  1: 'Style',
-  2: 'Entry Point',
-  3: 'Roles',
-  4: 'Events',
-  5: 'Generate',
+  1: "Style",
+  2: "Entry Point",
+  3: "Roles",
+  4: "Events",
+  5: "Generate",
 };
 
 // =============================================================================
@@ -104,7 +111,16 @@ function InnerWizard({
   events,
   initialSeed,
 }: InnerWizardProps) {
-  const { state, nextStep, prevStep, reset, goToStep, initFromSeed, temporalContext, autoFillEventsAndRelationships } = useWizard();
+  const {
+    state,
+    nextStep,
+    prevStep,
+    reset,
+    goToStep,
+    initFromSeed,
+    temporalContext,
+    autoFillEventsAndRelationships,
+  } = useWizard();
   const mouseDownOnOverlay = useRef(false);
 
   const handleOverlayMouseDown = (e: React.MouseEvent) => {
@@ -120,8 +136,10 @@ function InnerWizard({
   // Initialize from seed when opening with one
   useEffect(() => {
     if (isOpen && initialSeed) {
-      const style = initialSeed.narrativeStyle || narrativeStyles.find(s => s.id === initialSeed.narrativeStyleId);
-      const entryPoint = entities.find(e => e.id === initialSeed.entrypointId);
+      const style =
+        initialSeed.narrativeStyle ||
+        narrativeStyles.find((s) => s.id === initialSeed.narrativeStyleId);
+      const entryPoint = entities.find((e) => e.id === initialSeed.entrypointId);
 
       if (style && entryPoint) {
         initFromSeed(initialSeed, style, entryPoint, entities, relationships, events);
@@ -140,17 +158,17 @@ function InnerWizard({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         handleClose();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
     };
   }, [isOpen, handleClose]);
 
@@ -212,7 +230,14 @@ function InnerWizard({
     } else {
       nextStep();
     }
-  }, [state.step, state.acceptDefaults, state.roleAssignments.length, nextStep, goToStep, autoFillEventsAndRelationships]);
+  }, [
+    state.step,
+    state.acceptDefaults,
+    state.roleAssignments.length,
+    nextStep,
+    goToStep,
+    autoFillEventsAndRelationships,
+  ]);
 
   if (!isOpen) return null;
 
@@ -222,13 +247,7 @@ function InnerWizard({
       case 1:
         return <StyleStep styles={narrativeStyles} />;
       case 2:
-        return (
-          <EntryPointStep
-            entities={entities}
-            relationships={relationships}
-            events={events}
-          />
-        );
+        return <EntryPointStep entities={entities} relationships={relationships} events={events} />;
       case 3:
         return <RoleAssignmentStep />;
       case 4:
@@ -241,26 +260,34 @@ function InnerWizard({
   };
 
   return (
-    <div className="illuminator-modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
+    <div
+      className="illuminator-modal-overlay"
+      onMouseDown={handleOverlayMouseDown}
+      onClick={handleOverlayClick}
+    >
       <div
         className="illuminator-modal"
-        style={{ maxWidth: '800px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
+        style={{ maxWidth: "800px", maxHeight: "85vh", display: "flex", flexDirection: "column" }}
       >
         {/* Header */}
         <div className="illuminator-modal-header">
           <h3>New Chronicle</h3>
-          <button onClick={handleClose} className="illuminator-modal-close">&times;</button>
+          <button onClick={handleClose} className="illuminator-modal-close">
+            &times;
+          </button>
         </div>
 
         {/* Step Indicator */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '8px',
-          padding: '16px',
-          borderBottom: '1px solid var(--border-color)',
-          background: 'var(--bg-tertiary)',
-        }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "8px",
+            padding: "16px",
+            borderBottom: "1px solid var(--border-color)",
+            background: "var(--bg-tertiary)",
+          }}
+        >
           {([1, 2, 3, 4, 5] as WizardStep[]).map((step) => {
             const isActive = state.step === step;
             const isCompleted = state.step > step;
@@ -271,35 +298,38 @@ function InnerWizard({
                 key={step}
                 onClick={() => isClickable && goToStep(step)}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
-                  borderRadius: '16px',
-                  fontSize: '12px',
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 12px",
+                  borderRadius: "16px",
+                  fontSize: "12px",
                   fontWeight: isActive ? 600 : 400,
-                  cursor: isClickable ? 'pointer' : 'default',
+                  cursor: isClickable ? "pointer" : "default",
                   background: isActive
-                    ? 'var(--accent-color)'
+                    ? "var(--accent-color)"
                     : isCompleted
-                    ? 'var(--success)'
-                    : 'var(--bg-secondary)',
-                  color: isActive || isCompleted ? 'white' : 'var(--text-muted)',
+                      ? "var(--success)"
+                      : "var(--bg-secondary)",
+                  color: isActive || isCompleted ? "white" : "var(--text-muted)",
                   opacity: isClickable ? 1 : 0.5,
-                  transition: 'all 0.2s ease',
+                  transition: "all 0.2s ease",
                 }}
               >
-                <span style={{
-                  width: '18px',
-                  height: '18px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: isActive || isCompleted ? 'rgba(255,255,255,0.2)' : 'var(--border-color)',
-                  fontSize: '10px',
-                }}>
-                  {isCompleted ? '✓' : step}
+                <span
+                  style={{
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background:
+                      isActive || isCompleted ? "rgba(255,255,255,0.2)" : "var(--border-color)",
+                    fontSize: "10px",
+                  }}
+                >
+                  {isCompleted ? "✓" : step}
                 </span>
                 <span>{STEP_LABELS[step]}</span>
               </div>
@@ -308,26 +338,32 @@ function InnerWizard({
         </div>
 
         {/* Body */}
-        <div className="illuminator-modal-body" style={{
-          flex: 1,
-          overflow: 'auto',
-          padding: '20px',
-        }}>
+        <div
+          className="illuminator-modal-body"
+          style={{
+            flex: 1,
+            overflow: "auto",
+            padding: "20px",
+          }}
+        >
           {renderStep()}
         </div>
 
         {/* Footer */}
-        <div className="illuminator-modal-footer" style={{
-          padding: '16px',
-          borderTop: '1px solid var(--border-color)',
-          display: 'flex',
-          justifyContent: 'space-between',
-        }}>
+        <div
+          className="illuminator-modal-footer"
+          style={{
+            padding: "16px",
+            borderTop: "1px solid var(--border-color)",
+            display: "flex",
+            justifyContent: "space-between",
+          }}
+        >
           <button onClick={handleClose} className="illuminator-btn">
             Cancel
           </button>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: "flex", gap: "8px" }}>
             {state.step > 1 && (
               <button onClick={prevStep} className="illuminator-btn">
                 Back

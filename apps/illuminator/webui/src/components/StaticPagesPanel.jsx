@@ -5,14 +5,14 @@
  * Manages page CRUD operations via staticPageStorage.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import StaticPageEditor from './StaticPageEditor';
+import { useState, useEffect, useCallback } from "react";
+import StaticPageEditor from "./StaticPageEditor";
 import {
   getStaticPagesForProject,
   createStaticPage,
   updateStaticPage,
   deleteStaticPage,
-} from '../lib/db/staticPageRepository';
+} from "../lib/db/staticPageRepository";
 
 export default function StaticPagesPanel({ projectId }) {
   const [pages, setPages] = useState([]);
@@ -37,7 +37,7 @@ export default function StaticPagesPanel({ projectId }) {
         setLoading(false);
       })
       .catch((err) => {
-        console.error('Failed to load static pages:', err);
+        console.error("Failed to load static pages:", err);
         if (!cancelled) setLoading(false);
       });
 
@@ -54,13 +54,13 @@ export default function StaticPagesPanel({ projectId }) {
     try {
       const newPage = await createStaticPage({
         projectId,
-        title: 'Untitled Page',
-        content: '# Untitled Page\n\nStart writing here...',
+        title: "Untitled Page",
+        content: "# Untitled Page\n\nStart writing here...",
       });
       setPages((prev) => [newPage, ...prev]);
       setSelectedPageId(newPage.pageId);
     } catch (err) {
-      console.error('Failed to create page:', err);
+      console.error("Failed to create page:", err);
     }
   }, [projectId]);
 
@@ -70,11 +70,9 @@ export default function StaticPagesPanel({ projectId }) {
 
       try {
         const updated = await updateStaticPage(selectedPageId, updates);
-        setPages((prev) =>
-          prev.map((p) => (p.pageId === selectedPageId ? updated : p))
-        );
+        setPages((prev) => prev.map((p) => (p.pageId === selectedPageId ? updated : p)));
       } catch (err) {
-        console.error('Failed to save page:', err);
+        console.error("Failed to save page:", err);
       }
     },
     [selectedPageId]
@@ -82,14 +80,14 @@ export default function StaticPagesPanel({ projectId }) {
 
   const handleDeletePage = useCallback(async () => {
     if (!selectedPageId) return;
-    if (!confirm('Are you sure you want to delete this page?')) return;
+    if (!confirm("Are you sure you want to delete this page?")) return;
 
     try {
       await deleteStaticPage(selectedPageId);
       setPages((prev) => prev.filter((p) => p.pageId !== selectedPageId));
       setSelectedPageId(null);
     } catch (err) {
-      console.error('Failed to delete page:', err);
+      console.error("Failed to delete page:", err);
     }
   }, [selectedPageId]);
 
@@ -99,11 +97,9 @@ export default function StaticPagesPanel({ projectId }) {
 
       try {
         const updated = await updateStaticPage(selectedPageId, { status: newStatus });
-        setPages((prev) =>
-          prev.map((p) => (p.pageId === selectedPageId ? updated : p))
-        );
+        setPages((prev) => prev.map((p) => (p.pageId === selectedPageId ? updated : p)));
       } catch (err) {
-        console.error('Failed to update page status:', err);
+        console.error("Failed to update page status:", err);
       }
     },
     [selectedPageId]
@@ -138,7 +134,7 @@ export default function StaticPagesPanel({ projectId }) {
             pages.map((page) => (
               <button
                 key={page.pageId}
-                className={`static-pages-list-item ${selectedPageId === page.pageId ? 'selected' : ''}`}
+                className={`static-pages-list-item ${selectedPageId === page.pageId ? "selected" : ""}`}
                 onClick={() => setSelectedPageId(page.pageId)}
               >
                 <span className="static-pages-list-title">{page.title}</span>

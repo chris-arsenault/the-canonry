@@ -13,14 +13,14 @@
  * - When SharedWorker instantiation fails
  */
 
-import type { WorkerConfig, WorkerOutbound } from '../workers/enrichment.worker';
+import type { WorkerConfig, WorkerOutbound } from "../workers/enrichment.worker";
 
 export interface WorkerHandle {
   postMessage: (message: unknown) => void;
   onmessage: ((event: MessageEvent<WorkerOutbound>) => void) | null;
   onerror: ((event: ErrorEvent) => void) | null;
   terminate: () => void;
-  type: 'shared' | 'dedicated' | 'service';
+  type: "shared" | "dedicated" | "service";
 }
 
 type GlobalSharedPool = typeof globalThis & {
@@ -38,14 +38,14 @@ type GlobalServiceWorkerState = typeof globalThis & {
  * Check if SharedWorker is supported
  */
 export function isSharedWorkerSupported(): boolean {
-  return typeof SharedWorker !== 'undefined';
+  return typeof SharedWorker !== "undefined";
 }
 
 export function isServiceWorkerSupported(): boolean {
   return (
-    typeof navigator !== 'undefined' &&
-    'serviceWorker' in navigator &&
-    typeof window !== 'undefined' &&
+    typeof navigator !== "undefined" &&
+    "serviceWorker" in navigator &&
+    typeof window !== "undefined" &&
     window.isSecureContext
   );
 }
@@ -84,22 +84,22 @@ function getServiceWorkerHandleMap(): Map<string, ServiceWorkerHandleEntry> {
 function ensureServiceWorkerMessageRouter(): void {
   const globalScope = globalThis as GlobalServiceWorkerState;
   if (globalScope.__illuminatorServiceWorkerListenerAttached) return;
-  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
 
-  navigator.serviceWorker.addEventListener('message', (event: MessageEvent) => {
+  navigator.serviceWorker.addEventListener("message", (event: MessageEvent) => {
     const message = event.data as WorkerOutbound & { handleId?: string };
-    if (!message || typeof message !== 'object' || !message.handleId) return;
+    if (!message || typeof message !== "object" || !message.handleId) return;
     const entry = getServiceWorkerHandleMap().get(message.handleId);
     if (!entry) return;
     // Track task completion for keepalive timer (same as port handler)
-    if (message.type === 'complete' || message.type === 'error') {
+    if (message.type === "complete" || message.type === "error") {
       entry.taskCompleted();
     }
     entry.handle.onmessage?.({ data: message } as MessageEvent<WorkerOutbound>);
   });
 
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    console.log('[WorkerFactory] Service worker controller changed, reconnecting handles');
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    console.log("[WorkerFactory] Service worker controller changed, reconnecting handles");
     for (const entry of getServiceWorkerHandleMap().values()) {
       entry.markDisconnected();
       entry.reconnect();
@@ -112,10 +112,10 @@ function ensureServiceWorkerMessageRouter(): void {
 function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration> {
   const globalScope = globalThis as GlobalServiceWorkerState;
   if (!globalScope.__illuminatorServiceWorkerRegistration) {
-    const serviceWorkerUrl = new URL('../sw/enrichment.service-worker.ts', import.meta.url);
+    const serviceWorkerUrl = new URL("../sw/enrichment.service-worker.ts", import.meta.url);
     globalScope.__illuminatorServiceWorkerRegistration = navigator.serviceWorker.register(
       serviceWorkerUrl,
-      { type: 'module' }
+      { type: "module" }
     );
   }
   return globalScope.__illuminatorServiceWorkerRegistration;
@@ -130,27 +130,27 @@ function waitForActiveServiceWorker(
 
   const candidate = registration.installing || registration.waiting;
   if (!candidate) {
-    return Promise.reject(new Error('Service worker not available'));
+    return Promise.reject(new Error("Service worker not available"));
   }
 
   return new Promise((resolve, reject) => {
     const handleStateChange = () => {
-      if (candidate.state === 'activated') {
-        candidate.removeEventListener('statechange', handleStateChange);
+      if (candidate.state === "activated") {
+        candidate.removeEventListener("statechange", handleStateChange);
         resolve(candidate);
-      } else if (candidate.state === 'redundant') {
-        candidate.removeEventListener('statechange', handleStateChange);
-        reject(new Error('Service worker became redundant'));
+      } else if (candidate.state === "redundant") {
+        candidate.removeEventListener("statechange", handleStateChange);
+        reject(new Error("Service worker became redundant"));
       }
     };
 
-    candidate.addEventListener('statechange', handleStateChange);
+    candidate.addEventListener("statechange", handleStateChange);
   });
 }
 
 function getActiveServiceWorker(): Promise<ServiceWorker> {
   return getServiceWorkerRegistration().then((registration) => {
-    if (registration.active && registration.active.state === 'activated') {
+    if (registration.active && registration.active.state === "activated") {
       return registration.active;
     }
     return waitForActiveServiceWorker(registration);
@@ -159,12 +159,12 @@ function getActiveServiceWorker(): Promise<ServiceWorker> {
 
 function createSharedWorkerHandle(): WorkerHandle {
   const sharedWorker = new SharedWorker(
-    new URL('../workers/enrichment.shared-worker.ts', import.meta.url),
-    { type: 'module', name: 'illuminator-enrichment' }
+    new URL("../workers/enrichment.shared-worker.ts", import.meta.url),
+    { type: "module", name: "illuminator-enrichment" }
   );
 
   const handle: WorkerHandle = {
-    type: 'shared',
+    type: "shared",
     onmessage: null,
     onerror: null,
 
@@ -189,7 +189,7 @@ function createSharedWorkerHandle(): WorkerHandle {
 
   sharedWorker.port.start();
 
-  console.log('[WorkerFactory] Created SharedWorker port');
+  console.log("[WorkerFactory] Created SharedWorker port");
   return handle;
 }
 
@@ -214,7 +214,7 @@ function createServiceWorkerHandle(): WorkerHandle {
       if (!isConnected) return;
       getActiveServiceWorker()
         .then((worker) => {
-          worker.postMessage({ type: 'keepalive', handleId });
+          worker.postMessage({ type: "keepalive", handleId });
         })
         .catch(() => {});
     }, 25_000);
@@ -238,14 +238,14 @@ function createServiceWorkerHandle(): WorkerHandle {
     port.onmessage = (event: MessageEvent<WorkerOutbound>) => {
       // Track task completion for keepalive timer
       const msg = event.data;
-      if (msg.type === 'complete' || msg.type === 'error') {
+      if (msg.type === "complete" || msg.type === "error") {
         taskCompleted();
       }
       handle.onmessage?.(event);
     };
     port.onmessageerror = () => {
       isConnected = false;
-      handle.onerror?.(new ErrorEvent('error', { message: 'Service worker message error' }));
+      handle.onerror?.(new ErrorEvent("error", { message: "Service worker message error" }));
     };
     port.start();
   };
@@ -259,14 +259,14 @@ function createServiceWorkerHandle(): WorkerHandle {
     getActiveServiceWorker()
       .then((worker) => {
         if (connectedScriptUrl && connectedScriptUrl !== worker.scriptURL) {
-          console.log('[WorkerFactory] Service worker changed, reconnecting handle', {
+          console.log("[WorkerFactory] Service worker changed, reconnecting handle", {
             handleId,
             prev: connectedScriptUrl,
             next: worker.scriptURL,
           });
         }
         connectedScriptUrl = worker.scriptURL;
-        worker.postMessage({ type: 'connect', handleId }, [channel.port2]);
+        worker.postMessage({ type: "connect", handleId }, [channel.port2]);
         isConnected = true;
         isConnecting = false;
         const initPayload = pendingInitPayload || lastInitPayload;
@@ -282,23 +282,23 @@ function createServiceWorkerHandle(): WorkerHandle {
       .catch((err) => {
         isConnected = false;
         isConnecting = false;
-        handle.onerror?.(new ErrorEvent('error', { message: String(err) }));
+        handle.onerror?.(new ErrorEvent("error", { message: String(err) }));
       });
   };
 
   const handle: WorkerHandle = {
-    type: 'service',
+    type: "service",
     onmessage: null,
     onerror: null,
 
     postMessage(message: unknown) {
       const payload = { ...(message as Record<string, unknown>), handleId };
       // Track task dispatch for keepalive
-      if (payload.type === 'execute') {
+      if (payload.type === "execute") {
         activeTaskCount++;
         startKeepalive();
       }
-      if (payload.type === 'init') {
+      if (payload.type === "init") {
         lastInitPayload = payload;
         if (!isConnected) {
           pendingInitPayload = payload;
@@ -324,7 +324,7 @@ function createServiceWorkerHandle(): WorkerHandle {
         })
         .catch((err) => {
           isConnected = false;
-          handle.onerror?.(new ErrorEvent('error', { message: String(err) }));
+          handle.onerror?.(new ErrorEvent("error", { message: String(err) }));
         });
     },
 
@@ -348,20 +348,19 @@ function createServiceWorkerHandle(): WorkerHandle {
   };
   connect();
 
-  console.log('[WorkerFactory] Created ServiceWorker handle');
+  console.log("[WorkerFactory] Created ServiceWorker handle");
   ensureServiceWorkerMessageRouter();
   getServiceWorkerHandleMap().set(handleId, { handle, reconnect, markDisconnected, taskCompleted });
   return handle;
 }
 
 function createDedicatedWorkerHandle(): WorkerHandle {
-  const worker = new Worker(
-    new URL('../workers/enrichment.worker.ts', import.meta.url),
-    { type: 'module' }
-  );
+  const worker = new Worker(new URL("../workers/enrichment.worker.ts", import.meta.url), {
+    type: "module",
+  });
 
   const handle: WorkerHandle = {
-    type: 'dedicated',
+    type: "dedicated",
     onmessage: null,
     onerror: null,
 
@@ -382,7 +381,7 @@ function createDedicatedWorkerHandle(): WorkerHandle {
     handle.onerror?.(event);
   };
 
-  console.log('[WorkerFactory] Created dedicated Worker (SharedWorker not available)');
+  console.log("[WorkerFactory] Created dedicated Worker (SharedWorker not available)");
   return handle;
 }
 
@@ -392,7 +391,7 @@ function createDedicatedWorkerHandle(): WorkerHandle {
 export function createWorker(config: WorkerConfig): WorkerHandle {
   if (isServiceWorkerSupported()) {
     const handle = createServiceWorkerHandle();
-    handle.postMessage({ type: 'init', config });
+    handle.postMessage({ type: "init", config });
     return handle;
   }
 
@@ -400,16 +399,16 @@ export function createWorker(config: WorkerConfig): WorkerHandle {
   if (isSharedWorkerSupported()) {
     try {
       const handle = createSharedWorkerHandle();
-      handle.postMessage({ type: 'init', config });
+      handle.postMessage({ type: "init", config });
       return handle;
     } catch (err) {
-      console.warn('[WorkerFactory] SharedWorker failed, falling back to dedicated Worker:', err);
+      console.warn("[WorkerFactory] SharedWorker failed, falling back to dedicated Worker:", err);
     }
   }
 
   // Fallback to regular Worker
   const handle = createDedicatedWorkerHandle();
-  handle.postMessage({ type: 'init', config });
+  handle.postMessage({ type: "init", config });
   return handle;
 }
 
@@ -426,7 +425,7 @@ export function createWorkerPool(config: WorkerConfig, count: number): WorkerHan
 
     for (let i = 0; i < count; i++) {
       if (pool[i]) {
-        console.log('[WorkerFactory] Reusing ServiceWorker handle');
+        console.log("[WorkerFactory] Reusing ServiceWorker handle");
         handles.push(pool[i]);
       } else {
         const handle = createServiceWorkerHandle();
@@ -436,7 +435,7 @@ export function createWorkerPool(config: WorkerConfig, count: number): WorkerHan
     }
 
     for (const handle of handles) {
-      handle.postMessage({ type: 'init', config });
+      handle.postMessage({ type: "init", config });
     }
 
     return handles;
@@ -448,7 +447,7 @@ export function createWorkerPool(config: WorkerConfig, count: number): WorkerHan
 
     for (let i = 0; i < count; i++) {
       if (pool[i]) {
-        console.log('[WorkerFactory] Reusing SharedWorker port');
+        console.log("[WorkerFactory] Reusing SharedWorker port");
         handles.push(pool[i]);
       } else {
         const handle = createSharedWorkerHandle();
@@ -458,7 +457,7 @@ export function createWorkerPool(config: WorkerConfig, count: number): WorkerHan
     }
 
     for (const handle of handles) {
-      handle.postMessage({ type: 'init', config });
+      handle.postMessage({ type: "init", config });
     }
 
     return handles;
@@ -467,7 +466,7 @@ export function createWorkerPool(config: WorkerConfig, count: number): WorkerHan
   const handles: WorkerHandle[] = [];
   for (let i = 0; i < count; i++) {
     const handle = createDedicatedWorkerHandle();
-    handle.postMessage({ type: 'init', config });
+    handle.postMessage({ type: "init", config });
     handles.push(handle);
   }
 

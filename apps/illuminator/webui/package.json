@@ -11,13 +11,13 @@
     "serve": "serve dist -l 3006"
   },
   "dependencies": {
-    "@canonry/world-schema": "file:../../../packages/world-schema",
-    "@penguin-tales/shared-components": "file:../../../packages/shared-components",
+    "@canonry/world-schema": "workspace:*",
+    "@penguin-tales/shared-components": "workspace:*",
     "@uiw/react-md-editor": "^4.0.11",
     "dexie": "^4.3.0",
     "diff": "^8.0.3",
     "jszip": "^3.10.1",
-    "name-forge": "file:../../name-forge",
+    "name-forge": "workspace:*",
     "react": "^19.0.0",
     "react-markdown": "^9.0.0",
     "remark-gfm": "^4.0.0",

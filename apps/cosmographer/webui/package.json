@@ -12,8 +12,8 @@
     "serve": "serve dist -l 3001"
   },
   "dependencies": {
-    "@canonry/world-schema": "file:../../../packages/world-schema",
-    "@penguin-tales/shared-components": "file:../../../packages/shared-components",
+    "@canonry/world-schema": "workspace:*",
+    "@penguin-tales/shared-components": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "seedrandom": "^3.0.5",

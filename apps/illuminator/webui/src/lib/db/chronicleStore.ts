@@ -12,7 +12,7 @@
  *     not here — Zustand stores should not hold prop-dependent closures
  */
 
-import { create } from 'zustand';
+import { create } from "zustand";
 import {
   getChroniclesForSimulation,
   getChronicle,
@@ -20,8 +20,8 @@ import {
   acceptChronicle as acceptChronicleInDb,
   updateChronicleFailure,
   type ChronicleRecord,
-} from './chronicleRepository';
-import { buildNavItem, type ChronicleNavItem } from './chronicleNav';
+} from "./chronicleRepository";
+import { buildNavItem, type ChronicleNavItem } from "./chronicleNav";
 
 const CACHE_LIMIT = 20;
 
@@ -47,7 +47,7 @@ export interface ChronicleStoreState {
     format?: string;
     content: string;
     summary?: string;
-    imageRefs?: ChronicleRecord['imageRefs'];
+    imageRefs?: ChronicleRecord["imageRefs"];
     entrypointId?: string;
     entityIds?: string[];
     generatedAt?: number;
@@ -89,7 +89,7 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
         loading: false,
       });
     } catch (err) {
-      console.error('[ChronicleStore] Failed to initialize:', err);
+      console.error("[ChronicleStore] Failed to initialize:", err);
       set({ loading: false });
     }
   },
@@ -119,14 +119,19 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
   },
 
   async refreshChronicle(chronicleId: string) {
-    console.log('[ChronicleStore] refreshChronicle called for:', chronicleId);
+    console.log("[ChronicleStore] refreshChronicle called for:", chronicleId);
     try {
       const record = await getChronicle(chronicleId);
       if (!record) {
-        console.log('[ChronicleStore] No record found for:', chronicleId);
+        console.log("[ChronicleStore] No record found for:", chronicleId);
         return;
       }
-      console.log('[ChronicleStore] Fetched record, updatedAt:', record.updatedAt, 'status:', record.status);
+      console.log(
+        "[ChronicleStore] Fetched record, updatedAt:",
+        record.updatedAt,
+        "status:",
+        record.status
+      );
 
       const navItem = buildNavItem(record);
       set((state) => {
@@ -148,7 +153,7 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
         }
         return { navItems: nextNavItems, cache: nextCache };
       });
-      console.log('[ChronicleStore] Store updated for chronicle:', chronicleId);
+      console.log("[ChronicleStore] Store updated for chronicle:", chronicleId);
     } catch (err) {
       console.error(`[ChronicleStore] Failed to refresh chronicle ${chronicleId}:`, err);
     }
@@ -169,7 +174,7 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
         .map((item) => item.chronicleId);
       set({ navItems, navOrder });
     } catch (err) {
-      console.error('[ChronicleStore] Failed to refresh all:', err);
+      console.error("[ChronicleStore] Failed to refresh all:", err);
     }
   },
 
@@ -197,11 +202,11 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
   async acceptChronicle(chronicleId: string) {
     const chronicle = (await get().loadChronicle(chronicleId)) || (await getChronicle(chronicleId));
     if (!chronicle) {
-      console.error('[ChronicleStore] No chronicle found for chronicleId', chronicleId);
+      console.error("[ChronicleStore] No chronicle found for chronicleId", chronicleId);
       return null;
     }
     if (!chronicle.assembledContent) {
-      console.error('[ChronicleStore] Cannot accept without assembled content');
+      console.error("[ChronicleStore] Cannot accept without assembled content");
       return null;
     }
 
@@ -235,18 +240,18 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
         model: chronicle.model,
       };
     } catch (err) {
-      console.error('[ChronicleStore] Failed to accept chronicle:', err);
+      console.error("[ChronicleStore] Failed to accept chronicle:", err);
       return null;
     }
   },
 
   async cancelChronicle(chronicleId: string) {
     try {
-      await updateChronicleFailure(chronicleId, 'generate_v2', 'Cancelled by user');
+      await updateChronicleFailure(chronicleId, "generate_v2", "Cancelled by user");
       console.log(`[ChronicleStore] Cancelled chronicle ${chronicleId}`);
       await get().refreshChronicle(chronicleId);
     } catch (err) {
-      console.error('[ChronicleStore] Failed to cancel chronicle:', err);
+      console.error("[ChronicleStore] Failed to cancel chronicle:", err);
     }
   },
 
@@ -255,7 +260,7 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
       await deleteChronicleInDb(chronicleId);
       console.log(`[ChronicleStore] Deleted chronicle ${chronicleId}`);
     } catch (err) {
-      console.error('[ChronicleStore] Failed to delete chronicle:', err);
+      console.error("[ChronicleStore] Failed to delete chronicle:", err);
     }
     get().removeChronicle(chronicleId);
   },

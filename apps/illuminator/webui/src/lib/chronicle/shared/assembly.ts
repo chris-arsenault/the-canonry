@@ -2,7 +2,7 @@
  * Shared assembly helpers for narrative pipelines.
  */
 
-import type { AssemblyResult, ChronicleGenerationContext, ChroniclePlan } from '../chronicleTypes';
+import type { AssemblyResult, ChronicleGenerationContext, ChroniclePlan } from "../chronicleTypes";
 
 export function assembleSections(
   plan: ChroniclePlan,
@@ -12,17 +12,14 @@ export function assembleSections(
     includeSectionTitles?: boolean;
   } = {}
 ): AssemblyResult {
-  const {
-    includeTitle = true,
-    includeSectionTitles = false,
-  } = options;
+  const { includeTitle = true, includeSectionTitles = false } = options;
 
   try {
     const missingSections = plan.sections.filter((s) => !s.generatedContent);
     if (missingSections.length > 0) {
       return {
         success: false,
-        error: `Missing content for ${missingSections.length} section(s): ${missingSections.map((s) => s.name).join(', ')}`,
+        error: `Missing content for ${missingSections.length} section(s): ${missingSections.map((s) => s.name).join(", ")}`,
       };
     }
 
@@ -36,17 +33,17 @@ export function assembleSections(
       const section = plan.sections[i];
 
       if (i > 0) {
-        parts.push('\n\n---\n\n');
+        parts.push("\n\n---\n\n");
       }
 
       if (includeSectionTitles && section.name) {
         parts.push(`## ${section.name}\n\n`);
       }
 
-      parts.push(section.generatedContent || '');
+      parts.push(section.generatedContent || "");
     }
 
-    const content = parts.join('');
+    const content = parts.join("");
 
     return {
       success: true,
@@ -55,7 +52,7 @@ export function assembleSections(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error during assembly',
+      error: error instanceof Error ? error.message : "Unknown error during assembly",
     };
   }
 }

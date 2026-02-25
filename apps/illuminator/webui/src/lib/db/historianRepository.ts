@@ -2,8 +2,8 @@
  * Historian Repository — Dexie-backed historian run storage
  */
 
-import { db } from './illuminatorDb';
-import type { HistorianRun, HistorianRunStatus, HistorianNote } from '../historianTypes';
+import { db } from "./illuminatorDb";
+import type { HistorianRun, HistorianRunStatus, HistorianNote } from "../historianTypes";
 
 export type { HistorianRun, HistorianRunStatus, HistorianNote };
 
@@ -22,18 +22,21 @@ export async function getHistorianRun(runId: string): Promise<HistorianRun | und
 
 export async function updateHistorianRun(
   runId: string,
-  updates: Partial<Pick<HistorianRun,
-    | 'status'
-    | 'error'
-    | 'notes'
-    | 'noteDecisions'
-    | 'chronologyAssignments'
-    | 'inputTokens'
-    | 'outputTokens'
-    | 'actualCost'
-    | 'systemPrompt'
-    | 'userPrompt'
-  >>
+  updates: Partial<
+    Pick<
+      HistorianRun,
+      | "status"
+      | "error"
+      | "notes"
+      | "noteDecisions"
+      | "chronologyAssignments"
+      | "inputTokens"
+      | "outputTokens"
+      | "actualCost"
+      | "systemPrompt"
+      | "userPrompt"
+    >
+  >
 ): Promise<HistorianRun> {
   const run = await db.historianRuns.get(runId);
   if (!run) throw new Error(`Historian run ${runId} not found`);
@@ -42,7 +45,8 @@ export async function updateHistorianRun(
   if (updates.error !== undefined) run.error = updates.error;
   if (updates.notes !== undefined) run.notes = updates.notes;
   if (updates.noteDecisions !== undefined) run.noteDecisions = updates.noteDecisions;
-  if (updates.chronologyAssignments !== undefined) run.chronologyAssignments = updates.chronologyAssignments;
+  if (updates.chronologyAssignments !== undefined)
+    run.chronologyAssignments = updates.chronologyAssignments;
   if (updates.inputTokens !== undefined) run.inputTokens = updates.inputTokens;
   if (updates.outputTokens !== undefined) run.outputTokens = updates.outputTokens;
   if (updates.actualCost !== undefined) run.actualCost = updates.actualCost;

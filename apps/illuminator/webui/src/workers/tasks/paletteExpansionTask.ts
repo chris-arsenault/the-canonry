@@ -1,10 +1,10 @@
-import type { WorkerTask } from '../../lib/enrichmentTypes';
-import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepository';
-import { updatePaletteItems } from '../../lib/db/traitRepository';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
-import { parseJsonObject } from './textParsing';
-import type { TaskHandler } from './taskTypes';
+import type { WorkerTask } from "../../lib/enrichmentTypes";
+import { saveCostRecordWithDefaults, type CostType } from "../../lib/db/costRepository";
+import { updatePaletteItems } from "../../lib/db/traitRepository";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
+import { parseJsonObject } from "./textParsing";
+import type { TaskHandler } from "./taskTypes";
 
 const PALETTE_EXPANSION_SYSTEM_PROMPT = `You curate visual trait palettes for worldbuilding. Your prompt contains:
 
@@ -39,44 +39,51 @@ function buildPaletteExpansionPrompt(
   cultureContext?: CultureContext[]
 ): string {
   // Build culture section if available
-  let cultureSection = '';
+  let cultureSection = "";
   if (cultureContext && cultureContext.length > 0) {
-    const cultureLines = cultureContext.map(c => {
-      const parts = [c.name];
-      if (c.description) parts.push(c.description);
-      if (c.visualIdentity) {
-        const traditions = Object.entries(c.visualIdentity)
-          .map(([k, v]) => `${k}: ${v}`)
-          .join('; ');
-        if (traditions) parts.push(`Visual: ${traditions}`);
-      }
-      return `- ${parts.join(' - ')}`;
-    }).join('\n');
+    const cultureLines = cultureContext
+      .map((c) => {
+        const parts = [c.name];
+        if (c.description) parts.push(c.description);
+        if (c.visualIdentity) {
+          const traditions = Object.entries(c.visualIdentity)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join("; ");
+          if (traditions) parts.push(`Visual: ${traditions}`);
+        }
+        return `- ${parts.join(" - ")}`;
+      })
+      .join("\n");
     cultureSection = `\nCultures in this world:\n${cultureLines}\n`;
   }
 
   // Build subtypes section - REQUIRED, fail if none provided
   if (subtypes.length === 0) {
-    throw new Error(`Cannot generate palette for ${entityKind}: no subtypes defined. Define subtypes in the schema.`);
+    throw new Error(
+      `Cannot generate palette for ${entityKind}: no subtypes defined. Define subtypes in the schema.`
+    );
   }
-  const subtypesList = subtypes.join(', ');
+  const subtypesList = subtypes.join(", ");
   const subtypesSection = `\nALLOWED SUBTYPES for ${entityKind} (use ONLY these exact values): ${subtypesList}\n`;
 
   // Build eras section
-  let erasSection = '';
+  let erasSection = "";
   if (eras.length > 0) {
-    const eraLines = eras.map(e => `- ${e.id}: "${e.name}"${e.description ? ` - ${e.description}` : ''}`).join('\n');
+    const eraLines = eras
+      .map((e) => `- ${e.id}: "${e.name}"${e.description ? ` - ${e.description}` : ""}`)
+      .join("\n");
     erasSection = `\nERAS in this world (use exact IDs):\n${eraLines}\n`;
   }
 
   // Dimension hints based on entity type
-  const dimensionHints = entityKind === 'location'
-    ? 'shape/architecture, surface/texture, condition/age, atmosphere, activity, cultural markers'
-    : 'body shape, surface patterns, condition/scars, movement/gait, equipment, presence/aura';
+  const dimensionHints =
+    entityKind === "location"
+      ? "shape/architecture, surface/texture, condition/age, atmosphere, activity, cultural markers"
+      : "body shape, surface patterns, condition/scars, movement/gait, equipment, presence/aura";
 
   return `Generate a visual trait palette for "${entityKind}" entities.
 
-WORLD: ${worldContext || 'A fantasy world.'}
+WORLD: ${worldContext || "A fantasy world."}
 ${cultureSection}${subtypesSection}${erasSection}
 TASK:
 Generate TWO types of categories:
@@ -92,12 +99,14 @@ CRITICAL RULES FOR SUBTYPES:
 - Categories that would "apply to all" should instead be split into subtype-specific variants
 
 ## PART 2: Era Categories (one per era)
-${eras.length > 0
+${
+  eras.length > 0
     ? `For EACH era listed above, create exactly ONE category specific to "${entityKind}".
 - Era categories reflect material conditions or dominant activities of that time
 - Era categories apply to ALL subtypes (leave subtypes empty)
 - Use the exact era ID from the list above`
-    : 'No eras defined - skip era categories.'}
+    : "No eras defined - skip era categories."
+}
 
 Each category must pass the SILHOUETTE TEST:
 - Visible at 128px or in black silhouette
@@ -136,7 +145,7 @@ interface PaletteExpansionResponse {
 }
 
 function parsePaletteExpansionResponse(text: string): PaletteExpansionResponse {
-  const parsed = parseJsonObject<Record<string, unknown>>(text, 'palette expansion');
+  const parsed = parseJsonObject<Record<string, unknown>>(text, "palette expansion");
 
   // Handle both old format (newCategories) and new format (categories)
   const rawCategories = (parsed.categories ?? parsed.newCategories) || [];
@@ -144,44 +153,46 @@ function parsePaletteExpansionResponse(text: string): PaletteExpansionResponse {
   return {
     categories: Array.isArray(rawCategories)
       ? rawCategories
-          .filter((c: unknown) =>
-            c && typeof c === 'object' &&
-            typeof (c as Record<string, unknown>).category === 'string'
+          .filter(
+            (c: unknown) =>
+              c &&
+              typeof c === "object" &&
+              typeof (c as Record<string, unknown>).category === "string"
           )
           .map((c: Record<string, unknown>) => ({
             category: c.category as string,
-            description: (c.description as string) || '',
+            description: (c.description as string) || "",
             examples: Array.isArray(c.examples)
-              ? (c.examples as unknown[]).filter((e): e is string => typeof e === 'string')
+              ? (c.examples as unknown[]).filter((e): e is string => typeof e === "string")
               : [],
             subtypes: Array.isArray(c.subtypes)
-              ? (c.subtypes as unknown[]).filter((s): s is string => typeof s === 'string')
+              ? (c.subtypes as unknown[]).filter((s): s is string => typeof s === "string")
               : undefined,
             // era can be null, undefined, or a string - only keep if it's a non-empty string
-            era: typeof c.era === 'string' && c.era.length > 0 ? c.era : undefined,
+            era: typeof c.era === "string" && c.era.length > 0 ? c.era : undefined,
           }))
       : [],
   };
 }
 
 export const paletteExpansionTask = {
-  type: 'paletteExpansion',
+  type: "paletteExpansion",
   async execute(task, context) {
     const { config, llmClient, isAborted } = context;
 
     if (!llmClient.isEnabled()) {
-      return { success: false, error: 'LLM client not configured' };
+      return { success: false, error: "LLM client not configured" };
     }
 
     const entityKind = task.paletteEntityKind;
-    const worldContext = task.paletteWorldContext || '';
+    const worldContext = task.paletteWorldContext || "";
 
     if (!entityKind) {
-      return { success: false, error: 'Entity kind required for palette expansion' };
+      return { success: false, error: "Entity kind required for palette expansion" };
     }
 
     // Use per-call settings for palette expansion
-    const callConfig = getCallConfig(config, 'palette.expansion');
+    const callConfig = getCallConfig(config, "palette.expansion");
 
     // Get available subtypes and eras for this entity kind
     const subtypes = task.paletteSubtypes || [];
@@ -197,7 +208,7 @@ export const paletteExpansionTask = {
 
     const expansionCall = await runTextCall({
       llmClient,
-      callType: 'palette.expansion',
+      callType: "palette.expansion",
       callConfig,
       systemPrompt: PALETTE_EXPANSION_SYSTEM_PROMPT,
       prompt,
@@ -206,11 +217,11 @@ export const paletteExpansionTask = {
     const debug = result.debug;
 
     if (isAborted()) {
-      return { success: false, error: 'Task aborted', debug };
+      return { success: false, error: "Task aborted", debug };
     }
 
     if (result.error || !result.text) {
-      return { success: false, error: result.error || 'Empty response', debug };
+      return { success: false, error: result.error || "Empty response", debug };
     }
 
     // Parse response
@@ -220,7 +231,7 @@ export const paletteExpansionTask = {
     } catch (err) {
       return {
         success: false,
-        error: `Failed to parse expansion response: ${err instanceof Error ? err.message : 'Unknown error'}`,
+        error: `Failed to parse expansion response: ${err instanceof Error ? err.message : "Unknown error"}`,
         debug,
       };
     }
@@ -239,7 +250,7 @@ export const paletteExpansionTask = {
     await saveCostRecordWithDefaults({
       projectId: task.projectId,
       simulationRunId: task.simulationRunId,
-      type: 'paletteExpansion' as CostType,
+      type: "paletteExpansion" as CostType,
       model: callConfig.model,
       estimatedCost: expansionCall.estimate.estimatedCost,
       actualCost,
@@ -260,4 +271,4 @@ export const paletteExpansionTask = {
       debug,
     };
   },
-} satisfies TaskHandler<WorkerTask & { type: 'paletteExpansion' }>;
+} satisfies TaskHandler<WorkerTask & { type: "paletteExpansion" }>;

@@ -12,6 +12,6 @@
     "zustand": "^5.0.0"
   },
   "dependencies": {
-    "@canonry/world-schema": "file:../world-schema"
+    "@canonry/world-schema": "workspace:*"
   }
 }

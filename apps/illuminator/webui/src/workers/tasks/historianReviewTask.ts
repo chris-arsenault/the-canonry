@@ -9,9 +9,9 @@
  * tangents, skepticism, pedantic observations — in a consistent historian voice.
  */
 
-import type { WorkerTask } from '../../lib/enrichmentTypes';
-import type { TaskContext } from './taskTypes';
-import type { TaskResult } from '../types';
+import type { WorkerTask } from "../../lib/enrichmentTypes";
+import type { TaskContext } from "./taskTypes";
+import type { TaskResult } from "../types";
 import type {
   HistorianConfig,
   HistorianNote,
@@ -20,13 +20,13 @@ import type {
   HistorianLLMResponse,
   HistorianTargetType,
   HistorianTone,
-} from '../../lib/historianTypes';
-import { computeNoteRange } from '../../lib/historianTypes';
-import type { FactGuidanceTarget, CorpusVoiceDigest } from '../../lib/historianContextBuilders';
-import { getHistorianRun, updateHistorianRun } from '../../lib/db/historianRepository';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
-import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepository';
+} from "../../lib/historianTypes";
+import { computeNoteRange } from "../../lib/historianTypes";
+import type { FactGuidanceTarget, CorpusVoiceDigest } from "../../lib/historianContextBuilders";
+import { getHistorianRun, updateHistorianRun } from "../../lib/db/historianRepository";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
+import { saveCostRecordWithDefaults, type CostType } from "../../lib/db/costRepository";
 
 // ============================================================================
 // Tone Descriptions
@@ -128,15 +128,16 @@ function buildSystemPrompt(
   tone: HistorianTone,
   noteRange: { min: number; max: number },
   targetType: HistorianTargetType,
-  chronicleFormat?: string,
+  chronicleFormat?: string
 ): string {
   const sections: string[] = [];
 
-  const mode = targetType === 'entity'
-    ? getEntityModeContent(historianConfig.name)
-    : chronicleFormat === 'document'
-    ? getDocumentModeContent(historianConfig.name)
-    : getStoryModeContent(historianConfig.name);
+  const mode =
+    targetType === "entity"
+      ? getEntityModeContent(historianConfig.name)
+      : chronicleFormat === "document"
+        ? getDocumentModeContent(historianConfig.name)
+        : getStoryModeContent(historianConfig.name);
 
   sections.push(mode.framing);
 
@@ -144,8 +145,8 @@ function buildSystemPrompt(
 
 ${historianConfig.background}
 
-**Personality:** ${historianConfig.personalityTraits.join(', ')}
-**Known biases:** ${historianConfig.biases.join(', ')}
+**Personality:** ${historianConfig.personalityTraits.join(", ")}
+**Known biases:** ${historianConfig.biases.join(", ")}
 **Your stance toward this material:** ${historianConfig.stance}`);
 
   sections.push(`## How You Feel Today
@@ -157,13 +158,13 @@ This mood shapes every annotation in this session. It overrides your defaults wh
   if (historianConfig.privateFacts.length > 0) {
     sections.push(`## Private Knowledge (things you know that the texts don't always reflect)
 
-${historianConfig.privateFacts.map((f) => `- ${f}`).join('\n')}`);
+${historianConfig.privateFacts.map((f) => `- ${f}`).join("\n")}`);
   }
 
   if (historianConfig.runningGags.length > 0) {
     sections.push(`## Recurring Preoccupations (these surface in your annotations unbidden — not every time, but often enough)
 
-${historianConfig.runningGags.map((g) => `- ${g}`).join('\n')}`);
+${historianConfig.runningGags.map((g) => `- ${g}`).join("\n")}`);
   }
 
   sections.push(`## Note Types
@@ -215,7 +216,7 @@ ${mode.rule5}
 9. **Never refuse to discuss a topic.** You are a scholar with opinions about everything in this archive. If something pains you, say why — that pain is itself an annotation worth making. Do not simply decline. "I do not discuss this" is not marginalia; it is an empty margin.
 10. **Superlatives carry weight because they are rare.** Most annotations do not need them. When one earns its place — because a text genuinely is the finest or the worst you have encountered — commit to it. If your previous strong claims are listed below, consider whether this text genuinely surpasses or rivals what you have already said.`);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 // ============================================================================
@@ -230,61 +231,75 @@ function buildVoiceDigestSection(digest: CorpusVoiceDigest | undefined): string 
   // Length histogram
   const { short, medium, long, total } = digest.lengthHistogram;
   if (total > 0) {
-    const pctShort = Math.round(100 * short / total);
-    const pctMed = Math.round(100 * medium / total);
-    const pctLong = Math.round(100 * long / total);
+    const pctShort = Math.round((100 * short) / total);
+    const pctMed = Math.round((100 * medium) / total);
+    const pctLong = Math.round((100 * long) / total);
 
-    parts.push(`NOTE LENGTH PROFILE (your annotations so far):\nShort (≤35w): ${pctShort}% | Medium (36–70w): ${pctMed}% | Long (71+w): ${pctLong}%`);
+    parts.push(
+      `NOTE LENGTH PROFILE (your annotations so far):\nShort (≤35w): ${pctShort}% | Medium (36–70w): ${pctMed}% | Long (71+w): ${pctLong}%`
+    );
 
     // Adaptive guidance — signal if any bucket dominates
     if (pctMed > 70) {
-      parts.push('Your notes are clustering in the medium range. This session, push toward the edges — some observations deserve a single sentence, others need room to breathe.');
+      parts.push(
+        "Your notes are clustering in the medium range. This session, push toward the edges — some observations deserve a single sentence, others need room to breathe."
+      );
     } else if (pctShort > 70) {
-      parts.push('Your notes are running short. Some observations deserve more space — a substantive correction or a digression that earns its length.');
+      parts.push(
+        "Your notes are running short. Some observations deserve more space — a substantive correction or a digression that earns its length."
+      );
     } else if (pctLong > 70) {
-      parts.push('Your notes are running long. Some observations are most powerful as a single sharp sentence.');
+      parts.push(
+        "Your notes are running long. Some observations are most powerful as a single sharp sentence."
+      );
     }
   }
 
   // Superlative claims — reference material, not instruction
   if (digest.superlativeClaims.length > 0) {
-    const repeated = digest.superlativeClaims.filter((c) => c.startsWith('[repeated]'));
-    const singular = digest.superlativeClaims.filter((c) => !c.startsWith('[repeated]'));
+    const repeated = digest.superlativeClaims.filter((c) => c.startsWith("[repeated]"));
+    const singular = digest.superlativeClaims.filter((c) => !c.startsWith("[repeated]"));
     const claimLines: string[] = [];
 
-    claimLines.push('STRONG CLAIMS YOU HAVE MADE (for reference, not instruction):');
+    claimLines.push("STRONG CLAIMS YOU HAVE MADE (for reference, not instruction):");
 
     if (repeated.length > 0) {
-      claimLines.push('You made the same claim about multiple texts:');
-      for (const c of repeated.slice(0, 4)) claimLines.push(`- ${c.replace('[repeated] ', '')}`);
+      claimLines.push("You made the same claim about multiple texts:");
+      for (const c of repeated.slice(0, 4)) claimLines.push(`- ${c.replace("[repeated] ", "")}`);
     }
     if (singular.length > 0) {
       for (const c of singular.slice(0, 6)) claimLines.push(`- ${c}`);
     }
-    claimLines.push('Most annotations will not reference these. If a text naturally brings one of these topics to mind, you know what you said before — you might confirm it, qualify it, or note that this surpasses it. Do not force references to prior claims.');
+    claimLines.push(
+      "Most annotations will not reference these. If a text naturally brings one of these topics to mind, you know what you said before — you might confirm it, qualify it, or note that this surpasses it. Do not force references to prior claims."
+    );
 
-    parts.push(claimLines.join('\n'));
+    parts.push(claimLines.join("\n"));
   }
 
   // Overused openings
   if (digest.overusedOpenings.length > 0) {
     parts.push(
       `OVERUSED ANNOTATION OPENINGS (vary your approach):\n` +
-      digest.overusedOpenings.map((o) => `- ${o}`).join('\n'),
+        digest.overusedOpenings.map((o) => `- ${o}`).join("\n")
     );
   }
 
   // Personal tangent budget
   if (digest.tangentCount > 0 && digest.targetCount > 0) {
-    const tangentPct = Math.round(100 * digest.tangentCount / digest.totalNotes);
-    parts.push(`PERSONAL TANGENT BUDGET:\nYou have written ${digest.tangentCount} personal tangents across ${digest.targetCount} annotation sessions (${tangentPct}% of notes).\nPersonal asides are most effective when rare — they should surprise the reader.`);
+    const tangentPct = Math.round((100 * digest.tangentCount) / digest.totalNotes);
+    parts.push(
+      `PERSONAL TANGENT BUDGET:\nYou have written ${digest.tangentCount} personal tangents across ${digest.targetCount} annotation sessions (${tangentPct}% of notes).\nPersonal asides are most effective when rare — they should surprise the reader.`
+    );
     if (tangentPct > 15) {
-      parts.push('You have been generous with personal disclosures. This session, let the text speak and keep yourself in the background.');
+      parts.push(
+        "You have been generous with personal disclosures. This session, let the text speak and keep yourself in the background."
+      );
     }
   }
 
   if (parts.length === 0) return null;
-  return `=== CORPUS VOICE DIGEST ===\n${parts.join('\n\n')}`;
+  return `=== CORPUS VOICE DIGEST ===\n${parts.join("\n\n")}`;
 }
 
 // ============================================================================
@@ -333,17 +348,19 @@ function buildEntityUserPrompt(
   description: string,
   entity: EntityContext,
   world: WorldContext,
-  previousNotes: PreviousNote[],
+  previousNotes: PreviousNote[]
 ): string {
   const sections: string[] = [];
 
   // Entity identity
   const identParts: string[] = [];
   identParts.push(`Name: ${entity.entityName}`);
-  identParts.push(`Kind: ${entity.entityKind}${entity.entitySubtype ? ` / ${entity.entitySubtype}` : ''}`);
+  identParts.push(
+    `Kind: ${entity.entityKind}${entity.entitySubtype ? ` / ${entity.entitySubtype}` : ""}`
+  );
   if (entity.entityCulture) identParts.push(`Culture: ${entity.entityCulture}`);
   if (entity.entityProminence) identParts.push(`Prominence: ${entity.entityProminence}`);
-  sections.push(`=== ENTITY ===\n${identParts.join('\n')}`);
+  sections.push(`=== ENTITY ===\n${identParts.join("\n")}`);
 
   // Summary
   if (entity.summary) {
@@ -355,7 +372,7 @@ function buildEntityUserPrompt(
     const relLines = entity.relationships.map(
       (r) => `  - ${r.kind} → ${r.targetName} (${r.targetKind})`
     );
-    sections.push(`=== RELATIONSHIPS ===\n${relLines.join('\n')}`);
+    sections.push(`=== RELATIONSHIPS ===\n${relLines.join("\n")}`);
   }
 
   // Neighbor summaries (for cross-entity references)
@@ -363,15 +380,15 @@ function buildEntityUserPrompt(
     const neighborLines = entity.neighborSummaries.map(
       (n) => `  [${n.kind}] ${n.name}: ${n.summary}`
     );
-    sections.push(`=== RELATED ENTITIES (for cross-references) ===\n${neighborLines.join('\n')}`);
+    sections.push(`=== RELATED ENTITIES (for cross-references) ===\n${neighborLines.join("\n")}`);
   }
 
   // World context
   if (world.canonFacts && world.canonFacts.length > 0) {
-    sections.push(`=== CANON FACTS ===\n${world.canonFacts.map((f) => `- ${f}`).join('\n')}`);
+    sections.push(`=== CANON FACTS ===\n${world.canonFacts.map((f) => `- ${f}`).join("\n")}`);
   }
   if (world.worldDynamics && world.worldDynamics.length > 0) {
-    sections.push(`=== WORLD DYNAMICS ===\n${world.worldDynamics.map((d) => `- ${d}`).join('\n')}`);
+    sections.push(`=== WORLD DYNAMICS ===\n${world.worldDynamics.map((d) => `- ${d}`).join("\n")}`);
   }
 
   // Corpus voice digest (annotation quality tracking)
@@ -380,10 +397,10 @@ function buildEntityUserPrompt(
 
   // Previous notes (for voice continuity)
   if (previousNotes.length > 0) {
-    const noteLines = previousNotes.map(
-      (n) => `  [${n.type}] on "${n.targetName}": "${n.text}"`
+    const noteLines = previousNotes.map((n) => `  [${n.type}] on "${n.targetName}": "${n.text}"`);
+    sections.push(
+      `=== YOUR PREVIOUS ANNOTATIONS (maintain continuity) ===\n${noteLines.join("\n")}`
     );
-    sections.push(`=== YOUR PREVIOUS ANNOTATIONS (maintain continuity) ===\n${noteLines.join('\n')}`);
   }
 
   // The description to annotate
@@ -394,7 +411,7 @@ Write the marginal apparatus for this encyclopedia entry. Add corrections, conne
 
 Entity: ${entity.entityName} (${entity.entityKind})`);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 function buildChronicleUserPrompt(
@@ -402,7 +419,7 @@ function buildChronicleUserPrompt(
   chronicle: ChronicleContext,
   world: WorldContext,
   previousNotes: PreviousNote[],
-  noteRange: { min: number; max: number },
+  noteRange: { min: number; max: number }
 ): string {
   const sections: string[] = [];
 
@@ -411,14 +428,14 @@ function buildChronicleUserPrompt(
   identParts.push(`Title: ${chronicle.title}`);
   identParts.push(`Format: ${chronicle.format}`);
   if (chronicle.narrativeStyleId) identParts.push(`Style: ${chronicle.narrativeStyleId}`);
-  sections.push(`=== CHRONICLE ===\n${identParts.join('\n')}`);
+  sections.push(`=== CHRONICLE ===\n${identParts.join("\n")}`);
 
   // Cast
   if (chronicle.cast && chronicle.cast.length > 0) {
     const castLines = chronicle.cast.map(
       (c) => `  - ${c.entityName} (${c.kind}) — role: ${c.role}`
     );
-    sections.push(`=== CAST ===\n${castLines.join('\n')}`);
+    sections.push(`=== CAST ===\n${castLines.join("\n")}`);
   }
 
   // Cast summaries
@@ -426,15 +443,15 @@ function buildChronicleUserPrompt(
     const summaryLines = chronicle.castSummaries.map(
       (s) => `  [${s.kind}] ${s.name}: ${s.summary}`
     );
-    sections.push(`=== CAST DETAILS (for cross-references) ===\n${summaryLines.join('\n')}`);
+    sections.push(`=== CAST DETAILS (for cross-references) ===\n${summaryLines.join("\n")}`);
   }
 
   // World context
   if (world.canonFacts && world.canonFacts.length > 0) {
-    sections.push(`=== CANON FACTS ===\n${world.canonFacts.map((f) => `- ${f}`).join('\n')}`);
+    sections.push(`=== CANON FACTS ===\n${world.canonFacts.map((f) => `- ${f}`).join("\n")}`);
   }
   if (world.worldDynamics && world.worldDynamics.length > 0) {
-    sections.push(`=== WORLD DYNAMICS ===\n${world.worldDynamics.map((d) => `- ${d}`).join('\n')}`);
+    sections.push(`=== WORLD DYNAMICS ===\n${world.worldDynamics.map((d) => `- ${d}`).join("\n")}`);
   }
 
   // Fact coverage guidance
@@ -448,36 +465,36 @@ function buildChronicleUserPrompt(
     const required = allTargets.slice(0, maxRequired);
     const optional = allTargets.slice(maxRequired);
 
-    const surfaceRequired = required.filter((t) => t.action === 'surface');
-    const connectRequired = required.filter((t) => t.action === 'connect');
+    const surfaceRequired = required.filter((t) => t.action === "surface");
+    const connectRequired = required.filter((t) => t.action === "connect");
 
     if (surfaceRequired.length > 0) {
       parts.push(
         `REQUIRED — The following canon truths appear subtly in this text. You MUST produce an annotation for each one, anchored to the passage where the reference occurs. Connect the passage to the broader canon truth so the reader sees what they might otherwise miss:\n` +
-        surfaceRequired.map((t) => `- ${t.factId}: evidence — "${t.evidence}"`).join('\n'),
+          surfaceRequired.map((t) => `- ${t.factId}: evidence — "${t.evidence}"`).join("\n")
       );
     }
     if (connectRequired.length > 0) {
       parts.push(
         `REQUIRED — The following canon truths are underrepresented across the chronicles. You MUST produce an annotation for each one. Find the most natural passage in the text and write a scholarly aside that connects it to the canon truth — even if the connection is oblique:\n` +
-        connectRequired.map((t) => `- ${t.factId}: ${t.factText}`).join('\n'),
+          connectRequired.map((t) => `- ${t.factId}: ${t.factText}`).join("\n")
       );
     }
 
     if (optional.length > 0) {
-      const optSurface = optional.filter((t) => t.action === 'surface');
-      const optConnect = optional.filter((t) => t.action === 'connect');
+      const optSurface = optional.filter((t) => t.action === "surface");
+      const optConnect = optional.filter((t) => t.action === "connect");
       const optLines: string[] = [];
       for (const t of optSurface) optLines.push(`- ${t.factId}: evidence — "${t.evidence}"`);
       for (const t of optConnect) optLines.push(`- ${t.factId}: ${t.factText}`);
       parts.push(
         `OPTIONAL — If a natural opening presents itself, consider annotating these as well:\n` +
-        optLines.join('\n'),
+          optLines.join("\n")
       );
     }
 
     if (parts.length > 0) {
-      sections.push(`=== FACT COVERAGE GUIDANCE ===\n${parts.join('\n\n')}`);
+      sections.push(`=== FACT COVERAGE GUIDANCE ===\n${parts.join("\n\n")}`);
     }
   }
 
@@ -485,15 +502,21 @@ function buildChronicleUserPrompt(
   if (chronicle.focalEra || chronicle.temporalNarrative) {
     const temporalParts: string[] = [];
     if (chronicle.focalEra) {
-      temporalParts.push(`Focal Era: ${chronicle.focalEra.name}${chronicle.focalEra.description ? `\n${chronicle.focalEra.description}` : ''}`);
+      temporalParts.push(
+        `Focal Era: ${chronicle.focalEra.name}${chronicle.focalEra.description ? `\n${chronicle.focalEra.description}` : ""}`
+      );
     }
     if (chronicle.temporalNarrative) {
-      temporalParts.push(`Temporal Narrative (the synthesized stakes for this chronicle):\n${chronicle.temporalNarrative}`);
+      temporalParts.push(
+        `Temporal Narrative (the synthesized stakes for this chronicle):\n${chronicle.temporalNarrative}`
+      );
     }
     if (chronicle.temporalCheckReport) {
-      temporalParts.push(`Editorial Note — Temporal Alignment Analysis:\n${chronicle.temporalCheckReport}`);
+      temporalParts.push(
+        `Editorial Note — Temporal Alignment Analysis:\n${chronicle.temporalCheckReport}`
+      );
     }
-    sections.push(`=== TEMPORAL CONTEXT ===\n${temporalParts.join('\n\n')}`);
+    sections.push(`=== TEMPORAL CONTEXT ===\n${temporalParts.join("\n\n")}`);
   }
 
   // Corpus voice digest (annotation quality tracking)
@@ -502,24 +525,26 @@ function buildChronicleUserPrompt(
 
   // Previous notes
   if (previousNotes.length > 0) {
-    const noteLines = previousNotes.map(
-      (n) => `  [${n.type}] on "${n.targetName}": "${n.text}"`
+    const noteLines = previousNotes.map((n) => `  [${n.type}] on "${n.targetName}": "${n.text}"`);
+    sections.push(
+      `=== YOUR PREVIOUS ANNOTATIONS (maintain continuity) ===\n${noteLines.join("\n")}`
     );
-    sections.push(`=== YOUR PREVIOUS ANNOTATIONS (maintain continuity) ===\n${noteLines.join('\n')}`);
   }
 
   // The text to annotate
-  const isDoc = chronicle.format === 'document';
-  sections.push(`=== ${isDoc ? 'DOCUMENT' : 'NARRATIVE'} TO ANNOTATE ===\n${narrative}`);
+  const isDoc = chronicle.format === "document";
+  sections.push(`=== ${isDoc ? "DOCUMENT" : "NARRATIVE"} TO ANNOTATE ===\n${narrative}`);
 
   sections.push(`=== YOUR TASK ===
-${isDoc
+${
+  isDoc
     ? `Annotate the document above with your scholarly margin notes. This is a primary source — treat it as evidence. Add context, flag omissions, correct errors, and note what the original author's position required them to include or leave out.`
-    : `Annotate the chronicle above with your scholarly margin notes. This is a ${chronicle.format} — review it for accuracy and add whatever observations you cannot keep to yourself.`}
+    : `Annotate the chronicle above with your scholarly margin notes. This is a ${chronicle.format} — review it for accuracy and add whatever observations you cannot keep to yourself.`
+}
 
 Title: "${chronicle.title}"`);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 // ============================================================================
@@ -533,12 +558,12 @@ async function executeHistorianReviewTask(
   const { config, llmClient, isAborted } = context;
 
   if (!llmClient.isEnabled()) {
-    return { success: false, error: 'Text generation not configured - missing Anthropic API key' };
+    return { success: false, error: "Text generation not configured - missing Anthropic API key" };
   }
 
   const runId = task.chronicleId; // Repurposing chronicleId field for runId
   if (!runId) {
-    return { success: false, error: 'runId (chronicleId) required for historian review task' };
+    return { success: false, error: "runId (chronicleId) required for historian review task" };
   }
 
   // Read current run state
@@ -548,15 +573,18 @@ async function executeHistorianReviewTask(
   }
 
   // Mark as generating
-  await updateHistorianRun(runId, { status: 'generating' });
+  await updateHistorianRun(runId, { status: "generating" });
 
   // Parse historian config
   let historianConfig: HistorianConfig;
   try {
     historianConfig = JSON.parse(run.historianConfigJson);
   } catch {
-    await updateHistorianRun(runId, { status: 'failed', error: 'Failed to parse historian config' });
-    return { success: false, error: 'Failed to parse historian config' };
+    await updateHistorianRun(runId, {
+      status: "failed",
+      error: "Failed to parse historian config",
+    });
+    return { success: false, error: "Failed to parse historian config" };
   }
 
   // Parse context
@@ -564,8 +592,8 @@ async function executeHistorianReviewTask(
   try {
     parsedContext = JSON.parse(run.contextJson);
   } catch {
-    await updateHistorianRun(runId, { status: 'failed', error: 'Failed to parse context JSON' });
-    return { success: false, error: 'Failed to parse context JSON' };
+    await updateHistorianRun(runId, { status: "failed", error: "Failed to parse context JSON" });
+    return { success: false, error: "Failed to parse context JSON" };
   }
 
   // Parse previous notes
@@ -580,20 +608,27 @@ async function executeHistorianReviewTask(
 
   const sourceText = run.sourceText;
   if (!sourceText) {
-    await updateHistorianRun(runId, { status: 'failed', error: 'No source text to annotate' });
-    return { success: false, error: 'No source text to annotate' };
+    await updateHistorianRun(runId, { status: "failed", error: "No source text to annotate" });
+    return { success: false, error: "No source text to annotate" };
   }
 
   const targetType = run.targetType as HistorianTargetType;
-  const callType = targetType === 'entity' ? 'historian.entityReview' : 'historian.chronicleReview';
+  const callType = targetType === "entity" ? "historian.entityReview" : "historian.chronicleReview";
   const callConfig = getCallConfig(config, callType);
 
   // Build prompts
-  const tone = (run.tone || 'weary') as HistorianTone;
+  const tone = (run.tone || "weary") as HistorianTone;
   const wordCount = sourceText.split(/\s+/).length;
   const noteRange = computeNoteRange(targetType, wordCount);
-  const chronicleFormat = targetType !== 'entity' ? (parsedContext as ChronicleContext).format : undefined;
-  const systemPrompt = buildSystemPrompt(historianConfig, tone, noteRange, targetType, chronicleFormat);
+  const chronicleFormat =
+    targetType !== "entity" ? (parsedContext as ChronicleContext).format : undefined;
+  const systemPrompt = buildSystemPrompt(
+    historianConfig,
+    tone,
+    noteRange,
+    targetType,
+    chronicleFormat
+  );
 
   let userPrompt: string;
   const worldCtx: WorldContext = {
@@ -603,12 +638,12 @@ async function executeHistorianReviewTask(
     voiceDigest: parsedContext.voiceDigest as CorpusVoiceDigest | undefined,
   };
 
-  if (targetType === 'entity') {
+  if (targetType === "entity") {
     userPrompt = buildEntityUserPrompt(
       sourceText,
       parsedContext as unknown as EntityContext,
       worldCtx,
-      previousNotes,
+      previousNotes
     );
   } else {
     userPrompt = buildChronicleUserPrompt(
@@ -616,7 +651,7 @@ async function executeHistorianReviewTask(
       parsedContext as unknown as ChronicleContext,
       worldCtx,
       previousNotes,
-      noteRange,
+      noteRange
     );
   }
 
@@ -631,14 +666,14 @@ async function executeHistorianReviewTask(
     });
 
     if (isAborted()) {
-      await updateHistorianRun(runId, { status: 'failed', error: 'Task aborted' });
-      return { success: false, error: 'Task aborted' };
+      await updateHistorianRun(runId, { status: "failed", error: "Task aborted" });
+      return { success: false, error: "Task aborted" };
     }
 
     const resultText = callResult.result.text?.trim();
     if (callResult.result.error || !resultText) {
-      const errorMsg = `LLM call failed: ${callResult.result.error || 'No text returned'}`;
-      await updateHistorianRun(runId, { status: 'failed', error: errorMsg });
+      const errorMsg = `LLM call failed: ${callResult.result.error || "No text returned"}`;
+      await updateHistorianRun(runId, { status: "failed", error: errorMsg });
       return { success: false, error: errorMsg };
     }
 
@@ -646,17 +681,24 @@ async function executeHistorianReviewTask(
     let parsed: HistorianLLMResponse;
     try {
       const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON object found');
+      if (!jsonMatch) throw new Error("No JSON object found");
       parsed = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed.notes)) throw new Error('Missing notes array');
+      if (!Array.isArray(parsed.notes)) throw new Error("Missing notes array");
     } catch (err) {
       const errorMsg = `Failed to parse LLM response: ${err instanceof Error ? err.message : String(err)}`;
-      await updateHistorianRun(runId, { status: 'failed', error: errorMsg });
+      await updateHistorianRun(runId, { status: "failed", error: errorMsg });
       return { success: false, error: errorMsg };
     }
 
     // Assign note IDs and validate
-    const validTypes = new Set<HistorianNoteType>(['commentary', 'correction', 'tangent', 'skepticism', 'pedantic', 'temporal']);
+    const validTypes = new Set<HistorianNoteType>([
+      "commentary",
+      "correction",
+      "tangent",
+      "skepticism",
+      "pedantic",
+      "temporal",
+    ]);
     const notes: HistorianNote[] = parsed.notes
       .filter((n) => n.anchorPhrase && n.text && validTypes.has(n.type))
       .map((n, i) => ({
@@ -664,12 +706,12 @@ async function executeHistorianReviewTask(
         anchorPhrase: n.anchorPhrase,
         text: n.text,
         type: n.type,
-        display: (n.weight === 'minor' ? 'popout' : 'full') as HistorianNoteDisplay,
+        display: (n.weight === "minor" ? "popout" : "full") as HistorianNoteDisplay,
       }));
 
     // Write notes to run, mark as reviewing
     await updateHistorianRun(runId, {
-      status: 'reviewing',
+      status: "reviewing",
       notes,
       systemPrompt,
       userPrompt,
@@ -682,11 +724,11 @@ async function executeHistorianReviewTask(
     await saveCostRecordWithDefaults({
       projectId: task.projectId,
       simulationRunId: task.simulationRunId,
-      entityId: targetType === 'entity' ? run.targetId : undefined,
-      entityName: targetType === 'entity' ? run.targetName : undefined,
-      entityKind: targetType === 'entity' ? (parsedContext as EntityContext).entityKind : undefined,
-      chronicleId: targetType === 'chronicle' ? run.targetId : undefined,
-      type: 'historianReview' as CostType,
+      entityId: targetType === "entity" ? run.targetId : undefined,
+      entityName: targetType === "entity" ? run.targetName : undefined,
+      entityKind: targetType === "entity" ? (parsedContext as EntityContext).entityKind : undefined,
+      chronicleId: targetType === "chronicle" ? run.targetId : undefined,
+      type: "historianReview" as CostType,
       model: callConfig.model,
       estimatedCost: callResult.estimate.estimatedCost,
       actualCost: callResult.usage.actualCost,
@@ -707,12 +749,12 @@ async function executeHistorianReviewTask(
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    await updateHistorianRun(runId, { status: 'failed', error: errorMsg });
+    await updateHistorianRun(runId, { status: "failed", error: errorMsg });
     return { success: false, error: `Historian review failed: ${errorMsg}` };
   }
 }
 
 export const historianReviewTask = {
-  type: 'historianReview' as const,
+  type: "historianReview" as const,
   execute: executeHistorianReviewTask,
 };

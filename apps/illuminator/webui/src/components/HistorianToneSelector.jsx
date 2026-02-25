@@ -5,7 +5,7 @@
  * pick a tone before triggering a review. Same historian persona, different mood.
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from "react";
 
 // ============================================================================
 // Tone Options
@@ -13,64 +13,62 @@ import { useState, useRef, useEffect } from 'react';
 
 const TONE_OPTIONS = [
   {
-    value: 'scholarly',
-    label: 'Scholarly',
-    description: 'Professional, measured, objective',
-    symbol: '◎',
+    value: "scholarly",
+    label: "Scholarly",
+    description: "Professional, measured, objective",
+    symbol: "◎",
   },
   {
-    value: 'witty',
-    label: 'Witty',
-    description: 'Sarcastic, playful, sly',
-    symbol: '✶',
+    value: "witty",
+    label: "Witty",
+    description: "Sarcastic, playful, sly",
+    symbol: "✶",
   },
   {
-    value: 'weary',
-    label: 'Weary',
-    description: 'Resigned satire, black humor',
-    symbol: '○',
+    value: "weary",
+    label: "Weary",
+    description: "Resigned satire, black humor",
+    symbol: "○",
   },
   {
-    value: 'forensic',
-    label: 'Forensic',
-    description: 'Clinical, methodical, cold',
-    symbol: '◈',
+    value: "forensic",
+    label: "Forensic",
+    description: "Clinical, methodical, cold",
+    symbol: "◈",
   },
   {
-    value: 'elegiac',
-    label: 'Elegiac',
-    description: 'Mournful, lyrical, grief',
-    symbol: '◇',
+    value: "elegiac",
+    label: "Elegiac",
+    description: "Mournful, lyrical, grief",
+    symbol: "◇",
   },
   {
-    value: 'cantankerous',
-    label: 'Cantankerous',
-    description: 'Irritable, exacting, sharp',
-    symbol: '♯',
+    value: "cantankerous",
+    label: "Cantankerous",
+    description: "Irritable, exacting, sharp",
+    symbol: "♯",
   },
   {
-    value: 'rueful',
-    label: 'Rueful',
-    description: 'Self-aware regret, crooked smile',
-    symbol: '⌒',
+    value: "rueful",
+    label: "Rueful",
+    description: "Self-aware regret, crooked smile",
+    symbol: "⌒",
   },
   {
-    value: 'conspiratorial',
-    label: 'Conspiratorial',
-    description: 'Whispering asides, sharing secrets',
-    symbol: '⊘',
+    value: "conspiratorial",
+    label: "Conspiratorial",
+    description: "Whispering asides, sharing secrets",
+    symbol: "⊘",
   },
   {
-    value: 'bemused',
-    label: 'Bemused',
-    description: 'Puzzled, entertained by absurdity',
-    symbol: '⁂',
+    value: "bemused",
+    label: "Bemused",
+    description: "Puzzled, entertained by absurdity",
+    symbol: "⁂",
   },
 ];
 
-export const TONE_META = Object.fromEntries(
-  TONE_OPTIONS.map((t) => [t.value, t])
-);
+export const TONE_META = Object.fromEntries(TONE_OPTIONS.map((t) => [t.value, t]));
 
 // ============================================================================
 // Component
@@ -88,8 +86,8 @@ export default function HistorianToneSelector({ onSelect, disabled, hasNotes, st
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
   const handleSelect = (tone) => {
@@ -98,51 +96,53 @@ export default function HistorianToneSelector({ onSelect, disabled, hasNotes, st
   };
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block', ...style }}>
+    <div ref={containerRef} style={{ position: "relative", display: "inline-block", ...style }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled}
         title="Select historian tone and generate annotations"
         style={{
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-color)',
-          color: disabled ? 'var(--text-muted)' : 'var(--text-secondary)',
-          fontSize: '10px',
-          padding: '1px 6px',
-          borderRadius: '3px',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          textTransform: 'none',
-          letterSpacing: 'normal',
+          background: "var(--bg-tertiary)",
+          border: "1px solid var(--border-color)",
+          color: disabled ? "var(--text-muted)" : "var(--text-secondary)",
+          fontSize: "10px",
+          padding: "1px 6px",
+          borderRadius: "3px",
+          cursor: disabled ? "not-allowed" : "pointer",
+          textTransform: "none",
+          letterSpacing: "normal",
           opacity: disabled ? 0.6 : 1,
         }}
       >
-        {label || (hasNotes ? 'Re-annotate' : 'Historian')} ▾
+        {label || (hasNotes ? "Re-annotate" : "Historian")} ▾
       </button>
 
       {isOpen && (
         <div
           style={{
-            position: 'absolute',
-            top: 'calc(100% + 4px)',
+            position: "absolute",
+            top: "calc(100% + 4px)",
             left: 0,
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '4px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            background: "var(--bg-secondary)",
+            border: "1px solid var(--border-color)",
+            borderRadius: "4px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
             zIndex: 10000,
-            minWidth: '220px',
-            padding: '4px',
+            minWidth: "220px",
+            padding: "4px",
           }}
         >
-          <div style={{
-            padding: '6px 8px 4px',
-            fontSize: '11px',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            borderBottom: '1px solid var(--border-color)',
-            marginBottom: '4px',
-          }}>
+          <div
+            style={{
+              padding: "6px 8px 4px",
+              fontSize: "11px",
+              color: "var(--text-muted)",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              borderBottom: "1px solid var(--border-color)",
+              marginBottom: "4px",
+            }}
+          >
             Historian Tone
           </div>
           {TONE_OPTIONS.map((option) => (
@@ -150,39 +150,41 @@ export default function HistorianToneSelector({ onSelect, disabled, hasNotes, st
               key={option.value}
               onClick={() => handleSelect(option.value)}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                width: '100%',
-                padding: '6px 8px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: '3px',
-                cursor: 'pointer',
-                textAlign: 'left',
-                color: 'inherit',
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                width: "100%",
+                padding: "6px 8px",
+                background: "transparent",
+                border: "none",
+                borderRadius: "3px",
+                cursor: "pointer",
+                textAlign: "left",
+                color: "inherit",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--bg-tertiary)';
+                e.currentTarget.style.background = "var(--bg-tertiary)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.background = "transparent";
               }}
             >
-              <span style={{
-                fontSize: '13px',
-                color: '#8b7355',
-                width: '18px',
-                textAlign: 'center',
-                flexShrink: 0,
-              }}>
+              <span
+                style={{
+                  fontSize: "13px",
+                  color: "#8b7355",
+                  width: "18px",
+                  textAlign: "center",
+                  flexShrink: 0,
+                }}
+              >
                 {option.symbol}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)" }}>
                   {option.label}
                 </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '1px' }}>
+                <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "1px" }}>
                   {option.description}
                 </div>
               </div>

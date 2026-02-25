@@ -8,6 +8,6 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@canonry/world-schema": "file:../world-schema"
+    "@canonry/world-schema": "workspace:*"
   }
 }

@@ -9,19 +9,19 @@
  * narrative causality, and scholarly judgment.
  */
 
-import type { WorkerTask } from '../../lib/enrichmentTypes';
-import type { TaskContext } from './taskTypes';
-import type { TaskResult } from '../types';
+import type { WorkerTask } from "../../lib/enrichmentTypes";
+import type { TaskContext } from "./taskTypes";
+import type { TaskResult } from "../types";
 import type {
   HistorianConfig,
   HistorianTone,
   ChronologyAssignment,
   ChronologyLLMResponse,
-} from '../../lib/historianTypes';
-import { getHistorianRun, updateHistorianRun } from '../../lib/db/historianRepository';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
-import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepository';
+} from "../../lib/historianTypes";
+import { getHistorianRun, updateHistorianRun } from "../../lib/db/historianRepository";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
+import { saveCostRecordWithDefaults, type CostType } from "../../lib/db/costRepository";
 
 // ============================================================================
 // Tone Descriptions (duplicated — matches historianReviewTask pattern)
@@ -79,7 +79,11 @@ interface ChronologyContext {
 // System Prompt
 // ============================================================================
 
-function buildSystemPrompt(historianConfig: HistorianConfig, tone: HistorianTone, era: ChronologyEraContext): string {
+function buildSystemPrompt(
+  historianConfig: HistorianConfig,
+  tone: HistorianTone,
+  era: ChronologyEraContext
+): string {
   const sections: string[] = [];
 
   sections.push(`You are ${historianConfig.name}, establishing the chronological ordering of accounts from ${era.eraName} for a forthcoming scholarly edition.
@@ -90,20 +94,20 @@ ${TONE_DESCRIPTIONS[tone]}
 
 ${historianConfig.background}
 
-**Personality:** ${historianConfig.personalityTraits.join(', ')}
-**Known biases:** ${historianConfig.biases.join(', ')}
+**Personality:** ${historianConfig.personalityTraits.join(", ")}
+**Known biases:** ${historianConfig.biases.join(", ")}
 **Your stance toward this material:** ${historianConfig.stance}`);
 
   if (historianConfig.privateFacts.length > 0) {
     sections.push(`## Private Knowledge (things you know that the texts don't always reflect)
 
-${historianConfig.privateFacts.map((f) => `- ${f}`).join('\n')}`);
+${historianConfig.privateFacts.map((f) => `- ${f}`).join("\n")}`);
   }
 
   if (historianConfig.runningGags.length > 0) {
     sections.push(`## Recurring Preoccupations
 
-${historianConfig.runningGags.map((g) => `- ${g}`).join('\n')}`);
+${historianConfig.runningGags.map((g) => `- ${g}`).join("\n")}`);
   }
 
   sections.push(`## Your Task
@@ -141,7 +145,7 @@ Output ONLY valid JSON:
 3. **Reasoning** should be 1–2 sentences explaining the placement. Let your current mood shape the prose.
 4. **Stay in character.** You are a historian ordering documents, not an AI. Never break the fourth wall.`);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 // ============================================================================
@@ -155,14 +159,14 @@ function buildUserPrompt(ctx: ChronologyContext): string {
   // Era identity
   sections.push(`=== ERA ===
 Name: ${era.eraName}
-Time span: Year ${era.startTick} to Year ${era.endTick} (${era.endTick - era.startTick} years)${era.eraSummary ? `\nSummary: ${era.eraSummary}` : ''}`);
+Time span: Year ${era.startTick} to Year ${era.endTick} (${era.endTick - era.startTick} years)${era.eraSummary ? `\nSummary: ${era.eraSummary}` : ""}`);
 
   // Previous eras for context
   if (previousEras.length > 0) {
     const eraLines = previousEras.map(
-      (e) => `- ${e.name} (Y${e.startTick}–Y${e.endTick})${e.summary ? `: ${e.summary}` : ''}`
+      (e) => `- ${e.name} (Y${e.startTick}–Y${e.endTick})${e.summary ? `: ${e.summary}` : ""}`
     );
-    sections.push(`=== PREVIOUS ERAS (for context) ===\n${eraLines.join('\n')}`);
+    sections.push(`=== PREVIOUS ERAS (for context) ===\n${eraLines.join("\n")}`);
   }
 
   // Chronicles to order
@@ -174,7 +178,7 @@ Time span: Year ${era.startTick} to Year ${era.endTick} (${era.endTick - era.sta
     if (c.isMultiEra) lines.push(`Note: Multi-era chronicle — events span beyond this era`);
 
     if (c.cast.length > 0) {
-      lines.push(`Cast: ${c.cast.map((r) => `${r.entityName} (${r.role})`).join(', ')}`);
+      lines.push(`Cast: ${c.cast.map((r) => `${r.entityName} (${r.role})`).join(", ")}`);
     }
 
     // Narrative context first — this is the primary placement signal
@@ -193,18 +197,20 @@ Time span: Year ${era.startTick} to Year ${era.endTick} (${era.endTick - era.sta
         .sort((a, b) => a.tick - b.tick)
         .slice(0, 15)
         .map((e) => `  Y${e.tick}: ${e.headline}`);
-      lines.push(`Events:\n${eventLines.join('\n')}`);
+      lines.push(`Events:\n${eventLines.join("\n")}`);
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
   });
 
-  sections.push(`=== CHRONICLES TO ORDER (${chronicles.length}) ===\n\n${chronicleBlocks.join('\n\n')}`);
+  sections.push(
+    `=== CHRONICLES TO ORDER (${chronicles.length}) ===\n\n${chronicleBlocks.join("\n\n")}`
+  );
 
   sections.push(`=== YOUR TASK ===
 Order these ${chronicles.length} chronicles chronologically within ${era.eraName} (Y${era.startTick}–Y${era.endTick}). Assign each a specific year.`);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 // ============================================================================
@@ -218,12 +224,12 @@ async function executeHistorianChronologyTask(
   const { config, llmClient, isAborted } = context;
 
   if (!llmClient.isEnabled()) {
-    return { success: false, error: 'Text generation not configured - missing Anthropic API key' };
+    return { success: false, error: "Text generation not configured - missing Anthropic API key" };
   }
 
   const runId = task.chronicleId; // Repurposing chronicleId field for runId
   if (!runId) {
-    return { success: false, error: 'runId (chronicleId) required for historian chronology task' };
+    return { success: false, error: "runId (chronicleId) required for historian chronology task" };
   }
 
   // Read current run state
@@ -233,15 +239,18 @@ async function executeHistorianChronologyTask(
   }
 
   // Mark as generating
-  await updateHistorianRun(runId, { status: 'generating' });
+  await updateHistorianRun(runId, { status: "generating" });
 
   // Parse historian config
   let historianConfig: HistorianConfig;
   try {
     historianConfig = JSON.parse(run.historianConfigJson);
   } catch {
-    await updateHistorianRun(runId, { status: 'failed', error: 'Failed to parse historian config' });
-    return { success: false, error: 'Failed to parse historian config' };
+    await updateHistorianRun(runId, {
+      status: "failed",
+      error: "Failed to parse historian config",
+    });
+    return { success: false, error: "Failed to parse historian config" };
   }
 
   // Parse context
@@ -249,20 +258,20 @@ async function executeHistorianChronologyTask(
   try {
     ctx = JSON.parse(run.contextJson);
   } catch {
-    await updateHistorianRun(runId, { status: 'failed', error: 'Failed to parse context JSON' });
-    return { success: false, error: 'Failed to parse context JSON' };
+    await updateHistorianRun(runId, { status: "failed", error: "Failed to parse context JSON" });
+    return { success: false, error: "Failed to parse context JSON" };
   }
 
   if (!ctx.chronicles || ctx.chronicles.length === 0) {
-    await updateHistorianRun(runId, { status: 'failed', error: 'No chronicles to order' });
-    return { success: false, error: 'No chronicles to order' };
+    await updateHistorianRun(runId, { status: "failed", error: "No chronicles to order" });
+    return { success: false, error: "No chronicles to order" };
   }
 
-  const callType = 'historian.chronology' as const;
+  const callType = "historian.chronology" as const;
   const callConfig = getCallConfig(config, callType);
 
   // Build prompts
-  const tone = (run.tone || 'weary') as HistorianTone;
+  const tone = (run.tone || "weary") as HistorianTone;
   const systemPrompt = buildSystemPrompt(historianConfig, tone, ctx.era);
   const userPrompt = buildUserPrompt(ctx);
 
@@ -277,14 +286,14 @@ async function executeHistorianChronologyTask(
     });
 
     if (isAborted()) {
-      await updateHistorianRun(runId, { status: 'failed', error: 'Task aborted' });
-      return { success: false, error: 'Task aborted' };
+      await updateHistorianRun(runId, { status: "failed", error: "Task aborted" });
+      return { success: false, error: "Task aborted" };
     }
 
     const resultText = callResult.result.text?.trim();
     if (callResult.result.error || !resultText) {
-      const errorMsg = `LLM call failed: ${callResult.result.error || 'No text returned'}`;
-      await updateHistorianRun(runId, { status: 'failed', error: errorMsg });
+      const errorMsg = `LLM call failed: ${callResult.result.error || "No text returned"}`;
+      await updateHistorianRun(runId, { status: "failed", error: errorMsg });
       return { success: false, error: errorMsg };
     }
 
@@ -292,28 +301,28 @@ async function executeHistorianChronologyTask(
     let parsed: ChronologyLLMResponse;
     try {
       const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON object found');
+      if (!jsonMatch) throw new Error("No JSON object found");
       parsed = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed.chronology)) throw new Error('Missing chronology array');
+      if (!Array.isArray(parsed.chronology)) throw new Error("Missing chronology array");
     } catch (err) {
       const errorMsg = `Failed to parse LLM response: ${err instanceof Error ? err.message : String(err)}`;
-      await updateHistorianRun(runId, { status: 'failed', error: errorMsg });
+      await updateHistorianRun(runId, { status: "failed", error: errorMsg });
       return { success: false, error: errorMsg };
     }
 
     // Validate assignments
     const inputIds = new Set(ctx.chronicles.map((c) => c.chronicleId));
     const assignments: ChronologyAssignment[] = parsed.chronology
-      .filter((a) => inputIds.has(a.chronicleId) && typeof a.year === 'number')
+      .filter((a) => inputIds.has(a.chronicleId) && typeof a.year === "number")
       .map((a) => ({
         chronicleId: a.chronicleId,
         year: Math.round(a.year),
-        reasoning: a.reasoning || '',
+        reasoning: a.reasoning || "",
       }));
 
     // Write assignments to run, mark as reviewing
     await updateHistorianRun(runId, {
-      status: 'reviewing',
+      status: "reviewing",
       chronologyAssignments: assignments,
       inputTokens: callResult.usage.inputTokens,
       outputTokens: callResult.usage.outputTokens,
@@ -324,7 +333,7 @@ async function executeHistorianChronologyTask(
     await saveCostRecordWithDefaults({
       projectId: task.projectId,
       simulationRunId: task.simulationRunId,
-      type: 'historianChronology' as CostType,
+      type: "historianChronology" as CostType,
       model: callConfig.model,
       estimatedCost: callResult.estimate.estimatedCost,
       actualCost: callResult.usage.actualCost,
@@ -345,12 +354,12 @@ async function executeHistorianChronologyTask(
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    await updateHistorianRun(runId, { status: 'failed', error: errorMsg });
+    await updateHistorianRun(runId, { status: "failed", error: errorMsg });
     return { success: false, error: `Historian chronology failed: ${errorMsg}` };
   }
 }
 
 export const historianChronologyTask = {
-  type: 'historianChronology' as const,
+  type: "historianChronology" as const,
   execute: executeHistorianChronologyTask,
 };

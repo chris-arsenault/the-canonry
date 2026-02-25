@@ -6,7 +6,7 @@
  * enrichment or backport operations.
  */
 
-import type { ProminenceScale } from '@canonry/world-schema';
+import type { ProminenceScale } from "@canonry/world-schema";
 
 export interface EraTemporalEntry {
   id: string;

@@ -13,21 +13,18 @@
  * 5. Apply accepted patch to entity state
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import type { EnrichmentType } from '../lib/enrichmentTypes';
-import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
-import type { HistorianConfig, HistorianTone } from '../lib/historianTypes';
-import type {
-  SummaryRevisionRun,
-  SummaryRevisionPatch,
-} from '../lib/summaryRevisionTypes';
+import { useState, useCallback, useRef, useEffect } from "react";
+import type { EnrichmentType } from "../lib/enrichmentTypes";
+import { getEnqueue } from "../lib/db/enrichmentQueueBridge";
+import type { HistorianConfig, HistorianTone } from "../lib/historianTypes";
+import type { SummaryRevisionRun, SummaryRevisionPatch } from "../lib/summaryRevisionTypes";
 import {
   createRevisionRun,
   getRevisionRun,
   updateRevisionRun,
   generateRevisionRunId,
   deleteRevisionRun,
-} from '../lib/db/summaryRevisionRepository';
+} from "../lib/db/summaryRevisionRepository";
 
 // ============================================================================
 // Types
@@ -45,7 +42,12 @@ export interface HistorianEditionConfig {
   description: string;
   summary: string;
   descriptionHistory: Array<{ description: string; source?: string; replacedAt?: number }>;
-  chronicleSummaries: Array<{ chronicleId: string; title: string; format: string; summary: string }>;
+  chronicleSummaries: Array<{
+    chronicleId: string;
+    title: string;
+    format: string;
+    summary: string;
+  }>;
   relationships: Array<{ kind: string; targetName: string; targetKind: string }>;
   neighborSummaries: Array<{ name: string; kind: string; summary: string }>;
   canonFacts: string[];
@@ -99,107 +101,120 @@ export function useHistorianEdition(): UseHistorianEditionReturn {
   // Dispatch a worker task for the single entity
   const dispatchTask = useCallback((runId: string) => {
     const sentinelEntity = {
-      id: '__historian_edition__',
-      name: 'Historian Edition',
-      kind: 'system',
-      subtype: '',
-      prominence: '',
-      culture: '',
-      status: 'active',
-      description: '',
+      id: "__historian_edition__",
+      name: "Historian Edition",
+      kind: "system",
+      subtype: "",
+      prominence: "",
+      culture: "",
+      status: "active",
+      description: "",
       tags: {},
     };
 
-    getEnqueue()([{
-      entity: sentinelEntity,
-      type: 'historianEdition' as EnrichmentType,
-      prompt: '', // All data is in IndexedDB run context
-      chronicleId: runId, // Repurpose chronicleId field for runId
-    }]);
+    getEnqueue()([
+      {
+        entity: sentinelEntity,
+        type: "historianEdition" as EnrichmentType,
+        prompt: "", // All data is in IndexedDB run context
+        chronicleId: runId, // Repurpose chronicleId field for runId
+      },
+    ]);
   }, []);
 
   // Poll IndexedDB for run state changes
-  const startPolling = useCallback((runId: string) => {
-    stopPolling();
-    pollRef.current = setInterval(async () => {
-      const updated = await getRevisionRun(runId);
-      if (!updated) return;
+  const startPolling = useCallback(
+    (runId: string) => {
+      stopPolling();
+      pollRef.current = setInterval(async () => {
+        const updated = await getRevisionRun(runId);
+        if (!updated) return;
 
-      setRun(updated);
+        setRun(updated);
 
-      // Stop polling on review/terminal states
-      if (
-        updated.status === 'batch_reviewing' ||
-        updated.status === 'run_reviewing' ||
-        updated.status === 'complete' ||
-        updated.status === 'failed' ||
-        updated.status === 'cancelled'
-      ) {
-        stopPolling();
-      }
-    }, POLL_INTERVAL_MS);
-  }, [stopPolling]);
+        // Stop polling on review/terminal states
+        if (
+          updated.status === "batch_reviewing" ||
+          updated.status === "run_reviewing" ||
+          updated.status === "complete" ||
+          updated.status === "failed" ||
+          updated.status === "cancelled"
+        ) {
+          stopPolling();
+        }
+      }, POLL_INTERVAL_MS);
+    },
+    [stopPolling]
+  );
 
   // Start a new historian edition session
-  const startHistorianEdition = useCallback(async (cfg: HistorianEditionConfig) => {
-    const runId = generateRevisionRunId();
+  const startHistorianEdition = useCallback(
+    async (cfg: HistorianEditionConfig) => {
+      const runId = generateRevisionRunId();
 
-    // Single batch with one entity ID
-    const batches = [{
-      culture: 'historian-edition',
-      entityIds: [cfg.entityId],
-      status: 'pending' as const,
-      patches: [],
-    }];
+      // Single batch with one entity ID
+      const batches = [
+        {
+          culture: "historian-edition",
+          entityIds: [cfg.entityId],
+          status: "pending" as const,
+          patches: [],
+        },
+      ];
 
-    // Pack all context into staticPagesContext as JSON
-    const contextJson = JSON.stringify({
-      entityId: cfg.entityId,
-      entityName: cfg.entityName,
-      entityKind: cfg.entityKind,
-      entitySubtype: cfg.entitySubtype,
-      entityCulture: cfg.entityCulture,
-      entityProminence: cfg.entityProminence,
-      summary: cfg.summary,
-      descriptionHistory: cfg.descriptionHistory,
-      chronicleSummaries: cfg.chronicleSummaries,
-      relationships: cfg.relationships,
-      neighborSummaries: cfg.neighborSummaries,
-      canonFacts: cfg.canonFacts,
-      worldDynamics: cfg.worldDynamics,
-      previousNotes: cfg.previousNotes,
-      historianConfig: cfg.historianConfig,
-      tone: cfg.tone,
-    });
+      // Pack all context into staticPagesContext as JSON
+      const contextJson = JSON.stringify({
+        entityId: cfg.entityId,
+        entityName: cfg.entityName,
+        entityKind: cfg.entityKind,
+        entitySubtype: cfg.entitySubtype,
+        entityCulture: cfg.entityCulture,
+        entityProminence: cfg.entityProminence,
+        summary: cfg.summary,
+        descriptionHistory: cfg.descriptionHistory,
+        chronicleSummaries: cfg.chronicleSummaries,
+        relationships: cfg.relationships,
+        neighborSummaries: cfg.neighborSummaries,
+        canonFacts: cfg.canonFacts,
+        worldDynamics: cfg.worldDynamics,
+        previousNotes: cfg.previousNotes,
+        historianConfig: cfg.historianConfig,
+        tone: cfg.tone,
+      });
 
-    // Create run in IndexedDB
-    // worldDynamicsContext = current description, staticPagesContext = everything else
-    const newRun = await createRevisionRun(runId, cfg.projectId, cfg.simulationRunId, batches, {
-      worldDynamicsContext: cfg.description,
-      staticPagesContext: contextJson,
-      schemaContext: '',
-      revisionGuidance: '',
-    });
+      // Create run in IndexedDB
+      // worldDynamicsContext = current description, staticPagesContext = everything else
+      const newRun = await createRevisionRun(runId, cfg.projectId, cfg.simulationRunId, batches, {
+        worldDynamicsContext: cfg.description,
+        staticPagesContext: contextJson,
+        schemaContext: "",
+        revisionGuidance: "",
+      });
 
-    setRun(newRun);
-    setIsActive(true);
+      setRun(newRun);
+      setIsActive(true);
 
-    // Dispatch the worker task
-    dispatchTask(runId);
+      // Dispatch the worker task
+      dispatchTask(runId);
 
-    // Start polling
-    startPolling(runId);
-  }, [dispatchTask, startPolling]);
+      // Start polling
+      startPolling(runId);
+    },
+    [dispatchTask, startPolling]
+  );
 
   // Toggle accept/reject for the entity patch
-  const togglePatchDecision = useCallback(async (entityId: string, accepted: boolean) => {
-    if (!run) return;
+  const togglePatchDecision = useCallback(
+    async (entityId: string, accepted: boolean) => {
+      if (!run) return;
 
-    const newDecisions = { ...run.patchDecisions, [entityId]: accepted };
-    await updateRevisionRun(run.runId, { patchDecisions: newDecisions });
+      const newDecisions = { ...run.patchDecisions, [entityId]: accepted };
+      await updateRevisionRun(run.runId, { patchDecisions: newDecisions });
 
-    setRun((prev) => prev ? { ...prev, patchDecisions: newDecisions } : null);
-  }, [run]);
+      setRun((prev) => (prev ? { ...prev, patchDecisions: newDecisions } : null));
+    },
+    [run]
+  );
 
   // Apply the accepted patch and return it
   const applyAccepted = useCallback((): SummaryRevisionPatch[] => {

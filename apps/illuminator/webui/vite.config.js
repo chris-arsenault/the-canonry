@@ -1,7 +1,7 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { federation } from '@module-federation/vite';
-import { resolve } from 'path';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { federation } from "@module-federation/vite";
+import { resolve } from "path";
 
 // Illuminator is an MFE remote for The Canonry shell.
 // To use Illuminator, run The Canonry (apps/canonry/webui).
@@ -9,42 +9,42 @@ import { resolve } from 'path';
 export default defineConfig({
   resolve: {
     alias: {
-      '@lib': resolve(__dirname, '../lib'),
+      "@lib": resolve(__dirname, "../lib"),
     },
   },
   plugins: [
     react(),
     federation({
-      name: 'illuminator',
-      filename: 'remoteEntry.js',
+      name: "illuminator",
+      filename: "remoteEntry.js",
       manifest: true,
       exposes: {
-        './IlluminatorRemote': './src/IlluminatorRemote.jsx',
-        './entityRepository': './src/lib/db/entityRepository.ts',
-        './eventRepository': './src/lib/db/eventRepository.ts',
-        './relationshipRepository': './src/lib/db/relationshipRepository.ts',
-        './coordinateStateRepository': './src/lib/db/coordinateStateRepository.ts',
-        './schemaRepository': './src/lib/db/schemaRepository.ts',
+        "./IlluminatorRemote": "./src/IlluminatorRemote.jsx",
+        "./entityRepository": "./src/lib/db/entityRepository.ts",
+        "./eventRepository": "./src/lib/db/eventRepository.ts",
+        "./relationshipRepository": "./src/lib/db/relationshipRepository.ts",
+        "./coordinateStateRepository": "./src/lib/db/coordinateStateRepository.ts",
+        "./schemaRepository": "./src/lib/db/schemaRepository.ts",
       },
       shared: {
-        react: { singleton: true, requiredVersion: '^19.0.0' },
-        'react-dom': { singleton: true, requiredVersion: '^19.0.0' },
+        react: { singleton: true, requiredVersion: "^19.0.0" },
+        "react-dom": { singleton: true, requiredVersion: "^19.0.0" },
         zustand: { singleton: true },
-        '@penguin-tales/image-store': { singleton: true },
+        "@penguin-tales/image-store": { singleton: true },
       },
     }),
   ],
   // Base path - use /illuminator/ in dev (via proxy) and production
-  base: '/illuminator/',
+  base: "/illuminator/",
   build: {
-    target: 'esnext',
+    target: "esnext",
     minify: false,
     rollupOptions: {
       onwarn(warning, warn) {
         const isModuleFederationEval =
-          warning.code === 'EVAL' &&
-          (warning.id?.includes('@module-federation/sdk') ||
-            warning.message.includes('@module-federation/sdk'));
+          warning.code === "EVAL" &&
+          (warning.id?.includes("@module-federation/sdk") ||
+            warning.message.includes("@module-federation/sdk"));
         if (isModuleFederationEval) {
           return;
         }
@@ -53,7 +53,7 @@ export default defineConfig({
     },
   },
   worker: {
-    format: 'es',
+    format: "es",
   },
   server: {
     port: 5006,

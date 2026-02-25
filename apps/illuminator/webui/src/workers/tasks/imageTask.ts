@@ -1,12 +1,12 @@
-import type { WorkerTask } from '../../lib/enrichmentTypes';
-import { estimateImageCost, calculateActualImageCost } from '../../lib/costEstimation';
-import { saveImage, generateImageId, extractImageDimensions } from '../../lib/db/imageRepository';
-import { saveCostRecordWithDefaults } from '../../lib/db/costRepository';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
-import type { TaskHandler } from './taskTypes';
-import type { LLMClient } from '../../lib/llmClient';
-import type { ResolvedLLMCallConfig } from '../../lib/llmModelSettings';
+import type { WorkerTask } from "../../lib/enrichmentTypes";
+import { estimateImageCost, calculateActualImageCost } from "../../lib/costEstimation";
+import { saveImage, generateImageId, extractImageDimensions } from "../../lib/db/imageRepository";
+import { saveCostRecordWithDefaults } from "../../lib/db/costRepository";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
+import type { TaskHandler } from "./taskTypes";
+import type { LLMClient } from "../../lib/llmClient";
+import type { ResolvedLLMCallConfig } from "../../lib/llmModelSettings";
 
 interface ImagePromptFormatResult {
   prompt: string;
@@ -25,26 +25,33 @@ interface ImagePromptFormatResult {
  */
 async function formatImagePromptWithClaude(
   originalPrompt: string,
-  config: { useClaudeForImagePrompt?: boolean; claudeImagePromptTemplate?: string; claudeChronicleImagePromptTemplate?: string; imageModel?: string; globalImageRules?: string },
+  config: {
+    useClaudeForImagePrompt?: boolean;
+    claudeImagePromptTemplate?: string;
+    claudeChronicleImagePromptTemplate?: string;
+    imageModel?: string;
+    globalImageRules?: string;
+  },
   llmClient: LLMClient,
   callConfig: ResolvedLLMCallConfig,
   isChronicleImage?: boolean
 ): Promise<ImagePromptFormatResult> {
-  const templateSource = isChronicleImage && config.claudeChronicleImagePromptTemplate
-    ? config.claudeChronicleImagePromptTemplate
-    : config.claudeImagePromptTemplate;
+  const templateSource =
+    isChronicleImage && config.claudeChronicleImagePromptTemplate
+      ? config.claudeChronicleImagePromptTemplate
+      : config.claudeImagePromptTemplate;
 
   if (!config.useClaudeForImagePrompt || !templateSource) {
     return { prompt: originalPrompt };
   }
 
   if (!llmClient.isEnabled()) {
-    console.warn('[Worker] Claude not configured, skipping image prompt formatting');
+    console.warn("[Worker] Claude not configured, skipping image prompt formatting");
     return { prompt: originalPrompt };
   }
 
-  const imageModel = config.imageModel || 'dall-e-3';
-  const globalRules = config.globalImageRules || '';
+  const imageModel = config.imageModel || "dall-e-3";
+  const globalRules = config.globalImageRules || "";
   const formattingPrompt = templateSource
     .replace(/\{\{modelName\}\}/g, imageModel)
     .replace(/\{\{prompt\}\}/g, originalPrompt)
@@ -53,16 +60,17 @@ async function formatImagePromptWithClaude(
   try {
     const formattingCall = await runTextCall({
       llmClient,
-      callType: isChronicleImage ? 'image.chronicleFormatting' : 'image.promptFormatting',
+      callType: isChronicleImage ? "image.chronicleFormatting" : "image.promptFormatting",
       callConfig,
-      systemPrompt: 'You are a prompt engineer specializing in image generation. Respond only with the reformatted prompt, no explanations or preamble.',
+      systemPrompt:
+        "You are a prompt engineer specializing in image generation. Respond only with the reformatted prompt, no explanations or preamble.",
       prompt: formattingPrompt,
       temperature: 0.3,
     });
     const result = formattingCall.result;
 
     if (result.text && !result.error) {
-      console.log('[Worker] Formatted image prompt with Claude');
+      console.log("[Worker] Formatted image prompt with Claude");
 
       return {
         prompt: result.text.trim(),
@@ -76,33 +84,41 @@ async function formatImagePromptWithClaude(
       };
     }
   } catch (err) {
-    console.warn('[Worker] Failed to format image prompt with Claude:', err);
+    console.warn("[Worker] Failed to format image prompt with Claude:", err);
   }
 
   return { prompt: originalPrompt, formattingPrompt };
 }
 
 export const imageTask = {
-  type: 'image',
+  type: "image",
   async execute(task, context) {
     const { config, llmClient, imageClient, isAborted } = context;
 
     if (!imageClient.isEnabled()) {
-      return { success: false, error: 'Image generation not configured - missing OpenAI API key' };
+      return { success: false, error: "Image generation not configured - missing OpenAI API key" };
     }
 
-    const imageModel = config.imageModel || 'dall-e-3';
+    const imageModel = config.imageModel || "dall-e-3";
     // Use task-level overrides if provided, otherwise fall back to global config
-    const imageSize = task.imageSize || config.imageSize || '1024x1024';
-    const imageQuality = task.imageQuality || config.imageQuality || 'standard';
+    const imageSize = task.imageSize || config.imageSize || "1024x1024";
+    const imageQuality = task.imageQuality || config.imageQuality || "standard";
     const estimatedCost = estimateImageCost(imageModel, imageSize, imageQuality);
 
     // Store original prompt before any refinement
     const originalPrompt = task.prompt;
-    const isChronicleImage = task.imageType === 'chronicle';
-    const formattingCallType = isChronicleImage ? 'image.chronicleFormatting' : 'image.promptFormatting';
+    const isChronicleImage = task.imageType === "chronicle";
+    const formattingCallType = isChronicleImage
+      ? "image.chronicleFormatting"
+      : "image.promptFormatting";
     const formattingConfig = getCallConfig(config, formattingCallType);
-    const formatResult = await formatImagePromptWithClaude(originalPrompt, config, llmClient, formattingConfig, isChronicleImage);
+    const formatResult = await formatImagePromptWithClaude(
+      originalPrompt,
+      config,
+      llmClient,
+      formattingConfig,
+      isChronicleImage
+    );
     const finalPrompt = formatResult.prompt;
 
     // Save imagePrompt cost record if Claude was used
@@ -113,7 +129,7 @@ export const imageTask = {
         entityId: task.entityId,
         entityName: task.entityName,
         entityKind: task.entityKind,
-        type: 'imagePrompt',
+        type: "imagePrompt",
         model: formattingConfig.model,
         estimatedCost: formatResult.cost.estimated,
         actualCost: formatResult.cost.actual,
@@ -123,14 +139,14 @@ export const imageTask = {
     }
 
     if (isAborted()) {
-      return { success: false, error: 'Task aborted' };
+      return { success: false, error: "Task aborted" };
     }
 
     const result = await imageClient.generate({ prompt: finalPrompt });
     const debug = result.debug;
 
     if (isAborted()) {
-      return { success: false, error: 'Task aborted' };
+      return { success: false, error: "Task aborted" };
     }
 
     if (result.error) {
@@ -138,7 +154,7 @@ export const imageTask = {
     }
 
     if (!result.imageBlob) {
-      return { success: false, error: 'No image data returned from API' };
+      return { success: false, error: "No image data returned from API" };
     }
 
     const actualCost = calculateActualImageCost(imageModel, imageSize, imageQuality, result.usage);
@@ -184,7 +200,7 @@ export const imageTask = {
       entityId: task.entityId,
       entityName: task.entityName,
       entityKind: task.entityKind,
-      type: 'image',
+      type: "image",
       model: imageModel,
       estimatedCost,
       actualCost,
@@ -211,4 +227,4 @@ export const imageTask = {
       debug,
     };
   },
-} satisfies TaskHandler<WorkerTask & { type: 'image' }>;
+} satisfies TaskHandler<WorkerTask & { type: "image" }>;

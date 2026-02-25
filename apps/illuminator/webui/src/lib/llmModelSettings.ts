@@ -11,27 +11,27 @@ import {
   LLM_CALL_METADATA,
   ALL_LLM_CALL_TYPES,
   THINKING_CAPABLE_MODELS,
-} from './llmCallTypes';
+} from "./llmCallTypes";
 
 // Re-export for convenience
 export type { LLMCallType, LLMCallConfig };
-export { LLM_CALL_METADATA, ALL_LLM_CALL_TYPES } from './llmCallTypes';
+export { LLM_CALL_METADATA, ALL_LLM_CALL_TYPES } from "./llmCallTypes";
 
-const STORAGE_KEY = 'illuminator:llmModelSettings';
+const STORAGE_KEY = "illuminator:llmModelSettings";
 const CURRENT_VERSION = 3;
 
 /**
  * Per-call settings (can override defaults)
  */
 export interface LLMCallConfigStored {
-  model?: string;           // undefined = use default
-  thinkingBudget?: number;  // undefined = use default, 0 = disabled
-  maxTokens?: number;       // undefined = use default, 0 = auto (style-derived)
-  temperature?: number;     // undefined = use default
-  topP?: number;            // undefined = use default (1.0 = normal, 0.95 = low)
-  streamTimeout?: number;   // undefined = use default (0 = no timeout)
+  model?: string; // undefined = use default
+  thinkingBudget?: number; // undefined = use default, 0 = disabled
+  maxTokens?: number; // undefined = use default, 0 = auto (style-derived)
+  temperature?: number; // undefined = use default
+  topP?: number; // undefined = use default (1.0 = normal, 0.95 = low)
+  streamTimeout?: number; // undefined = use default (0 = no timeout)
   disableStreaming?: boolean; // undefined = use default (false = stream)
-  runInBrowser?: boolean;   // undefined = use default (false = service worker)
+  runInBrowser?: boolean; // undefined = use default (false = service worker)
 }
 
 /**
@@ -68,7 +68,7 @@ export type ResolvedLLMCallSettings = Record<LLMCallType, ResolvedLLMCallConfig>
  * Migrate settings from older versions
  */
 function migrateSettings(stored: unknown): LLMModelSettings {
-  if (!stored || typeof stored !== 'object') {
+  if (!stored || typeof stored !== "object") {
     return { callOverrides: {}, version: CURRENT_VERSION };
   }
 
@@ -83,14 +83,14 @@ function migrateSettings(stored: unknown): LLMModelSettings {
   // v2 -> v3: add streamTimeout/disableStreaming (no-op, new fields have defaults)
   if (settings.version === 1 || settings.version === 2) {
     return {
-      callOverrides: (settings.callOverrides as LLMModelSettings['callOverrides']) || {},
+      callOverrides: (settings.callOverrides as LLMModelSettings["callOverrides"]) || {},
       version: CURRENT_VERSION,
     };
   }
 
   // Default: return with current version
   return {
-    callOverrides: (settings.callOverrides as LLMModelSettings['callOverrides']) || {},
+    callOverrides: (settings.callOverrides as LLMModelSettings["callOverrides"]) || {},
     version: CURRENT_VERSION,
   };
 }
@@ -106,7 +106,7 @@ export function getLLMModelSettings(): LLMModelSettings {
       return migrateSettings(parsed);
     }
   } catch (err) {
-    console.warn('[LLMModelSettings] Failed to load settings:', err);
+    console.warn("[LLMModelSettings] Failed to load settings:", err);
   }
   return { callOverrides: {}, version: CURRENT_VERSION };
 }
@@ -117,22 +117,41 @@ export function getLLMModelSettings(): LLMModelSettings {
 export function saveLLMModelSettings(settings: LLMModelSettings): void {
   try {
     // Clean up: remove entries that match defaults
-    const cleanOverrides: LLMModelSettings['callOverrides'] = {};
+    const cleanOverrides: LLMModelSettings["callOverrides"] = {};
     for (const [callType, config] of Object.entries(settings.callOverrides)) {
       if (!config) continue;
       const metadata = LLM_CALL_METADATA[callType as LLMCallType];
       if (!metadata) continue;
 
       const hasModelOverride = config.model && config.model !== metadata.defaults.model;
-      const hasThinkingOverride = config.thinkingBudget !== undefined && config.thinkingBudget !== metadata.defaults.thinkingBudget;
-      const hasMaxTokensOverride = config.maxTokens !== undefined && config.maxTokens !== metadata.defaults.maxTokens;
-      const hasTemperatureOverride = config.temperature !== undefined && config.temperature !== metadata.defaults.temperature;
+      const hasThinkingOverride =
+        config.thinkingBudget !== undefined &&
+        config.thinkingBudget !== metadata.defaults.thinkingBudget;
+      const hasMaxTokensOverride =
+        config.maxTokens !== undefined && config.maxTokens !== metadata.defaults.maxTokens;
+      const hasTemperatureOverride =
+        config.temperature !== undefined && config.temperature !== metadata.defaults.temperature;
       const hasTopPOverride = config.topP !== undefined && config.topP !== metadata.defaults.topP;
-      const hasStreamTimeoutOverride = config.streamTimeout !== undefined && config.streamTimeout !== (metadata.defaults.streamTimeout ?? 0);
-      const hasDisableStreamingOverride = config.disableStreaming !== undefined && config.disableStreaming !== (metadata.defaults.disableStreaming ?? false);
-      const hasRunInBrowserOverride = config.runInBrowser !== undefined && config.runInBrowser !== (metadata.defaults.runInBrowser ?? false);
+      const hasStreamTimeoutOverride =
+        config.streamTimeout !== undefined &&
+        config.streamTimeout !== (metadata.defaults.streamTimeout ?? 0);
+      const hasDisableStreamingOverride =
+        config.disableStreaming !== undefined &&
+        config.disableStreaming !== (metadata.defaults.disableStreaming ?? false);
+      const hasRunInBrowserOverride =
+        config.runInBrowser !== undefined &&
+        config.runInBrowser !== (metadata.defaults.runInBrowser ?? false);
 
-      if (hasModelOverride || hasThinkingOverride || hasMaxTokensOverride || hasTemperatureOverride || hasTopPOverride || hasStreamTimeoutOverride || hasDisableStreamingOverride || hasRunInBrowserOverride) {
+      if (
+        hasModelOverride ||
+        hasThinkingOverride ||
+        hasMaxTokensOverride ||
+        hasTemperatureOverride ||
+        hasTopPOverride ||
+        hasStreamTimeoutOverride ||
+        hasDisableStreamingOverride ||
+        hasRunInBrowserOverride
+      ) {
         cleanOverrides[callType as LLMCallType] = {
           ...(hasModelOverride ? { model: config.model } : {}),
           ...(hasThinkingOverride ? { thinkingBudget: config.thinkingBudget } : {}),
@@ -146,12 +165,15 @@ export function saveLLMModelSettings(settings: LLMModelSettings): void {
       }
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      callOverrides: cleanOverrides,
-      version: settings.version,
-    }));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        callOverrides: cleanOverrides,
+        version: settings.version,
+      })
+    );
   } catch (err) {
-    console.warn('[LLMModelSettings] Failed to save settings:', err);
+    console.warn("[LLMModelSettings] Failed to save settings:", err);
   }
 }
 
@@ -204,7 +226,16 @@ export function getCallConfig(callType: LLMCallType): ResolvedLLMCallConfig {
   const disableStreaming = override?.disableStreaming ?? defaults.disableStreaming ?? false;
   const runInBrowser = override?.runInBrowser ?? defaults.runInBrowser ?? false;
 
-  return { model, thinkingBudget, maxTokens, temperature, topP, streamTimeout, disableStreaming, runInBrowser };
+  return {
+    model,
+    thinkingBudget,
+    maxTokens,
+    temperature,
+    topP,
+    streamTimeout,
+    disableStreaming,
+    runInBrowser,
+  };
 }
 
 /**
@@ -245,13 +276,18 @@ export function hasOverrides(callType: LLMCallType): boolean {
   const metadata = LLM_CALL_METADATA[callType];
   return (
     (override.model !== undefined && override.model !== metadata.defaults.model) ||
-    (override.thinkingBudget !== undefined && override.thinkingBudget !== metadata.defaults.thinkingBudget) ||
+    (override.thinkingBudget !== undefined &&
+      override.thinkingBudget !== metadata.defaults.thinkingBudget) ||
     (override.maxTokens !== undefined && override.maxTokens !== metadata.defaults.maxTokens) ||
-    (override.temperature !== undefined && override.temperature !== metadata.defaults.temperature) ||
+    (override.temperature !== undefined &&
+      override.temperature !== metadata.defaults.temperature) ||
     (override.topP !== undefined && override.topP !== metadata.defaults.topP) ||
-    (override.streamTimeout !== undefined && override.streamTimeout !== (metadata.defaults.streamTimeout ?? 0)) ||
-    (override.disableStreaming !== undefined && override.disableStreaming !== (metadata.defaults.disableStreaming ?? false)) ||
-    (override.runInBrowser !== undefined && override.runInBrowser !== (metadata.defaults.runInBrowser ?? false))
+    (override.streamTimeout !== undefined &&
+      override.streamTimeout !== (metadata.defaults.streamTimeout ?? 0)) ||
+    (override.disableStreaming !== undefined &&
+      override.disableStreaming !== (metadata.defaults.disableStreaming ?? false)) ||
+    (override.runInBrowser !== undefined &&
+      override.runInBrowser !== (metadata.defaults.runInBrowser ?? false))
   );
 }
 

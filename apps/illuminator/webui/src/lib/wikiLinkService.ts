@@ -57,7 +57,7 @@ function buildCacheKey(entities: WikiLinkEntity[]): string {
   return entities
     .map((entity) => `${entity.id}:${entity.name}`)
     .sort()
-    .join('|');
+    .join("|");
 }
 
 function isAsciiAlphaNumeric(char: string): boolean {
@@ -69,7 +69,7 @@ function isAsciiAlphaNumeric(char: string): boolean {
 }
 
 function isApostrophe(char: string): boolean {
-  return char === "'" || char === '\u2019' || char === '\u2018';
+  return char === "'" || char === "\u2019" || char === "\u2018";
 }
 
 /**
@@ -82,7 +82,7 @@ function isApostrophe(char: string): boolean {
 function isPossessiveSuffix(text: string, i: number): boolean {
   if (!isApostrophe(text[i])) return false;
   if (i + 1 >= text.length) return false;
-  if (text[i + 1].toLowerCase() !== 's') return false;
+  if (text[i + 1].toLowerCase() !== "s") return false;
   if (i + 2 >= text.length) return true;
   return !isAsciiAlphaNumeric(text[i + 2].toLowerCase());
 }
@@ -102,22 +102,22 @@ function normalizeForMatch(text: string): NormalizedText {
       // Skip apostrophe + 's' — don't emit a separator
       i += 1;
     } else if (!prevSeparator) {
-      normalizedChars.push('-');
+      normalizedChars.push("-");
       indexMap.push(i);
       prevSeparator = true;
     }
   }
 
-  while (normalizedChars.length > 0 && normalizedChars[0] === '-') {
+  while (normalizedChars.length > 0 && normalizedChars[0] === "-") {
     normalizedChars.shift();
     indexMap.shift();
   }
-  while (normalizedChars.length > 0 && normalizedChars[normalizedChars.length - 1] === '-') {
+  while (normalizedChars.length > 0 && normalizedChars[normalizedChars.length - 1] === "-") {
     normalizedChars.pop();
     indexMap.pop();
   }
 
-  return { normalized: normalizedChars.join(''), indexMap };
+  return { normalized: normalizedChars.join(""), indexMap };
 }
 
 function normalizeSlug(text: string): string {
@@ -218,10 +218,10 @@ function getAutomaton(entities: WikiLinkEntity[]): Automaton {
 }
 
 function isBoundaryMatch(normalized: string, start: number, end: number): boolean {
-  const before = start === 0 ? '-' : normalized[start - 1];
-  const after = end === normalized.length ? '-' : normalized[end];
-  const beforeOk = start === 0 || before === '-';
-  const afterOk = end === normalized.length || after === '-';
+  const before = start === 0 ? "-" : normalized[start - 1];
+  const after = end === normalized.length ? "-" : normalized[end];
+  const beforeOk = start === 0 || before === "-";
+  const afterOk = end === normalized.length || after === "-";
   return beforeOk && afterOk;
 }
 
@@ -310,10 +310,7 @@ function filterOverlaps(matches: WikiLinkMatch[]): WikiLinkMatch[] {
  * Use this for detection (e.g. tertiary cast) where we need to know
  * which entities are mentioned regardless of overlapping spans.
  */
-export function findEntityMentions(
-  content: string,
-  entities: WikiLinkEntity[],
-): WikiLinkMatch[] {
+export function findEntityMentions(content: string, entities: WikiLinkEntity[]): WikiLinkMatch[] {
   if (!content || entities.length === 0) return [];
   const automaton = getAutomaton(entities);
   const { normalized, indexMap } = normalizeForMatch(content);
@@ -321,10 +318,7 @@ export function findEntityMentions(
   return Array.from(matchesByEntity.values());
 }
 
-export function applyWikiLinks(
-  content: string,
-  entities: WikiLinkEntity[]
-): WikiLinkResult {
+export function applyWikiLinks(content: string, entities: WikiLinkEntity[]): WikiLinkResult {
   if (!content || entities.length === 0) {
     return { content, links: [], collisions: [] };
   }
@@ -355,7 +349,7 @@ export function applyWikiLinks(
   }
 
   return {
-    content: output.join(''),
+    content: output.join(""),
     links: matches,
     collisions: automaton.collisions,
   };

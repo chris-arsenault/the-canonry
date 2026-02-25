@@ -13,45 +13,45 @@
  * Images take ~10x longer than text, so they count more.
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from "react";
 import type {
   QueueItem,
   EnrichmentTaskPayload,
   WorkerTask,
   EntityEnrichment,
   ApplyEnrichmentOutput,
-} from '../lib/enrichmentTypes';
-import { applyEnrichmentResult } from '../lib/enrichmentTypes';
-import type { WorkerConfig, WorkerOutbound } from '../workers/enrichment.worker';
-import { createWorkerPool, resetWorkerPool, type WorkerHandle } from '../lib/workerFactory';
-import { getResolvedLLMCallSettings, type ResolvedLLMCallSettings } from '../lib/llmModelSettings';
-import type { LLMCallType } from '../lib/llmCallTypes';
-import type { EnrichmentType } from '../lib/enrichmentTypes';
-import { useThinkingStore } from '../lib/db/thinkingStore';
-import { executeBrowserTask } from '../lib/browserTaskExecutor';
+} from "../lib/enrichmentTypes";
+import { applyEnrichmentResult } from "../lib/enrichmentTypes";
+import type { WorkerConfig, WorkerOutbound } from "../workers/enrichment.worker";
+import { createWorkerPool, resetWorkerPool, type WorkerHandle } from "../lib/workerFactory";
+import { getResolvedLLMCallSettings, type ResolvedLLMCallSettings } from "../lib/llmModelSettings";
+import type { LLMCallType } from "../lib/llmCallTypes";
+import type { EnrichmentType } from "../lib/enrichmentTypes";
+import { useThinkingStore } from "../lib/db/thinkingStore";
+import { executeBrowserTask } from "../lib/browserTaskExecutor";
 
 /**
  * Map enrichment task types to their primary LLM call type.
  * Used to look up the runInBrowser flag for execution context decisions.
  */
 const TASK_PRIMARY_CALL_TYPE: Partial<Record<EnrichmentType, LLMCallType>> = {
-  description: 'description.narrative',
-  visualThesis: 'description.visualThesis',
-  image: 'image.promptFormatting',
-  entityChronicle: 'chronicle.generation',
-  paletteExpansion: 'palette.expansion',
-  dynamicsGeneration: 'dynamics.generation',
-  summaryRevision: 'revision.summary',
-  chronicleLoreBackport: 'revision.loreBackport',
-  historianEdition: 'historian.edition',
-  historianReview: 'historian.entityReview',
-  historianChronology: 'historian.chronology',
-  historianPrep: 'historian.prep',
-  eraNarrative: 'historian.eraNarrative.threads',
-  motifVariation: 'historian.motifVariation',
-  factCoverage: 'chronicle.factCoverage',
-  toneRanking: 'chronicle.toneRanking',
-  bulkToneRanking: 'chronicle.bulkToneRanking',
+  description: "description.narrative",
+  visualThesis: "description.visualThesis",
+  image: "image.promptFormatting",
+  entityChronicle: "chronicle.generation",
+  paletteExpansion: "palette.expansion",
+  dynamicsGeneration: "dynamics.generation",
+  summaryRevision: "revision.summary",
+  chronicleLoreBackport: "revision.loreBackport",
+  historianEdition: "historian.edition",
+  historianReview: "historian.entityReview",
+  historianChronology: "historian.chronology",
+  historianPrep: "historian.prep",
+  eraNarrative: "historian.eraNarrative.threads",
+  motifVariation: "historian.motifVariation",
+  factCoverage: "chronicle.factCoverage",
+  toneRanking: "chronicle.toneRanking",
+  bulkToneRanking: "chronicle.bulkToneRanking",
 };
 
 function shouldRunInBrowser(taskType: string, settings: ResolvedLLMCallSettings): boolean {
@@ -119,7 +119,13 @@ interface WorkerState {
 
 type EnqueueItem = Omit<
   EnrichmentTaskPayload,
-  'id' | 'entityId' | 'entityName' | 'entityKind' | 'entitySubtype' | 'entityCulture' | 'simulationRunId'
+  | "id"
+  | "entityId"
+  | "entityName"
+  | "entityKind"
+  | "entitySubtype"
+  | "entityCulture"
+  | "simulationRunId"
 > & {
   entity: EnrichedEntity;
 };
@@ -127,25 +133,22 @@ type EnqueueItem = Omit<
 /**
  * Calculate estimated workload for a worker based on its assigned tasks
  */
-function calculateWorkload(
-  workerState: WorkerState,
-  queue: QueueItem[]
-): number {
+function calculateWorkload(workerState: WorkerState, queue: QueueItem[]): number {
   let workload = 0;
 
   // Add weight for current running task
   if (workerState.currentTaskId) {
     const currentTask = queue.find((q) => q.id === workerState.currentTaskId);
     if (currentTask) {
-      workload += currentTask.type === 'image' ? IMAGE_TASK_WEIGHT : TEXT_TASK_WEIGHT;
+      workload += currentTask.type === "image" ? IMAGE_TASK_WEIGHT : TEXT_TASK_WEIGHT;
     }
   }
 
   // Add weight for pending tasks assigned to this worker
   for (const taskId of workerState.pendingTaskIds) {
     const task = queue.find((q) => q.id === taskId);
-    if (task && task.status === 'queued') {
-      workload += task.type === 'image' ? IMAGE_TASK_WEIGHT : TEXT_TASK_WEIGHT;
+    if (task && task.status === "queued") {
+      workload += task.type === "image" ? IMAGE_TASK_WEIGHT : TEXT_TASK_WEIGHT;
     }
   }
 
@@ -222,10 +225,10 @@ export function useEnrichmentQueue(
 
   // Calculate stats
   const stats: QueueStats = {
-    queued: queue.filter((item) => item.status === 'queued').length,
-    running: queue.filter((item) => item.status === 'running').length,
-    completed: queue.filter((item) => item.status === 'complete').length,
-    errored: queue.filter((item) => item.status === 'error').length,
+    queued: queue.filter((item) => item.status === "queued").length,
+    running: queue.filter((item) => item.status === "running").length,
+    completed: queue.filter((item) => item.status === "complete").length,
+    errored: queue.filter((item) => item.status === "error").length,
     total: queue.length,
   };
 
@@ -243,7 +246,7 @@ export function useEnrichmentQueue(
       // until React re-renders, so status may still read 'queued'.
       const nextItem = currentQueue.find(
         (item) =>
-          item.status === 'queued' &&
+          item.status === "queued" &&
           taskWorkerMapRef.current.get(item.id) === workerId &&
           !browserRunningTasksRef.current.has(item.id)
       );
@@ -257,7 +260,7 @@ export function useEnrichmentQueue(
       setQueue((prev) =>
         prev.map((item) =>
           item.id === nextItem.id
-            ? { ...item, status: 'running' as const, startedAt: Date.now() }
+            ? { ...item, status: "running" as const, startedAt: Date.now() }
             : item
         )
       );
@@ -280,7 +283,7 @@ export function useEnrichmentQueue(
       }
       const task: WorkerTask = {
         ...taskPayload,
-        projectId: projectIdRef.current || 'unknown',
+        projectId: projectIdRef.current || "unknown",
         llmCallSettings: latestLlmSettings,
       };
 
@@ -290,14 +293,16 @@ export function useEnrichmentQueue(
         workerState.currentTaskId = null;
         browserRunningTasksRef.current.add(nextItem.id);
 
-        console.log('[EnrichmentQueue] Executing in browser', { taskId: task.id, type: task.type });
+        console.log("[EnrichmentQueue] Executing in browser", { taskId: task.id, type: task.type });
 
         // Initialize thinking entry (same as 'started' message handler)
         useThinkingStore.getState().startTask(task.id, nextItem.entityName, nextItem.type);
 
         executeBrowserTask(task, configRef.current, {
-          onThinkingDelta: (taskId, delta) => useThinkingStore.getState().appendDelta(taskId, delta),
-          onTextDelta: (taskId, delta) => useThinkingStore.getState().appendTextDelta(taskId, delta),
+          onThinkingDelta: (taskId, delta) =>
+            useThinkingStore.getState().appendDelta(taskId, delta),
+          onTextDelta: (taskId, delta) =>
+            useThinkingStore.getState().appendTextDelta(taskId, delta),
         }).then((taskResult) => {
           browserRunningTasksRef.current.delete(task.id);
           taskWorkerMapRef.current.delete(task.id);
@@ -305,15 +310,26 @@ export function useEnrichmentQueue(
             setQueue((prev) =>
               prev.map((item) =>
                 item.id === task.id
-                  ? { ...item, status: 'complete' as const, completedAt: Date.now(), result: taskResult.result, debug: taskResult.debug }
+                  ? {
+                      ...item,
+                      status: "complete" as const,
+                      completedAt: Date.now(),
+                      result: taskResult.result,
+                      debug: taskResult.debug,
+                    }
                   : item
               )
             );
             if (taskResult.result) {
-              const queueItem = queueRef.current.find(item => item.id === task.id);
-              const isChronicleImage = queueItem?.imageType === 'chronicle';
+              const queueItem = queueRef.current.find((item) => item.id === task.id);
+              const isChronicleImage = queueItem?.imageType === "chronicle";
               if (!isChronicleImage) {
-                const output = applyEnrichmentResult({}, task.type, taskResult.result, queueItem?.entityLockedSummary);
+                const output = applyEnrichmentResult(
+                  {},
+                  task.type,
+                  taskResult.result,
+                  queueItem?.entityLockedSummary
+                );
                 onEntityUpdateRef.current(task.entityId, output);
               }
             }
@@ -321,7 +337,13 @@ export function useEnrichmentQueue(
             setQueue((prev) =>
               prev.map((item) =>
                 item.id === task.id
-                  ? { ...item, status: 'error' as const, completedAt: Date.now(), error: taskResult.error, debug: taskResult.debug }
+                  ? {
+                      ...item,
+                      status: "error" as const,
+                      completedAt: Date.now(),
+                      error: taskResult.error,
+                      debug: taskResult.debug,
+                    }
                   : item
               )
             );
@@ -336,7 +358,7 @@ export function useEnrichmentQueue(
         return;
       }
 
-      workerState.worker.postMessage({ type: 'execute', task });
+      workerState.worker.postMessage({ type: "execute", task });
     },
     [] // No dependencies - uses refs
   );
@@ -348,7 +370,7 @@ export function useEnrichmentQueue(
       const workerState = workersRef.current.find((w) => w.workerId === workerId);
 
       switch (message.type) {
-        case 'ready':
+        case "ready":
           if (workerState) {
             workerState.isReady = true;
           }
@@ -358,29 +380,27 @@ export function useEnrichmentQueue(
           }
           break;
 
-        case 'started': {
+        case "started": {
           // Already updated status when we sent the task
           // Initialize thinking entry for this task
-          const startedItem = queueRef.current.find(item => item.id === message.taskId);
+          const startedItem = queueRef.current.find((item) => item.id === message.taskId);
           if (startedItem) {
-            useThinkingStore.getState().startTask(
-              message.taskId,
-              startedItem.entityName,
-              startedItem.type,
-            );
+            useThinkingStore
+              .getState()
+              .startTask(message.taskId, startedItem.entityName, startedItem.type);
           }
           break;
         }
 
-        case 'thinking_delta':
+        case "thinking_delta":
           useThinkingStore.getState().appendDelta(message.taskId, message.delta);
           break;
 
-        case 'text_delta':
+        case "text_delta":
           useThinkingStore.getState().appendTextDelta(message.taskId, message.delta);
           break;
 
-        case 'complete': {
+        case "complete": {
           const result = message.result;
 
           if (workerState) {
@@ -399,7 +419,7 @@ export function useEnrichmentQueue(
               item.id === result.id
                 ? {
                     ...item,
-                    status: 'complete' as const,
+                    status: "complete" as const,
                     completedAt: Date.now(),
                     result: result.result,
                     debug: result.debug,
@@ -410,10 +430,15 @@ export function useEnrichmentQueue(
 
           // Notify parent to update entity (skip for chronicle images - they have their own storage)
           if (result.result) {
-            const queueItem = queueRef.current.find(item => item.id === result.id);
-            const isChronicleImage = queueItem?.imageType === 'chronicle';
+            const queueItem = queueRef.current.find((item) => item.id === result.id);
+            const isChronicleImage = queueItem?.imageType === "chronicle";
             if (!isChronicleImage) {
-              const output = applyEnrichmentResult({}, result.type, result.result, queueItem?.entityLockedSummary);
+              const output = applyEnrichmentResult(
+                {},
+                result.type,
+                result.result,
+                queueItem?.entityLockedSummary
+              );
               onEntityUpdateRef.current(result.entityId, output);
             }
           }
@@ -425,7 +450,7 @@ export function useEnrichmentQueue(
           break;
         }
 
-        case 'error': {
+        case "error": {
           if (workerState) {
             workerState.currentTaskId = null;
           }
@@ -438,7 +463,7 @@ export function useEnrichmentQueue(
               item.id === message.taskId
                 ? {
                     ...item,
-                    status: 'error' as const,
+                    status: "error" as const,
                     completedAt: Date.now(),
                     error: message.error,
                     debug: message.debug,
@@ -449,7 +474,7 @@ export function useEnrichmentQueue(
 
           useThinkingStore.getState().finishTask(message.taskId);
 
-          if (message.error?.includes('Worker not initialized')) {
+          if (message.error?.includes("Worker not initialized")) {
             const attempts = autoReconnectAttemptsRef.current.get(message.taskId) || 0;
             if (attempts < MAX_AUTO_RECONNECT_ATTEMPTS) {
               autoReconnectAttemptsRef.current.set(message.taskId, attempts + 1);
@@ -491,7 +516,7 @@ export function useEnrichmentQueue(
   useEffect(() => {
     return () => {
       for (const workerState of workersRef.current) {
-        if (workerState.worker.type === 'dedicated') {
+        if (workerState.worker.type === "dedicated") {
           workerState.worker.terminate();
         }
       }
@@ -504,7 +529,7 @@ export function useEnrichmentQueue(
     (config: WorkerConfig) => {
       // Terminate existing workers
       for (const workerState of workersRef.current) {
-        if (workerState.worker.type === 'dedicated') {
+        if (workerState.worker.type === "dedicated") {
           workerState.worker.terminate();
         }
       }
@@ -540,9 +565,9 @@ export function useEnrichmentQueue(
                 item.id === failedTaskId
                   ? {
                       ...item,
-                      status: 'error' as const,
+                      status: "error" as const,
                       completedAt: Date.now(),
-                      error: error.message || 'Worker error',
+                      error: error.message || "Worker error",
                     }
                   : item
               )
@@ -556,7 +581,7 @@ export function useEnrichmentQueue(
         // Note: createWorker already sends init message
       }
 
-      const queuedItems = queueRef.current.filter((item) => item.status === 'queued');
+      const queuedItems = queueRef.current.filter((item) => item.status === "queued");
       for (const item of queuedItems) {
         const leastBusyWorker = findLeastBusyWorker(workersRef.current, queueRef.current);
         if (leastBusyWorker) {
@@ -582,7 +607,7 @@ export function useEnrichmentQueue(
     (items: EnqueueItem[]) => {
       const runId = simulationRunIdRef.current;
       if (!runId) {
-        console.error('[EnrichmentQueue] simulationRunId is required to enqueue tasks.');
+        console.error("[EnrichmentQueue] simulationRunId is required to enqueue tasks.");
         return;
       }
 
@@ -599,16 +624,20 @@ export function useEnrichmentQueue(
           entitySubtype: entity.subtype,
           entityCulture: entity.culture,
           entityLockedSummary: entity.lockedSummary,
-          entityLockedSummaryText: entity.lockedSummary && entity.summary ? entity.summary : undefined,
+          entityLockedSummaryText:
+            entity.lockedSummary && entity.summary ? entity.summary : undefined,
           entityNarrativeHintText: entity.narrativeHint,
           ...taskFields,
           simulationRunId: runId,
-          status: 'queued' as const,
+          status: "queued" as const,
           queuedAt: Date.now(),
         };
 
         // Find the least busy worker and assign this task
-        const leastBusyWorker = findLeastBusyWorker(workersRef.current, [...currentQueue, ...newItems]);
+        const leastBusyWorker = findLeastBusyWorker(workersRef.current, [
+          ...currentQueue,
+          ...newItems,
+        ]);
         if (leastBusyWorker) {
           taskWorkerMapRef.current.set(queueItem.id, leastBusyWorker.workerId);
           leastBusyWorker.pendingTaskIds.add(queueItem.id);
@@ -637,10 +666,10 @@ export function useEnrichmentQueue(
       const workerId = taskWorkerMapRef.current.get(itemId);
 
       // If running, abort the worker (include taskId for SharedWorker)
-      if (item.status === 'running' && workerId !== undefined) {
+      if (item.status === "running" && workerId !== undefined) {
         const workerState = workersRef.current.find((w) => w.workerId === workerId);
         if (workerState) {
-          workerState.worker.postMessage({ type: 'abort', taskId: itemId });
+          workerState.worker.postMessage({ type: "abort", taskId: itemId });
           workerState.currentTaskId = null;
         }
       }
@@ -659,12 +688,12 @@ export function useEnrichmentQueue(
   // Cancel all
   const cancelAll = useCallback(() => {
     // Get all running task IDs to abort
-    const runningTasks = queueRef.current.filter((item) => item.status === 'running');
+    const runningTasks = queueRef.current.filter((item) => item.status === "running");
 
     for (const workerState of workersRef.current) {
       // Abort each running task on this worker
       if (workerState.currentTaskId) {
-        workerState.worker.postMessage({ type: 'abort', taskId: workerState.currentTaskId });
+        workerState.worker.postMessage({ type: "abort", taskId: workerState.currentTaskId });
       }
       workerState.currentTaskId = null;
       workerState.pendingTaskIds.clear();
@@ -677,7 +706,7 @@ export function useEnrichmentQueue(
   const retry = useCallback((itemId: string) => {
     setQueue((prev) => {
       const item = prev.find((i) => i.id === itemId);
-      if (!item || item.status !== 'error') return prev;
+      if (!item || item.status !== "error") return prev;
 
       // Reassign to least busy worker (use prev instead of ref since we're inside setQueue)
       const leastBusyWorker = findLeastBusyWorker(workersRef.current, prev);
@@ -695,7 +724,7 @@ export function useEnrichmentQueue(
         i.id === itemId
           ? {
               ...i,
-              status: 'queued' as const,
+              status: "queued" as const,
               error: undefined,
               debug: undefined,
               queuedAt: Date.now(),
@@ -722,11 +751,11 @@ export function useEnrichmentQueue(
   // Clear completed items
   const clearCompleted = useCallback(() => {
     setQueue((prev) => {
-      const completedIds = prev.filter((item) => item.status === 'complete').map((i) => i.id);
+      const completedIds = prev.filter((item) => item.status === "complete").map((i) => i.id);
       for (const id of completedIds) {
         taskWorkerMapRef.current.delete(id);
       }
-      return prev.filter((item) => item.status !== 'complete');
+      return prev.filter((item) => item.status !== "complete");
     });
   }, []);
 
@@ -734,7 +763,7 @@ export function useEnrichmentQueue(
   const getUpdatedEntity = useCallback(
     (entity: EnrichedEntity): EnrichedEntity => {
       const completedItems = queue.filter(
-        (item) => item.entityId === entity.id && item.status === 'complete' && item.result
+        (item) => item.entityId === entity.id && item.status === "complete" && item.result
       );
 
       if (completedItems.length === 0) return entity;
@@ -742,7 +771,12 @@ export function useEnrichmentQueue(
       let result = { ...entity };
       for (const item of completedItems) {
         if (item.result) {
-          const output = applyEnrichmentResult({ enrichment: result.enrichment }, item.type, item.result, entity.lockedSummary);
+          const output = applyEnrichmentResult(
+            { enrichment: result.enrichment },
+            item.type,
+            item.result,
+            entity.lockedSummary
+          );
           result = {
             ...result,
             enrichment: output.enrichment,

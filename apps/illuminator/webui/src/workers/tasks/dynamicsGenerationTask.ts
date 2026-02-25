@@ -9,17 +9,14 @@
  * subsequent turns after search execution or user feedback.
  */
 
-import type { WorkerTask } from '../../lib/enrichmentTypes';
-import type { TaskContext } from './taskTypes';
-import type { TaskResult } from '../types';
-import type {
-  DynamicsLLMResponse,
-  DynamicsMessage,
-} from '../../lib/dynamicsGenerationTypes';
-import { getDynamicsRun, updateDynamicsRun } from '../../lib/db/dynamicsRepository';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
-import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepository';
+import type { WorkerTask } from "../../lib/enrichmentTypes";
+import type { TaskContext } from "./taskTypes";
+import type { TaskResult } from "../types";
+import type { DynamicsLLMResponse, DynamicsMessage } from "../../lib/dynamicsGenerationTypes";
+import { getDynamicsRun, updateDynamicsRun } from "../../lib/db/dynamicsRepository";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
+import { saveCostRecordWithDefaults, type CostType } from "../../lib/db/costRepository";
 
 // ============================================================================
 // System Prompt
@@ -106,11 +103,11 @@ function buildUserPrompt(run: { messages: DynamicsMessage[]; userFeedback?: stri
 
   // Rebuild conversation from messages
   for (const msg of run.messages) {
-    if (msg.role === 'system') {
+    if (msg.role === "system") {
       sections.push(msg.content);
-    } else if (msg.role === 'assistant') {
+    } else if (msg.role === "assistant") {
       sections.push(`=== YOUR PREVIOUS RESPONSE ===\n${msg.content}`);
-    } else if (msg.role === 'user') {
+    } else if (msg.role === "user") {
       sections.push(`=== USER FEEDBACK ===\n${msg.content}`);
     }
   }
@@ -121,7 +118,7 @@ function buildUserPrompt(run: { messages: DynamicsMessage[]; userFeedback?: stri
   }
 
   // Add task instruction
-  const isFirstTurn = run.messages.filter((m) => m.role === 'assistant').length === 0;
+  const isFirstTurn = run.messages.filter((m) => m.role === "assistant").length === 0;
   if (isFirstTurn) {
     sections.push(`=== YOUR TASK ===
 Based on the lore bible, schema, and world state above, identify the world dynamics — the macro-level forces, tensions, alliances, and behavioral patterns that drive stories in this world.
@@ -132,7 +129,7 @@ Use the entity summaries and relationship data to ground your dynamics in the ac
 Continue refining the world dynamics based on user feedback. Propose updated dynamics.`);
   }
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 // ============================================================================
@@ -146,12 +143,12 @@ async function executeDynamicsGenerationTask(
   const { config, llmClient, isAborted } = context;
 
   if (!llmClient.isEnabled()) {
-    return { success: false, error: 'Text generation not configured - missing Anthropic API key' };
+    return { success: false, error: "Text generation not configured - missing Anthropic API key" };
   }
 
   const runId = task.chronicleId; // Repurposing chronicleId field for runId
   if (!runId) {
-    return { success: false, error: 'runId (chronicleId) required for dynamics generation' };
+    return { success: false, error: "runId (chronicleId) required for dynamics generation" };
   }
 
   // Read current run state
@@ -161,15 +158,15 @@ async function executeDynamicsGenerationTask(
   }
 
   // Mark as generating
-  await updateDynamicsRun(runId, { status: 'generating' });
+  await updateDynamicsRun(runId, { status: "generating" });
 
-  const callConfig = getCallConfig(config, 'dynamics.generation');
+  const callConfig = getCallConfig(config, "dynamics.generation");
   const userPrompt = buildUserPrompt(run);
 
   try {
     const callResult = await runTextCall({
       llmClient,
-      callType: 'dynamics.generation',
+      callType: "dynamics.generation",
       callConfig,
       systemPrompt: SYSTEM_PROMPT,
       prompt: userPrompt,
@@ -177,14 +174,14 @@ async function executeDynamicsGenerationTask(
     });
 
     if (isAborted()) {
-      await updateDynamicsRun(runId, { status: 'failed', error: 'Task aborted' });
-      return { success: false, error: 'Task aborted' };
+      await updateDynamicsRun(runId, { status: "failed", error: "Task aborted" });
+      return { success: false, error: "Task aborted" };
     }
 
     const resultText = callResult.result.text?.trim();
     if (callResult.result.error || !resultText) {
-      const errorMsg = `LLM call failed: ${callResult.result.error || 'No text returned'}`;
-      await updateDynamicsRun(runId, { status: 'failed', error: errorMsg });
+      const errorMsg = `LLM call failed: ${callResult.result.error || "No text returned"}`;
+      await updateDynamicsRun(runId, { status: "failed", error: errorMsg });
       return { success: false, error: errorMsg };
     }
 
@@ -192,14 +189,14 @@ async function executeDynamicsGenerationTask(
     let parsed: DynamicsLLMResponse;
     try {
       const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON object found');
+      if (!jsonMatch) throw new Error("No JSON object found");
       parsed = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed.dynamics)) throw new Error('Missing dynamics array');
-      if (typeof parsed.reasoning !== 'string') parsed.reasoning = '';
-      if (typeof parsed.complete !== 'boolean') parsed.complete = false;
+      if (!Array.isArray(parsed.dynamics)) throw new Error("Missing dynamics array");
+      if (typeof parsed.reasoning !== "string") parsed.reasoning = "";
+      if (typeof parsed.complete !== "boolean") parsed.complete = false;
     } catch (err) {
       const errorMsg = `Failed to parse LLM response: ${err instanceof Error ? err.message : String(err)}`;
-      await updateDynamicsRun(runId, { status: 'failed', error: errorMsg });
+      await updateDynamicsRun(runId, { status: "failed", error: errorMsg });
       return { success: false, error: errorMsg };
     }
 
@@ -208,18 +205,18 @@ async function executeDynamicsGenerationTask(
 
     // Add user feedback as a message if provided
     if (run.userFeedback) {
-      newMessages.push({ role: 'user', content: run.userFeedback, timestamp: Date.now() });
+      newMessages.push({ role: "user", content: run.userFeedback, timestamp: Date.now() });
     }
 
     // Add assistant response
-    newMessages.push({ role: 'assistant', content: resultText, timestamp: Date.now() });
+    newMessages.push({ role: "assistant", content: resultText, timestamp: Date.now() });
 
     // Update run
     await updateDynamicsRun(runId, {
-      status: 'awaiting_review',
+      status: "awaiting_review",
       messages: newMessages,
       proposedDynamics: parsed.dynamics,
-      userFeedback: undefined,  // Clear consumed feedback
+      userFeedback: undefined, // Clear consumed feedback
       totalInputTokens: run.totalInputTokens + callResult.usage.inputTokens,
       totalOutputTokens: run.totalOutputTokens + callResult.usage.outputTokens,
       totalActualCost: run.totalActualCost + callResult.usage.actualCost,
@@ -232,7 +229,7 @@ async function executeDynamicsGenerationTask(
       entityId: task.entityId,
       entityName: task.entityName,
       entityKind: task.entityKind,
-      type: 'dynamicsGeneration' as CostType,
+      type: "dynamicsGeneration" as CostType,
       model: callConfig.model,
       estimatedCost: callResult.estimate.estimatedCost,
       actualCost: callResult.usage.actualCost,
@@ -253,12 +250,12 @@ async function executeDynamicsGenerationTask(
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    await updateDynamicsRun(runId, { status: 'failed', error: errorMsg });
+    await updateDynamicsRun(runId, { status: "failed", error: errorMsg });
     return { success: false, error: `Dynamics generation failed: ${errorMsg}` };
   }
 }
 
 export const dynamicsGenerationTask = {
-  type: 'dynamicsGeneration' as const,
+  type: "dynamicsGeneration" as const,
   execute: executeDynamicsGenerationTask,
 };

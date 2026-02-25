@@ -5,7 +5,7 @@
  * Used in chronicler wiki pages via modal.
  */
 
-import styles from './ChronicleSeedViewer.module.css';
+import styles from "./ChronicleSeedViewer.module.css";
 
 export interface ChronicleRoleAssignment {
   role: string;
@@ -46,8 +46,8 @@ export default function ChronicleSeedViewer({
   eventNames,
   relationshipLabels,
 }: ChronicleSeedViewerProps) {
-  const primaryRoles = seed.roleAssignments.filter(r => r.isPrimary);
-  const supportingRoles = seed.roleAssignments.filter(r => !r.isPrimary);
+  const primaryRoles = seed.roleAssignments.filter((r) => r.isPrimary);
+  const supportingRoles = seed.roleAssignments.filter((r) => !r.isPrimary);
 
   return (
     <div className={styles.container}>
@@ -63,36 +63,28 @@ export default function ChronicleSeedViewer({
         {seed.entrypointId && (
           <div className={styles.field}>
             <span className={styles.fieldLabel}>Entry Point:</span>
-            <span className={styles.fieldValue}>
-              {seed.entrypointName || seed.entrypointId}
-            </span>
+            <span className={styles.fieldValue}>{seed.entrypointName || seed.entrypointId}</span>
           </div>
         )}
       </div>
 
       {/* Role Assignments */}
       <div className={styles.section}>
-        <div className={styles.sectionTitle}>
-          Cast ({seed.roleAssignments.length} entities)
-        </div>
+        <div className={styles.sectionTitle}>Cast ({seed.roleAssignments.length} entities)</div>
         {seed.roleAssignments.length === 0 ? (
           <div className={styles.emptyState}>No roles assigned</div>
         ) : (
           <div className={styles.roleList}>
             {primaryRoles.map((role, i) => (
               <div key={`primary-${i}`} className={styles.roleItem}>
-                <span className={styles.primaryBadge}>
-                  {role.role}
-                </span>
+                <span className={styles.primaryBadge}>{role.role}</span>
                 <span className={styles.entityName}>{role.entityName}</span>
                 <span className={styles.entityKind}>({role.entityKind})</span>
               </div>
             ))}
             {supportingRoles.map((role, i) => (
               <div key={`supporting-${i}`} className={styles.roleItem}>
-                <span className={styles.supportingBadge}>
-                  {role.role}
-                </span>
+                <span className={styles.supportingBadge}>{role.role}</span>
                 <span className={styles.entityName}>{role.entityName}</span>
                 <span className={styles.entityKind}>({role.entityKind})</span>
               </div>
@@ -111,15 +103,13 @@ export default function ChronicleSeedViewer({
             <div className={styles.field}>
               <span className={styles.fieldLabel}>Focal Era:</span>
               <span className={styles.fieldValue}>
-                {seed.temporalContext.focalEra?.name || 'Unknown'}
+                {seed.temporalContext.focalEra?.name || "Unknown"}
               </span>
             </div>
             {seed.temporalContext.focalEra?.summary && (
               <div className={styles.field}>
                 <span className={styles.fieldLabel}>Era Summary:</span>
-                <span className={styles.fieldValue}>
-                  {seed.temporalContext.focalEra.summary}
-                </span>
+                <span className={styles.fieldValue}>{seed.temporalContext.focalEra.summary}</span>
               </div>
             )}
             {seed.temporalContext.temporalDescription && (
@@ -139,17 +129,17 @@ export default function ChronicleSeedViewer({
                 </span>
               </div>
             )}
-            {typeof seed.temporalContext.isMultiEra === 'boolean' && (
+            {typeof seed.temporalContext.isMultiEra === "boolean" && (
               <div className={styles.field}>
                 <span className={styles.fieldLabel}>Multi-era:</span>
                 <span className={styles.fieldValue}>
-                  {seed.temporalContext.isMultiEra ? 'Yes' : 'No'}
+                  {seed.temporalContext.isMultiEra ? "Yes" : "No"}
                 </span>
               </div>
             )}
             {seed.temporalContext.touchedEraIds?.length ? (
               <div>
-                <div className={styles.fieldLabel} style={{ marginBottom: '4px' }}>
+                <div className={styles.fieldLabel} style={{ marginBottom: "4px" }}>
                   Touched Eras:
                 </div>
                 <div className={styles.idList}>
@@ -167,9 +157,7 @@ export default function ChronicleSeedViewer({
 
       {/* Selected Events */}
       <div className={styles.section}>
-        <div className={styles.sectionTitle}>
-          Events ({seed.selectedEventIds.length})
-        </div>
+        <div className={styles.sectionTitle}>Events ({seed.selectedEventIds.length})</div>
         {seed.selectedEventIds.length === 0 ? (
           <div className={styles.emptyState}>No events selected</div>
         ) : (
@@ -222,13 +210,13 @@ export function SeedModal({
   seed,
   eventNames,
   relationshipLabels,
-  title = 'Generation Context',
+  title = "Generation Context",
 }: SeedModalProps) {
   if (!isOpen) return null;
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className={styles.modalHeader}>
           <h3 className={styles.modalTitle}>{title}</h3>

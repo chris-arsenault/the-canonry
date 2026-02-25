@@ -8,25 +8,29 @@
  * - Hover tooltips with details
  */
 
-import React, { useMemo, useState, useCallback } from 'react';
-import { prominenceLabelFromScale, type ProminenceScale, type NarrativeEvent } from '@canonry/world-schema';
-import styles from './ProminenceTimeline.module.css';
+import React, { useMemo, useState, useCallback } from "react";
+import {
+  prominenceLabelFromScale,
+  type ProminenceScale,
+  type NarrativeEvent,
+} from "@canonry/world-schema";
+import styles from "./ProminenceTimeline.module.css";
 
 // Prominence level colors used in SVG - warm palette
 const PROMINENCE_COLORS = {
-  forgotten: '#6b6155',   // warm gray
-  marginal: '#d4a017',    // warm amber
-  recognized: '#c49a5c',  // burnished gold
-  renowned: '#8b7355',    // warm brown
-  mythic: '#d4aa6c',      // light gold
+  forgotten: "#6b6155", // warm gray
+  marginal: "#d4a017", // warm amber
+  recognized: "#c49a5c", // burnished gold
+  renowned: "#8b7355", // warm brown
+  mythic: "#d4aa6c", // light gold
 };
 
 // SVG graph colors - warm palette
 const graphColors = {
-  line: '#c49a5c',
-  marker: '#d4a017',
-  levelLine: 'rgba(232, 220, 200, 0.1)',
-  textMuted: '#8a7d6b',
+  line: "#c49a5c",
+  marker: "#d4a017",
+  levelLine: "rgba(232, 220, 200, 0.1)",
+  textMuted: "#8a7d6b",
 };
 
 interface ProminenceDataPoint {
@@ -62,11 +66,11 @@ function extractProminenceData(
   const sortedEvents = [...events].sort((a, b) => a.tick - b.tick);
 
   for (const event of sortedEvents) {
-    const participant = event.participantEffects?.find(p => p.entity.id === entityId);
+    const participant = event.participantEffects?.find((p) => p.entity.id === entityId);
     if (!participant) continue;
 
     for (const effect of participant.effects) {
-      if (effect.type === 'field_changed' && effect.field === 'prominence') {
+      if (effect.type === "field_changed" && effect.field === "prominence") {
         const previousValue = effect.previousValue as number;
         const newValue = effect.newValue as number;
 
@@ -96,7 +100,6 @@ function extractProminenceData(
 
   return dataPoints;
 }
-
 
 export default function ProminenceTimeline({
   events,
@@ -132,11 +135,11 @@ export default function ProminenceTimeline({
     // Start line from first data point (entity's initial prominence), not tick 0
     // First point is the previousValue at the first event tick, then each subsequent newValue
     const firstPoint = { tick: dataPoints[0].tick, value: dataPoints[0].previousValue };
-    const allPoints = [firstPoint, ...dataPoints.map(p => ({ tick: p.tick, value: p.newValue }))];
+    const allPoints = [firstPoint, ...dataPoints.map((p) => ({ tick: p.tick, value: p.newValue }))];
 
     // Ribbon spans full era, but line only starts from first event
     const minTick = 0;
-    const maxTick = Math.max(...allPoints.map(p => p.tick), 1);
+    const maxTick = Math.max(...allPoints.map((p) => p.tick), 1);
     const minValue = 0;
     const maxValue = 5;
 
@@ -156,25 +159,30 @@ export default function ProminenceTimeline({
       rightPadding,
       topPadding,
       bottomPadding,
-      xScale: (tick: number) => leftPadding + ((tick - minTick) / (maxTick - minTick)) * (100 - leftPadding - rightPadding),
-      yScale: (value: number) => topPadding + ((maxValue - value) / (maxValue - minValue)) * (100 - topPadding - bottomPadding),
+      xScale: (tick: number) =>
+        leftPadding + ((tick - minTick) / (maxTick - minTick)) * (100 - leftPadding - rightPadding),
+      yScale: (value: number) =>
+        topPadding +
+        ((maxValue - value) / (maxValue - minValue)) * (100 - topPadding - bottomPadding),
     };
   }, [dataPoints]);
 
   // Find threshold crossings
   const thresholdCrossings = useMemo(() => {
-    return dataPoints.filter(p => p.crossesThreshold !== null);
+    return dataPoints.filter((p) => p.crossesThreshold !== null);
   }, [dataPoints]);
 
   // Build SVG path for the line
   const linePath = useMemo(() => {
-    if (!graphMetrics || graphMetrics.allPoints.length === 0) return '';
+    if (!graphMetrics || graphMetrics.allPoints.length === 0) return "";
 
     const points = graphMetrics.allPoints;
     const pathParts: string[] = [];
 
     // Start at first point
-    pathParts.push(`M ${graphMetrics.xScale(points[0].tick)} ${graphMetrics.yScale(points[0].value)}`);
+    pathParts.push(
+      `M ${graphMetrics.xScale(points[0].tick)} ${graphMetrics.yScale(points[0].value)}`
+    );
 
     // Step line (horizontal then vertical to show discrete changes)
     for (let i = 1; i < points.length; i++) {
@@ -186,24 +194,27 @@ export default function ProminenceTimeline({
       pathParts.push(`L ${graphMetrics.xScale(curr.tick)} ${graphMetrics.yScale(curr.value)}`);
     }
 
-    return pathParts.join(' ');
+    return pathParts.join(" ");
   }, [graphMetrics]);
 
   // Handle point hover
-  const handlePointHover = useCallback((point: ProminenceDataPoint | null, e?: React.MouseEvent) => {
-    if (point && e) {
-      const rect = (e.target as SVGElement).closest('svg')?.getBoundingClientRect();
-      if (rect) {
-        setHoveredPoint({
-          point,
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top,
-        });
+  const handlePointHover = useCallback(
+    (point: ProminenceDataPoint | null, e?: React.MouseEvent) => {
+      if (point && e) {
+        const rect = (e.target as SVGElement).closest("svg")?.getBoundingClientRect();
+        if (rect) {
+          setHoveredPoint({
+            point,
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+          });
+        }
+      } else {
+        setHoveredPoint(null);
       }
-    } else {
-      setHoveredPoint(null);
-    }
-  }, []);
+    },
+    []
+  );
 
   const resolveLabel = (value: number) => prominenceLabelFromScale(value, prominenceScale);
   const resolveColor = (value: number) => {
@@ -232,7 +243,9 @@ export default function ProminenceTimeline({
                     x={0}
                     y={graphMetrics.yScale(nextThreshold)}
                     width={100}
-                    height={graphMetrics.yScale(level.threshold) - graphMetrics.yScale(nextThreshold)}
+                    height={
+                      graphMetrics.yScale(level.threshold) - graphMetrics.yScale(nextThreshold)
+                    }
                     fill={level.color}
                     opacity={0.1}
                   />
@@ -284,7 +297,7 @@ export default function ProminenceTimeline({
                   cy={graphMetrics.yScale(point.newValue)}
                   r={2}
                   fill={graphColors.marker}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: "pointer" }}
                   onMouseEnter={(e) => handlePointHover(point, e)}
                   onMouseLeave={() => handlePointHover(null)}
                 />
@@ -308,9 +321,7 @@ export default function ProminenceTimeline({
                 {resolveLabel(hoveredPoint.point.newValue)}
               </span>
             </div>
-            <div className={styles.tooltipDescription}>
-              {hoveredPoint.point.description}
-            </div>
+            <div className={styles.tooltipDescription}>{hoveredPoint.point.description}</div>
           </div>
         )}
       </div>

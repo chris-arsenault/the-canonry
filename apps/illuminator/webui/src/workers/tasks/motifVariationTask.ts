@@ -9,11 +9,11 @@
  * Results are returned as JSON in the EnrichmentResult.description field.
  */
 
-import type { WorkerTask } from '../../lib/enrichmentTypes';
-import type { TaskContext } from './taskTypes';
-import type { TaskResult } from '../types';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
+import type { WorkerTask } from "../../lib/enrichmentTypes";
+import type { TaskContext } from "./taskTypes";
+import type { TaskResult } from "../types";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
 
 // ============================================================================
 // Types — Vary mode (rewrite sentences containing overused phrases)
@@ -30,7 +30,7 @@ export interface MotifInstance {
 }
 
 export interface MotifVariationPayload {
-  mode?: 'vary';
+  mode?: "vary";
   motifLabel: string;
   instances: MotifInstance[];
 }
@@ -47,7 +47,7 @@ export interface MotifWeaveInstance {
 }
 
 export interface MotifWeavePayload {
-  mode: 'weave';
+  mode: "weave";
   targetPhrase: string;
   instances: MotifWeaveInstance[];
 }
@@ -83,7 +83,7 @@ function buildVaryUserPrompt(instances: MotifInstance[]): string {
   const lines = instances.map((inst) => {
     return `[${inst.index}] Entity: ${inst.entityName}\nPhrase to replace: "${inst.matchedPhrase}"\nFull annotation:\n${inst.annotationText}`;
   });
-  return lines.join('\n\n---\n\n');
+  return lines.join("\n\n---\n\n");
 }
 
 // ============================================================================
@@ -104,12 +104,13 @@ Rules:
 
 function buildWeaveUserPrompt(instances: MotifWeaveInstance[]): string {
   const lines = instances.map((inst) => {
-    const ctxTruncated = inst.surroundingContext.length > 300
-      ? inst.surroundingContext.slice(0, 300) + '…'
-      : inst.surroundingContext;
+    const ctxTruncated =
+      inst.surroundingContext.length > 300
+        ? inst.surroundingContext.slice(0, 300) + "…"
+        : inst.surroundingContext;
     return `[${inst.index}] Entity: ${inst.entityName}\nSentence: "${inst.sentence}"\nSurrounding context: ${ctxTruncated}`;
   });
-  return lines.join('\n\n');
+  return lines.join("\n\n");
 }
 
 // ============================================================================
@@ -117,20 +118,20 @@ function buildWeaveUserPrompt(instances: MotifWeaveInstance[]): string {
 // ============================================================================
 
 function isWeavePayload(p: unknown): p is MotifWeavePayload {
-  return typeof p === 'object' && p !== null && (p as Record<string, unknown>).mode === 'weave';
+  return typeof p === "object" && p !== null && (p as Record<string, unknown>).mode === "weave";
 }
 
 export const motifVariationTask = {
-  type: 'motifVariation' as const,
+  type: "motifVariation" as const,
 
   async execute(task: WorkerTask, context: TaskContext): Promise<TaskResult> {
-    const callConfig = getCallConfig(context.config, 'historian.motifVariation');
+    const callConfig = getCallConfig(context.config, "historian.motifVariation");
 
     let payload: MotifVariationPayload | MotifWeavePayload;
     try {
       payload = JSON.parse(task.prompt);
     } catch {
-      return { success: false, error: 'Invalid motif variation payload' };
+      return { success: false, error: "Invalid motif variation payload" };
     }
 
     let systemPrompt: string;
@@ -138,13 +139,13 @@ export const motifVariationTask = {
 
     if (isWeavePayload(payload)) {
       if (!payload.instances || payload.instances.length === 0) {
-        return { success: false, error: 'No instances to weave' };
+        return { success: false, error: "No instances to weave" };
       }
       systemPrompt = buildWeaveSystemPrompt(payload.targetPhrase);
       userPrompt = buildWeaveUserPrompt(payload.instances);
     } else {
       if (!payload.instances || payload.instances.length === 0) {
-        return { success: false, error: 'No instances to vary' };
+        return { success: false, error: "No instances to vary" };
       }
       systemPrompt = buildVarySystemPrompt(payload.motifLabel);
       userPrompt = buildVaryUserPrompt(payload.instances);
@@ -152,7 +153,7 @@ export const motifVariationTask = {
 
     const { result, usage } = await runTextCall({
       llmClient: context.llmClient,
-      callType: 'historian.motifVariation',
+      callType: "historian.motifVariation",
       callConfig,
       systemPrompt,
       prompt: userPrompt,
@@ -161,13 +162,16 @@ export const motifVariationTask = {
     // Parse the JSON response
     const responseText = result.text.trim();
     // Strip markdown code fences if present
-    const jsonText = responseText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    const jsonText = responseText.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
 
     let variants: MotifVariationResult[];
     try {
       variants = JSON.parse(jsonText);
     } catch {
-      return { success: false, error: `Failed to parse LLM response as JSON: ${responseText.slice(0, 200)}` };
+      return {
+        success: false,
+        error: `Failed to parse LLM response as JSON: ${responseText.slice(0, 200)}`,
+      };
     }
 
     return {

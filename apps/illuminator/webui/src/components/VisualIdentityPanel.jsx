@@ -9,7 +9,7 @@
  * creates empty entries in others, with warnings until filled.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from "react";
 
 /**
  * Generic editor for culture identity KVPs
@@ -20,15 +20,15 @@ function CultureIdentityEditor({
   identities,
   onIdentitiesChange,
   allKeys,
-  keyPlaceholder = 'KEY',
-  valuePlaceholder = 'Value...',
+  keyPlaceholder = "KEY",
+  valuePlaceholder = "Value...",
 }) {
   const [selectedCulture, setSelectedCulture] = useState(cultures[0]?.id || null);
-  const [newKey, setNewKey] = useState('');
-  const [newValue, setNewValue] = useState('');
+  const [newKey, setNewKey] = useState("");
+  const [newValue, setNewValue] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  const currentIdentity = selectedCulture ? (identities?.[selectedCulture] || {}) : {};
+  const currentIdentity = selectedCulture ? identities?.[selectedCulture] || {} : {};
 
   // Count missing/empty entries per culture
   const warningsByCulture = useMemo(() => {
@@ -37,7 +37,7 @@ function CultureIdentityEditor({
       const identity = identities?.[culture.id] || {};
       let count = 0;
       for (const key of allKeys) {
-        if (!identity[key] || identity[key].trim() === '') {
+        if (!identity[key] || identity[key].trim() === "") {
           count++;
         }
       }
@@ -59,13 +59,13 @@ function CultureIdentityEditor({
       if (culture.id === selectedCulture) {
         newIdentities[culture.id] = { ...existing, [key]: newValue.trim() };
       } else if (!(key in existing)) {
-        newIdentities[culture.id] = { ...existing, [key]: '' };
+        newIdentities[culture.id] = { ...existing, [key]: "" };
       }
     }
 
     onIdentitiesChange(newIdentities);
-    setNewKey('');
-    setNewValue('');
+    setNewKey("");
+    setNewValue("");
   };
 
   const handleUpdateEntry = (key, value) => {
@@ -106,36 +106,35 @@ function CultureIdentityEditor({
   };
 
   if (cultures.length === 0) {
-    return (
-      <div className="illuminator-template-section-hint">
-        No cultures defined in schema.
-      </div>
-    );
+    return <div className="illuminator-template-section-hint">No cultures defined in schema.</div>;
   }
 
-  const displayEntries = allKeys.map(key => ({
+  const displayEntries = allKeys.map((key) => ({
     key,
-    value: currentIdentity[key] ?? '',
+    value: currentIdentity[key] ?? "",
     isMissing: !(key in currentIdentity),
-    isEmpty: !currentIdentity[key] || currentIdentity[key].trim() === '',
+    isEmpty: !currentIdentity[key] || currentIdentity[key].trim() === "",
   }));
 
   return (
     <div className="illuminator-visual-identity-editor">
       {/* Culture selector with warning badges */}
-      <div className="illuminator-kind-selector" style={{ marginBottom: '12px' }}>
+      <div className="illuminator-kind-selector" style={{ marginBottom: "12px" }}>
         {cultures.map((culture) => {
           const warnings = warningsByCulture[culture.id];
           return (
             <button
               key={culture.id}
               onClick={() => setSelectedCulture(culture.id)}
-              className={`illuminator-kind-button ${selectedCulture === culture.id ? 'active' : ''} ${warnings ? 'has-warning' : ''}`}
-              style={{ borderLeft: `3px solid ${culture.color || 'var(--accent-color)'}` }}
+              className={`illuminator-kind-button ${selectedCulture === culture.id ? "active" : ""} ${warnings ? "has-warning" : ""}`}
+              style={{ borderLeft: `3px solid ${culture.color || "var(--accent-color)"}` }}
             >
               {culture.name || culture.id}
               {warnings && (
-                <span className="illuminator-warning-badge" title={`${warnings} missing value${warnings > 1 ? 's' : ''}`}>
+                <span
+                  className="illuminator-warning-badge"
+                  title={`${warnings} missing value${warnings > 1 ? "s" : ""}`}
+                >
                   {warnings}
                 </span>
               )}
@@ -151,12 +150,12 @@ function CultureIdentityEditor({
               {displayEntries.map(({ key, value, isEmpty }) => (
                 <div
                   key={key}
-                  className={`illuminator-visual-identity-entry ${isEmpty ? 'is-empty' : ''}`}
+                  className={`illuminator-visual-identity-entry ${isEmpty ? "is-empty" : ""}`}
                 >
                   <span className="illuminator-visual-identity-key">{key}</span>
                   <input
                     type="text"
-                    className={`illuminator-input ${isEmpty ? 'warning' : ''}`}
+                    className={`illuminator-input ${isEmpty ? "warning" : ""}`}
                     value={value}
                     onChange={(e) => handleUpdateEntry(key, e.target.value)}
                     placeholder={valuePlaceholder}
@@ -181,7 +180,7 @@ function CultureIdentityEditor({
                       <button
                         className="illuminator-button-link"
                         onClick={() => setDeleteConfirm(null)}
-                        style={{ padding: '4px 6px' }}
+                        style={{ padding: "4px 6px" }}
                       >
                         x
                       </button>
@@ -190,7 +189,7 @@ function CultureIdentityEditor({
                     <button
                       className="illuminator-button-link"
                       onClick={() => handleRequestDelete(key)}
-                      style={{ color: 'var(--error-color)', padding: '4px 8px' }}
+                      style={{ color: "var(--error-color)", padding: "4px 8px" }}
                       title="Delete"
                     >
                       x
@@ -209,7 +208,7 @@ function CultureIdentityEditor({
               placeholder={keyPlaceholder}
               value={newKey}
               onChange={(e) => setNewKey(e.target.value.toUpperCase())}
-              style={{ width: '120px', textTransform: 'uppercase' }}
+              style={{ width: "120px", textTransform: "uppercase" }}
             />
             <input
               type="text"
@@ -229,8 +228,12 @@ function CultureIdentityEditor({
           </div>
 
           {allKeys.length > 0 && (
-            <div className="illuminator-template-section-hint" style={{ marginTop: '8px', fontSize: '11px' }}>
-              Adding a key creates entries across all cultures. Delete prompts for single or all cultures.
+            <div
+              className="illuminator-template-section-hint"
+              style={{ marginTop: "8px", fontSize: "11px" }}
+            >
+              Adding a key creates entries across all cultures. Delete prompts for single or all
+              cultures.
             </div>
           )}
         </>
@@ -248,11 +251,11 @@ function IdentityKeySelector({
   availableKeys,
   keysByKind,
   onKeysByKindChange,
-  emptyMessage = 'No identity keys defined yet. Add keys to cultures above.',
+  emptyMessage = "No identity keys defined yet. Add keys to cultures above.",
 }) {
   const [selectedKind, setSelectedKind] = useState(entityKinds[0]?.kind || null);
 
-  const selectedKeys = selectedKind ? (keysByKind?.[selectedKind] || []) : [];
+  const selectedKeys = selectedKind ? keysByKind?.[selectedKind] || [] : [];
 
   const handleToggleKey = (key) => {
     if (!selectedKind) return;
@@ -269,27 +272,23 @@ function IdentityKeySelector({
 
   if (entityKinds.length === 0) {
     return (
-      <div className="illuminator-template-section-hint">
-        No entity kinds defined in schema.
-      </div>
+      <div className="illuminator-template-section-hint">No entity kinds defined in schema.</div>
     );
   }
 
   return (
     <div>
-      <div className="illuminator-kind-selector" style={{ marginBottom: '12px' }}>
+      <div className="illuminator-kind-selector" style={{ marginBottom: "12px" }}>
         {entityKinds.map((kind) => {
           const count = keysByKind?.[kind.kind]?.length || 0;
           return (
             <button
               key={kind.kind}
               onClick={() => setSelectedKind(kind.kind)}
-              className={`illuminator-kind-button ${selectedKind === kind.kind ? 'active' : ''}`}
+              className={`illuminator-kind-button ${selectedKind === kind.kind ? "active" : ""}`}
             >
               {kind.description || kind.kind}
-              {count > 0 && (
-                <span style={{ marginLeft: '4px', opacity: 0.6 }}>({count})</span>
-              )}
+              {count > 0 && <span style={{ marginLeft: "4px", opacity: 0.6 }}>({count})</span>}
             </button>
           );
         })}
@@ -303,10 +302,11 @@ function IdentityKeySelector({
               <button
                 key={key}
                 onClick={() => handleToggleKey(key)}
-                className={`illuminator-kind-button ${isSelected ? 'active' : ''}`}
-                style={{ textTransform: 'uppercase', fontSize: '11px' }}
+                className={`illuminator-kind-button ${isSelected ? "active" : ""}`}
+                style={{ textTransform: "uppercase", fontSize: "11px" }}
               >
-                {isSelected ? '+ ' : ''}{key}
+                {isSelected ? "+ " : ""}
+                {key}
               </button>
             );
           })}
@@ -314,9 +314,7 @@ function IdentityKeySelector({
       )}
 
       {selectedKind && availableKeys.length === 0 && (
-        <div className="illuminator-template-section-hint">
-          {emptyMessage}
-        </div>
+        <div className="illuminator-template-section-hint">{emptyMessage}</div>
       )}
     </div>
   );
@@ -330,21 +328,14 @@ function IdentitySection({ title, subtitle, children, defaultOpen = true }) {
 
   return (
     <div className="illuminator-identity-section">
-      <button
-        className="illuminator-identity-section-header"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <span className="illuminator-identity-section-toggle">{isOpen ? '-' : '+'}</span>
+      <button className="illuminator-identity-section-header" onClick={() => setIsOpen(!isOpen)}>
+        <span className="illuminator-identity-section-toggle">{isOpen ? "-" : "+"}</span>
         <div>
           <h3 className="illuminator-identity-section-title">{title}</h3>
           <span className="illuminator-identity-section-subtitle">{subtitle}</span>
         </div>
       </button>
-      {isOpen && (
-        <div className="illuminator-identity-section-content">
-          {children}
-        </div>
-      )}
+      {isOpen && <div className="illuminator-identity-section-content">{children}</div>}
     </div>
   );
 }
@@ -380,34 +371,46 @@ export default function VisualIdentityPanel({
   }, [cultureIdentities.descriptive]);
 
   // Visual identity handlers
-  const handleVisualIdentitiesChange = useCallback((newIdentities) => {
-    onCultureIdentitiesChange({
-      ...cultureIdentities,
-      visual: newIdentities,
-    });
-  }, [cultureIdentities, onCultureIdentitiesChange]);
+  const handleVisualIdentitiesChange = useCallback(
+    (newIdentities) => {
+      onCultureIdentitiesChange({
+        ...cultureIdentities,
+        visual: newIdentities,
+      });
+    },
+    [cultureIdentities, onCultureIdentitiesChange]
+  );
 
-  const handleVisualKeysByKindChange = useCallback((newKeysByKind) => {
-    onCultureIdentitiesChange({
-      ...cultureIdentities,
-      visualKeysByKind: newKeysByKind,
-    });
-  }, [cultureIdentities, onCultureIdentitiesChange]);
+  const handleVisualKeysByKindChange = useCallback(
+    (newKeysByKind) => {
+      onCultureIdentitiesChange({
+        ...cultureIdentities,
+        visualKeysByKind: newKeysByKind,
+      });
+    },
+    [cultureIdentities, onCultureIdentitiesChange]
+  );
 
   // Descriptive identity handlers
-  const handleDescriptiveIdentitiesChange = useCallback((newIdentities) => {
-    onCultureIdentitiesChange({
-      ...cultureIdentities,
-      descriptive: newIdentities,
-    });
-  }, [cultureIdentities, onCultureIdentitiesChange]);
+  const handleDescriptiveIdentitiesChange = useCallback(
+    (newIdentities) => {
+      onCultureIdentitiesChange({
+        ...cultureIdentities,
+        descriptive: newIdentities,
+      });
+    },
+    [cultureIdentities, onCultureIdentitiesChange]
+  );
 
-  const handleDescriptiveKeysByKindChange = useCallback((newKeysByKind) => {
-    onCultureIdentitiesChange({
-      ...cultureIdentities,
-      descriptiveKeysByKind: newKeysByKind,
-    });
-  }, [cultureIdentities, onCultureIdentitiesChange]);
+  const handleDescriptiveKeysByKindChange = useCallback(
+    (newKeysByKind) => {
+      onCultureIdentitiesChange({
+        ...cultureIdentities,
+        descriptiveKeysByKind: newKeysByKind,
+      });
+    },
+    [cultureIdentities, onCultureIdentitiesChange]
+  );
 
   return (
     <div className="illuminator-visual-identity-panel">

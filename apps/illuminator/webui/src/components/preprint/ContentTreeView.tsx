@@ -9,21 +9,25 @@
  * dragged directly onto the tree.
  */
 
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { DndProvider, useDragDropManager, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Tree } from 'react-arborist';
-import type { MoveHandler, RenameHandler, DeleteHandler } from 'react-arborist';
-import type { PersistedEntity } from '../../lib/db/illuminatorDb';
-import type { ChronicleRecord } from '../../lib/chronicleTypes';
-import type { StaticPage } from '../../lib/staticPageTypes';
-import type { EraNarrativeRecord } from '../../lib/eraNarrativeTypes';
-import type { ContentTreeState, ContentTreeNode, ContentNodeType } from '../../lib/preprint/prePrintTypes';
-import type { TreeNodeData } from './TreeNodeRenderer';
-import TreeNodeRenderer from './TreeNodeRenderer';
-import ContentPalette, { PALETTE_ITEM_TYPE } from './ContentPalette';
-import type { PaletteItemDragPayload } from './ContentPalette';
-import PageLayoutEditor from './PageLayoutEditor';
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { DndProvider, useDragDropManager, useDrop } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import { Tree } from "react-arborist";
+import type { MoveHandler, RenameHandler, DeleteHandler } from "react-arborist";
+import type { PersistedEntity } from "../../lib/db/illuminatorDb";
+import type { ChronicleRecord } from "../../lib/chronicleTypes";
+import type { StaticPage } from "../../lib/staticPageTypes";
+import type { EraNarrativeRecord } from "../../lib/eraNarrativeTypes";
+import type {
+  ContentTreeState,
+  ContentTreeNode,
+  ContentNodeType,
+} from "../../lib/preprint/prePrintTypes";
+import type { TreeNodeData } from "./TreeNodeRenderer";
+import TreeNodeRenderer from "./TreeNodeRenderer";
+import ContentPalette, { PALETTE_ITEM_TYPE } from "./ContentPalette";
+import type { PaletteItemDragPayload } from "./ContentPalette";
+import PageLayoutEditor from "./PageLayoutEditor";
 import {
   createScaffold,
   addFolder,
@@ -34,9 +38,9 @@ import {
   toArboristData,
   findNode,
   autoPopulateBody,
-} from '../../lib/preprint/contentTree';
-import { resolveActiveContent } from '../../lib/db/eraNarrativeRepository';
-import { countWords } from '../../lib/db/staticPageRepository';
+} from "../../lib/preprint/contentTree";
+import { resolveActiveContent } from "../../lib/db/eraNarrativeRepository";
+import { countWords } from "../../lib/db/staticPageRepository";
 
 interface ContentTreeViewProps {
   entities: PersistedEntity[];
@@ -102,7 +106,7 @@ function TreePane({
     drop: (item) => {
       if (!selectedNodeId) return;
       const target = findNode(treeState, selectedNodeId);
-      if (!target || target.type !== 'folder') return;
+      if (!target || target.type !== "folder") return;
       onTreeChange(addContentItem(treeState, selectedNodeId, item));
     },
     canDrop: () => isSelectedFolder,
@@ -120,7 +124,7 @@ function TreePane({
 
   return (
     <div
-      className={`preprint-tree-container${isSelectedFolder ? ' drop-ready' : ''}${isOver && isSelectedFolder ? ' drop-hover' : ''}`}
+      className={`preprint-tree-container${isSelectedFolder ? " drop-ready" : ""}${isOver && isSelectedFolder ? " drop-hover" : ""}`}
       ref={combinedRef}
     >
       <Tree
@@ -139,7 +143,7 @@ function TreePane({
         overscanCount={5}
         disableDrag={false}
         disableDrop={(args) => {
-          return args.parentNode !== null && args.parentNode.data.type !== 'folder';
+          return args.parentNode !== null && args.parentNode.data.type !== "folder";
         }}
       >
         {TreeNodeRenderer}
@@ -163,7 +167,7 @@ export default function ContentTreeView({
 }: ContentTreeViewProps) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [newFolderParent, setNewFolderParent] = useState<string | null>(null);
-  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderName, setNewFolderName] = useState("");
   const treeRef = useRef<any>(null);
 
   // Build set of used content IDs
@@ -185,23 +189,24 @@ export default function ContentTreeView({
       return nodes.map((node) => {
         const enriched: TreeNodeData = { ...node };
 
-        if (node.type === 'entity' && node.contentId) {
+        if (node.type === "entity" && node.contentId) {
           const ent = entityMap.get(node.contentId);
           if (ent) {
             enriched.meta = {
-              wordCount: countWords(ent.description || ''),
+              wordCount: countWords(ent.description || ""),
               imageCount: ent.enrichment?.image?.imageId ? 1 : 0,
               hasDescription: !!ent.description,
               hasImage: !!ent.enrichment?.image?.imageId,
             };
           }
-        } else if (node.type === 'chronicle' && node.contentId) {
+        } else if (node.type === "chronicle" && node.contentId) {
           const chr = chronicleMap.get(node.contentId);
           if (chr) {
-            const content = chr.finalContent || chr.assembledContent || '';
-            const imgCount = chr.imageRefs?.refs?.filter(
-              (r) => r.type === 'prompt_request' && r.status === 'complete'
-            ).length || 0;
+            const content = chr.finalContent || chr.assembledContent || "";
+            const imgCount =
+              chr.imageRefs?.refs?.filter(
+                (r) => r.type === "prompt_request" && r.status === "complete"
+              ).length || 0;
             enriched.meta = {
               wordCount: countWords(content),
               imageCount: imgCount + (chr.coverImage?.generatedImageId ? 1 : 0),
@@ -209,7 +214,7 @@ export default function ContentTreeView({
               hasImage: imgCount > 0,
             };
           }
-        } else if (node.type === 'static_page' && node.contentId) {
+        } else if (node.type === "static_page" && node.contentId) {
           const page = pageMap.get(node.contentId);
           if (page) {
             enriched.meta = {
@@ -219,18 +224,19 @@ export default function ContentTreeView({
               hasImage: true, // Pages don't require images
             };
           }
-        } else if (node.type === 'era_narrative' && node.contentId) {
+        } else if (node.type === "era_narrative" && node.contentId) {
           const narr = narrativeMap.get(node.contentId);
           if (narr) {
             const { content } = resolveActiveContent(narr);
             const imgCount =
               (narr.coverImage?.generatedImageId ? 1 : 0) +
-              (narr.imageRefs?.refs?.filter((r) =>
-                r.type === 'chronicle_ref' ||
-                (r.type === 'prompt_request' && r.status === 'complete')
+              (narr.imageRefs?.refs?.filter(
+                (r) =>
+                  r.type === "chronicle_ref" ||
+                  (r.type === "prompt_request" && r.status === "complete")
               ).length || 0);
             enriched.meta = {
-              wordCount: countWords(content || ''),
+              wordCount: countWords(content || ""),
               imageCount: imgCount,
               hasDescription: !!content,
               hasImage: !!narr.coverImage?.generatedImageId,
@@ -309,7 +315,7 @@ export default function ContentTreeView({
   const handleAddFolder = useCallback(() => {
     if (!treeState || !newFolderParent || !newFolderName.trim()) return;
     onTreeChange(addFolder(treeState, newFolderParent, newFolderName.trim()));
-    setNewFolderName('');
+    setNewFolderName("");
     setNewFolderParent(null);
   }, [treeState, newFolderParent, newFolderName, onTreeChange]);
 
@@ -317,7 +323,7 @@ export default function ContentTreeView({
     (item: { type: ContentNodeType; contentId: string; name: string }) => {
       if (!treeState || !selectedNodeId) return;
       const target = findNode(treeState, selectedNodeId);
-      if (!target || target.type !== 'folder') return;
+      if (!target || target.type !== "folder") return;
       onTreeChange(addContentItem(treeState, selectedNodeId, item));
     },
     [treeState, selectedNodeId, onTreeChange]
@@ -327,21 +333,28 @@ export default function ContentTreeView({
   const handleAutoPopulate = useCallback(() => {
     if (!treeState) return;
 
-    const bodyNode = treeState.nodes.find((n) => n.name === 'Body' && n.type === 'folder');
-    const backMatterNode = treeState.nodes.find((n) => n.name === 'Back Matter' && n.type === 'folder');
+    const bodyNode = treeState.nodes.find((n) => n.name === "Body" && n.type === "folder");
+    const backMatterNode = treeState.nodes.find(
+      (n) => n.name === "Back Matter" && n.type === "folder"
+    );
     const hasExistingContent =
       (bodyNode?.children?.length ?? 0) > 0 ||
-      (backMatterNode?.children?.some((c) => c.name === 'Encyclopedia') ?? false);
+      (backMatterNode?.children?.some((c) => c.name === "Encyclopedia") ?? false);
 
     if (hasExistingContent) {
-      if (!confirm('Body and Back Matter already have content. Replace with auto-populated structure?')) return;
+      if (
+        !confirm(
+          "Body and Back Matter already have content. Replace with auto-populated structure?"
+        )
+      )
+        return;
     }
 
     const chronicleInput = chronicles
-      .filter((c) => c.status === 'complete' || c.status === 'assembly_ready')
+      .filter((c) => c.status === "complete" || c.status === "assembly_ready")
       .map((c) => ({
         chronicleId: c.chronicleId,
-        title: c.title || 'Untitled Chronicle',
+        title: c.title || "Untitled Chronicle",
         status: c.status,
         focalEraId: c.temporalContext?.focalEra?.id || (c as any).focalEra?.id,
         focalEraName: c.temporalContext?.focalEra?.name || (c as any).focalEra?.name,
@@ -385,7 +398,7 @@ export default function ContentTreeView({
   if (!treeState) {
     return (
       <div className="preprint-tree-empty">
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-md)' }}>
+        <p style={{ color: "var(--text-secondary)", marginBottom: "var(--space-md)" }}>
           Create a book structure to organize content for print. The scaffold includes standard
           Front Matter, Body, and Back Matter sections.
         </p>
@@ -397,7 +410,7 @@ export default function ContentTreeView({
   }
 
   const selectedNode = selectedNodeId ? findNode(treeState, selectedNodeId) : null;
-  const isSelectedFolder = selectedNode?.type === 'folder';
+  const isSelectedFolder = selectedNode?.type === "folder";
 
   return (
     <div className="preprint-tree-layout">
@@ -423,7 +436,7 @@ export default function ContentTreeView({
           className="preprint-action-button small danger"
           disabled={!selectedNodeId}
           onClick={() => {
-            if (selectedNodeId && confirm('Delete this node and all children?')) {
+            if (selectedNodeId && confirm("Delete this node and all children?")) {
               onTreeChange(deleteNode(treeState, selectedNodeId));
               setSelectedNodeId(null);
             }
@@ -456,7 +469,7 @@ export default function ContentTreeView({
               onRename={handleRename}
               onDelete={handleDelete}
               onSelect={(nodes) => {
-                setSelectedNodeId(nodes.length > 0 ? nodes[0]?.id ?? null : null);
+                setSelectedNodeId(nodes.length > 0 ? (nodes[0]?.id ?? null) : null);
               }}
             />
           </div>
@@ -471,7 +484,7 @@ export default function ContentTreeView({
               selectedFolderId={isSelectedFolder ? selectedNodeId : null}
               onAddContent={handleAddContent}
             />
-            {selectedNode && selectedNode.type !== 'folder' && selectedNode.contentId && (
+            {selectedNode && selectedNode.type !== "folder" && selectedNode.contentId && (
               <PageLayoutEditor
                 pageId={selectedNode.contentId}
                 pageName={selectedNode.name}
@@ -495,12 +508,15 @@ export default function ContentTreeView({
               autoFocus
               onChange={(e) => setNewFolderName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAddFolder();
-                if (e.key === 'Escape') setNewFolderParent(null);
+                if (e.key === "Enter") handleAddFolder();
+                if (e.key === "Escape") setNewFolderParent(null);
               }}
             />
             <div className="preprint-modal-actions">
-              <button className="preprint-action-button small" onClick={() => setNewFolderParent(null)}>
+              <button
+                className="preprint-action-button small"
+                onClick={() => setNewFolderParent(null)}
+              >
                 Cancel
               </button>
               <button

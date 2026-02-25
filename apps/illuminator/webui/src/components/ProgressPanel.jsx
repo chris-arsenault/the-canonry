@@ -8,7 +8,7 @@
  * - Pause/Resume/Abort controls
  */
 
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
 export default function ProgressPanel({
   status,
@@ -20,30 +20,18 @@ export default function ProgressPanel({
   onRunAll,
   hasRequiredKeys,
 }) {
-  const isRunning = status === 'running';
-  const isPaused = status === 'paused';
-  const isIdle = status === 'idle';
-  const isComplete = status === 'complete';
+  const isRunning = status === "running";
+  const isPaused = status === "paused";
+  const isIdle = status === "idle";
+  const isComplete = status === "complete";
 
-  const completedTasks = useMemo(
-    () => tasks.filter((t) => t.status === 'complete'),
-    [tasks]
-  );
+  const completedTasks = useMemo(() => tasks.filter((t) => t.status === "complete"), [tasks]);
 
-  const errorTasks = useMemo(
-    () => tasks.filter((t) => t.status === 'error'),
-    [tasks]
-  );
+  const errorTasks = useMemo(() => tasks.filter((t) => t.status === "error"), [tasks]);
 
-  const runningTasks = useMemo(
-    () => tasks.filter((t) => t.status === 'running'),
-    [tasks]
-  );
+  const runningTasks = useMemo(() => tasks.filter((t) => t.status === "running"), [tasks]);
 
-  const pendingTasks = useMemo(
-    () => tasks.filter((t) => t.status === 'pending'),
-    [tasks]
-  );
+  const pendingTasks = useMemo(() => tasks.filter((t) => t.status === "pending"), [tasks]);
 
   const progressPercent =
     progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
@@ -54,7 +42,7 @@ export default function ProgressPanel({
       <div className="illuminator-card">
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Enrichment Progress</h2>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: "flex", gap: "8px" }}>
             {isIdle && (
               <button
                 onClick={onRunAll}
@@ -78,13 +66,13 @@ export default function ProgressPanel({
               <button
                 onClick={onAbort}
                 style={{
-                  padding: '6px 16px',
-                  background: 'var(--danger)',
-                  border: 'none',
-                  borderRadius: '4px',
-                  color: 'white',
-                  fontSize: '13px',
-                  cursor: 'pointer',
+                  padding: "6px 16px",
+                  background: "var(--danger)",
+                  border: "none",
+                  borderRadius: "4px",
+                  color: "white",
+                  fontSize: "13px",
+                  cursor: "pointer",
                 }}
               >
                 Abort
@@ -96,13 +84,13 @@ export default function ProgressPanel({
         {!hasRequiredKeys && isIdle && (
           <div
             style={{
-              padding: '12px',
-              background: 'rgba(245, 158, 11, 0.1)',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
-              borderRadius: '4px',
-              marginBottom: '16px',
-              fontSize: '12px',
-              color: 'var(--warning)',
+              padding: "12px",
+              background: "rgba(245, 158, 11, 0.1)",
+              border: "1px solid rgba(245, 158, 11, 0.3)",
+              borderRadius: "4px",
+              marginBottom: "16px",
+              fontSize: "12px",
+              color: "var(--warning)",
             }}
           >
             Set API keys in the sidebar to start enrichment
@@ -110,25 +98,22 @@ export default function ProgressPanel({
         )}
 
         {/* Progress bar */}
-        <div style={{ marginBottom: '16px' }}>
+        <div style={{ marginBottom: "16px" }}>
           <div
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: '8px',
-              fontSize: '12px',
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: "8px",
+              fontSize: "12px",
             }}
           >
-            <span style={{ color: 'var(--text-secondary)' }}>
+            <span style={{ color: "var(--text-secondary)" }}>
               {progress.completed} / {progress.total} tasks
             </span>
-            <span style={{ color: 'var(--text-muted)' }}>{progressPercent}%</span>
+            <span style={{ color: "var(--text-muted)" }}>{progressPercent}%</span>
           </div>
           <div className="illuminator-progress">
-            <div
-              className="illuminator-progress-bar"
-              style={{ width: `${progressPercent}%` }}
-            />
+            <div className="illuminator-progress-bar" style={{ width: `${progressPercent}%` }} />
           </div>
         </div>
 
@@ -136,17 +121,17 @@ export default function ProgressPanel({
         {runningTasks.length > 0 && (
           <div
             style={{
-              padding: '12px',
-              background: 'var(--bg-tertiary)',
-              borderRadius: '4px',
-              marginBottom: '16px',
+              padding: "12px",
+              background: "var(--bg-tertiary)",
+              borderRadius: "4px",
+              marginBottom: "16px",
             }}
           >
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>
               Currently processing:
             </div>
             {runningTasks.map((task) => (
-              <div key={task.id} style={{ fontSize: '13px', color: 'var(--text-color)' }}>
+              <div key={task.id} style={{ fontSize: "13px", color: "var(--text-color)" }}>
                 {task.entityName} - {task.type}
               </div>
             ))}
@@ -156,62 +141,68 @@ export default function ProgressPanel({
         {/* Stats */}
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '12px',
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: "12px",
           }}
         >
           <div
             style={{
-              padding: '12px',
-              background: 'var(--bg-tertiary)',
-              borderRadius: '4px',
-              textAlign: 'center',
+              padding: "12px",
+              background: "var(--bg-tertiary)",
+              borderRadius: "4px",
+              textAlign: "center",
             }}
           >
-            <div style={{ fontSize: '24px', fontWeight: 600, color: 'var(--text-color)' }}>
+            <div style={{ fontSize: "24px", fontWeight: 600, color: "var(--text-color)" }}>
               {completedTasks.length}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--success)' }}>Completed</div>
+            <div style={{ fontSize: "11px", color: "var(--success)" }}>Completed</div>
           </div>
           <div
             style={{
-              padding: '12px',
-              background: 'var(--bg-tertiary)',
-              borderRadius: '4px',
-              textAlign: 'center',
+              padding: "12px",
+              background: "var(--bg-tertiary)",
+              borderRadius: "4px",
+              textAlign: "center",
             }}
           >
-            <div style={{ fontSize: '24px', fontWeight: 600, color: 'var(--text-color)' }}>
+            <div style={{ fontSize: "24px", fontWeight: 600, color: "var(--text-color)" }}>
               {runningTasks.length}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--arctic-ice)' }}>Running</div>
+            <div style={{ fontSize: "11px", color: "var(--arctic-ice)" }}>Running</div>
           </div>
           <div
             style={{
-              padding: '12px',
-              background: 'var(--bg-tertiary)',
-              borderRadius: '4px',
-              textAlign: 'center',
+              padding: "12px",
+              background: "var(--bg-tertiary)",
+              borderRadius: "4px",
+              textAlign: "center",
             }}
           >
-            <div style={{ fontSize: '24px', fontWeight: 600, color: 'var(--text-color)' }}>
+            <div style={{ fontSize: "24px", fontWeight: 600, color: "var(--text-color)" }}>
               {pendingTasks.length}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Pending</div>
+            <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Pending</div>
           </div>
           <div
             style={{
-              padding: '12px',
-              background: 'var(--bg-tertiary)',
-              borderRadius: '4px',
-              textAlign: 'center',
+              padding: "12px",
+              background: "var(--bg-tertiary)",
+              borderRadius: "4px",
+              textAlign: "center",
             }}
           >
-            <div style={{ fontSize: '24px', fontWeight: 600, color: errorTasks.length > 0 ? 'var(--danger)' : 'var(--text-color)' }}>
+            <div
+              style={{
+                fontSize: "24px",
+                fontWeight: 600,
+                color: errorTasks.length > 0 ? "var(--danger)" : "var(--text-color)",
+              }}
+            >
               {errorTasks.length}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--danger)' }}>Errors</div>
+            <div style={{ fontSize: "11px", color: "var(--danger)" }}>Errors</div>
           </div>
         </div>
       </div>
@@ -220,27 +211,27 @@ export default function ProgressPanel({
       {errorTasks.length > 0 && (
         <div className="illuminator-card">
           <div className="illuminator-card-header">
-            <h2 className="illuminator-card-title" style={{ color: 'var(--danger)' }}>
+            <h2 className="illuminator-card-title" style={{ color: "var(--danger)" }}>
               Errors ({errorTasks.length})
             </h2>
           </div>
-          <div style={{ maxHeight: '200px', overflow: 'auto' }}>
+          <div style={{ maxHeight: "200px", overflow: "auto" }}>
             {errorTasks.map((task) => (
               <div
                 key={task.id}
                 style={{
-                  padding: '8px 12px',
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  borderRadius: '4px',
-                  marginBottom: '8px',
-                  fontSize: '12px',
+                  padding: "8px 12px",
+                  background: "rgba(239, 68, 68, 0.1)",
+                  borderRadius: "4px",
+                  marginBottom: "8px",
+                  fontSize: "12px",
                 }}
               >
-                <div style={{ fontWeight: 500, color: 'var(--text-color)' }}>
+                <div style={{ fontWeight: 500, color: "var(--text-color)" }}>
                   {task.entityName} - {task.type}
                 </div>
-                <div style={{ color: 'var(--danger)', marginTop: '4px' }}>
-                  {task.error || 'Unknown error'}
+                <div style={{ color: "var(--danger)", marginTop: "4px" }}>
+                  {task.error || "Unknown error"}
                 </div>
               </div>
             ))}
@@ -253,15 +244,15 @@ export default function ProgressPanel({
         <div className="illuminator-card">
           <div
             style={{
-              textAlign: 'center',
-              padding: '24px',
+              textAlign: "center",
+              padding: "24px",
             }}
           >
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>&#x2728;</div>
-            <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
+            <div style={{ fontSize: "48px", marginBottom: "16px" }}>&#x2728;</div>
+            <div style={{ fontSize: "18px", fontWeight: 600, marginBottom: "8px" }}>
               Enrichment Complete!
             </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: "13px", color: "var(--text-muted)" }}>
               {completedTasks.length} tasks completed
               {errorTasks.length > 0 && `, ${errorTasks.length} errors`}
             </div>

@@ -11,10 +11,10 @@
  * schema upgrades in the Illuminator MFE (same-page MFE architecture).
  */
 
-import type { PageLayoutOverride } from '../types/world';
+import type { PageLayoutOverride } from "../types/world";
 
-const DB_NAME = 'illuminator';
-const PAGE_LAYOUTS_STORE = 'pageLayouts';
+const DB_NAME = "illuminator";
+const PAGE_LAYOUTS_STORE = "pageLayouts";
 
 export function openIlluminatorDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -32,7 +32,7 @@ export function openIlluminatorDb(): Promise<IDBDatabase> {
       resolve(db);
     };
     request.onerror = () => {
-      reject(request.error || new Error('Failed to open illuminator DB'));
+      reject(request.error || new Error("Failed to open illuminator DB"));
     };
   });
 }
@@ -57,9 +57,9 @@ export async function readPageLayouts(
       }
 
       return await new Promise((resolve, reject) => {
-        const tx = db.transaction(PAGE_LAYOUTS_STORE, 'readonly');
+        const tx = db.transaction(PAGE_LAYOUTS_STORE, "readonly");
         const store = tx.objectStore(PAGE_LAYOUTS_STORE);
-        const index = store.index('simulationRunId');
+        const index = store.index("simulationRunId");
         const request = index.getAll(IDBKeyRange.only(simulationRunId));
 
         request.onsuccess = () => {
@@ -69,13 +69,13 @@ export async function readPageLayouts(
           }
           resolve(map);
         };
-        request.onerror = () => reject(request.error || new Error('Failed to read page layouts'));
+        request.onerror = () => reject(request.error || new Error("Failed to read page layouts"));
       });
     } finally {
       db.close();
     }
   } catch (err) {
-    console.error('[illuminatorDbReader] Failed to load page layouts:', err);
+    console.error("[illuminatorDbReader] Failed to load page layouts:", err);
     return map;
   }
 }

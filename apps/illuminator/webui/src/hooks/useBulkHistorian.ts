@@ -12,36 +12,33 @@
  * - 'clear': Remove all historian annotations from selected entities.
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import type { EnrichmentType } from '../lib/enrichmentTypes';
-import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
-import type { EntityNavItem } from '../lib/db/entityNav';
-import type { HistorianTone, HistorianNote } from '../lib/historianTypes';
-import type { HistorianReviewConfig } from './useHistorianReview';
-import type { HistorianEditionConfig } from './useHistorianEdition';
-import type { SummaryRevisionPatch } from '../lib/summaryRevisionTypes';
-import {
-  createHistorianRun,
-  generateHistorianRunId,
-} from '../lib/db/historianRepository';
+import { useState, useCallback, useRef, useEffect } from "react";
+import type { EnrichmentType } from "../lib/enrichmentTypes";
+import { getEnqueue } from "../lib/db/enrichmentQueueBridge";
+import type { EntityNavItem } from "../lib/db/entityNav";
+import type { HistorianTone, HistorianNote } from "../lib/historianTypes";
+import type { HistorianReviewConfig } from "./useHistorianReview";
+import type { HistorianEditionConfig } from "./useHistorianEdition";
+import type { SummaryRevisionPatch } from "../lib/summaryRevisionTypes";
+import { createHistorianRun, generateHistorianRunId } from "../lib/db/historianRepository";
 import {
   createRevisionRun,
   getRevisionRun,
   generateRevisionRunId,
   deleteRevisionRun,
-} from '../lib/db/summaryRevisionRepository';
+} from "../lib/db/summaryRevisionRepository";
 import {
   dispatchReviewTask as sharedDispatchReview,
   pollReviewCompletion as sharedPollReview,
   sleep,
   POLL_INTERVAL_MS,
-} from '../lib/db/historianRunHelpers';
+} from "../lib/db/historianRunHelpers";
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type BulkHistorianOperation = 'review' | 'edition' | 'clear';
+export type BulkHistorianOperation = "review" | "edition" | "clear";
 
 export interface BulkHistorianEntitySummary {
   entityId: string;
@@ -53,7 +50,7 @@ export interface BulkHistorianEntitySummary {
 }
 
 export interface BulkHistorianProgress {
-  status: 'idle' | 'confirming' | 'running' | 'complete' | 'cancelled' | 'failed';
+  status: "idle" | "confirming" | "running" | "complete" | "cancelled" | "failed";
   operation: BulkHistorianOperation;
   tone: HistorianTone;
   entities: BulkHistorianEntitySummary[];
@@ -69,7 +66,12 @@ export interface BulkHistorianProgress {
 export interface UseBulkHistorianReturn {
   progress: BulkHistorianProgress;
   isActive: boolean;
-  prepareBulkHistorian: (operation: BulkHistorianOperation, tone: HistorianTone, entityIds: string[], reEdition?: boolean) => void;
+  prepareBulkHistorian: (
+    operation: BulkHistorianOperation,
+    tone: HistorianTone,
+    entityIds: string[],
+    reEdition?: boolean
+  ) => void;
   confirmBulkHistorian: () => void;
   cancelBulkHistorian: () => void;
   setTone: (tone: HistorianTone) => void;
@@ -79,18 +81,16 @@ export interface UseBulkHistorianReturn {
 // Constants
 // ============================================================================
 
-const TONE_CYCLE: HistorianTone[] = [
-  'witty', 'weary', 'forensic', 'elegiac', 'cantankerous',
-];
+const TONE_CYCLE: HistorianTone[] = ["witty", "weary", "forensic", "elegiac", "cantankerous"];
 
 const IDLE_PROGRESS: BulkHistorianProgress = {
-  status: 'idle',
-  operation: 'review',
-  tone: 'scholarly',
+  status: "idle",
+  operation: "review",
+  tone: "scholarly",
   entities: [],
   totalEntities: 0,
   processedEntities: 0,
-  currentEntityName: '',
+  currentEntityName: "",
   totalCost: 0,
   failedEntities: [],
 };
@@ -99,22 +99,29 @@ const IDLE_PROGRESS: BulkHistorianProgress = {
 // Hook
 // ============================================================================
 
-export function useBulkHistorian(
-  deps: {
-    buildReviewContext: (entityId: string, tone: HistorianTone) => Promise<HistorianReviewConfig | null>;
-    buildEditionContext: (entityId: string, tone: HistorianTone, reEdition?: boolean) => Promise<HistorianEditionConfig | null>;
-    applyReviewNotes: (entityId: string, notes: HistorianNote[]) => Promise<void>;
-    applyEditionPatches: (patches: SummaryRevisionPatch[]) => Promise<string[]>;
-    reloadEntities: (entityIds: string[]) => Promise<void>;
-    getEntityNav: (entityId: string) => EntityNavItem | undefined;
-  },
-): UseBulkHistorianReturn {
+export function useBulkHistorian(deps: {
+  buildReviewContext: (
+    entityId: string,
+    tone: HistorianTone
+  ) => Promise<HistorianReviewConfig | null>;
+  buildEditionContext: (
+    entityId: string,
+    tone: HistorianTone,
+    reEdition?: boolean
+  ) => Promise<HistorianEditionConfig | null>;
+  applyReviewNotes: (entityId: string, notes: HistorianNote[]) => Promise<void>;
+  applyEditionPatches: (patches: SummaryRevisionPatch[]) => Promise<string[]>;
+  reloadEntities: (entityIds: string[]) => Promise<void>;
+  getEntityNav: (entityId: string) => EntityNavItem | undefined;
+}): UseBulkHistorianReturn {
   const [progress, setProgress] = useState<BulkHistorianProgress>(IDLE_PROGRESS);
   const cancelledRef = useRef(false);
   const activeRef = useRef(false);
 
   const depsRef = useRef(deps);
-  useEffect(() => { depsRef.current = deps; }, [deps]);
+  useEffect(() => {
+    depsRef.current = deps;
+  }, [deps]);
 
   // Stash scan results so confirmBulkHistorian can use them
   const scanRef = useRef<{
@@ -129,122 +136,134 @@ export function useBulkHistorian(
 
   // Dispatch a historian edition task
   const dispatchEditionTask = useCallback((runId: string) => {
-    getEnqueue()([{
-      entity: {
-        id: '__historian_edition__',
-        name: 'Historian Edition',
-        kind: 'system',
-        subtype: '',
-        prominence: '',
-        culture: '',
-        status: 'active',
-        description: '',
-        tags: {},
+    getEnqueue()([
+      {
+        entity: {
+          id: "__historian_edition__",
+          name: "Historian Edition",
+          kind: "system",
+          subtype: "",
+          prominence: "",
+          culture: "",
+          status: "active",
+          description: "",
+          tags: {},
+        },
+        type: "historianEdition" as EnrichmentType,
+        prompt: "",
+        chronicleId: runId,
       },
-      type: 'historianEdition' as EnrichmentType,
-      prompt: '',
-      chronicleId: runId,
-    }]);
+    ]);
   }, []);
 
   // Poll edition run for completion
-  const pollEditionCompletion = useCallback(async (runId: string): Promise<{ patches: SummaryRevisionPatch[]; cost: number } | null> => {
-    while (true) {
-      if (cancelledRef.current) return null;
-      await sleep(POLL_INTERVAL_MS);
-      if (cancelledRef.current) return null;
+  const pollEditionCompletion = useCallback(
+    async (runId: string): Promise<{ patches: SummaryRevisionPatch[]; cost: number } | null> => {
+      while (true) {
+        if (cancelledRef.current) return null;
+        await sleep(POLL_INTERVAL_MS);
+        if (cancelledRef.current) return null;
 
-      const run = await getRevisionRun(runId);
-      if (!run) return null;
+        const run = await getRevisionRun(runId);
+        if (!run) return null;
 
-      if (run.status === 'run_reviewing' || run.status === 'batch_reviewing') {
-        const patches: SummaryRevisionPatch[] = [];
-        for (const batch of run.batches) {
-          for (const patch of batch.patches) {
-            patches.push(patch);
+        if (run.status === "run_reviewing" || run.status === "batch_reviewing") {
+          const patches: SummaryRevisionPatch[] = [];
+          for (const batch of run.batches) {
+            for (const patch of batch.patches) {
+              patches.push(patch);
+            }
           }
+          const cost = run.totalActualCost || 0;
+          await deleteRevisionRun(runId);
+          return { patches, cost };
         }
-        const cost = run.totalActualCost || 0;
-        await deleteRevisionRun(runId);
-        return { patches, cost };
-      }
 
-      if (run.status === 'failed') {
-        const error = run.batches[0]?.error || 'Unknown error';
-        await deleteRevisionRun(runId);
-        throw new Error(error);
+        if (run.status === "failed") {
+          const error = run.batches[0]?.error || "Unknown error";
+          await deleteRevisionRun(runId);
+          throw new Error(error);
+        }
       }
-    }
-  }, []);
+    },
+    []
+  );
 
   // Phase 1: Build entity summary for confirmation
-  const prepareBulkHistorian = useCallback((
-    operation: BulkHistorianOperation,
-    tone: HistorianTone,
-    entityIds: string[],
-    reEdition?: boolean,
-  ) => {
-    if (activeRef.current) return;
+  const prepareBulkHistorian = useCallback(
+    (
+      operation: BulkHistorianOperation,
+      tone: HistorianTone,
+      entityIds: string[],
+      reEdition?: boolean
+    ) => {
+      if (activeRef.current) return;
 
-    // Resolve nav items and build summary
-    const resolved: Array<{ nav: EntityNavItem; summary: BulkHistorianEntitySummary }> = [];
-    for (const id of entityIds) {
-      const nav = depsRef.current.getEntityNav(id);
-      if (!nav) continue;
-      // Clear: needs historian notes. Review/edition: needs a description.
-      if (operation === 'clear' ? !nav.hasHistorianNotes : !nav.hasDescription) continue;
-      resolved.push({
-        nav,
-        summary: {
-          entityId: nav.id,
-          entityName: nav.name,
-          entityKind: nav.kind,
-          entitySubtype: nav.subtype,
-          tokenEstimate: operation === 'edition' ? Math.ceil((nav.descriptionWordCount || 0) * 1.35) : undefined,
-        },
-      });
-    }
-
-    // For review: assign tones via stratified cycling.
-    // Sort by (kind, culture, prominence) so similar entities are adjacent,
-    // then cycle tones globally — each stratum starts where the previous left off,
-    // preventing any tone from being over-represented within a stratum.
-    if (operation === 'review') {
-      resolved.sort((a, b) =>
-        a.nav.kind.localeCompare(b.nav.kind)
-        || a.nav.culture.localeCompare(b.nav.culture)
-        || a.nav.prominence - b.nav.prominence
-      );
-      for (let i = 0; i < resolved.length; i++) {
-        resolved[i].summary.tone = TONE_CYCLE[i % TONE_CYCLE.length];
+      // Resolve nav items and build summary
+      const resolved: Array<{ nav: EntityNavItem; summary: BulkHistorianEntitySummary }> = [];
+      for (const id of entityIds) {
+        const nav = depsRef.current.getEntityNav(id);
+        if (!nav) continue;
+        // Clear: needs historian notes. Review/edition: needs a description.
+        if (operation === "clear" ? !nav.hasHistorianNotes : !nav.hasDescription) continue;
+        resolved.push({
+          nav,
+          summary: {
+            entityId: nav.id,
+            entityName: nav.name,
+            entityKind: nav.kind,
+            entitySubtype: nav.subtype,
+            tokenEstimate:
+              operation === "edition"
+                ? Math.ceil((nav.descriptionWordCount || 0) * 1.35)
+                : undefined,
+          },
+        });
       }
-    }
 
-    const entities = resolved.map((r) => r.summary);
+      // For review: assign tones via stratified cycling.
+      // Sort by (kind, culture, prominence) so similar entities are adjacent,
+      // then cycle tones globally — each stratum starts where the previous left off,
+      // preventing any tone from being over-represented within a stratum.
+      if (operation === "review") {
+        resolved.sort(
+          (a, b) =>
+            a.nav.kind.localeCompare(b.nav.kind) ||
+            a.nav.culture.localeCompare(b.nav.culture) ||
+            a.nav.prominence - b.nav.prominence
+        );
+        for (let i = 0; i < resolved.length; i++) {
+          resolved[i].summary.tone = TONE_CYCLE[i % TONE_CYCLE.length];
+        }
+      }
 
-    if (entities.length === 0) return;
+      const entities = resolved.map((r) => r.summary);
 
-    scanRef.current = { operation, tone, entities, reEdition };
+      if (entities.length === 0) return;
 
-    setProgress({
-      status: 'confirming',
-      operation,
-      tone,
-      entities,
-      totalEntities: entities.length,
-      processedEntities: 0,
-      currentEntityName: '',
-      totalCost: 0,
-      failedEntities: [],
-    });
-  }, []);
+      scanRef.current = { operation, tone, entities, reEdition };
+
+      setProgress({
+        status: "confirming",
+        operation,
+        tone,
+        entities,
+        totalEntities: entities.length,
+        processedEntities: 0,
+        currentEntityName: "",
+        totalCost: 0,
+        failedEntities: [],
+      });
+    },
+    []
+  );
 
   // Allow tone change during confirmation (edition mode)
   const setTone = useCallback((tone: HistorianTone) => {
     if (scanRef.current) {
       scanRef.current.tone = tone;
     }
-    setProgress((p) => p.status === 'confirming' ? { ...p, tone } : p);
+    setProgress((p) => (p.status === "confirming" ? { ...p, tone } : p));
   }, []);
 
   // Phase 2: Process all entities sequentially
@@ -255,7 +274,7 @@ export function useBulkHistorian(
     activeRef.current = true;
     cancelledRef.current = false;
 
-    setProgress((p) => ({ ...p, status: 'running' }));
+    setProgress((p) => ({ ...p, status: "running" }));
 
     (async () => {
       try {
@@ -265,7 +284,7 @@ export function useBulkHistorian(
         let globalCost = 0;
         const failedEntities: Array<{ entityId: string; entityName: string; error: string }> = [];
 
-        if (operation === 'clear') {
+        if (operation === "clear") {
           // Clear all historian notes — no enrichment dispatch, just DB writes
           for (const entity of entities) {
             if (cancelledRef.current) break;
@@ -299,154 +318,165 @@ export function useBulkHistorian(
             [shuffled[s], shuffled[j]] = [shuffled[j], shuffled[s]];
           }
 
-        for (let i = 0; i < shuffled.length; i++) {
-          if (cancelledRef.current) break;
+          for (let i = 0; i < shuffled.length; i++) {
+            if (cancelledRef.current) break;
 
-          const entity = shuffled[i];
-          const entityTone = (operation === 'review' && entity.tone)
-            ? entity.tone
-            : tone;
+            const entity = shuffled[i];
+            const entityTone = operation === "review" && entity.tone ? entity.tone : tone;
 
-          setProgress((p) => ({
-            ...p,
-            currentEntityName: entity.entityName,
-            currentEntityTone: entityTone,
-          }));
+            setProgress((p) => ({
+              ...p,
+              currentEntityName: entity.entityName,
+              currentEntityTone: entityTone,
+            }));
 
-          try {
-            if (operation === 'review') {
-              const config = await depsRef.current.buildReviewContext(entity.entityId, entityTone);
-              if (!config) {
-                globalProcessed++;
-                setProgress((p) => ({ ...p, processedEntities: globalProcessed }));
-                continue;
+            try {
+              if (operation === "review") {
+                const config = await depsRef.current.buildReviewContext(
+                  entity.entityId,
+                  entityTone
+                );
+                if (!config) {
+                  globalProcessed++;
+                  setProgress((p) => ({ ...p, processedEntities: globalProcessed }));
+                  continue;
+                }
+
+                const runId = generateHistorianRunId();
+                const now = Date.now();
+
+                await createHistorianRun({
+                  runId,
+                  projectId: config.projectId,
+                  simulationRunId: config.simulationRunId,
+                  status: "pending",
+                  tone: config.tone as HistorianTone,
+                  targetType: config.targetType,
+                  targetId: config.targetId,
+                  targetName: config.targetName,
+                  sourceText: config.sourceText,
+                  notes: [],
+                  noteDecisions: {},
+                  contextJson: config.contextJson,
+                  previousNotesJson: config.previousNotesJson,
+                  historianConfigJson: JSON.stringify(config.historianConfig),
+                  inputTokens: 0,
+                  outputTokens: 0,
+                  actualCost: 0,
+                  createdAt: now,
+                  updatedAt: now,
+                });
+
+                sharedDispatchReview(runId);
+
+                const result = await sharedPollReview(runId, isCancelled);
+                if (cancelledRef.current || !result) break;
+
+                if (result.notes.length > 0) {
+                  await depsRef.current.applyReviewNotes(entity.entityId, result.notes);
+                }
+                globalCost += result.cost;
+              } else {
+                // edition
+                const config = await depsRef.current.buildEditionContext(
+                  entity.entityId,
+                  entityTone,
+                  reEdition
+                );
+                if (!config) {
+                  globalProcessed++;
+                  setProgress((p) => ({ ...p, processedEntities: globalProcessed }));
+                  continue;
+                }
+
+                const runId = generateRevisionRunId();
+
+                await createRevisionRun(
+                  runId,
+                  config.projectId,
+                  config.simulationRunId,
+                  [
+                    {
+                      culture: "historian-edition",
+                      entityIds: [config.entityId],
+                      status: "pending" as const,
+                      patches: [],
+                    },
+                  ],
+                  {
+                    worldDynamicsContext: config.description,
+                    staticPagesContext: JSON.stringify({
+                      entityId: config.entityId,
+                      entityName: config.entityName,
+                      entityKind: config.entityKind,
+                      entitySubtype: config.entitySubtype,
+                      entityCulture: config.entityCulture,
+                      entityProminence: config.entityProminence,
+                      summary: config.summary,
+                      descriptionHistory: config.descriptionHistory,
+                      chronicleSummaries: config.chronicleSummaries,
+                      relationships: config.relationships,
+                      neighborSummaries: config.neighborSummaries,
+                      canonFacts: config.canonFacts,
+                      worldDynamics: config.worldDynamics,
+                      previousNotes: config.previousNotes,
+                      historianConfig: config.historianConfig,
+                      tone: config.tone,
+                    }),
+                    schemaContext: "",
+                    revisionGuidance: "",
+                  }
+                );
+
+                dispatchEditionTask(runId);
+
+                const result = await pollEditionCompletion(runId);
+                if (cancelledRef.current || !result) break;
+
+                if (result.patches.length > 0) {
+                  await depsRef.current.applyEditionPatches(result.patches);
+                }
+                globalCost += result.cost;
               }
 
-              const runId = generateHistorianRunId();
-              const now = Date.now();
+              await depsRef.current.reloadEntities([entity.entityId]);
+              globalProcessed++;
 
-              await createHistorianRun({
-                runId,
-                projectId: config.projectId,
-                simulationRunId: config.simulationRunId,
-                status: 'pending',
-                tone: config.tone as HistorianTone,
-                targetType: config.targetType,
-                targetId: config.targetId,
-                targetName: config.targetName,
-                sourceText: config.sourceText,
-                notes: [],
-                noteDecisions: {},
-                contextJson: config.contextJson,
-                previousNotesJson: config.previousNotesJson,
-                historianConfigJson: JSON.stringify(config.historianConfig),
-                inputTokens: 0,
-                outputTokens: 0,
-                actualCost: 0,
-                createdAt: now,
-                updatedAt: now,
+              setProgress((p) => ({
+                ...p,
+                processedEntities: globalProcessed,
+                totalCost: globalCost,
+                failedEntities: [...failedEntities],
+              }));
+            } catch (err) {
+              console.error(`[Bulk Historian] Entity ${entity.entityName} failed:`, err);
+              globalProcessed++;
+              failedEntities.push({
+                entityId: entity.entityId,
+                entityName: entity.entityName,
+                error: err instanceof Error ? err.message : String(err),
               });
-
-              sharedDispatchReview(runId);
-
-              const result = await sharedPollReview(runId, isCancelled);
-              if (cancelledRef.current || !result) break;
-
-              if (result.notes.length > 0) {
-                await depsRef.current.applyReviewNotes(entity.entityId, result.notes);
-              }
-              globalCost += result.cost;
-
-            } else {
-              // edition
-              const config = await depsRef.current.buildEditionContext(entity.entityId, entityTone, reEdition);
-              if (!config) {
-                globalProcessed++;
-                setProgress((p) => ({ ...p, processedEntities: globalProcessed }));
-                continue;
-              }
-
-              const runId = generateRevisionRunId();
-
-              await createRevisionRun(runId, config.projectId, config.simulationRunId, [{
-                culture: 'historian-edition',
-                entityIds: [config.entityId],
-                status: 'pending' as const,
-                patches: [],
-              }], {
-                worldDynamicsContext: config.description,
-                staticPagesContext: JSON.stringify({
-                  entityId: config.entityId,
-                  entityName: config.entityName,
-                  entityKind: config.entityKind,
-                  entitySubtype: config.entitySubtype,
-                  entityCulture: config.entityCulture,
-                  entityProminence: config.entityProminence,
-                  summary: config.summary,
-                  descriptionHistory: config.descriptionHistory,
-                  chronicleSummaries: config.chronicleSummaries,
-                  relationships: config.relationships,
-                  neighborSummaries: config.neighborSummaries,
-                  canonFacts: config.canonFacts,
-                  worldDynamics: config.worldDynamics,
-                  previousNotes: config.previousNotes,
-                  historianConfig: config.historianConfig,
-                  tone: config.tone,
-                }),
-                schemaContext: '',
-                revisionGuidance: '',
-              });
-
-              dispatchEditionTask(runId);
-
-              const result = await pollEditionCompletion(runId);
-              if (cancelledRef.current || !result) break;
-
-              if (result.patches.length > 0) {
-                await depsRef.current.applyEditionPatches(result.patches);
-              }
-              globalCost += result.cost;
+              setProgress((p) => ({
+                ...p,
+                processedEntities: globalProcessed,
+                totalCost: globalCost,
+                failedEntities: [...failedEntities],
+              }));
             }
-
-            await depsRef.current.reloadEntities([entity.entityId]);
-            globalProcessed++;
-
-            setProgress((p) => ({
-              ...p,
-              processedEntities: globalProcessed,
-              totalCost: globalCost,
-              failedEntities: [...failedEntities],
-            }));
-
-          } catch (err) {
-            console.error(`[Bulk Historian] Entity ${entity.entityName} failed:`, err);
-            globalProcessed++;
-            failedEntities.push({
-              entityId: entity.entityId,
-              entityName: entity.entityName,
-              error: err instanceof Error ? err.message : String(err),
-            });
-            setProgress((p) => ({
-              ...p,
-              processedEntities: globalProcessed,
-              totalCost: globalCost,
-              failedEntities: [...failedEntities],
-            }));
           }
-        }
         } // end else (review/edition)
 
         if (cancelledRef.current) {
-          setProgress((p) => ({ ...p, status: 'cancelled', currentEntityName: '' }));
+          setProgress((p) => ({ ...p, status: "cancelled", currentEntityName: "" }));
         } else {
-          setProgress((p) => ({ ...p, status: 'complete', currentEntityName: '' }));
+          setProgress((p) => ({ ...p, status: "complete", currentEntityName: "" }));
         }
       } catch (err) {
-        console.error('[Bulk Historian] Fatal error:', err);
+        console.error("[Bulk Historian] Fatal error:", err);
         setProgress((p) => ({
           ...p,
-          status: 'failed',
-          currentEntityName: '',
+          status: "failed",
+          currentEntityName: "",
           error: err instanceof Error ? err.message : String(err),
         }));
       } finally {
@@ -460,14 +490,15 @@ export function useBulkHistorian(
     cancelledRef.current = true;
     scanRef.current = null;
     setProgress((p) => {
-      if (p.status === 'confirming') return IDLE_PROGRESS;
+      if (p.status === "confirming") return IDLE_PROGRESS;
       return p; // running state will pick up cancellation via cancelledRef
     });
   }, []);
 
   return {
     progress,
-    isActive: activeRef.current || progress.status === 'running' || progress.status === 'confirming',
+    isActive:
+      activeRef.current || progress.status === "running" || progress.status === "confirming",
     prepareBulkHistorian,
     confirmBulkHistorian,
     cancelBulkHistorian,

@@ -8,7 +8,7 @@
  * - Hover for full details
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef } from "react";
 import {
   type TimelineEvent,
   type EraRange,
@@ -19,7 +19,7 @@ import {
   getEventHeight,
   getCastMarkerShape,
   getCastMarkerColor,
-} from '../../../lib/chronicle/timelineUtils';
+} from "../../../lib/chronicle/timelineUtils";
 
 interface NarrativeTimelineProps {
   events: TimelineEvent[];
@@ -74,7 +74,7 @@ export default function NarrativeTimeline({
   // Use provided extent or compute from events as fallback
   const extent = useMemo(() => {
     if (extentProp) return extentProp;
-    return computeTimelineExtent(events.map(e => ({ tick: e.tick } as any)));
+    return computeTimelineExtent(events.map((e) => ({ tick: e.tick }) as any));
   }, [extentProp, events]);
 
   // Scale functions
@@ -144,29 +144,26 @@ export default function NarrativeTimeline({
     [onToggleEvent]
   );
 
-  const handleEventHover = useCallback(
-    (event: TimelineEvent | null, e?: React.MouseEvent) => {
-      if (event && e && svgRef.current) {
-        const rect = svgRef.current.getBoundingClientRect();
-        setHoveredEvent({
-          event,
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top,
-        });
-      } else {
-        setHoveredEvent(null);
-      }
-    },
-    []
-  );
+  const handleEventHover = useCallback((event: TimelineEvent | null, e?: React.MouseEvent) => {
+    if (event && e && svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect();
+      setHoveredEvent({
+        event,
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    } else {
+      setHoveredEvent(null);
+    }
+  }, []);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: "relative" }}>
       <svg
         ref={svgRef}
         width={width}
         height={height}
-        style={{ display: 'block', background: 'var(--bg-secondary)', borderRadius: '8px' }}
+        style={{ display: "block", background: "var(--bg-secondary)", borderRadius: "8px" }}
       >
         {/* Era bands */}
         {eraRanges.map((era) => {
@@ -198,7 +195,7 @@ export default function NarrativeTimeline({
                 y2={height - padding.bottom}
                 stroke={era.color}
                 strokeWidth={isFocal ? 2 : 1}
-                strokeDasharray={isFocal ? 'none' : '4,4'}
+                strokeDasharray={isFocal ? "none" : "4,4"}
               />
               {/* Era label */}
               <text
@@ -209,7 +206,7 @@ export default function NarrativeTimeline({
                 fill={era.color}
               >
                 {era.name}
-                {isFocal && ' ★'}
+                {isFocal && " ★"}
               </text>
             </g>
           );
@@ -262,7 +259,7 @@ export default function NarrativeTimeline({
           return (
             <g
               key={event.id}
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: "pointer" }}
               onClick={(e) => handleEventClick(e, event.id)}
               onMouseEnter={(e) => handleEventHover(event, e)}
               onMouseLeave={() => handleEventHover(null)}
@@ -276,7 +273,7 @@ export default function NarrativeTimeline({
                 rx={3}
                 fill={fill}
                 opacity={event.selected ? 1 : 0.4}
-                stroke={event.selected ? 'white' : 'transparent'}
+                stroke={event.selected ? "white" : "transparent"}
                 strokeWidth={event.selected ? 2 : 0}
               />
               {/* Selection checkmark */}
@@ -288,7 +285,7 @@ export default function NarrativeTimeline({
                   fontSize="12"
                   fill="white"
                   fontWeight="bold"
-                  style={{ pointerEvents: 'none' }}
+                  style={{ pointerEvents: "none" }}
                 >
                   ✓
                 </text>
@@ -322,7 +319,8 @@ export default function NarrativeTimeline({
             </text>
             {/* Markers */}
             {castMarkers!.map((marker) => {
-              if (typeof marker.createdAt !== 'number' || Number.isNaN(marker.createdAt)) return null;
+              if (typeof marker.createdAt !== "number" || Number.isNaN(marker.createdAt))
+                return null;
               const x = scaleX(marker.createdAt);
               const shape = getCastMarkerShape(marker.entityKind);
               const color = getCastMarkerColor(marker.entityKind);
@@ -331,7 +329,7 @@ export default function NarrativeTimeline({
               return (
                 <g
                   key={marker.entityId}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: "pointer" }}
                   onMouseEnter={(e) => {
                     if (svgRef.current) {
                       const rect = svgRef.current.getBoundingClientRect();
@@ -360,7 +358,7 @@ export default function NarrativeTimeline({
                     transform={`translate(${x}, ${castMarkerCenterY})`}
                     fill={color}
                     opacity={isHovered ? 1 : 0.85}
-                    stroke={isHovered ? 'white' : 'transparent'}
+                    stroke={isHovered ? "white" : "transparent"}
                     strokeWidth={1.5}
                   />
                   {/* Primary / entry point ring */}
@@ -372,7 +370,7 @@ export default function NarrativeTimeline({
                       fill="none"
                       stroke={color}
                       strokeWidth={1}
-                      strokeDasharray={marker.isEntryPoint ? 'none' : '2,2'}
+                      strokeDasharray={marker.isEntryPoint ? "none" : "2,2"}
                       opacity={0.6}
                     />
                   )}
@@ -411,33 +409,31 @@ export default function NarrativeTimeline({
       {hoveredEvent && (
         <div
           style={{
-            position: 'absolute',
+            position: "absolute",
             left: Math.min(hoveredEvent.x + 12, width - 220),
             top: Math.max(hoveredEvent.y - 60, 8),
-            background: 'var(--bg-primary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '6px',
-            padding: '10px 12px',
-            fontSize: '11px',
-            maxWidth: '200px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            background: "var(--bg-primary)",
+            border: "1px solid var(--border-color)",
+            borderRadius: "6px",
+            padding: "10px 12px",
+            fontSize: "11px",
+            maxWidth: "200px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
             zIndex: 100,
-            pointerEvents: 'none',
+            pointerEvents: "none",
           }}
         >
-          <div style={{ fontWeight: 600, marginBottom: '4px' }}>
-            {hoveredEvent.event.headline}
-          </div>
-          <div style={{ color: 'var(--text-muted)', marginBottom: '4px' }}>
+          <div style={{ fontWeight: 600, marginBottom: "4px" }}>{hoveredEvent.event.headline}</div>
+          <div style={{ color: "var(--text-muted)", marginBottom: "4px" }}>
             Tick {hoveredEvent.event.tick} · {hoveredEvent.event.eventKind}
           </div>
-          <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+          <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
             <span
               style={{
-                padding: '1px 4px',
-                background: 'var(--bg-tertiary)',
-                borderRadius: '3px',
-                fontSize: '9px',
+                padding: "1px 4px",
+                background: "var(--bg-tertiary)",
+                borderRadius: "3px",
+                fontSize: "9px",
               }}
             >
               {(hoveredEvent.event.significance * 100).toFixed(0)}% sig
@@ -445,11 +441,11 @@ export default function NarrativeTimeline({
             {hoveredEvent.event.involvesEntryPoint && (
               <span
                 style={{
-                  padding: '1px 4px',
-                  background: 'var(--accent-color)',
-                  color: 'white',
-                  borderRadius: '3px',
-                  fontSize: '9px',
+                  padding: "1px 4px",
+                  background: "var(--accent-color)",
+                  color: "white",
+                  borderRadius: "3px",
+                  fontSize: "9px",
                 }}
               >
                 Entry
@@ -457,20 +453,20 @@ export default function NarrativeTimeline({
             )}
           </div>
           {hoveredEvent.event.description && (
-            <div style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
+            <div style={{ color: "var(--text-muted)", fontSize: "10px" }}>
               {hoveredEvent.event.description.length > 120
-                ? hoveredEvent.event.description.slice(0, 120) + '...'
+                ? hoveredEvent.event.description.slice(0, 120) + "..."
                 : hoveredEvent.event.description}
             </div>
           )}
           <div
             style={{
-              marginTop: '6px',
-              fontSize: '9px',
-              color: hoveredEvent.event.selected ? 'var(--success)' : 'var(--text-muted)',
+              marginTop: "6px",
+              fontSize: "9px",
+              color: hoveredEvent.event.selected ? "var(--success)" : "var(--text-muted)",
             }}
           >
-            {hoveredEvent.event.selected ? '✓ Selected' : 'Click to select'}
+            {hoveredEvent.event.selected ? "✓ Selected" : "Click to select"}
           </div>
         </div>
       )}
@@ -479,73 +475,81 @@ export default function NarrativeTimeline({
       {hoveredCastMarker && (
         <div
           style={{
-            position: 'absolute',
+            position: "absolute",
             left: Math.min(hoveredCastMarker.x + 12, width - 200),
             top: Math.max(hoveredCastMarker.y - 50, 8),
-            background: 'var(--bg-primary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '6px',
-            padding: '8px 10px',
-            fontSize: '11px',
-            maxWidth: '180px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            background: "var(--bg-primary)",
+            border: "1px solid var(--border-color)",
+            borderRadius: "6px",
+            padding: "8px 10px",
+            fontSize: "11px",
+            maxWidth: "180px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
             zIndex: 100,
-            pointerEvents: 'none',
+            pointerEvents: "none",
           }}
         >
-          <div style={{ fontWeight: 600, marginBottom: '3px' }}>
+          <div style={{ fontWeight: 600, marginBottom: "3px" }}>
             {hoveredCastMarker.marker.entityName}
           </div>
-          <div style={{ color: 'var(--text-muted)', marginBottom: '3px', fontSize: '10px' }}>
+          <div style={{ color: "var(--text-muted)", marginBottom: "3px", fontSize: "10px" }}>
             {hoveredCastMarker.marker.entityKind}
             {hoveredCastMarker.marker.subtype && ` · ${hoveredCastMarker.marker.subtype}`}
           </div>
-          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '4px' }}>
+          <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginBottom: "4px" }}>
             {hoveredCastMarker.marker.role && (
-              <span style={{
-                padding: '1px 4px',
-                background: 'var(--bg-tertiary)',
-                borderRadius: '3px',
-                fontSize: '9px',
-              }}>
+              <span
+                style={{
+                  padding: "1px 4px",
+                  background: "var(--bg-tertiary)",
+                  borderRadius: "3px",
+                  fontSize: "9px",
+                }}
+              >
                 {hoveredCastMarker.marker.role}
               </span>
             )}
             {hoveredCastMarker.marker.isEntryPoint && (
-              <span style={{
-                padding: '1px 4px',
-                background: 'var(--accent-color)',
-                color: 'white',
-                borderRadius: '3px',
-                fontSize: '9px',
-              }}>
+              <span
+                style={{
+                  padding: "1px 4px",
+                  background: "var(--accent-color)",
+                  color: "white",
+                  borderRadius: "3px",
+                  fontSize: "9px",
+                }}
+              >
                 Entry Point
               </span>
             )}
             {hoveredCastMarker.marker.isLens && (
-              <span style={{
-                padding: '1px 4px',
-                background: '#f59e0b',
-                color: 'white',
-                borderRadius: '3px',
-                fontSize: '9px',
-              }}>
+              <span
+                style={{
+                  padding: "1px 4px",
+                  background: "#f59e0b",
+                  color: "white",
+                  borderRadius: "3px",
+                  fontSize: "9px",
+                }}
+              >
                 Lens
               </span>
             )}
             {hoveredCastMarker.marker.isPrimary && !hoveredCastMarker.marker.isEntryPoint && (
-              <span style={{
-                padding: '1px 4px',
-                background: getCastMarkerColor(hoveredCastMarker.marker.entityKind),
-                color: 'white',
-                borderRadius: '3px',
-                fontSize: '9px',
-              }}>
+              <span
+                style={{
+                  padding: "1px 4px",
+                  background: getCastMarkerColor(hoveredCastMarker.marker.entityKind),
+                  color: "white",
+                  borderRadius: "3px",
+                  fontSize: "9px",
+                }}
+              >
                 Primary
               </span>
             )}
           </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
+          <div style={{ color: "var(--text-muted)", fontSize: "10px" }}>
             Created at tick {hoveredCastMarker.marker.createdAt}
           </div>
         </div>

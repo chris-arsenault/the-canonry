@@ -4,7 +4,7 @@
  * Shows a summary of selections before generating.
  */
 
-import { useWizard } from '../WizardContext';
+import { useWizard } from "../WizardContext";
 
 interface GenerateStepProps {
   onGenerate: () => void;
@@ -14,43 +14,57 @@ export default function GenerateStep({ onGenerate }: GenerateStepProps) {
   const { state, setNarrativeDirection } = useWizard();
 
   // Count primary vs supporting roles
-  const primaryCount = state.roleAssignments.filter(a => a.isPrimary).length;
+  const primaryCount = state.roleAssignments.filter((a) => a.isPrimary).length;
   const supportingCount = state.roleAssignments.length - primaryCount;
 
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: '20px' }}>
-        <h4 style={{ margin: '0 0 8px 0' }}>Generate Chronicle</h4>
-        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '13px' }}>
+      <div style={{ marginBottom: "20px" }}>
+        <h4 style={{ margin: "0 0 8px 0" }}>Generate Chronicle</h4>
+        <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "13px" }}>
           Review your selections and generate the chronicle.
         </p>
       </div>
 
       {/* Summary */}
-      <div style={{
-        padding: '20px',
-        background: 'var(--bg-secondary)',
-        borderRadius: '12px',
-        marginBottom: '24px',
-      }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      <div
+        style={{
+          padding: "20px",
+          background: "var(--bg-secondary)",
+          borderRadius: "12px",
+          marginBottom: "24px",
+        }}
+      >
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
           {/* Style */}
           <div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+            <div
+              style={{
+                fontSize: "10px",
+                color: "var(--text-muted)",
+                textTransform: "uppercase",
+                marginBottom: "4px",
+              }}
+            >
               Narrative Style
             </div>
             <div style={{ fontWeight: 500 }}>
               {state.narrativeStyle?.name}
-              <span style={{
-                marginLeft: '8px',
-                padding: '2px 6px',
-                background: state.narrativeStyle?.format === 'story' ? 'var(--accent-color)' : 'var(--warning)',
-                color: 'white',
-                borderRadius: '4px',
-                fontSize: '9px',
-                textTransform: 'uppercase',
-              }}>
+              <span
+                style={{
+                  marginLeft: "8px",
+                  padding: "2px 6px",
+                  background:
+                    state.narrativeStyle?.format === "story"
+                      ? "var(--accent-color)"
+                      : "var(--warning)",
+                  color: "white",
+                  borderRadius: "4px",
+                  fontSize: "9px",
+                  textTransform: "uppercase",
+                }}
+              >
                 {state.narrativeStyle?.format}
               </span>
             </div>
@@ -58,12 +72,19 @@ export default function GenerateStep({ onGenerate }: GenerateStepProps) {
 
           {/* Entry Point */}
           <div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+            <div
+              style={{
+                fontSize: "10px",
+                color: "var(--text-muted)",
+                textTransform: "uppercase",
+                marginBottom: "4px",
+              }}
+            >
               Entry Point
             </div>
             <div style={{ fontWeight: 500 }}>
               {state.entryPoint?.name}
-              <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: '6px' }}>
+              <span style={{ color: "var(--text-muted)", fontWeight: 400, marginLeft: "6px" }}>
                 ({state.entryPoint?.kind})
               </span>
             </div>
@@ -71,12 +92,19 @@ export default function GenerateStep({ onGenerate }: GenerateStepProps) {
 
           {/* Ensemble */}
           <div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+            <div
+              style={{
+                fontSize: "10px",
+                color: "var(--text-muted)",
+                textTransform: "uppercase",
+                marginBottom: "4px",
+              }}
+            >
               Ensemble
             </div>
             <div style={{ fontWeight: 500 }}>
               {state.roleAssignments.length} entities
-              <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: '6px' }}>
+              <span style={{ color: "var(--text-muted)", fontWeight: 400, marginLeft: "6px" }}>
                 ({primaryCount} primary, {supportingCount} supporting)
               </span>
             </div>
@@ -84,60 +112,88 @@ export default function GenerateStep({ onGenerate }: GenerateStepProps) {
 
           {/* Events & Relationships */}
           <div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+            <div
+              style={{
+                fontSize: "10px",
+                color: "var(--text-muted)",
+                textTransform: "uppercase",
+                marginBottom: "4px",
+              }}
+            >
               Context
             </div>
             <div style={{ fontWeight: 500 }}>
-              {state.selectedEventIds.size} events, {state.selectedRelationshipIds.size} relationships
+              {state.selectedEventIds.size} events, {state.selectedRelationshipIds.size}{" "}
+              relationships
             </div>
           </div>
         </div>
 
         {/* Narrative Lens */}
         {state.lens && (
-          <div style={{ marginTop: '20px' }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+          <div style={{ marginTop: "20px" }}>
+            <div
+              style={{
+                fontSize: "10px",
+                color: "var(--text-muted)",
+                textTransform: "uppercase",
+                marginBottom: "4px",
+              }}
+            >
               Narrative Lens
             </div>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '4px 8px',
-              background: 'rgba(139, 92, 246, 0.1)',
-              border: '1px solid rgba(139, 92, 246, 0.3)',
-              borderRadius: '4px',
-              fontSize: '11px',
-            }}>
-              <span style={{ color: 'rgba(139, 92, 246, 0.7)' }}>&#x25C8;</span>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "4px 8px",
+                background: "rgba(139, 92, 246, 0.1)",
+                border: "1px solid rgba(139, 92, 246, 0.3)",
+                borderRadius: "4px",
+                fontSize: "11px",
+              }}
+            >
+              <span style={{ color: "rgba(139, 92, 246, 0.7)" }}>&#x25C8;</span>
               <span style={{ fontWeight: 500 }}>{state.lens.entityName}</span>
-              <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>({state.lens.entityKind})</span>
+              <span style={{ color: "var(--text-muted)", fontSize: "10px" }}>
+                ({state.lens.entityKind})
+              </span>
             </div>
           </div>
         )}
 
         {/* Role Breakdown */}
-        <div style={{ marginTop: '20px' }}>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+        <div style={{ marginTop: "20px" }}>
+          <div
+            style={{
+              fontSize: "10px",
+              color: "var(--text-muted)",
+              textTransform: "uppercase",
+              marginBottom: "8px",
+            }}
+          >
             Role Assignments
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {state.roleAssignments.map(assignment => (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            {state.roleAssignments.map((assignment) => (
               <span
                 key={`${assignment.role}-${assignment.entityId}`}
                 style={{
-                  padding: '4px 8px',
-                  background: assignment.isPrimary ? 'var(--accent-color)' : 'var(--bg-tertiary)',
-                  color: assignment.isPrimary ? 'white' : 'inherit',
-                  borderRadius: '4px',
-                  fontSize: '11px',
+                  padding: "4px 8px",
+                  background: assignment.isPrimary ? "var(--accent-color)" : "var(--bg-tertiary)",
+                  color: assignment.isPrimary ? "white" : "inherit",
+                  borderRadius: "4px",
+                  fontSize: "11px",
                 }}
               >
                 <span style={{ fontWeight: 500 }}>{assignment.role}</span>
-                <span style={{
-                  marginLeft: '6px',
-                  opacity: assignment.isPrimary ? 0.9 : 0.7,
-                }}>
+                <span
+                  style={{
+                    marginLeft: "6px",
+                    opacity: assignment.isPrimary ? 0.9 : 0.7,
+                  }}
+                >
                   {assignment.entityName}
                 </span>
               </span>
@@ -147,49 +203,61 @@ export default function GenerateStep({ onGenerate }: GenerateStepProps) {
       </div>
 
       {/* Narrative Direction */}
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+      <div style={{ marginBottom: "24px" }}>
+        <div
+          style={{
+            fontSize: "10px",
+            color: "var(--text-muted)",
+            textTransform: "uppercase",
+            marginBottom: "4px",
+          }}
+        >
           Narrative Direction
-          <span style={{ textTransform: 'none', marginLeft: '6px', fontStyle: 'italic' }}>optional</span>
+          <span style={{ textTransform: "none", marginLeft: "6px", fontStyle: "italic" }}>
+            optional
+          </span>
         </div>
-        <p style={{ margin: '0 0 8px 0', color: 'var(--text-muted)', fontSize: '12px' }}>
-          Concrete story purpose that shapes perspective and generation. Leave empty for open-ended chronicles.
+        <p style={{ margin: "0 0 8px 0", color: "var(--text-muted)", fontSize: "12px" }}>
+          Concrete story purpose that shapes perspective and generation. Leave empty for open-ended
+          chronicles.
         </p>
         <textarea
           value={state.narrativeDirection}
           onChange={(e) => setNarrativeDirection(e.target.value)}
           placeholder='e.g. "This is the treaty document that ended the Faction Wars" or "An eyewitness account of the apocalyptic magic that ended the Orca Invasion"'
           style={{
-            width: '100%',
-            minHeight: '64px',
-            padding: '10px 12px',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '8px',
-            color: 'inherit',
-            fontSize: '13px',
-            fontFamily: 'inherit',
-            resize: 'vertical',
-            boxSizing: 'border-box',
+            width: "100%",
+            minHeight: "64px",
+            padding: "10px 12px",
+            background: "var(--bg-secondary)",
+            border: "1px solid var(--border-color)",
+            borderRadius: "8px",
+            color: "inherit",
+            fontSize: "13px",
+            fontFamily: "inherit",
+            resize: "vertical",
+            boxSizing: "border-box",
           }}
         />
       </div>
 
       {/* Info Box */}
-      <div style={{
-        padding: '12px 16px',
-        background: 'var(--bg-tertiary)',
-        borderRadius: '8px',
-        fontSize: '12px',
-        color: 'var(--text-muted)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-      }}>
-        <span style={{ fontSize: '16px' }}>💡</span>
+      <div
+        style={{
+          padding: "12px 16px",
+          background: "var(--bg-tertiary)",
+          borderRadius: "8px",
+          fontSize: "12px",
+          color: "var(--text-muted)",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}
+      >
+        <span style={{ fontSize: "16px" }}>💡</span>
         <span>
-          Click "Generate Chronicle" to start generation.
-          The complete chronicle will be ready in about 30-60 seconds.
+          Click "Generate Chronicle" to start generation. The complete chronicle will be ready in
+          about 30-60 seconds.
         </span>
       </div>
     </div>

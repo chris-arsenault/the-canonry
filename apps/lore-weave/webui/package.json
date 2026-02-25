@@ -11,7 +11,7 @@
     "serve": "serve dist -l 3004"
   },
   "dependencies": {
-    "@penguin-tales/shared-components": "file:../../../packages/shared-components",
+    "@penguin-tales/shared-components": "workspace:*",
     "@visx/axis": "^3.12.0",
     "@visx/event": "^3.12.0",
     "@visx/grid": "^3.12.0",

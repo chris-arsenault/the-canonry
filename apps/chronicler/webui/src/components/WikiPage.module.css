@@ -83,7 +83,9 @@
   color: #e8dcc8;
   letter-spacing: -0.02em;
   line-height: var(--line-height-tight);
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.8), 0 1px 4px rgba(0, 0, 0, 0.6);
+  text-shadow:
+    0 2px 16px rgba(0, 0, 0, 0.8),
+    0 1px 4px rgba(0, 0, 0, 0.6);
   width: 100%;
   text-align: center;
 }
@@ -524,7 +526,9 @@
   border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
-  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    box-shadow var(--transition-fast),
+    border-color var(--transition-fast);
   text-align: left;
   padding: 0;
 }
@@ -858,9 +862,15 @@
   text-align: center !important;
 }
 
-.chronicleBody[data-dropcap][data-style="folk-song"] .markdownSection[data-first] p:first-of-type::first-letter,
-.chronicleBody[data-dropcap][data-style="nursery-rhymes"] .markdownSection[data-first] p:first-of-type::first-letter,
-.chronicleBody[data-dropcap][data-style="haiku-collection"] .markdownSection[data-first] p:first-of-type::first-letter {
+.chronicleBody[data-dropcap][data-style="folk-song"]
+  .markdownSection[data-first]
+  p:first-of-type::first-letter,
+.chronicleBody[data-dropcap][data-style="nursery-rhymes"]
+  .markdownSection[data-first]
+  p:first-of-type::first-letter,
+.chronicleBody[data-dropcap][data-style="haiku-collection"]
+  .markdownSection[data-first]
+  p:first-of-type::first-letter {
   float: none;
   font-size: inherit;
   line-height: inherit;
@@ -882,7 +892,9 @@
   background: rgba(196, 154, 92, 0.04);
 }
 
-.chronicleBody[data-dropcap][data-style="wanted-notice"] .markdownSection[data-first] p:first-of-type::first-letter {
+.chronicleBody[data-dropcap][data-style="wanted-notice"]
+  .markdownSection[data-first]
+  p:first-of-type::first-letter {
   float: none;
   font-size: inherit;
   line-height: inherit;
@@ -903,7 +915,9 @@
   letter-spacing: 0.02em;
 }
 
-.chronicleBody[data-dropcap][data-style="interrogation-record"] .markdownSection[data-first] p:first-of-type::first-letter {
+.chronicleBody[data-dropcap][data-style="interrogation-record"]
+  .markdownSection[data-first]
+  p:first-of-type::first-letter {
   float: none;
   font-size: inherit;
   line-height: inherit;
@@ -947,7 +961,9 @@
   border-radius: var(--radius-sm);
 }
 
-.chronicleBody[data-dropcap][data-style="tavern-notices"] .markdownSection[data-first] p:first-of-type::first-letter {
+.chronicleBody[data-dropcap][data-style="tavern-notices"]
+  .markdownSection[data-first]
+  p:first-of-type::first-letter {
   float: none;
   font-size: inherit;
   line-height: inherit;
@@ -1177,4 +1193,3 @@
   font-family: Georgia, "Times New Roman", serif;
   font-style: italic;
 }
-

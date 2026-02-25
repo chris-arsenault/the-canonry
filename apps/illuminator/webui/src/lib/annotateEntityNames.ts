@@ -8,7 +8,7 @@
  * Idempotent: skips names already followed by a parenthetical.
  */
 
-import type { EntityNavItem } from './db/entityNav';
+import type { EntityNavItem } from "./db/entityNav";
 
 interface Candidate {
   name: string;
@@ -30,15 +30,12 @@ function buildAnnotation(item: EntityNavItem): string {
  * - Tracks character ranges in the mutated string to prevent overlapping annotations
  * - Idempotent: skips names already followed by ` (`
  */
-export function annotateEntityNames(
-  text: string,
-  navItems: Map<string, EntityNavItem>,
-): string {
+export function annotateEntityNames(text: string, navItems: Map<string, EntityNavItem>): string {
   // Build candidates
   const candidates: Candidate[] = [];
   for (const item of navItems.values()) {
     if (item.name.length < 4) continue;
-    if (item.kind === 'era') continue;
+    if (item.kind === "era") continue;
     candidates.push({
       name: item.name,
       annotation: buildAnnotation(item),
@@ -64,7 +61,11 @@ export function annotateEntityNames(
 
     // Already annotated? Check if followed by ` (`
     const afterName = idx + name.length;
-    if (result.length > afterName + 1 && result[afterName] === ' ' && result[afterName + 1] === '(') {
+    if (
+      result.length > afterName + 1 &&
+      result[afterName] === " " &&
+      result[afterName + 1] === "("
+    ) {
       continue;
     }
 

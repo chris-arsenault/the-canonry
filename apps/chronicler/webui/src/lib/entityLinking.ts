@@ -11,7 +11,7 @@
  * assertions instead: (?<!\w) and (?!\w).
  */
 
-import React from 'react';
+import React from "react";
 
 // ============================================================================
 // Core Utilities
@@ -21,7 +21,7 @@ import React from 'react';
  * Escape special regex characters in a string
  */
 export function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**
@@ -39,8 +39,8 @@ export function buildNamePattern(name: string): string {
   const escaped = escapeRegex(name);
   const firstChar = name.charAt(0);
   const lastChar = name.charAt(name.length - 1);
-  const startBoundary = /\w/.test(firstChar) ? '\\b' : '(?<!\\w)';
-  const endBoundary = /\w/.test(lastChar) ? '\\b' : '(?!\\w)';
+  const startBoundary = /\w/.test(firstChar) ? "\\b" : "(?<!\\w)";
+  const endBoundary = /\w/.test(lastChar) ? "\\b" : "(?!\\w)";
   return `${startBoundary}${escaped}${endBoundary}`;
 }
 
@@ -51,18 +51,13 @@ export function buildNamePattern(name: string): string {
  * @param names - Array of names to match (minimum 3 chars each)
  * @param flags - Regex flags (default: 'gi' for global, case-insensitive)
  */
-export function buildCombinedPattern(
-  names: string[],
-  flags: string = 'gi'
-): RegExp | null {
-  const validNames = names
-    .filter((name) => name.length >= 3)
-    .sort((a, b) => b.length - a.length); // Longer names first
+export function buildCombinedPattern(names: string[], flags: string = "gi"): RegExp | null {
+  const validNames = names.filter((name) => name.length >= 3).sort((a, b) => b.length - a.length); // Longer names first
 
   if (validNames.length === 0) return null;
 
   const patterns = validNames.map(buildNamePattern);
-  return new RegExp(`(${patterns.join('|')})`, flags);
+  return new RegExp(`(${patterns.join("|")})`, flags);
 }
 
 // ============================================================================
@@ -75,10 +70,10 @@ export function buildCombinedPattern(
 function isInsideWikilink(text: string, position: number): boolean {
   let depth = 0;
   for (let i = 0; i < position; i++) {
-    if (text[i] === '[' && text[i + 1] === '[') {
+    if (text[i] === "[" && text[i + 1] === "[") {
       depth++;
       i++; // Skip next char
-    } else if (text[i] === ']' && text[i + 1] === ']') {
+    } else if (text[i] === "]" && text[i + 1] === "]") {
       depth = Math.max(0, depth - 1);
       i++; // Skip next char
     }
@@ -90,10 +85,7 @@ function isInsideWikilink(text: string, position: number): boolean {
  * Apply wikilinks to a single section - wraps entity/page name mentions with [[...]] syntax.
  * Only links the first occurrence of each name per section (Wikipedia style).
  */
-function applyWikiLinksToSection(
-  section: string,
-  combinedPattern: RegExp
-): string {
+function applyWikiLinksToSection(section: string, combinedPattern: RegExp): string {
   // Track which names have been linked in this section (lowercase for case-insensitive matching)
   const linkedInSection = new Set<string>();
 
@@ -149,7 +141,7 @@ export function applyWikiLinks(
     }
   }
 
-  return result.join('');
+  return result.join("");
 }
 
 // ============================================================================
@@ -173,10 +165,10 @@ export interface LinkifyOptions {
 }
 
 const defaultLinkStyle: React.CSSProperties = {
-  color: 'var(--color-accent, #c49a5c)',
-  cursor: 'pointer',
-  borderBottom: '1px dotted var(--color-accent, #c49a5c)',
-  textDecoration: 'none',
+  color: "var(--color-accent, #c49a5c)",
+  cursor: "pointer",
+  borderBottom: "1px dotted var(--color-accent, #c49a5c)",
+  textDecoration: "none",
 };
 
 /**
@@ -214,12 +206,12 @@ export function linkifyText(
     const nameLower = name.toLowerCase();
     if (firstOccurrenceOnly && linkedNames.has(nameLower)) continue;
 
-    const regex = new RegExp(buildNamePattern(name), 'gi');
+    const regex = new RegExp(buildNamePattern(name), "gi");
     const newResult: React.ReactNode[] = [];
     let foundMatch = false;
 
     for (const part of result) {
-      if (typeof part !== 'string') {
+      if (typeof part !== "string") {
         newResult.push(part);
         continue;
       }
@@ -243,7 +235,7 @@ export function linkifyText(
         // Add linked entity
         segments.push(
           React.createElement(
-            'span',
+            "span",
             {
               key: `${id}-${match.index}`,
               style: linkStyle,

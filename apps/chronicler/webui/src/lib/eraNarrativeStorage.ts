@@ -5,9 +5,9 @@
  * Chronicler reads completed era narratives directly from here.
  */
 
-import { openIlluminatorDb } from './illuminatorDbReader';
+import { openIlluminatorDb } from "./illuminatorDbReader";
 
-const ERA_NARRATIVE_STORE_NAME = 'eraNarratives';
+const ERA_NARRATIVE_STORE_NAME = "eraNarratives";
 
 /**
  * Viewer-facing era narrative record.
@@ -44,7 +44,7 @@ export interface EraNarrativeViewRecord {
       anchorText: string;
       anchorIndex?: number;
       size: string;
-      justification?: 'left' | 'right';
+      justification?: "left" | "right";
       caption?: string;
       // chronicle_ref fields
       imageId?: string;
@@ -70,29 +70,36 @@ export interface EraNarrativeViewRecord {
  * Picks the best content (edited > draft) and strips generation metadata.
  */
 function projectToViewRecord(raw: Record<string, unknown>): EraNarrativeViewRecord | null {
-  if (!raw || raw.status !== 'complete') return null;
+  if (!raw || raw.status !== "complete") return null;
 
-  const narrative = raw.narrative as {
-    editedContent?: string;
-    content?: string;
-    editedWordCount?: number;
-    wordCount?: number;
-  } | undefined;
+  const narrative = raw.narrative as
+    | {
+        editedContent?: string;
+        content?: string;
+        editedWordCount?: number;
+        wordCount?: number;
+      }
+    | undefined;
 
   // Support both full records (content under narrative) and viewer-projected records (content at top level)
-  const content = narrative?.editedContent || narrative?.content || (typeof raw.content === 'string' ? raw.content : '');
+  const content =
+    narrative?.editedContent ||
+    narrative?.content ||
+    (typeof raw.content === "string" ? raw.content : "");
   if (!content) return null;
 
   const threadSynthesis = raw.threadSynthesis as { thesis?: string } | undefined;
   const prepBriefs = Array.isArray(raw.prepBriefs)
-    ? (raw.prepBriefs as Array<{ chronicleId: string; chronicleTitle: string }>)
-        .map(b => ({ chronicleId: b.chronicleId, chronicleTitle: b.chronicleTitle }))
+    ? (raw.prepBriefs as Array<{ chronicleId: string; chronicleTitle: string }>).map((b) => ({
+        chronicleId: b.chronicleId,
+        chronicleTitle: b.chronicleTitle,
+      }))
     : Array.isArray(raw.sourceChronicles)
       ? (raw.sourceChronicles as Array<{ chronicleId: string; chronicleTitle: string }>)
       : [];
 
-  const coverImage = raw.coverImage as EraNarrativeViewRecord['coverImage'] | undefined;
-  const imageRefs = raw.imageRefs as EraNarrativeViewRecord['imageRefs'] | undefined;
+  const coverImage = raw.coverImage as EraNarrativeViewRecord["coverImage"] | undefined;
+  const imageRefs = raw.imageRefs as EraNarrativeViewRecord["imageRefs"] | undefined;
 
   return {
     narrativeId: raw.narrativeId as string,
@@ -103,11 +110,13 @@ function projectToViewRecord(raw: Record<string, unknown>): EraNarrativeViewReco
     status: raw.status as string,
     tone: raw.tone as string,
     content,
-    wordCount: narrative?.editedWordCount || narrative?.wordCount || (typeof raw.wordCount === 'number' ? raw.wordCount : 0),
-    thesis: threadSynthesis?.thesis || (typeof raw.thesis === 'string' ? raw.thesis : undefined),
-    coverImage: coverImage?.status === 'complete' && coverImage?.generatedImageId
-      ? coverImage
-      : undefined,
+    wordCount:
+      narrative?.editedWordCount ||
+      narrative?.wordCount ||
+      (typeof raw.wordCount === "number" ? raw.wordCount : 0),
+    thesis: threadSynthesis?.thesis || (typeof raw.thesis === "string" ? raw.thesis : undefined),
+    coverImage:
+      coverImage?.status === "complete" && coverImage?.generatedImageId ? coverImage : undefined,
     imageRefs: imageRefs?.refs?.length ? imageRefs : undefined,
     sourceChronicles: prepBriefs,
     createdAt: raw.createdAt as number,
@@ -120,7 +129,7 @@ function projectToViewRecord(raw: Record<string, unknown>): EraNarrativeViewReco
  * Returns at most one narrative per era (the most recently updated).
  */
 export async function getCompletedEraNarrativesForSimulation(
-  simulationRunId: string,
+  simulationRunId: string
 ): Promise<EraNarrativeViewRecord[]> {
   if (!simulationRunId) return [];
 
@@ -133,9 +142,9 @@ export async function getCompletedEraNarrativesForSimulation(
       }
 
       return await new Promise((resolve, reject) => {
-        const tx = db.transaction(ERA_NARRATIVE_STORE_NAME, 'readonly');
+        const tx = db.transaction(ERA_NARRATIVE_STORE_NAME, "readonly");
         const store = tx.objectStore(ERA_NARRATIVE_STORE_NAME);
-        const index = store.index('simulationRunId');
+        const index = store.index("simulationRunId");
         const request = index.getAll(IDBKeyRange.only(simulationRunId));
 
         request.onsuccess = () => {
@@ -156,14 +165,13 @@ export async function getCompletedEraNarrativesForSimulation(
           resolve(Array.from(byEra.values()));
         };
 
-        request.onerror = () =>
-          reject(request.error || new Error('Failed to get era narratives'));
+        request.onerror = () => reject(request.error || new Error("Failed to get era narratives"));
       });
     } finally {
       db.close();
     }
   } catch (err) {
-    console.error('[eraNarrativeStorage] Failed to load era narratives:', err);
+    console.error("[eraNarrativeStorage] Failed to load era narratives:", err);
     return [];
   }
 }

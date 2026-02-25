@@ -8,28 +8,32 @@
  * - Ensemble health bar showing diversity
  */
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import type { StoryNarrativeStyle, DocumentNarrativeStyle, RoleDefinition } from '@canonry/world-schema';
-import type { NarrativeLens } from '../../../lib/chronicleTypes';
-import { useWizard } from '../WizardContext';
+import { useState, useMemo, useEffect, useCallback } from "react";
+import type {
+  StoryNarrativeStyle,
+  DocumentNarrativeStyle,
+  RoleDefinition,
+} from "@canonry/world-schema";
+import type { NarrativeLens } from "../../../lib/chronicleTypes";
+import { useWizard } from "../WizardContext";
 import {
   validateRoleAssignments,
   type EntitySelectionMetrics,
-} from '../../../lib/chronicle/selectionWizard';
-import { getEntityUsageStats } from '../../../lib/db/chronicleRepository';
-import { getEraRanges } from '../../../lib/chronicle/timelineUtils';
+} from "../../../lib/chronicle/selectionWizard";
+import { getEntityUsageStats } from "../../../lib/db/chronicleRepository";
+import { getEraRanges } from "../../../lib/chronicle/timelineUtils";
 import {
   EnsembleConstellation,
   RoleSlot,
   EntityDetailCard,
   EnsembleHealthBar,
   FilterChips,
-} from '../visualizations';
+} from "../visualizations";
 
 /** Get roles from either story or document style */
 function getRoles(style: { format: string } | null | undefined): RoleDefinition[] {
   if (!style) return [];
-  if (style.format === 'story') {
+  if (style.format === "story") {
     return (style as StoryNarrativeStyle).roles || [];
   }
   const docStyle = style as DocumentNarrativeStyle;
@@ -38,7 +42,7 @@ function getRoles(style: { format: string } | null | undefined): RoleDefinition[
 
 function resolveEntityEraId(entity: { eraId?: string } | null): string | undefined {
   if (!entity) return undefined;
-  return typeof entity.eraId === 'string' && entity.eraId ? entity.eraId : undefined;
+  return typeof entity.eraId === "string" && entity.eraId ? entity.eraId : undefined;
 }
 
 export default function RoleAssignmentStep() {
@@ -69,13 +73,15 @@ export default function RoleAssignmentStep() {
   // Load usage stats on mount
   useEffect(() => {
     if (!simulationRunId) {
-      throw new Error('[Chronicle Wizard] simulationRunId is required to load entity usage stats.');
+      throw new Error("[Chronicle Wizard] simulationRunId is required to load entity usage stats.");
     }
-    getEntityUsageStats(simulationRunId).then(stats => {
-      setUsageStats(stats);
-    }).catch((err) => {
-      console.error('[Chronicle Wizard] Failed to load entity usage stats:', err);
-    });
+    getEntityUsageStats(simulationRunId)
+      .then((stats) => {
+        setUsageStats(stats);
+      })
+      .catch((err) => {
+        console.error("[Chronicle Wizard] Failed to load entity usage stats:", err);
+      });
   }, [simulationRunId]);
 
   // Compute metrics when candidates or usage stats change
@@ -88,7 +94,7 @@ export default function RoleAssignmentStep() {
 
   // Get assigned entity IDs
   const assignedEntityIds = useMemo(() => {
-    return new Set(state.roleAssignments.map(a => a.entityId));
+    return new Set(state.roleAssignments.map((a) => a.entityId));
   }, [state.roleAssignments]);
 
   // Validation
@@ -100,7 +106,7 @@ export default function RoleAssignmentStep() {
   // Get selected entity details
   const selectedEntity = useMemo(() => {
     if (!selectedEntityId) return null;
-    return state.candidates.find(e => e.id === selectedEntityId) || null;
+    return state.candidates.find((e) => e.id === selectedEntityId) || null;
   }, [selectedEntityId, state.candidates]);
 
   const selectedMetrics = useMemo(() => {
@@ -121,33 +127,39 @@ export default function RoleAssignmentStep() {
   const selectedEntityEra = useMemo(() => {
     if (!selectedEntity || eras.length === 0) return undefined;
     const entityEraId = resolveEntityEraId(selectedEntity);
-    const era = entityEraId ? eras.find(e => e.id === entityEraId) : undefined;
+    const era = entityEraId ? eras.find((e) => e.id === entityEraId) : undefined;
     if (!era) return undefined;
     return { name: era.name, color: eraColorMap.get(era.id) };
   }, [selectedEntity, eras, eraColorMap]);
 
   // Handle role assignment
-  const handleAssignToRole = useCallback((roleId: string) => {
-    if (!selectedEntityId) return;
+  const handleAssignToRole = useCallback(
+    (roleId: string) => {
+      if (!selectedEntityId) return;
 
-    const entity = state.candidates.find(e => e.id === selectedEntityId);
-    if (!entity) return;
+      const entity = state.candidates.find((e) => e.id === selectedEntityId);
+      if (!entity) return;
 
-    addRoleAssignment({
-      role: roleId,
-      entityId: entity.id,
-      entityName: entity.name,
-      entityKind: entity.kind,
-      isPrimary: false,
-    });
+      addRoleAssignment({
+        role: roleId,
+        entityId: entity.id,
+        entityName: entity.name,
+        entityKind: entity.kind,
+        isPrimary: false,
+      });
 
-    setSelectedEntityId(null);
-  }, [selectedEntityId, state.candidates, addRoleAssignment]);
+      setSelectedEntityId(null);
+    },
+    [selectedEntityId, state.candidates, addRoleAssignment]
+  );
 
   // Handle remove from role
-  const handleRemoveFromRole = useCallback((entityId: string, roleId: string) => {
-    removeRoleAssignment(entityId, roleId);
-  }, [removeRoleAssignment]);
+  const handleRemoveFromRole = useCallback(
+    (entityId: string, roleId: string) => {
+      removeRoleAssignment(entityId, roleId);
+    },
+    [removeRoleAssignment]
+  );
 
   // Build kind-to-category map
   const kindToCategory = useMemo(() => {
@@ -159,14 +171,17 @@ export default function RoleAssignmentStep() {
     return map;
   }, [state.candidates]);
 
-  const handleSetLens = useCallback((entity: typeof state.candidates[0]) => {
-    const lens: NarrativeLens = {
-      entityId: entity.id,
-      entityName: entity.name,
-      entityKind: entity.kind,
-    };
-    setLens(lens);
-  }, [setLens]);
+  const handleSetLens = useCallback(
+    (entity: (typeof state.candidates)[0]) => {
+      const lens: NarrativeLens = {
+        entityId: entity.id,
+        entityName: entity.name,
+        entityKind: entity.kind,
+      };
+      setLens(lens);
+    },
+    [setLens]
+  );
 
   // Get available kinds for filter chips
   const availableKinds = useMemo(() => {
@@ -184,7 +199,7 @@ export default function RoleAssignmentStep() {
       const eraId = resolveEntityEraId(c);
       if (eraId) eraIds.add(eraId);
     }
-    return eras.filter(e => eraIds.has(e.id)).map(e => e.id);
+    return eras.filter((e) => eraIds.has(e.id)).map((e) => e.id);
   }, [state.candidates, eras]);
 
   // Build connection maps for filtering
@@ -215,14 +230,14 @@ export default function RoleAssignmentStep() {
 
     // Apply kind filter
     if (selectedKinds.size > 0) {
-      candidates = candidates.filter(c =>
-        selectedKinds.has(c.kind) || assignedEntityIds.has(c.id)
+      candidates = candidates.filter(
+        (c) => selectedKinds.has(c.kind) || assignedEntityIds.has(c.id)
       );
     }
 
     // Apply era filter
     if (selectedEras.size > 0) {
-      candidates = candidates.filter(c => {
+      candidates = candidates.filter((c) => {
         const eraId = resolveEntityEraId(c);
         return (eraId !== undefined && selectedEras.has(eraId)) || assignedEntityIds.has(c.id);
       });
@@ -230,7 +245,7 @@ export default function RoleAssignmentStep() {
 
     // Apply connection filter
     if (connectionFilter && assignedEntityIds.size > 0) {
-      candidates = candidates.filter(c => {
+      candidates = candidates.filter((c) => {
         // Always include assigned entities
         if (assignedEntityIds.has(c.id)) return true;
 
@@ -238,10 +253,10 @@ export default function RoleAssignmentStep() {
         const connectionCount = connectedTo?.size ?? 0;
 
         switch (connectionFilter) {
-          case 'linked':
+          case "linked":
             // Connected to at least one assigned entity
             return connectionCount > 0;
-          case 'bridges':
+          case "bridges":
             // Connected to 2+ assigned entities (bridges/connectors)
             return connectionCount >= 2;
           default:
@@ -251,30 +266,44 @@ export default function RoleAssignmentStep() {
     }
 
     return candidates;
-  }, [state.candidates, selectedKinds, selectedEras, assignedEntityIds, connectionFilter, connectionMaps]);
+  }, [
+    state.candidates,
+    selectedKinds,
+    selectedEras,
+    assignedEntityIds,
+    connectionFilter,
+    connectionMaps,
+  ]);
 
   // Filter relationships to only include those between filtered candidates
   const filteredRelationships = useMemo(() => {
-    const filteredIds = new Set(filteredCandidates.map(c => c.id));
+    const filteredIds = new Set(filteredCandidates.map((c) => c.id));
     return state.candidateRelationships.filter(
-      r => filteredIds.has(r.src) && filteredIds.has(r.dst)
+      (r) => filteredIds.has(r.src) && filteredIds.has(r.dst)
     );
   }, [state.candidateRelationships, filteredCandidates]);
 
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div
+        style={{
+          marginBottom: "16px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
         <div>
-          <h4 style={{ margin: '0 0 8px 0' }}>Build Your Ensemble</h4>
-          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '13px' }}>
+          <h4 style={{ margin: "0 0 8px 0" }}>Build Your Ensemble</h4>
+          <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "13px" }}>
             Click entities in the constellation to select, then click a role to assign.
           </p>
         </div>
         <button
           onClick={() => autoFillRoles(metricsMap)}
           className="illuminator-btn"
-          style={{ fontSize: '12px' }}
+          style={{ fontSize: "12px" }}
         >
           Auto-fill Roles
         </button>
@@ -282,16 +311,19 @@ export default function RoleAssignmentStep() {
 
       {/* Validation Messages */}
       {validation.errors.length > 0 && (
-        <div style={{ marginBottom: '12px' }}>
+        <div style={{ marginBottom: "12px" }}>
           {validation.errors.map((error, i) => (
-            <div key={i} style={{
-              padding: '8px 12px',
-              background: 'rgba(239, 68, 68, 0.1)',
-              borderLeft: '3px solid var(--error)',
-              marginBottom: '4px',
-              fontSize: '11px',
-              color: 'var(--error)',
-            }}>
+            <div
+              key={i}
+              style={{
+                padding: "8px 12px",
+                background: "rgba(239, 68, 68, 0.1)",
+                borderLeft: "3px solid var(--error)",
+                marginBottom: "4px",
+                fontSize: "11px",
+                color: "var(--error)",
+              }}
+            >
               {error}
             </div>
           ))}
@@ -299,11 +331,11 @@ export default function RoleAssignmentStep() {
       )}
 
       {/* Main layout: Left (constellation + health) | Right (roles + detail) */}
-      <div style={{ display: 'flex', gap: '16px' }}>
+      <div style={{ display: "flex", gap: "16px" }}>
         {/* Left: Constellation + Ensemble Health */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Kind filter chips */}
-          <div style={{ marginBottom: '6px' }}>
+          <div style={{ marginBottom: "6px" }}>
             <FilterChips
               options={availableKinds}
               selected={selectedKinds}
@@ -313,43 +345,47 @@ export default function RoleAssignmentStep() {
           </div>
           {/* Era filter chips */}
           {availableEras.length > 1 && (
-            <div style={{ marginBottom: '6px' }}>
+            <div style={{ marginBottom: "6px" }}>
               <FilterChips
                 options={availableEras}
                 selected={selectedEras}
                 onSelectionChange={setSelectedEras}
                 label="Filter by Era"
-                formatLabel={(eraId) => eras.find(e => e.id === eraId)?.name ?? eraId}
-                getColor={(eraId) => eraColorMap.get(eraId) ?? 'var(--text-muted)'}
+                formatLabel={(eraId) => eras.find((e) => e.id === eraId)?.name ?? eraId}
+                getColor={(eraId) => eraColorMap.get(eraId) ?? "var(--text-muted)"}
               />
             </div>
           )}
           {/* Connection filter */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            marginBottom: '8px',
-            fontSize: '10px',
-          }}>
-            <span style={{ color: 'var(--text-muted)' }}>Show:</span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              marginBottom: "8px",
+              fontSize: "10px",
+            }}
+          >
+            <span style={{ color: "var(--text-muted)" }}>Show:</span>
             {[
-              { id: null, label: 'All' },
-              { id: 'linked', label: 'Linked to ensemble' },
-              { id: 'bridges', label: 'Bridges (2+ links)' },
-            ].map(opt => (
+              { id: null, label: "All" },
+              { id: "linked", label: "Linked to ensemble" },
+              { id: "bridges", label: "Bridges (2+ links)" },
+            ].map((opt) => (
               <button
-                key={opt.id ?? 'all'}
+                key={opt.id ?? "all"}
                 onClick={() => setConnectionFilter(opt.id)}
                 style={{
-                  padding: '3px 8px',
-                  fontSize: '10px',
-                  background: connectionFilter === opt.id ? 'var(--accent-color)' : 'var(--bg-tertiary)',
-                  color: connectionFilter === opt.id ? 'white' : 'var(--text-muted)',
-                  border: '1px solid',
-                  borderColor: connectionFilter === opt.id ? 'var(--accent-color)' : 'var(--border-color)',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  padding: "3px 8px",
+                  fontSize: "10px",
+                  background:
+                    connectionFilter === opt.id ? "var(--accent-color)" : "var(--bg-tertiary)",
+                  color: connectionFilter === opt.id ? "white" : "var(--text-muted)",
+                  border: "1px solid",
+                  borderColor:
+                    connectionFilter === opt.id ? "var(--accent-color)" : "var(--border-color)",
+                  borderRadius: "4px",
+                  cursor: "pointer",
                 }}
               >
                 {opt.label}
@@ -357,7 +393,7 @@ export default function RoleAssignmentStep() {
             ))}
           </div>
           <EnsembleConstellation
-            entryPointId={state.entryPointId || ''}
+            entryPointId={state.entryPointId || ""}
             candidates={filteredCandidates}
             relationships={filteredRelationships}
             assignedEntityIds={assignedEntityIds}
@@ -369,7 +405,7 @@ export default function RoleAssignmentStep() {
             height={300}
           />
           {/* Ensemble Health Bar */}
-          <div style={{ marginTop: '8px' }}>
+          <div style={{ marginTop: "8px" }}>
             <EnsembleHealthBar
               assignments={state.roleAssignments}
               candidates={state.candidates}
@@ -379,32 +415,46 @@ export default function RoleAssignmentStep() {
         </div>
 
         {/* Right: Roles + Entity Detail */}
-        <div style={{ width: '260px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div
+          style={{
+            width: "260px",
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+          }}
+        >
           {/* Roles header */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span
+              style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase" }}
+            >
               Roles
             </span>
-            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
               {state.roleAssignments.length}/{maxCastSize}
             </span>
           </div>
 
           {/* Role slots */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-            flex: 1,
-            overflowY: 'auto',
-            minHeight: 0,
-          }}>
-            {roles.map(role => {
-              const assignments = state.roleAssignments.filter(a => a.role === role.role);
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+              flex: 1,
+              overflowY: "auto",
+              minHeight: 0,
+            }}
+          >
+            {roles.map((role) => {
+              const assignments = state.roleAssignments.filter((a) => a.role === role.role);
               const isUnderMin = assignments.length < role.count.min;
               const isAtMax = assignments.length >= role.count.max;
 
@@ -413,7 +463,9 @@ export default function RoleAssignmentStep() {
                   key={role.role}
                   role={role}
                   assignments={assignments}
-                  hasSelection={selectedEntityId !== null && !assignedEntityIds.has(selectedEntityId)}
+                  hasSelection={
+                    selectedEntityId !== null && !assignedEntityIds.has(selectedEntityId)
+                  }
                   isAtMax={isAtMax}
                   isUnderMin={isUnderMin}
                   onAssign={() => handleAssignToRole(role.role)}
@@ -425,22 +477,57 @@ export default function RoleAssignmentStep() {
           </div>
 
           {/* Narrative Lens */}
-          <div style={{ marginTop: '6px', borderTop: '1px solid var(--border-color)', paddingTop: '6px' }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+          <div
+            style={{
+              marginTop: "6px",
+              borderTop: "1px solid var(--border-color)",
+              paddingTop: "6px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "10px",
+                color: "var(--text-muted)",
+                textTransform: "uppercase",
+                marginBottom: "4px",
+              }}
+            >
               Narrative Lens
             </div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-              Optional context: a rule, occurrence, or ability that shapes this story without being a cast member.
+            <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "6px" }}>
+              Optional context: a rule, occurrence, or ability that shapes this story without being
+              a cast member.
             </div>
             <RoleSlot
-              role={{ role: 'lens', count: { min: 0, max: 1 }, description: 'Contextual frame — not a character but a constraint, backdrop, or force that colors the narrative' }}
-              assignments={state.lens ? [{ role: 'lens', entityId: state.lens.entityId, entityName: state.lens.entityName, entityKind: state.lens.entityKind, isPrimary: false }] : []}
-              hasSelection={selectedEntityId !== null && !assignedEntityIds.has(selectedEntityId) && !(state.lens?.entityId === selectedEntityId)}
+              role={{
+                role: "lens",
+                count: { min: 0, max: 1 },
+                description:
+                  "Contextual frame — not a character but a constraint, backdrop, or force that colors the narrative",
+              }}
+              assignments={
+                state.lens
+                  ? [
+                      {
+                        role: "lens",
+                        entityId: state.lens.entityId,
+                        entityName: state.lens.entityName,
+                        entityKind: state.lens.entityKind,
+                        isPrimary: false,
+                      },
+                    ]
+                  : []
+              }
+              hasSelection={
+                selectedEntityId !== null &&
+                !assignedEntityIds.has(selectedEntityId) &&
+                !(state.lens?.entityId === selectedEntityId)
+              }
               isAtMax={state.lens !== null}
               isUnderMin={false}
               onAssign={() => {
                 if (!selectedEntityId) return;
-                const entity = state.candidates.find(e => e.id === selectedEntityId);
+                const entity = state.candidates.find((e) => e.id === selectedEntityId);
                 if (entity) handleSetLens(entity);
               }}
               onRemove={() => clearLens()}
@@ -449,8 +536,15 @@ export default function RoleAssignmentStep() {
           </div>
 
           {/* Entity detail - always visible */}
-          <div style={{ marginTop: '4px' }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+          <div style={{ marginTop: "4px" }}>
+            <div
+              style={{
+                fontSize: "10px",
+                color: "var(--text-muted)",
+                textTransform: "uppercase",
+                marginBottom: "4px",
+              }}
+            >
               Selected
             </div>
             <EntityDetailCard

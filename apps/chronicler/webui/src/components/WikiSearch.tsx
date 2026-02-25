@@ -4,10 +4,10 @@
  * Uses fuse.js for fuzzy matching across page titles and content.
  */
 
-import { useMemo, useState, useRef, useEffect } from 'react';
-import Fuse from 'fuse.js';
-import type { WikiPage } from '../types/world.ts';
-import styles from './WikiSearch.module.css';
+import { useMemo, useState, useRef, useEffect } from "react";
+import Fuse from "fuse.js";
+import type { WikiPage } from "../types/world.ts";
+import styles from "./WikiSearch.module.css";
 
 interface WikiSearchProps {
   pages: WikiPage[];
@@ -15,7 +15,7 @@ interface WikiSearchProps {
   onQueryChange: (query: string) => void;
   onSelect: (pageId: string) => void;
   /** Direction to expand dropdown - 'down' (default) or 'up' */
-  expandDirection?: 'down' | 'up';
+  expandDirection?: "down" | "up";
 }
 
 export default function WikiSearch({
@@ -23,7 +23,7 @@ export default function WikiSearch({
   query,
   onQueryChange,
   onSelect,
-  expandDirection = 'down',
+  expandDirection = "down",
 }: WikiSearchProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -33,11 +33,11 @@ export default function WikiSearch({
   const fuse = useMemo(() => {
     return new Fuse(pages, {
       keys: [
-        { name: 'title', weight: 2 },
-        { name: 'aliases', weight: 1.5 },
-        { name: 'content.summary', weight: 1.2 },
-        { name: 'content.sections.heading', weight: 0.5 },
-        { name: 'content.sections.content', weight: 1 },
+        { name: "title", weight: 2 },
+        { name: "aliases", weight: 1.5 },
+        { name: "content.summary", weight: 1.2 },
+        { name: "content.sections.heading", weight: 0.5 },
+        { name: "content.sections.content", weight: 1 },
       ],
       threshold: 0.3,
       includeScore: true,
@@ -56,23 +56,23 @@ export default function WikiSearch({
     if (!isOpen || results.length === 0) return;
 
     switch (e.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         e.preventDefault();
-        setSelectedIndex(i => Math.min(i + 1, results.length - 1));
+        setSelectedIndex((i) => Math.min(i + 1, results.length - 1));
         break;
-      case 'ArrowUp':
+      case "ArrowUp":
         e.preventDefault();
-        setSelectedIndex(i => Math.max(i - 1, 0));
+        setSelectedIndex((i) => Math.max(i - 1, 0));
         break;
-      case 'Enter':
+      case "Enter":
         e.preventDefault();
         if (results[selectedIndex]) {
           onSelect(results[selectedIndex].item.id);
           setIsOpen(false);
-          onQueryChange('');
+          onQueryChange("");
         }
         break;
-      case 'Escape':
+      case "Escape":
         setIsOpen(false);
         break;
     }
@@ -85,8 +85,8 @@ export default function WikiSearch({
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Reset selection when results change
@@ -110,7 +110,7 @@ export default function WikiSearch({
       />
 
       {isOpen && query.length >= 2 && (
-        <div className={expandDirection === 'up' ? styles.dropdownUp : styles.dropdown}>
+        <div className={expandDirection === "up" ? styles.dropdownUp : styles.dropdown}>
           {results.length > 0 ? (
             results.map((result, index) => (
               <button
@@ -119,7 +119,7 @@ export default function WikiSearch({
                 onClick={() => {
                   onSelect(result.item.id);
                   setIsOpen(false);
-                  onQueryChange('');
+                  onQueryChange("");
                 }}
                 onMouseEnter={() => setSelectedIndex(index)}
               >

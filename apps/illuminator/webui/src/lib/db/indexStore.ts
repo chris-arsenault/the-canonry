@@ -8,9 +8,9 @@
  * This store never computes indexes — it only reads them.
  */
 
-import { create } from 'zustand';
-import { getRunIndexes } from './indexRepository';
-import type { RunIndexRecord } from './indexTypes';
+import { create } from "zustand";
+import { getRunIndexes } from "./indexRepository";
+import type { RunIndexRecord } from "./indexTypes";
 
 export interface IndexStoreState {
   simulationRunId: string | null;
@@ -44,7 +44,7 @@ export const useIndexStore = create<IndexStoreState>((set, get) => ({
         loading: false,
       });
     } catch (err) {
-      console.error('[IndexStore] Failed to initialize:', err);
+      console.error("[IndexStore] Failed to initialize:", err);
       set({
         error: err instanceof Error ? err.message : String(err),
         loading: false,
@@ -60,7 +60,7 @@ export const useIndexStore = create<IndexStoreState>((set, get) => ({
       const record = await getRunIndexes(simulationRunId);
       set({ indexes: record ?? null });
     } catch (err) {
-      console.error('[IndexStore] Failed to refresh:', err);
+      console.error("[IndexStore] Failed to refresh:", err);
       set({ error: err instanceof Error ? err.message : String(err) });
     }
   },
