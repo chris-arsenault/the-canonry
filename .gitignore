@@ -8,7 +8,6 @@ dist/
 deliveries/
 testArchive/
 .env
-.claude/
 **/webui/.__mf__temp/
 .terraform/
 .terraform.lock.hcl
