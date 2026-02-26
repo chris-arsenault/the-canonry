@@ -2,7 +2,7 @@
  * PressureCard - Expandable card for editing a pressure
  */
 
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import { FactorCard } from "./FactorCard";
 import { FactorEditorModal } from "../modals/FactorEditorModal";
@@ -204,26 +204,37 @@ export function PressureCard({
     };
   }, [positiveFeedback.length, negativeFeedback.length, pressure.homeostasis]);
 
-  // Restore factor modal state from storage (during render, guarded)
+  // Restore factor modal state from storage (guarded)
   const restoredModalKeyRef = useRef(null);
-  if (factorModalKey && !editingFactor && !addingFactorType && restoredModalKeyRef.current !== factorModalKey) {
+  useEffect(() => {
+    if (!factorModalKey || editingFactor || addingFactorType || restoredModalKeyRef.current === factorModalKey) {
+      return;
+    }
+
     restoredModalKeyRef.current = factorModalKey;
     const stored = loadStoredValue(factorModalKey);
-    if (stored && stored.pressureId === pressure.id) {
-      if (stored.mode === "add") {
-        setAddingFactorType(stored.feedbackType);
-      } else if (stored.mode === "edit") {
-        const feedbackKey =
-          stored.feedbackType === "positive" ? "positiveFeedback" : "negativeFeedback";
-        const factor = pressure.growth?.[feedbackKey]?.[stored.factorIndex];
-        if (factor) {
-          setEditingFactor({ factor, feedbackType: stored.feedbackType, index: stored.factorIndex });
-        } else {
-          clearStoredValue(factorModalKey);
-        }
+    if (!(stored && stored.pressureId === pressure.id)) {
+      return;
+    }
+
+    if (stored.mode === "add") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- restore persisted factor modal state
+      setAddingFactorType(stored.feedbackType);
+      return;
+    }
+
+    if (stored.mode === "edit") {
+      const feedbackKey =
+        stored.feedbackType === "positive" ? "positiveFeedback" : "negativeFeedback";
+      const factor = pressure.growth?.[feedbackKey]?.[stored.factorIndex];
+      if (factor) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- restore persisted factor modal state
+        setEditingFactor({ factor, feedbackType: stored.feedbackType, index: stored.factorIndex });
+      } else {
+        clearStoredValue(factorModalKey);
       }
     }
-  }
+  }, [addingFactorType, editingFactor, factorModalKey, pressure]);
 
   return (
     <div className="expandable-card">

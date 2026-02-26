@@ -23,17 +23,16 @@
  * />
  */
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 export function useLocalInputState(externalValue, onUpdate) {
   const [localValue, setLocalValue] = useState(externalValue || "");
 
-  // Sync local value when external value changes (during render)
-  const prevExternalRef = useRef(externalValue);
-  if (prevExternalRef.current !== externalValue) {
-    prevExternalRef.current = externalValue;
+  // Sync local value when external value changes
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional prop->draft sync for controlled inputs
     setLocalValue(externalValue || "");
-  }
+  }, [externalValue]);
 
   // Call onUpdate if value changed
   const handleBlur = useCallback(() => {

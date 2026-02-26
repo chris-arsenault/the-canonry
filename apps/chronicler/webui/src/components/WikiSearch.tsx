@@ -89,12 +89,11 @@ export default function WikiSearch({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Reset selection when results change (during render, not in effect)
-  const prevResultsRef = useRef(results);
-  if (prevResultsRef.current !== results) {
-    prevResultsRef.current = results;
+  // Reset keyboard selection when result set changes
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- derived UI selection reset on results refresh
     setSelectedIndex(0);
-  }
+  }, [results]);
 
   return (
     <div ref={containerRef} className={styles.container}>

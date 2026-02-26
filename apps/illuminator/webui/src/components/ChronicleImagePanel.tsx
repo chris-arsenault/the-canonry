@@ -300,14 +300,12 @@ function AnchorTextEditor({
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(anchorText);
 
-  // Render-phase sync: update draft when anchorText changes externally and not editing
-  const prevAnchorTextRef = useRef(anchorText);
-  if (prevAnchorTextRef.current !== anchorText) {
-    prevAnchorTextRef.current = anchorText;
-    if (!isEditing) {
-      setDraft(anchorText);
-    }
-  }
+  // Sync draft when anchorText changes externally and editor is closed
+  useEffect(() => {
+    if (isEditing) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync draft with external anchor text when not editing
+    setDraft(anchorText);
+  }, [anchorText, isEditing]);
 
   const preview =
     anchorText.length > previewLength ? `${anchorText.slice(0, previewLength)}...` : anchorText;

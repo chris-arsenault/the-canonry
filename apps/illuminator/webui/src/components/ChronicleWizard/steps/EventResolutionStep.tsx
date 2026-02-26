@@ -8,7 +8,7 @@
  * - Compact relationship list with visual strength indicators
  */
 
-import React, { useState, useMemo, useCallback, useRef } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useWizard } from "../WizardContext";
 import {
   getRelevantRelationships,
@@ -50,13 +50,12 @@ export default function EventResolutionStep() {
   const [brushSelection, setBrushSelection] = useState<[number, number] | null>(null);
   const [minEventSignificance, setMinEventSignificance] = useState<number>(0);
 
-  // Render-phase sync: recompute event metrics when the computation function changes
-  const prevComputeRef = useRef(computeEventMetricsForSelection);
-  if (prevComputeRef.current !== computeEventMetricsForSelection) {
-    prevComputeRef.current = computeEventMetricsForSelection;
+  // Recompute event metrics when the computation function changes
+  useEffect(() => {
     const metrics = computeEventMetricsForSelection();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync derived metrics cache to updated computation source
     setEventMetrics(metrics);
-  }
+  }, [computeEventMetricsForSelection]);
 
   // Get relevant relationships (between assigned entities + lens)
   const lensEntityIds = useMemo(() => (state.lens ? [state.lens.entityId] : []), [state.lens]);

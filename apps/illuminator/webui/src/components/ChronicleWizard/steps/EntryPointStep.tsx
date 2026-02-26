@@ -8,7 +8,7 @@
  * - Mini constellation showing 1-hop network preview
  */
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import type {
   EntityContext,
   RelationshipContext,
@@ -65,16 +65,14 @@ export default function EntryPointStep({ entities, relationships, events }: Read
   const [usageStats, setUsageStats] = useState<Map<string, { usageCount: number }>>(new Map());
   const [usageLoading, setUsageLoading] = useState(false);
 
-  // Render-phase sync: clear usage stats when no simulationRunId
-  const prevSimRunIdRef = useRef(simulationRunId);
-  if (prevSimRunIdRef.current !== simulationRunId && !simulationRunId) {
-    prevSimRunIdRef.current = simulationRunId;
+  // Clear usage stats when no simulationRunId
+  useEffect(() => {
+    if (simulationRunId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- clear async usage state when simulation is unset
     setUsageStats(new Map());
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- clear async usage state when simulation is unset
     setUsageLoading(false);
-  }
-  if (prevSimRunIdRef.current !== simulationRunId) {
-    prevSimRunIdRef.current = simulationRunId;
-  }
+  }, [simulationRunId]);
 
   useEffect(() => {
     if (!simulationRunId) return;

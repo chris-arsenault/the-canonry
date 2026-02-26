@@ -114,7 +114,18 @@ export default function BulkEraNarrativeModal({
 
   // Refs for values used in the prepare effect that shouldn't trigger re-run
   const prepareDepsRef = useRef({ chronicleItems, wizardEras, eraTemporalInfo, projectId, simulationRunId, narrativeWeightMap, prepareBulk, progress });
-  prepareDepsRef.current = { chronicleItems, wizardEras, eraTemporalInfo, projectId, simulationRunId, narrativeWeightMap, prepareBulk, progress };
+  useEffect(() => {
+    prepareDepsRef.current = {
+      chronicleItems,
+      wizardEras,
+      eraTemporalInfo,
+      projectId,
+      simulationRunId,
+      narrativeWeightMap,
+      prepareBulk,
+      progress,
+    };
+  }, [chronicleItems, wizardEras, eraTemporalInfo, projectId, simulationRunId, narrativeWeightMap, prepareBulk, progress]);
 
   // Prepare when opening
   useEffect(() => {

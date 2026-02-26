@@ -30,20 +30,23 @@ genuine semantic duplication.
 
 ## Prerequisites
 
-1. Check if `tools/drift-semantic/` exists in the project root
-2. Check if `.drift-audit/drift-manifest.json` exists — append semantic findings to it
-3. Identify the shared component/utility library — this is where consolidated implementations
+1. Install drift-semantic: `curl -fsSL https://raw.githubusercontent.com/chris-arsenault/drift/main/install.sh | bash`
+   This sets `DRIFT_SEMANTIC=~/.drift-semantic` in your shell profile. Or set it manually
+   to wherever you cloned the repo. The tool auto-installs its own dependencies on first run.
+2. Install the skill to this project: `drift install-skill` (or it's already done if you're reading this)
+3. Check if `.drift-audit/drift-manifest.json` exists — append semantic findings to it
+4. Identify the shared component/utility library — this is where consolidated implementations
    would eventually live
 
 ## Method A: Tool-Assisted (Preferred)
 
-Use this method when `tools/drift-semantic/` exists. It provides deterministic structural
+Use this method when `drift-semantic` is available. It provides deterministic structural
 analysis that you then verify semantically.
 
 ### Phase 1: Run the CLI Tool
 
 ```bash
-bash tools/drift-semantic/cli.sh run --project .
+bash "$DRIFT_SEMANTIC/cli.sh" run --project .
 ```
 
 This runs the full pipeline:
@@ -101,8 +104,8 @@ Write your verdicts to a findings file:
 Save to `.drift-audit/semantic/findings.json`, then re-generate the report:
 
 ```bash
-bash tools/drift-semantic/cli.sh ingest-findings --file .drift-audit/semantic/findings.json
-bash tools/drift-semantic/cli.sh report
+bash "$DRIFT_SEMANTIC/cli.sh" ingest-findings --file .drift-audit/semantic/findings.json
+bash "$DRIFT_SEMANTIC/cli.sh" report
 ```
 
 ### Phase 3: Optional Enrichment
@@ -117,10 +120,10 @@ For higher precision on ambiguous clusters, generate purpose statements:
    ```
 3. If Ollama is available:
    ```bash
-   bash tools/drift-semantic/cli.sh ingest-purposes --file .drift-audit/semantic/purpose-statements.json
-   bash tools/drift-semantic/cli.sh embed --ollama-url http://localhost:11434
-   bash tools/drift-semantic/cli.sh score
-   bash tools/drift-semantic/cli.sh cluster
+   bash "$DRIFT_SEMANTIC/cli.sh" ingest-purposes --file .drift-audit/semantic/purpose-statements.json
+   bash "$DRIFT_SEMANTIC/cli.sh" embed --ollama-url http://localhost:11434
+   bash "$DRIFT_SEMANTIC/cli.sh" score
+   bash "$DRIFT_SEMANTIC/cli.sh" cluster
    ```
    This re-scores with semantic embeddings as an additional signal.
 
@@ -130,16 +133,16 @@ Use inspection commands to explore specific units or clusters:
 
 ```bash
 # What's similar to a specific component?
-bash tools/drift-semantic/cli.sh inspect similar "apps/illuminator/.../ButtonHeader.jsx::ButtonHeader" --top 10
+bash "$DRIFT_SEMANTIC/cli.sh" inspect similar "src/components/ButtonHeader.jsx::ButtonHeader" --top 10
 
 # Who imports this unit?
-bash tools/drift-semantic/cli.sh inspect consumers "apps/archivist/.../EntityList.tsx::EntityList"
+bash "$DRIFT_SEMANTIC/cli.sh" inspect consumers "src/hooks/useWorldDataLoader.ts::useWorldDataLoader"
 
 # What does this unit call?
-bash tools/drift-semantic/cli.sh inspect callers "apps/chronicler/.../useWorldDataLoader.ts::useWorldDataLoader"
+bash "$DRIFT_SEMANTIC/cli.sh" inspect callers "src/lib/EntityList.tsx::EntityList"
 
 # Show cluster details
-bash tools/drift-semantic/cli.sh inspect cluster cluster-003
+bash "$DRIFT_SEMANTIC/cli.sh" inspect cluster cluster-003
 ```
 
 ### Phase 5: Present and Output
@@ -186,7 +189,7 @@ Common role categories you might find:
 - Persistence writer (saves data to IndexedDB/storage)
 
 **Behavioral Roles:**
-- Async operation lifecycle (loading → success/error pattern)
+- Async operation lifecycle (loading -> success/error pattern)
 - Configuration provider (supplies settings to downstream code)
 - Event coordinator (connects triggers to handlers)
 
@@ -239,12 +242,6 @@ Cross-cutting concerns implemented differently across features.
 - A search filter component and a settings form both use text inputs — different purposes
 - A simple confirmation dialog and a multi-step wizard both use modals — different complexity
 - App-specific business logic that happens to use similar patterns — coincidental similarity
-
-## Re-Audits
-
-If semantic entries already exist in the manifest, compare to previous findings.
-Note which clusters have been consolidated and which are new. The CLI tool handles
-incremental re-runs automatically.
 
 ## Scope Control
 

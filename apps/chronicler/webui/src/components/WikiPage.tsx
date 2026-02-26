@@ -8,7 +8,7 @@
  * - Backlinks section
  */
 
-import React, { useMemo, useState, useEffect, useLayoutEffect, useRef, useCallback, useReducer } from "react";
+import React, { useMemo, useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import MDEditor from "@uiw/react-md-editor";
 import type {
   WikiPage,
@@ -627,15 +627,13 @@ function SectionWithImages({
   // ── Sidenote positioning engine ──
   // Measures superscript positions in the DOM and positions callouts alongside them
   const sectionRef = useRef<HTMLDivElement>(null);
-  const calloutRefs = useRef<Map<number, HTMLElement>>(new Map());
-  const resolvedPositionsRef = useRef<Map<number, number>>(new Map());
-  const [layoutVersion, bumpLayoutVersion] = useReducer((x: number) => x + 1, 0);
+  const [resolvedPositions, setResolvedPositions] = useState<Map<number, number>>(new Map());
 
   useLayoutEffect(() => {
     const container = sectionRef.current;
     if (!container || fullNoteInserts.length === 0) {
-      resolvedPositionsRef.current = new Map();
-      bumpLayoutVersion();
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- layout effect publishes measured sidenote positions
+      setResolvedPositions(new Map());
       return;
     }
 
@@ -650,8 +648,12 @@ function SectionWithImages({
     });
 
     const calloutHeights = new Map<number, number>();
-    calloutRefs.current.forEach((el, idx) => {
-      calloutHeights.set(idx, el.offsetHeight);
+    container.querySelectorAll<HTMLElement>("[data-sidenote-callout-idx]").forEach((el) => {
+      const rawIdx = el.getAttribute("data-sidenote-callout-idx");
+      const idx = rawIdx ? parseInt(rawIdx, 10) : NaN;
+      if (!isNaN(idx)) {
+        calloutHeights.set(idx, el.offsetHeight);
+      }
     });
 
     // Resolve overlapping callouts by pushing them down
@@ -675,14 +677,9 @@ function SectionWithImages({
       lastBottom = top + height;
     }
 
-    resolvedPositionsRef.current = resolved;
-    bumpLayoutVersion();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- layout effect publishes measured sidenote positions
+    setResolvedPositions(resolved);
   }, [annotatedContent, fullNoteInserts]);
-
-  // Read computed positions (re-renders when layoutVersion bumps)
-  // eslint-disable-next-line sonarjs/void-use -- intentional read to trigger re-render
-  void layoutVersion;
-  const resolvedPositions = resolvedPositionsRef.current;
 
   // In footnote mode, full notes don't need inline/sidenote rendering — they collect at bottom
   const effectiveFullNoteInserts = useFootnoteMode ? [] : fullNoteInserts;
@@ -967,10 +964,7 @@ function SectionWithImages({
           {effectiveFullNoteInserts.map(({ note, idx }) => (
             <div
               key={`sn-${note.noteId}`}
-              ref={(el) => {
-                if (el) calloutRefs.current.set(idx, el);
-                else calloutRefs.current.delete(idx);
-              }}
+              data-sidenote-callout-idx={idx}
               className={styles.sidenoteCallout}
               // eslint-disable-next-line local/no-inline-styles -- dynamic vertical position computed by layout engine
               style={

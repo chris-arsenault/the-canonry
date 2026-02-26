@@ -39,8 +39,8 @@ Run all three audit methodologies sequentially, compiling a unified manifest.
 
 ### Step 1: Structural Audit
 
-Read `.claude/skills/drift-audit/SKILL.md` and follow its complete methodology:
-- Run `scripts/discover.sh` for raw inventory
+Read `$DRIFT_SEMANTIC/skill/drift-audit/SKILL.md` and follow its complete methodology:
+- Run `bash "$DRIFT_SEMANTIC/scripts/discover.sh" "$PROJECT_ROOT"` for raw inventory
 - Perform intelligent analysis (read source files, identify drift areas)
 - Write findings to `.drift-audit/drift-manifest.json` and `.drift-audit/drift-report.md`
 
@@ -49,7 +49,7 @@ is the default since drift-audit predates the type system).
 
 ### Step 2: Behavioral Audit
 
-Read `.claude/skills/drift-audit-ux/SKILL.md` and follow its complete methodology:
+Read `$DRIFT_SEMANTIC/skill/drift-audit-ux/SKILL.md` and follow its complete methodology:
 - Work through the 7 behavioral domain checklist
 - Read implementation code to understand actual behavior
 - Build behavior matrices per domain
@@ -58,11 +58,9 @@ Read `.claude/skills/drift-audit-ux/SKILL.md` and follow its complete methodolog
 
 ### Step 3: Semantic Audit
 
-Read `.claude/skills/drift-audit-semantic/SKILL.md` and follow its complete methodology:
-- If `tools/drift-semantic/` exists, use **Method A** (tool-assisted):
-  run `bash tools/drift-semantic/cli.sh run --project .`, then verify clusters
-- Otherwise, use **Method B** (agent-driven): sample files, build role taxonomy,
-  search for all implementations of each role
+Read `$DRIFT_SEMANTIC/skill/drift-audit-semantic/SKILL.md` and follow its complete methodology:
+- Run `bash "$DRIFT_SEMANTIC/cli.sh" run --project .` for tool-assisted analysis
+- Verify clusters by reading source code
 - Append findings to manifest with `"type": "semantic"`
 - Append `## Semantic Findings` section to drift-report.md
 
@@ -228,7 +226,7 @@ Execute unification for all eligible areas in the attack plan.
 
 #### Per-Area Workflow
 
-Read `.claude/skills/drift-unify/SKILL.md` and follow its complete methodology for this area:
+Read `$DRIFT_SEMANTIC/skill/drift-unify/SKILL.md` and follow its complete methodology for this area:
 
 **a. Determine canonical pattern.**
 If `canonical_variant` is set in the plan, use it. Otherwise, read the manifest's
@@ -278,7 +276,7 @@ Generate enforcement artifacts for all unified areas.
 
 #### Per-Area Workflow
 
-Read `.claude/skills/drift-guard/SKILL.md` and follow its complete methodology:
+Read `$DRIFT_SEMANTIC/skill/drift-guard/SKILL.md` and follow its complete methodology:
 
 **a. Read the canonical pattern** (now the only pattern, post-unification).
 

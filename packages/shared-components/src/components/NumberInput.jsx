@@ -9,7 +9,7 @@
  * re-renders from disrupting user input.
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 
 function formatValue(val) {
@@ -43,19 +43,11 @@ export function NumberInput({
   disabled = false,
   ...rest
 }) {
+  const externalDisplayValue = formatValue(value);
   // Internal string state for editing
-  const [localValue, setLocalValue] = useState(() => formatValue(value));
-  // Track whether user is actively editing to prevent external value sync
-  const isFocusedRef = useRef(false);
-
-  // Sync from parent when value changes externally, but NOT while user is editing
-  const prevValueRef = useRef(value);
-  if (prevValueRef.current !== value) {
-    prevValueRef.current = value;
-    if (!isFocusedRef.current) {
-      setLocalValue(formatValue(value));
-    }
-  }
+  const [localValue, setLocalValue] = useState(() => externalDisplayValue);
+  // Track focus in state so render can safely choose draft vs external value
+  const [isFocused, setIsFocused] = useState(false);
 
   const parseValue = useCallback((str) => {
     if (str === '' || str === '-' || str === '.' || str === '-.') {
@@ -67,8 +59,9 @@ export function NumberInput({
   }, [integer]);
 
   const handleFocus = useCallback(() => {
-    isFocusedRef.current = true;
-  }, []);
+    setLocalValue(externalDisplayValue);
+    setIsFocused(true);
+  }, [externalDisplayValue]);
 
   const handleChange = useCallback((e) => {
     const newValue = e.target.value;
@@ -101,7 +94,7 @@ export function NumberInput({
   }, [onChange, min, max, allowEmpty, integer, parseValue]);
 
   const handleBlur = useCallback(() => {
-    isFocusedRef.current = false;
+    setIsFocused(false);
 
     // On blur, ensure the display value matches the actual value
     const parsed = parseValue(localValue);
@@ -116,15 +109,15 @@ export function NumberInput({
       onChange(undefined);
     } else {
       // Revert to the parent's value if local is invalid
-      setLocalValue(formatValue(value));
+      setLocalValue(externalDisplayValue);
     }
-  }, [localValue, value, onChange, min, max, allowEmpty, parseValue]);
+  }, [allowEmpty, externalDisplayValue, localValue, max, min, onChange, parseValue]);
 
   return (
     <input
       type="text"
       inputMode="numeric"
-      value={localValue}
+      value={isFocused ? localValue : externalDisplayValue}
       onChange={handleChange}
       onFocus={handleFocus}
       onBlur={handleBlur}

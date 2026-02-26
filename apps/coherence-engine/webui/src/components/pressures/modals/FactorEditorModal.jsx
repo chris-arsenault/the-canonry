@@ -2,7 +2,7 @@
  * FactorEditorModal - Modal for editing feedback factors
  */
 
-import React, { useState, useMemo, useCallback, useRef } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import { FACTOR_TYPES } from "../constants";
 import { ReferenceDropdown, ChipSelect, NumberInput } from "../../shared";
@@ -52,18 +52,20 @@ export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackT
     }));
   }, [schema]);
 
-  // Sync local state when factor or isOpen changes (during render)
-  const prevSyncKeyRef = useRef({ factor, isOpen });
-  if (prevSyncKeyRef.current.factor !== factor || prevSyncKeyRef.current.isOpen !== isOpen) {
-    prevSyncKeyRef.current = { factor, isOpen };
+  // Sync local state when factor or isOpen changes
+  useEffect(() => {
     if (factor) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync modal draft from props on open/change
       setLocalFactor(factor);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync modal draft from props on open/change
       setSelectedType(factor.type);
-    } else {
-      setLocalFactor({ type: "entity_count", coefficient: 1 });
-      setSelectedType("entity_count");
+      return;
     }
-  }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync modal draft from props on open/change
+    setLocalFactor({ type: "entity_count", coefficient: 1 });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync modal draft from props on open/change
+    setSelectedType("entity_count");
+  }, [factor, isOpen]);
 
   const handleTypeChange = (type) => {
     setSelectedType(type);

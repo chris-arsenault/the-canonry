@@ -22,6 +22,9 @@ and recommendations; the user decides what becomes canonical.
 
 ## Prerequisites
 
+The drift tool must be installed (`$DRIFT_SEMANTIC` set). If not, see the drift installation
+instructions.
+
 Ask the user for the **project root path** if you're not already in it.
 
 Before scanning, do a quick orientation:
@@ -62,11 +65,10 @@ Tailor your entire audit to what's actually in the project.
 Run the bundled discovery script to get a raw inventory of the codebase:
 
 ```bash
-SKILL_DIR="<path-to-this-skill>"
 AUDIT_DIR="$PROJECT_ROOT/.drift-audit"
 mkdir -p "$AUDIT_DIR"
 
-bash "$SKILL_DIR/scripts/discover.sh" "$PROJECT_ROOT" > "$AUDIT_DIR/raw-discovery.txt"
+bash "$DRIFT_SEMANTIC/scripts/discover.sh" "$PROJECT_ROOT" > "$AUDIT_DIR/raw-discovery.txt"
 ```
 
 This script produces a raw inventory — it finds exports, component definitions, hook definitions,

@@ -24,7 +24,7 @@
  * />
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 
 export function LocalTextArea({
@@ -36,34 +36,27 @@ export function LocalTextArea({
   style,
   ...rest
 }) {
-  const [localValue, setLocalValue] = useState(value || '');
-  // Track whether user is actively editing to prevent external value sync
-  const isFocusedRef = useRef(false);
-
-  // Sync local value when external value changes, but NOT while user is editing
-  const prevValueRef = useRef(value);
-  if (prevValueRef.current !== value) {
-    prevValueRef.current = value;
-    if (!isFocusedRef.current) {
-      setLocalValue(value || '');
-    }
-  }
+  const externalValue = value || '';
+  const [localValue, setLocalValue] = useState(externalValue);
+  // Track focus in state so render can safely choose between local draft vs external value
+  const [isFocused, setIsFocused] = useState(false);
 
   const handleFocus = useCallback(() => {
-    isFocusedRef.current = true;
-  }, []);
+    setLocalValue(externalValue);
+    setIsFocused(true);
+  }, [externalValue]);
 
   // Call onChange on blur if value changed
   const handleBlur = useCallback(() => {
-    isFocusedRef.current = false;
-    if (localValue !== (value || '')) {
+    setIsFocused(false);
+    if (localValue !== externalValue) {
       onChange(localValue);
     }
-  }, [localValue, value, onChange]);
+  }, [externalValue, localValue, onChange]);
 
   return (
     <textarea
-      value={localValue}
+      value={isFocused ? localValue : externalValue}
       onChange={(e) => setLocalValue(e.target.value)}
       onFocus={handleFocus}
       onBlur={handleBlur}

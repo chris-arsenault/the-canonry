@@ -76,7 +76,9 @@ export function useImageGenSettings(
 ): [ImageGenSettings, ImageGenSettingsUpdater] {
   const [settings, setSettings] = useState<ImageGenSettings>(loadSettings);
   const externalSyncRef = useRef(onExternalSync);
-  externalSyncRef.current = onExternalSync;
+  useEffect(() => {
+    externalSyncRef.current = onExternalSync;
+  }, [onExternalSync]);
 
   const updateSettings = useCallback((partial: Partial<ImageGenSettings>) => {
     setSettings((prev) => ({ ...prev, ...partial }));

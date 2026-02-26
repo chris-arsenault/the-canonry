@@ -23,6 +23,9 @@ that matches.
 
 ## Prerequisites
 
+The drift tool must be installed (`$DRIFT_SEMANTIC` set). If not, see the drift installation
+instructions.
+
 Orient yourself:
 ```bash
 PROJECT_ROOT="<path>"
@@ -62,8 +65,8 @@ and the unification log.
 
 ### 1. ESLint Rules
 
-Read `references/eslint-rule-patterns.md` for the mechanical details of writing rules. But the
-WHAT to enforce comes from the codebase, not from that reference.
+Read `$DRIFT_SEMANTIC/skill/drift-guard/references/eslint-rule-patterns.md` for the mechanical
+details of writing rules. But the WHAT to enforce comes from the codebase, not from that reference.
 
 **Process for each drift area:**
 
@@ -89,13 +92,13 @@ WHAT to enforce comes from the codebase, not from that reference.
 - `no-restricted-syntax` with AST selectors — for banning specific code shapes
 - Custom rule module — for anything more complex (file-path-aware rules, counting rules, etc.)
 
-For the project's ESLint config format, see `references/eslint-rule-patterns.md` for how to
-wire up each mechanism.
+For the project's ESLint config format, see `$DRIFT_SEMANTIC/skill/drift-guard/references/eslint-rule-patterns.md`
+for how to wire up each mechanism.
 
 ### 2. Architecture Decision Records
 
-Create an ADR for each significant unification decision. See `references/adr-template.md`
-for the template.
+Create an ADR for each significant unification decision. See
+`$DRIFT_SEMANTIC/skill/drift-guard/references/adr-template.md` for the template.
 
 **An ADR answers "why did we decide this?"** It captures:
 - What the problem was (the drift)
@@ -146,6 +149,12 @@ that records which patterns are canonical so future audits can check for regress
   ]
 }
 ```
+
+## After Generating Artifacts
+
+If the project has a drift library configured (`.drift-audit/config.json` with tags),
+suggest running `drift library publish` to share the generated ESLint rules, ADRs, and
+pattern docs with other projects that share the same tags.
 
 ## Rollout Guidance
 

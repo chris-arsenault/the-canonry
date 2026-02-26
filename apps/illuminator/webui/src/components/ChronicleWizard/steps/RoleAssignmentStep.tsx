@@ -8,7 +8,7 @@
  * - Ensemble health bar showing diversity
  */
 
-import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import type {
   StoryNarrativeStyle,
   DocumentNarrativeStyle,
@@ -84,16 +84,13 @@ export default function RoleAssignmentStep() {
       });
   }, [simulationRunId]);
 
-  // Render-phase sync: recompute metrics when candidates or usage stats change
   const metricsKey = `${state.candidates.length}|${state.entryPointId}|${usageStats.size}|${state.roleAssignments.length}`;
-  const prevMetricsKeyRef = useRef(metricsKey);
-  if (prevMetricsKeyRef.current !== metricsKey) {
-    prevMetricsKeyRef.current = metricsKey;
-    if (state.candidates.length > 0 && state.entryPointId) {
-      const metrics = computeMetrics(usageStats);
-      setMetricsMap(metrics);
-    }
-  }
+  useEffect(() => {
+    if (state.candidates.length === 0 || !state.entryPointId) return;
+    const metrics = computeMetrics(usageStats);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- recompute local metrics cache when candidate inputs change
+    setMetricsMap(metrics);
+  }, [metricsKey, state.candidates.length, state.entryPointId, usageStats]);
 
   // Get assigned entity IDs
   const assignedEntityIds = useMemo(() => {

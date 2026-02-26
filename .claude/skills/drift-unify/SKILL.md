@@ -21,6 +21,9 @@ to safely migrate files to that pattern.
 
 ## Prerequisites
 
+The drift tool must be installed (`$DRIFT_SEMANTIC` set). If not, see the drift installation
+instructions.
+
 Before starting, you need two things:
 
 1. **Which drift area** — what concept is being unified (the user tells you, or you read

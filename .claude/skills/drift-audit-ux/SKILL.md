@@ -29,6 +29,9 @@ and recommendations; the user decides what becomes canonical.
 
 ## Prerequisites
 
+The drift tool must be installed (`$DRIFT_SEMANTIC` set). If not, see the drift installation
+instructions.
+
 Ask the user for the **project root path** if you're not already in it.
 
 Before scanning, do a quick orientation:
@@ -130,14 +133,6 @@ project has no toast system).
 - Queue/job stores (Zustand stores tracking processing state)
 - Modal sequences (confirmation → processing → terminal patterns)
 - Any component that manages a multi-step asynchronous operation
-
-**Output:** A matrix like:
-
-| Workflow | Pre-Config | Progress | Post-Review | Parallel | Minimizable | Error Recovery |
-|----------|:---:|:---:|:---:|:---:|:---:|:---:|
-| Bulk Historian | confirm dialog | per-entity bar | no | no | yes (pill) | abort only |
-| Era Narrative | tone selection | per-era + streaming | no | no | no | abort only |
-| Entity Enrichment | queue config | queue progress | review modal | yes (queue) | yes | retry per-item |
 
 ### Domain 4: Loading & Error State Patterns
 
@@ -256,8 +251,8 @@ manifest schema with an additional `"type": "behavioral"` field:
       "name": "overlay-click-plus-escape",
       "description": "Closes on overlay click AND Escape key",
       "file_count": 1,
-      "files": ["apps/illuminator/webui/src/components/ImageModal.jsx"],
-      "sample_file": "apps/illuminator/webui/src/components/ImageModal.jsx"
+      "files": ["src/components/ImageModal.jsx"],
+      "sample_file": "src/components/ImageModal.jsx"
     }
   ],
   "behavior_matrix": {

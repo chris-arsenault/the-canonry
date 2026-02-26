@@ -4,7 +4,7 @@
  * Shows a grid of available narrative styles with role previews.
  */
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import type {
   NarrativeStyle,
   RoleDefinition,
@@ -33,16 +33,14 @@ export default function StyleStep({ styles }: Readonly<StyleStepProps>) {
   const [styleUsage, setStyleUsage] = useState<Map<string, { usageCount: number }>>(new Map());
   const [usageLoading, setUsageLoading] = useState(false);
 
-  // Render-phase sync: clear usage when no simulationRunId
-  const prevSimRunIdRef = useRef(simulationRunId);
-  if (prevSimRunIdRef.current !== simulationRunId && !simulationRunId) {
-    prevSimRunIdRef.current = simulationRunId;
+  // Clear usage when no simulationRunId
+  useEffect(() => {
+    if (simulationRunId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- clear async usage state when simulation is unset
     setStyleUsage(new Map());
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- clear async usage state when simulation is unset
     setUsageLoading(false);
-  }
-  if (prevSimRunIdRef.current !== simulationRunId) {
-    prevSimRunIdRef.current = simulationRunId;
-  }
+  }, [simulationRunId]);
 
   useEffect(() => {
     if (!simulationRunId) return;

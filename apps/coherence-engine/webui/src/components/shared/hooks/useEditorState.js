@@ -24,7 +24,7 @@
  * });
  */
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { clearStoredValue, loadStoredValue, saveStoredValue } from "../../../utils/persistence";
 
 export function useEditorState(items, onChange, options = {}) {
@@ -35,13 +35,12 @@ export function useEditorState(items, onChange, options = {}) {
     return typeof stored === "string" ? stored : null;
   });
 
-  // Restore selectedId from storage when persistKey changes (during render)
-  const prevPersistKeyRef = useRef(persistKey);
-  if (prevPersistKeyRef.current !== persistKey) {
-    prevPersistKeyRef.current = persistKey;
+  // Restore selectedId from storage when persistKey changes
+  useEffect(() => {
     const stored = loadStoredValue(persistKey);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- restore persisted selection when key changes
     setSelectedId(typeof stored === "string" ? stored : null);
-  }
+  }, [persistKey]);
 
   const resolvedIndex = selectedId ? items.findIndex((item) => item[idField] === selectedId) : -1;
   const selectedIndex = resolvedIndex >= 0 ? resolvedIndex : null;

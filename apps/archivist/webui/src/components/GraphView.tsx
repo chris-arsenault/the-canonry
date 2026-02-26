@@ -119,7 +119,9 @@ export default function GraphView({
 
   // Stable ref for onNodeSelect so the init effect doesn't re-run when callback changes
   const onNodeSelectRef = useRef(onNodeSelect);
-  onNodeSelectRef.current = onNodeSelect;
+  useEffect(() => {
+    onNodeSelectRef.current = onNodeSelect;
+  }, [onNodeSelect]);
 
   const handleRecalculateLayout = () => {
     if (!cyRef.current) return;

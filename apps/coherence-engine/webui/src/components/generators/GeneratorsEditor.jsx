@@ -2,7 +2,7 @@
  * GeneratorsEditor - Main component for editing generators
  */
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import PropTypes from "prop-types";
 import { CategorySection, AddCard } from "../shared";
 import { GeneratorModal } from "./GeneratorModal";
@@ -102,29 +102,26 @@ export default function GeneratorsEditor({
     });
   }, [groupedGenerators, schema]);
 
-  // Initialize expanded state for new categories (during render)
-  const prevCategoriesRef = useRef(categories);
-  if (prevCategoriesRef.current !== categories) {
-    prevCategoriesRef.current = categories;
+  // Initialize expanded state for new categories
+  useEffect(() => {
     const needsUpdate = categories.some((cat) => expandedCategories[cat] === undefined);
-    if (needsUpdate) {
-      const updated = { ...expandedCategories };
-      categories.forEach((cat) => {
-        if (updated[cat] === undefined) {
-          updated[cat] = true;
-        }
-      });
-      setExpandedCategories(updated);
-    }
-  }
+    if (!needsUpdate) return;
+    const updated = { ...expandedCategories };
+    categories.forEach((cat) => {
+      if (updated[cat] === undefined) {
+        updated[cat] = true;
+      }
+    });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync category expansion defaults when categories change
+    setExpandedCategories(updated);
+  }, [categories, expandedCategories]);
 
-  // Restore selectedId from storage when selectionKey changes (during render)
-  const prevSelectionKeyRef = useRef(selectionKey);
-  if (prevSelectionKeyRef.current !== selectionKey) {
-    prevSelectionKeyRef.current = selectionKey;
+  // Restore selectedId from storage when selectionKey changes
+  useEffect(() => {
     const stored = loadStoredValue(selectionKey);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- restore persisted selection when key changes
     setSelectedId(typeof stored === "string" ? stored : null);
-  }
+  }, [selectionKey]);
 
   // Persist selectedId to storage
   useEffect(() => {

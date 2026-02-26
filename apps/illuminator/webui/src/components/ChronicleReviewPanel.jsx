@@ -9,7 +9,7 @@
  * ChronicleWorkspace needs. When adding props, update all three files.
  */
 
-import React, { useMemo, useState, useCallback, useRef } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import PropTypes from "prop-types";
 import { diffWords } from "diff";
 import CohesionReportViewer from "./CohesionReportViewer";
@@ -437,36 +437,36 @@ function ValidationReadyView({
   const [selectedVersionId, setSelectedVersionId] = useState(activeVersionId);
   const [compareToVersionId, setCompareToVersionId] = useState("");
 
-  // Render-phase sync: reset selection when active version or chronicle changes
-  const prevActiveKeyRef = useRef(`${activeVersionId}|${item.chronicleId}`);
   const activeKey = `${activeVersionId}|${item.chronicleId}`;
-  if (prevActiveKeyRef.current !== activeKey) {
-    prevActiveKeyRef.current = activeKey;
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset local version selection when source chronicle/version changes
     setSelectedVersionId(activeVersionId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset local comparison selection when source chronicle/version changes
     setCompareToVersionId("");
-  }
+  }, [activeKey, activeVersionId]);
 
-  // Render-phase sync: ensure selected/compare versions exist in the versions list
+  // Ensure selected/compare versions exist in the versions list
   const versionIds = useMemo(() => versions.map((v) => v.id), [versions]);
-  const prevVersionIdsRef = useRef(versionIds);
-  if (prevVersionIdsRef.current !== versionIds && versions.length > 0) {
-    prevVersionIdsRef.current = versionIds;
+  useEffect(() => {
+    if (versions.length === 0) return;
 
     const hasSelected = versions.some((v) => v.id === selectedVersionId);
     let nextSelected = selectedVersionId;
     if (!hasSelected) {
       const hasActive = versions.some((v) => v.id === activeVersionId);
       nextSelected = hasActive ? activeVersionId : versions[versions.length - 1].id;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- keep selected version valid when version list changes
       setSelectedVersionId(nextSelected);
     }
 
     if (compareToVersionId) {
       const hasCompare = versions.some((v) => v.id === compareToVersionId);
       if (!hasCompare || compareToVersionId === nextSelected) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- clear invalid compare target when version list changes
         setCompareToVersionId("");
       }
     }
-  }
+  }, [versionIds, versions, selectedVersionId, activeVersionId, compareToVersionId]);
 
   const selectedVersion = useMemo(
     () => versions.find((v) => v.id === selectedVersionId) || versions[versions.length - 1],

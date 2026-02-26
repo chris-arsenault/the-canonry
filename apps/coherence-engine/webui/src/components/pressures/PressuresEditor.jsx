@@ -16,19 +16,22 @@ export default function PressuresEditor({ projectId, pressures = [], onChange, s
     restoredRef.current = false;
   }, [factorModalKey]);
 
-  // Restore expanded pressure from storage (during render, one-time)
-  if (!restoredRef.current && factorModalKey && pressures.length) {
+  // Restore expanded pressure from storage (one-time per modal key)
+  useEffect(() => {
+    if (restoredRef.current || !factorModalKey || pressures.length === 0) return;
+
     const stored = loadStoredValue(factorModalKey);
     if (stored?.pressureId) {
       const index = pressures.findIndex((pressure) => pressure.id === stored.pressureId);
       if (index >= 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- restore persisted UI expansion state
         setExpandedPressure(index);
       } else {
         clearStoredValue(factorModalKey);
       }
     }
     restoredRef.current = true;
-  }
+  }, [factorModalKey, pressures]);
 
   const handlePressureChange = useCallback(
     (index, updatedPressure) => {
