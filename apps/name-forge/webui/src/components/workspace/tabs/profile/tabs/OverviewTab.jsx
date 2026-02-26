@@ -102,13 +102,14 @@ export default function OverviewTab({
 
       {/* Entity Kinds Binding */}
       <div className="form-group">
-        <label>Entity Kinds</label>
+        <label>Entity Kinds
         <MultiSelectPills
           options={entityKinds}
           selected={profile.entityKinds || []}
           onChange={(kinds) => onChange({ ...profile, entityKinds: kinds })}
           allLabel="Any"
         />
+        </label>
         <small className="text-muted">
           Profile applies when generating names for these entity kinds. &quot;Any&quot; means use default
           profile logic.

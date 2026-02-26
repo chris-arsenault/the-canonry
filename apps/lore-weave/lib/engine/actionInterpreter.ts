@@ -240,6 +240,7 @@ function formatDescription(
     'target2.id': bindings.target2?.id ?? '',
   };
 
+  // eslint-disable-next-line sonarjs/slow-regex -- character-class bounded, no backtracking
   return template.replace(/\{([^}]+)\}/g, (match, key: string) => {
     return tokenMap[key] ?? '';
   });

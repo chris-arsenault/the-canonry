@@ -301,7 +301,7 @@ export function GraphContagionTab({ system, onChange, schema }) {
         </div>
 
         <div style={{ marginTop: "16px" }}>
-          <label className="label">Narration Template</label>
+          <span className="label">Narration Template</span>
           <div className="section-desc" style={{ marginBottom: "4px", fontSize: "11px" }}>
             Syntax: {"{$self.field}"}, {"{$source.field}"}, {"{$contagion_source.field}"},{" "}
             {"{field|fallback}"}.

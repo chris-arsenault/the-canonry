@@ -75,9 +75,11 @@ export function NumberInput({
 
     // Allow empty, minus sign, decimal point, or any numeric pattern
     // This regex allows intermediate states like "-", ".", "-.", "1.", "-1."
+    /* eslint-disable sonarjs/slow-regex -- short user input (single number field value) */
     const validPattern = integer
       ? /^-?\d*$/  // Integer: optional minus, digits only
       : /^-?\d*\.?\d*$/; // Float: optional minus, digits, optional decimal, more digits
+    /* eslint-enable sonarjs/slow-regex */
 
     if (!validPattern.test(newValue)) {
       return; // Reject invalid characters

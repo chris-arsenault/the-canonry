@@ -7,7 +7,8 @@
  * Runs at startup to catch configuration errors before generation begins.
  */
 
-import { EngineConfig, SimulationSystem } from '../engine/types';
+import { EngineConfig, EntityOperatorRegistry, SimulationSystem } from '../engine/types';
+import { DeclarativePressure } from './declarativePressureTypes';
 import { DeclarativeSystem } from './systemInterpreter';
 
 export interface ValidationResult {
@@ -98,7 +99,7 @@ export class FrameworkValidator {
   }
 
   private validatePressureCoverage(
-    pressure: Pressure,
+    pressure: DeclarativePressure,
     errors: string[],
     warnings: string[]
   ): void {

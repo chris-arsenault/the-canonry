@@ -23,9 +23,67 @@
  * - columnHeaderClass: (columnId) => string (optional, for styling column headers)
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import './CoverageMatrix.css';
+
+function MatrixRow({ row, idx, groupId, groupLabel, columns, getCellValue, displayFn, onRowClick, onCellClick }) {
+  const handleCellClick = useCallback((e, colId, value) => {
+    if (onCellClick) {
+      e.stopPropagation();
+      onCellClick(row.id, colId, value);
+    }
+  }, [onCellClick, row.id]);
+
+  return (
+    <tr
+      className={`cm-row ${onRowClick ? 'clickable' : ''}`}
+      onClick={() => onRowClick?.(row.id, row)}
+    >
+      <td className="cm-group-col">
+        {idx === 0 && groupId !== '_ungrouped' ? (
+          <span className="cm-group-name">{groupLabel}</span>
+        ) : null}
+      </td>
+      <td className="cm-label-col">
+        <span className="cm-item-label">{row.label}</span>
+      </td>
+      <td className="cm-status-col">
+        {row.statusBadges?.map((badge, i) => (
+          <span key={i} className={`cm-badge ${badge.variant || ''}`}>
+            {badge.label}
+          </span>
+        ))}
+      </td>
+      {columns.map((col) => {
+        const value = getCellValue(row.id, col.id, row);
+        const display = displayFn(value, row.id, col.id);
+        return (
+          <td
+            key={col.id}
+            className={`cm-cell ${display.className || ''}`}
+            title={display.title}
+            onClick={(e) => handleCellClick(e, col.id, value)}
+          >
+            <span className="cm-cell-icon">{display.icon}</span>
+          </td>
+        );
+      })}
+    </tr>
+  );
+}
+
+MatrixRow.propTypes = {
+  row: PropTypes.object.isRequired,
+  idx: PropTypes.number.isRequired,
+  groupId: PropTypes.string.isRequired,
+  groupLabel: PropTypes.string.isRequired,
+  columns: PropTypes.array.isRequired,
+  getCellValue: PropTypes.func.isRequired,
+  displayFn: PropTypes.func.isRequired,
+  onRowClick: PropTypes.func,
+  onCellClick: PropTypes.func,
+};
 
 export default function CoverageMatrix({
   rows = [],
@@ -113,13 +171,6 @@ export default function CoverageMatrix({
 
   const displayFn = getCellDisplay || defaultGetCellDisplay;
 
-  const handleCellClick = (e, rowId, colId, value) => {
-    if (onCellClick) {
-      e.stopPropagation();
-      onCellClick(rowId, colId, value);
-    }
-  };
-
   return (
     <div className="coverage-matrix">
       {/* Header */}
@@ -195,41 +246,18 @@ export default function CoverageMatrix({
             <tbody>
               {Object.entries(groupedRows).map(([groupId, { label: groupLabel, rows: groupRows }]) =>
                 groupRows.map((row, idx) => (
-                  <tr
+                  <MatrixRow
                     key={row.id}
-                    className={`cm-row ${onRowClick ? 'clickable' : ''}`}
-                    onClick={() => onRowClick?.(row.id, row)}
-                  >
-                    <td className="cm-group-col">
-                      {idx === 0 && groupId !== '_ungrouped' ? (
-                        <span className="cm-group-name">{groupLabel}</span>
-                      ) : null}
-                    </td>
-                    <td className="cm-label-col">
-                      <span className="cm-item-label">{row.label}</span>
-                    </td>
-                    <td className="cm-status-col">
-                      {row.statusBadges?.map((badge, i) => (
-                        <span key={i} className={`cm-badge ${badge.variant || ''}`}>
-                          {badge.label}
-                        </span>
-                      ))}
-                    </td>
-                    {normalizedColumns.map((col) => {
-                      const value = getCellValue(row.id, col.id, row);
-                      const display = displayFn(value, row.id, col.id);
-                      return (
-                        <td
-                          key={col.id}
-                          className={`cm-cell ${display.className || ''}`}
-                          title={display.title}
-                          onClick={(e) => handleCellClick(e, row.id, col.id, value)}
-                        >
-                          <span className="cm-cell-icon">{display.icon}</span>
-                        </td>
-                      );
-                    })}
-                  </tr>
+                    row={row}
+                    idx={idx}
+                    groupId={groupId}
+                    groupLabel={groupLabel}
+                    columns={normalizedColumns}
+                    getCellValue={getCellValue}
+                    displayFn={displayFn}
+                    onRowClick={onRowClick}
+                    onCellClick={onCellClick}
+                  />
                 ))
               )}
             </tbody>

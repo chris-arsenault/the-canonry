@@ -243,7 +243,7 @@ export function SelectionRuleEditor({
 
       {showFilters && (
         <div style={{ marginTop: "24px" }}>
-          <label className="label">Selection Filters</label>
+          <span className="label">Selection Filters</span>
           <div className="info-box-text" style={{ marginBottom: "12px", fontSize: "12px" }}>
             Optional filters to narrow down which entities can be selected. All filters must pass.
           </div>

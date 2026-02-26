@@ -8,6 +8,7 @@
 import { HardState } from '../core/worldTypes';
 import { WorldRuntime } from '../runtime/worldRuntime';
 import { GraphPathAssertion, PathStep, PathConstraint } from './filters/types';
+import { Direction } from './types';
 import { EntityResolver } from './resolver';
 
 export interface GraphPathOptions {
@@ -87,7 +88,7 @@ export function evaluateGraphPath(
 function collectRelatedEntities(
   entity: HardState,
   viaKinds: string[],
-  direction: string,
+  direction: Direction,
   graphView: WorldRuntime
 ): HardState[] {
   const relatedSet = new Set<string>();

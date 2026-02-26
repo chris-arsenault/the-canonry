@@ -546,73 +546,73 @@ function scanMetric(metric, usageMap, contextKey, ref, info) {
   }
 }
 
-function scanPressureReferences(usageMap, pressures, _schema) {
-  (pressures || []).forEach(pressure => {
-    const scanFeedbackFactors = (factors, isPositive) => {
-      (factors || []).forEach(factor => {
-        // Track entity kind references
-        if (factor.kind && usageMap.entityKinds[factor.kind]) {
-          usageMap.entityKinds[factor.kind].pressures.push({ id: pressure.id, factor: factor.type });
-        } else if (factor.kind) {
+function scanFeedbackFactors(usageMap, pressure, factors, isPositive) {
+  (factors || []).forEach(factor => {
+    // Track entity kind references
+    if (factor.kind && usageMap.entityKinds[factor.kind]) {
+      usageMap.entityKinds[factor.kind].pressures.push({ id: pressure.id, factor: factor.type });
+    } else if (factor.kind) {
+      usageMap.validation.invalidRefs.push({
+        type: 'pressure',
+        id: pressure.id,
+        field: `${isPositive ? 'positive' : 'negative'}Feedback.kind`,
+        refType: 'entityKind',
+        refId: factor.kind,
+        location: `Pressure "${pressure.name || pressure.id}"`,
+      });
+    }
+
+    // Track relationship kind references
+    if (factor.relationshipKinds) {
+      factor.relationshipKinds.forEach(rk => {
+        if (usageMap.relationshipKinds[rk]) {
+          usageMap.relationshipKinds[rk].pressures.push({ id: pressure.id, factor: factor.type });
+        } else {
           usageMap.validation.invalidRefs.push({
             type: 'pressure',
             id: pressure.id,
-            field: `${isPositive ? 'positive' : 'negative'}Feedback.kind`,
-            refType: 'entityKind',
-            refId: factor.kind,
+            field: `${isPositive ? 'positive' : 'negative'}Feedback.relationshipKinds`,
+            refType: 'relationshipKind',
+            refId: rk,
             location: `Pressure "${pressure.name || pressure.id}"`,
           });
         }
-
-        // Track relationship kind references
-        if (factor.relationshipKinds) {
-          factor.relationshipKinds.forEach(rk => {
-            if (usageMap.relationshipKinds[rk]) {
-              usageMap.relationshipKinds[rk].pressures.push({ id: pressure.id, factor: factor.type });
-            } else {
-              usageMap.validation.invalidRefs.push({
-                type: 'pressure',
-                id: pressure.id,
-                field: `${isPositive ? 'positive' : 'negative'}Feedback.relationshipKinds`,
-                refType: 'relationshipKind',
-                refId: rk,
-                location: `Pressure "${pressure.name || pressure.id}"`,
-              });
-            }
-          });
-        }
-
-        // Track tag references
-        if (factor.tag) {
-          if (!usageMap.tags[factor.tag]) {
-            usageMap.tags[factor.tag] = { pressures: [], systems: [], generators: [], actions: [] };
-          }
-          usageMap.tags[factor.tag].pressures.push({ id: pressure.id, factor: factor.type });
-        }
-
-        // Track tags array (tag_count factor type)
-        if (factor.tags && Array.isArray(factor.tags)) {
-          factor.tags.forEach(tag => {
-            if (!usageMap.tags[tag]) {
-              usageMap.tags[tag] = { pressures: [], systems: [], generators: [], actions: [] };
-            }
-            usageMap.tags[tag].pressures.push({ id: pressure.id, factor: factor.type });
-          });
-        }
-
-        // Track as feedback source/sink
-        if (usageMap.pressures[pressure.id]) {
-          if (isPositive) {
-            usageMap.pressures[pressure.id].feedbackSources.push(factor);
-          } else {
-            usageMap.pressures[pressure.id].feedbackSinks.push(factor);
-          }
-        }
       });
-    };
+    }
 
-    scanFeedbackFactors(pressure.growth?.positiveFeedback, true);
-    scanFeedbackFactors(pressure.growth?.negativeFeedback, false);
+    // Track tag references
+    if (factor.tag) {
+      if (!usageMap.tags[factor.tag]) {
+        usageMap.tags[factor.tag] = { pressures: [], systems: [], generators: [], actions: [] };
+      }
+      usageMap.tags[factor.tag].pressures.push({ id: pressure.id, factor: factor.type });
+    }
+
+    // Track tags array (tag_count factor type)
+    if (factor.tags && Array.isArray(factor.tags)) {
+      factor.tags.forEach(tag => {
+        if (!usageMap.tags[tag]) {
+          usageMap.tags[tag] = { pressures: [], systems: [], generators: [], actions: [] };
+        }
+        usageMap.tags[tag].pressures.push({ id: pressure.id, factor: factor.type });
+      });
+    }
+
+    // Track as feedback source/sink
+    if (usageMap.pressures[pressure.id]) {
+      if (isPositive) {
+        usageMap.pressures[pressure.id].feedbackSources.push(factor);
+      } else {
+        usageMap.pressures[pressure.id].feedbackSinks.push(factor);
+      }
+    }
+  });
+}
+
+function scanPressureReferences(usageMap, pressures, _schema) {
+  (pressures || []).forEach(pressure => {
+    scanFeedbackFactors(usageMap, pressure, pressure.growth?.positiveFeedback, true);
+    scanFeedbackFactors(usageMap, pressure, pressure.growth?.negativeFeedback, false);
   });
 }
 
@@ -676,6 +676,14 @@ function scanEraReferences(usageMap, eras, generators, systems) {
         location: `Era "${era.name || era.id}"`,
       });
     });
+  });
+}
+
+function scanVariantApplyTags(tags, usageMap, contextKey, ref) {
+  if (!tags) return;
+  Object.values(tags).forEach((tagMap) => {
+    if (!tagMap || typeof tagMap !== 'object') return;
+    Object.keys(tagMap).forEach((tag) => recordTagRef(usageMap, tag, contextKey, ref));
   });
 }
 
@@ -772,12 +780,7 @@ function scanGeneratorReferences(usageMap, generators, schema, pressures) {
         });
       });
 
-      if (variant.apply?.tags) {
-        Object.values(variant.apply.tags).forEach((tagMap) => {
-          if (!tagMap || typeof tagMap !== 'object') return;
-          Object.keys(tagMap).forEach((tag) => recordTagRef(usageMap, tag, 'generators', genRef));
-        });
-      }
+      scanVariantApplyTags(variant.apply?.tags, usageMap, 'generators', genRef);
 
       scanMutations(variant.apply?.stateUpdates || [], usageMap, pressureIds, 'generators', genRef, {
         type: 'generator',
@@ -1220,15 +1223,17 @@ export function getUsageSummary(usage) {
  * @param {Array} params.axisDefinitions - Axis definitions referenced by semantic planes
  * @returns {Object} - Map of tag -> { nameforge, seed, generators, systems, pressures, axis }
  */
+function collectStrategyGroupTags(group, ensureTag, usage) {
+  (group.conditions?.tags || []).forEach(tag => {
+    ensureTag(tag);
+    usage[tag].nameforge = (usage[tag].nameforge || 0) + 1;
+  });
+}
+
 function collectCultureTags(cultures, ensureTag, usage) {
   (cultures || []).forEach(culture => {
     (culture.naming?.profiles || []).forEach(profile => {
-      (profile.strategyGroups || []).forEach(group => {
-        (group.conditions?.tags || []).forEach(tag => {
-          ensureTag(tag);
-          usage[tag].nameforge = (usage[tag].nameforge || 0) + 1;
-        });
-      });
+      (profile.strategyGroups || []).forEach(group => collectStrategyGroupTags(group, ensureTag, usage));
     });
   });
 }
@@ -1239,6 +1244,13 @@ function collectSeedEntityTags(seedEntities, ensureTag, usage) {
       ensureTag(tag);
       usage[tag].seed = (usage[tag].seed || 0) + 1;
     });
+  });
+}
+
+function collectApplyTagUsage(tags, addTagUsage, contextKey) {
+  if (!tags || typeof tags !== 'object') return;
+  Object.entries(tags).forEach(([_ref, tagMap]) => {
+    Object.keys(tagMap).forEach(tag => addTagUsage(tag, contextKey));
   });
 }
 
@@ -1254,11 +1266,7 @@ function collectGeneratorTags(generators, addTagUsage, collectTagsFromCondition,
     collectTagsFromMutations(gen.stateUpdates || [], 'generators');
     (gen.variants?.options || []).forEach(variant => {
       collectTagsFromCondition(variant.when, 'generators');
-      if (variant.apply?.tags && typeof variant.apply.tags === 'object') {
-        Object.entries(variant.apply.tags).forEach(([_ref, tagMap]) => {
-          Object.keys(tagMap).forEach(tag => addTagUsage(tag, 'generators'));
-        });
-      }
+      collectApplyTagUsage(variant.apply?.tags, addTagUsage, 'generators');
       collectTagsFromMutations(variant.apply?.stateUpdates || [], 'generators');
     });
   });

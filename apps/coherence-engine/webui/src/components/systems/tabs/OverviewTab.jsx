@@ -71,7 +71,7 @@ export function OverviewTab({ system, onChange, onDelete }) {
         </div>
 
         <div style={{ marginTop: "16px" }}>
-          <label className="label">System Type</label>
+          <span className="label">System Type</span>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <span
               className="type-badge"
@@ -86,12 +86,13 @@ export function OverviewTab({ system, onChange, onDelete }) {
         </div>
 
         <div style={{ marginTop: "16px" }}>
-          <label className="label">Enabled</label>
+          <label className="label">Enabled
           <EnableToggle
             enabled={system.enabled !== false}
             onChange={(enabled) => onChange({ ...system, enabled })}
             label={system.enabled !== false ? "System is active" : "System is disabled"}
           />
+          </label>
         </div>
       </div>
 

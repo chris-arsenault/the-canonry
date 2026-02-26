@@ -123,11 +123,12 @@ async function processBatchResponse(
   batchEntries: BulkChronicleEntry[],
   costPerChronicle: number
 ): Promise<{ successCount: number; failCount: number }> {
-  // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text, stripping code fences
+  /* eslint-disable sonarjs/slow-regex -- bounded LLM response text, stripping code fences */
   const jsonText = responseText
     .trim()
     .replace(/^```(?:json)?\s*/, "")
     .replace(/\s*```$/, "");
+  /* eslint-enable sonarjs/slow-regex */
 
   let parsed: Array<{ id: number; ranking: string[]; rationales?: Record<string, string> }>;
   try {

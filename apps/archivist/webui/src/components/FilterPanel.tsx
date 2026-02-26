@@ -139,7 +139,7 @@ export default function FilterPanel({
       {/* Edge Metric (for graph views) */}
       {(viewMode === "graph3d" || viewMode === "graph2d") && (
         <div className="edge-metric-section">
-          <label className="filter-section-label">Edge Spring</label>
+          <span className="filter-section-label">Edge Spring</span>
           <div className="edge-metric-buttons">
             <button
               className={`edge-metric-btn ${edgeMetric === "strength" ? "active" : ""}`}
@@ -179,7 +179,7 @@ export default function FilterPanel({
 
       {/* Entity Types */}
       <div className="filter-section">
-        <label className="filter-section-label">Entity Types</label>
+        <span className="filter-section-label">Entity Types</span>
         <div className="filter-checkbox-group">
           {entityKinds.map((kind) => (
             <label key={kind} className="filter-checkbox-label">
@@ -262,7 +262,7 @@ export default function FilterPanel({
 
       {/* Time Range */}
       <div className="filter-section">
-        <label className="filter-section-label">Time Range</label>
+        <span className="filter-section-label">Time Range</span>
         <div className="time-range-box">
           <div className="time-range-labels">
             <span className="time-range-label">
@@ -303,9 +303,9 @@ export default function FilterPanel({
 
       {/* Tags */}
       <div className="filter-section">
-        <label className="filter-section-label">
+        <span className="filter-section-label">
           Tags <span className="text-blue-400 font-normal">({filters.tags.length} selected)</span>
-        </label>
+        </span>
         <div className="tags-box">
           {allTags.map((tag) => (
             <label key={tag} className="filter-checkbox-label">
@@ -322,10 +322,10 @@ export default function FilterPanel({
 
       {/* Minimum Relationship Strength */}
       <div className="filter-section">
-        <label className="filter-section-label">
+        <span className="filter-section-label">
           Min Relationship Strength{" "}
           <span className="text-blue-400 font-normal">({filters.minStrength.toFixed(2)})</span>
-        </label>
+        </span>
         <div className="strength-slider-container">
           <input
             type="range"

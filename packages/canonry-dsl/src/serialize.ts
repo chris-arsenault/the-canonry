@@ -6352,6 +6352,7 @@ function normalizeStaticPageDir(value: string | undefined | null): string {
   if (value === undefined || value === null) return '';
   const trimmed = String(value).trim();
   if (!trimmed) return '';
+  // eslint-disable-next-line sonarjs/slow-regex -- short path string, no ReDoS risk
   return trimmed.replace(/[\\/]+/g, '/').replace(/^\/+|\/+$/g, '');
 }
 

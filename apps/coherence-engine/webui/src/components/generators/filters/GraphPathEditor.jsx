@@ -98,7 +98,7 @@ export function GraphPathEditor({ assert, onChange, schema, availableRefs }) {
 
       {/* Path steps */}
       <div>
-        <label className="label label-tiny">Path Steps (traverse relationships)</label>
+        <span className="label label-tiny">Path Steps (traverse relationships)</span>
         <div className="path-steps-list">
           {(assertion.path || []).map((step, index) => (
             <PathStepEditor
@@ -120,7 +120,7 @@ export function GraphPathEditor({ assert, onChange, schema, availableRefs }) {
 
       {/* Where constraints */}
       <div>
-        <label className="label label-tiny">Where Constraints (optional)</label>
+        <span className="label label-tiny">Where Constraints (optional)</span>
         <div className="path-constraints-list">
           {(assertion.where || []).map((constraint, index) => (
             <PathConstraintEditor

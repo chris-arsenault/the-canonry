@@ -1160,7 +1160,7 @@ export default function CorpusFindReplace() {
         <div className="cfr-input-form">
           {/* Context checkboxes */}
           <div>
-            <label className="cfr-field-label">Search in</label>
+            <span className="cfr-field-label">Search in</span>
             <div className="cfr-checkbox-row">
               {(
                 [

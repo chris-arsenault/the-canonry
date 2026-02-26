@@ -6486,6 +6486,7 @@ function formatHereDocLines(key: string, value: string, indentLevel: number): st
 }
 
 function selectHereDocTag(key: string, value: string): string {
+  // eslint-disable-next-line sonarjs/slow-regex -- short key string, no ReDoS risk
   const base = key.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
   const root = base.length > 0 ? base : 'TEXT';
   let tag = root;
@@ -6602,6 +6603,7 @@ function normalizeStaticPageDir(value: string | undefined | null): string {
   if (value === undefined || value === null) return '';
   const trimmed = String(value).trim();
   if (!trimmed) return '';
+  // eslint-disable-next-line sonarjs/slow-regex -- short path string, no ReDoS risk
   return trimmed.replace(/[\\/]+/g, '/').replace(/^\/+|\/+$/g, '');
 }
 

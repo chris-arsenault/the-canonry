@@ -119,7 +119,7 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
           </div>
 
           <div style={{ marginTop: "16px" }}>
-            <label className="label">Action</label>
+            <span className="label">Action</span>
             <div className="form-grid">
               <ReferenceDropdown
                 label="Type"
@@ -263,7 +263,7 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
           )}
 
           <div style={{ marginTop: "16px" }}>
-            <label className="label">Narration Template</label>
+            <span className="label">Narration Template</span>
             <div className="section-desc" style={{ marginBottom: "4px", fontSize: "11px" }}>
               Syntax: {"{$self.field}"}, {"{$member.field}"}, {"{$member2.field}"},{" "}
               {"{field|fallback}"}.

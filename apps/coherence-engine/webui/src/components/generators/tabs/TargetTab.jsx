@@ -43,7 +43,7 @@ export function TargetTab({ generator, onChange, schema }) {
 
         {/* Saturation Limits */}
         <div style={{ marginTop: "24px" }}>
-          <label className="label">Saturation Limits</label>
+          <span className="label">Saturation Limits</span>
           <div className="info-box-text" style={{ marginBottom: "12px", fontSize: "12px" }}>
             Limit targets based on existing relationship counts. Only targets with fewer than the
             max count of relationships will be selected.

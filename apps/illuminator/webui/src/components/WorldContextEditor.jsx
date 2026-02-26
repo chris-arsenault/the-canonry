@@ -106,7 +106,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
               </select>
             </div>
             <div>
-              <label className="wce-field-label">Required</label>
+              <span className="wce-field-label">Required</span>
               <label className="wce-checkbox-label">
                 <input
                   type="checkbox"
@@ -118,7 +118,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
               </label>
             </div>
             <div>
-              <label className="wce-field-label">Disabled</label>
+              <span className="wce-field-label">Disabled</span>
               <label className="wce-checkbox-label">
                 <input
                   type="checkbox"
@@ -296,9 +296,9 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
           {/* Era Overrides */}
           {eras && eras.length > 0 && (
             <div>
-              <label className="wce-field-label wce-field-label-mb6">
+              <span className="wce-field-label wce-field-label-mb6">
                 Era Overrides (optional — adjust this dynamic for specific eras)
-              </label>
+              </span>
               {Object.entries(dynamic.eraOverrides || {}).map(([eraId, override]) => {
                 const eraName = eras.find((e) => e.id === eraId)?.name || eraId;
                 return (
@@ -552,6 +552,26 @@ export default function WorldContextEditor({
     [onWorldContextChange]
   );
 
+  const parseDynamicsFile = useCallback((fileContent) => {
+    try {
+      const parsed = JSON.parse(fileContent);
+      if (!Array.isArray(parsed)) {
+        alert("Invalid dynamics file: expected a JSON array.");
+        return;
+      }
+      const valid = parsed.every(
+        (d) => d && typeof d.id === "string" && typeof d.text === "string"
+      );
+      if (!valid) {
+        alert("Invalid dynamics file: each entry must have id and text strings.");
+        return;
+      }
+      updateField("worldDynamics", parsed);
+    } catch (err) {
+      alert(`Failed to parse dynamics JSON: ${err.message}`);
+    }
+  }, [updateField]);
+
   const handleImportDynamicsJson = useCallback(() => {
     const input = document.createElement("input");
     input.type = "file";
@@ -560,29 +580,11 @@ export default function WorldContextEditor({
       const file = e.target.files?.[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          const parsed = JSON.parse(ev.target.result);
-          if (!Array.isArray(parsed)) {
-            alert("Invalid dynamics file: expected a JSON array.");
-            return;
-          }
-          const valid = parsed.every(
-            (d) => d && typeof d.id === "string" && typeof d.text === "string"
-          );
-          if (!valid) {
-            alert("Invalid dynamics file: each entry must have id and text strings.");
-            return;
-          }
-          updateField("worldDynamics", parsed);
-        } catch (err) {
-          alert(`Failed to parse dynamics JSON: ${err.message}`);
-        }
-      };
+      reader.onload = (ev) => parseDynamicsFile(ev.target.result);
       reader.readAsText(file);
     };
     input.click();
-  }, [updateField]);
+  }, [parseDynamicsFile]);
 
   return (
     <div>
@@ -665,7 +667,7 @@ export default function WorldContextEditor({
             facets. Generation constraints are always included verbatim and never faceted.
           </p>
           <div className="illuminator-form-group wce-form-group-mb16">
-            <label className="illuminator-label">Facet Range (optional)</label>
+            <span className="illuminator-label">Facet Range (optional)</span>
             <div className="wce-facet-range-row">
               <input
                 type="number"

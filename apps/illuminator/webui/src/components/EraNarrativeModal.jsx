@@ -480,7 +480,7 @@ export default function EraNarrativeModal({
               {/* Chronicle enumeration for selected era */}
               {eraChronicles.length > 0 && (
                 <div className="era-narr-field">
-                  <label className="era-narr-label">Chronicles ({eraChronicles.length})</label>
+                  <span className="era-narr-label">Chronicles ({eraChronicles.length})</span>
                   <div className="era-narr-chronicle-list">
                     {eraChronicles.map((c) => {
                       const weight =
@@ -546,7 +546,7 @@ export default function EraNarrativeModal({
               {/* Existing narratives for this era */}
               {existingNarratives.length > 0 && (
                 <div className="era-narr-field">
-                  <label className="era-narr-label">Existing Narratives</label>
+                  <span className="era-narr-label">Existing Narratives</span>
                   <div className="era-narr-existing-list">
                     {existingNarratives.map((rec) => {
                       const stepLabel = { threads: "Threads", generate: "Draft", edit: "Edit" };
@@ -618,7 +618,7 @@ export default function EraNarrativeModal({
               )}
 
               <div className="era-narr-field-lg">
-                <label className="era-narr-label">Tone</label>
+                <span className="era-narr-label">Tone</span>
                 <div className="era-narr-tone-row">
                   {TONE_OPTIONS.map((t) => (
                     <button

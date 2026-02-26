@@ -22,7 +22,7 @@ export function slugifyName(name: string): string {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'unknown';
+    .replace(/^-+|-+$/g, '') || 'unknown'; // eslint-disable-line sonarjs/slow-regex -- short slug string, no ReDoS risk
 }
 
 /**
@@ -177,7 +177,7 @@ export async function addEntity(graph: Graph, entity: Partial<HardState>, source
   const coords = entity.coordinates!;
   const tags: EntityTags = Array.isArray(entity.tags) ? arrayToTags(entity.tags) : { ...(entity.tags || {}) };
 
-  const entityId = generateEntityIdFromName(entity.name, id => graph.hasEntity(id));
+  const entityId = generateEntityIdFromName(entity.name!, id => graph.hasEntity(id));
 
   // Delegate to Graph.createEntity()
   // Use validated coords to satisfy TypeScript (already validated above)
@@ -210,17 +210,17 @@ export async function addEntity(graph: Graph, entity: Partial<HardState>, source
 
   const createdId = await graph.createEntity({
     id: entityId,
-    kind: entity.kind,
-    subtype: entity.subtype,
+    kind: entity.kind!,
+    subtype: entity.subtype!,
     coordinates: validCoords,
     tags,
     eraId: resolvedEraId,
     name: entity.name,
     description: entity.description,
     narrativeHint,
-    status: entity.status,
-    prominence: entity.prominence,
-    culture: entity.culture,
+    status: entity.status!,
+    prominence: entity.prominence!,
+    culture: entity.culture!,
     temporal: entity.temporal,
     source,
     placementStrategy

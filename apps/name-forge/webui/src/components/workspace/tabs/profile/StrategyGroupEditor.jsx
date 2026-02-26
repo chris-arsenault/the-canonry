@@ -93,24 +93,26 @@ export default function StrategyGroupEditor({
           <div className="form-grid-2 mb-md">
             {/* Entity Types */}
             <div>
-              <label className="condition-label">Entity Types</label>
+              <label className="condition-label">Entity Types
               <MultiSelectPills
                 options={entityKinds}
                 selected={group.conditions?.entityKinds || []}
                 onChange={(val) => onConditionChange(groupIdx, "entityKinds", val)}
                 allLabel="All"
               />
+              </label>
             </div>
 
             {/* Prominence */}
             <div>
-              <label className="condition-label">Prominence</label>
+              <label className="condition-label">Prominence
               <MultiSelectPills
                 options={prominenceLevels}
                 selected={group.conditions?.prominence || []}
                 onChange={(val) => onConditionChange(groupIdx, "prominence", val)}
                 allLabel="Any"
               />
+              </label>
             </div>
           </div>
 
@@ -119,7 +121,7 @@ export default function StrategyGroupEditor({
             {/* Subtypes */}
             <div>
               <div className="flex justify-between align-center mb-xs">
-                <label className="condition-label mb-0">Subtypes</label>
+                <span className="condition-label mb-0">Subtypes</span>
                 <label className="checkbox-label">
                   <input
                     type="checkbox"

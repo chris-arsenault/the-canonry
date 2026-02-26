@@ -15,7 +15,7 @@
 
 import type { HardState, VariableValue } from '../core/worldTypes';
 
-type ScalarValue = ScalarValue;
+type ScalarValue = string | number | boolean;
 
 /**
  * Context for template interpolation.
@@ -274,7 +274,7 @@ function resolveToken(
  * Find all tokens in a template string.
  */
 function findTokens(template: string): string[] {
-  const regex = /\{[^}]+\}/g;
+  const regex = /\{[^}]+\}/g; // eslint-disable-line sonarjs/slow-regex -- character-class bounded, no backtracking
   return template.match(regex) || [];
 }
 

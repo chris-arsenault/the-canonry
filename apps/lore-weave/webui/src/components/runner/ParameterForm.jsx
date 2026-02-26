@@ -111,9 +111,9 @@ export default function ParameterForm({ params, onParamChange }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-          <label className="lw-label" style={{ margin: 0 }}>
+          <span className="lw-label" style={{ margin: 0 }}>
             Narrative Events
-          </label>
+          </span>
           <label
             style={{
               display: "flex",

@@ -1014,7 +1014,7 @@ export class GraphStore implements Graph {
   }
 
   // Debug flag for tracing prominence mutations - set to true to enable logging
-  static readonly DEBUG_PROMINENCE = false;
+  static DEBUG_PROMINENCE = false;
 
   updateEntity(id: string, changes: Partial<HardState>): boolean {
     const entity = this.#entities.get(id);
@@ -1063,7 +1063,7 @@ export class GraphStore implements Graph {
     // Track tag presence changes only - value updates are not narratively interesting
     for (const [tag, value] of Object.entries(newTags)) {
       if (!(tag in oldTags)) {
-        this.mutationTracker!.recordTagAdded(id, tag, value);
+        this.mutationTracker!.recordTagAdded(id, tag, value as string | boolean);
       }
     }
     for (const tag of Object.keys(oldTags)) {

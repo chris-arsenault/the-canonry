@@ -697,7 +697,7 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
                 </div>
                 <div className="style-editor-pacing-grid">
                   <div className="illuminator-form-group">
-                    <label className="illuminator-label">Word Count</label>
+                    <span className="illuminator-label">Word Count</span>
                     <div className="style-editor-range-row">
                       <input
                         type="number"
@@ -719,7 +719,7 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
                     </div>
                   </div>
                   <div className="illuminator-form-group">
-                    <label className="illuminator-label">Scene Count</label>
+                    <span className="illuminator-label">Scene Count</span>
                     <div className="style-editor-range-row">
                       <input
                         type="number"

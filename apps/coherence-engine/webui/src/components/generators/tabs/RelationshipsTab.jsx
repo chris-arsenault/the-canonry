@@ -213,7 +213,7 @@ function RelationshipCard({ rel, onChange, onRemove, schema, availableRefs }) {
           </div>
 
           <div style={{ marginTop: "16px" }}>
-            <label className="label">Bidirectional</label>
+            <span className="label">Bidirectional</span>
             <div className="toggle-container">
               <div
                 onClick={() => updateField("bidirectional", !rel.bidirectional)}
@@ -234,7 +234,7 @@ function RelationshipCard({ rel, onChange, onRemove, schema, availableRefs }) {
 
           {/* Condition */}
           <div style={{ marginTop: "16px" }}>
-            <label className="label">Condition (optional)</label>
+            <span className="label">Condition (optional)</span>
             {rel.condition ? (
               <RelationshipConditionEditor
                 condition={rel.condition}

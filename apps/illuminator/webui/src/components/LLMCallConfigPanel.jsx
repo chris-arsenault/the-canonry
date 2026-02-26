@@ -254,10 +254,8 @@ function CallTypeRow({ callType, config, isDefault, onUpdate, isLast }) {
         </select>
       </td>
       <td className="llm-table-cell llm-table-cell-sync">
-        <label
-          className="llm-table-checkbox-label"
-          title="Get full response at once instead of streaming. No live thinking/text output, but avoids SSE stall issues."
-        >
+        <label className="llm-table-checkbox-label" title="Get full response at once instead of streaming. No live thinking/text output, but avoids SSE stall issues.">
+          Sync
           <input
             type="checkbox"
             checked={config.disableStreaming}
@@ -267,10 +265,8 @@ function CallTypeRow({ callType, config, isDefault, onUpdate, isLast }) {
         </label>
       </td>
       <td className="llm-table-cell llm-table-cell-browser">
-        <label
-          className="llm-table-checkbox-label"
-          title="Run in browser main thread instead of service worker. Work won't survive page reload, but avoids service worker lifecycle issues."
-        >
+        <label className="llm-table-checkbox-label" title="Run in browser main thread instead of service worker. Work won't survive page reload, but avoids service worker lifecycle issues.">
+          Browser
           <input
             type="checkbox"
             checked={config.runInBrowser}

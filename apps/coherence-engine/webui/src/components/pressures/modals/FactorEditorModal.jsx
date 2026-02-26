@@ -188,7 +188,7 @@ export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackT
         <div className="modal-content">
           {/* Type selector - compact pills */}
           <div style={{ marginBottom: "20px" }}>
-            <label className="label">Factor Type</label>
+            <span className="label">Factor Type</span>
             <div className="type-selector">
               {Object.entries(FACTOR_TYPES).map(([type, config]) => (
                 <div

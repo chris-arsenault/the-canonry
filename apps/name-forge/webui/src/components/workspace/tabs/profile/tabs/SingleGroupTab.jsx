@@ -148,23 +148,25 @@ export default function SingleGroupTab({
         {hasConditions ? (
           <div className="conditions-grid">
             <div className="condition-field">
-              <label>Entity Types</label>
+              <label>Entity Types
               <MultiSelectPills
                 options={entityKinds}
                 selected={group.conditions?.entityKinds || []}
                 onChange={(val) => handleConditionChange("entityKinds", val)}
                 allLabel="All"
               />
+              </label>
             </div>
 
             <div className="condition-field">
-              <label>Prominence</label>
+              <label>Prominence
               <MultiSelectPills
                 options={PROMINENCE_LEVELS}
                 selected={group.conditions?.prominence || []}
                 onChange={(val) => handleConditionChange("prominence", val)}
                 allLabel="Any"
               />
+              </label>
             </div>
 
             <div className="condition-field">

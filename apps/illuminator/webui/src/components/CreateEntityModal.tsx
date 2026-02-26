@@ -411,7 +411,7 @@ export default function CreateEntityModal({
 
           {/* Tags */}
           <div>
-            <label style={labelStyle}>Tags</label>
+            <span style={labelStyle}>Tags</span>
             {Object.entries(tags).length > 0 && (
               <div style={{ marginBottom: "8px" }}>
                 {Object.entries(tags).map(([k, v]) => (

@@ -106,7 +106,7 @@ export interface NarrativeSchemaSlice {
  */
 export class StateChangeTracker {
   // Debug flag for tracing prominence changes - mirrors Graph.DEBUG_PROMINENCE
-  static readonly DEBUG_PROMINENCE = false;
+  static DEBUG_PROMINENCE = false;
 
   private config: NarrativeConfig;
   private eventBuilder: NarrativeEventBuilder | null = null;

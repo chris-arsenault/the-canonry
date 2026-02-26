@@ -230,7 +230,7 @@ function maybeApplyMutation(
   child: NamingDomain,
   mutationRate: number,
   mutationsPerIndividual: number,
-  primaryGoal: string,
+  primaryGoal: keyof typeof MUTATION_WEIGHTS,
   rng: () => number
 ): NamingDomain {
   if (rng() >= mutationRate) return child;
@@ -245,7 +245,7 @@ function maybeApplyMutation(
 function generateChildren(
   population: Individual[],
   gaSettings: GASettings,
-  primaryGoal: string,
+  primaryGoal: keyof typeof MUTATION_WEIGHTS,
   rng: () => number,
   targetCount: number
 ): NamingDomain[] {

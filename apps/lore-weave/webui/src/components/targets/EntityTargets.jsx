@@ -30,7 +30,6 @@ export default function EntityTargets({ entities, updateTargets, distributionTar
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <label className="lw-label" style={{ marginBottom: 0 }}>
                   Target:
-                </label>
                 <NumberInput
                   className="lw-input-small"
                   value={config.target || 0}
@@ -43,6 +42,7 @@ export default function EntityTargets({ entities, updateTargets, distributionTar
                   }}
                   integer
                 />
+                </label>
               </div>
               {config.comment && (
                 <span className="lw-comment" style={{ marginTop: 0, marginLeft: "8px" }}>

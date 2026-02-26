@@ -185,7 +185,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
         </div>
 
         <div className="illuminator-form-group">
-          <label className="illuminator-label">Parallel workers</label>
+          <span className="illuminator-label">Parallel workers</span>
           <div className="cfgp-workers-row">
             <input
               type="range"

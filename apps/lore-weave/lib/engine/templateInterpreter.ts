@@ -1041,7 +1041,7 @@ export class TemplateInterpreter {
     const resolvedCultureId = refEntity?.culture || culture;
     return {
       ...spec,
-      anchor: { ...spec.anchor, id: resolvedCultureId }
+      anchor: { ...spec.anchor, id: resolvedCultureId } as PlacementAnchor
     };
   }
 

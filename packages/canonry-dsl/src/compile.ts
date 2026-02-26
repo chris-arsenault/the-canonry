@@ -1662,7 +1662,8 @@ function parseRelationshipKindInline(
         });
         return null;
       }
-      statements.push(makeAttributeStatement('description', value, stmt.span));
+      const descValue = items[index + 1];
+      statements.push(makeAttributeStatement('description', descValue, stmt.span));
       index += 2;
       continue;
     }
@@ -7996,7 +7997,10 @@ function buildEraItem(block: BlockNode, diagnostics: Diagnostic[]): Record<strin
     }
 
     if (stmt.type === 'block') {
-      if (applySetFieldBlock(stmt, item, diagnostics)) continue;
+      if (SET_FIELD_KEYS.has(stmt.name)) {
+        applySetFieldBlock(stmt, item, diagnostics);
+        continue;
+      }
       const child = buildObjectFromStatements(stmt.body, diagnostics, stmt);
       if (stmt.labels.length > 0) {
         const existingId = child.id;
@@ -10965,7 +10969,8 @@ function applyLabeledAttributeDsl(
     return true;
   }
   if (key === 'applicability') {
-    return addApplicabilityEntry(labels, stmt.value, obj, ctx.diagnostics, ctx.parent);
+    addApplicabilityEntry(labels, stmt.value, obj, ctx.diagnostics, ctx.parent);
+    return true;
   }
 
   return false;
@@ -11298,16 +11303,20 @@ function applyLabeledAttribute(
   if (labels.length === 0) return false;
 
   if (key === 'create') {
-    return addCreationEntry(labels, stmt.value, obj, diagnostics, parent);
+    addCreationEntry(labels, stmt.value, obj, diagnostics, parent);
+    return true;
   }
   if (key === 'relationship' || key === 'rel') {
-    return addRelationshipEntry(labels, stmt.value, obj, diagnostics, parent);
+    addRelationshipEntry(labels, stmt.value, obj, diagnostics, parent);
+    return true;
   }
   if (key === 'var' || key === 'variable' || key === 'let') {
-    return addVariableEntry(labels, stmt.value, obj, diagnostics, parent);
+    addVariableEntry(labels, stmt.value, obj, diagnostics, parent);
+    return true;
   }
   if (key === 'applicability') {
-    return addApplicabilityEntry(labels, stmt.value, obj, diagnostics, parent);
+    addApplicabilityEntry(labels, stmt.value, obj, diagnostics, parent);
+    return true;
   }
 
   return false;
@@ -11320,19 +11329,24 @@ function applySpecialBlock(
 ): boolean {
   const key = stmt.name;
   if (SET_FIELD_KEYS.has(key)) {
-    return applySetFieldBlock(stmt, obj, diagnostics);
+    applySetFieldBlock(stmt, obj, diagnostics);
+    return true;
   }
   if (key === 'create') {
-    return addCreationEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    addCreationEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    return true;
   }
   if (key === 'relationship' || key === 'rel') {
-    return addRelationshipEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    addRelationshipEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    return true;
   }
   if (key === 'var' || key === 'variable' || key === 'let') {
-    return addVariableEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    addVariableEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    return true;
   }
   if (key === 'applicability') {
-    return addApplicabilityEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    addApplicabilityEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    return true;
   }
   return false;
 }
@@ -11546,11 +11560,10 @@ function applySetFieldBlock(
   stmt: BlockNode,
   obj: Record<string, unknown>,
   diagnostics: Diagnostic[]
-): boolean {
+): void {
   const parsed = parseSetBlockItems(stmt.body, diagnostics, stmt);
-  if (!parsed) return true;
+  if (!parsed) return;
   mergeSetFieldValue(obj, stmt.name, parsed, diagnostics, stmt.span);
-  return true;
 }
 
 function parseInlineKeyValuePairs(
@@ -12000,6 +12013,7 @@ function parseResourceReferenceString(
   return resolved;
 }
 
+// eslint-disable-next-line sonarjs/function-return-type -- union return by design: single string, array of strings, or null on error
 function parseResourceReferenceValue(
   value: Value,
   diagnostics: Diagnostic[],

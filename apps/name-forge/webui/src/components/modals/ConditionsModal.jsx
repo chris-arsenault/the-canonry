@@ -55,7 +55,7 @@ function ConditionsModal({ isOpen, onClose, conditions, onChange, tagRegistry = 
 
       {/* Prominence */}
       <div className="form-group">
-        <label>Prominence Levels</label>
+        <span>Prominence Levels</span>
         <div className="flex flex-wrap gap-sm mt-xs">
           {PROMINENCE_LEVELS.map((level) => {
             const isSelected = (localConditions.prominence || []).includes(level);

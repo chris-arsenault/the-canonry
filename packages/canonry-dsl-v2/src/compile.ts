@@ -1794,7 +1794,8 @@ function parseRelationshipKindInline(
         });
         return null;
       }
-      statements.push(makeAttributeStatement('description', value, stmt.span));
+      const descValue = items[index + 1];
+      statements.push(makeAttributeStatement('description', descValue, stmt.span));
       index += 2;
       continue;
     }
@@ -8470,7 +8471,10 @@ function buildEraItem(block: BlockNode, diagnostics: Diagnostic[]): Record<strin
     }
 
     if (stmt.type === 'block') {
-      if (applySetFieldBlock(stmt, item, diagnostics)) continue;
+      if (SET_FIELD_KEYS.has(stmt.name)) {
+        applySetFieldBlock(stmt, item, diagnostics);
+        continue;
+      }
       const child = buildObjectFromStatements(stmt.body, diagnostics, stmt);
       if (stmt.labels.length > 0) {
         const existingId = child.id;
@@ -9394,7 +9398,8 @@ function applyActionLabeledAttribute(
   if (labels.length === 0) return false;
 
   if (key === 'let' || key === 'var' || key === 'variable') {
-    return addVariableEntryDsl(labels, stmt.value, obj, ctx, { useBareKey: true });
+    addVariableEntryDsl(labels, stmt.value, obj, ctx, { useBareKey: true });
+    return true;
   }
 
   return false;
@@ -12123,6 +12128,7 @@ function parseGraphPathStepBlock(
   return step;
 }
 
+// eslint-disable-next-line sonarjs/function-return-type -- union return by design: single string, array of strings, or null on error
 function parseViaToken(
   token: unknown,
   ctx: GeneratorContext,
@@ -12624,16 +12630,20 @@ function applyLabeledAttributeDsl(
   if (labels.length === 0) return false;
 
   if (key === 'create') {
-    return addCreationEntryDsl(labels, stmt.value, obj, ctx);
+    addCreationEntryDsl(labels, stmt.value, obj, ctx);
+    return true;
   }
   if (key === 'relationship' || key === 'rel') {
-    return addRelationshipEntryDsl(labels, stmt.value, obj, ctx);
+    addRelationshipEntryDsl(labels, stmt.value, obj, ctx);
+    return true;
   }
   if (key === 'var' || key === 'variable' || key === 'let') {
-    return addVariableEntryDsl(labels, stmt.value, obj, ctx);
+    addVariableEntryDsl(labels, stmt.value, obj, ctx);
+    return true;
   }
   if (key === 'applicability') {
-    return addApplicabilityEntry(labels, stmt.value, obj, ctx.diagnostics, ctx.parent);
+    addApplicabilityEntry(labels, stmt.value, obj, ctx.diagnostics, ctx.parent);
+    return true;
   }
 
   return false;
@@ -12644,7 +12654,7 @@ function addCreationEntryDsl(
   rawValue: Value | Record<string, unknown>,
   obj: Record<string, unknown>,
   ctx: GeneratorContext
-): boolean {
+): void {
   const label = labels[0];
   if (!label) {
     ctx.diagnostics.push({
@@ -12652,21 +12662,20 @@ function addCreationEntryDsl(
       message: 'create requires an entity label',
       span: ctx.parent.span
     });
-    return true;
+    return;
   }
   const normalizedLabel = normalizeDeclaredBinding(label, ctx);
-  if (!normalizedLabel) return true;
+  if (!normalizedLabel) return;
 
   const value = isRecord(rawValue)
     ? rawValue
     : parseInlineKeyValuePairs(rawValue, ctx.diagnostics, ctx.parent, 'create');
-  if (!value) return true;
+  if (!value) return;
 
   value.entityRef = normalizedLabel;
   normalizeRefsInObject(value, ctx);
   normalizeTagMapField(value, 'tags', ctx.diagnostics, ctx.parent.span);
   pushArrayValue(obj, 'creation', value);
-  return true;
 }
 
 function normalizeTagMapField(
@@ -12806,7 +12815,7 @@ function addRelationshipEntryDsl(
   rawValue: Value | Record<string, unknown>,
   obj: Record<string, unknown>,
   ctx: GeneratorContext
-): boolean {
+): void {
   const [kind, src, dst] = labels;
   if (!kind || !src || !dst) {
     ctx.diagnostics.push({
@@ -12814,17 +12823,17 @@ function addRelationshipEntryDsl(
       message: 'relationship requires labels: <kind> <src> <dst>',
       span: ctx.parent.span
     });
-    return true;
+    return;
   }
 
   const value = isRecord(rawValue)
     ? rawValue
     : parseInlineKeyValuePairs(rawValue, ctx.diagnostics, ctx.parent, 'relationship');
-  if (!value) return true;
+  if (!value) return;
 
   const normalizedSrc = resolveRequiredRefName(src, ctx, ctx.parent.span, 'src');
   const normalizedDst = resolveRequiredRefName(dst, ctx, ctx.parent.span, 'dst');
-  if (!normalizedSrc || !normalizedDst) return true;
+  if (!normalizedSrc || !normalizedDst) return;
 
   value.kind = kind;
   value.src = normalizedSrc;
@@ -12839,7 +12848,6 @@ function addRelationshipEntryDsl(
 
   normalizeRefsInObject(value, ctx);
   pushArrayValue(obj, 'relationships', value);
-  return true;
 }
 
 function addVariableEntryDsl(
@@ -12848,7 +12856,7 @@ function addVariableEntryDsl(
   obj: Record<string, unknown>,
   ctx: GeneratorContext,
   options: { useBareKey?: boolean } = {}
-): boolean {
+): void {
   const varName = labels[0];
   if (!varName) {
     ctx.diagnostics.push({
@@ -12856,18 +12864,18 @@ function addVariableEntryDsl(
       message: 'let requires a variable name label',
       span: ctx.parent.span
     });
-    return true;
+    return;
   }
 
   const normalizedName = normalizeDeclaredBinding(varName, ctx);
-  if (!normalizedName) return true;
+  if (!normalizedName) return;
   const shouldStrip = options.useBareKey && !varName.startsWith('$');
   const storageName = shouldStrip ? normalizedName.replace(/^\$/, '') : normalizedName;
 
   const value = isRecord(rawValue)
     ? rawValue
     : parseInlineKeyValuePairs(rawValue, ctx.diagnostics, ctx.parent, 'variable');
-  if (!value) return true;
+  if (!value) return;
 
   normalizeRefsInObject(value, ctx);
 
@@ -12884,7 +12892,7 @@ function addVariableEntryDsl(
       message: 'variables must be an object',
       span: ctx.parent.span
     });
-    return true;
+    return;
   }
 
   if (Object.prototype.hasOwnProperty.call(variables, storageName)) {
@@ -12893,11 +12901,10 @@ function addVariableEntryDsl(
       message: `Duplicate variable "${storageName}"`,
       span: ctx.parent.span
     });
-    return true;
+    return;
   }
 
   variables[storageName] = value;
-  return true;
 }
 
 function addMutationEntryDsl(
@@ -13118,16 +13125,20 @@ function applyLabeledAttribute(
   if (labels.length === 0) return false;
 
   if (key === 'create') {
-    return addCreationEntry(labels, stmt.value, obj, diagnostics, parent);
+    addCreationEntry(labels, stmt.value, obj, diagnostics, parent);
+    return true;
   }
   if (key === 'relationship' || key === 'rel') {
-    return addRelationshipEntry(labels, stmt.value, obj, diagnostics, parent);
+    addRelationshipEntry(labels, stmt.value, obj, diagnostics, parent);
+    return true;
   }
   if (key === 'var' || key === 'variable' || key === 'let') {
-    return addVariableEntry(labels, stmt.value, obj, diagnostics, parent);
+    addVariableEntry(labels, stmt.value, obj, diagnostics, parent);
+    return true;
   }
   if (key === 'applicability') {
-    return addApplicabilityEntry(labels, stmt.value, obj, diagnostics, parent);
+    addApplicabilityEntry(labels, stmt.value, obj, diagnostics, parent);
+    return true;
   }
 
   return false;
@@ -13140,19 +13151,24 @@ function applySpecialBlock(
 ): boolean {
   const key = stmt.name;
   if (SET_FIELD_KEYS.has(key)) {
-    return applySetFieldBlock(stmt, obj, diagnostics);
+    applySetFieldBlock(stmt, obj, diagnostics);
+    return true;
   }
   if (key === 'create') {
-    return addCreationEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    addCreationEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    return true;
   }
   if (key === 'relationship' || key === 'rel') {
-    return addRelationshipEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    addRelationshipEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    return true;
   }
   if (key === 'var' || key === 'variable' || key === 'let') {
-    return addVariableEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    addVariableEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    return true;
   }
   if (key === 'applicability') {
-    return addApplicabilityEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    addApplicabilityEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    return true;
   }
   return false;
 }
@@ -13275,42 +13291,41 @@ function mergeListFieldValue(
   parsed: { items: string[]; none: boolean },
   diagnostics: Diagnostic[],
   span: BlockNode['span']
-): boolean {
+): void {
   const existing = obj[key];
   if (parsed.none) {
     if (existing === undefined) {
       obj[key] = [];
-      return true;
+      return;
     }
     if (Array.isArray(existing) && existing.length === 0) {
-      return true;
+      return;
     }
     diagnostics.push({
       severity: 'error',
       message: `${key} cannot combine none with other values`,
       span
     });
-    return true;
+    return;
   }
 
   if (existing === undefined) {
     obj[key] = [...parsed.items];
-    return true;
+    return;
   }
   if (Array.isArray(existing)) {
     existing.push(...parsed.items);
-    return true;
+    return;
   }
   if (typeof existing === 'string') {
     obj[key] = [existing, ...parsed.items];
-    return true;
+    return;
   }
   diagnostics.push({
     severity: 'error',
     message: `${key} only supports identifiers or strings`,
     span
   });
-  return true;
 }
 
 function resolveSetIncludes(
@@ -13382,19 +13397,19 @@ function mergeSetFieldValue(
   parsed: { items: string[]; includes: string[]; none: boolean },
   diagnostics: Diagnostic[],
   span: BlockNode['span']
-): boolean {
+): void {
   const existing = obj[key];
   if (parsed.none) {
     if (existing === undefined || existing === 'none') {
       obj[key] = [];
-      return true;
+      return;
     }
     diagnostics.push({
       severity: 'error',
       message: 'none cannot be combined with other set items',
       span
     });
-    return true;
+    return;
   }
 
   if (existing === 'none') {
@@ -13403,14 +13418,14 @@ function mergeSetFieldValue(
       message: 'none cannot be combined with other set items',
       span
     });
-    return true;
+    return;
   }
 
   const resolvedIncludes = resolveSetIncludes(parsed.includes, diagnostics, span);
-  if (!resolvedIncludes) return true;
+  if (!resolvedIncludes) return;
 
   const existingItems = normalizeExistingSetValue(existing, diagnostics, span);
-  if (!existingItems) return true;
+  if (!existingItems) return;
   const merged = [...existingItems];
   const seen = new Set(merged);
   for (const item of [...resolvedIncludes, ...parsed.items]) {
@@ -13419,7 +13434,6 @@ function mergeSetFieldValue(
     merged.push(item);
   }
   obj[key] = merged;
-  return true;
 }
 
 function applySetFieldAttribute(
@@ -13450,17 +13464,18 @@ function applySetFieldAttribute(
   }
   const parsed = parseSetTokens(tokens, diagnostics, stmt.span);
   if (!parsed) return true;
-  return mergeSetFieldValue(obj, key, parsed, diagnostics, stmt.span);
+  mergeSetFieldValue(obj, key, parsed, diagnostics, stmt.span);
+  return true;
 }
 
 function applySetFieldBlock(
   stmt: BlockNode,
   obj: Record<string, unknown>,
   diagnostics: Diagnostic[]
-): boolean {
+): void {
   const parsed = parseSetBlockItems(stmt.body, diagnostics, stmt);
-  if (!parsed) return true;
-  return mergeSetFieldValue(obj, stmt.name, parsed, diagnostics, stmt.span);
+  if (!parsed) return;
+  mergeSetFieldValue(obj, stmt.name, parsed, diagnostics, stmt.span);
 }
 
 function parseInlineKeyValuePairs(
@@ -13529,7 +13544,7 @@ function addCreationEntry(
   obj: Record<string, unknown>,
   diagnostics: Diagnostic[],
   parent: BlockNode
-): boolean {
+): void {
   const entityRef = labels[0];
   if (!entityRef) {
     diagnostics.push({
@@ -13537,13 +13552,13 @@ function addCreationEntry(
       message: 'create requires an entityRef label',
       span: parent.span
     });
-    return true;
+    return;
   }
 
   const value = isRecord(rawValue)
     ? rawValue
     : parseInlineKeyValuePairs(rawValue, diagnostics, parent, 'create');
-  if (!value) return true;
+  if (!value) return;
 
   const existingRef = value.entityRef;
   if (existingRef !== undefined) {
@@ -13553,7 +13568,7 @@ function addCreationEntry(
         message: 'create entityRef must be a string',
         span: parent.span
       });
-      return true;
+      return;
     }
     if (existingRef !== entityRef) {
       diagnostics.push({
@@ -13561,7 +13576,7 @@ function addCreationEntry(
         message: `create entityRef mismatch: label "${entityRef}" vs value "${existingRef}"`,
         span: parent.span
       });
-      return true;
+      return;
     }
   } else {
     value.entityRef = entityRef;
@@ -13569,7 +13584,6 @@ function addCreationEntry(
 
   normalizeTagMapField(value, 'tags', diagnostics, parent.span);
   pushArrayValue(obj, 'creation', value);
-  return true;
 }
 
 function addRelationshipEntry(
@@ -13578,7 +13592,7 @@ function addRelationshipEntry(
   obj: Record<string, unknown>,
   diagnostics: Diagnostic[],
   parent: BlockNode
-): boolean {
+): void {
   const [kind, src, dst] = labels;
   if (!kind || !src || !dst) {
     diagnostics.push({
@@ -13586,20 +13600,19 @@ function addRelationshipEntry(
       message: 'relationship requires labels: <kind> <src> <dst>',
       span: parent.span
     });
-    return true;
+    return;
   }
 
   const value = isRecord(rawValue)
     ? rawValue
     : parseInlineKeyValuePairs(rawValue, diagnostics, parent, 'relationship');
-  if (!value) return true;
+  if (!value) return;
 
-  if (!applyLabelField(value, 'kind', kind, diagnostics, parent)) return true;
-  if (!applyLabelField(value, 'src', src, diagnostics, parent)) return true;
-  if (!applyLabelField(value, 'dst', dst, diagnostics, parent)) return true;
+  if (!applyLabelField(value, 'kind', kind, diagnostics, parent)) return;
+  if (!applyLabelField(value, 'src', src, diagnostics, parent)) return;
+  if (!applyLabelField(value, 'dst', dst, diagnostics, parent)) return;
 
   pushArrayValue(obj, 'relationships', value);
-  return true;
 }
 
 function addVariableEntry(
@@ -13608,7 +13621,7 @@ function addVariableEntry(
   obj: Record<string, unknown>,
   diagnostics: Diagnostic[],
   parent: BlockNode
-): boolean {
+): void {
   const varName = labels[0];
   if (!varName) {
     diagnostics.push({
@@ -13616,13 +13629,13 @@ function addVariableEntry(
       message: 'var requires a variable name label',
       span: parent.span
     });
-    return true;
+    return;
   }
 
   const value = isRecord(rawValue)
     ? rawValue
     : parseInlineKeyValuePairs(rawValue, diagnostics, parent, 'variable');
-  if (!value) return true;
+  if (!value) return;
 
   if (!isRecord(value.select)) {
     const select: Record<string, unknown> = {};
@@ -13710,7 +13723,7 @@ function addVariableEntry(
       message: 'variables must be an object',
       span: parent.span
     });
-    return true;
+    return;
   }
 
   if (Object.prototype.hasOwnProperty.call(variables, varName)) {
@@ -13719,11 +13732,10 @@ function addVariableEntry(
       message: `Duplicate variable "${varName}"`,
       span: parent.span
     });
-    return true;
+    return;
   }
 
   variables[varName] = value;
-  return true;
 }
 
 function addApplicabilityEntry(
@@ -13732,7 +13744,7 @@ function addApplicabilityEntry(
   obj: Record<string, unknown>,
   diagnostics: Diagnostic[],
   parent: BlockNode
-): boolean {
+): void {
   const typeLabel = labels[0];
   if (!typeLabel) {
     diagnostics.push({
@@ -13740,18 +13752,17 @@ function addApplicabilityEntry(
       message: 'applicability requires a type label',
       span: parent.span
     });
-    return true;
+    return;
   }
 
   const value = isRecord(rawValue)
     ? rawValue
     : parseInlineKeyValuePairs(rawValue, diagnostics, parent, 'applicability');
-  if (!value) return true;
+  if (!value) return;
 
-  if (!applyLabelField(value, 'type', typeLabel, diagnostics, parent)) return true;
+  if (!applyLabelField(value, 'type', typeLabel, diagnostics, parent)) return;
 
   pushArrayValue(obj, 'applicability', value);
-  return true;
 }
 
 function applyLabelField(
@@ -13915,6 +13926,7 @@ function parseResourceReferenceString(
   return resolved;
 }
 
+// eslint-disable-next-line sonarjs/function-return-type -- union return by design: single string, array of strings, or null on error
 function parseResourceReferenceValue(
   value: Value,
   diagnostics: Diagnostic[],

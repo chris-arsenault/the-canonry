@@ -64,16 +64,17 @@ export function OverviewTab({ generator, onChange, onDelete, onDuplicate }) {
         </div>
 
         <div style={{ marginTop: "16px" }}>
-          <label className="label">Enabled</label>
+          <label className="label">Enabled
           <EnableToggle
             enabled={generator.enabled !== false}
             onChange={(enabled) => updateField("enabled", enabled)}
             label={generator.enabled !== false ? "Generator is active" : "Generator is disabled"}
           />
+          </label>
         </div>
 
         <div style={{ marginTop: "16px" }}>
-          <label className="label">Narration Template</label>
+          <span className="label">Narration Template</span>
           <div className="section-desc" style={{ marginBottom: "8px" }}>
             Syntax: {"{$target.field}"}, {"{$var.field}"}, {"{count:kind}"}, {"{list:created}"},{" "}
             {"{field|fallback}"}.

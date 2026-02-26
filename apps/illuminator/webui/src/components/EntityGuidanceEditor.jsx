@@ -246,7 +246,7 @@ function TemplateSection({ section, value, onChange, disabled }) {
   return (
     <div className="illuminator-template-section">
       <div className="illuminator-template-section-header">
-        <label className="illuminator-label">{section.label}</label>
+        <span className="illuminator-label">{section.label}</span>
         <span className="illuminator-template-section-hint">{section.description}</span>
       </div>
       <LocalTextArea
@@ -513,7 +513,7 @@ export default function EntityGuidanceEditor({
         {entityKinds.length > 0 && (
           <div className="illuminator-template-kind-section">
             <div className="illuminator-template-kind-header">
-              <label className="illuminator-label">Entity Kind</label>
+              <span className="illuminator-label">Entity Kind</span>
             </div>
             <KindSelector
               kinds={entityKinds}

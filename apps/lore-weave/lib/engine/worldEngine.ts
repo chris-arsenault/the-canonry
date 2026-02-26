@@ -1,4 +1,4 @@
-import { Graph, GraphStore, EngineConfig, Era, GrowthTemplate, Pressure, SimulationSystem, EpochEraSummary, EpochEraTransitionSummary } from '../engine/types';
+import { Graph, GraphStore, EngineConfig, Era, GrowthTemplate, Pressure, SimulationSystem, SystemResult, EpochEraSummary, EpochEraTransitionSummary } from '../engine/types';
 import { createPressureFromDeclarative, evaluatePressureGrowthWithBreakdown } from './pressureInterpreter';
 import { DeclarativePressure } from './declarativePressureTypes';
 import { TemplateInterpreter, createTemplateFromDeclarative } from './templateInterpreter';
@@ -29,7 +29,7 @@ import { coordinateStats } from '../coordinates/coordinateStatistics';
 import { DistributionTargets, SimulationStatistics, ValidationStats } from '../statistics/types';
 import { FrameworkValidator } from './frameworkValidator';
 import { ContractEnforcer } from './contractEnforcer';
-import { FRAMEWORK_ENTITY_KINDS, FRAMEWORK_STATUS, FRAMEWORK_TAGS, type NarrativeEvent } from '@canonry/world-schema';
+import { FRAMEWORK_ENTITY_KINDS, FRAMEWORK_STATUS, FRAMEWORK_TAGS, type ExecutionSource, type NarrativeEvent } from '@canonry/world-schema';
 import { applyTagPatch } from '../rules';
 import { createEraEntity } from '../systems/eraSpawner';
 import type {
@@ -53,13 +53,13 @@ const LORE_WEAVE_VERSION = '2025-12-23.1';
 export class WorldEngine {
   private config: EngineConfig;
   private emitter: ISimulationEmitter;  // REQUIRED - emits all simulation events
-  private runtimePressures: Pressure[];  // Converted from declarative pressures
-  private declarativePressures: Map<string, DeclarativePressure>;  // Original declarative pressures for breakdown
-  private runtimeTemplates: GrowthTemplate[];  // Converted from declarative templates
-  private declarativeTemplates: Map<string, DeclarativeTemplate>;  // Original declarative templates for diagnostics
-  private runtimeSystems: SimulationSystem[];  // Converted from declarative systems
+  private runtimePressures!: Pressure[];  // Converted from declarative pressures
+  private declarativePressures!: Map<string, DeclarativePressure>;  // Original declarative pressures for breakdown
+  private runtimeTemplates!: GrowthTemplate[];  // Converted from declarative templates
+  private declarativeTemplates!: Map<string, DeclarativeTemplate>;  // Original declarative templates for diagnostics
+  private runtimeSystems!: SimulationSystem[];  // Converted from declarative systems
   private growthSystem?: GrowthSystem;  // Distributed growth system (framework-managed)
-  private templateInterpreter: TemplateInterpreter;  // Interprets declarative templates
+  private templateInterpreter!: TemplateInterpreter;  // Interprets declarative templates
   private graph: Graph;
   private runtime!: WorldRuntime;
   private currentEpoch: number;
@@ -520,7 +520,7 @@ export class WorldEngine {
     if ('apply' in sys && typeof sys.apply === 'function') {
       const runtime = sys as SimulationSystem;
       if (!this.growthSystem && (runtime.id === 'growth' || runtime.id === 'framework-growth')) {
-        this.growthSystem = runtime;
+        this.growthSystem = runtime as GrowthSystem;
         return;
       }
       runtimeSystems.push(runtime);
@@ -2098,7 +2098,7 @@ export class WorldEngine {
    * Enter mutation context for an item with optional action/narrative group context.
    */
   private enterItemContext(
-    item: { actionContext?: { source: string; sourceId: string; success?: boolean }; narrativeGroupId?: string },
+    item: { actionContext?: { source: ExecutionSource; sourceId: string; success?: boolean }; narrativeGroupId?: string },
     systemId: string,
     narrationsByGroup?: Record<string, string>
   ): { hasActionContext: boolean; hasNarrativeGroup: boolean } {
@@ -2256,7 +2256,7 @@ export class WorldEngine {
     for (const [pressure, delta] of Object.entries(result.pressureChanges)) {
       const current = this.graph.pressures.get(pressure) || 0;
       this.graph.pressures.set(pressure, Math.max(-100, Math.min(100, current + Number(delta))));
-      this.trackPressureModification(pressure, delta, { type: 'system', systemId });
+      this.trackPressureModification(pressure, Number(delta), { type: 'system', systemId });
     }
   }
 
@@ -2347,7 +2347,7 @@ export class WorldEngine {
     if (result.narrationsByGroup && Object.keys(result.narrationsByGroup).length > 0) {
       if (systemId === 'universal_catalyst') {
         for (const [groupId, narration] of Object.entries(result.narrationsByGroup)) {
-          this.stateChangeTracker.recordNarration('action', groupId, narration);
+          this.stateChangeTracker.recordNarration('action', groupId, narration as string);
         }
       } else {
         this.stateChangeTracker.recordNarrationsByGroup('system', systemId, result.narrationsByGroup);

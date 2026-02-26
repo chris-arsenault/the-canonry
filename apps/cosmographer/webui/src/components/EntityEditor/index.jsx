@@ -459,7 +459,7 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
             <div style={styles.formTitle}>Edit Entity</div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Name</label>
+              <span style={styles.label}>Name</span>
               <div style={styles.nameRow}>
                 <input
                   style={{ ...styles.input, ...styles.nameInput }}
@@ -600,7 +600,7 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Coordinates</label>
+              <span style={styles.label}>Coordinates</span>
               <div style={styles.coordsDisplay}>
                 {["x", "y", "z"].map((axis) => (
                   <div key={axis} style={styles.coordItem}>

@@ -128,7 +128,7 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
           {selectedCulture && selectedCultureLists.length > 0 && (
             <div className="form-group">
               <div className="flex justify-between align-center mb-sm">
-                <label className="mb-0">Select Lists to Copy</label>
+                <span className="mb-0">Select Lists to Copy</span>
                 <div className="flex gap-sm">
                   <button className="secondary sm" onClick={selectAll}>
                     All

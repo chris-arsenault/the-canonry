@@ -372,7 +372,7 @@ function CreationCard({
           {/* SUBTYPE EDITOR */}
           {item.kind && (
             <div style={{ marginTop: "16px" }}>
-              <label className="label">Subtype (required)</label>
+              <span className="label">Subtype (required)</span>
               <div className="form-grid">
                 <ReferenceDropdown
                   label="Mode"
@@ -438,7 +438,7 @@ function CreationCard({
 
 
           <div style={{ marginTop: "16px" }}>
-            <label className="label">Culture</label>
+            <span className="label">Culture</span>
             <div className="form-grid">
               <ReferenceDropdown
                 label="Mode"
@@ -481,7 +481,7 @@ function CreationCard({
 
           {/* PLACEMENT EDITOR */}
           <div style={{ marginTop: "16px" }}>
-            <label className="label">Placement</label>
+            <span className="label">Placement</span>
             <div className="form-help-text">
               Configure semantic placement. Semantic planes are per-kind; cross-kind anchors are not
               allowed.
@@ -641,12 +641,12 @@ function CreationCard({
                     }}
                   >
                     <div></div>
-                    <label className="label" style={{ textAlign: "center" }}>
+                    <span className="label" style={{ textAlign: "center" }}>
                       Min
-                    </label>
-                    <label className="label" style={{ textAlign: "center" }}>
+                    </span>
+                    <span className="label" style={{ textAlign: "center" }}>
                       Max
-                    </label>
+                    </span>
 
                     <label className="label">X
                     <NumberInput
@@ -895,7 +895,7 @@ function CreationCard({
 
           {/* TAGS EDITOR */}
           <div style={{ marginTop: "16px" }}>
-            <label className="label">Tags</label>
+            <span className="label">Tags</span>
             <div className="form-help-text">
               Assign tags to this entity for filtering, naming profiles, and system targeting.
             </div>
@@ -917,7 +917,7 @@ function CreationCard({
 
           {/* DESCRIPTION EDITOR */}
           <div style={{ marginTop: "16px" }}>
-            <label className="label">Description (optional)</label>
+            <span className="label">Description (optional)</span>
             <div className="form-help-text">
               A description for the created entity. Leave empty to auto-generate.
             </div>
@@ -1251,7 +1251,7 @@ function VariantEffectsEditor({
             return (
               <div key={ref} className="form-grid" style={{ marginBottom: "8px" }}>
                 <div className="form-group">
-                  <label className="label">{ref}</label>
+                  <span className="label">{ref}</span>
                   <div className="form-help-text">{kind || "Unknown kind"}</div>
                 </div>
                 <ReferenceDropdown
@@ -1477,7 +1477,7 @@ function VariantCard({
           </div>
 
           <div style={{ marginTop: "16px" }}>
-            <label className="label">Condition</label>
+            <span className="label">Condition</span>
             <div className="form-help-text">When should this variant apply?</div>
             <VariantConditionEditor
               condition={variant.when}
@@ -1490,7 +1490,7 @@ function VariantCard({
           </div>
 
           <div style={{ marginTop: "16px" }}>
-            <label className="label">Effects</label>
+            <span className="label">Effects</span>
             <div className="form-help-text">
               What modifications to apply when this variant is selected.
             </div>

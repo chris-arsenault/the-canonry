@@ -167,7 +167,7 @@ export function VariableSelectionEditor({
 
         {isPathMode && (
           <div style={{ gridColumn: "1 / -1" }}>
-            <label className="label">Path Steps</label>
+            <span className="label">Path Steps</span>
             <div className="info-box-text" style={{ marginBottom: "12px", fontSize: "12px" }}>
               Multi-hop traversal from the starting entity through relationships.
             </div>
@@ -309,7 +309,7 @@ export function VariableSelectionEditor({
       </div>
 
       <div style={{ marginTop: "24px" }}>
-        <label className="label">Selection Filters</label>
+        <span className="label">Selection Filters</span>
         <div className="info-box-text" style={{ marginBottom: "12px", fontSize: "12px" }}>
           Optional filters to narrow down which entities can be selected. All filters must pass.
         </div>
@@ -323,7 +323,7 @@ export function VariableSelectionEditor({
 
       {allowPreferFilters && (
         <div style={{ marginTop: "24px" }}>
-          <label className="label">Prefer Filters (optional)</label>
+          <span className="label">Prefer Filters (optional)</span>
           <div className="info-box-text" style={{ marginBottom: "12px", fontSize: "12px" }}>
             Preferred matches. If no entities match these filters, selection falls back to all
             matches.

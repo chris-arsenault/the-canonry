@@ -253,7 +253,7 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
 
           {/* Alignment */}
           <div>
-            <label className="bie-control-label">Align</label>
+            <span className="bie-control-label">Align</span>
             <button
               onClick={() => handleAlignmentChange("left")}
               className={`bie-align-btn bie-align-btn-left ${currentAlignment === "left" ? "bie-align-btn-active" : "bie-align-btn-inactive"}`}

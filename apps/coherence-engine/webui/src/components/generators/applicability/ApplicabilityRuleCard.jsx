@@ -310,7 +310,7 @@ export function ApplicabilityRuleCard({
 
             {rule.type === "random_chance" && (
               <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-                <label className="label">Chance (%)</label>
+                <span className="label">Chance (%)</span>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <input
                     type="range"

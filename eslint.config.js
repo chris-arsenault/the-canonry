@@ -116,7 +116,7 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       ...jsxA11y.configs.recommended.rules,
       "jsx-a11y/label-has-associated-control": ["error", {
-        controlComponents: ["NumberInput", "LocalTextArea", "TagSelector", "ReferenceDropdown", "ChipSelect", "LevelSelector"],
+        controlComponents: ["NumberInput", "LocalTextArea", "TagSelector", "ReferenceDropdown", "ChipSelect", "LevelSelector", "MultiSelectPills", "EnableToggle"],
         depth: 3,
       }],
       "react/react-in-jsx-scope": "warn",
