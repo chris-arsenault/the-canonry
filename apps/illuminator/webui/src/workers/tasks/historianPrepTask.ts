@@ -59,15 +59,17 @@ ${historianConfig.background}
 **Your stance toward this material:** ${historianConfig.stance}`);
 
   if (historianConfig.privateFacts.length > 0) {
+    const prepPrivateFactsList = historianConfig.privateFacts.map((f) => `- ${f}`).join("\n");
     sections.push(`## Private Knowledge (things you know that the texts don't always reflect)
 
-${historianConfig.privateFacts.map((f) => `- ${f}`).join("\n")}`);
+${prepPrivateFactsList}`);
   }
 
   if (historianConfig.runningGags.length > 0) {
+    const prepGagsList = historianConfig.runningGags.map((g) => `- ${g}`).join("\n");
     sections.push(`## Recurring Preoccupations
 
-${historianConfig.runningGags.map((g) => `- ${g}`).join("\n")}`);
+${prepGagsList}`);
   }
 
   sections.push(`## Your Task
@@ -116,9 +118,11 @@ function buildUserPrompt(chronicle: {
   const sections: string[] = [];
 
   // Chronicle identity
-  const eraInfo = chronicle.focalEraName
-    ? ` | Era: ${chronicle.focalEraName}${chronicle.eraYear ? ` (Year ${chronicle.eraYear})` : ""}`
-    : "";
+  let eraInfo = "";
+  if (chronicle.focalEraName) {
+    const yearSuffix = chronicle.eraYear ? ` (Year ${chronicle.eraYear})` : "";
+    eraInfo = ` | Era: ${chronicle.focalEraName}${yearSuffix}`;
+  }
   sections.push(`=== CHRONICLE ===
 Title: "${chronicle.title}"
 Format: ${chronicle.format}${eraInfo}`);
@@ -127,7 +131,8 @@ Format: ${chronicle.format}${eraInfo}`);
   if (chronicle.roleAssignments.length > 0) {
     const castLines = chronicle.roleAssignments.map((r) => {
       const role = r.roleName || (r.isPrimary ? "primary" : "supporting");
-      return `- ${r.entityName} (${role}${r.entityKind ? `, ${r.entityKind}` : ""})`;
+      const kindSuffix = r.entityKind ? `, ${r.entityKind}` : "";
+      return `- ${r.entityName} (${role}${kindSuffix})`;
     });
     sections.push(`=== CAST ===\n${castLines.join("\n")}`);
   }
@@ -144,8 +149,9 @@ Format: ${chronicle.format}${eraInfo}`);
   const contentText = truncated
     ? words.slice(0, maxContentWords).join(" ") + "\n\n[... remainder truncated for brevity ...]"
     : chronicle.content;
+  const truncationNote = truncated ? ` (first ~${maxContentWords} words of ${words.length})` : "";
   sections.push(
-    `=== CHRONICLE TEXT${truncated ? ` (first ~${maxContentWords} words of ${words.length})` : ""} ===\n${contentText}`
+    `=== CHRONICLE TEXT${truncationNote} ===\n${contentText}`
   );
 
   // Historian notes (if any accepted ones exist)

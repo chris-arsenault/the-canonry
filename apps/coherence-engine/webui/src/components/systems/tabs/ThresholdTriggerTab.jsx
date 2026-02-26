@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { CLUSTER_MODES } from "../constants";
 import { ReferenceDropdown, NumberInput, LocalTextArea } from "../../shared";
 import VariableSelectionEditor from "../../shared/VariableSelectionEditor";
@@ -48,6 +49,9 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
         onClick={() => setExpanded(!expanded)}
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         <div className="item-card-icon item-card-icon-variable">📦</div>
         <div className="item-card-info">
@@ -95,10 +99,11 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
                 Required
               </span>
               <span className="text-muted" style={{ fontSize: "11px" }}>
-                (Entity is skipped if this variable can't be resolved)
+                (Entity is skipped if this variable can&apos;t be resolved)
               </span>
             </label>
           </div>
+
 
           <VariableSelectionEditor
             value={selectConfig}
@@ -111,6 +116,15 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
     </div>
   );
 }
+
+VariableCard.propTypes = {
+  name: PropTypes.string.isRequired,
+  config: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  availableRefs: PropTypes.array,
+};
 
 const TRIGGER_MUTATION_TYPES = DEFAULT_MUTATION_TYPES;
 
@@ -322,13 +336,14 @@ export function ThresholdTriggerTab({ system, onChange, schema, pressures }) {
           <div className="item-card add-form">
             <div className="add-form-fields">
               <div style={{ flex: 1 }}>
-                <label className="label">Variable Name</label>
-                <input
+                <label htmlFor="variable-name" className="label">Variable Name</label>
+                <input id="variable-name"
                   type="text"
                   value={newVarName}
                   onChange={(e) => setNewVarName(e.target.value.replace(/[^a-zA-Z0-9_$]/g, ""))}
                   className="input"
                   placeholder="$myVariable"
+                  // eslint-disable-next-line jsx-a11y/no-autofocus
                   autoFocus
                 />
               </div>
@@ -429,7 +444,7 @@ export function ThresholdTriggerTab({ system, onChange, schema, pressures }) {
                 options={relationshipKindOptions}
               />
               <div className="form-group">
-                <label className="label">Min Cluster Size</label>
+                <label className="label">Min Cluster Size
                 <NumberInput
                   value={config.minClusterSize}
                   onChange={(v) => updateConfig("minClusterSize", v)}
@@ -437,6 +452,7 @@ export function ThresholdTriggerTab({ system, onChange, schema, pressures }) {
                   integer
                   allowEmpty
                 />
+                </label>
               </div>
             </>
           )}
@@ -458,3 +474,10 @@ export function ThresholdTriggerTab({ system, onChange, schema, pressures }) {
     </div>
   );
 }
+
+ThresholdTriggerTab.propTypes = {
+  system: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+};

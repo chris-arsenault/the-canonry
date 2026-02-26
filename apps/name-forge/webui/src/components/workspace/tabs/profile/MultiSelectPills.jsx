@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 
 /**
  * Multi-select pills component for selecting multiple options
@@ -46,3 +47,10 @@ export default function MultiSelectPills({ options, selected, onChange, allLabel
     </div>
   );
 }
+
+MultiSelectPills.propTypes = {
+  options: PropTypes.array,
+  selected: PropTypes.array,
+  onChange: PropTypes.func,
+  allLabel: PropTypes.string,
+};

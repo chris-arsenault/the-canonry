@@ -96,7 +96,7 @@ function ImageThumbnail({ imageId, alt, onClick }) {
   if (error || !url) return placeholder("No image", error || "Image not found");
 
   return (
-    <div ref={containerRef} className="eb-thumb-clickable" onClick={() => onClick(imageId, alt)}>
+    <div ref={containerRef} className="eb-thumb-clickable" onClick={() => onClick(imageId, alt)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
       <img src={url} alt={alt} className="eb-thumb-img" />
     </div>
   );
@@ -176,7 +176,7 @@ function EntityRow({
 
       {/* Entity info */}
       <div>
-        <div className="eb-row-name" onClick={onEntityClick} title="Click to view entity details">
+        <div className="eb-row-name" onClick={onEntityClick} title="Click to view entity details" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onEntityClick(e); }} >
           {entity.name}
         </div>
         <div className="eb-row-meta">
@@ -232,6 +232,9 @@ function EntityRow({
               className="eb-row-summary"
               onClick={onEntityClick}
               title="Click to view entity details"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onEntityClick(e); }}
             >
               {entity.summary}
             </div>
@@ -406,8 +409,52 @@ function getNavItemCostDisplay(navItem, type, status) {
   return undefined;
 }
 
+HighlightMatch.propTypes = {
+  text: PropTypes.string,
+  query: PropTypes.string,
+  truncate: PropTypes.number,
+  matchIndex: PropTypes.number,
+};
+
+ImageThumbnail.propTypes = {
+  imageId: PropTypes.string,
+  alt: PropTypes.string,
+  onClick: PropTypes.func,
+};
+
+EnrichmentStatusBadge.propTypes = {
+  status: PropTypes.string,
+  label: PropTypes.string,
+  cost: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+};
+
+EntityRow.propTypes = {
+  entity: PropTypes.object,
+  descStatus: PropTypes.string,
+  imgStatus: PropTypes.string,
+  thesisStatus: PropTypes.string,
+  selected: PropTypes.bool,
+  onToggleSelect: PropTypes.func,
+  onQueueDesc: PropTypes.func,
+  onQueueThesis: PropTypes.func,
+  onQueueImg: PropTypes.func,
+  onCancelDesc: PropTypes.func,
+  onCancelThesis: PropTypes.func,
+  onCancelImg: PropTypes.func,
+  onAssignImage: PropTypes.func,
+  canQueueImage: PropTypes.bool,
+  needsDescription: PropTypes.bool,
+  onImageClick: PropTypes.func,
+  onEntityClick: PropTypes.func,
+  onEditEntity: PropTypes.func,
+  onDeleteEntity: PropTypes.func,
+  descCost: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  imgCost: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  prominenceScale: PropTypes.object,
+};
+
 export default function EntityBrowser({
-  worldSchema,
+  worldSchema: _worldSchema,
   config,
   onConfigChange,
   buildPrompt,
@@ -423,9 +470,9 @@ export default function EntityBrowser({
   onNavigateToTab,
 }) {
   const navEntities = useEntityNavList();
-  const { handleAssignImage, handleDeleteEntity, handleClearNotes } = useEntityCrud();
+  const { handleAssignImage, handleDeleteEntity } = useEntityCrud();
   const { historianConfigured } = useHistorianActions();
-  const { openRename, openPatchEvents, openCreateEntity, openEditEntity, openImageSettings } =
+  const { openCreateEntity, openEditEntity, openImageSettings } =
     useIlluminatorModals();
   const queue = useEnrichmentQueueStore((s) => s.queue);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -446,8 +493,6 @@ export default function EntityBrowser({
   const [selectedEntityId, setSelectedEntityId] = useState(null);
   const [imagePickerEntity, setImagePickerEntity] = useState(null);
   const [showMotifWeaver, setShowMotifWeaver] = useState(false);
-  const imageModel = config.imageModel || "dall-e-3";
-
   // Get unique values for filters
   const filterOptions = useMemo(() => {
     const kinds = new Set();
@@ -1224,6 +1269,9 @@ export default function EntityBrowser({
                         key={entity.id}
                         onClick={() => handleSearchSelect(entity.id)}
                         className="eb-search-result"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                       >
                         <div className="eb-search-result-name">
                           <HighlightMatch text={entity.name} query={q} />
@@ -1260,6 +1308,9 @@ export default function EntityBrowser({
               onClick={() => {
                 setSearchOpen(false);
               }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
             />
           )}
         </div>
@@ -1369,10 +1420,10 @@ export default function EntityBrowser({
 
         {/* Min Event Significance for Descriptions */}
         <div className="eb-event-significance">
-          <label className="eb-event-significance-label">
+          <label htmlFor="min-event-importance-for-descriptions" className="eb-event-significance-label">
             Min Event Importance (for descriptions)
           </label>
-          <select
+          <select id="min-event-importance-for-descriptions"
             value={config.minEventSignificance ?? 0.25}
             onChange={(e) => onConfigChange({ minEventSignificance: parseFloat(e.target.value) })}
             className="eb-event-significance-select"
@@ -1390,14 +1441,14 @@ export default function EntityBrowser({
         {/* Quick actions */}
         <div className="eb-quick-actions">
           <button
-            onClick={queueAllMissingDescriptions}
+            onClick={() => void queueAllMissingDescriptions()}
             className="illuminator-button illuminator-button-secondary"
             disabled={missingDescCount === 0}
           >
             Queue All Descriptions ({missingDescCount})
           </button>
           <button
-            onClick={queueAllMissingImages}
+            onClick={() => void queueAllMissingImages()}
             className="illuminator-button illuminator-button-secondary"
             disabled={missingImgCount === 0}
           >
@@ -1458,11 +1509,11 @@ export default function EntityBrowser({
           )}
           {historianConfigured && legacyConvertEligibleCount > 0 && (
             <button
-              onClick={async () => {
+              onClick={() => { void (async () => {
                 const ids = filteredNavItems.filter((n) => n.hasHistorianEdition).map((n) => n.id);
                 const count = await convertLongEditionsToLegacy(ids);
                 if (count > 0) await reloadEntities(ids);
-              }}
+              })(); }}
               disabled={isBulkHistorianActive}
               className="illuminator-button illuminator-button-secondary"
               title="Relabel all historian-edition entries as legacy copy edits"
@@ -1511,49 +1562,49 @@ export default function EntityBrowser({
         <div className="eb-selection-bar">
           <span className="eb-selection-count">{selectedIds.size} selected</span>
           <button
-            onClick={queueSelectedDescriptions}
+            onClick={() => void queueSelectedDescriptions()}
             className="illuminator-button illuminator-button-secondary eb-selection-btn"
             title="Queue missing descriptions"
           >
             Queue Desc
           </button>
           <button
-            onClick={queueSelectedImages}
+            onClick={() => void queueSelectedImages()}
             className="illuminator-button illuminator-button-secondary eb-selection-btn"
             title="Queue missing images"
           >
             Queue Img
           </button>
           <button
-            onClick={regenSelectedDescriptions}
+            onClick={() => void regenSelectedDescriptions()}
             className="illuminator-button illuminator-button-secondary eb-selection-btn"
             title="Regenerate existing descriptions"
           >
             Regen Desc
           </button>
           <button
-            onClick={regenSelectedImages}
+            onClick={() => void regenSelectedImages()}
             className="illuminator-button illuminator-button-secondary eb-selection-btn"
             title="Regenerate existing images"
           >
             Regen Img
           </button>
           <button
-            onClick={downloadSelectedDebug}
+            onClick={() => void downloadSelectedDebug()}
             className="illuminator-button illuminator-button-secondary eb-selection-btn"
             title="Download debug request/response data for selected entities"
           >
             Download Debug
           </button>
           <button
-            onClick={downloadSelectedEditions}
+            onClick={() => void downloadSelectedEditions()}
             className="illuminator-button illuminator-button-secondary eb-selection-btn"
             title="Export pre-historian, legacy, and active description versions + annotations for selected entities"
           >
             Export Editions
           </button>
           <button
-            onClick={downloadSelectedAnnotations}
+            onClick={() => void downloadSelectedAnnotations()}
             className="illuminator-button illuminator-button-secondary eb-selection-btn"
             title="Export historian annotations for selected entities (name, kind, prominence)"
           >
@@ -1671,3 +1722,20 @@ export default function EntityBrowser({
     </div>
   );
 }
+
+EntityBrowser.propTypes = {
+  worldSchema: PropTypes.object,
+  config: PropTypes.object,
+  onConfigChange: PropTypes.func,
+  buildPrompt: PropTypes.func,
+  getVisualConfig: PropTypes.func,
+  styleLibrary: PropTypes.object,
+  imageGenSettings: PropTypes.object,
+  onStartRevision: PropTypes.func,
+  isRevising: PropTypes.bool,
+  onBulkHistorianReview: PropTypes.func,
+  onBulkHistorianEdition: PropTypes.func,
+  onBulkHistorianClear: PropTypes.func,
+  isBulkHistorianActive: PropTypes.bool,
+  onNavigateToTab: PropTypes.func,
+};

@@ -146,12 +146,13 @@ export default function ChronicleWorkspace({
     return unique.map((version, index) => {
       const samplingLabel = version.sampling ?? "unspecified";
       const step = stepLabel(version.step);
+      const stepDisplay = step || `sampling ${samplingLabel}`;
       return {
         id: version.versionId,
         content: version.content,
         wordCount: version.wordCount,
         shortLabel: `V${index + 1}`,
-        label: `Version ${index + 1} \u2022 ${new Date(version.generatedAt).toLocaleString()} \u2022 ${step ? step : `sampling ${samplingLabel}`}`,
+        label: `Version ${index + 1} \u2022 ${new Date(version.generatedAt).toLocaleString()} \u2022 ${stepDisplay}`,
       };
     });
   }, [item.generationHistory]);
@@ -714,8 +715,11 @@ export default function ChronicleWorkspace({
               onClick={() => {
                 if (hasPending) handleRejectTitle();
               }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
             >
-              <div className="cw-title-dialog" onClick={(e) => e.stopPropagation()}>
+              <div className="cw-title-dialog" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
                 {!hasPending ? (
                   <>
                     <h3 className="cw-title-heading">Generating Title...</h3>
@@ -810,3 +814,65 @@ export default function ChronicleWorkspace({
     </div>
   );
 }
+
+ChronicleWorkspace.propTypes = {
+  item: PropTypes.object.isRequired,
+  onAccept: PropTypes.func,
+  onRegenerate: PropTypes.func,
+  onRegenerateWithSampling: PropTypes.func,
+  onRegenerateFull: PropTypes.func,
+  onRegenerateCreative: PropTypes.func,
+  onCompareVersions: PropTypes.func,
+  onCombineVersions: PropTypes.func,
+  onCopyEdit: PropTypes.func,
+  onTemporalCheck: PropTypes.func,
+  onQuickCheck: PropTypes.func,
+  onValidate: PropTypes.func,
+  onGenerateSummary: PropTypes.func,
+  onGenerateTitle: PropTypes.func,
+  onAcceptPendingTitle: PropTypes.func,
+  onRejectPendingTitle: PropTypes.func,
+  onGenerateImageRefs: PropTypes.func,
+  onGenerateChronicleImage: PropTypes.func,
+  onResetChronicleImage: PropTypes.func,
+  onRegenerateDescription: PropTypes.func,
+  onUpdateChronicleAnchorText: PropTypes.func,
+  onUpdateChronicleTemporalContext: PropTypes.func,
+  onUpdateChronicleActiveVersion: PropTypes.func,
+  onDeleteVersion: PropTypes.func,
+  onUpdateCombineInstructions: PropTypes.func,
+  onUnpublish: PropTypes.func,
+  onGenerateCoverImageScene: PropTypes.func,
+  onGenerateCoverImage: PropTypes.func,
+  styleSelection: PropTypes.object,
+  imageSize: PropTypes.string,
+  imageQuality: PropTypes.string,
+  imageModel: PropTypes.string,
+  imageGenSettings: PropTypes.object,
+  onOpenImageSettings: PropTypes.func,
+  onUpdateChronicleImageSize: PropTypes.func,
+  onUpdateChronicleImageJustification: PropTypes.func,
+  onApplyImageRefSelections: PropTypes.func,
+  onSelectExistingImage: PropTypes.func,
+  onSelectExistingCoverImage: PropTypes.func,
+  onExport: PropTypes.func,
+  onBackportLore: PropTypes.func,
+  onHistorianReview: PropTypes.func,
+  onSetAssignedTone: PropTypes.func,
+  onDetectTone: PropTypes.func,
+  isHistorianActive: PropTypes.bool,
+  onUpdateHistorianNote: PropTypes.func,
+  onGeneratePrep: PropTypes.func,
+  isGenerating: PropTypes.bool,
+  refinements: PropTypes.object,
+  simulationRunId: PropTypes.string,
+  worldSchema: PropTypes.object,
+  entities: PropTypes.array,
+  styleLibrary: PropTypes.object,
+  cultures: PropTypes.array,
+  cultureIdentities: PropTypes.object,
+  worldContext: PropTypes.object,
+  eras: PropTypes.array,
+  events: PropTypes.array,
+  onNavigateToTab: PropTypes.func,
+};

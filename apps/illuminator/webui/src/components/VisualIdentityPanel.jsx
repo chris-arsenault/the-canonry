@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
 import "./VisualIdentityPanel.css";
 
 /**
@@ -86,7 +87,7 @@ function CultureIdentityEditor({
 
   const handleDeleteSingle = (key) => {
     if (!selectedCulture) return;
-    const { [key]: _, ...rest } = currentIdentity;
+    const { [key]: _omitKey, ...rest } = currentIdentity; // eslint-disable-line sonarjs/no-unused-vars
     onIdentitiesChange({
       ...identities,
       [selectedCulture]: rest,
@@ -98,7 +99,7 @@ function CultureIdentityEditor({
     const newIdentities = { ...identities };
     for (const culture of cultures) {
       if (newIdentities[culture.id]) {
-        const { [key]: _, ...rest } = newIdentities[culture.id];
+        const { [key]: _omitKey, ...rest } = newIdentities[culture.id]; // eslint-disable-line sonarjs/no-unused-vars
         newIdentities[culture.id] = rest;
       }
     }
@@ -487,3 +488,34 @@ export default function VisualIdentityPanel({
     </div>
   );
 }
+
+CultureIdentityEditor.propTypes = {
+  cultures: PropTypes.array.isRequired,
+  identities: PropTypes.object,
+  onIdentitiesChange: PropTypes.func.isRequired,
+  allKeys: PropTypes.array.isRequired,
+  keyPlaceholder: PropTypes.string,
+  valuePlaceholder: PropTypes.string,
+};
+
+IdentityKeySelector.propTypes = {
+  entityKinds: PropTypes.array.isRequired,
+  availableKeys: PropTypes.array.isRequired,
+  keysByKind: PropTypes.object,
+  onKeysByKindChange: PropTypes.func.isRequired,
+  emptyMessage: PropTypes.string,
+};
+
+IdentitySection.propTypes = {
+  title: PropTypes.string.isRequired,
+  subtitle: PropTypes.string,
+  children: PropTypes.node,
+  defaultOpen: PropTypes.bool,
+};
+
+VisualIdentityPanel.propTypes = {
+  cultures: PropTypes.array.isRequired,
+  entityKinds: PropTypes.array.isRequired,
+  cultureIdentities: PropTypes.object.isRequired,
+  onCultureIdentitiesChange: PropTypes.func.isRequired,
+};

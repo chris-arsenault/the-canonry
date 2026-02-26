@@ -2,6 +2,70 @@
  * Profile utility functions for generator matching and usage computation
  */
 
+/** Check if a creation entry uses the specified culture. */
+function creationMatchesCulture(creation, cultureId) {
+  if (!creation.culture) return true;
+  if (typeof creation.culture === "string") return creation.culture === cultureId;
+  if (creation.culture.inherit || creation.culture.from) return true;
+  return false;
+}
+
+/** Check if a creation entry matches the given conditions. Returns null if no match, or a match object. */
+function matchCreationToConditions(creation, conditions, genId, genName) {
+  const creationSubtype = typeof creation.subtype === "string" ? creation.subtype : null;
+
+  if (!conditions) {
+    return {
+      generatorId: genId,
+      generatorName: genName,
+      entityKind: creation.kind,
+      subtype: creationSubtype,
+      isDefault: true,
+    };
+  }
+
+  if (!matchEntityKind(conditions, creation.kind)) return null;
+  if (!matchSubtype(conditions, creationSubtype)) return null;
+  if (!matchProminence(conditions, creation.prominence)) return null;
+  if (!matchTags(conditions, creation.tags)) return null;
+
+  return {
+    generatorId: genId,
+    generatorName: genName,
+    entityKind: creation.kind,
+    subtype: creationSubtype,
+    isDefault: false,
+  };
+}
+
+function matchEntityKind(conditions, kind) {
+  const entityKinds = conditions.entityKinds || [];
+  return entityKinds.length === 0 || entityKinds.includes(kind);
+}
+
+function matchSubtype(conditions, creationSubtype) {
+  const subtypes = conditions.subtypes || [];
+  if (subtypes.length === 0) return true;
+  return creationSubtype && subtypes.includes(creationSubtype);
+}
+
+function matchProminence(conditions, creationProminence) {
+  const prominence = conditions.prominence || [];
+  if (prominence.length === 0) return true;
+  if (!creationProminence) return true;
+  return prominence.includes(creationProminence);
+}
+
+function matchTags(conditions, creationTagsObj) {
+  const conditionTags = conditions.tags || [];
+  if (conditionTags.length === 0) return true;
+  const creationTags = creationTagsObj ? Object.keys(creationTagsObj) : [];
+  if (conditions.tagMatchAll) {
+    return conditionTags.every((t) => creationTags.includes(t));
+  }
+  return conditionTags.some((t) => creationTags.includes(t));
+}
+
 /**
  * Analyze which generators will match a specific strategy group's conditions
  */
@@ -13,83 +77,13 @@ export function findMatchingGenerators(generators, cultureId, conditions) {
   for (const gen of generators) {
     if (gen.enabled === false) continue;
     const creations = gen.creation || [];
+    const genName = gen.name || gen.id;
 
     for (const creation of creations) {
-      // Check if this creation could use this culture
-      let matchesCulture = false;
-      if (creation.culture) {
-        if (typeof creation.culture === "string") {
-          matchesCulture = creation.culture === cultureId;
-        } else if (creation.culture.inherit || creation.culture.from) {
-          // Inherited culture - could be any culture
-          matchesCulture = true;
-        }
-      } else {
-        // No culture specified - could be any
-        matchesCulture = true;
-      }
+      if (!creationMatchesCulture(creation, cultureId)) continue;
 
-      if (!matchesCulture) continue;
-
-      // Check if conditions match (if any)
-      if (!conditions) {
-        // No conditions = default group, matches everything
-        matches.push({
-          generatorId: gen.id,
-          generatorName: gen.name || gen.id,
-          entityKind: creation.kind,
-          subtype: typeof creation.subtype === "string" ? creation.subtype : null,
-          isDefault: true,
-        });
-        continue;
-      }
-
-      // Check entity kind condition
-      const entityKinds = conditions.entityKinds || [];
-      if (entityKinds.length > 0 && !entityKinds.includes(creation.kind)) {
-        continue;
-      }
-
-      // Check subtype condition
-      const subtypes = conditions.subtypes || [];
-      const creationSubtype = typeof creation.subtype === "string" ? creation.subtype : null;
-      if (subtypes.length > 0) {
-        if (!creationSubtype || !subtypes.includes(creationSubtype)) {
-          continue;
-        }
-      }
-
-      // Check prominence condition
-      const prominence = conditions.prominence || [];
-      if (prominence.length > 0 && creation.prominence) {
-        if (!prominence.includes(creation.prominence)) {
-          continue;
-        }
-      }
-
-      // Check tags condition
-      const conditionTags = conditions.tags || [];
-      if (conditionTags.length > 0) {
-        const creationTags = creation.tags ? Object.keys(creation.tags) : [];
-        if (conditions.tagMatchAll) {
-          if (!conditionTags.every((t) => creationTags.includes(t))) {
-            continue;
-          }
-        } else {
-          if (!conditionTags.some((t) => creationTags.includes(t))) {
-            continue;
-          }
-        }
-      }
-
-      // Matches!
-      matches.push({
-        generatorId: gen.id,
-        generatorName: gen.name || gen.id,
-        entityKind: creation.kind,
-        subtype: creationSubtype,
-        isDefault: false,
-      });
+      const match = matchCreationToConditions(creation, conditions, gen.id, genName);
+      if (match) matches.push(match);
     }
   }
 

@@ -13,6 +13,7 @@
  */
 
 import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import "@penguin-tales/shared-components/styles";
 import "./styles/index.css";
 import { ErasEditor } from "./components/eras";
@@ -217,9 +218,9 @@ export default function CoherenceEngineRemote({
   );
 
   // Navigate to generators tab and optionally select a specific generator
-  const handleNavigateToGenerator = (generatorId) => {
+  const handleNavigateToGenerator = (_generatorId) => {
     setActiveTab("generators");
-    // TODO: Could add logic to expand the specific generator
+    // NOOP: generator expansion not yet implemented
   };
 
   const renderContent = () => {
@@ -338,6 +339,7 @@ export default function CoherenceEngineRemote({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
+                // eslint-disable-next-line local/no-inline-styles -- dynamic merge of extracted style objects
                 style={{
                   ...styles.navButton,
                   ...(activeTab === tab.id ? styles.navButtonActive : styles.navButtonInactive),
@@ -359,15 +361,16 @@ export default function CoherenceEngineRemote({
                   <span>{tab.label}</span>
                   {showStatus && (
                     <span
+                      // eslint-disable-next-line local/no-inline-styles -- dynamic color from validation status
                       style={{
                         ...styles.statusDot,
                         backgroundColor: statusColor,
                       }}
-                      title={
-                        validationStatus.status === "clean"
-                          ? "All validations passed"
-                          : `${validationStatus.totalIssues} issue${validationStatus.totalIssues === 1 ? "" : "s"}`
-                      }
+                      title={(() => {
+                        if (validationStatus.status === "clean") return "All validations passed";
+                        const plural = validationStatus.totalIssues === 1 ? "" : "s";
+                        return `${validationStatus.totalIssues} issue${plural}`;
+                      })()}
                     />
                   )}
                 </span>
@@ -384,3 +387,20 @@ export default function CoherenceEngineRemote({
     </div>
   );
 }
+
+CoherenceEngineRemote.propTypes = {
+  projectId: PropTypes.string,
+  schema: PropTypes.object,
+  eras: PropTypes.array,
+  onErasChange: PropTypes.func,
+  pressures: PropTypes.array,
+  onPressuresChange: PropTypes.func,
+  generators: PropTypes.array,
+  onGeneratorsChange: PropTypes.func,
+  actions: PropTypes.array,
+  onActionsChange: PropTypes.func,
+  systems: PropTypes.array,
+  onSystemsChange: PropTypes.func,
+  activeSection: PropTypes.string,
+  onSectionChange: PropTypes.func,
+};

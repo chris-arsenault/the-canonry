@@ -1,0 +1,11 @@
+[project]
+name = "drift-semantic"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["numpy", "scipy", "click", "networkx"]
+
+[project.optional-dependencies]
+ollama = ["httpx"]
+
+[project.scripts]
+drift-semantic-pipeline = "drift_semantic.__main__:cli"

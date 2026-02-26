@@ -36,13 +36,13 @@ function loadSettings(): ImageGenSettings {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      return { ...DEFAULTS, ...JSON.parse(saved) };
+      return { ...DEFAULTS, ...(JSON.parse(saved) as Partial<ImageGenSettings>) };
     }
 
     // Migrate from legacy styleSelection key
     const legacyStyle = localStorage.getItem(LEGACY_STYLE_KEY);
     if (legacyStyle) {
-      const parsed = JSON.parse(legacyStyle);
+      const parsed = JSON.parse(legacyStyle) as Partial<ImageGenSettings>;
       const migrated: ImageGenSettings = {
         ...DEFAULTS,
         artisticStyleId: parsed.artisticStyleId || DEFAULTS.artisticStyleId,

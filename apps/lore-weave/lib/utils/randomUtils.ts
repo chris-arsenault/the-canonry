@@ -2,7 +2,15 @@
  * Random Utilities
  *
  * Functions for random selection and probability.
+ * Uses crypto.getRandomValues() for secure random number generation.
  */
+
+/** Generate a cryptographically secure random float in [0, 1) */
+function secureRandom(): number {
+  const array = new Uint32Array(1);
+  globalThis.crypto.getRandomValues(array);
+  return array[0] / 4294967296;
+}
 
 /**
  * Fisher-Yates shuffle - produces unbiased random permutation.
@@ -10,14 +18,14 @@
 export function shuffle<T>(array: T[]): T[] {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(secureRandom() * (i + 1));
     [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
 }
 
 export function pickRandom<T>(array: T[]): T {
-  return array[Math.floor(Math.random() * array.length)];
+  return array[Math.floor(secureRandom() * array.length)];
 }
 
 export function pickMultiple<T>(array: T[], count: number): T[] {
@@ -35,7 +43,7 @@ export function weightedRandom<T>(
   if (items.length === 0 || items.length !== weights.length) return undefined;
 
   const totalWeight = weights.reduce((sum, w) => sum + w, 0);
-  let random = Math.random() * totalWeight;
+  let random = secureRandom() * totalWeight;
 
   for (let i = 0; i < items.length; i++) {
     random -= weights[i];
@@ -74,5 +82,5 @@ export function rollProbability(baseProbability: number, eraModifier: number = 1
   const scaledOdds = Math.pow(odds, eraModifier);
   const scaledP = scaledOdds / (1 + scaledOdds);
 
-  return Math.random() < scaledP;
+  return secureRandom() < scaledP;
 }

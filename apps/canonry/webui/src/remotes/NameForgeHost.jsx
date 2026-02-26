@@ -3,6 +3,7 @@
  */
 
 import React, { Suspense, lazy } from "react";
+import PropTypes from "prop-types";
 import RemotePlaceholder from "./RemotePlaceholder";
 import { colors, typography } from "../theme";
 
@@ -67,3 +68,13 @@ export default function NameForgeHost({
     </div>
   );
 }
+
+NameForgeHost.propTypes = {
+  projectId: PropTypes.string,
+  schema: PropTypes.object,
+  onNamingDataChange: PropTypes.func,
+  onAddTag: PropTypes.func,
+  activeSection: PropTypes.string,
+  onSectionChange: PropTypes.func,
+  generators: PropTypes.array,
+};

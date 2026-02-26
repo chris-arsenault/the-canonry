@@ -8,10 +8,11 @@
  */
 
 import React, { useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Group } from "@visx/group";
-import { scaleLinear, scaleOrdinal, scaleBand } from "@visx/scale";
+import { scaleLinear, scaleBand } from "@visx/scale";
 import { AxisLeft, AxisBottom } from "@visx/axis";
-import { Bar, Line, LinePath, Circle } from "@visx/shape";
+import { LinePath, Circle } from "@visx/shape";
 import { GridRows } from "@visx/grid";
 import { ParentSize } from "@visx/responsive";
 import "./SystemActivityPanel.css";
@@ -362,7 +363,7 @@ export default function SystemActivityPanel({ systemActions }) {
       {/* Chart area */}
       <div className="system-activity-chart">
         <ParentSize>
-          {({ width, height }) => {
+          {({ width, height: _height }) => {
             if (width === 0) return null;
             const chartHeight = Math.max(200, Math.min(300, systems.length * 40 + 60));
 
@@ -415,3 +416,25 @@ export default function SystemActivityPanel({ systemActions }) {
     </div>
   );
 }
+
+SystemSwimlaneChart.propTypes = {
+  systems: PropTypes.array,
+  maxTick: PropTypes.number,
+  width: PropTypes.number,
+  height: PropTypes.number,
+};
+
+ActivityTimelineChart.propTypes = {
+  timeline: PropTypes.array,
+  maxTick: PropTypes.number,
+  width: PropTypes.number,
+  height: PropTypes.number,
+};
+
+SystemSummaryCards.propTypes = {
+  systems: PropTypes.array,
+};
+
+SystemActivityPanel.propTypes = {
+  systemActions: PropTypes.array,
+};

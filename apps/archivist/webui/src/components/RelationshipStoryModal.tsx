@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import React, { useRef } from "react";
 import type { RelationshipBackstoryLore, WorldState } from "../types/world.ts";
 import { getEntityById } from "../utils/dataTransform.ts";
 import "./RelationshipStoryModal.css";
@@ -13,7 +13,7 @@ export default function RelationshipStoryModal({
   lore,
   worldData,
   onClose,
-}: RelationshipStoryModalProps) {
+}: Readonly<RelationshipStoryModalProps>) {
   const mouseDownOnOverlay = useRef(false);
 
   const handleOverlayMouseDown = (e: React.MouseEvent) => {
@@ -39,6 +39,9 @@ export default function RelationshipStoryModal({
       className="relationship-story-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="relationship-story-modal">
         {/* Header */}
@@ -73,7 +76,7 @@ export default function RelationshipStoryModal({
           <div className="relationship-story-section">
             <div className="relationship-story-section-header">
               <span className="relationship-story-section-icon">⚠️</span>
-              <span className="relationship-story-section-title">What's at Stake</span>
+              <span className="relationship-story-section-title">What&apos;s at Stake</span>
             </div>
             <div className="relationship-story-section-content">{stakes}</div>
           </div>

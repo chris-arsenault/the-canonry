@@ -48,7 +48,7 @@ export class EntityClusterBuilder {
    * @param strength - Optional relationship strength
    */
   relate(
-    fromIndex: number,
+    fromIndex: number | string,
     toIndex: number | string,
     kind: string,
     strength?: number
@@ -96,7 +96,7 @@ export class EntityClusterBuilder {
     kind: string,
     strength?: number
   ): this {
-    return this.relate(fromEntityId as any, toIndex, kind, strength);
+    return this.relate(fromEntityId, toIndex, kind, strength);
   }
 
   /**

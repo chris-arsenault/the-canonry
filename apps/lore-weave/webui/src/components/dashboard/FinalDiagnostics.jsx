@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 
 const ACCENT_COLOR = "#a78bfa"; // Keep for JS template bar calculations
 
@@ -177,7 +178,7 @@ function AgentsTab({ catalystStats }) {
 
       {unusedCount > 0 && (
         <div style={{ marginTop: "16px" }}>
-          <div className="lw-unused-header" onClick={() => setShowUnused(!showUnused)}>
+          <div className="lw-unused-header" onClick={() => setShowUnused(!showUnused)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
             <span className="lw-unused-toggle">{showUnused ? "▼" : "▶"}</span>
             <span className="lw-unused-title">Unused Actions ({unusedCount})</span>
           </div>
@@ -286,3 +287,26 @@ function NotableEntitiesTab({ notableEntities }) {
     </div>
   );
 }
+
+FinalDiagnostics.propTypes = {
+  entityBreakdown: PropTypes.object,
+  catalystStats: PropTypes.object,
+  relationshipBreakdown: PropTypes.object,
+  notableEntities: PropTypes.object,
+};
+
+EntityBreakdownTab.propTypes = {
+  entityBreakdown: PropTypes.object,
+};
+
+RelationshipBreakdownTab.propTypes = {
+  relationshipBreakdown: PropTypes.object,
+};
+
+AgentsTab.propTypes = {
+  catalystStats: PropTypes.object,
+};
+
+NotableEntitiesTab.propTypes = {
+  notableEntities: PropTypes.object,
+};

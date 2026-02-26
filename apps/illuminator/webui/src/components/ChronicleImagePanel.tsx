@@ -155,18 +155,15 @@ const DEFAULT_VISUAL_IDENTITY_KIND = "scene";
 const JUSTIFY_SIZES = new Set(["small", "medium", "large"]);
 
 function useLazyImageUrl(imageId: string | null | undefined) {
-  const [isVisible, setIsVisible] = useState(false);
+  // If IntersectionObserver is unavailable, default to visible
+  const noIO = typeof IntersectionObserver === "undefined";
+  const [isVisible, setIsVisible] = useState(noIO);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (isVisible) return;
     const node = containerRef.current;
     if (!node) return;
-
-    if (typeof IntersectionObserver === "undefined") {
-      setIsVisible(true);
-      return;
-    }
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -193,12 +190,12 @@ function AnchorContextTooltip({
   anchorIndex,
   chronicleText,
   children,
-}: {
+}: Readonly<{
   anchorText: string;
   anchorIndex?: number;
   chronicleText?: string;
   children: React.ReactNode;
-}) {
+}>) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const triggerRef = useRef<HTMLSpanElement>(null);
@@ -292,22 +289,25 @@ function AnchorTextEditor({
   previewLength = 40,
   anchorIndex,
   chronicleText,
-}: {
+}: Readonly<{
   anchorText: string;
   onSave?: (next: string) => void;
   disabled?: boolean;
   previewLength?: number;
   anchorIndex?: number;
   chronicleText?: string;
-}) {
+}>) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(anchorText);
 
-  useEffect(() => {
+  // Render-phase sync: update draft when anchorText changes externally and not editing
+  const prevAnchorTextRef = useRef(anchorText);
+  if (prevAnchorTextRef.current !== anchorText) {
+    prevAnchorTextRef.current = anchorText;
     if (!isEditing) {
       setDraft(anchorText);
     }
-  }, [anchorText, isEditing]);
+  }
 
   const preview =
     anchorText.length > previewLength ? `${anchorText.slice(0, previewLength)}...` : anchorText;
@@ -426,7 +426,7 @@ function EntityImageRefCard({
   onUpdateJustification,
   chronicleText,
   isGenerating,
-}: {
+}: Readonly<{
   imageRef: EntityImageRef;
   entity: EntityContext | undefined;
   onImageClick?: (imageId: string, title: string) => void;
@@ -435,7 +435,7 @@ function EntityImageRefCard({
   onUpdateJustification?: (justification: "left" | "right") => void;
   chronicleText?: string;
   isGenerating?: boolean;
-}) {
+}>) {
   const imageId = entity?.enrichment?.image?.imageId;
   const { containerRef, url, loading, isVisible } = useLazyImageUrl(imageId);
   const hasImage = Boolean(imageId);
@@ -471,9 +471,10 @@ function EntityImageRefCard({
           flexShrink: 0,
         }}
       >
-        {loading ? (
+        {loading && (
           <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>...</span>
-        ) : url ? (
+        )}
+        {!loading && url && (
           <img
             src={url}
             alt={entity?.name || "Entity image"}
@@ -489,10 +490,18 @@ function EntityImageRefCard({
               objectFit: "cover",
               cursor: imageId && onImageClick ? "pointer" : undefined,
             }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           />
-        ) : (
+        )}
+        {!loading && !url && (
           <span style={{ fontSize: "20px", color: "var(--text-muted)" }}>
-            {deferThumbnail ? "..." : hasImage ? "?" : "—"}
+            {(() => {
+              if (deferThumbnail) return "...";
+              if (hasImage) return "?";
+              return "\u2014";
+            })()}
           </span>
         )}
       </div>
@@ -636,7 +645,7 @@ function PromptRequestCard({
   chronicleText,
   isGenerating,
   entities,
-}: {
+}: Readonly<{
   imageRef: PromptRequestRef;
   onGenerate?: () => void;
   onReset?: () => void;
@@ -649,7 +658,7 @@ function PromptRequestCard({
   chronicleText?: string;
   isGenerating?: boolean;
   entities?: Map<string, EntityContext>;
-}) {
+}>) {
   const { containerRef, url, loading, isVisible } = useLazyImageUrl(imageRef.generatedImageId);
   const statusColor = STATUS_COLORS[imageRef.status] || STATUS_COLORS.pending;
   const canGenerate = imageRef.status === "pending" && !isGenerating;
@@ -692,17 +701,18 @@ function PromptRequestCard({
           flexShrink: 0,
         }}
       >
-        {loading ? (
+        {loading && (
           <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>...</span>
-        ) : url ? (
+        )}
+        {!loading && url && (
           <img
             src={url}
-            alt="Generated image"
+            alt="Generated"
             loading="lazy"
             onClick={
               imageRef.generatedImageId && onImageClick
                 ? () =>
-                    onImageClick(imageRef.generatedImageId!, imageRef.sceneDescription.slice(0, 60))
+                    onImageClick(imageRef.generatedImageId, imageRef.sceneDescription.slice(0, 60))
                 : undefined
             }
             style={{
@@ -711,10 +721,14 @@ function PromptRequestCard({
               objectFit: "cover",
               cursor: imageRef.generatedImageId && onImageClick ? "pointer" : undefined,
             }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           />
-        ) : (
+        )}
+        {!loading && !url && (
           <span style={{ fontSize: "20px", color: "var(--text-muted)" }}>
-            {deferThumbnail || imageRef.status === "generating" ? "..." : "🖼️"}
+            {deferThumbnail || imageRef.status === "generating" ? "..." : "\uD83D\uDDBC\uFE0F"}
           </span>
         )}
       </div>
@@ -997,12 +1011,12 @@ export default function ChronicleImagePanel({
   cultureIdentities,
   worldContext,
   chronicleTitle,
-  imageSize,
-  imageQuality,
-  imageModel,
+  imageSize: _imageSize,
+  imageQuality: _imageQuality,
+  imageModel: _imageModel,
   imageGenSettings,
   onOpenImageSettings,
-}: ChronicleImagePanelProps) {
+}: Readonly<ChronicleImagePanelProps>) {
   // Use external style selection directly (managed globally by ImageSettingsDrawer)
   const styleSelection = externalStyleSelection || {
     artisticStyleId: "random",
@@ -1074,9 +1088,9 @@ export default function ChronicleImagePanel({
 
     for (const ref of imageRefs.refs) {
       if (ref.type === "entity_ref") {
-        entityRefs.push(ref as EntityImageRef);
+        entityRefs.push(ref);
       } else {
-        promptRequests.push(ref as PromptRequestRef);
+        promptRequests.push(ref);
       }
     }
 
@@ -1121,9 +1135,9 @@ export default function ChronicleImagePanel({
     }
 
     return {
-      artisticPromptFragment: resolved.artisticStyle?.promptFragment,
-      compositionPromptFragment: resolved.compositionStyle?.promptFragment,
-      colorPalettePromptFragment: resolved.colorPalette?.promptFragment,
+      artisticPromptFragment: (resolved.artisticStyle as { promptFragment?: string } | null)?.promptFragment,
+      compositionPromptFragment: (resolved.compositionStyle as { promptFragment?: string } | null)?.promptFragment,
+      colorPalettePromptFragment: (resolved.colorPalette as { promptFragment?: string } | null)?.promptFragment,
     };
   }, [styleSelection, derivedCultureId, cultures, styleLibrary, cultureIdentities]);
 

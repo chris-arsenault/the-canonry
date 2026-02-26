@@ -16,7 +16,6 @@ import { loadWorldStore, saveWorldStore } from "./worldStore.js";
 import {
   getStaticPagesForProject,
   importStaticPages,
-  deleteStaticPagesForProject,
   loadAndImportSeedPages,
 } from "./staticPageStorage.js";
 import {
@@ -264,44 +263,48 @@ async function fetchDefaultProjectJson() {
  * @param {Object} options.illuminatorConfig - Illuminator settings to include
  * @param {Array} options.staticPages - Static pages to include
  */
+function addCanonFilesToZip(zip, project, staticPages) {
+  const canonFiles = serializeCanonProject(project);
+  for (const file of canonFiles) {
+    zip.file(file.path, file.content);
+  }
+  if (staticPages && staticPages.length > 0) {
+    const staticFiles = serializeCanonStaticPages(staticPages, { includeEmpty: false });
+    for (const file of staticFiles) {
+      zip.file(file.path, file.content);
+    }
+  }
+}
+
+function addJsonFilesToZip(zip, project) {
+  const manifest = { ...project };
+  for (const key of PROJECT_JSON_FILES) {
+    delete manifest[key];
+  }
+  zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+
+  for (const key of PROJECT_JSON_FILES) {
+    const fallback = Array.isArray(PROJECT_DEFAULTS[key]) ? [] : PROJECT_DEFAULTS[key];
+    const resolved = project[key] === undefined ? fallback : project[key];
+    zip.file(`${key}.json`, JSON.stringify(resolved, null, 2));
+  }
+}
+
 async function createProjectZip(project, options = {}) {
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
 
   if (USE_CANON_DSL) {
-    const canonFiles = serializeCanonProject(project);
-    for (const file of canonFiles) {
-      zip.file(file.path, file.content);
-    }
-
-    const { staticPages } = options;
-    if (staticPages && staticPages.length > 0) {
-      const staticFiles = serializeCanonStaticPages(staticPages, { includeEmpty: false });
-      for (const file of staticFiles) {
-        zip.file(file.path, file.content);
-      }
-    }
+    addCanonFilesToZip(zip, project, options.staticPages);
   } else {
-    const manifest = { ...project };
-    for (const key of PROJECT_JSON_FILES) {
-      delete manifest[key];
-    }
-    zip.file("manifest.json", JSON.stringify(manifest, null, 2));
-
-    for (const key of PROJECT_JSON_FILES) {
-      const fallback = Array.isArray(PROJECT_DEFAULTS[key]) ? [] : PROJECT_DEFAULTS[key];
-      const resolved = project[key] === undefined ? fallback : project[key];
-      zip.file(`${key}.json`, JSON.stringify(resolved, null, 2));
-    }
+    addJsonFilesToZip(zip, project);
   }
 
-  // Add Illuminator configuration if provided
   const { illuminatorConfig, staticPages } = options;
   if (illuminatorConfig) {
     zip.file("illuminatorConfig.json", JSON.stringify(illuminatorConfig, null, 2));
   }
 
-  // Add static pages if provided (JSON mode only)
   if (!USE_CANON_DSL && staticPages && staticPages.length > 0) {
     zip.file("staticPages.json", JSON.stringify(staticPages, null, 2));
   }
@@ -313,69 +316,59 @@ async function createProjectZip(project, options = {}) {
  * Extract project data from a zip file
  * Returns { project, illuminatorConfig, staticPages }
  */
-async function extractProjectZip(zipBlob) {
-  const { default: JSZip } = await import("jszip");
-  const zip = await JSZip.loadAsync(zipBlob);
+async function extractCanonProjectFromZip(zip, canonFiles) {
+  const sources = await Promise.all(
+    canonFiles.map(async (file) => ({
+      path: file.name,
+      content: await file.async("string"),
+    }))
+  );
 
-  const canonFiles = zip.file(/\.canon$/);
-  if (USE_CANON_DSL && canonFiles && canonFiles.length > 0) {
-    const sources = await Promise.all(
-      canonFiles.map(async (file) => ({
-        path: file.name,
-        content: await file.async("string"),
-      }))
-    );
-
-    const { config, diagnostics } = compileCanonProject(sources);
-    if (!config || diagnostics.some((diag) => diag.severity === "error")) {
-      throw new Error(`Invalid .canon project:\n${formatCanonDiagnostics(diagnostics)}`);
-    }
-
-    const project = normalizeProjectConfig(config);
-
-    let illuminatorConfig = null;
-    const illuminatorFile = zip.file("illuminatorConfig.json");
-    if (illuminatorFile) {
-      illuminatorConfig = JSON.parse(await illuminatorFile.async("string"));
-    }
-
-    let staticPages = [];
-    const mdFiles = zip.file(/\.md$/);
-    const staticSources = await Promise.all(
-      [...canonFiles, ...mdFiles].map(async (file) => ({
-        path: file.name,
-        content: await file.async("string"),
-      }))
-    );
-    const { pages, diagnostics: staticPageDiagnostics } = compileCanonStaticPages(staticSources);
-    if (staticPageDiagnostics.some((diag) => diag.severity === "error")) {
-      throw new Error(`Invalid static pages:\n${formatCanonDiagnostics(staticPageDiagnostics)}`);
-    }
-    if (pages && pages.length > 0) {
-      staticPages = pages;
-    } else {
-      const staticPagesFile = zip.file("staticPages.json");
-      if (staticPagesFile) {
-        staticPages = JSON.parse(await staticPagesFile.async("string"));
-      }
-    }
-
-    return { project, illuminatorConfig, staticPages };
+  const { config, diagnostics } = compileCanonProject(sources);
+  if (!config || diagnostics.some((diag) => diag.severity === "error")) {
+    throw new Error(`Invalid .canon project:\n${formatCanonDiagnostics(diagnostics)}`);
   }
 
-  // Legacy JSON export fallback
+  const project = normalizeProjectConfig(config);
+  const illuminatorConfig = await loadOptionalJsonFromZip(zip, "illuminatorConfig.json");
+
+  const mdFiles = zip.file(/\.md$/);
+  const staticSources = await Promise.all(
+    [...canonFiles, ...mdFiles].map(async (file) => ({
+      path: file.name,
+      content: await file.async("string"),
+    }))
+  );
+  const { pages, diagnostics: staticPageDiagnostics } = compileCanonStaticPages(staticSources);
+  if (staticPageDiagnostics.some((diag) => diag.severity === "error")) {
+    throw new Error(`Invalid static pages:\n${formatCanonDiagnostics(staticPageDiagnostics)}`);
+  }
+
+  let staticPages = [];
+  if (pages && pages.length > 0) {
+    staticPages = pages;
+  } else {
+    staticPages = (await loadOptionalJsonFromZip(zip, "staticPages.json")) || [];
+  }
+
+  return { project, illuminatorConfig, staticPages };
+}
+
+async function loadOptionalJsonFromZip(zip, filename) {
+  const file = zip.file(filename);
+  if (!file) return null;
+  return JSON.parse(await file.async("string"));
+}
+
+async function extractJsonProjectFromZip(zip) {
   const manifestFile = zip.file("manifest.json");
   if (!manifestFile) {
     throw new Error("Invalid project zip: missing manifest.json");
   }
   const manifest = JSON.parse(await manifestFile.async("string"));
-
   const project = { ...manifest };
 
-  const defaultValues = {
-    uiConfig: null,
-    distributionTargets: null,
-  };
+  const defaultValues = { uiConfig: null, distributionTargets: null };
 
   for (const fileName of PROJECT_JSON_FILES) {
     const file = zip.file(`${fileName}.json`);
@@ -388,21 +381,22 @@ async function extractProjectZip(zipBlob) {
     }
   }
 
-  // Load Illuminator config if present
-  let illuminatorConfig = null;
-  const illuminatorFile = zip.file("illuminatorConfig.json");
-  if (illuminatorFile) {
-    illuminatorConfig = JSON.parse(await illuminatorFile.async("string"));
-  }
-
-  // Load static pages if present
-  let staticPages = [];
-  const staticPagesFile = zip.file("staticPages.json");
-  if (staticPagesFile) {
-    staticPages = JSON.parse(await staticPagesFile.async("string"));
-  }
+  const illuminatorConfig = await loadOptionalJsonFromZip(zip, "illuminatorConfig.json");
+  const staticPages = (await loadOptionalJsonFromZip(zip, "staticPages.json")) || [];
 
   return { project, illuminatorConfig, staticPages };
+}
+
+async function extractProjectZip(zipBlob) {
+  const { default: JSZip } = await import("jszip");
+  const zip = await JSZip.loadAsync(zipBlob);
+
+  const canonFiles = zip.file(/\.canon$/);
+  if (USE_CANON_DSL && canonFiles && canonFiles.length > 0) {
+    return extractCanonProjectFromZip(zip, canonFiles);
+  }
+
+  return extractJsonProjectFromZip(zip);
 }
 
 export function useProjectStorage() {

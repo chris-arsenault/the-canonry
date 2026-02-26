@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { NumberInput } from "../../shared";
 
 /**
@@ -68,6 +69,12 @@ function PressureModifiersEditor({ value = [], onChange, pressures = [] }) {
     </div>
   );
 }
+
+PressureModifiersEditor.propTypes = {
+  value: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  pressures: PropTypes.array,
+};
 
 export function ProbabilityTab({ action, onChange, pressures }) {
   const probability = action.probability || {};
@@ -139,3 +146,9 @@ export function ProbabilityTab({ action, onChange, pressures }) {
     </div>
   );
 }
+
+ProbabilityTab.propTypes = {
+  action: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  pressures: PropTypes.array,
+};

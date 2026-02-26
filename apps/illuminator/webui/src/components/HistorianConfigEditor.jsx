@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useCallback } from "react";
+import PropTypes from "prop-types";
 import "./HistorianConfigEditor.css";
 
 // ============================================================================
@@ -177,13 +178,12 @@ export default function HistorianConfigEditor({ config, onChange }) {
             className="illuminator-button illuminator-button-secondary hce-reload-btn"
             title="Reload historian config from the default project template"
           >
-            {reloadStatus === "loading"
-              ? "Loading..."
-              : reloadStatus === "done"
-                ? "Reloaded \u2713"
-                : reloadStatus === "error"
-                  ? "Failed \u2717"
-                  : "Reload Defaults"}
+            {(() => {
+              if (reloadStatus === "loading") return "Loading...";
+              if (reloadStatus === "done") return "Reloaded \u2713";
+              if (reloadStatus === "error") return "Failed \u2717";
+              return "Reload Defaults";
+            })()}
           </button>
         </div>
         <div className="hce-header-description">
@@ -306,12 +306,15 @@ export default function HistorianConfigEditor({ config, onChange }) {
           onClick={(e) => {
             if (e.target === e.currentTarget) setReloadStatus(null);
           }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           <div className="hce-modal-box">
             <div className="hce-modal-title">Reload from Defaults?</div>
             <div className="hce-modal-body">
               This will overwrite your current historian configuration with the default project
-              template. Any edits you've made will be lost.
+              template. Any edits you&apos;ve made will be lost.
             </div>
             <div className="hce-modal-actions">
               <button
@@ -333,3 +336,26 @@ export default function HistorianConfigEditor({ config, onChange }) {
     </div>
   );
 }
+
+TagInput.propTypes = {
+  value: PropTypes.array.isRequired,
+  onChange: PropTypes.func.isRequired,
+  placeholder: PropTypes.string,
+};
+
+ListEditor.propTypes = {
+  value: PropTypes.array.isRequired,
+  onChange: PropTypes.func.isRequired,
+  placeholder: PropTypes.string,
+  itemPlaceholder: PropTypes.string,
+};
+
+FieldLabel.propTypes = {
+  label: PropTypes.string.isRequired,
+  description: PropTypes.string,
+};
+
+HistorianConfigEditor.propTypes = {
+  config: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+};

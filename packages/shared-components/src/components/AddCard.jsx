@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -15,9 +16,18 @@ export function AddCard({ onClick, label = 'Add Item', className = '' }) {
     <div
       className={`add-card ${className}`.trim()}
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(e); }}
     >
       <span className="add-card-icon">+</span>
       <span>{label}</span>
     </div>
   );
 }
+
+AddCard.propTypes = {
+  onClick: PropTypes.func.isRequired,
+  label: PropTypes.string,
+  className: PropTypes.string,
+};

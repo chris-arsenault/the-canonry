@@ -21,7 +21,7 @@ export default function BackportConfigModal({
   onMarkNotNeeded, // (entityIds: string[]) => void — mark entities as not needing backport
   onCancel,
 }) {
-  const statusMap = perEntityStatus || {};
+  const statusMap = useMemo(() => perEntityStatus || {}, [perEntityStatus]);
 
   // Only pending entities are selectable
   const pendingEntities = useMemo(
@@ -81,8 +81,10 @@ export default function BackportConfigModal({
     onMarkNotNeeded([entityId]);
   };
 
-  const progressColor =
-    doneCount === entities.length ? "#10b981" : doneCount > 0 ? "#f59e0b" : "var(--text-muted)";
+  let progressColor;
+  if (doneCount === entities.length) progressColor = "#10b981";
+  else if (doneCount > 0) progressColor = "#f59e0b";
+  else progressColor = "var(--text-muted)";
 
   const renderEntityRow = (e) => {
     const status = statusMap[e.id];
@@ -107,6 +109,9 @@ export default function BackportConfigModal({
         <span
           className={`bcm-entity-name ${isLocked ? "bcm-entity-name-locked" : "bcm-entity-name-clickable"}`}
           onClick={() => !isLocked && toggleEntity(e.id)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           {e.name}
           <span className="bcm-entity-kind">
@@ -197,8 +202,8 @@ export default function BackportConfigModal({
 
           {/* Custom instructions */}
           <div>
-            <label className="bcm-instructions-label">Custom Instructions (optional)</label>
-            <textarea
+            <label htmlFor="custom-instructions-optional" className="bcm-instructions-label">Custom Instructions (optional)</label>
+            <textarea id="custom-instructions-optional"
               value={customInstructions}
               onChange={(e) => setCustomInstructions(e.target.value)}
               placeholder={

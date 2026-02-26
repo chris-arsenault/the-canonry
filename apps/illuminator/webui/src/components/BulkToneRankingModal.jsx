@@ -16,37 +16,31 @@ const PILL_ID = "bulk-tone-ranking";
 
 export default function BulkToneRankingModal({ progress, onConfirm, onCancel, onClose }) {
   const isMinimized = useFloatingPillStore((s) => s.isMinimized(PILL_ID));
+  const progressStatus = progress?.status;
 
   // Update pill status when progress changes while minimized
   useEffect(() => {
     if (!isMinimized || !progress) return;
-    const statusColor =
-      progress.status === "running"
-        ? "#f59e0b"
-        : progress.status === "complete"
-          ? "#10b981"
-          : progress.status === "failed"
-            ? "#ef4444"
-            : "#6b7280";
-    const statusText =
-      progress.status === "running"
-        ? "Ranking..."
-        : progress.status === "complete"
-          ? "Complete"
-          : progress.status === "failed"
-            ? "Failed"
-            : progress.status === "cancelled"
-              ? "Cancelled"
-              : "";
+    let statusColor;
+    if (progressStatus === "running") statusColor = "#f59e0b";
+    else if (progressStatus === "complete") statusColor = "#10b981";
+    else if (progressStatus === "failed") statusColor = "#ef4444";
+    else statusColor = "#6b7280";
+    let statusText;
+    if (progressStatus === "running") statusText = "Ranking...";
+    else if (progressStatus === "complete") statusText = "Complete";
+    else if (progressStatus === "failed") statusText = "Failed";
+    else if (progressStatus === "cancelled") statusText = "Cancelled";
+    else statusText = "";
     useFloatingPillStore.getState().updatePill(PILL_ID, { statusText, statusColor });
-  }, [isMinimized, progress?.status]);
+  }, [isMinimized, progress, progressStatus]);
 
   // Clean up pill when process resets to idle
   useEffect(() => {
-    if (!progress || progress.status === "idle") {
+    if (!progress || progressStatus === "idle") {
       useFloatingPillStore.getState().remove(PILL_ID);
     }
-  }, [progress?.status]);
+  }, [progress, progressStatus]);
 
   if (!progress || progress.status === "idle") return null;
   if (isMinimized) return null;
@@ -57,14 +51,11 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
     progress.status === "cancelled" ||
     progress.status === "failed";
 
-  const statusClass =
-    progress.status === "complete"
-      ? "btrm-status-complete"
-      : progress.status === "failed"
-        ? "btrm-status-failed"
-        : progress.status === "cancelled"
-          ? "btrm-status-cancelled"
-          : "btrm-status-default";
+  let statusClass;
+  if (progress.status === "complete") statusClass = "btrm-status-complete";
+  else if (progress.status === "failed") statusClass = "btrm-status-failed";
+  else if (progress.status === "cancelled") statusClass = "btrm-status-cancelled";
+  else statusClass = "btrm-status-default";
 
   return (
     <div className="btrm-overlay">
@@ -83,12 +74,11 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
                       id: PILL_ID,
                       label: "Tone Ranking",
                       statusText: progress.status === "running" ? "Ranking..." : progress.status,
-                      statusColor:
-                        progress.status === "running"
-                          ? "#f59e0b"
-                          : progress.status === "complete"
-                            ? "#10b981"
-                            : "#ef4444",
+                      statusColor: (() => {
+                        if (progress.status === "running") return "#f59e0b";
+                        if (progress.status === "complete") return "#10b981";
+                        return "#ef4444";
+                      })(),
                       tabId: "chronicle",
                     })
                   }

@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -19,7 +20,7 @@ import React from 'react';
  * @param {string} [props.className] - Additional class names
  */
 export function CategorySection({
-  id,
+  id: _id,
   icon,
   label,
   items,
@@ -33,7 +34,7 @@ export function CategorySection({
 }) {
   return (
     <div className={`category-section ${className}`.trim()}>
-      <div className="category-header" onClick={onToggleExpand}>
+      <div className="category-header" onClick={onToggleExpand} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggleExpand(e); }} >
         <span className={`category-expand ${expanded ? 'category-expand-open' : ''}`}>
           &gt;
         </span>
@@ -60,3 +61,17 @@ export function CategorySection({
 }
 
 export default CategorySection;
+
+CategorySection.propTypes = {
+  id: PropTypes.string,
+  icon: PropTypes.string,
+  label: PropTypes.string.isRequired,
+  items: PropTypes.array.isRequired,
+  expanded: PropTypes.bool.isRequired,
+  onToggleExpand: PropTypes.func.isRequired,
+  allEnabled: PropTypes.bool,
+  onToggleAll: PropTypes.func,
+  renderItem: PropTypes.func.isRequired,
+  gridClassName: PropTypes.string,
+  className: PropTypes.string,
+};

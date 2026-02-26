@@ -5,6 +5,7 @@
  */
 
 import { useImageUrl } from "../hooks/useImageUrl";
+import PropTypes from "prop-types";
 import "./CoverImageControls.css";
 import React from "react";
 
@@ -25,9 +26,12 @@ export function CoverImagePreview({ imageId, onImageClick }) {
     <div className="cic-preview-wrapper">
       <img
         src={url}
-        alt="Cover image"
+        alt="Cover"
         onClick={onImageClick ? () => onImageClick(imageId, "Cover Image") : undefined}
         className={`cic-preview-img${onImageClick ? " cic-preview-img-clickable" : ""}`}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       />
     </div>
   );
@@ -108,3 +112,17 @@ export function CoverImageControls({
     </div>
   );
 }
+
+CoverImagePreview.propTypes = {
+  imageId: PropTypes.string,
+  onImageClick: PropTypes.func,
+};
+
+CoverImageControls.propTypes = {
+  item: PropTypes.object.isRequired,
+  onGenerateCoverImageScene: PropTypes.func,
+  onGenerateCoverImage: PropTypes.func,
+  onImageClick: PropTypes.func,
+  isGenerating: PropTypes.bool,
+  labelWeight: PropTypes.number,
+};

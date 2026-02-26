@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
+import PropTypes from "prop-types";
 import "./DynamicsGenerationModal.css";
 
 // ============================================================================
@@ -17,13 +18,13 @@ import "./DynamicsGenerationModal.css";
 
 function MessageBubble({ message }) {
   const isAssistant = message.role === "assistant";
-  const isUser = message.role === "user";
   const isSystem = message.role === "system";
 
   // Parse assistant messages to extract reasoning
   let reasoning = "";
   if (isAssistant) {
     try {
+      // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
       const json = JSON.parse(message.content.match(/\{[\s\S]*\}/)?.[0] || "{}");
       reasoning = json.reasoning || "";
     } catch {
@@ -215,3 +216,19 @@ export default function DynamicsGenerationModal({
     </div>
   );
 }
+
+MessageBubble.propTypes = {
+  message: PropTypes.object.isRequired,
+};
+
+ProposedDynamicsList.propTypes = {
+  dynamics: PropTypes.array,
+};
+
+DynamicsGenerationModal.propTypes = {
+  run: PropTypes.object,
+  isActive: PropTypes.bool,
+  onSubmitFeedback: PropTypes.func.isRequired,
+  onAccept: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+};

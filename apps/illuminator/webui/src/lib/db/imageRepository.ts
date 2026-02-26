@@ -339,7 +339,7 @@ export async function getImageFilterOptions(
     const val = (record as any)[field];
     if (val) values.add(val);
   }
-  return [...values].sort();
+  return [...values].sort((a, b) => a.localeCompare(b));
 }
 
 /**
@@ -413,7 +413,7 @@ export async function searchChronicleImages(filters: {
   const { projectId, chronicleId, imageRefId, limit = 20, offset = 0 } = filters;
 
   // Start with indexed query on chronicleId if provided, else projectId
-  let query = chronicleId
+  const query = chronicleId
     ? db.images.where("chronicleId").equals(chronicleId)
     : db.images.where("projectId").equals(projectId);
 

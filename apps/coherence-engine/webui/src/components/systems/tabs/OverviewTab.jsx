@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { SYSTEM_TYPES } from "../constants";
 import { EnableToggle, useLocalInputState, LocalTextArea } from "../../shared";
 
@@ -35,8 +36,8 @@ export function OverviewTab({ system, onChange, onDelete }) {
         <div className="section-title">Basic Information</div>
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">System ID</label>
-            <input
+            <label htmlFor="system-id" className="label">System ID</label>
+            <input id="system-id"
               type="text"
               value={localId}
               onChange={(e) => setLocalId(e.target.value)}
@@ -45,8 +46,8 @@ export function OverviewTab({ system, onChange, onDelete }) {
             />
           </div>
           <div className="form-group">
-            <label className="label">Display Name</label>
-            <input
+            <label htmlFor="display-name" className="label">Display Name</label>
+            <input id="display-name"
               type="text"
               value={localName}
               onChange={(e) => setLocalName(e.target.value)}
@@ -58,13 +59,14 @@ export function OverviewTab({ system, onChange, onDelete }) {
 
         <div style={{ marginTop: "16px" }}>
           <div className="form-group">
-            <label className="label">Description</label>
+            <label className="label">Description
             <LocalTextArea
               value={config.description || ""}
               onChange={(value) => updateConfig("description", value)}
               style={DESCRIPTION_TEXTAREA_STYLE}
               placeholder="Describe what this system does..."
             />
+            </label>
           </div>
         </div>
 
@@ -101,3 +103,9 @@ export function OverviewTab({ system, onChange, onDelete }) {
     </div>
   );
 }
+
+OverviewTab.propTypes = {
+  system: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+};

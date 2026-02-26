@@ -834,7 +834,7 @@ function renderParagraphsWithFootnotes(
       if (resolved) {
         const insertAt = resolved.index + fn.anchorPhrase.length;
         if (!placements.has(pIdx)) placements.set(pIdx, []);
-        placements.get(pIdx)!.push({ charOffset: insertAt, fnIdx });
+        placements.get(pIdx).push({ charOffset: insertAt, fnIdx });
         placed.add(fnIdx);
         break;
       }
@@ -1201,7 +1201,6 @@ function buildEntrySpreads(
   while (pageIdx < pageCount) {
     const spreadId = `sp_${entryId}_${spreadNum}`;
     const isFirstSpread = spreadNum === 0;
-    const isLastSpread = pageIdx + 2 >= pageCount;
     const spreadPageCount = Math.min(2, pageCount - pageIdx);
 
     let pagesXml = "";

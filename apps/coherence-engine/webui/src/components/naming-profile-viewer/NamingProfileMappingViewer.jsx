@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import "./naming-profile-viewer.css";
 import { analyzeNamingMappings } from "./utils";
 
@@ -183,16 +184,18 @@ export default function NamingProfileMappingViewer({ generators = [], schema = {
                       </div>
                     </td>
                     <td className="naming-profile-table-cell">
-                      {m.match ? (
+                      {m.match && (
                         <span className="naming-profile-badge naming-profile-badge-match">
                           {m.match.profileName || m.match.profileId}
                           {m.match.groupName && ` / ${m.match.groupName}`}
                         </span>
-                      ) : !m.hasNamingProfile ? (
+                      )}
+                      {!m.match && !m.hasNamingProfile && (
                         <span className="naming-profile-badge naming-profile-badge-missing">
                           No profiles configured
                         </span>
-                      ) : (
+                      )}
+                      {!m.match && m.hasNamingProfile && (
                         <span className="naming-profile-badge naming-profile-badge-missing">
                           No matching group
                         </span>
@@ -213,5 +216,10 @@ export default function NamingProfileMappingViewer({ generators = [], schema = {
     </div>
   );
 }
+
+NamingProfileMappingViewer.propTypes = {
+  generators: PropTypes.array,
+  schema: PropTypes.object,
+};
 
 export { NamingProfileMappingViewer };

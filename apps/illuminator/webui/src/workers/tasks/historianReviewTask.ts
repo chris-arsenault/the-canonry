@@ -132,12 +132,14 @@ function buildSystemPrompt(
 ): string {
   const sections: string[] = [];
 
-  const mode =
-    targetType === "entity"
-      ? getEntityModeContent(historianConfig.name)
-      : chronicleFormat === "document"
-        ? getDocumentModeContent(historianConfig.name)
-        : getStoryModeContent(historianConfig.name);
+  let mode;
+  if (targetType === "entity") {
+    mode = getEntityModeContent(historianConfig.name);
+  } else if (chronicleFormat === "document") {
+    mode = getDocumentModeContent(historianConfig.name);
+  } else {
+    mode = getStoryModeContent(historianConfig.name);
+  }
 
   sections.push(mode.framing);
 
@@ -156,15 +158,17 @@ ${TONE_DESCRIPTIONS[tone]}
 This mood shapes every annotation in this session. It overrides your defaults where they conflict — if today's mood says spare, be spare even if your personality trends verbose. The reader should be able to tell which session this was from the tone alone.`);
 
   if (historianConfig.privateFacts.length > 0) {
+    const reviewPrivateFactsList = historianConfig.privateFacts.map((f) => `- ${f}`).join("\n");
     sections.push(`## Private Knowledge (things you know that the texts don't always reflect)
 
-${historianConfig.privateFacts.map((f) => `- ${f}`).join("\n")}`);
+${reviewPrivateFactsList}`);
   }
 
   if (historianConfig.runningGags.length > 0) {
+    const reviewGagsList = historianConfig.runningGags.map((g) => `- ${g}`).join("\n");
     sections.push(`## Recurring Preoccupations (these surface in your annotations unbidden — not every time, but often enough)
 
-${historianConfig.runningGags.map((g) => `- ${g}`).join("\n")}`);
+${reviewGagsList}`);
   }
 
   sections.push(`## Note Types
@@ -355,9 +359,8 @@ function buildEntityUserPrompt(
   // Entity identity
   const identParts: string[] = [];
   identParts.push(`Name: ${entity.entityName}`);
-  identParts.push(
-    `Kind: ${entity.entityKind}${entity.entitySubtype ? ` / ${entity.entitySubtype}` : ""}`
-  );
+  const reviewKindLabel = entity.entitySubtype ? `${entity.entityKind} / ${entity.entitySubtype}` : entity.entityKind;
+  identParts.push(`Kind: ${reviewKindLabel}`);
   if (entity.entityCulture) identParts.push(`Culture: ${entity.entityCulture}`);
   if (entity.entityProminence) identParts.push(`Prominence: ${entity.entityProminence}`);
   sections.push(`=== ENTITY ===\n${identParts.join("\n")}`);
@@ -370,7 +373,7 @@ function buildEntityUserPrompt(
   // Relationships
   if (entity.relationships && entity.relationships.length > 0) {
     const relLines = entity.relationships.map(
-      (r) => `  - ${r.kind} → ${r.targetName} (${r.targetKind})`
+      (r) => `  - ${r.kind} \u2192 ${r.targetName} (${r.targetKind})`
     );
     sections.push(`=== RELATIONSHIPS ===\n${relLines.join("\n")}`);
   }
@@ -385,10 +388,12 @@ function buildEntityUserPrompt(
 
   // World context
   if (world.canonFacts && world.canonFacts.length > 0) {
-    sections.push(`=== CANON FACTS ===\n${world.canonFacts.map((f) => `- ${f}`).join("\n")}`);
+    const reviewCanonFactLines = world.canonFacts.map((f) => `- ${f}`).join("\n");
+    sections.push(`=== CANON FACTS ===\n${reviewCanonFactLines}`);
   }
   if (world.worldDynamics && world.worldDynamics.length > 0) {
-    sections.push(`=== WORLD DYNAMICS ===\n${world.worldDynamics.map((d) => `- ${d}`).join("\n")}`);
+    const reviewDynamicsLines = world.worldDynamics.map((d) => `- ${d}`).join("\n");
+    sections.push(`=== WORLD DYNAMICS ===\n${reviewDynamicsLines}`);
   }
 
   // Corpus voice digest (annotation quality tracking)
@@ -448,10 +453,12 @@ function buildChronicleUserPrompt(
 
   // World context
   if (world.canonFacts && world.canonFacts.length > 0) {
-    sections.push(`=== CANON FACTS ===\n${world.canonFacts.map((f) => `- ${f}`).join("\n")}`);
+    const chronCanonFactLines = world.canonFacts.map((f) => `- ${f}`).join("\n");
+    sections.push(`=== CANON FACTS ===\n${chronCanonFactLines}`);
   }
   if (world.worldDynamics && world.worldDynamics.length > 0) {
-    sections.push(`=== WORLD DYNAMICS ===\n${world.worldDynamics.map((d) => `- ${d}`).join("\n")}`);
+    const chronDynamicsLines = world.worldDynamics.map((d) => `- ${d}`).join("\n");
+    sections.push(`=== WORLD DYNAMICS ===\n${chronDynamicsLines}`);
   }
 
   // Fact coverage guidance
@@ -502,8 +509,9 @@ function buildChronicleUserPrompt(
   if (chronicle.focalEra || chronicle.temporalNarrative) {
     const temporalParts: string[] = [];
     if (chronicle.focalEra) {
+      const focalEraDesc = chronicle.focalEra.description ? "\n" + chronicle.focalEra.description : "";
       temporalParts.push(
-        `Focal Era: ${chronicle.focalEra.name}${chronicle.focalEra.description ? `\n${chronicle.focalEra.description}` : ""}`
+        `Focal Era: ${chronicle.focalEra.name}${focalEraDesc}`
       );
     }
     if (chronicle.temporalNarrative) {
@@ -612,12 +620,12 @@ async function executeHistorianReviewTask(
     return { success: false, error: "No source text to annotate" };
   }
 
-  const targetType = run.targetType as HistorianTargetType;
+  const targetType = run.targetType;
   const callType = targetType === "entity" ? "historian.entityReview" : "historian.chronicleReview";
   const callConfig = getCallConfig(config, callType);
 
   // Build prompts
-  const tone = (run.tone || "weary") as HistorianTone;
+  const tone = (run.tone || "weary");
   const wordCount = sourceText.split(/\s+/).length;
   const noteRange = computeNoteRange(targetType, wordCount);
   const chronicleFormat =
@@ -680,6 +688,7 @@ async function executeHistorianReviewTask(
     // Parse LLM response
     let parsed: HistorianLLMResponse;
     try {
+      // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
       const jsonMatch = resultText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("No JSON object found");
       parsed = JSON.parse(jsonMatch[0]);

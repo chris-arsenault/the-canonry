@@ -9,6 +9,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 // Badge configurations for different tool types
 const BADGE_CONFIG = {
@@ -73,7 +74,7 @@ const BADGE_CONFIG = {
  */
 export function ToolUsageBadges({ usage = {}, compact = false, showZero = false }) {
   const badges = Object.entries(usage)
-    .filter(([type, count]) => showZero || count > 0)
+    .filter(([_type, count]) => showZero || count > 0)
     .filter(([type]) => BADGE_CONFIG[type]);
 
   if (badges.length === 0) {
@@ -88,7 +89,7 @@ export function ToolUsageBadges({ usage = {}, compact = false, showZero = false 
           <span
             key={type}
             className={`tool-badge ${config.className}`}
-            title={`${config.tooltip}${count > 1 ? ` (${count} uses)` : ''}`}
+            title={`${config.tooltip}${count > 1 ? ' (' + count + ' uses)' : ''}`}
           >
             <span className="tool-badge-icon">{config.icon}</span>
             {!compact && <span className="tool-badge-label">{config.label}</span>}
@@ -101,3 +102,9 @@ export function ToolUsageBadges({ usage = {}, compact = false, showZero = false 
 }
 
 export default ToolUsageBadges;
+
+ToolUsageBadges.propTypes = {
+  usage: PropTypes.object,
+  compact: PropTypes.bool,
+  showZero: PropTypes.bool,
+};

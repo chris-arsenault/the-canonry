@@ -8,7 +8,6 @@
 import type {
   ChronicleGenerationContext,
   EntityContext,
-  RelationshipContext,
   NarrativeEventContext,
   ChronicleTemporalContext,
   EraTemporalInfo,
@@ -71,8 +70,9 @@ function formatEntityFull(e: EntityContext, scale: ProminenceScale): string {
           .join(", ")
       : null;
 
+  const kindLabel = e.subtype ? `${e.kind}/${e.subtype}` : e.kind;
   const lines = [
-    `Kind: ${e.kind}${e.subtype ? `/${e.subtype}` : ""}`,
+    `Kind: ${kindLabel}`,
     `Prominence: ${resolveProminenceLabel(e.prominence, scale)}`,
     e.culture ? `Culture: ${e.culture}` : null,
     tags ? `Tags: ${tags}` : null,
@@ -89,8 +89,10 @@ function formatEntityFull(e: EntityContext, scale: ProminenceScale): string {
  */
 function formatEntityBrief(e: EntityContext, scale: ProminenceScale): string {
   const desc = e.description || "(no description available)";
-  return `### ${e.name} (${e.kind}${e.subtype ? `/${e.subtype}` : ""})
-Prominence: ${resolveProminenceLabel(e.prominence, scale)}${e.culture ? `, Culture: ${e.culture}` : ""}
+  const briefKindLabel = e.subtype ? `${e.kind}/${e.subtype}` : e.kind;
+  const cultureSuffix = e.culture ? `, Culture: ${e.culture}` : "";
+  return `### ${e.name} (${briefKindLabel})
+Prominence: ${resolveProminenceLabel(e.prominence, scale)}${cultureSuffix}
 ${desc}`;
 }
 
@@ -360,12 +362,14 @@ function buildNarrativeLensSection(
           .join(", ")
       : null;
 
+  const lensKindLabel = entity.subtype ? `${entity.kind}/${entity.subtype}` : entity.kind;
+  const lensCultureSuffix = entity.culture ? `, Culture: ${entity.culture}` : "";
   const lines: string[] = ["# Narrative Lens"];
   lines.push("This story exists in the shadow of:");
   lines.push("");
-  lines.push(`## ${entity.name} (${entity.kind}${entity.subtype ? `/${entity.subtype}` : ""})`);
+  lines.push(`## ${entity.name} (${lensKindLabel})`);
   lines.push(
-    `Prominence: ${resolveProminenceLabel(entity.prominence, scale)}${entity.culture ? `, Culture: ${entity.culture}` : ""}`
+    `Prominence: ${resolveProminenceLabel(entity.prominence, scale)}${lensCultureSuffix}`
   );
   if (tags) lines.push(`Tags: ${tags}`);
   lines.push("");
@@ -997,7 +1001,7 @@ export function buildV2Prompt(
       narrativeVoiceSection,
       entityDirectivesSection,
       nameBankSection,
-      style as StoryNarrativeStyle,
+      style,
       prominenceScale
     );
   } else {
@@ -1008,7 +1012,7 @@ export function buildV2Prompt(
       narrativeVoiceSection,
       entityDirectivesSection,
       nameBankSection,
-      style as DocumentNarrativeStyle,
+      style,
       prominenceScale
     );
   }
@@ -1021,8 +1025,8 @@ export function buildV2Prompt(
 export function getMaxTokensFromStyle(style: NarrativeStyle): number {
   const maxWords =
     style.format === "story"
-      ? (style as StoryNarrativeStyle).pacing.totalWordCount.max
-      : getDocumentWordCount(style as DocumentNarrativeStyle).max;
+      ? (style).pacing.totalWordCount.max
+      : getDocumentWordCount(style).max;
 
   // Add 50% buffer for safety, but never go below a practical minimum.
   const minAutoMaxTokens = 1024;
@@ -1139,9 +1143,6 @@ export function buildCreativeStoryPrompt(
   const style = context.narrativeStyle as StoryNarrativeStyle;
   const pacing = style.pacing;
   const wordRange = `${pacing.totalWordCount.min}-${pacing.totalWordCount.max}`;
-  const sceneRange = pacing.sceneCount
-    ? `${pacing.sceneCount.min}-${pacing.sceneCount.max}`
-    : "4-5";
 
   const primaryEntityIds = new Set(context.focus?.primaryEntityIds || []);
   const prominenceScale = buildProminenceScaleForEntities([
@@ -1273,33 +1274,5 @@ function buildCreativeStyleSection(
   tone: ChronicleGenerationContext["tone"],
   style: StoryNarrativeStyle
 ): string {
-  const lines: string[] = [`# Writing Style`];
-  let hasContent = false;
-
-  // World tone/voice guidance (may contain detailed style instructions)
-  if (tone) {
-    lines.push("");
-    lines.push(tone);
-    hasContent = true;
-  }
-
-  // Prose instructions from narrative style (tone, dialogue, description, world elements, avoid)
-  if (style.proseInstructions) {
-    if (hasContent) lines.push("");
-    lines.push(`## Prose: ${style.name}`);
-    lines.push(style.proseInstructions);
-    hasContent = true;
-  }
-
-  // Craft posture - same as structured. Research shows craft constraints
-  // produce more creative output than open freedom.
-  if (style.craftPosture) {
-    if (hasContent) lines.push("");
-    lines.push(`## Craft Posture`);
-    lines.push("How to relate to the material — density, withholding, and elaboration:");
-    lines.push(style.craftPosture);
-    hasContent = true;
-  }
-
-  return hasContent ? lines.join("\n") : "";
+  return buildUnifiedStyleSection(tone, style);
 }

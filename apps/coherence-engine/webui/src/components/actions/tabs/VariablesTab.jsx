@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import VariableSelectionEditor from "../../shared/VariableSelectionEditor";
 
 /**
@@ -49,6 +50,9 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
         onClick={() => setExpanded(!expanded)}
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         <div className="item-card-icon item-card-icon-variable">📦</div>
         <div className="item-card-info">
@@ -97,10 +101,11 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
                 Required
               </span>
               <span className="text-muted" style={{ fontSize: "11px" }}>
-                (Action won't execute unless this variable resolves)
+                (Action won&apos;t execute unless this variable resolves)
               </span>
             </label>
           </div>
+
 
           <VariableSelectionEditor
             value={selectConfig}
@@ -113,6 +118,15 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
     </div>
   );
 }
+
+VariableCard.propTypes = {
+  name: PropTypes.string.isRequired,
+  config: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  availableRefs: PropTypes.array,
+};
 
 // ============================================================================
 // VariablesTab - Main tab component
@@ -204,13 +218,14 @@ export function VariablesTab({ action, onChange, schema }) {
           <div className="item-card add-form">
             <div className="add-form-fields">
               <div style={{ flex: 1 }}>
-                <label className="label">Variable Name</label>
-                <input
+                <label htmlFor="variable-name" className="label">Variable Name</label>
+                <input id="variable-name"
                   type="text"
                   value={newVarName}
                   onChange={(e) => setNewVarName(e.target.value.replace(/[^a-zA-Z0-9_$]/g, ""))}
                   className="input"
                   placeholder="$myVariable"
+                  // eslint-disable-next-line jsx-a11y/no-autofocus
                   autoFocus
                 />
               </div>
@@ -241,5 +256,11 @@ export function VariablesTab({ action, onChange, schema }) {
     </div>
   );
 }
+
+VariablesTab.propTypes = {
+  action: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+};
 
 export default VariablesTab;

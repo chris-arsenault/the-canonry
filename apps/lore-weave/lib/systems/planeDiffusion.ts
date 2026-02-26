@@ -214,7 +214,7 @@ function getStrength(entity: HardState, strengthTag: string | undefined, default
  */
 function hasCoordinates(entity: HardState): entity is HardState & { coordinates: Point } {
   return (
-    entity.coordinates !== undefined &&
+    entity.coordinates != null &&
     typeof entity.coordinates.x === 'number' &&
     typeof entity.coordinates.y === 'number'
   );
@@ -302,7 +302,7 @@ export function createPlaneDiffusionSystem(
       };
     },
 
-    apply: function(graphView: WorldRuntime, modifier: number = 1.0): SystemResult {
+    apply: function(graphView: WorldRuntime, _modifier: number = 1.0): SystemResult {
       // Ensure state is initialized (safety check)
       if (!this.state?.initialized) {
         this.initialize!();
@@ -311,6 +311,7 @@ export function createPlaneDiffusionSystem(
 
       // Throttle check
       if (config.throttleChance !== undefined && config.throttleChance < 1.0) {
+        // eslint-disable-next-line sonarjs/pseudo-random -- simulation throttle check
         if (Math.random() > config.throttleChance) {
           return {
             relationshipsAdded: [],
@@ -347,7 +348,7 @@ export function createPlaneDiffusionSystem(
       };
 
       // Find all entities on the target plane
-      let entities = selectEntities(config.selection, metricCtx);
+      const entities = selectEntities(config.selection, metricCtx);
 
       // Filter to entities with valid coordinates
       const entitiesWithCoords = entities.filter(hasCoordinates);
@@ -613,7 +614,7 @@ export function createPlaneDiffusionSystem(
           // but SystemResult expects Partial<HardState> - compatible at runtime
           modifications.push({
             id: entity.id,
-            changes: { tags: buildTagPatch(entity.tags, newTags as Record<string, string | boolean>) },
+            changes: { tags: buildTagPatch(entity.tags, newTags) },
             narrativeGroupId: significantChange ? entity.id : undefined,
           } as typeof modifications[number]);
 

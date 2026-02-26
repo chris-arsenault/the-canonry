@@ -138,6 +138,9 @@ export default function ImageRefPicker({ projectId, onSelect, onClose }) {
       className="static-page-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="static-page-modal image-picker-modal">
         <div className="static-page-modal-header">
@@ -155,16 +158,19 @@ export default function ImageRefPicker({ projectId, onSelect, onClose }) {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by entity name..."
             className="static-page-search-input"
+            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
           />
 
-          {loading && images.length === 0 ? (
+          {loading && images.length === 0 && (
             <div className="image-picker-loading">Searching images...</div>
-          ) : images.length === 0 ? (
+          )}
+          {!(loading && images.length === 0) && images.length === 0 && (
             <div className="image-picker-empty">
               {search ? "No images match your search" : "No images available"}
             </div>
-          ) : (
+          )}
+          {images.length > 0 && (
             <>
               <div className="image-picker-grid">
                 {images.map((img) => (
@@ -182,7 +188,7 @@ export default function ImageRefPicker({ projectId, onSelect, onClose }) {
               {hasMore && (
                 <button
                   className="static-page-button image-picker-load-more"
-                  onClick={handleLoadMore}
+                  onClick={() => void handleLoadMore()}
                   disabled={loading}
                 >
                   {loading ? "Loading..." : `Load more (${images.length} of ${total})`}

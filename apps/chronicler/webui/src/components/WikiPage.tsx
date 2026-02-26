@@ -8,7 +8,7 @@
  * - Backlinks section
  */
 
-import React, { useMemo, useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
+import React, { useMemo, useState, useEffect, useLayoutEffect, useRef, useCallback, useReducer } from "react";
 import MDEditor from "@uiw/react-md-editor";
 import type {
   WikiPage,
@@ -132,12 +132,14 @@ function getImageClassName(
 
   if (isFloat) {
     const thumbClass = position === "left" ? styles.imageThumbLeft : styles.imageThumbRight;
-    const sizeClass =
-      size === "small"
-        ? styles.imageSmall
-        : size === "medium"
-          ? styles.imageMedium
-          : styles.imageLarge;
+    let sizeClass: string;
+    if (size === "small") {
+      sizeClass = styles.imageSmall;
+    } else if (size === "medium") {
+      sizeClass = styles.imageMedium;
+    } else {
+      sizeClass = styles.imageLarge;
+    }
     return `${thumbClass} ${sizeClass}`;
   }
 
@@ -188,11 +190,11 @@ function ChronicleImage({
   image,
   onOpen,
   layoutMode = "flow",
-}: {
+}: Readonly<{
   image: WikiSectionImage;
   onOpen?: (imageUrl: string, image: WikiSectionImage) => void;
   layoutMode?: LayoutMode;
-}) {
+}>) {
   const { url: imageUrl, loading } = useImageUrl(image.imageId);
   const [error, setError] = useState(false);
 
@@ -221,6 +223,9 @@ function ChronicleImage({
         className={styles.figureImage}
         onError={() => setError(true)}
         onClick={() => onOpen?.(imageUrl, image)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       />
       {image.caption && <figcaption className={styles.imageCaption}>{image.caption}</figcaption>}
     </figure>
@@ -235,11 +240,11 @@ function CoverHeroImage({
   imageId,
   title,
   onOpen,
-}: {
+}: Readonly<{
   imageId: string;
   title: string;
   onOpen?: (imageUrl: string) => void;
-}) {
+}>) {
   const { url: imageUrl, loading } = useImageUrl(imageId);
   const [error, setError] = useState(false);
 
@@ -250,9 +255,12 @@ function CoverHeroImage({
       <img
         src={imageUrl}
         alt={title}
-        className={`${styles.coverHeroImage}${onOpen ? ` ${styles.coverHeroImageClickable}` : ""}`}
+        className={[styles.coverHeroImage, onOpen ? styles.coverHeroImageClickable : ""].filter(Boolean).join(" ")}
         onError={() => setError(true)}
         onClick={() => onOpen?.(imageUrl)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       />
       <div className={styles.coverHeroOverlay}>
         <h1 className={styles.chronicleTitleHero}>{title}</h1>
@@ -270,11 +278,11 @@ function ChronicleGallery({
   title,
   links,
   onNavigate,
-}: {
+}: Readonly<{
   title: string;
   links: WikiPage[];
   onNavigate: (id: string) => void;
-}) {
+}>) {
   const imageIds = useMemo(
     () => links.slice(0, 20).map((l) => l.content.coverImageId ?? null),
     [links]
@@ -422,11 +430,11 @@ function HistorianCallout({
   note,
   noteIndex,
   layoutMode = "flow",
-}: {
+}: Readonly<{
   note: WikiHistorianNote;
   noteIndex?: number;
   layoutMode?: LayoutMode;
-}) {
+}>) {
   const color = HISTORIAN_NOTE_COLORS[note.type] || HISTORIAN_NOTE_COLORS.commentary;
   const icon = HISTORIAN_NOTE_ICONS[note.type] || "✦";
   const label = HISTORIAN_NOTE_LABELS[note.type] || "Commentary";
@@ -434,7 +442,7 @@ function HistorianCallout({
 
   if (layoutMode === "margin") {
     return (
-      // eslint-disable-next-line local/no-inline-styles -- dynamic color per historian note type
+       
       <aside
         className={styles.marginCallout}
         style={{ "--note-color": color } as React.CSSProperties}
@@ -468,11 +476,11 @@ function HistorianFootnoteTooltip({
   note,
   noteIndex,
   position,
-}: {
+}: Readonly<{
   note: WikiHistorianNote;
   noteIndex?: number;
   position: { x: number; y: number };
-}) {
+}>) {
   const color = HISTORIAN_NOTE_COLORS[note.type] || HISTORIAN_NOTE_COLORS.commentary;
   const icon = HISTORIAN_NOTE_ICONS[note.type] || "✦";
   const label = HISTORIAN_NOTE_LABELS[note.type] || "Commentary";
@@ -485,7 +493,7 @@ function HistorianFootnoteTooltip({
   if (left + tooltipWidth > window.innerWidth - 10) left = window.innerWidth - tooltipWidth - 10;
 
   return (
-    // eslint-disable-next-line local/no-inline-styles -- dynamic position and color
+     
     <div
       className={styles.footnoteTooltip}
       style={
@@ -531,7 +539,7 @@ function SectionWithImages({
   isFirstChronicleSection,
   narrativeStyleId,
   layoutOverride,
-}: {
+}: Readonly<{
   section: WikiSection;
   entityNameMap: Map<string, string>;
   aliasMap: Map<string, string>;
@@ -544,7 +552,7 @@ function SectionWithImages({
   isFirstChronicleSection?: boolean;
   narrativeStyleId?: string;
   layoutOverride?: PageLayoutOverride;
-}) {
+}>) {
   const images = layoutOverride?.imageLayout === "hidden" ? [] : section.images || [];
   const content = section.content;
 
@@ -620,14 +628,16 @@ function SectionWithImages({
   // Measures superscript positions in the DOM and positions callouts alongside them
   const sectionRef = useRef<HTMLDivElement>(null);
   const calloutRefs = useRef<Map<number, HTMLElement>>(new Map());
-  const [measurements, setMeasurements] = useState<{
-    supPositions: Map<number, number>;
-    calloutHeights: Map<number, number>;
-  } | null>(null);
+  const resolvedPositionsRef = useRef<Map<number, number>>(new Map());
+  const [layoutVersion, bumpLayoutVersion] = useReducer((x: number) => x + 1, 0);
 
   useLayoutEffect(() => {
     const container = sectionRef.current;
-    if (!container || fullNoteInserts.length === 0) return;
+    if (!container || fullNoteInserts.length === 0) {
+      resolvedPositionsRef.current = new Map();
+      bumpLayoutVersion();
+      return;
+    }
 
     const containerRect = container.getBoundingClientRect();
     const supPositions = new Map<number, number>();
@@ -644,16 +654,10 @@ function SectionWithImages({
       calloutHeights.set(idx, el.offsetHeight);
     });
 
-    setMeasurements({ supPositions, calloutHeights });
-  }, [annotatedContent, fullNoteInserts]);
-
-  // Resolve overlapping callouts by pushing them down
-  const resolvedPositions = useMemo(() => {
-    if (!measurements) return new Map<number, number>();
-
+    // Resolve overlapping callouts by pushing them down
     const sorted = [...fullNoteInserts].sort((a, b) => {
-      const posA = measurements.supPositions.get(a.idx) ?? 0;
-      const posB = measurements.supPositions.get(b.idx) ?? 0;
+      const posA = supPositions.get(a.idx) ?? 0;
+      const posB = supPositions.get(b.idx) ?? 0;
       return posA - posB;
     });
 
@@ -662,17 +666,23 @@ function SectionWithImages({
     let lastBottom = -Infinity;
 
     for (const { idx } of sorted) {
-      let top = measurements.supPositions.get(idx) ?? 0;
+      let top = supPositions.get(idx) ?? 0;
       if (top < lastBottom + GAP) {
         top = lastBottom + GAP;
       }
       resolved.set(idx, top);
-      const height = measurements.calloutHeights.get(idx) ?? 80;
+      const height = calloutHeights.get(idx) ?? 80;
       lastBottom = top + height;
     }
 
-    return resolved;
-  }, [measurements, fullNoteInserts]);
+    resolvedPositionsRef.current = resolved;
+    bumpLayoutVersion();
+  }, [annotatedContent, fullNoteInserts]);
+
+  // Read computed positions (re-renders when layoutVersion bumps)
+  // eslint-disable-next-line sonarjs/void-use -- intentional read to trigger re-render
+  void layoutVersion;
+  const resolvedPositions = resolvedPositionsRef.current;
 
   // In footnote mode, full notes don't need inline/sidenote rendering — they collect at bottom
   const effectiveFullNoteInserts = useFootnoteMode ? [] : fullNoteInserts;
@@ -710,6 +720,8 @@ function SectionWithImages({
         className={wrapperClass}
         onMouseOver={handleFootnoteHover}
         onMouseOut={handleFootnoteLeave}
+        onBlur={handleFootnoteLeave}
+        onFocus={handleFootnoteHover}
       >
         <MarkdownSection
           content={annotatedContent}
@@ -773,6 +785,8 @@ function SectionWithImages({
         className={styles.marginLayout}
         onMouseOver={handleFootnoteHover}
         onMouseOut={handleFootnoteLeave}
+        onBlur={handleFootnoteLeave}
+        onFocus={handleFootnoteHover}
       >
         <div className={styles.marginLeft}>
           {leftItems.map((item, i) =>
@@ -892,6 +906,8 @@ function SectionWithImages({
       ref={sectionRef}
       onMouseOver={handleFootnoteHover}
       onMouseOut={handleFootnoteLeave}
+      onBlur={handleFootnoteLeave}
+      onFocus={handleFootnoteHover}
     >
       {/* Inline fallback callouts: floated right, before text so float wraps (narrow viewports only) */}
       {effectiveFullNoteInserts.length > 0 && (
@@ -996,7 +1012,7 @@ function EntityPreviewCard({
   position,
   imageUrl,
   prominenceScale,
-}: EntityPreviewCardProps) {
+}: Readonly<EntityPreviewCardProps>) {
   // Position the card to the right of cursor, adjusting if it would go off-screen
   const cardWidth = 260;
   const cardHeight = 180;
@@ -1023,7 +1039,7 @@ function EntityPreviewCard({
   const initial = entity.name.charAt(0).toUpperCase();
 
   return (
-    // eslint-disable-next-line local/no-inline-styles -- dynamic position from mouse hover
+     
     <div
       className={styles.previewCard}
       style={{ "--preview-left": `${left}px`, "--preview-top": `${top}px` } as React.CSSProperties}
@@ -1070,7 +1086,7 @@ function MarkdownSection({
   onHoverEnter,
   onHoverLeave,
   isFirstFragment,
-}: {
+}: Readonly<{
   content: string;
   entityNameMap: Map<string, string>;
   aliasMap: Map<string, string>;
@@ -1079,7 +1095,7 @@ function MarkdownSection({
   onHoverEnter?: (pageId: string, e: React.MouseEvent) => void;
   onHoverLeave?: () => void;
   isFirstFragment?: boolean;
-}) {
+}>) {
   const encodePageIdForHash = useCallback((pageId: string) => {
     return pageId
       .split("/")
@@ -1095,7 +1111,8 @@ function MarkdownSection({
     const linkedContent = applyWikiLinks(content, linkableNames);
     // Then convert [[...]] to markdown-friendly link format with proper URLs
     // Supports both [[EntityName]] (lookup by name) and [[EntityName|entityId]] (direct ID)
-    return linkedContent.replace(/\[\[([^\]]+)\]\]/g, (match, linkContent) => {
+    // eslint-disable-next-line sonarjs/slow-regex -- character-class bounded, no backtracking
+    return linkedContent.replace(/\[\[([^\]]+)\]\]/g, (match: string, linkContent: string) => {
       // Support [[EntityName|entityId]] format for ID-based linking
       const pipeIndex = linkContent.lastIndexOf("|");
       let displayName: string;
@@ -1178,6 +1195,11 @@ function MarkdownSection({
       onMouseOut={handleMouseOut}
       className={styles.markdownSection}
       {...(isFirstFragment ? { "data-first": "" } : {})}
+      onBlur={handleMouseOut}
+      onFocus={handleMouseOver}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleClick(e); }}
     >
       <MDEditor.Markdown
         source={processedContent}
@@ -1322,7 +1344,7 @@ export default function WikiPageView({
   prominenceScale,
   breakpoint = "desktop",
   layoutOverride,
-}: WikiPageViewProps) {
+}: Readonly<WikiPageViewProps>) {
   const isMobile = breakpoint === "mobile";
   const isTablet = breakpoint === "tablet";
   const showInfoboxInline = isMobile || isTablet;
@@ -1716,20 +1738,18 @@ export default function WikiPageView({
     <div className={styles.container}>
       {/* Breadcrumbs - always above everything including hero */}
       <div className={styles.breadcrumbs}>
-        <span className={styles.breadcrumbLink} onClick={() => onNavigate("")}>
+        <span className={styles.breadcrumbLink} onClick={() => onNavigate("")} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
           Home
         </span>
         {" / "}
         <span>
-          {page.type === "static"
-            ? staticTitle.namespace || "Pages"
-            : page.type === "category"
-              ? "Categories"
-              : page.type === "chronicle"
-                ? "Chronicles"
-                : page.type === "era_narrative"
-                  ? "Era Narratives"
-                  : page.type}
+          {(() => {
+            if (page.type === "static") return staticTitle.namespace || "Pages";
+            if (page.type === "category") return "Categories";
+            if (page.type === "chronicle") return "Chronicles";
+            if (page.type === "era_narrative") return "Era Narratives";
+            return page.type;
+          })()}
         </span>
         {" / "}
         <span className={styles.breadcrumbCurrent}>
@@ -1769,21 +1789,22 @@ export default function WikiPageView({
         {disambiguation && disambiguation.length > 0 && (
           <div className={styles.disambiguationNotice}>
             This page is about the{" "}
-            {page.type === "entity" || page.type === "era"
-              ? entityIndex.get(page.id)?.kind || page.type
-              : page.type === "era_narrative"
-                ? "era narrative"
-                : page.type === "static"
-                  ? page.title.includes(":")
-                    ? page.title.split(":")[0].toLowerCase()
-                    : "page"
-                  : page.type}
+            {(() => {
+              if (page.type === "entity" || page.type === "era") {
+                return entityIndex.get(page.id)?.kind || page.type;
+              }
+              if (page.type === "era_narrative") return "era narrative";
+              if (page.type === "static") {
+                return page.title.includes(":") ? page.title.split(":")[0].toLowerCase() : "page";
+              }
+              return page.type;
+            })()}
             . See also:
             {disambiguation
               .filter((d) => d.pageId !== page.id)
               .map((d, i, arr) => (
                 <span key={d.pageId}>
-                  <span className={styles.disambiguationLink} onClick={() => onNavigate(d.pageId)}>
+                  <span className={styles.disambiguationLink} onClick={() => onNavigate(d.pageId)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
                     {d.title}
                   </span>
                   {i < arr.length - 1 && ","}
@@ -1836,7 +1857,10 @@ export default function WikiPageView({
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";
                 }}
-                onClick={handleInfoboxImageClick}
+                onClick={() => void handleInfoboxImageClick()}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") void handleInfoboxImageClick(); }}
               />
             )}
             <div className={styles.infoboxBody}>
@@ -1844,18 +1868,22 @@ export default function WikiPageView({
                 <div key={i} className={styles.infoboxRow}>
                   <div className={styles.infoboxLabel}>{field.label}</div>
                   <div className={styles.infoboxValue}>
-                    {field.linkedEntity ? (
-                      <span
-                        className={styles.entityLink}
-                        onClick={() => onNavigateToEntity(field.linkedEntity!)}
-                      >
-                        {Array.isArray(field.value) ? field.value.join(", ") : field.value}
-                      </span>
-                    ) : Array.isArray(field.value) ? (
-                      field.value.join(", ")
-                    ) : (
-                      field.value
-                    )}
+                    {(() => {
+                      const displayValue = Array.isArray(field.value) ? field.value.join(", ") : field.value;
+                      return field.linkedEntity ? (
+                        <span
+                          className={styles.entityLink}
+                          onClick={() => onNavigateToEntity(field.linkedEntity!)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
+                        >
+                          {displayValue}
+                        </span>
+                      ) : (
+                        displayValue
+                      );
+                    })()}
                   </div>
                 </div>
               ))}
@@ -1877,7 +1905,10 @@ export default function WikiPageView({
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";
                 }}
-                onClick={handleInfoboxImageClick}
+                onClick={() => void handleInfoboxImageClick()}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") void handleInfoboxImageClick(); }}
               />
             )}
             <div className={styles.infoboxBody}>
@@ -1885,18 +1916,22 @@ export default function WikiPageView({
                 <div key={i} className={styles.infoboxRow}>
                   <div className={styles.infoboxLabel}>{field.label}</div>
                   <div className={styles.infoboxValue}>
-                    {field.linkedEntity ? (
-                      <span
-                        className={styles.entityLink}
-                        onClick={() => onNavigateToEntity(field.linkedEntity!)}
-                      >
-                        {Array.isArray(field.value) ? field.value.join(", ") : field.value}
-                      </span>
-                    ) : Array.isArray(field.value) ? (
-                      field.value.join(", ")
-                    ) : (
-                      field.value
-                    )}
+                    {(() => {
+                      const displayValue = Array.isArray(field.value) ? field.value.join(", ") : field.value;
+                      return field.linkedEntity ? (
+                        <span
+                          className={styles.entityLink}
+                          onClick={() => onNavigateToEntity(field.linkedEntity!)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
+                        >
+                          {displayValue}
+                        </span>
+                      ) : (
+                        displayValue
+                      );
+                    })()}
                   </div>
                 </div>
               ))}
@@ -1930,7 +1965,7 @@ export default function WikiPageView({
           {/* Sections */}
           <div
             className={
-              `${isLongFormProse ? styles.chronicleBody : ""}${layoutOverride?.customClass ? ` ${layoutOverride.customClass}` : ""}`.trim() ||
+              [isLongFormProse ? styles.chronicleBody : "", layoutOverride?.customClass || ""].filter(Boolean).join(" ") ||
               undefined
             }
             data-style={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
@@ -1985,7 +2020,7 @@ export default function WikiPageView({
                     onNavigate={handleEntityClick}
                     onHoverEnter={handleEntityHoverEnter}
                     onHoverLeave={handleEntityHoverLeave}
-                    onImageOpen={handleInlineImageOpen}
+                    onImageOpen={(url, img) => void handleInlineImageOpen(url, img)}
                     historianNotes={page.content.historianNotes}
                     isFirstChronicleSection={isLongFormProse && sectionIndex === 0}
                     narrativeStyleId={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
@@ -2060,7 +2095,7 @@ export default function WikiPageView({
               if (unmatched.length === 0) return null;
               return (
                 <div className={styles.unmatchedNotesSection}>
-                  <div className={styles.unmatchedNotesHeading}>Historian's Notes</div>
+                  <div className={styles.unmatchedNotesHeading}>Historian&apos;s Notes</div>
                   {unmatched.map((note) => {
                     const color =
                       HISTORIAN_NOTE_COLORS[note.type] || HISTORIAN_NOTE_COLORS.commentary;

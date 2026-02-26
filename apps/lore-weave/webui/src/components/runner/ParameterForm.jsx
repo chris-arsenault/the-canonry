@@ -3,13 +3,14 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { NumberInput } from "@penguin-tales/shared-components";
 
 export default function ParameterForm({ params, onParamChange }) {
   return (
     <div className="lw-form-grid">
       <div className="lw-form-group">
-        <label className="lw-label">Scale Factor</label>
+        <label className="lw-label">Scale Factor
         <NumberInput
           min={0.1}
           max={10}
@@ -18,9 +19,10 @@ export default function ParameterForm({ params, onParamChange }) {
           onChange={(v) => onParamChange("scaleFactor", v ?? 1)}
           className="lw-input"
         />
+        </label>
       </div>
       <div className="lw-form-group">
-        <label className="lw-label">Default Min Distance</label>
+        <label className="lw-label">Default Min Distance
         <NumberInput
           min={1}
           max={20}
@@ -30,9 +32,10 @@ export default function ParameterForm({ params, onParamChange }) {
           className="lw-input"
           title="Minimum distance between entities on semantic planes"
         />
+        </label>
       </div>
       <div className="lw-form-group">
-        <label className="lw-label">Pressure Smoothing</label>
+        <label className="lw-label">Pressure Smoothing
         <NumberInput
           min={1}
           max={50}
@@ -43,9 +46,10 @@ export default function ParameterForm({ params, onParamChange }) {
           integer
           title="Max pressure change per tick from feedback (higher = faster swings)"
         />
+        </label>
       </div>
       <div className="lw-form-group">
-        <label className="lw-label">Ticks Per Epoch</label>
+        <label className="lw-label">Ticks Per Epoch
         <NumberInput
           min={1}
           max={50}
@@ -55,9 +59,10 @@ export default function ParameterForm({ params, onParamChange }) {
           integer
           title="Number of simulation ticks to run per epoch"
         />
+        </label>
       </div>
       <div className="lw-form-group">
-        <label className="lw-label">Max Epochs</label>
+        <label className="lw-label">Max Epochs
         <NumberInput
           min={1}
           max={100}
@@ -67,9 +72,10 @@ export default function ParameterForm({ params, onParamChange }) {
           integer
           title="Maximum epochs to run (hard limit on simulation length)"
         />
+        </label>
       </div>
       <div className="lw-form-group">
-        <label className="lw-label">Max Ticks</label>
+        <label className="lw-label">Max Ticks
         <NumberInput
           min={100}
           max={5000}
@@ -78,9 +84,10 @@ export default function ParameterForm({ params, onParamChange }) {
           className="lw-input"
           integer
         />
+        </label>
       </div>
       <div className="lw-form-group">
-        <label className="lw-label">Validity Attempts</label>
+        <label className="lw-label">Validity Attempts
         <NumberInput
           min={1}
           max={20}
@@ -90,6 +97,7 @@ export default function ParameterForm({ params, onParamChange }) {
           integer
           title="Max runs for 'Until Valid' search"
         />
+        </label>
       </div>
 
       {/* Narrative Events Section */}
@@ -131,7 +139,7 @@ export default function ParameterForm({ params, onParamChange }) {
         {params.narrativeEnabled && (
           <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
             <div className="lw-form-group" style={{ flex: "1 1 150px", minWidth: "150px" }}>
-              <label className="lw-label">Min Significance</label>
+              <label className="lw-label">Min Significance
               <NumberInput
                 min={0}
                 max={1}
@@ -141,6 +149,7 @@ export default function ParameterForm({ params, onParamChange }) {
                 className="lw-input"
                 title="Minimum significance threshold (0-1). Higher = fewer, more important events."
               />
+              </label>
             </div>
           </div>
         )}
@@ -148,3 +157,8 @@ export default function ParameterForm({ params, onParamChange }) {
     </div>
   );
 }
+
+ParameterForm.propTypes = {
+  params: PropTypes.object,
+  onParamChange: PropTypes.func,
+};

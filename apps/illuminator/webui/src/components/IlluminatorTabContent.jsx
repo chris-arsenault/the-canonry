@@ -35,7 +35,7 @@ function EntitiesTab({ revisionFlow, historianFlow, ...props }) {
         getVisualConfig={props.getVisualConfig}
         styleLibrary={props.styleLibrary}
         imageGenSettings={props.imageGenSettings}
-        onStartRevision={revisionFlow.handleOpenRevisionFilter}
+        onStartRevision={() => revisionFlow.handleOpenRevisionFilter()}
         isRevising={revisionFlow.isRevisionActive}
         onBulkHistorianReview={historianFlow.handleStartBulkHistorianReview}
         onBulkHistorianEdition={historianFlow.handleStartBulkHistorianEdition}
@@ -73,7 +73,7 @@ function ChronicleTab({ backportFlow, historianFlow, ...props }) {
         entityGuidance={entityGuidance}
         cultureIdentities={cultureIdentities}
         onBackportLore={backportFlow.handleBackportLore}
-        onStartBulkBackport={backportFlow.handleStartBulkBackport}
+        onStartBulkBackport={() => backportFlow.handleStartBulkBackport()}
         isBulkBackportActive={backportFlow.isBulkBackportActive}
         refreshTrigger={props.chronicleRefreshTrigger}
         imageModel={props.config.imageModel}
@@ -313,6 +313,101 @@ function PreprintTab() {
   );
 }
 
+EntitiesTab.propTypes = {
+  revisionFlow: PropTypes.object,
+  historianFlow: PropTypes.object,
+  worldSchema: PropTypes.object,
+  config: PropTypes.object,
+  updateConfig: PropTypes.func,
+  buildPrompt: PropTypes.func,
+  getVisualConfig: PropTypes.func,
+  styleLibrary: PropTypes.object,
+  imageGenSettings: PropTypes.object,
+  setActiveTab: PropTypes.func,
+};
+
+ChronicleTab.propTypes = {
+  backportFlow: PropTypes.object,
+  historianFlow: PropTypes.object,
+  worldData: PropTypes.object,
+  enqueue: PropTypes.func,
+  cancel: PropTypes.func,
+  buildPrompt: PropTypes.func,
+  styleLibrary: PropTypes.object,
+  imageGenSettings: PropTypes.object,
+  chronicleRefreshTrigger: PropTypes.any,
+  config: PropTypes.object,
+  handleRefreshEraSummaries: PropTypes.func,
+  setActiveTab: PropTypes.func,
+};
+
+CoverageTab.propTypes = {
+  updateWorldContext: PropTypes.func,
+};
+
+ContextTab.propTypes = {
+  dynamicsFlow: PropTypes.object,
+  updateWorldContext: PropTypes.func,
+};
+
+GuidanceTab.propTypes = {
+  updateEntityGuidance: PropTypes.func,
+  worldSchema: PropTypes.object,
+  simulationMetadata: PropTypes.object,
+};
+
+IdentityTab.propTypes = {
+  worldSchema: PropTypes.object,
+  updateCultureIdentities: PropTypes.func,
+};
+
+StylesTab.propTypes = {
+  styleLibrary: PropTypes.object,
+  styleLibraryLoading: PropTypes.bool,
+  hasCustomStyleLibrary: PropTypes.bool,
+  addArtisticStyle: PropTypes.func,
+  updateArtisticStyle: PropTypes.func,
+  deleteArtisticStyle: PropTypes.func,
+  addCompositionStyle: PropTypes.func,
+  updateCompositionStyle: PropTypes.func,
+  deleteCompositionStyle: PropTypes.func,
+  addNarrativeStyle: PropTypes.func,
+  updateNarrativeStyle: PropTypes.func,
+  deleteNarrativeStyle: PropTypes.func,
+  resetStyleLibrary: PropTypes.func,
+  worldSchema: PropTypes.object,
+};
+
+ActivityTab.propTypes = {
+  cancel: PropTypes.func,
+  retry: PropTypes.func,
+  cancelAll: PropTypes.func,
+  clearCompleted: PropTypes.func,
+};
+
+TraitsTab.propTypes = {
+  worldSchema: PropTypes.object,
+  subtypesByKind: PropTypes.object,
+  eraEntities: PropTypes.array,
+  enqueue: PropTypes.func,
+  isWorkerReady: PropTypes.bool,
+};
+
+ConfigureTab.propTypes = {
+  config: PropTypes.object,
+  updateConfig: PropTypes.func,
+  worldSchema: PropTypes.object,
+  isDataSyncing: PropTypes.bool,
+  hasHardState: PropTypes.bool,
+  handleDataSync: PropTypes.func,
+  hardStateSummary: PropTypes.node,
+  dataSyncStatus: PropTypes.object,
+};
+
+HistorianTab.propTypes = {
+  updateHistorianConfig: PropTypes.func,
+};
+
 const TAB_COMPONENTS = {
   entities: EntitiesTab,
   chronicle: ChronicleTab,
@@ -336,3 +431,7 @@ export default function IlluminatorTabContent({ activeTab, ...props }) {
   const TabComponent = TAB_COMPONENTS[activeTab];
   return TabComponent ? <TabComponent {...props} /> : null;
 }
+
+IlluminatorTabContent.propTypes = {
+  activeTab: PropTypes.string.isRequired,
+};

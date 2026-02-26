@@ -1,7 +1,22 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import { MARKOV_MODELS, CONTEXT_KEYS, COMMON_LITERALS, GRAMMAR_MODIFIERS } from "../../constants";
 import { previewGrammarNames } from "../../../lib/browser-generator";
 import { CopyGrammarModal } from "./CopyGrammarModal";
+
+/** Build the set of grammar IDs to replace during save, and perform the save. */
+function performAutosave(formData, editingGrammar, grammars, onGrammarsChange, lastSavedIdRef, lastSavedFormDataRef, formDataStr) {
+  if (!formData.id.trim()) return;
+
+  const idsToRemove = new Set([formData.id]);
+  if (lastSavedIdRef.current) idsToRemove.add(lastSavedIdRef.current);
+  if (editingGrammar !== "new") idsToRemove.add(editingGrammar);
+
+  const newGrammars = [...grammars.filter((g) => !idsToRemove.has(g.id)), formData];
+  onGrammarsChange(newGrammars);
+  lastSavedFormDataRef.current = formDataStr;
+  lastSavedIdRef.current = formData.id;
+}
 
 function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChange, allCultures }) {
   const [mode, setMode] = useState("view");
@@ -40,23 +55,7 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
     }
 
     autosaveTimeoutRef.current = setTimeout(() => {
-      if (!formData.id.trim()) return;
-
-      // Track IDs to remove: both the previously saved ID and the current ID
-      // This handles the case where the user changes the ID during editing
-      const idsToRemove = new Set([formData.id]);
-      if (lastSavedIdRef.current) {
-        idsToRemove.add(lastSavedIdRef.current);
-      }
-      if (editingGrammar !== "new") {
-        idsToRemove.add(editingGrammar);
-      }
-
-      const newGrammars = [...grammars.filter((g) => !idsToRemove.has(g.id)), formData];
-
-      onGrammarsChange(newGrammars);
-      lastSavedFormDataRef.current = formDataStr;
-      lastSavedIdRef.current = formData.id;
+      performAutosave(formData, editingGrammar, grammars, onGrammarsChange, lastSavedIdRef, lastSavedFormDataRef, formDataStr);
     }, 1000);
 
     return () => {
@@ -298,8 +297,8 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
       </div>
 
       <div className="form-group">
-        <label>Grammar ID</label>
-        <input
+        <label htmlFor="grammar-id">Grammar ID</label>
+        <input id="grammar-id"
           value={formData.id}
           onChange={(e) => setFormData({ ...formData, id: e.target.value })}
           placeholder={`${cultureId}_grammar`}
@@ -307,8 +306,8 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
       </div>
 
       <div className="form-group">
-        <label>Start Symbol</label>
-        <input
+        <label htmlFor="start-symbol">Start Symbol</label>
+        <input id="start-symbol"
           value={formData.start}
           onChange={(e) => setFormData({ ...formData, start: e.target.value })}
           placeholder="e.g., name, phrase, title"
@@ -317,8 +316,8 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
       </div>
 
       <div className="form-group">
-        <label>Capitalization</label>
-        <select
+        <label htmlFor="capitalization">Capitalization</label>
+        <select id="capitalization"
           value={formData.capitalization || ""}
           onChange={(e) =>
             setFormData({ ...formData, capitalization: e.target.value || undefined })
@@ -332,18 +331,17 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
           <option value="mixed">MiXeD (alternating)</option>
         </select>
         <small className="text-muted">
-          e.g., "king of north" →{" "}
-          {formData.capitalization === "titleWords"
-            ? '"King Of North"'
-            : formData.capitalization === "title"
-              ? '"King of north"'
-              : formData.capitalization === "allcaps"
-                ? '"KING OF NORTH"'
-                : formData.capitalization === "lowercase"
-                  ? '"king of north"'
-                  : formData.capitalization === "mixed"
-                    ? '"KiNg Of NoRtH"'
-                    : "unchanged"}
+          e.g., &quot;king of north&quot; →{" "}
+          {(() => {
+            const examples = {
+              titleWords: '"King Of North"',
+              title: '"King of north"',
+              allcaps: '"KING OF NORTH"',
+              lowercase: '"king of north"',
+              mixed: '"KiNg Of NoRtH"',
+            };
+            return examples[formData.capitalization] || "unchanged";
+          })()}
         </small>
       </div>
 
@@ -502,6 +500,9 @@ function ClickToInsertSection({ title, subtitle, items, onInsert, variant = "blu
             className={`insert-chip ${variant}`}
             onClick={() => onInsert(code)}
             title={itemTitle}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           >
             {code}
           </code>
@@ -523,6 +524,9 @@ function DomainInsertSection({ domain, onInsert }) {
           className="insert-chip gold domain-chip"
           onClick={() => onInsert(`domain:${domain.id}`)}
           title="Generate phonotactic name from this domain"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           domain:{domain.id}
         </code>
@@ -533,7 +537,7 @@ function DomainInsertSection({ domain, onInsert }) {
         <div className="mb-sm">
           <span className="text-xs text-muted">Prefixes: </span>
           {domain.morphology.prefixes.slice(0, 8).map((p, i) => (
-            <code key={i} className="morph-chip" onClick={() => onInsert(p)}>
+            <code key={i} className="morph-chip" onClick={() => onInsert(p)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
               {p}
             </code>
           ))}
@@ -544,7 +548,7 @@ function DomainInsertSection({ domain, onInsert }) {
         <div>
           <span className="text-xs text-muted">Suffixes: </span>
           {domain.morphology.suffixes.slice(0, 8).map((s, i) => (
-            <code key={i} className="morph-chip" onClick={() => onInsert(s)}>
+            <code key={i} className="morph-chip" onClick={() => onInsert(s)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
               {s}
             </code>
           ))}
@@ -567,6 +571,9 @@ function EntityLinkageSection({ onInsert }) {
             className="insert-chip green"
             onClick={() => onInsert(`context:${key}`)}
             title={desc}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           >
             context:{key}
           </code>
@@ -579,6 +586,9 @@ function EntityLinkageSection({ onInsert }) {
             className="insert-chip green"
             onClick={() => onInsert(`context:${key}`)}
             title={desc}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           >
             context:{key}
           </code>
@@ -603,6 +613,9 @@ function ModifiersSection({ onInsert }) {
               className="insert-chip cyan"
               onClick={() => onInsert(code)}
               title={desc}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
             >
               {code}
             </code>
@@ -618,6 +631,9 @@ function ModifiersSection({ onInsert }) {
               className="insert-chip cyan"
               onClick={() => onInsert(code)}
               title={desc}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
             >
               {code}
             </code>
@@ -633,6 +649,9 @@ function ModifiersSection({ onInsert }) {
               className="insert-chip cyan"
               onClick={() => onInsert(code)}
               title={desc}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
             >
               {code}
             </code>
@@ -661,6 +680,9 @@ function GrammarHelpModal({ onClose }) {
       className="modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="modal-content help-modal">
         <div className="tab-header mb-md">
@@ -679,7 +701,7 @@ function GrammarHelpModal({ onClose }) {
             <div>adj → slot:adjectives</div>
             <div>noun → slot:nouns</div>
           </div>
-          <p className="text-small">→ "Swift-Scale", "Dark-Fang"</p>
+          <p className="text-small">→ &quot;Swift-Scale&quot;, &quot;Dark-Fang&quot;</p>
 
           <h4>Syntax</h4>
           <ul className="text-small">
@@ -699,13 +721,13 @@ function GrammarHelpModal({ onClose }) {
               <code>^</code> - Join without space:
               <ul>
                 <li>
-                  <code>domain:x^'s</code> → &lt;domain&gt;'s
+                  <code>domain:x^&apos;s</code> → &lt;domain&gt;&apos;s
                 </li>
                 <li>
-                  <code>^'slot:x</code> → '&lt;slot&gt;
+                  <code>^&apos;slot:x</code> → &apos;&lt;slot&gt;
                 </li>
                 <li>
-                  <code>domain:x^'^slot:y</code> → &lt;domain&gt;'&lt;slot&gt;
+                  <code>domain:x^&apos;^slot:y</code> → &lt;domain&gt;&apos;&lt;slot&gt;
                 </li>
               </ul>
             </li>
@@ -726,9 +748,9 @@ function GrammarHelpModal({ onClose }) {
                 </li>
               </ul>
               <div className="mt-xs">
-                Example: <code>domain:x~cap domain:y~lower^'^slot:z~cap</code>
+                Example: <code>domain:x~cap domain:y~lower^&apos;^slot:z~cap</code>
               </div>
-              <div>→ "Capital lower'Capital"</div>
+              <div>→ &quot;Capital lower&apos;Capital&quot;</div>
             </li>
             <li>
               <code>~</code> - Morphological derivations (transform words):
@@ -749,14 +771,14 @@ function GrammarHelpModal({ onClose }) {
                   <code>~ed</code> - Past: curse → cursed, slay → slain
                 </li>
                 <li>
-                  <code>~poss</code> - Possessive: storm → storm's, darkness → darkness'
+                  <code>~poss</code> - Possessive: storm → storm&apos;s, darkness → darkness&apos;
                 </li>
               </ul>
               <div className="mt-xs">
-                Example: <code>slot:verbs~er</code> → "Hunter"
+                Example: <code>slot:verbs~er</code> → &quot;Hunter&quot;
               </div>
               <div>
-                Combine: <code>slot:adj~est~cap</code> → "Deepest"
+                Combine: <code>slot:adj~est~cap</code> → &quot;Deepest&quot;
               </div>
               <div className="text-muted mt-xs">
                 Handles irregulars: break→broken, good→best, lie→liar
@@ -771,16 +793,16 @@ function GrammarHelpModal({ onClose }) {
           <p className="text-small">Controls how the final generated name is formatted:</p>
           <ul className="text-small">
             <li>
-              <strong>Each Word Capitalized</strong> - "king of north" → "King Of North"
+              <strong>Each Word Capitalized</strong> - &quot;king of north&quot; → &quot;King Of North&quot;
             </li>
             <li>
-              <strong>First Letter Only</strong> - "king of north" → "King of north"
+              <strong>First Letter Only</strong> - &quot;king of north&quot; → &quot;King of north&quot;
             </li>
             <li>
               <strong>ALL CAPS / lowercase</strong> - Force case
             </li>
             <li>
-              <strong>MiXeD</strong> - "king of north" → "KiNg Of NoRtH"
+              <strong>MiXeD</strong> - &quot;king of north&quot; → &quot;KiNg Of NoRtH&quot;
             </li>
           </ul>
         </div>
@@ -877,5 +899,50 @@ function GrammarPreview({ grammar, domains, lexemeLists }) {
     </div>
   );
 }
+
+GrammarsTab.propTypes = {
+  cultureId: PropTypes.string,
+  cultureConfig: PropTypes.object,
+  onGrammarsChange: PropTypes.func,
+  onLexemesChange: PropTypes.func,
+  allCultures: PropTypes.object,
+};
+
+CollapsiblePanel.propTypes = {
+  title: PropTypes.string,
+  defaultExpanded: PropTypes.bool,
+  children: PropTypes.node,
+};
+
+ClickToInsertSection.propTypes = {
+  title: PropTypes.string,
+  subtitle: PropTypes.string,
+  items: PropTypes.array,
+  onInsert: PropTypes.func,
+  variant: PropTypes.string,
+};
+
+DomainInsertSection.propTypes = {
+  domain: PropTypes.object,
+  onInsert: PropTypes.func,
+};
+
+EntityLinkageSection.propTypes = {
+  onInsert: PropTypes.func,
+};
+
+ModifiersSection.propTypes = {
+  onInsert: PropTypes.func,
+};
+
+GrammarHelpModal.propTypes = {
+  onClose: PropTypes.func,
+};
+
+GrammarPreview.propTypes = {
+  grammar: PropTypes.object,
+  domains: PropTypes.array,
+  lexemeLists: PropTypes.object,
+};
 
 export default GrammarsTab;

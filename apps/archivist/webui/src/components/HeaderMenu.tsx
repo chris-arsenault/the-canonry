@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "./HeaderMenu.css";
 
 export type EdgeMetric = "strength" | "distance" | "none";
@@ -20,7 +20,7 @@ export default function HeaderMenu({
   onEdgeMetricChange,
   onRecalculateLayout,
   onToggleStats,
-}: HeaderMenuProps) {
+}: Readonly<HeaderMenuProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 

@@ -1,6 +1,6 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { TagSelector, NumberInput } from "@penguin-tales/shared-components";
-import { getStrategyColor, getStrategyBorder } from "../../../utils";
 import MultiSelectPills from "./MultiSelectPills";
 import TagsInput from "./TagsInput";
 
@@ -62,7 +62,7 @@ export default function StrategyGroupEditor({
             className="input-group-name"
           />
           <div className="flex align-center gap-xs">
-            <label className="text-xs text-muted">Priority:</label>
+            <label className="text-xs text-muted">Priority:
             <NumberInput
               value={group.priority || 0}
               onChange={(v) => {
@@ -73,6 +73,7 @@ export default function StrategyGroupEditor({
               className="input-priority"
               integer
             />
+            </label>
           </div>
           <button className="secondary btn-xs" onClick={toggleConditions}>
             {hasConditions ? "Remove Conditions" : "Add Conditions"}
@@ -140,7 +141,7 @@ export default function StrategyGroupEditor({
 
             {/* Tags */}
             <div>
-              <label className="condition-label">Tags</label>
+              <label className="condition-label">Tags
               <TagSelector
                 value={group.conditions?.tags || []}
                 onChange={(val) => onConditionChange(groupIdx, "tags", val)}
@@ -151,6 +152,7 @@ export default function StrategyGroupEditor({
                 onMatchAllChange={(val) => onConditionChange(groupIdx, "tagMatchAll", val)}
                 onAddToRegistry={onAddTag}
               />
+              </label>
             </div>
           </div>
         </div>
@@ -244,3 +246,21 @@ export default function StrategyGroupEditor({
     </div>
   );
 }
+
+StrategyGroupEditor.propTypes = {
+  group: PropTypes.object,
+  groupIdx: PropTypes.number,
+  domains: PropTypes.array,
+  grammars: PropTypes.array,
+  entityKinds: PropTypes.array,
+  prominenceLevels: PropTypes.array,
+  tagRegistry: PropTypes.array,
+  editedProfile: PropTypes.object,
+  setEditedProfile: PropTypes.func,
+  onDeleteGroup: PropTypes.func,
+  onAddStrategy: PropTypes.func,
+  onDeleteStrategy: PropTypes.func,
+  onWeightChange: PropTypes.func,
+  onConditionChange: PropTypes.func,
+  onAddTag: PropTypes.func,
+};

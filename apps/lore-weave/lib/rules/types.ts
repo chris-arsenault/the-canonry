@@ -104,9 +104,6 @@ export const PROMINENCE_LABELS = [
   'mythic',
 ] as const;
 
-/** @deprecated Use prominenceThreshold() for numeric comparisons */
-export const PROMINENCE_ORDER = PROMINENCE_LABELS;
-
 export type ProminenceLabel = (typeof PROMINENCE_LABELS)[number];
 
 // Numeric constants

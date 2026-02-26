@@ -243,7 +243,7 @@ async function deleteByIndex(store: IDBObjectStore, indexName: string, key: IDBV
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export async function overwriteWorldDataInDexie({
   projectId,
   slotIndex = 0,
@@ -251,7 +251,7 @@ export async function overwriteWorldDataInDexie({
   chronicles = [],
   staticPages = [],
   eraNarratives = [],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
 }: {
   projectId: string;
   slotIndex?: number;

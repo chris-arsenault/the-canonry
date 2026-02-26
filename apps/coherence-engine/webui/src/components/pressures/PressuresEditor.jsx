@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import { PressureCard } from "./cards";
 import { buildStorageKey, clearStoredValue, loadStoredValue } from "../../utils/persistence";
 
@@ -15,10 +16,8 @@ export default function PressuresEditor({ projectId, pressures = [], onChange, s
     restoredRef.current = false;
   }, [factorModalKey]);
 
-  useEffect(() => {
-    if (restoredRef.current) return;
-    if (!factorModalKey) return;
-    if (!pressures.length) return;
+  // Restore expanded pressure from storage (during render, one-time)
+  if (!restoredRef.current && factorModalKey && pressures.length) {
     const stored = loadStoredValue(factorModalKey);
     if (stored?.pressureId) {
       const index = pressures.findIndex((pressure) => pressure.id === stored.pressureId);
@@ -29,7 +28,7 @@ export default function PressuresEditor({ projectId, pressures = [], onChange, s
       }
     }
     restoredRef.current = true;
-  }, [factorModalKey, pressures]);
+  }
 
   const handlePressureChange = useCallback(
     (index, updatedPressure) => {
@@ -132,5 +131,13 @@ export default function PressuresEditor({ projectId, pressures = [], onChange, s
     </div>
   );
 }
+
+PressuresEditor.propTypes = {
+  projectId: PropTypes.string,
+  pressures: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  usageMap: PropTypes.object,
+};
 
 export { PressuresEditor };

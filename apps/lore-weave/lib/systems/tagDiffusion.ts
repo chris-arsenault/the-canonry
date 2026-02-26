@@ -11,12 +11,12 @@
  * The factory creates a SimulationSystem from a TagDiffusionConfig.
  */
 
-import { SimulationSystem, SystemResult, ComponentPurpose } from '../engine/types';
+import { SimulationSystem, SystemResult } from '../engine/types';
 import { HardState } from '../core/worldTypes';
 import { WorldRuntime } from '../runtime/worldRuntime';
 import { rollProbability, pickRandom, hasTag } from '../utils';
 import { createSystemContext, selectEntities } from '../rules';
-import type { SelectionRule } from '../rules';
+import type { SelectionRule, Direction } from '../rules';
 import { interpolate, createSystemRuleContext } from '../narrative/narrationTemplate';
 
 // =============================================================================
@@ -80,7 +80,7 @@ export interface TagDiffusionConfig {
   /** Relationship kind that indicates "connection" between entities */
   connectionKind: string;
   /** Direction to check for connections (default: 'both') */
-  connectionDirection?: 'src' | 'dst' | 'both';
+  connectionDirection?: Direction;
 
   /** Convergence: tags added when entities are connected */
   convergence?: ConvergenceConfig;
@@ -216,7 +216,7 @@ export function createTagDiffusionSystem(
 
       // Find entities to evaluate
       const selectionCtx = createSystemContext(graphView);
-      let entities = selectEntities(config.selection, selectionCtx);
+      const entities = selectEntities(config.selection, selectionCtx);
 
       if (entities.length < 2) {
         return {

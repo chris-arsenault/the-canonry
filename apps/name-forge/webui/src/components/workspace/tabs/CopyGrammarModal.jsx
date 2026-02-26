@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import { previewGrammarNames } from "../../../lib/browser-generator";
 
 const EMPTY_LEXEME_LISTS = Object.freeze({});
@@ -22,7 +23,7 @@ function generateUniqueId(cultureId, sourceId, existingIds) {
  */
 function extractSlotReferences(grammar) {
   const refs = new Set();
-  const slotPattern = /slot:([a-zA-Z0-9_]+)/g;
+  const slotPattern = /slot:(\w+)/g;
 
   for (const productions of Object.values(grammar.rules || {})) {
     for (const prod of productions) {
@@ -89,13 +90,21 @@ function substituteGrammarReferences(sourceGrammar, sourceCulture, targetCulture
   };
 }
 
+function applySlotIdMapping(token, idMapping) {
+  let result = token;
+  Object.entries(idMapping).forEach(([oldId, newId]) => {
+    result = result.replace(new RegExp(`slot:${oldId}\\b`, "g"), `slot:${newId}`);
+  });
+  return result;
+}
+
 function substituteToken(token, substitutions) {
   let result = token;
   result = result.replace(
-    /domain:([a-zA-Z0-9_]+)/g,
+    /domain:(\w+)/g,
     (_, id) => `domain:${substitutions[id] || id}`
   );
-  result = result.replace(/slot:([a-zA-Z0-9_]+)/g, (_, id) => `slot:${substitutions[id] || id}`);
+  result = result.replace(/slot:(\w+)/g, (_, id) => `slot:${substitutions[id] || id}`);
   return result;
 }
 
@@ -307,13 +316,7 @@ export function CopyGrammarModal({
       const newRules = {};
       for (const [key, productions] of Object.entries(finalGrammar.rules || {})) {
         newRules[key] = productions.map((prod) =>
-          prod.map((token) => {
-            let result = token;
-            Object.entries(idMapping).forEach(([oldId, newId]) => {
-              result = result.replace(new RegExp(`slot:${oldId}\\b`, "g"), `slot:${newId}`);
-            });
-            return result;
-          })
+          prod.map((token) => applySlotIdMapping(token, idMapping))
         );
       }
       finalGrammar = { ...finalGrammar, rules: newRules };
@@ -333,6 +336,9 @@ export function CopyGrammarModal({
       className="modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="modal-content copy-modal">
         <div className="tab-header mb-md">
@@ -344,8 +350,8 @@ export function CopyGrammarModal({
 
         <div className="copy-modal-body">
           <div className="form-group">
-            <label>Source Culture</label>
-            <select
+            <label htmlFor="source-culture">Source Culture</label>
+            <select id="source-culture"
               value={selectedCulture || ""}
               onChange={(e) => {
                 setSelectedCulture(e.target.value || null);
@@ -364,11 +370,12 @@ export function CopyGrammarModal({
 
           {selectedCulture && (
             <div className="form-group">
-              <label>Grammar to Copy</label>
+              <label htmlFor="grammar-to-copy">Grammar to Copy</label>
               {selectedCultureGrammars.length === 0 ? (
                 <p className="text-muted text-small">No grammars with rules in this culture.</p>
               ) : (
                 <select
+                  id="grammar-to-copy"
                   value={selectedGrammar || ""}
                   onChange={(e) => setSelectedGrammar(e.target.value || null)}
                 >
@@ -386,8 +393,8 @@ export function CopyGrammarModal({
           {substitutedGrammar && (
             <div className="copy-preview">
               <div className="form-group">
-                <label>New Grammar ID</label>
-                <input
+                <label htmlFor="new-grammar-id">New Grammar ID</label>
+                <input id="new-grammar-id"
                   value={newGrammarId}
                   onChange={(e) => setNewGrammarId(e.target.value)}
                   placeholder="grammar_id"
@@ -481,12 +488,27 @@ export function CopyGrammarModal({
             disabled={!substitutedGrammar || !newGrammarId.trim()}
           >
             Copy Grammar
-            {selectedDeps.size > 0
-              ? ` + ${selectedDeps.size} List${selectedDeps.size > 1 ? "s" : ""}`
-              : ""}
+            {selectedDeps.size > 0 && (
+              ` + ${selectedDeps.size} List${selectedDeps.size > 1 ? "s" : ""}`
+            )}
           </button>
         </div>
       </div>
     </div>
   );
 }
+
+GrammarPreview.propTypes = {
+  grammar: PropTypes.object,
+  domains: PropTypes.array,
+  lexemeLists: PropTypes.object,
+};
+
+CopyGrammarModal.propTypes = {
+  cultureId: PropTypes.string,
+  cultureConfig: PropTypes.object,
+  allCultures: PropTypes.object,
+  existingGrammarIds: PropTypes.array,
+  onCopy: PropTypes.func,
+  onClose: PropTypes.func,
+};

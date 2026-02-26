@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
 import { useImageUrls } from "../hooks/useImageUrl";
 import { getChronicle } from "../lib/db/chronicleRepository";
 import "./BackrefImageEditor.css";
@@ -135,11 +136,14 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
   // Determine current selection
   const isNone = backref.imageSource === null;
   const isLegacy = backref.imageSource === undefined;
-  const currentImageId = backref.imageSource
-    ? resolveImageId(backref.imageSource, chronicle, entities)
-    : isLegacy
-      ? chronicle?.coverImage?.generatedImageId || null
-      : null;
+  let currentImageId;
+  if (backref.imageSource) {
+    currentImageId = resolveImageId(backref.imageSource, chronicle, entities);
+  } else if (isLegacy) {
+    currentImageId = chronicle?.coverImage?.generatedImageId || null;
+  } else {
+    currentImageId = null;
+  }
 
   const currentSize = backref.imageSize || "medium";
   const currentAlignment = backref.imageAlignment || "left";
@@ -238,8 +242,8 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
         <div className="bie-controls">
           {/* Size */}
           <div>
-            <label className="bie-control-label">Size</label>
-            <select value={currentSize} onChange={handleSizeChange} className="bie-size-select">
+            <label htmlFor="size" className="bie-control-label">Size</label>
+            <select id="size" value={currentSize} onChange={handleSizeChange} className="bie-size-select">
               <option value="small">Small</option>
               <option value="medium">Medium</option>
               <option value="large">Large</option>
@@ -290,7 +294,16 @@ export default function BackrefImageEditor({
 }) {
   const [chronicles, setChronicles] = useState(new Map());
   const [expanded, setExpanded] = useState(alwaysExpanded);
-  const backrefs = entity?.enrichment?.chronicleBackrefs || [];
+  const backrefs = useMemo(
+    () => entity?.enrichment?.chronicleBackrefs || [],
+    [entity?.enrichment?.chronicleBackrefs]
+  );
+
+  // Stable key for chronicle IDs to use as dependency
+  const backrefChronicleKey = useMemo(
+    () => backrefs.map((b) => b.chronicleId).join(","),
+    [backrefs]
+  );
 
   // Load chronicle records for all backrefs
   useEffect(() => {
@@ -311,7 +324,7 @@ export default function BackrefImageEditor({
     return () => {
       cancelled = true;
     };
-  }, [backrefs.map((b) => b.chronicleId).join(",")]);
+  }, [backrefs, backrefChronicleKey]);
 
   // Collect all image IDs we need to load
   const allImageIds = useMemo(() => {
@@ -398,3 +411,26 @@ export default function BackrefImageEditor({
     </div>
   );
 }
+
+ImageThumbnail.propTypes = {
+  imageId: PropTypes.string.isRequired,
+  imageUrls: PropTypes.object.isRequired,
+  selected: PropTypes.bool,
+  onClick: PropTypes.func,
+  label: PropTypes.string,
+};
+
+BackrefRow.propTypes = {
+  backref: PropTypes.object.isRequired,
+  chronicle: PropTypes.object,
+  entities: PropTypes.array.isRequired,
+  imageUrls: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+};
+
+BackrefImageEditor.propTypes = {
+  entity: PropTypes.object,
+  entities: PropTypes.array.isRequired,
+  onUpdateBackrefs: PropTypes.func.isRequired,
+  alwaysExpanded: PropTypes.bool,
+};

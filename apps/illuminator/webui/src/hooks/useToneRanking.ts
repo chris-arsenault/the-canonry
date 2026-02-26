@@ -120,7 +120,7 @@ export function assignCorpusTones(
       .map((e) => {
         for (const altRank of [1, 2] as const) {
           const alt = e.ranking[altRank];
-          if (alt && counts[alt] < counts[overTone!]) {
+          if (alt && counts[alt] < counts[overTone]) {
             return { entry: e, alt, priority: altRank * 100 + counts[alt] };
           }
         }

@@ -181,50 +181,66 @@ export function useEraNarrative(
     [dispatchTask]
   );
 
+  // Ref to break circular dependency between startPolling and handlePollTick
+  const startPollingRef = useRef<(narrativeId: string) => void>(() => {});
+
+  // Extracted polling tick logic to reduce nesting depth
+  const handlePollTick = useCallback(
+    async (narrativeId: string) => {
+      const updated = await getEraNarrative(narrativeId);
+      if (!updated) return;
+
+      setNarrative(updated);
+
+      // Terminal states always stop polling
+      if (
+        updated.status === "complete" ||
+        updated.status === "failed" ||
+        updated.status === "cancelled"
+      ) {
+        stopPolling();
+        return;
+      }
+
+      if (updated.status === "step_complete") {
+        if (headlessRef.current) {
+          // Headless: auto-advance without user interaction (skips edit)
+          stopPolling();
+
+          const nextStep = NEXT_STEP[updated.currentStep];
+          if (!nextStep || updated.currentStep === "generate") {
+            // Final step (or generate in headless — skip edit): mark complete
+            await updateEraNarrative(updated.narrativeId, { status: "complete" });
+            setNarrative((prev) => (prev ? { ...prev, status: "complete" } : null));
+          } else {
+            // Intermediate step: advance and restart polling
+            await advanceRecord(updated.narrativeId, updated.currentStep);
+            startPollingRef.current(updated.narrativeId);
+          }
+        } else {
+          // Interactive: stop polling, wait for user action
+          stopPolling();
+        }
+      }
+    },
+    [stopPolling, advanceRecord]
+  );
+
   // Poll IndexedDB for state changes
   const startPolling = useCallback(
     (narrativeId: string) => {
       stopPolling();
-      pollRef.current = setInterval(async () => {
-        const updated = await getEraNarrative(narrativeId);
-        if (!updated) return;
-
-        setNarrative(updated);
-
-        // Terminal states always stop polling
-        if (
-          updated.status === "complete" ||
-          updated.status === "failed" ||
-          updated.status === "cancelled"
-        ) {
-          stopPolling();
-          return;
-        }
-
-        if (updated.status === "step_complete") {
-          if (headlessRef.current) {
-            // Headless: auto-advance without user interaction (skips edit)
-            stopPolling();
-
-            const nextStep = NEXT_STEP[updated.currentStep];
-            if (!nextStep || updated.currentStep === "generate") {
-              // Final step (or generate in headless — skip edit): mark complete
-              await updateEraNarrative(updated.narrativeId, { status: "complete" });
-              setNarrative((prev) => (prev ? { ...prev, status: "complete" } : null));
-            } else {
-              // Intermediate step: advance and restart polling
-              await advanceRecord(updated.narrativeId, updated.currentStep);
-              startPolling(updated.narrativeId);
-            }
-          } else {
-            // Interactive: stop polling, wait for user action
-            stopPolling();
-          }
-        }
+      pollRef.current = setInterval(() => {
+        void handlePollTick(narrativeId);
       }, POLL_INTERVAL_MS);
     },
-    [stopPolling, advanceRecord]
+    [stopPolling, handlePollTick]
   );
+
+  // Keep ref in sync
+  useEffect(() => {
+    startPollingRef.current = startPolling;
+  }, [startPolling]);
 
   // Create a record and start
   const createAndStart = useCallback(

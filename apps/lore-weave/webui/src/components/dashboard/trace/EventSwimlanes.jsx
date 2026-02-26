@@ -6,6 +6,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { SWIMLANE_CONFIG } from "./scales";
 import { EVENT_COLORS } from "./SimulationTraceVisx";
 
@@ -131,8 +132,14 @@ function Swimlane({
             tickEvents.length > 1 ? (stackIndex - (tickEvents.length - 1) / 2) * 12 : 0;
 
           const cx = baseX + offsetX;
-          const size = isSelected ? 12 : isHovered ? 11 : 9;
-          const opacity = isSelected ? 1 : isHovered ? 0.9 : 0.7;
+          let size;
+          if (isSelected) size = 12;
+          else if (isHovered) size = 11;
+          else size = 9;
+          let opacity;
+          if (isSelected) opacity = 1;
+          else if (isHovered) opacity = 0.9;
+          else opacity = 0.7;
 
           return (
             <g
@@ -151,7 +158,7 @@ function Swimlane({
                 cy={centerY}
                 size={size}
                 fill={color}
-                stroke={isSelected ? "#fff" : isHovered ? color : "none"}
+                stroke={(() => { if (isSelected) return "#fff"; if (isHovered) return color; return "none"; })()}
                 strokeWidth={isSelected ? 2 : 1}
                 opacity={opacity}
               />
@@ -235,3 +242,39 @@ export default function EventSwimlanes({
     </g>
   );
 }
+
+MarkerShape.propTypes = {
+  type: PropTypes.string,
+  cx: PropTypes.number,
+  cy: PropTypes.number,
+  size: PropTypes.number,
+  fill: PropTypes.string,
+  stroke: PropTypes.string,
+  strokeWidth: PropTypes.number,
+  opacity: PropTypes.number,
+};
+
+Swimlane.propTypes = {
+  type: PropTypes.string,
+  events: PropTypes.array,
+  xScale: PropTypes.func,
+  y: PropTypes.number,
+  height: PropTypes.number,
+  margin: PropTypes.object,
+  hoveredEventId: PropTypes.string,
+  selectedEventId: PropTypes.string,
+  onEventHover: PropTypes.func,
+  onEventClick: PropTypes.func,
+};
+
+EventSwimlanes.propTypes = {
+  events: PropTypes.object,
+  xScale: PropTypes.func,
+  y: PropTypes.number,
+  width: PropTypes.number,
+  margin: PropTypes.object,
+  hoveredEventId: PropTypes.string,
+  selectedEventId: PropTypes.string,
+  onEventHover: PropTypes.func,
+  onEventClick: PropTypes.func,
+};

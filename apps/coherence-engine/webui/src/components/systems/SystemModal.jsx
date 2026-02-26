@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import { SYSTEM_TYPES } from "./constants";
 import { ModalShell } from "../shared";
 import {
@@ -133,3 +134,12 @@ export function SystemModal({ system, onChange, onClose, onDelete, schema, press
     </ModalShell>
   );
 }
+
+SystemModal.propTypes = {
+  system: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+};

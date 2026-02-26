@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -44,3 +45,12 @@ export function ItemRow({
     </div>
   );
 }
+
+ItemRow.propTypes = {
+  name: PropTypes.string.isRequired,
+  muted: PropTypes.bool,
+  onRemove: PropTypes.func,
+  removeTitle: PropTypes.string,
+  children: PropTypes.node,
+  className: PropTypes.string,
+};

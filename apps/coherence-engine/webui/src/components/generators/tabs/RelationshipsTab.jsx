@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import { ReferenceDropdown, NumberInput } from "../../shared";
 
 /**
@@ -69,7 +70,7 @@ function RelationshipConditionEditor({ condition, onChange, onRemove, availableR
       {condition.type === "random_chance" && (
         <div className="condition-editor-body">
           <div className="form-group">
-            <label className="label">Chance (0-1)</label>
+            <label className="label">Chance (0-1)
             <NumberInput
               value={condition.chance}
               onChange={(v) => updateCondition("chance", v ?? 0)}
@@ -77,6 +78,7 @@ function RelationshipConditionEditor({ condition, onChange, onRemove, availableR
               max={1}
               placeholder="0.5"
             />
+            </label>
           </div>
         </div>
       )}
@@ -117,6 +119,14 @@ function RelationshipConditionEditor({ condition, onChange, onRemove, availableR
   );
 }
 
+RelationshipConditionEditor.propTypes = {
+  condition: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  availableRefs: PropTypes.array,
+  schema: PropTypes.object,
+};
+
 // ============================================================================
 // RelationshipCard - Individual relationship editor card
 // ============================================================================
@@ -141,6 +151,9 @@ function RelationshipCard({ rel, onChange, onRemove, schema, availableRefs }) {
         onClick={() => setExpanded(!expanded)}
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         <div className="rel-visual">
           <span className="rel-ref">{safeDisplay(rel.src, "?", "src")}</span>
@@ -186,7 +199,7 @@ function RelationshipCard({ rel, onChange, onRemove, schema, availableRefs }) {
               options={availableRefs.map((r) => ({ value: r, label: r }))}
             />
             <div className="form-group">
-              <label className="label">Strength</label>
+              <label className="label">Strength
               <NumberInput
                 value={rel.strength}
                 onChange={(v) => updateField("strength", v)}
@@ -195,6 +208,7 @@ function RelationshipCard({ rel, onChange, onRemove, schema, availableRefs }) {
                 allowEmpty
                 placeholder="0.8"
               />
+              </label>
             </div>
           </div>
 
@@ -204,6 +218,9 @@ function RelationshipCard({ rel, onChange, onRemove, schema, availableRefs }) {
               <div
                 onClick={() => updateField("bidirectional", !rel.bidirectional)}
                 className={`toggle ${rel.bidirectional ? "toggle-on" : ""}`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
               >
                 <div className={`toggle-knob ${rel.bidirectional ? "toggle-knob-on" : ""}`} />
               </div>
@@ -240,6 +257,14 @@ function RelationshipCard({ rel, onChange, onRemove, schema, availableRefs }) {
     </div>
   );
 }
+
+RelationshipCard.propTypes = {
+  rel: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  availableRefs: PropTypes.array,
+};
 
 // ============================================================================
 // ImpliedRelationshipCard - Read-only card for saturation-implied relationships
@@ -286,6 +311,12 @@ function ImpliedRelationshipCard({ saturationLimit, schema, createdEntityRef }) 
 // ============================================================================
 // RelationshipsTab - Main tab component
 // ============================================================================
+
+ImpliedRelationshipCard.propTypes = {
+  saturationLimit: PropTypes.object.isRequired,
+  schema: PropTypes.object,
+  createdEntityRef: PropTypes.string,
+};
 
 /**
  * @param {Object} props
@@ -357,7 +388,7 @@ export function RelationshipsTab({ generator, onChange, schema }) {
             <div className="empty-state-icon">🔗</div>
             <div className="empty-state-title">No relationships</div>
             <div className="empty-state-desc">
-              This generator doesn't create any relationships. Add relationships to connect
+              This generator doesn&apos;t create any relationships. Add relationships to connect
               entities.
             </div>
           </div>
@@ -390,5 +421,11 @@ export function RelationshipsTab({ generator, onChange, schema }) {
     </div>
   );
 }
+
+RelationshipsTab.propTypes = {
+  generator: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+};
 
 export default RelationshipsTab;

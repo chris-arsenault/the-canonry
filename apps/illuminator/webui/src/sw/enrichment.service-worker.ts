@@ -209,8 +209,8 @@ async function executeTask(task: WorkerTask, handleId: string): Promise<void> {
 
   // Merge task-level llmCallSettings with global config (same as other workers)
   const taskConfig = task.llmCallSettings
-    ? { ...config!, llmCallSettings: task.llmCallSettings }
-    : config!;
+    ? { ...config, llmCallSettings: task.llmCallSettings }
+    : config;
 
   const onThinkingDelta = (delta: string) => {
     safePostMessage(handleId, { type: "thinking_delta", taskId: task.id, delta });
@@ -222,8 +222,8 @@ async function executeTask(task: WorkerTask, handleId: string): Promise<void> {
   try {
     const result = await executeEnrichmentTask(task, {
       config: taskConfig,
-      llmClient: llmClient!,
-      imageClient: imageClient!,
+      llmClient: llmClient,
+      imageClient: imageClient,
       isAborted: checkAborted,
       onThinkingDelta,
       onTextDelta,
@@ -347,7 +347,8 @@ ctx.addEventListener("message", (event) => {
 
   switch (message.type) {
     case "init":
-      event.waitUntil(Promise.resolve(handleInit(handleId, message.config)));
+      handleInit(handleId, message.config);
+      event.waitUntil(Promise.resolve());
       break;
 
     case "execute":
@@ -367,7 +368,8 @@ ctx.addEventListener("message", (event) => {
 
     case "abort":
       log("debug", "Abort received", { handleId, taskId: message.taskId });
-      event.waitUntil(Promise.resolve(handleAbort(handleId, message.taskId)));
+      handleAbort(handleId, message.taskId);
+      event.waitUntil(Promise.resolve());
       break;
 
     case "keepalive":

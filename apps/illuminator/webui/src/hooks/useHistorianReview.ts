@@ -54,9 +54,9 @@ export interface UseHistorianReviewReturn {
   /** Whether a historian review session is active */
   isActive: boolean;
   /** Start a new historian review session */
-  startReview: (config: HistorianReviewConfig) => void;
+  startReview: (config: HistorianReviewConfig) => Promise<void>;
   /** Toggle accept/reject for a note */
-  toggleNoteDecision: (noteId: string, accepted: boolean) => void;
+  toggleNoteDecision: (noteId: string, accepted: boolean) => Promise<void>;
   /** Apply accepted notes and close the session */
   applyAccepted: () => HistorianNote[];
   /** Cancel the current session */
@@ -117,21 +117,23 @@ export function useHistorianReview(): UseHistorianReviewReturn {
   const startPolling = useCallback(
     (runId: string) => {
       stopPolling();
-      pollRef.current = setInterval(async () => {
-        const updated = await getHistorianRun(runId);
-        if (!updated) return;
+      pollRef.current = setInterval(() => {
+        void (async () => {
+          const updated = await getHistorianRun(runId);
+          if (!updated) return;
 
-        setRun(updated);
+          setRun(updated);
 
-        // Stop polling on review/terminal states
-        if (
-          updated.status === "reviewing" ||
-          updated.status === "complete" ||
-          updated.status === "failed" ||
-          updated.status === "cancelled"
-        ) {
-          stopPolling();
-        }
+          // Stop polling on review/terminal states
+          if (
+            updated.status === "reviewing" ||
+            updated.status === "complete" ||
+            updated.status === "failed" ||
+            updated.status === "cancelled"
+          ) {
+            stopPolling();
+          }
+        })();
       }, POLL_INTERVAL_MS);
     },
     [stopPolling]

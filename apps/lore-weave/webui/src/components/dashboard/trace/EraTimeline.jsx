@@ -6,6 +6,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 
 const ERA_COLORS = [
   { bg: "rgba(59, 130, 246, 0.25)", border: "rgba(59, 130, 246, 0.6)", text: "#93c5fd" },
@@ -48,7 +49,7 @@ function TransitionMarker({ x, y, height }) {
 /**
  * Single era segment
  */
-function EraSegment({ era, index, xScale, y, height, isFirst, isLast }) {
+function EraSegment({ era, index, xScale, y, height, isFirst: _isFirst, isLast: _isLast }) {
   const colors = ERA_COLORS[index % ERA_COLORS.length];
   const x1 = xScale(era.startTick);
   const x2 = xScale(era.endTick);
@@ -181,3 +182,28 @@ export default function EraTimeline({ eraBoundaries, xScale, y, height, width, m
     </g>
   );
 }
+
+TransitionMarker.propTypes = {
+  x: PropTypes.number,
+  y: PropTypes.number,
+  height: PropTypes.number,
+};
+
+EraSegment.propTypes = {
+  era: PropTypes.object,
+  index: PropTypes.number,
+  xScale: PropTypes.func,
+  y: PropTypes.number,
+  height: PropTypes.number,
+  isFirst: PropTypes.bool,
+  isLast: PropTypes.bool,
+};
+
+EraTimeline.propTypes = {
+  eraBoundaries: PropTypes.array,
+  xScale: PropTypes.func,
+  y: PropTypes.number,
+  height: PropTypes.number,
+  width: PropTypes.number,
+  margin: PropTypes.object,
+};

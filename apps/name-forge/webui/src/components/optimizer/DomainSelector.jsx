@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 
 /**
  * DomainSelector - Left panel for selecting domains to optimize
@@ -50,7 +51,7 @@ export default function DomainSelector({
                   onClick={(e) => e.stopPropagation()}
                   className="accent-ice"
                 />
-                <span onClick={() => onToggleCulture(cultureId)} className="culture-row-label">
+                <span onClick={() => onToggleCulture(cultureId)} className="culture-row-label" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
                   {isExpanded ? "▼" : "▶"} {name || cultureId}
                   <span className="text-muted font-normal ml-sm">({domains.length})</span>
                 </span>
@@ -63,6 +64,9 @@ export default function DomainSelector({
                       key={domain.id}
                       className={`domain-row ${selectedDomains.has(domain.id) ? "selected" : ""}`}
                       onClick={() => onToggleDomain(domain.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                     >
                       <input
                         type="checkbox"
@@ -89,3 +93,15 @@ export default function DomainSelector({
     </div>
   );
 }
+
+DomainSelector.propTypes = {
+  domainsByCulture: PropTypes.object,
+  allDomains: PropTypes.array,
+  selectedDomains: PropTypes.instanceOf(Set),
+  expandedCultures: PropTypes.instanceOf(Set),
+  onToggleDomain: PropTypes.func,
+  onToggleCulture: PropTypes.func,
+  onToggleAllInCulture: PropTypes.func,
+  onSelectAll: PropTypes.func,
+  onDeselectAll: PropTypes.func,
+};

@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
 import { useImageUrl } from "../hooks/useImageUrl";
 import "./ImageModal.css";
 
@@ -93,6 +94,9 @@ function MetadataSidebar({ metadata, isOpen, onToggle }) {
       <div
         className={`imod-sidebar ${isOpen ? "imod-sidebar-open" : "imod-sidebar-closed"}`}
         onClick={(e) => e.stopPropagation()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         <div className="imod-sidebar-inner">
           <h4 className="imod-sidebar-heading">Image Metadata</h4>
@@ -190,11 +194,14 @@ export default function ImageModal({ isOpen, imageId, title, onClose }) {
   const hasSidebar = sidebarOpen && metadata;
 
   return (
-    <div className="imod-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
+    <div className="imod-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }} >
       {/* Header with title and close button */}
       <div
         className={`imod-header ${hasSidebar ? "imod-header-sidebar-open" : "imod-header-sidebar-closed"}`}
         onClick={(e) => e.stopPropagation()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         <h3 className="imod-title">{title}</h3>
         <button onClick={onClose} className="imod-close-btn">
@@ -206,19 +213,24 @@ export default function ImageModal({ isOpen, imageId, title, onClose }) {
       <div
         className={`imod-image-container ${hasSidebar ? "imod-image-container-sidebar-open" : "imod-image-container-sidebar-closed"}`}
       >
-        {loading ? (
+        {loading && (
           <div className="imod-loading">Loading image...</div>
-        ) : error || !imageUrl ? (
+        )}
+        {!loading && (error || !imageUrl) && (
           <div className="imod-error">
             <div className="imod-error-title">Image not available</div>
             <div className="imod-error-detail">{error || "Image not found in storage"}</div>
           </div>
-        ) : (
+        )}
+        {!loading && !error && imageUrl && (
           <img
             src={imageUrl}
             alt={title}
             className="imod-full-image"
             onClick={(e) => e.stopPropagation()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           />
         )}
       </div>
@@ -239,3 +251,27 @@ export default function ImageModal({ isOpen, imageId, title, onClose }) {
     </div>
   );
 }
+
+MetadataRow.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.string,
+};
+
+PromptSection.propTypes = {
+  title: PropTypes.string.isRequired,
+  content: PropTypes.string,
+  defaultExpanded: PropTypes.bool,
+};
+
+MetadataSidebar.propTypes = {
+  metadata: PropTypes.object,
+  isOpen: PropTypes.bool.isRequired,
+  onToggle: PropTypes.func.isRequired,
+};
+
+ImageModal.propTypes = {
+  isOpen: PropTypes.bool,
+  imageId: PropTypes.string,
+  title: PropTypes.string,
+  onClose: PropTypes.func.isRequired,
+};

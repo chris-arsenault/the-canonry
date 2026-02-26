@@ -99,15 +99,17 @@ ${historianConfig.background}
 **Your stance toward this material:** ${historianConfig.stance}`);
 
   if (historianConfig.privateFacts.length > 0) {
+    const privateFactsList = historianConfig.privateFacts.map((f) => `- ${f}`).join("\n");
     sections.push(`## Private Knowledge (things you know that the texts don't always reflect)
 
-${historianConfig.privateFacts.map((f) => `- ${f}`).join("\n")}`);
+${privateFactsList}`);
   }
 
   if (historianConfig.runningGags.length > 0) {
+    const gagsList = historianConfig.runningGags.map((g) => `- ${g}`).join("\n");
     sections.push(`## Recurring Preoccupations
 
-${historianConfig.runningGags.map((g) => `- ${g}`).join("\n")}`);
+${gagsList}`);
   }
 
   sections.push(`## Your Task
@@ -157,14 +159,18 @@ function buildUserPrompt(ctx: ChronologyContext): string {
   const sections: string[] = [];
 
   // Era identity
+  const eraSummaryLine = era.eraSummary ? "\nSummary: " + era.eraSummary : "";
   sections.push(`=== ERA ===
 Name: ${era.eraName}
-Time span: Year ${era.startTick} to Year ${era.endTick} (${era.endTick - era.startTick} years)${era.eraSummary ? `\nSummary: ${era.eraSummary}` : ""}`);
+Time span: Year ${era.startTick} to Year ${era.endTick} (${era.endTick - era.startTick} years)${eraSummaryLine}`);
 
   // Previous eras for context
   if (previousEras.length > 0) {
     const eraLines = previousEras.map(
-      (e) => `- ${e.name} (Y${e.startTick}–Y${e.endTick})${e.summary ? `: ${e.summary}` : ""}`
+      (e) => {
+        const prevSummarySuffix = e.summary ? `: ${e.summary}` : "";
+        return `- ${e.name} (Y${e.startTick}\u2013Y${e.endTick})${prevSummarySuffix}`;
+      }
     );
     sections.push(`=== PREVIOUS ERAS (for context) ===\n${eraLines.join("\n")}`);
   }
@@ -178,7 +184,8 @@ Time span: Year ${era.startTick} to Year ${era.endTick} (${era.endTick - era.sta
     if (c.isMultiEra) lines.push(`Note: Multi-era chronicle — events span beyond this era`);
 
     if (c.cast.length > 0) {
-      lines.push(`Cast: ${c.cast.map((r) => `${r.entityName} (${r.role})`).join(", ")}`);
+      const castList = c.cast.map((r) => `${r.entityName} (${r.role})`).join(", ");
+      lines.push(`Cast: ${castList}`);
     }
 
     // Narrative context first — this is the primary placement signal
@@ -193,7 +200,7 @@ Time span: Year ${era.startTick} to Year ${era.endTick} (${era.endTick - era.sta
     // Event list: omit when prep is available (the prep already digests the events),
     // include as supplementary evidence otherwise
     if (!c.prep && c.events.length > 0) {
-      const eventLines = c.events
+      const eventLines = [...c.events]
         .sort((a, b) => a.tick - b.tick)
         .slice(0, 15)
         .map((e) => `  Y${e.tick}: ${e.headline}`);
@@ -271,7 +278,7 @@ async function executeHistorianChronologyTask(
   const callConfig = getCallConfig(config, callType);
 
   // Build prompts
-  const tone = (run.tone || "weary") as HistorianTone;
+  const tone = (run.tone || "weary");
   const systemPrompt = buildSystemPrompt(historianConfig, tone, ctx.era);
   const userPrompt = buildUserPrompt(ctx);
 
@@ -300,6 +307,7 @@ async function executeHistorianChronologyTask(
     // Parse LLM response
     let parsed: ChronologyLLMResponse;
     try {
+      // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
       const jsonMatch = resultText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("No JSON object found");
       parsed = JSON.parse(jsonMatch[0]);

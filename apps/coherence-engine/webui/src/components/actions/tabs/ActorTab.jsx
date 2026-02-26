@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { AddRuleButton } from "../../generators/applicability/AddRuleButton";
 import { ApplicabilityRuleCard } from "../../generators/applicability/ApplicabilityRuleCard";
 import { createNewRule } from "../../generators/applicability/createNewRule";
@@ -84,3 +85,10 @@ export function ActorTab({ action, onChange, schema, pressures }) {
     </div>
   );
 }
+
+ActorTab.propTypes = {
+  action: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+};

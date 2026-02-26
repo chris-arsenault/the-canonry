@@ -44,7 +44,7 @@ export function buildKindToCategoryMap(
 /**
  * Check if an entity's kind is in one of the target categories.
  */
-function kindMatchesCategories(
+function _kindMatchesCategories(
   entityKind: string,
   targetCategories: EntityCategory[] | undefined,
   kindToCategory: Map<string, EntityCategory>
@@ -124,8 +124,8 @@ export function buildNeighborGraph(
   for (const rel of relationships) {
     if (!adjacency.has(rel.src)) adjacency.set(rel.src, new Set());
     if (!adjacency.has(rel.dst)) adjacency.set(rel.dst, new Set());
-    adjacency.get(rel.src)!.add(rel.dst);
-    adjacency.get(rel.dst)!.add(rel.src);
+    adjacency.get(rel.src).add(rel.dst);
+    adjacency.get(rel.dst).add(rel.src);
   }
 
   const distances = new Map<string, number>();
@@ -133,7 +133,7 @@ export function buildNeighborGraph(
   distances.set(entrypointId, 0);
 
   while (queue.length > 0) {
-    const { id, depth } = queue.shift()!;
+    const { id, depth } = queue.shift();
     if (depth >= maxDepth) continue;
     const neighbors = adjacency.get(id);
     if (!neighbors) continue;
@@ -570,6 +570,7 @@ export function scoreEventForSelection(
   }
 
   // Small randomization to break ties
+  // eslint-disable-next-line sonarjs/pseudo-random -- non-security tie-breaking jitter
   score += Math.random() * 3;
 
   return score;
@@ -603,47 +604,11 @@ export function suggestEventSelection(
 // Entity Filtering
 // =============================================================================
 
-/**
- * Filter candidates by style's entity rules.
- * Excludes 'era' entities by default since they are not cast members.
- * @deprecated Entity selection rules removed - this now just filters eras
- */
-export function filterCandidatesByStyleRules(
-  candidates: EntityContext[],
-  _rules?: unknown
-): EntityContext[] {
-  return candidates.filter((entity) => {
-    // Exclude era entities - they are time periods, not cast members
-    if (entity.kind === "era") return false;
-    return true;
-  });
-}
 
 // =============================================================================
 // Role Suggestion
 // =============================================================================
 
-/**
- * @deprecated Entity selection rules removed - always returns false
- */
-export function matchesPrimarySubjectKinds(
-  _entity: EntityContext,
-  _rules?: unknown,
-  _kindToCategory?: Map<string, EntityCategory>
-): boolean {
-  return false;
-}
-
-/**
- * @deprecated Entity selection rules removed - always returns false
- */
-export function matchesSupportingSubjectKinds(
-  _entity: EntityContext,
-  _rules?: unknown,
-  _kindToCategory?: Map<string, EntityCategory>
-): boolean {
-  return false;
-}
 
 /**
  * Score an entity for a specific role based on diversity metrics.
@@ -700,6 +665,7 @@ function scoreEntityForRole(
     score += Math.min(metrics.newRelTypes * 3, 9); // 0-9
 
     // Randomization factor (breaks ties, adds variety)
+    // eslint-disable-next-line sonarjs/pseudo-random -- non-security tie-breaking jitter
     score += Math.random() * 5;
   }
 
@@ -710,6 +676,77 @@ function scoreEntityForRole(
  * Auto-suggest role assignments from candidates based on diversity metrics.
  * Entry point is assigned to first protagonist-like role.
  */
+function buildRoleScores(
+  candidates: EntityContext[],
+  roles: RoleDefinition[],
+  relationships: RelationshipContext[],
+  metricsMap?: Map<string, EntitySelectionMetrics>
+): Map<string, Array<{ entity: EntityContext; score: number }>> {
+  const roleScores = new Map<string, Array<{ entity: EntityContext; score: number }>>();
+  for (const roleDef of roles) {
+    const scores: Array<{ entity: EntityContext; score: number }> = [];
+    for (const entity of candidates) {
+      const metrics = metricsMap?.get(entity.id);
+      const score = scoreEntityForRole(entity, roleDef.role, relationships, metrics);
+      if (score > 0) scores.push({ entity, score });
+    }
+    scores.sort((a, b) => b.score - a.score);
+    roleScores.set(roleDef.role, scores);
+  }
+  return roleScores;
+}
+
+const PROTAGONIST_ROLES = new Set([
+  "protagonist", "hero", "doomed", "focal-point",
+  "investigator", "subject", "player", "consciousness",
+]);
+
+function assignEntryPoint(
+  entryPoint: EntityContext,
+  roles: RoleDefinition[],
+  assignments: ChronicleRoleAssignment[],
+  usedEntityIds: Set<string>
+): void {
+  const firstProtagonistRole = roles.find((r) => PROTAGONIST_ROLES.has(r.role));
+  if (!firstProtagonistRole) return;
+  assignments.push({
+    role: firstProtagonistRole.role,
+    entityId: entryPoint.id,
+    entityName: entryPoint.name,
+    entityKind: entryPoint.kind,
+    isPrimary: true,
+  });
+  usedEntityIds.add(entryPoint.id);
+}
+
+function assignRemainingRoles(
+  roles: RoleDefinition[],
+  roleScores: Map<string, Array<{ entity: EntityContext; score: number }>>,
+  assignments: ChronicleRoleAssignment[],
+  usedEntityIds: Set<string>
+): void {
+  for (const roleDef of roles) {
+    const existingCount = assignments.filter((a) => a.role === roleDef.role).length;
+    if (existingCount >= roleDef.count.max) continue;
+
+    const scores = roleScores.get(roleDef.role) || [];
+    let assigned = existingCount;
+
+    for (const { entity } of scores) {
+      if (assigned >= roleDef.count.max) break;
+      if (usedEntityIds.has(entity.id)) continue;
+
+      assignments.push({
+        role: roleDef.role, entityId: entity.id,
+        entityName: entity.name, entityKind: entity.kind,
+        isPrimary: false,
+      });
+      usedEntityIds.add(entity.id);
+      assigned += 1;
+    }
+  }
+}
+
 export function suggestRoleAssignments(
   candidates: EntityContext[],
   roles: RoleDefinition[],
@@ -722,74 +759,14 @@ export function suggestRoleAssignments(
   const assignments: ChronicleRoleAssignment[] = [];
   const usedEntityIds = new Set<string>();
 
-  // Find entry point entity
   const entryPoint = candidates.find((e) => e.id === entryPointId);
+  const roleScores = buildRoleScores(candidates, roles, relationships, metricsMap);
 
-  // Build role scores for all candidates
-  const roleScores = new Map<string, Array<{ entity: EntityContext; score: number }>>();
-  for (const roleDef of roles) {
-    const scores: Array<{ entity: EntityContext; score: number }> = [];
-    for (const entity of candidates) {
-      const metrics = metricsMap?.get(entity.id);
-      const score = scoreEntityForRole(entity, roleDef.role, relationships, metrics);
-      if (score > 0) {
-        scores.push({ entity, score });
-      }
-    }
-    scores.sort((a, b) => b.score - a.score);
-    roleScores.set(roleDef.role, scores);
-  }
-
-  // Assign entry point to first protagonist-like role
-  const protagonistRoles = [
-    "protagonist",
-    "hero",
-    "doomed",
-    "focal-point",
-    "investigator",
-    "subject",
-    "player",
-    "consciousness",
-  ];
   if (entryPoint) {
-    const firstProtagonistRole = roles.find((r) => protagonistRoles.includes(r.role));
-    if (firstProtagonistRole) {
-      // Entry point is always primary
-      assignments.push({
-        role: firstProtagonistRole.role,
-        entityId: entryPoint.id,
-        entityName: entryPoint.name,
-        entityKind: entryPoint.kind,
-        isPrimary: true,
-      });
-      usedEntityIds.add(entryPoint.id);
-    }
+    assignEntryPoint(entryPoint, roles, assignments, usedEntityIds);
   }
 
-  // Assign remaining roles greedily, respecting min counts
-  for (const roleDef of roles) {
-    // Skip if already assigned (e.g., protagonist role)
-    const existingCount = assignments.filter((a) => a.role === roleDef.role).length;
-    if (existingCount >= roleDef.count.max) continue;
-
-    const scores = roleScores.get(roleDef.role) || [];
-    let assigned = existingCount;
-
-    for (const { entity } of scores) {
-      if (assigned >= roleDef.count.max) break;
-      if (usedEntityIds.has(entity.id)) continue;
-
-      assignments.push({
-        role: roleDef.role,
-        entityId: entity.id,
-        entityName: entity.name,
-        entityKind: entity.kind,
-        isPrimary: false, // Supporting by default
-      });
-      usedEntityIds.add(entity.id);
-      assigned += 1;
-    }
-  }
+  assignRemainingRoles(roles, roleScores, assignments, usedEntityIds);
 
   return assignments;
 }
@@ -908,7 +885,7 @@ export function collapseBidirectionalRelationships(
   // Index relationships by normalized key (sorted src/dst + kind)
   const byNormalizedKey = new Map<string, RelationshipContext[]>();
   for (const rel of relationships) {
-    const normalizedKey = [rel.src, rel.dst].sort().join(":") + ":" + rel.kind;
+    const normalizedKey = [rel.src, rel.dst].sort((a, b) => a.localeCompare(b)).join(":") + ":" + rel.kind;
     const existing = byNormalizedKey.get(normalizedKey) || [];
     existing.push(rel);
     byNormalizedKey.set(normalizedKey, existing);
@@ -954,20 +931,13 @@ export function collapseBidirectionalRelationships(
 /** Maximum events allowed in final chronicle selection */
 export const MAX_CHRONICLE_EVENTS = 20;
 
-export interface GetRelevantEventsOptions {
-  /** @deprecated No longer used - UI shows all events, selection is limited separately */
-  skipLimit?: boolean;
-}
-
 /**
  * Get events involving assigned entities.
  * Returns ALL matching events - UI is responsible for limiting final selection.
  */
 export function getRelevantEvents(
   assignments: ChronicleRoleAssignment[],
-  allEvents: NarrativeEventContext[],
-  _eventRules?: unknown, // Deprecated - event selection rules removed
-  _options?: GetRelevantEventsOptions
+  allEvents: NarrativeEventContext[]
 ): NarrativeEventContext[] {
   const assignedIds = new Set(assignments.map((a) => a.entityId));
 
@@ -1088,8 +1058,8 @@ export function buildWizardSelectionContext(
   // Filter entities to those in the neighborhood
   const neighborEntities = allEntities.filter((e) => neighborGraph.ids.has(e.id));
 
-  // Apply style filters (entityRules deprecated, just passes through)
-  const filteredCandidates = filterCandidatesByStyleRules(neighborEntities, undefined);
+  // Filter out era entities — they're time periods, not cast members
+  const filteredCandidates = neighborEntities.filter((e) => e.kind !== "era");
 
   // Ensure entry point is included
   const candidates = filteredCandidates.some((e) => e.id === entryPoint.id)

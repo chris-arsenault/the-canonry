@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { DIRECTIONS } from "../constants";
 import { ReferenceDropdown, NumberInput, LocalTextArea } from "../../shared";
 import TagSelector from "@penguin-tales/shared-components/TagSelector";
@@ -85,8 +86,8 @@ export function GraphContagionTab({ system, onChange, schema }) {
           )}
           {config.contagion?.type === "tag" && (
             <div className="form-group">
-              <label className="label">Tag</label>
-              <input
+              <label htmlFor="tag" className="label">Tag</label>
+              <input id="tag"
                 type="text"
                 value={config.contagion?.tagPattern || ""}
                 onChange={(e) => updateContagion("tagPattern", e.target.value)}
@@ -119,7 +120,7 @@ export function GraphContagionTab({ system, onChange, schema }) {
                     options={DIRECTIONS}
                   />
                   <div className="form-group">
-                    <label className="label">Min Strength</label>
+                    <label className="label">Min Strength
                     <NumberInput
                       value={vector.minStrength}
                       onChange={(v) => updateVector(index, "minStrength", v)}
@@ -129,6 +130,7 @@ export function GraphContagionTab({ system, onChange, schema }) {
                       max={1}
                       allowEmpty
                     />
+                    </label>
                   </div>
                 </div>
                 <button className="btn-icon btn-icon-danger" onClick={() => removeVector(index)}>
@@ -148,7 +150,7 @@ export function GraphContagionTab({ system, onChange, schema }) {
         <div className="section-title">Transmission Rates</div>
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">Base Rate</label>
+            <label className="label">Base Rate
             <NumberInput
               value={config.transmission?.baseRate}
               onChange={(v) => updateTransmission("baseRate", v)}
@@ -158,9 +160,10 @@ export function GraphContagionTab({ system, onChange, schema }) {
               max={1}
               allowEmpty
             />
+            </label>
           </div>
           <div className="form-group">
-            <label className="label">Contact Multiplier</label>
+            <label className="label">Contact Multiplier
             <NumberInput
               value={config.transmission?.contactMultiplier}
               onChange={(v) => updateTransmission("contactMultiplier", v)}
@@ -169,9 +172,10 @@ export function GraphContagionTab({ system, onChange, schema }) {
               min={0}
               allowEmpty
             />
+            </label>
           </div>
           <div className="form-group">
-            <label className="label">Max Probability</label>
+            <label className="label">Max Probability
             <NumberInput
               value={config.transmission?.maxProbability}
               onChange={(v) => updateTransmission("maxProbability", v)}
@@ -181,6 +185,7 @@ export function GraphContagionTab({ system, onChange, schema }) {
               max={1}
               allowEmpty
             />
+            </label>
           </div>
         </div>
       </div>
@@ -227,7 +232,7 @@ export function GraphContagionTab({ system, onChange, schema }) {
                 ]}
               />
               <div className="form-group">
-                <label className="label">Strength</label>
+                <label className="label">Strength
                 <NumberInput
                   value={config.infectionAction?.strength}
                   onChange={(v) => updateInfectionAction("strength", v)}
@@ -237,6 +242,7 @@ export function GraphContagionTab({ system, onChange, schema }) {
                   max={1}
                   allowEmpty
                 />
+                </label>
               </div>
               <div className="form-group">
                 <label className="checkbox-label">
@@ -266,7 +272,7 @@ export function GraphContagionTab({ system, onChange, schema }) {
                 ]}
               />
               <div className="form-group">
-                <label className="label">Tag</label>
+                <label className="label">Tag
                 <TagSelector
                   value={config.infectionAction?.tag ? [config.infectionAction.tag] : []}
                   onChange={(tags) => updateInfectionAction("tag", tags[0] || "")}
@@ -274,10 +280,11 @@ export function GraphContagionTab({ system, onChange, schema }) {
                   placeholder="Select tag..."
                   singleSelect
                 />
+                </label>
               </div>
               <div className="form-group">
-                <label className="label">Value (optional)</label>
-                <input
+                <label htmlFor="value-optional" className="label">Value (optional)</label>
+                <input id="value-optional"
                   type="text"
                   value={
                     config.infectionAction?.value !== undefined
@@ -310,3 +317,9 @@ export function GraphContagionTab({ system, onChange, schema }) {
     </div>
   );
 }
+
+GraphContagionTab.propTypes = {
+  system: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+};

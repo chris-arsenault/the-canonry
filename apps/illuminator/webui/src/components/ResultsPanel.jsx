@@ -40,6 +40,9 @@ function EntityResultCard({
             alt={entity.name}
             onClick={() => onPreviewImage(imageTask.result.imageUrl)}
             className="rp-clickable-image"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           />
         ) : (
           <div className="rp-placeholder-icon">
@@ -121,7 +124,7 @@ function ImagePreviewModal({ imageUrl, onClose }) {
   if (!imageUrl) return null;
 
   return (
-    <div className="rp-preview-overlay" onClick={onClose}>
+    <div className="rp-preview-overlay" onClick={onClose} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(e); }} >
       <img src={imageUrl} alt="Preview" className="rp-preview-image" />
       <button onClick={onClose} className="rp-preview-close">
         ×

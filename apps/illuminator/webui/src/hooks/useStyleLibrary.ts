@@ -69,7 +69,7 @@ export function useStyleLibrary(): UseStyleLibraryReturn {
         setLoading(false);
       }
     }
-    load();
+    void load();
   }, []);
 
   // Save entire library

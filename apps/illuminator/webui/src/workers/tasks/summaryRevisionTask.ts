@@ -128,7 +128,8 @@ function buildUserPrompt(
   const entityLines: string[] = [];
   for (const e of entities) {
     const parts: string[] = [];
-    parts.push(`### ${e.name} (${e.kind}${e.subtype ? ` / ${e.subtype}` : ""})`);
+    const summaryKindLabel = e.subtype ? `${e.kind} / ${e.subtype}` : e.kind;
+    parts.push(`### ${e.name} (${summaryKindLabel})`);
     parts.push(`ID: ${e.id}`);
     parts.push(`Prominence: ${e.prominence} | Culture: ${e.culture} | Status: ${e.status}`);
 
@@ -249,6 +250,7 @@ async function executeSummaryRevisionTask(
     // Parse LLM response
     let parsed: SummaryRevisionLLMResponse;
     try {
+      // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
       const jsonMatch = resultText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("No JSON object found");
       parsed = JSON.parse(jsonMatch[0]);

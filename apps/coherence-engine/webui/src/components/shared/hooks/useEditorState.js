@@ -24,7 +24,7 @@
  * });
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { clearStoredValue, loadStoredValue, saveStoredValue } from "../../../utils/persistence";
 
 export function useEditorState(items, onChange, options = {}) {
@@ -35,10 +35,13 @@ export function useEditorState(items, onChange, options = {}) {
     return typeof stored === "string" ? stored : null;
   });
 
-  useEffect(() => {
+  // Restore selectedId from storage when persistKey changes (during render)
+  const prevPersistKeyRef = useRef(persistKey);
+  if (prevPersistKeyRef.current !== persistKey) {
+    prevPersistKeyRef.current = persistKey;
     const stored = loadStoredValue(persistKey);
     setSelectedId(typeof stored === "string" ? stored : null);
-  }, [persistKey]);
+  }
 
   const resolvedIndex = selectedId ? items.findIndex((item) => item[idField] === selectedId) : -1;
   const selectedIndex = resolvedIndex >= 0 ? resolvedIndex : null;
@@ -47,6 +50,7 @@ export function useEditorState(items, onChange, options = {}) {
   const selectedItem =
     selectedIndex !== null && selectedIndex < items.length ? items[selectedIndex] : null;
 
+  // Persist selectedId to storage
   useEffect(() => {
     if (!persistKey) return;
     if (selectedId) {
@@ -56,11 +60,10 @@ export function useEditorState(items, onChange, options = {}) {
     }
   }, [persistKey, selectedId]);
 
-  useEffect(() => {
-    if (selectedId && selectedIndex === null) {
-      setSelectedId(null);
-    }
-  }, [selectedId, selectedIndex]);
+  // Clear invalid selectedId (during render)
+  if (selectedId && selectedIndex === null) {
+    setSelectedId(null);
+  }
 
   // Update the currently selected item
   const handleItemChange = useCallback(

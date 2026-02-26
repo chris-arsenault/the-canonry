@@ -19,7 +19,6 @@ import {
   DEFAULT_PROMINENCE_DISTRIBUTION,
 } from "@canonry/world-schema";
 import { isHistorianConfigured, isNoteActive } from "./historianTypes";
-import type { HistorianConfig } from "./historianTypes";
 import type { HistorianEditionConfig } from "../hooks/useHistorianEdition";
 import type { HistorianReviewConfig } from "../hooks/useHistorianReview";
 import {
@@ -126,6 +125,7 @@ const HISTORIAN_SAMPLING = {
 
 function shuffleInPlace<T>(items: T[]): void {
   for (let i = items.length - 1; i > 0; i -= 1) {
+    // eslint-disable-next-line sonarjs/pseudo-random -- non-security shuffle for processing order
     const j = Math.floor(Math.random() * (i + 1));
     [items[i], items[j]] = [items[j], items[i]];
   }
@@ -433,6 +433,48 @@ export async function buildHistorianReviewContext(
  */
 export type ReinforcementCache = { runId: string | null; data: ReinforcementCounts | null };
 
+async function resolveCachedValue<T>(
+  cache: { runId: string | null; [key: string]: unknown } | undefined,
+  runId: string,
+  cacheKey: string,
+  compute: () => Promise<T>
+): Promise<T> {
+  if (cache && cache.runId === runId && cache[cacheKey] != null) {
+    return cache[cacheKey] as T;
+  }
+  const value = await compute();
+  if (cache) {
+    cache.runId = runId;
+    cache[cacheKey] = value;
+  }
+  return value;
+}
+
+async function resolveFactCoverageGuidance(
+  factCoverageReport: ChronicleRecord["factCoverageReport"],
+  simulationRunId: string,
+  worldContext: { canonFactsWithMetadata?: Array<{ id: string; type?: string; disabled?: boolean }> },
+  corpusStrengthCache?: { runId: string | null; strength: Map<string, number> | null },
+  reinforcementCache?: ReinforcementCache
+) {
+  const corpusStrength = await resolveCachedValue(
+    corpusStrengthCache, simulationRunId, "strength",
+    () => computeCorpusFactStrength(simulationRunId)
+  );
+  const reinforcement = await resolveCachedValue(
+    reinforcementCache, simulationRunId, "data",
+    () => computeAnnotationReinforcementCounts(simulationRunId)
+  );
+
+  const constraintFactIds = new Set(
+    (worldContext.canonFactsWithMetadata || [])
+      .filter((f) => f.type === "generation_constraint" || f.disabled)
+      .map((f) => f.id)
+  );
+
+  return buildFactCoverageGuidance(factCoverageReport, corpusStrength, constraintFactIds, reinforcement);
+}
+
 export async function buildChronicleReviewContext(
   chronicleId: string,
   tone?: string,
@@ -481,55 +523,12 @@ export async function buildChronicleReviewContext(
     };
   });
 
-  // Compute fact coverage guidance if report exists
-  let factCoverageGuidance = undefined;
-  if (chronicle.factCoverageReport?.entries?.length) {
-    let corpusStrength: Map<string, number>;
-    if (
-      corpusStrengthCache &&
-      corpusStrengthCache.runId === simulationRunId &&
-      corpusStrengthCache.strength
-    ) {
-      corpusStrength = corpusStrengthCache.strength;
-    } else {
-      corpusStrength = await computeCorpusFactStrength(simulationRunId);
-      if (corpusStrengthCache) {
-        corpusStrengthCache.runId = simulationRunId;
-        corpusStrengthCache.strength = corpusStrength;
-      }
-    }
-
-    // Reinforcement counts for dynamic dampening
-    let reinforcement: ReinforcementCounts | undefined;
-    if (
-      reinforcementCache &&
-      reinforcementCache.runId === simulationRunId &&
-      reinforcementCache.data
-    ) {
-      reinforcement = reinforcementCache.data;
-    } else {
-      reinforcement = await computeAnnotationReinforcementCounts(simulationRunId);
-      if (reinforcementCache) {
-        reinforcementCache.runId = simulationRunId;
-        reinforcementCache.data = reinforcement;
-      }
-    }
-
-    const constraintFactIds = new Set(
-      (worldContext.canonFactsWithMetadata || [])
-        .filter(
-          (f: { type?: string; disabled?: boolean }) =>
-            f.type === "generation_constraint" || f.disabled
-        )
-        .map((f: { id: string }) => f.id)
-    );
-    factCoverageGuidance = buildFactCoverageGuidance(
-      chronicle.factCoverageReport,
-      corpusStrength,
-      constraintFactIds,
-      reinforcement
-    );
-  }
+  const factCoverageGuidance = chronicle.factCoverageReport?.entries?.length
+    ? await resolveFactCoverageGuidance(
+        chronicle.factCoverageReport, simulationRunId, worldContext,
+        corpusStrengthCache, reinforcementCache
+      )
+    : undefined;
 
   // Build corpus voice digest (cached across batch runs)
   const voiceDigest = await buildCorpusVoiceDigest(voiceDigestCache);
@@ -609,6 +608,87 @@ const SUPERLATIVE_RE =
  * Tracks superlative claims, overused openings, length distribution, and tangent count.
  * Follows the same cache pattern as corpusStrengthCache for batch flows.
  */
+async function collectCorpusNotes(
+  simulationRunId: string
+): Promise<Array<{ text: string; type: string; targetName: string }>> {
+  const allTexts: Array<{ text: string; type: string; targetName: string }> = [];
+
+  const allEntities = await entityRepo.getEntitiesForRun(simulationRunId);
+  for (const entity of allEntities) {
+    for (const note of (entity.enrichment?.historianNotes || []).filter(isNoteActive)) {
+      allTexts.push({ text: note.text, type: note.type, targetName: entity.name });
+    }
+  }
+
+  const chronicleRecords = await getChroniclesForSimulation(simulationRunId);
+  for (const chronicle of chronicleRecords) {
+    for (const note of (chronicle.historianNotes || []).filter(isNoteActive)) {
+      allTexts.push({
+        text: note.text, type: note.type,
+        targetName: chronicle.title || chronicle.chronicleId,
+      });
+    }
+  }
+
+  return allTexts;
+}
+
+function extractSuperlativeClaims(
+  allTexts: Array<{ text: string; targetName: string }>
+): string[] {
+  const byPattern = new Map<string, string[]>();
+  for (const { text, targetName } of allTexts) {
+    const matches = text.match(SUPERLATIVE_RE);
+    if (!matches) continue;
+    for (const rawMatch of matches) {
+      const normalized = rawMatch.trim().toLowerCase();
+      const targets = byPattern.get(normalized) || [];
+      targets.push(targetName);
+      byPattern.set(normalized, targets);
+    }
+  }
+
+  const claims: string[] = [];
+  for (const [phrase, targets] of byPattern) {
+    const unique = [...new Set(targets)];
+    if (unique.length >= 2) {
+      const overflowSuffix = unique.length > 4 ? ` (+${unique.length - 4} more)` : "";
+      claims.push(
+        `[repeated] "${phrase}" — used on: ${unique.slice(0, 4).join(", ")}${overflowSuffix}`
+      );
+    } else {
+      claims.push(`"${phrase}" — on "${unique[0]}"`);
+    }
+  }
+  return claims;
+}
+
+function findOverusedOpenings(allTexts: Array<{ text: string }>): string[] {
+  const openingCounts = new Map<string, number>();
+  for (const { text } of allTexts) {
+    const words = text.trim().split(/\s+/).slice(0, 4);
+    if (words.length < 4) continue;
+    const opening = words.join(" ").toLowerCase().replace(/[.,;:!?]$/g, "");
+    openingCounts.set(opening, (openingCounts.get(opening) || 0) + 1);
+  }
+  return [...openingCounts.entries()]
+    .filter(([, count]) => count >= 3)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([opening, count]) => `"${opening}..." (x${count})`);
+}
+
+function computeLengthHistogram(allTexts: Array<{ text: string }>): { short: number; medium: number; long: number; total: number } {
+  let short = 0, medium = 0, long = 0;
+  for (const { text } of allTexts) {
+    const wc = text.trim().split(/\s+/).length;
+    if (wc <= 35) short++;
+    else if (wc <= 70) medium++;
+    else long++;
+  }
+  return { short, medium, long, total: allTexts.length };
+}
+
 export async function buildCorpusVoiceDigest(
   cache?: CorpusVoiceDigestCache
 ): Promise<CorpusVoiceDigest> {
@@ -618,95 +698,15 @@ export async function buildCorpusVoiceDigest(
     return cache.digest;
   }
 
-  // Collect all notes across the corpus
-  const allTexts: Array<{ text: string; type: string; targetName: string }> = [];
-
-  if (simulationRunId) {
-    const allEntities = await entityRepo.getEntitiesForRun(simulationRunId);
-    for (const entity of allEntities) {
-      for (const note of (entity.enrichment?.historianNotes || []).filter(isNoteActive)) {
-        allTexts.push({ text: note.text, type: note.type, targetName: entity.name });
-      }
-    }
-
-    const chronicleRecords = await getChroniclesForSimulation(simulationRunId);
-    for (const chronicle of chronicleRecords) {
-      for (const note of (chronicle.historianNotes || []).filter(isNoteActive)) {
-        allTexts.push({
-          text: note.text,
-          type: note.type,
-          targetName: chronicle.title || chronicle.chronicleId,
-        });
-      }
-    }
-  }
-
-  // Superlative extraction
-  const superlativesByPattern = new Map<string, string[]>();
-  for (const { text, targetName } of allTexts) {
-    const matches = text.match(SUPERLATIVE_RE);
-    if (!matches) continue;
-    for (const rawMatch of matches) {
-      const normalized = rawMatch.trim().toLowerCase();
-      const targets = superlativesByPattern.get(normalized) || [];
-      targets.push(targetName);
-      superlativesByPattern.set(normalized, targets);
-    }
-  }
-  // Track all superlative claims: repeated (2+ targets) get [repeated] marker
-  const superlativeClaims: string[] = [];
-  for (const [phrase, targets] of superlativesByPattern) {
-    const unique = [...new Set(targets)];
-    if (unique.length >= 2) {
-      superlativeClaims.push(
-        `[repeated] "${phrase}" — used on: ${unique.slice(0, 4).join(", ")}${unique.length > 4 ? ` (+${unique.length - 4} more)` : ""}`
-      );
-    } else {
-      superlativeClaims.push(`"${phrase}" — on "${unique[0]}"`);
-    }
-  }
-
-  // Overused openings (first 4 words)
-  const openingCounts = new Map<string, number>();
-  for (const { text } of allTexts) {
-    const words = text.trim().split(/\s+/).slice(0, 4);
-    if (words.length < 4) continue;
-    const opening = words
-      .join(" ")
-      .toLowerCase()
-      .replace(/[.,;:!?]$/g, "");
-    openingCounts.set(opening, (openingCounts.get(opening) || 0) + 1);
-  }
-  const overusedOpenings = [...openingCounts.entries()]
-    .filter(([, count]) => count >= 3)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([opening, count]) => `"${opening}..." (×${count})`);
-
-  // Length histogram
-  let short = 0,
-    medium = 0,
-    long = 0;
-  for (const { text } of allTexts) {
-    const wc = text.trim().split(/\s+/).length;
-    if (wc <= 35) short++;
-    else if (wc <= 70) medium++;
-    else long++;
-  }
-
-  // Tangent count
-  const tangentCount = allTexts.filter((n) => n.type === "tangent").length;
-
-  // Count distinct targets
-  const targetNames = new Set(allTexts.map((n) => n.targetName));
+  const allTexts = simulationRunId ? await collectCorpusNotes(simulationRunId) : [];
 
   const digest: CorpusVoiceDigest = {
-    superlativeClaims,
-    overusedOpenings,
-    lengthHistogram: { short, medium, long, total: allTexts.length },
-    tangentCount,
+    superlativeClaims: extractSuperlativeClaims(allTexts),
+    overusedOpenings: findOverusedOpenings(allTexts),
+    lengthHistogram: computeLengthHistogram(allTexts),
+    tangentCount: allTexts.filter((n) => n.type === "tangent").length,
     totalNotes: allTexts.length,
-    targetCount: targetNames.size,
+    targetCount: new Set(allTexts.map((n) => n.targetName)).size,
   };
 
   if (cache) {

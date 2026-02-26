@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * Badge for showing error counts
@@ -48,3 +49,18 @@ export function TabValidationBadge({ count, className = '' }) {
     </span>
   );
 }
+
+ErrorBadge.propTypes = {
+  count: PropTypes.number,
+  className: PropTypes.string,
+};
+
+OrphanBadge.propTypes = {
+  isOrphan: PropTypes.bool,
+  className: PropTypes.string,
+};
+
+TabValidationBadge.propTypes = {
+  count: PropTypes.number,
+  className: PropTypes.string,
+};

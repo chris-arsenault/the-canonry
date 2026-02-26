@@ -1,0 +1,9 @@
+{
+  "name": "drift-semantic-extractor",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "ts-morph": "^24.0.0",
+    "tsx": "^4.19.0"
+  }
+}

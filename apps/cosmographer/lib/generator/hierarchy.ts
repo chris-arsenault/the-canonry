@@ -10,7 +10,6 @@ import type {
   SemanticAnalysisResult,
   GeneratedPlaneHierarchy,
   CosmographerInput,
-  DistanceHint
 } from '../types/index.js';
 
 import {
@@ -129,11 +128,8 @@ function determineChildren(
   return candidates.slice(0, 3).map(c => c.id);
 }
 
-/**
- * Build hierarchy from nodes using BFS from primary.
- */
-function buildHierarchyOrder(nodes: Map<string, PlaneNode>): string[] {
-  // Find primary node (lowest priority)
+/** Find the node with the lowest priority value. */
+function findPrimaryNode(nodes: Map<string, PlaneNode>): string | null {
   let primaryId: string | null = null;
   let lowestPriority = Infinity;
 
@@ -144,13 +140,13 @@ function buildHierarchyOrder(nodes: Map<string, PlaneNode>): string[] {
     }
   }
 
-  if (!primaryId) {
-    return Array.from(nodes.keys());
-  }
+  return primaryId;
+}
 
-  // BFS from primary
+/** BFS traversal from a start node, returning visited order. */
+function bfsTraversal(startId: string, nodes: Map<string, PlaneNode>): { order: string[]; visited: Set<string> } {
   const order: string[] = [];
-  const queue: string[] = [primaryId];
+  const queue: string[] = [startId];
   const visited = new Set<string>();
 
   while (queue.length > 0) {
@@ -161,15 +157,27 @@ function buildHierarchyOrder(nodes: Map<string, PlaneNode>): string[] {
     order.push(current);
 
     const node = nodes.get(current);
-    if (node) {
-      // Add unvisited children to queue
-      for (const childId of node.children) {
-        if (!visited.has(childId)) {
-          queue.push(childId);
-        }
+    if (!node) continue;
+    for (const childId of node.children) {
+      if (!visited.has(childId)) {
+        queue.push(childId);
       }
     }
   }
+
+  return { order, visited };
+}
+
+/**
+ * Build hierarchy from nodes using BFS from primary.
+ */
+function buildHierarchyOrder(nodes: Map<string, PlaneNode>): string[] {
+  const primaryId = findPrimaryNode(nodes);
+  if (!primaryId) {
+    return Array.from(nodes.keys());
+  }
+
+  const { order, visited } = bfsTraversal(primaryId, nodes);
 
   // Add any remaining unvisited nodes (disconnected)
   for (const id of nodes.keys()) {
@@ -216,7 +224,6 @@ export function generateHierarchy(
   // Remove circular references (child can't also be ancestor)
   for (const node of nodes.values()) {
     const ancestors = new Set<string>();
-    let current: PlaneNode | undefined = node;
 
     // Walk up to find ancestors
     for (const [id, n] of nodes) {
@@ -255,6 +262,31 @@ export function generateHierarchy(
   return hierarchy;
 }
 
+/** Compute the distance between two planes, using hints or category analysis. */
+function computePairDistance(
+  from: string,
+  to: string,
+  hintMap: Map<string, number>,
+  classifications: Map<string, SemanticAnalysisResult>
+): number {
+  if (from === to) return 0;
+
+  const hintKey = `${from}:${to}`;
+  if (hintMap.has(hintKey)) return hintMap.get(hintKey)!;
+
+  const fromClass = classifications.get(from);
+  const toClass = classifications.get(to);
+
+  if (!fromClass || !toClass) return 2.0;
+
+  const catDist = categoryDistance(fromClass.bestMatch, toClass.bestMatch);
+  const fromAccess = getCategory(fromClass.bestMatch)?.accessibilityWeight ?? 1.0;
+  const toAccess = getCategory(toClass.bestMatch)?.accessibilityWeight ?? 1.0;
+  const avgAccess = (fromAccess + toAccess) / 2;
+
+  return Math.max(1, catDist * (2 - avgAccess));
+}
+
 /**
  * Generate cross-plane distance matrix.
  */
@@ -280,38 +312,7 @@ export function generateDistances(
     distances[from] = {};
 
     for (const to of planeIds) {
-      if (from === to) {
-        distances[from][to] = 0;
-        continue;
-      }
-
-      // Check for explicit hint
-      const hintKey = `${from}:${to}`;
-      if (hintMap.has(hintKey)) {
-        distances[from][to] = hintMap.get(hintKey)!;
-        continue;
-      }
-
-      // Calculate based on category distance
-      const fromClass = classifications.get(from);
-      const toClass = classifications.get(to);
-
-      if (fromClass && toClass) {
-        const catDist = categoryDistance(fromClass.bestMatch, toClass.bestMatch);
-
-        // Get accessibility weights
-        const fromCat = getCategory(fromClass.bestMatch);
-        const toCat = getCategory(toClass.bestMatch);
-
-        const fromAccess = fromCat?.accessibilityWeight ?? 1.0;
-        const toAccess = toCat?.accessibilityWeight ?? 1.0;
-
-        // Distance = category distance * inverse of accessibility
-        const avgAccess = (fromAccess + toAccess) / 2;
-        distances[from][to] = Math.max(1, catDist * (2 - avgAccess));
-      } else {
-        distances[from][to] = 2.0; // Default moderate distance
-      }
+      distances[from][to] = computePairDistance(from, to, hintMap, classifications);
     }
   }
 

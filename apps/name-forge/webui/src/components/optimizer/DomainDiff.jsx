@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 
 /**
  * Compute diff between two domain configs
@@ -207,3 +208,8 @@ export default function DomainDiff({ initial, optimized }) {
     </div>
   );
 }
+
+DomainDiff.propTypes = {
+  initial: PropTypes.object,
+  optimized: PropTypes.object,
+};

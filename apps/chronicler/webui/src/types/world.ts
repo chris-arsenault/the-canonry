@@ -12,7 +12,6 @@ import type {
   WorldOutput as CanonryWorldOutput,
   WorldRelationship as CanonryWorldRelationship,
 } from "@canonry/world-schema";
-import React from "react";
 
 /** Links an anchor phrase in an entity's description to a source chronicle */
 export interface ChronicleBackref {
@@ -44,6 +43,7 @@ export type HardState = CanonryWorldEntity & {
       generatedAt?: number;
       model?: string;
     };
+    slugAliases?: string[];
     chronicleBackrefs?: ChronicleBackref[];
     historianNotes?: Array<{
       noteId: string;

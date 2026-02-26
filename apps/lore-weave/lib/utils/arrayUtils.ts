@@ -8,12 +8,12 @@
  * Safely parse JSON with automatic cleanup of markdown code blocks.
  * Returns null if parsing fails.
  */
-export function parseJsonSafe<T = any>(raw: string): T | null {
+export function parseJsonSafe<T = unknown>(raw: string): T | null {
   if (!raw) return null;
   let cleaned = raw.trim();
   cleaned = cleaned.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
   try {
-    return JSON.parse(cleaned);
+    return JSON.parse(cleaned) as T;
   } catch {
     return null;
   }

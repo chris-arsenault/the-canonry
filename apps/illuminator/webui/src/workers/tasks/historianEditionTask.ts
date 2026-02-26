@@ -15,7 +15,7 @@ import type { WorkerTask } from "../../lib/enrichmentTypes";
 import type { TaskContext } from "./taskTypes";
 import type { TaskResult } from "../types";
 import type { SummaryRevisionLLMResponse } from "../../lib/summaryRevisionTypes";
-import type { HistorianConfig, HistorianNoteType, HistorianTone } from "../../lib/historianTypes";
+import type { HistorianConfig, HistorianTone } from "../../lib/historianTypes";
 import { getRevisionRun, updateRevisionRun } from "../../lib/db/summaryRevisionRepository";
 import { runTextCall } from "../../lib/llmTextCall";
 import { getCallConfig } from "./llmCallConfig";
@@ -86,15 +86,17 @@ ${historianConfig.background}
 **Your stance toward this material:** ${historianConfig.stance}`);
 
   if (historianConfig.privateFacts.length > 0) {
+    const editionPrivateFactsList = historianConfig.privateFacts.map((f) => `- ${f}`).join("\n");
     sections.push(`## Private Knowledge (things you know that the texts don't always reflect)
 
-${historianConfig.privateFacts.map((f) => `- ${f}`).join("\n")}`);
+${editionPrivateFactsList}`);
   }
 
   if (historianConfig.runningGags.length > 0) {
+    const editionGagsList = historianConfig.runningGags.map((g) => `- ${g}`).join("\n");
     sections.push(`## Recurring Preoccupations (these surface in your writing unbidden — not every time, but often enough)
 
-${historianConfig.runningGags.map((g) => `- ${g}`).join("\n")}`);
+${editionGagsList}`);
   }
 
   sections.push(`## Editorial Discretion — Structure
@@ -195,9 +197,8 @@ function buildUserPrompt(description: string, meta: EditionEntityMeta, wordBudge
   // Entity identity
   const identParts: string[] = [];
   identParts.push(`Name: ${meta.entityName}`);
-  identParts.push(
-    `Kind: ${meta.entityKind}${meta.entitySubtype ? ` / ${meta.entitySubtype}` : ""}`
-  );
+  const editionKindLabel = meta.entitySubtype ? `${meta.entityKind} / ${meta.entitySubtype}` : meta.entityKind;
+  identParts.push(`Kind: ${editionKindLabel}`);
   if (meta.entityCulture) identParts.push(`Culture: ${meta.entityCulture}`);
   if (meta.entityProminence) identParts.push(`Prominence: ${meta.entityProminence}`);
   sections.push(`=== ENTITY ===\n${identParts.join("\n")}`);
@@ -212,7 +213,7 @@ function buildUserPrompt(description: string, meta: EditionEntityMeta, wordBudge
       const date = new Date(entry.replacedAt).toISOString().split("T")[0];
       let header = `[${i + 1}] Source: ${entry.source}`;
       if (entry.consolidatedCount) {
-        const earliest = new Date(entry.earliestDate!).toISOString().split("T")[0];
+        const earliest = new Date(entry.earliestDate).toISOString().split("T")[0];
         header += ` (${entry.consolidatedCount} passes consolidated)`;
         header += ` | ${earliest} → ${date}`;
       } else {
@@ -262,10 +263,12 @@ function buildUserPrompt(description: string, meta: EditionEntityMeta, wordBudge
 
   // World context
   if (meta.canonFacts && meta.canonFacts.length > 0) {
-    sections.push(`=== CANON FACTS ===\n${meta.canonFacts.map((f) => `- ${f}`).join("\n")}`);
+    const editionCanonFactLines = meta.canonFacts.map((f) => `- ${f}`).join("\n");
+    sections.push(`=== CANON FACTS ===\n${editionCanonFactLines}`);
   }
   if (meta.worldDynamics && meta.worldDynamics.length > 0) {
-    sections.push(`=== WORLD DYNAMICS ===\n${meta.worldDynamics.map((d) => `- ${d}`).join("\n")}`);
+    const editionDynamicsLines = meta.worldDynamics.map((d) => `- ${d}`).join("\n");
+    sections.push(`=== WORLD DYNAMICS ===\n${editionDynamicsLines}`);
   }
 
   // Previous notes (for voice continuity)
@@ -381,6 +384,7 @@ async function executeHistorianEditionTask(
     // Parse LLM response
     let parsed: SummaryRevisionLLMResponse;
     try {
+      // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
       const jsonMatch = resultText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("No JSON object found");
       parsed = JSON.parse(jsonMatch[0]);

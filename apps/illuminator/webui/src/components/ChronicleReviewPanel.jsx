@@ -9,7 +9,7 @@
  * ChronicleWorkspace needs. When adding props, update all three files.
  */
 
-import React, { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { diffWords } from "diff";
 import CohesionReportViewer from "./CohesionReportViewer";
@@ -42,6 +42,9 @@ function PerspectiveSynthesisViewer({ synthesis }) {
       <div
         className={`crp-synth-header ${isExpanded ? "crp-synth-header-expanded" : ""}`}
         onClick={() => setIsExpanded(!isExpanded)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         <span className="crp-synth-toggle">{isExpanded ? "\u25BC" : "\u25B6"}</span>
         <span className="crp-synth-title">Perspective Synthesis</span>
@@ -434,13 +437,20 @@ function ValidationReadyView({
   const [selectedVersionId, setSelectedVersionId] = useState(activeVersionId);
   const [compareToVersionId, setCompareToVersionId] = useState("");
 
-  useEffect(() => {
+  // Render-phase sync: reset selection when active version or chronicle changes
+  const prevActiveKeyRef = useRef(`${activeVersionId}|${item.chronicleId}`);
+  const activeKey = `${activeVersionId}|${item.chronicleId}`;
+  if (prevActiveKeyRef.current !== activeKey) {
+    prevActiveKeyRef.current = activeKey;
     setSelectedVersionId(activeVersionId);
     setCompareToVersionId("");
-  }, [activeVersionId, item.chronicleId]);
+  }
 
-  useEffect(() => {
-    if (versions.length === 0) return;
+  // Render-phase sync: ensure selected/compare versions exist in the versions list
+  const versionIds = useMemo(() => versions.map((v) => v.id), [versions]);
+  const prevVersionIdsRef = useRef(versionIds);
+  if (prevVersionIdsRef.current !== versionIds && versions.length > 0) {
+    prevVersionIdsRef.current = versionIds;
 
     const hasSelected = versions.some((v) => v.id === selectedVersionId);
     let nextSelected = selectedVersionId;
@@ -456,7 +466,7 @@ function ValidationReadyView({
         setCompareToVersionId("");
       }
     }
-  }, [versions, selectedVersionId, compareToVersionId, activeVersionId]);
+  }
 
   const selectedVersion = useMemo(
     () => versions.find((v) => v.id === selectedVersionId) || versions[versions.length - 1],
@@ -616,3 +626,108 @@ function ValidationReadyView({
     </div>
   );
 }
+
+ValidationReadyView.propTypes = {
+  item: PropTypes.object,
+  onExport: PropTypes.func,
+  onRegenerateWithSampling: PropTypes.func,
+  onAccept: PropTypes.func,
+  onRegenerate: PropTypes.func,
+  onCorrectSuggestions: PropTypes.func,
+  onGenerateSummary: PropTypes.func,
+  onGenerateImageRefs: PropTypes.func,
+  onRevalidate: PropTypes.func,
+  onGenerateChronicleImage: PropTypes.func,
+  onResetChronicleImage: PropTypes.func,
+  onUpdateChronicleAnchorText: PropTypes.func,
+  onUpdateChronicleImageSize: PropTypes.func,
+  onUpdateChronicleImageJustification: PropTypes.func,
+  onUpdateChronicleActiveVersion: PropTypes.func,
+  onDeleteVersion: PropTypes.func,
+  isGenerating: PropTypes.bool,
+  refinements: PropTypes.object,
+  entities: PropTypes.array,
+  styleLibrary: PropTypes.object,
+  cultures: PropTypes.array,
+  cultureIdentities: PropTypes.object,
+  worldContext: PropTypes.object,
+};
+
+PerspectiveSynthesisViewer.propTypes = {
+  synthesis: PropTypes.object,
+};
+
+AssembledContentViewer.propTypes = {
+  content: PropTypes.string,
+  wordCount: PropTypes.number,
+  onCopy: PropTypes.func,
+  compareContent: PropTypes.string,
+  compareLabel: PropTypes.string,
+};
+
+ChronicleReviewPanel.propTypes = {
+  item: PropTypes.object,
+  onContinueToValidation: PropTypes.func,
+  onValidate: PropTypes.func,
+  onAddImages: PropTypes.func,
+  onAccept: PropTypes.func,
+  onRegenerate: PropTypes.func,
+  onRegenerateWithSampling: PropTypes.func,
+  onRegenerateFull: PropTypes.func,
+  onRegenerateCreative: PropTypes.func,
+  onCompareVersions: PropTypes.func,
+  onCombineVersions: PropTypes.func,
+  onCopyEdit: PropTypes.func,
+  onTemporalCheck: PropTypes.func,
+  onQuickCheck: PropTypes.func,
+  onCorrectSuggestions: PropTypes.func,
+  onGenerateSummary: PropTypes.func,
+  onGenerateTitle: PropTypes.func,
+  onAcceptPendingTitle: PropTypes.func,
+  onRejectPendingTitle: PropTypes.func,
+  onGenerateImageRefs: PropTypes.func,
+  onRevalidate: PropTypes.func,
+  onGenerateChronicleImage: PropTypes.func,
+  onResetChronicleImage: PropTypes.func,
+  onRegenerateDescription: PropTypes.func,
+  onUpdateChronicleAnchorText: PropTypes.func,
+  onUpdateChronicleTemporalContext: PropTypes.func,
+  onUpdateChronicleActiveVersion: PropTypes.func,
+  onDeleteVersion: PropTypes.func,
+  onUpdateCombineInstructions: PropTypes.func,
+  onUnpublish: PropTypes.func,
+  onGenerateCoverImageScene: PropTypes.func,
+  onGenerateCoverImage: PropTypes.func,
+  styleSelection: PropTypes.object,
+  imageSize: PropTypes.string,
+  imageQuality: PropTypes.string,
+  imageModel: PropTypes.string,
+  imageGenSettings: PropTypes.object,
+  onOpenImageSettings: PropTypes.func,
+  onUpdateChronicleImageSize: PropTypes.func,
+  onUpdateChronicleImageJustification: PropTypes.func,
+  onApplyImageRefSelections: PropTypes.func,
+  onSelectExistingImage: PropTypes.func,
+  onSelectExistingCoverImage: PropTypes.func,
+  onExport: PropTypes.func,
+  onBackportLore: PropTypes.func,
+  onHistorianReview: PropTypes.func,
+  onSetAssignedTone: PropTypes.func,
+  onDetectTone: PropTypes.func,
+  isHistorianActive: PropTypes.bool,
+  onUpdateHistorianNote: PropTypes.func,
+  onGeneratePrep: PropTypes.func,
+  isGenerating: PropTypes.bool,
+  refinements: PropTypes.object,
+  simulationRunId: PropTypes.string,
+  worldSchema: PropTypes.object,
+  entities: PropTypes.array,
+  styleLibrary: PropTypes.object,
+  cultures: PropTypes.array,
+  entityGuidance: PropTypes.object,
+  cultureIdentities: PropTypes.object,
+  worldContext: PropTypes.object,
+  eras: PropTypes.array,
+  events: PropTypes.array,
+  onNavigateToTab: PropTypes.func,
+};

@@ -8,10 +8,28 @@ import type {
 } from "../validation.js";
 import { extractFeatures, calculateCentroid, buildVocabulary } from "../analysis/features.js";
 import {
-  NearestCentroidClassifier,
   crossValidate,
 } from "../analysis/classifier.js";
 import { euclideanDistance } from "../analysis/distance.js";
+
+/** Find domain pairs with high confusion rates (> 30%). */
+function findHighConfusionPairs(confusionMatrix: Map<string, Map<string, number>>): string[] {
+  const issues: string[] = [];
+  for (const [actual, predictions] of confusionMatrix) {
+    const totalActual = Array.from(predictions.values()).reduce(
+      (sum, count) => sum + count,
+      0
+    );
+    for (const [predicted, count] of predictions) {
+      if (actual !== predicted && count / totalActual > 0.3) {
+        issues.push(
+          `High confusion: ${actual} misclassified as ${predicted} ${((count / totalActual) * 100).toFixed(1)}% of the time`
+        );
+      }
+    }
+  }
+  return issues;
+}
 
 /**
  * Validate separation between multiple domains
@@ -115,20 +133,8 @@ export function validateSeparation(
   }
 
   // Check for specific domain pairs with high confusion
-  for (const [actual, predictions] of cvResult.confusionMatrix) {
-    const totalActual = Array.from(predictions.values()).reduce(
-      (sum, count) => sum + count,
-      0
-    );
-
-    for (const [predicted, count] of predictions) {
-      if (actual !== predicted && count / totalActual > 0.3) {
-        issues.push(
-          `High confusion: ${actual} misclassified as ${predicted} ${((count / totalActual) * 100).toFixed(1)}% of the time`
-        );
-      }
-    }
-  }
+  const confusionIssues = findHighConfusionPairs(cvResult.confusionMatrix);
+  issues.push(...confusionIssues);
 
   return {
     domains: domains.map((d) => d.id),

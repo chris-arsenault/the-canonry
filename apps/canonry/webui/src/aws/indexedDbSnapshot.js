@@ -6,6 +6,7 @@ const SKIPPED_STORES = new Set(["imageBlobs"]);
 function toS3Key(...parts) {
   return parts
     .filter(Boolean)
+    // eslint-disable-next-line sonarjs/slow-regex -- short path segment, no ReDoS risk
     .map((part) => part.replace(/^\/+|\/+$/g, ""))
     .filter(Boolean)
     .join("/");
@@ -71,27 +72,36 @@ async function serializeValue(value) {
   return value;
 }
 
-function deserializeValue(value) {
-  if (value === null || value === undefined) return value;
-  if (typeof value !== "object") return value;
+function base64ToBytes(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function deserializeTaggedValue(value) {
   if (value.__blob === true && typeof value.data === "string") {
     return base64ToBlob(value.data, value.type);
   }
   if (value.__arraybuffer === true && typeof value.data === "string") {
-    const binary = atob(value.data);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes.buffer;
+    return base64ToBytes(value.data).buffer;
   }
   if (value.__typedarray === true && typeof value.data === "string") {
-    const binary = atob(value.data);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes;
+    return base64ToBytes(value.data);
   }
   if (value.__date === true && typeof value.value === "string") {
     return new Date(value.value);
   }
+  return null;
+}
+
+function deserializeValue(value) {
+  if (value === null || value === undefined) return value;
+  if (typeof value !== "object") return value;
+
+  const tagged = deserializeTaggedValue(value);
+  if (tagged !== null) return tagged;
+
   if (Array.isArray(value)) {
     return value.map(deserializeValue);
   }
@@ -258,7 +268,9 @@ function openDbForImport(name, snapshotVersion, storeSchemas) {
           console.error(`[snapshot] "${name}" upgrade timed out (blocked by open connections)`);
           try {
             upgrade.result?.close();
-          } catch (_) {}
+          } catch (closeErr) {
+            console.warn('[snapshot] Failed to close database during timeout cleanup:', closeErr);
+          }
           reject(new Error(`Database "${name}" upgrade blocked — close other tabs and retry`));
         }
       }, 10000);
@@ -372,6 +384,43 @@ function writeRecordsToStore(db, storeName, records, hasInlineKey) {
 
 // --- Export ---
 
+async function exportSingleDatabase(name, version) {
+  let db;
+  try {
+    db = await openDbReadOnly(name, version);
+  } catch (err) {
+    console.warn(`[snapshot/export] Skipping database "${name}":`, err.message);
+    return null;
+  }
+
+  const dbSnapshot = { version, stores: {} };
+  const storeNames = Array.from(db.objectStoreNames);
+
+  for (const storeName of storeNames) {
+    if (SKIPPED_STORES.has(storeName)) continue;
+
+    const schema = getStoreSchema(db, storeName);
+    const { keys, values } = await readAllFromStore(db, storeName);
+    const logInterval = keys.length > 0 ? Math.max(1, Math.floor(keys.length / 5)) : 1;
+
+    const records = [];
+    for (let j = 0; j < keys.length; j++) {
+      records.push({
+        key: serializeKey(keys[j]),
+        value: await serializeValue(values[j]),
+      });
+      if (j % logInterval === 0) {
+        console.log(`[snapshot/export]   "${storeName}" serialized ${j + 1}/${keys.length}`);
+      }
+    }
+
+    dbSnapshot.stores[storeName] = { ...schema, records };
+  }
+
+  db.close();
+  return dbSnapshot;
+}
+
 export async function exportIndexedDbToS3(s3, config, onProgress) {
   if (!s3) throw new Error("Missing S3 client");
   const bucket = config?.imageBucket?.trim();
@@ -399,46 +448,12 @@ export async function exportIndexedDbToS3(s3, config, onProgress) {
   for (let i = 0; i < dbList.length; i++) {
     const { name, version } = dbList[i];
     if (!name) continue;
-
     report(`Exporting ${name} v${version} (${i + 1}/${dbList.length})...`);
 
-    let db;
-    try {
-      db = await openDbReadOnly(name, version);
-    } catch (err) {
-      console.warn(`[snapshot/export] Skipping database "${name}":`, err.message);
-      continue;
+    const dbSnapshot = await exportSingleDatabase(name, version);
+    if (dbSnapshot) {
+      snapshot.databases[name] = dbSnapshot;
     }
-
-    const dbSnapshot = { version, stores: {} };
-    const storeNames = Array.from(db.objectStoreNames);
-
-    for (const storeName of storeNames) {
-      if (SKIPPED_STORES.has(storeName)) continue;
-
-      const schema = getStoreSchema(db, storeName);
-      const { keys, values } = await readAllFromStore(db, storeName);
-      const logInterval = keys.length > 0 ? Math.max(1, Math.floor(keys.length / 5)) : 1;
-
-      const records = [];
-      for (let j = 0; j < keys.length; j++) {
-        records.push({
-          key: serializeKey(keys[j]),
-          value: await serializeValue(values[j]),
-        });
-        if (j % logInterval === 0) {
-          console.log(`[snapshot/export]   "${storeName}" serialized ${j + 1}/${keys.length}`);
-        }
-      }
-
-      dbSnapshot.stores[storeName] = {
-        ...schema,
-        records,
-      };
-    }
-
-    db.close();
-    snapshot.databases[name] = dbSnapshot;
   }
 
   report("Uploading to S3...");
@@ -506,6 +521,67 @@ async function getExistingDatabases() {
   }
 }
 
+function buildStoreSchemas(dbSnapshot) {
+  const storeSchemas = {};
+  for (const [storeName, storeData] of Object.entries(dbSnapshot.stores)) {
+    storeSchemas[storeName] = {
+      keyPath: storeData.keyPath,
+      autoIncrement: storeData.autoIncrement,
+      indexes: storeData.indexes || [],
+    };
+  }
+  return storeSchemas;
+}
+
+async function openDatabaseForImport(name, dbSnapshot, existingDbs) {
+  const localVersion = existingDbs.get(name);
+  const storeSchemas = buildStoreSchemas(dbSnapshot);
+
+  if (localVersion == null) {
+    return createFreshDatabase(name, dbSnapshot.version, storeSchemas);
+  }
+  console.log(`[snapshot/import] "${name}" exists locally at v${localVersion}, merging`);
+  return openDbForImport(name, dbSnapshot.version, storeSchemas);
+}
+
+async function restoreStoresFromSnapshot(db, dbName, dbSnapshot, warnings) {
+  const availableStores = new Set(db.objectStoreNames);
+  const snapshotStoreNames = Object.keys(dbSnapshot.stores);
+  let storesRestored = 0;
+  let recordsWritten = 0;
+
+  for (const storeName of snapshotStoreNames) {
+    if (!availableStores.has(storeName)) {
+      const msg = `"${dbName}": store "${storeName}" in snapshot but not in local DB — skipped`;
+      console.warn(`[snapshot/import] ${msg}`);
+      warnings.push(msg);
+      continue;
+    }
+    try {
+      await clearStore(db, storeName);
+    } catch (err) {
+      console.warn(`[snapshot/import] Failed to clear "${storeName}" in "${dbName}":`, err.message);
+    }
+  }
+
+  for (const [storeName, storeData] of Object.entries(dbSnapshot.stores)) {
+    if (!availableStores.has(storeName)) continue;
+    if (!storeData.records || storeData.records.length === 0) continue;
+    const hasInlineKey = storeData.keyPath != null;
+    try {
+      const written = await writeRecordsToStore(db, storeName, storeData.records, hasInlineKey);
+      recordsWritten += written;
+      storesRestored++;
+    } catch (err) {
+      const msg = `"${dbName}": failed to write "${storeName}": ${err.message}`;
+      console.error(`[snapshot/import] ${msg}`);
+      warnings.push(msg);
+    }
+  }
+
+  return { storesRestored, recordsWritten };
+}
+
 export async function importIndexedDbFromS3(s3, config, onProgress) {
   if (!s3) throw new Error("Missing S3 client");
   const bucket = config?.imageBucket?.trim();
@@ -548,65 +624,21 @@ export async function importIndexedDbFromS3(s3, config, onProgress) {
       `Restoring ${name} v${dbSnapshot.version} (${i + 1}/${dbNames.length}) — ${snapshotStoreNames.length} stores [${snapshotStoreNames.join(", ")}]`
     );
 
-    // Build schema map for store creation
-    const storeSchemas = {};
-    for (const [storeName, storeData] of Object.entries(dbSnapshot.stores)) {
-      storeSchemas[storeName] = {
-        keyPath: storeData.keyPath,
-        autoIncrement: storeData.autoIncrement,
-        indexes: storeData.indexes || [],
-      };
-    }
-
     let db;
-    const localVersion = existingDbs.get(name);
-
-    if (localVersion == null) {
-      db = await createFreshDatabase(name, dbSnapshot.version, storeSchemas);
-    } else {
-      console.log(`[snapshot/import] "${name}" exists locally at v${localVersion}, merging`);
-      try {
-        db = await openDbForImport(name, dbSnapshot.version, storeSchemas);
-      } catch (err) {
-        const msg = `Failed to open "${name}" for import: ${err.message}`;
-        console.error(`[snapshot/import] ${msg}`);
-        warnings.push(msg);
-        continue;
-      }
+    try {
+      db = await openDatabaseForImport(name, dbSnapshot, existingDbs);
+    } catch (err) {
+      const msg = `Failed to open "${name}" for import: ${err.message}`;
+      console.error(`[snapshot/import] ${msg}`);
+      warnings.push(msg);
+      continue;
     }
 
-    const availableStores = new Set(db.objectStoreNames);
-
-    // Clear existing data in stores we're about to populate
-    for (const storeName of snapshotStoreNames) {
-      if (!availableStores.has(storeName)) {
-        const msg = `"${name}": store "${storeName}" in snapshot but not in local DB — skipped`;
-        console.warn(`[snapshot/import] ${msg}`);
-        warnings.push(msg);
-        continue;
-      }
-      try {
-        await clearStore(db, storeName);
-      } catch (err) {
-        console.warn(`[snapshot/import] Failed to clear "${storeName}" in "${name}":`, err.message);
-      }
-    }
-
-    // Populate stores
-    for (const [storeName, storeData] of Object.entries(dbSnapshot.stores)) {
-      if (!availableStores.has(storeName)) continue;
-      if (!storeData.records || storeData.records.length === 0) continue;
-      const hasInlineKey = storeData.keyPath != null;
-      try {
-        const written = await writeRecordsToStore(db, storeName, storeData.records, hasInlineKey);
-        totalRecordsWritten += written;
-        totalStoresRestored++;
-      } catch (err) {
-        const msg = `"${name}": failed to write "${storeName}": ${err.message}`;
-        console.error(`[snapshot/import] ${msg}`);
-        warnings.push(msg);
-      }
-    }
+    const { storesRestored, recordsWritten } = await restoreStoresFromSnapshot(
+      db, name, dbSnapshot, warnings
+    );
+    totalStoresRestored += storesRestored;
+    totalRecordsWritten += recordsWritten;
 
     db.close();
     console.log(`[snapshot/import] "${name}" done`);

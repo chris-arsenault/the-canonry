@@ -5,9 +5,6 @@
  */
 
 import type {
-  CircleBounds,
-  RectBounds,
-  PolygonBounds,
   RegionBounds,
   SemanticRegion,
 } from '@canonry/world-schema';

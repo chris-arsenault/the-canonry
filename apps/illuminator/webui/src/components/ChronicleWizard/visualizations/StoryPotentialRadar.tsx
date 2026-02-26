@@ -35,7 +35,7 @@ export default function StoryPotentialRadar({
   size = 160,
   showLabels = true,
   interactive = true,
-}: StoryPotentialRadarProps) {
+}: Readonly<StoryPotentialRadarProps>) {
   const cx = size / 2;
   const cy = size / 2;
   const maxRadius = size / 2 - (showLabels ? 28 : 8);
@@ -61,7 +61,7 @@ export default function StoryPotentialRadar({
   // Compute polygon points for the data
   const dataPoints = useMemo(() => {
     return AXES.map((axis, i) => {
-      const value = potential[axis.key as keyof StoryPotential] as number;
+      const value = potential[axis.key as keyof StoryPotential];
       const radius = value * maxRadius;
       const angle = startAngle + i * angleStep;
       return {
@@ -175,10 +175,10 @@ export default function StoryPotentialRadar({
 export function StoryPotentialRadarWithScore({
   potential,
   size = 160,
-}: {
+}: Readonly<{
   potential: StoryPotential;
   size?: number;
-}) {
+}>) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
       <StoryPotentialRadar potential={potential} size={size} />
@@ -201,11 +201,11 @@ export function StoryScoreBar({
   score,
   width = 60,
   height = 8,
-}: {
+}: Readonly<{
   score: number;
   width?: number;
   height?: number;
-}) {
+}>) {
   const fillWidth = score * width;
 
   return (
@@ -228,7 +228,7 @@ export function StoryScoreBar({
 /**
  * Dot rating display (1-5 filled dots)
  */
-export function StoryScoreDots({ score, maxDots = 5 }: { score: number; maxDots?: number }) {
+export function StoryScoreDots({ score, maxDots = 5 }: Readonly<{ score: number; maxDots?: number }>) {
   const filledDots = Math.max(1, Math.min(maxDots, Math.round(score * maxDots)));
 
   return (

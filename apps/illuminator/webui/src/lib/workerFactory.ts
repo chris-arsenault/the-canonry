@@ -111,7 +111,7 @@ function ensureServiceWorkerMessageRouter(): void {
 
 function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration> {
   const globalScope = globalThis as GlobalServiceWorkerState;
-  if (!globalScope.__illuminatorServiceWorkerRegistration) {
+  if (globalScope.__illuminatorServiceWorkerRegistration == null) {
     const serviceWorkerUrl = new URL("../sw/enrichment.service-worker.ts", import.meta.url);
     globalScope.__illuminatorServiceWorkerRegistration = navigator.serviceWorker.register(
       serviceWorkerUrl,
@@ -194,7 +194,7 @@ function createSharedWorkerHandle(): WorkerHandle {
 }
 
 function createServiceWorkerHandle(): WorkerHandle {
-  const handleId = `illuminator_sw_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const handleId = `illuminator_sw_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
   let port: MessagePort | null = null;
   let connectedScriptUrl: string | null = null;
   const pending: Array<Record<string, unknown>> = [];
@@ -418,48 +418,42 @@ export function createWorker(config: WorkerConfig): WorkerHandle {
  * Note: When using SharedWorker, all handles connect to the same worker instance.
  * For dedicated workers, each handle is a separate worker.
  */
+function fillFromPool(
+  pool: WorkerHandle[],
+  count: number,
+  createHandle: () => WorkerHandle,
+  label: string
+): WorkerHandle[] {
+  const handles: WorkerHandle[] = [];
+  for (let i = 0; i < count; i++) {
+    if (pool[i]) {
+      console.log(`[WorkerFactory] Reusing ${label}`);
+      handles.push(pool[i]);
+    } else {
+      const handle = createHandle();
+      pool[i] = handle;
+      handles.push(handle);
+    }
+  }
+  return handles;
+}
+
+function initHandles(handles: WorkerHandle[], config: WorkerConfig): void {
+  for (const handle of handles) {
+    handle.postMessage({ type: "init", config });
+  }
+}
+
 export function createWorkerPool(config: WorkerConfig, count: number): WorkerHandle[] {
   if (isServiceWorkerSupported()) {
-    const pool = getServiceWorkerPool();
-    const handles: WorkerHandle[] = [];
-
-    for (let i = 0; i < count; i++) {
-      if (pool[i]) {
-        console.log("[WorkerFactory] Reusing ServiceWorker handle");
-        handles.push(pool[i]);
-      } else {
-        const handle = createServiceWorkerHandle();
-        pool[i] = handle;
-        handles.push(handle);
-      }
-    }
-
-    for (const handle of handles) {
-      handle.postMessage({ type: "init", config });
-    }
-
+    const handles = fillFromPool(getServiceWorkerPool(), count, createServiceWorkerHandle, "ServiceWorker handle");
+    initHandles(handles, config);
     return handles;
   }
 
   if (isSharedWorkerSupported()) {
-    const pool = getSharedWorkerPool();
-    const handles: WorkerHandle[] = [];
-
-    for (let i = 0; i < count; i++) {
-      if (pool[i]) {
-        console.log("[WorkerFactory] Reusing SharedWorker port");
-        handles.push(pool[i]);
-      } else {
-        const handle = createSharedWorkerHandle();
-        pool[i] = handle;
-        handles.push(handle);
-      }
-    }
-
-    for (const handle of handles) {
-      handle.postMessage({ type: "init", config });
-    }
-
+    const handles = fillFromPool(getSharedWorkerPool(), count, createSharedWorkerHandle, "SharedWorker port");
+    initHandles(handles, config);
     return handles;
   }
 
@@ -469,7 +463,6 @@ export function createWorkerPool(config: WorkerConfig, count: number): WorkerHan
     handle.postMessage({ type: "init", config });
     handles.push(handle);
   }
-
   return handles;
 }
 

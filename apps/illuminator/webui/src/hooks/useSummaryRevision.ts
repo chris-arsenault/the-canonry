@@ -52,13 +52,13 @@ export interface UseSummaryRevisionReturn {
   /** Whether a revision session is active */
   isActive: boolean;
   /** Start a new revision session */
-  startRevision: (config: SummaryRevisionConfig) => void;
+  startRevision: (config: SummaryRevisionConfig) => Promise<void>;
   /** Continue to next batch after reviewing current one */
-  continueToNextBatch: () => void;
+  continueToNextBatch: () => Promise<void>;
   /** Auto-continue all remaining batches without per-batch review */
-  autoContineAll: () => void;
+  autoContineAll: () => Promise<void>;
   /** Toggle accept/reject for a specific entity patch */
-  togglePatchDecision: (entityId: string, accepted: boolean) => void;
+  togglePatchDecision: (entityId: string, accepted: boolean) => Promise<void>;
   /** Apply all accepted patches and close the session */
   applyAccepted: () => SummaryRevisionPatch[];
   /** Cancel the current session */
@@ -129,7 +129,6 @@ export function useSummaryRevision(
   const [isActive, setIsActive] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoModeRef = useRef(false);
-  const entityContextCacheRef = useRef<Map<string, RevisionEntityContext[]>>(new Map());
 
   // Stop polling
   const stopPolling = useCallback(() => {
@@ -173,35 +172,37 @@ export function useSummaryRevision(
   const startPolling = useCallback(
     (runId: string) => {
       stopPolling();
-      pollRef.current = setInterval(async () => {
-        const updated = await getRevisionRun(runId);
-        if (!updated) return;
+      pollRef.current = setInterval(() => {
+        void (async () => {
+          const updated = await getRevisionRun(runId);
+          if (!updated) return;
 
-        setRun(updated);
+          setRun(updated);
 
-        // Stop polling on review/terminal states
-        if (
-          updated.status === "batch_reviewing" ||
-          updated.status === "run_reviewing" ||
-          updated.status === "complete" ||
-          updated.status === "failed" ||
-          updated.status === "cancelled"
-        ) {
-          stopPolling();
+          // Stop polling on review/terminal states
+          if (
+            updated.status === "batch_reviewing" ||
+            updated.status === "run_reviewing" ||
+            updated.status === "complete" ||
+            updated.status === "failed" ||
+            updated.status === "cancelled"
+          ) {
+            stopPolling();
 
-          // In auto mode, continue to next batch if batch_reviewing
-          if (autoModeRef.current && updated.status === "batch_reviewing") {
-            const nextIndex = updated.currentBatchIndex + 1;
-            if (nextIndex < updated.batches.length) {
-              // Dispatch next batch
-              const nextBatch = updated.batches[nextIndex];
-              const contexts = getEntityContexts(nextBatch.entityIds);
-              await updateRevisionRun(runId, { currentBatchIndex: nextIndex });
-              dispatchBatch(runId, contexts);
-              startPolling(runId);
+            // In auto mode, continue to next batch if batch_reviewing
+            if (autoModeRef.current && updated.status === "batch_reviewing") {
+              const nextIndex = updated.currentBatchIndex + 1;
+              if (nextIndex < updated.batches.length) {
+                // Dispatch next batch
+                const nextBatch = updated.batches[nextIndex];
+                const contexts = getEntityContexts(nextBatch.entityIds);
+                await updateRevisionRun(runId, { currentBatchIndex: nextIndex });
+                dispatchBatch(runId, contexts);
+                startPolling(runId);
+              }
             }
           }
-        }
+        })();
       }, POLL_INTERVAL_MS);
     },
     [stopPolling, dispatchBatch, getEntityContexts]
@@ -221,12 +222,6 @@ export function useSummaryRevision(
 
       if (batches.length === 0) {
         return;
-      }
-
-      // Cache entity contexts for batch dispatch
-      const contextMap = new Map<string, RevisionEntityContext>();
-      for (const e of eligibleEntities) {
-        contextMap.set(e.id, e);
       }
 
       // Create run in IndexedDB

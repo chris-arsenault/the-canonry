@@ -4,10 +4,12 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import ValidationPopover from "./ValidationPopover";
+import PropTypes from "prop-types";
 import TracePopover from "./TracePopover";
 import SlotSelector from "./SlotSelector";
 
 const EMPTY_SLOTS = Object.freeze({});
+const EMPTY_SYSTEMS = [];
 
 export default function ProjectManager({
   projects,
@@ -25,7 +27,7 @@ export default function ProjectManager({
   onNavigateToValidation,
   onRemoveProperty,
   simulationState,
-  systems = [],
+  systems = EMPTY_SYSTEMS,
   // Slot management props
   slots = EMPTY_SLOTS,
   activeSlotIndex = 0,
@@ -41,7 +43,6 @@ export default function ProjectManager({
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNewModal, setShowNewModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
-  const [hoveredProject, setHoveredProject] = useState(null);
   const dropdownRef = useRef(null);
   const fileInputRef = useRef(null);
   const mouseDownOnOverlay = useRef(false);
@@ -117,7 +118,7 @@ export default function ProjectManager({
   return (
     <header className="app-header">
       <div className="app-header-left">
-        <div className="app-logo" onClick={onGoHome} title="Go to home">
+        <div className="app-logo" onClick={onGoHome} title="Go to home" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onGoHome(e); }} >
           The Canonry
         </div>
 
@@ -161,19 +162,16 @@ export default function ProjectManager({
                   projects.map((project) => (
                     <div
                       key={project.id}
-                      className={`project-item ${
-                        currentProject?.id === project.id
-                          ? "project-item-active"
-                          : hoveredProject === project.id
-                            ? ""
-                            : ""
-                      }`}
+                      className={["project-item", currentProject?.id === project.id ? "project-item-active" : ""].join(" ").trim()}
                       onClick={() => {
                         onOpenProject(project.id);
                         setShowDropdown(false);
                       }}
                       onMouseEnter={() => setHoveredProject(project.id)}
                       onMouseLeave={() => setHoveredProject(null)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                     >
                       <div className="project-item-name">{project.name}</div>
                       <div className="project-item-meta">
@@ -181,7 +179,7 @@ export default function ProjectManager({
                         <span>{project.cultureCount} cultures</span>
                         <span>{formatDate(project.updatedAt)}</span>
                       </div>
-                      <div className="project-item-actions" onClick={(e) => e.stopPropagation()}>
+                      <div className="project-item-actions" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
                         {project.id === defaultProjectId && onReloadFromDefaults && (
                           <button
                             className="btn-xs"
@@ -267,6 +265,9 @@ export default function ProjectManager({
           className="modal-overlay"
           onMouseDown={handleOverlayMouseDown}
           onClick={handleOverlayClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
         >
           <div className="modal modal-simple">
             <div className="modal-header">
@@ -276,6 +277,7 @@ export default function ProjectManager({
               </button>
             </div>
             <div className="modal-body">
+              {/* eslint-disable-next-line jsx-a11y/no-autofocus -- intentional UX: modal input should auto-focus */}
               <input
                 className="input"
                 type="text"
@@ -300,3 +302,32 @@ export default function ProjectManager({
     </header>
   );
 }
+
+ProjectManager.propTypes = {
+  projects: PropTypes.array.isRequired,
+  currentProject: PropTypes.object,
+  onCreateProject: PropTypes.func.isRequired,
+  onOpenProject: PropTypes.func.isRequired,
+  onDeleteProject: PropTypes.func.isRequired,
+  onDuplicateProject: PropTypes.func.isRequired,
+  onExportProject: PropTypes.func.isRequired,
+  onImportProject: PropTypes.func.isRequired,
+  onReloadFromDefaults: PropTypes.func,
+  defaultProjectId: PropTypes.string,
+  onGoHome: PropTypes.func.isRequired,
+  validationResult: PropTypes.object,
+  onNavigateToValidation: PropTypes.func,
+  onRemoveProperty: PropTypes.func,
+  simulationState: PropTypes.object,
+  systems: PropTypes.array,
+  slots: PropTypes.object,
+  activeSlotIndex: PropTypes.number,
+  onLoadSlot: PropTypes.func,
+  onSaveToSlot: PropTypes.func,
+  onClearSlot: PropTypes.func,
+  onUpdateSlotTitle: PropTypes.func,
+  onExportSlot: PropTypes.func,
+  onImportSlot: PropTypes.func,
+  onLoadExampleOutput: PropTypes.func,
+  hasDataInScratch: PropTypes.bool,
+};

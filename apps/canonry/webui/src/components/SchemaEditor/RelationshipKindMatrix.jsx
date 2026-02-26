@@ -7,7 +7,8 @@
  * - Cells: S=Source, D=Destination, B=Both, -=Neither
  */
 
-import { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
 import { CoverageMatrix } from "@penguin-tales/shared-components";
 
 export default function RelationshipKindMatrix({
@@ -57,9 +58,6 @@ export default function RelationshipKindMatrix({
       (rel.dstKinds || []).forEach((k) => usedAsDestination.add(k));
     });
 
-    // If a relationship has no constraints, it can relate any entity kind
-    const hasWildcards = wildcardRels > 0;
-
     const result = [
       { label: "Relationships", value: totalRels },
       { label: "Entity Kinds", value: totalEntityKinds },
@@ -75,9 +73,6 @@ export default function RelationshipKindMatrix({
 
   // Get cell value for a relationship × entity kind intersection
   const getCellValue = useCallback((rowId, columnId, row) => {
-    const isSource = row.srcKinds.length === 0 || row.srcKinds.includes(columnId);
-    const isDestination = row.dstKinds.length === 0 || row.dstKinds.includes(columnId);
-
     // Check if explicitly constrained vs wildcard
     const srcExplicit = row.srcKinds.length > 0 && row.srcKinds.includes(columnId);
     const dstExplicit = row.dstKinds.length > 0 && row.dstKinds.includes(columnId);
@@ -189,3 +184,9 @@ function getStatusBadges(rel) {
 
   return badges;
 }
+
+RelationshipKindMatrix.propTypes = {
+  relationshipKinds: PropTypes.array,
+  entityKinds: PropTypes.array,
+  onNavigateToRelationship: PropTypes.func,
+};

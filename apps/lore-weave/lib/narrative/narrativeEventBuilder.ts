@@ -108,7 +108,6 @@ export class NarrativeEventBuilder {
     tagsRemoved: TagChangeInput[],
     fieldsChanged: FieldChangeInput[]
   ): ParticipantEffect[] {
-    // Group effects by entity ID
     const effectsByEntity = new Map<string, EntityEffect[]>();
 
     const addEffect = (entityId: string, effect: EntityEffect) => {
@@ -118,186 +117,173 @@ export class NarrativeEventBuilder {
       effectsByEntity.get(entityId)!.push(effect);
     };
 
-    // Process entity creations
+    this.processCreations(entitiesCreated, addEffect);
+    this.processRelationshipFormations(relationshipsCreated, addEffect);
+    this.processRelationshipDissolutions(relationshipsArchived, addEffect);
+    this.processTagAdditions(tagsAdded, addEffect);
+    this.processTagRemovals(tagsRemoved, addEffect);
+    this.processFieldChanges(fieldsChanged, addEffect);
+
+    return this.buildParticipantList(effectsByEntity, entitiesCreated);
+  }
+
+  private processCreations(
+    entitiesCreated: EntityCreatedInput[],
+    addEffect: (entityId: string, effect: EntityEffect) => void
+  ): void {
     for (const created of entitiesCreated) {
       addEffect(created.entityId, {
         type: 'created',
         description: this.getCreationVerb(created.kind),
       });
     }
+  }
 
-    // Process relationship formations
+  private resolveNarrativeEntityRef(id: string): NarrativeEntityRef {
+    const entity = this.context.getEntity(id);
+    return entity
+      ? this.buildEntityRef(entity)
+      : { id, name: id, kind: 'unknown', subtype: 'unknown' };
+  }
+
+  private processRelationshipFormations(
+    relationshipsCreated: RelationshipCreatedInput[],
+    addEffect: (entityId: string, effect: EntityEffect) => void
+  ): void {
     for (const rel of relationshipsCreated) {
-      const srcEntity = this.context.getEntity(rel.srcId);
-      const dstEntity = this.context.getEntity(rel.dstId);
-      const srcRef: NarrativeEntityRef = srcEntity
-        ? this.buildEntityRef(srcEntity)
-        : { id: rel.srcId, name: rel.srcId, kind: 'unknown', subtype: 'unknown' };
-      const dstRef: NarrativeEntityRef = dstEntity
-        ? this.buildEntityRef(dstEntity)
-        : { id: rel.dstId, name: rel.dstId, kind: 'unknown', subtype: 'unknown' };
-
-      // Derive semantic kind from relationship polarity
+      const srcRef = this.resolveNarrativeEntityRef(rel.srcId);
+      const dstRef = this.resolveNarrativeEntityRef(rel.dstId);
       const polarity = this.context.getRelationshipPolarity?.(rel.kind);
       const semanticKind = this.deriveRelationshipSemanticKind(polarity, 'formed');
 
-      // Use schema verb if available, otherwise fall back to default
       const schemaVerb = this.context.getRelationshipVerb?.(rel.kind, 'formed');
       const description = schemaVerb
         ? `${schemaVerb} ${dstRef.name}`
         : this.getRelationshipFormedVerb(rel.kind, dstRef.name);
 
-      // Add effect for source entity
       addEffect(rel.srcId, {
-        type: 'relationship_formed',
-        relationshipKind: rel.kind,
-        relatedEntity: dstRef,
-        semanticKind,
-        description,
+        type: 'relationship_formed', relationshipKind: rel.kind,
+        relatedEntity: dstRef, semanticKind, description,
       });
 
-      // Add effect for destination entity (inverse perspective)
       const inverseSchemaVerb = this.context.getRelationshipVerb?.(rel.kind, 'inverseFormed');
       const inverseDescription = inverseSchemaVerb
         ? `${inverseSchemaVerb} ${srcRef.name}`
         : this.getRelationshipFormedInverseVerb(rel.kind, srcRef.name);
 
       addEffect(rel.dstId, {
-        type: 'relationship_formed',
-        relationshipKind: rel.kind,
-        relatedEntity: srcRef,
-        semanticKind,
-        description: inverseDescription,
+        type: 'relationship_formed', relationshipKind: rel.kind,
+        relatedEntity: srcRef, semanticKind, description: inverseDescription,
       });
     }
+  }
 
-    // Process relationship dissolutions
+  private processRelationshipDissolutions(
+    relationshipsArchived: RelationshipArchivedInput[],
+    addEffect: (entityId: string, effect: EntityEffect) => void
+  ): void {
     for (const rel of relationshipsArchived) {
-      const srcEntity = this.context.getEntity(rel.srcId);
-      const dstEntity = this.context.getEntity(rel.dstId);
-      const srcRef: NarrativeEntityRef = srcEntity
-        ? this.buildEntityRef(srcEntity)
-        : { id: rel.srcId, name: rel.srcId, kind: 'unknown', subtype: 'unknown' };
-      const dstRef: NarrativeEntityRef = dstEntity
-        ? this.buildEntityRef(dstEntity)
-        : { id: rel.dstId, name: rel.dstId, kind: 'unknown', subtype: 'unknown' };
-
-      // Derive semantic kind from relationship polarity
+      const srcRef = this.resolveNarrativeEntityRef(rel.srcId);
+      const dstRef = this.resolveNarrativeEntityRef(rel.dstId);
       const polarity = this.context.getRelationshipPolarity?.(rel.kind);
       const semanticKind = this.deriveRelationshipSemanticKind(polarity, 'ended');
 
-      // Use schema verb if available, otherwise fall back to default
       const schemaVerb = this.context.getRelationshipVerb?.(rel.kind, 'ended');
       const description = schemaVerb
         ? `${schemaVerb} ${dstRef.name}`
         : this.getRelationshipEndedVerb(rel.kind, dstRef.name);
 
-      // Add effect for source entity
       addEffect(rel.srcId, {
-        type: 'relationship_ended',
-        relationshipKind: rel.kind,
-        relatedEntity: dstRef,
-        semanticKind,
-        description,
+        type: 'relationship_ended', relationshipKind: rel.kind,
+        relatedEntity: dstRef, semanticKind, description,
       });
 
-      // Add effect for destination entity (inverse perspective)
       const inverseSchemaVerb = this.context.getRelationshipVerb?.(rel.kind, 'inverseEnded');
       const inverseDescription = inverseSchemaVerb
         ? `${inverseSchemaVerb} ${srcRef.name}`
         : this.getRelationshipEndedInverseVerb(rel.kind, srcRef.name);
 
       addEffect(rel.dstId, {
-        type: 'relationship_ended',
-        relationshipKind: rel.kind,
-        relatedEntity: srcRef,
-        semanticKind,
-        description: inverseDescription,
+        type: 'relationship_ended', relationshipKind: rel.kind,
+        relatedEntity: srcRef, semanticKind, description: inverseDescription,
       });
     }
+  }
 
-    // Process tag additions
+  private processTagAdditions(
+    tagsAdded: TagChangeInput[],
+    addEffect: (entityId: string, effect: EntityEffect) => void
+  ): void {
     for (const tag of tagsAdded) {
-      addEffect(tag.entityId, {
-        type: 'tag_gained',
-        tag: tag.tag,
-        description: this.getTagGainedVerb(tag.tag),
-      });
+      addEffect(tag.entityId, { type: 'tag_gained', tag: tag.tag, description: this.getTagGainedVerb(tag.tag) });
     }
+  }
 
-    // Process tag removals
+  private processTagRemovals(
+    tagsRemoved: TagChangeInput[],
+    addEffect: (entityId: string, effect: EntityEffect) => void
+  ): void {
     for (const tag of tagsRemoved) {
-      addEffect(tag.entityId, {
-        type: 'tag_lost',
-        tag: tag.tag,
-        description: this.getTagLostVerb(tag.tag),
-      });
+      addEffect(tag.entityId, { type: 'tag_lost', tag: tag.tag, description: this.getTagLostVerb(tag.tag) });
     }
+  }
 
-    // Process field changes
+  private processFieldChanges(
+    fieldsChanged: FieldChangeInput[],
+    addEffect: (entityId: string, effect: EntityEffect) => void
+  ): void {
     for (const field of fieldsChanged) {
-      // Check if this is an "ended" status change
-      if (field.field === 'status' && (field.newValue === 'historical' || field.newValue === 'dissolved')) {
-        addEffect(field.entityId, {
-          type: 'ended',
-          field: field.field,
-          previousValue: field.oldValue,
-          newValue: field.newValue,
-          description: field.newValue === 'historical' ? 'passed into history' : 'dissolved',
-        });
-      } else if (field.field === 'status') {
-        // For other status changes, derive semantic kind from polarity
-        const entity = this.context.getEntity(field.entityId);
-        const entityKind = entity?.kind || 'unknown';
-        const newPolarity = this.context.getStatusPolarity?.(entityKind, String(field.newValue));
-        const oldPolarity = this.context.getStatusPolarity?.(entityKind, String(field.oldValue));
-        const semanticKind = this.deriveStatusSemanticKind(oldPolarity, newPolarity);
+      addEffect(field.entityId, this.buildFieldChangeEffect(field));
+    }
+  }
 
-        addEffect(field.entityId, {
-          type: 'field_changed',
-          field: field.field,
-          previousValue: field.oldValue,
-          newValue: field.newValue,
-          semanticKind,
-          description: this.getFieldChangedVerb(field.field, field.oldValue, field.newValue),
-        });
-      } else {
-        addEffect(field.entityId, {
-          type: 'field_changed',
-          field: field.field,
-          previousValue: field.oldValue,
-          newValue: field.newValue,
-          description: this.getFieldChangedVerb(field.field, field.oldValue, field.newValue),
-        });
-      }
+  private buildFieldChangeEffect(field: FieldChangeInput): EntityEffect {
+    if (field.field === 'status' && (field.newValue === 'historical' || field.newValue === 'dissolved')) {
+      return {
+        type: 'ended', field: field.field, previousValue: field.oldValue, newValue: field.newValue,
+        description: field.newValue === 'historical' ? 'passed into history' : 'dissolved',
+      };
     }
 
-    // Build ParticipantEffect[] from grouped effects
+    if (field.field === 'status') {
+      const entity = this.context.getEntity(field.entityId);
+      const entityKind = entity?.kind || 'unknown';
+      const newPolarity = this.context.getStatusPolarity?.(entityKind, String(field.newValue));
+      const oldPolarity = this.context.getStatusPolarity?.(entityKind, String(field.oldValue));
+      const semanticKind = this.deriveStatusSemanticKind(oldPolarity, newPolarity);
+      return {
+        type: 'field_changed', field: field.field, previousValue: field.oldValue,
+        newValue: field.newValue, semanticKind,
+        description: this.getFieldChangedVerb(field.field, field.oldValue, field.newValue),
+      };
+    }
+
+    return {
+      type: 'field_changed', field: field.field, previousValue: field.oldValue,
+      newValue: field.newValue,
+      description: this.getFieldChangedVerb(field.field, field.oldValue, field.newValue),
+    };
+  }
+
+  private buildParticipantList(
+    effectsByEntity: Map<string, EntityEffect[]>,
+    entitiesCreated: EntityCreatedInput[]
+  ): ParticipantEffect[] {
     const result: ParticipantEffect[] = [];
     for (const [entityId, effects] of effectsByEntity) {
       const entity = this.context.getEntity(entityId);
       if (entity) {
+        result.push({ entity: this.buildEntityRef(entity), effects });
+        continue;
+      }
+      const createdEntity = entitiesCreated.find(e => e.entityId === entityId);
+      if (createdEntity) {
         result.push({
-          entity: this.buildEntityRef(entity),
+          entity: { id: entityId, name: createdEntity.name, kind: createdEntity.kind, subtype: createdEntity.subtype },
           effects,
         });
-      } else {
-        // Entity might be from created list but not yet in graph
-        const createdEntity = entitiesCreated.find(e => e.entityId === entityId);
-        if (createdEntity) {
-          result.push({
-            entity: {
-              id: entityId,
-              name: createdEntity.name,
-              kind: createdEntity.kind,
-              subtype: createdEntity.subtype,
-            },
-            effects,
-          });
-        }
       }
     }
-
     return result;
   }
 
@@ -351,7 +337,7 @@ export class NarrativeEventBuilder {
 
   /**
    * Get creation verb based on entity kind.
-   * TODO: Domain-specific verbs should be in domain config.
+   * NOTE: Domain-specific verbs should eventually move to domain config.
    */
   private getCreationVerb(kind: string): string {
     const verbs: Record<string, string> = {
@@ -368,7 +354,7 @@ export class NarrativeEventBuilder {
 
   /**
    * Get verb for relationship formation.
-   * TODO: Domain-specific verbs should be in domain config.
+   * NOTE: Domain-specific verbs should eventually move to domain config.
    */
   private getRelationshipFormedVerb(kind: string, targetName: string): string {
     const verbs: Record<string, string> = {
@@ -398,7 +384,7 @@ export class NarrativeEventBuilder {
       'related_to': `became related to ${targetName}`,
       'stored_at': `was stored at ${targetName}`,
       'central_to': `became central to ${targetName}`,
-      // Domain-specific (TODO: extract to domain config)
+      // Domain-specific (should eventually move to domain config)
       'corrupted_by': `was corrupted by ${targetName}`,
       'manifests_at': `manifested at ${targetName}`,
       'worships': `began worshipping ${targetName}`,
@@ -421,7 +407,7 @@ export class NarrativeEventBuilder {
 
   /**
    * Get verb for relationship dissolution.
-   * TODO: Domain-specific verbs should be in domain config.
+   * NOTE: Domain-specific verbs should eventually move to domain config.
    */
   private getRelationshipEndedVerb(kind: string, targetName: string): string {
     const verbs: Record<string, string> = {
@@ -441,7 +427,7 @@ export class NarrativeEventBuilder {
       'possesses': `lost ${targetName}`,
       'rivals': `ended rivalry with ${targetName}`,
       'mentors': `stopped mentoring ${targetName}`,
-      // Domain-specific (TODO: extract to domain config)
+      // Domain-specific (should eventually move to domain config)
       'corrupted_by': `was cleansed of corruption from ${targetName}`,
       'manifests_at': `departed from ${targetName}`,
       'worships': `abandoned worship of ${targetName}`,
@@ -458,7 +444,7 @@ export class NarrativeEventBuilder {
   /**
    * Get inverse verb for relationship formation (from destination's perspective).
    * Used when the source forms a relationship with the destination.
-   * TODO: Domain-specific verbs should be in domain config.
+   * NOTE: Domain-specific verbs should eventually move to domain config.
    */
   private getRelationshipFormedInverseVerb(kind: string, sourceName: string): string {
     const verbs: Record<string, string> = {
@@ -488,7 +474,7 @@ export class NarrativeEventBuilder {
       'related_to': `became related to ${sourceName}`,
       'stored_at': `began storing ${sourceName}`,
       'central_to': `gained ${sourceName} as central element`,
-      // Domain-specific (TODO: extract to domain config)
+      // Domain-specific (should eventually move to domain config)
       'corrupted_by': `corrupted ${sourceName}`,
       'manifests_at': `became site of ${sourceName}'s manifestation`,
       'worships': `gained ${sourceName} as worshipper`,
@@ -519,7 +505,7 @@ export class NarrativeEventBuilder {
   /**
    * Get inverse verb for relationship dissolution (from destination's perspective).
    * Used when the source ends a relationship with the destination.
-   * TODO: Domain-specific verbs should be in domain config.
+   * NOTE: Domain-specific verbs should eventually move to domain config.
    */
   private getRelationshipEndedInverseVerb(kind: string, sourceName: string): string {
     const verbs: Record<string, string> = {
@@ -539,7 +525,7 @@ export class NarrativeEventBuilder {
       'possesses': `was released by ${sourceName}`,
       'rivals': `ended rivalry with ${sourceName}`,
       'mentors': `was no longer mentored by ${sourceName}`,
-      // Domain-specific (TODO: extract to domain config)
+      // Domain-specific (should eventually move to domain config)
       'corrupted_by': `stopped corrupting ${sourceName}`,
       'manifests_at': `lost ${sourceName}'s manifestation`,
       'worships': `lost ${sourceName} as worshipper`,
@@ -606,35 +592,30 @@ export class NarrativeEventBuilder {
    */
   private getFieldChangedVerb(field: string, oldValue: unknown, newValue: unknown): string {
     if (field === 'prominence') {
-      const oldVal = getProminenceValue(oldValue as string | number);
-      const newVal = getProminenceValue(newValue as string | number);
-      // Get labels for both old and new values
-      const oldLabel = typeof oldValue === 'number' ? prominenceLabel(oldValue) : oldValue;
-      const newLabel = typeof newValue === 'number' ? prominenceLabel(newValue) : newValue;
-
-      // Check if tier (label) changed
-      const tierChanged = oldLabel !== newLabel;
-
-      if (tierChanged) {
-        // Tier changed - use "rose to" / "fell to"
-        if (newVal > oldVal) {
-          return `rose to ${newLabel} prominence`;
-        } else {
-          return `fell to ${newLabel} prominence`;
-        }
-      } else {
-        // Same tier - describe incremental change with neutral phrasing
-        if (newVal > oldVal) {
-          return `gained prominence (still ${newLabel})`;
-        } else {
-          return `lost prominence (still ${newLabel})`;
-        }
-      }
+      return this.getProminenceChangedVerb(oldValue, newValue);
     }
     if (field === 'status') {
-      return `changed status from ${oldValue} to ${newValue}`;
+      return `changed status from ${String(oldValue)} to ${String(newValue)}`;
     }
-    return `changed ${field} from ${oldValue} to ${newValue}`;
+    return `changed ${field} from ${String(oldValue)} to ${String(newValue)}`;
+  }
+
+  private getProminenceChangedVerb(oldValue: unknown, newValue: unknown): string {
+    const oldVal = getProminenceValue(oldValue as string | number);
+    const newVal = getProminenceValue(newValue as string | number);
+    const oldLabel = typeof oldValue === 'number' ? prominenceLabel(oldValue) : String(oldValue);
+    const newLabel = typeof newValue === 'number' ? prominenceLabel(newValue) : String(newValue);
+    const tierChanged = oldLabel !== newLabel;
+    const direction = newVal > oldVal ? 'up' : 'down';
+
+    if (tierChanged) {
+      return direction === 'up'
+        ? `rose to ${newLabel} prominence`
+        : `fell to ${newLabel} prominence`;
+    }
+    return direction === 'up'
+      ? `gained prominence (still ${newLabel})`
+      : `lost prominence (still ${newLabel})`;
   }
 
 }

@@ -49,7 +49,10 @@ EventKindBadge.propTypes = {
 
 function SignificanceBar({ value }) {
   const percentage = Math.round(value * 100);
-  const color = value >= 0.8 ? "#ef4444" : value >= 0.5 ? "#f59e0b" : "#22c55e";
+  let color;
+  if (value >= 0.8) color = "#ef4444";
+  else if (value >= 0.5) color = "#f59e0b";
+  else color = "#22c55e";
 
   return (
     <div className="events-panel-significance-row">
@@ -98,10 +101,7 @@ StateChangeItem.propTypes = {
   change: PropTypes.object,
 };
 
-function EventCard({ event, entityMap, expanded, onToggle }) {
-  const subjectEntity = entityMap?.get(event.subject?.id);
-  const objectEntity = event.object ? entityMap?.get(event.object.id) : null;
-
+function EventCard({ event, entityMap: _entityMap, expanded, onToggle }) {
   return (
     <div className="events-panel-card">
       {/* Header row */}
@@ -111,7 +111,7 @@ function EventCard({ event, entityMap, expanded, onToggle }) {
             <EventKindBadge kind={event.eventKind} />
             <span className="events-panel-card-tick">tick {event.tick}</span>
           </div>
-          <h3 className="events-panel-card-headline" onClick={onToggle}>
+          <h3 className="events-panel-card-headline" onClick={onToggle} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggle(e); }} >
             {event.headline}
           </h3>
         </div>
@@ -286,15 +286,15 @@ export default function EventsPanel({ narrativeEvents = [], simulationRunId, ent
         </div>
         <h3 className="events-panel-empty-title">No Narrative Events</h3>
         <p className="events-panel-empty-text">
-          Narrative events are captured during simulation when "Enable event tracking" is turned on
+          Narrative events are captured during simulation when &quot;Enable event tracking&quot; is turned on
           in the Lore Weave simulation parameters.
         </p>
         <div className="events-panel-empty-instructions">
           <div className="events-panel-empty-instructions-title">To enable event tracking:</div>
           <ol className="events-panel-empty-instructions-list">
             <li>Go to the Lore Weave tab</li>
-            <li>Open "Run Simulation"</li>
-            <li>Enable "Narrative Events" in parameters</li>
+            <li>Open &quot;Run Simulation&quot;</li>
+            <li>Enable &quot;Narrative Events&quot; in parameters</li>
             <li>Run a new simulation</li>
           </ol>
         </div>
@@ -327,8 +327,8 @@ export default function EventsPanel({ narrativeEvents = [], simulationRunId, ent
         <div className="events-panel-filters-row">
           {/* Significance slider */}
           <div className="events-panel-significance-filter">
-            <label className="events-panel-filter-label">Min significance:</label>
-            <input
+            <label htmlFor="min-significance" className="events-panel-filter-label">Min significance:</label>
+            <input id="min-significance"
               type="range"
               min={0}
               max={1}

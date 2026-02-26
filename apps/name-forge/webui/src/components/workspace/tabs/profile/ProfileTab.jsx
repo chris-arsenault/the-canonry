@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import { computeProfileGeneratorUsage } from "./utils";
 import ProfileModal from "./ProfileModal";
 
@@ -134,6 +135,9 @@ export default function ProfileTab({
                 key={profile.id}
                 className="profile-card-item"
                 onClick={() => handleEditProfile(profile)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
               >
                 <div className="profile-card-header">
                   <strong className="profile-card-title">{profile.id}</strong>
@@ -190,3 +194,12 @@ export default function ProfileTab({
     </div>
   );
 }
+
+ProfileTab.propTypes = {
+  cultureId: PropTypes.string,
+  cultureConfig: PropTypes.object,
+  onProfilesChange: PropTypes.func,
+  worldSchema: PropTypes.object,
+  onAddTag: PropTypes.func,
+  generators: PropTypes.array,
+};

@@ -229,16 +229,16 @@ export function useChronicleQueueWatcher(queue: QueueItem[]): void {
           chronicleIds: Array.from(chronicleIds),
         });
         if (refreshAll) {
-          store.refreshAll();
+          void store.refreshAll();
         }
         for (const id of chronicleIds) {
           console.log("[ChronicleQueueWatcher] Calling refreshChronicle for:", id);
-          store.refreshChronicle(id);
+          void store.refreshChronicle(id);
         }
       };
 
       if (updates.length > 0) {
-        Promise.allSettled(updates).then(refresh);
+        void Promise.allSettled(updates).then(refresh);
       } else {
         refresh();
       }

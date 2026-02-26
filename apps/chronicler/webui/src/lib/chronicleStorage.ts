@@ -6,7 +6,6 @@
  */
 
 import { openIlluminatorDb } from "./illuminatorDbReader";
-import React from "react";
 
 const CHRONICLE_STORE_NAME = "chronicles";
 
@@ -154,8 +153,8 @@ export async function getChronicle(chronicleId: string): Promise<ChronicleRecord
         const tx = db.transaction(CHRONICLE_STORE_NAME, "readonly");
         const request = tx.objectStore(CHRONICLE_STORE_NAME).get(chronicleId);
 
-        request.onsuccess = () => resolve(request.result || null);
-        request.onerror = () => reject(request.error || new Error("Failed to get chronicle"));
+        request.onsuccess = () => resolve((request.result as ChronicleRecord | undefined) ?? null);
+        request.onerror = () => reject(request.error ?? new Error("Failed to get chronicle"));
       });
     } finally {
       db.close();

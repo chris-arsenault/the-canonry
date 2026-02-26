@@ -3,6 +3,7 @@
  */
 
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import { RELATIONSHIP_REFS, MUTATION_TYPE_OPTIONS } from "../constants";
 import MutationCard, { DEFAULT_MUTATION_TYPES } from "../../shared/MutationCard";
 import { NumberInput, LocalTextArea } from "../../shared";
@@ -172,6 +173,9 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
                     setShowTypeMenu(false);
                   }}
                   className="dropdown-menu-item"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
                   <span
                     className="dropdown-menu-icon"
@@ -200,7 +204,7 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
           </div>
           <div className="form-grid">
             <div className="form-group">
-              <label className="label-micro">On Success</label>
+              <label className="label-micro">On Success
               <NumberInput
                 value={outcome.actorProminenceDelta?.onSuccess}
                 onChange={(v) => {
@@ -215,9 +219,10 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
                 placeholder="e.g., 0.1"
                 allowEmpty
               />
+              </label>
             </div>
             <div className="form-group">
-              <label className="label-micro">On Failure</label>
+              <label className="label-micro">On Failure
               <NumberInput
                 value={outcome.actorProminenceDelta?.onFailure}
                 onChange={(v) => {
@@ -232,6 +237,7 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
                 placeholder="e.g., -0.05"
                 allowEmpty
               />
+              </label>
             </div>
           </div>
         </div>
@@ -242,7 +248,7 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
           </div>
           <div className="form-grid">
             <div className="form-group">
-              <label className="label-micro">On Success</label>
+              <label className="label-micro">On Success
               <NumberInput
                 value={outcome.targetProminenceDelta?.onSuccess}
                 onChange={(v) => {
@@ -257,9 +263,10 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
                 placeholder="e.g., 0.1"
                 allowEmpty
               />
+              </label>
             </div>
             <div className="form-group">
-              <label className="label-micro">On Failure</label>
+              <label className="label-micro">On Failure
               <NumberInput
                 value={outcome.targetProminenceDelta?.onFailure}
                 onChange={(v) => {
@@ -274,6 +281,7 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
                 placeholder="e.g., -0.05"
                 allowEmpty
               />
+              </label>
             </div>
           </div>
         </div>
@@ -308,3 +316,10 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
     </div>
   );
 }
+
+OutcomeTab.propTypes = {
+  action: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+};

@@ -16,8 +16,6 @@ import type {
   NarrativeStyle,
   EntityKindDefinition,
   EntityCategory,
-  StoryNarrativeStyle,
-  DocumentNarrativeStyle,
   RoleDefinition,
 } from "@canonry/world-schema";
 
@@ -25,10 +23,10 @@ import type {
 function getRoles(style: NarrativeStyle | null): RoleDefinition[] {
   if (!style) return [];
   if (style.format === "story") {
-    return (style as StoryNarrativeStyle).roles || [];
+    return (style).roles || [];
   }
   // Document styles have roles directly on the style object
-  const docStyle = style as DocumentNarrativeStyle;
+  const docStyle = style;
   return docStyle.roles || [];
 }
 import type {
@@ -488,7 +486,7 @@ export function WizardProvider({
   entityKinds,
   eras = [],
   simulationRunId,
-}: WizardProviderProps) {
+}: Readonly<WizardProviderProps>) {
   const [state, dispatch] = useReducer(wizardReducer, initialState);
 
   // Build kind-to-category mapping
@@ -499,12 +497,10 @@ export function WizardProvider({
   const allRelevantEvents = useMemo(() => {
     const events = getRelevantEvents(
       state.roleAssignments,
-      state.candidateEvents,
-      state.narrativeStyle?.eventRules,
-      { skipLimit: true }
+      state.candidateEvents
     );
     return events;
-  }, [state.roleAssignments, state.candidateEvents, state.narrativeStyle?.eventRules]);
+  }, [state.roleAssignments, state.candidateEvents]);
 
   // Compute detected focal era from selected events (if any), otherwise all relevant events.
   // This ensures that when the user narrows the event selection, the focal era updates to match.
@@ -673,8 +669,7 @@ export function WizardProvider({
       // Get relevant events (those involving assigned entities)
       const relevantEvents = getRelevantEvents(
         state.roleAssignments,
-        state.candidateEvents,
-        state.narrativeStyle?.eventRules
+        state.candidateEvents
       );
 
       const suggestedEventIds = suggestEventSelection(
@@ -708,8 +703,7 @@ export function WizardProvider({
     // Get all relevant events
     const relevantEvents = getRelevantEvents(
       state.roleAssignments,
-      state.candidateEvents,
-      state.narrativeStyle?.eventRules
+      state.candidateEvents
     );
     const eventIds = relevantEvents.map((e) => e.id);
 

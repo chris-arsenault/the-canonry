@@ -25,29 +25,29 @@ export default function BulkHistorianModal({
   editionMaxTokens,
 }) {
   const isMinimized = useFloatingPillStore((s) => s.isMinimized(PILL_ID));
+  const progressStatus = progress?.status;
+  const processedEntities = progress?.processedEntities;
+  const totalEntities = progress?.totalEntities;
 
   useEffect(() => {
     if (!isMinimized || !progress) return;
-    const statusColor =
-      progress.status === "running"
-        ? "#f59e0b"
-        : progress.status === "complete"
-          ? "#10b981"
-          : progress.status === "failed"
-            ? "#ef4444"
-            : "#6b7280";
+    let statusColor;
+    if (progressStatus === "running") statusColor = "#f59e0b";
+    else if (progressStatus === "complete") statusColor = "#10b981";
+    else if (progressStatus === "failed") statusColor = "#ef4444";
+    else statusColor = "#6b7280";
     const statusText =
-      progress.status === "running"
-        ? `${progress.processedEntities}/${progress.totalEntities}`
-        : progress.status;
+      progressStatus === "running"
+        ? `${processedEntities}/${totalEntities}`
+        : progressStatus;
     useFloatingPillStore.getState().updatePill(PILL_ID, { statusText, statusColor });
-  }, [isMinimized, progress?.status, progress?.processedEntities]);
+  }, [isMinimized, progress, progressStatus, processedEntities, totalEntities]);
 
   useEffect(() => {
-    if (!progress || progress.status === "idle") {
+    if (!progress || progressStatus === "idle") {
       useFloatingPillStore.getState().remove(PILL_ID);
     }
-  }, [progress?.status]);
+  }, [progress, progressStatus]);
 
   if (!progress || progress.status === "idle") return null;
   if (isMinimized) return null;
@@ -65,23 +65,22 @@ export default function BulkHistorianModal({
       ? Math.round((progress.processedEntities / progress.totalEntities) * 100)
       : 0;
 
-  const title = isClear ? "Clear All Annotations" : isReview ? "Bulk Annotation" : "Bulk Copy Edit";
+  let title;
+  if (isClear) title = "Clear All Annotations";
+  else if (isReview) title = "Bulk Annotation";
+  else title = "Bulk Copy Edit";
 
-  const statusColor =
-    progress.status === "complete"
-      ? "#10b981"
-      : progress.status === "failed"
-        ? "#ef4444"
-        : progress.status === "cancelled"
-          ? "#f59e0b"
-          : "var(--text-muted)";
+  let statusColor;
+  if (progress.status === "complete") statusColor = "#10b981";
+  else if (progress.status === "failed") statusColor = "#ef4444";
+  else if (progress.status === "cancelled") statusColor = "#f59e0b";
+  else statusColor = "var(--text-muted)";
 
-  const progressFillClass =
-    progress.status === "failed"
-      ? "bhm-progress-fill bhm-progress-fill-failed"
-      : progress.status === "cancelled"
-        ? "bhm-progress-fill bhm-progress-fill-cancelled"
-        : "bhm-progress-fill bhm-progress-fill-complete";
+  let progressFillModifier;
+  if (progress.status === "failed") progressFillModifier = "bhm-progress-fill-failed";
+  else if (progress.status === "cancelled") progressFillModifier = "bhm-progress-fill-cancelled";
+  else progressFillModifier = "bhm-progress-fill-complete";
+  const progressFillClass = `bhm-progress-fill ${progressFillModifier}`;
 
   return (
     <div className="bhm-overlay">
@@ -105,12 +104,11 @@ export default function BulkHistorianModal({
                         progress.status === "running"
                           ? `${progress.processedEntities}/${progress.totalEntities}`
                           : progress.status,
-                      statusColor:
-                        progress.status === "running"
-                          ? "#f59e0b"
-                          : progress.status === "complete"
-                            ? "#10b981"
-                            : "#ef4444",
+                      statusColor: (() => {
+                        if (progress.status === "running") return "#f59e0b";
+                        if (progress.status === "complete") return "#10b981";
+                        return "#ef4444";
+                      })(),
                     })
                   }
                   className="illuminator-button bhm-minimize-btn"
@@ -147,7 +145,7 @@ export default function BulkHistorianModal({
           {isConfirming && (
             <>
               {/* Tone section (not for clear) */}
-              {isClear ? null : isReview ? (
+              {!isClear && isReview && (
                 /* Review mode: show tone cycling info */
                 <div className="bhm-tone-cycle-box">
                   <span className="bhm-tone-cycle-label">Tones cycle:</span>
@@ -161,7 +159,8 @@ export default function BulkHistorianModal({
                     );
                   })}
                 </div>
-              ) : (
+              )}
+              {!isClear && !isReview && (
                 /* Edition mode: tone picker */
                 <div className="bhm-tone-picker">
                   <div className="bhm-section-label">Historian Tone</div>
@@ -318,11 +317,11 @@ export default function BulkHistorianModal({
                     {progress.currentEntityName}
                   </div>
                   <div className="bhm-current-entity-status">
-                    {isClear
-                      ? "Clearing annotations..."
-                      : isReview
-                        ? "Generating annotations..."
-                        : "Generating copy edit..."}
+                    {(() => {
+                    if (isClear) return "Clearing annotations...";
+                    if (isReview) return "Generating annotations...";
+                    return "Generating copy edit...";
+                  })()}
                   </div>
                 </div>
               )}
@@ -330,11 +329,11 @@ export default function BulkHistorianModal({
               {/* Terminal state messages */}
               {progress.status === "complete" && (
                 <div className="bhm-terminal-msg bhm-terminal-msg-complete">
-                  {isClear
-                    ? `Cleared annotations from ${progress.processedEntities} entities.`
-                    : isReview
-                      ? `Annotated ${progress.processedEntities} entities.`
-                      : `Copy-edited ${progress.processedEntities} entities.`}
+                  {(() => {
+                    if (isClear) return `Cleared annotations from ${progress.processedEntities} entities.`;
+                    if (isReview) return `Annotated ${progress.processedEntities} entities.`;
+                    return `Copy-edited ${progress.processedEntities} entities.`;
+                  })()}
                   {progress.failedEntities.length > 0 && (
                     <span className="bhm-terminal-failed-inline">
                       {" "}
@@ -401,11 +400,11 @@ export default function BulkHistorianModal({
                 onClick={onConfirm}
                 className="illuminator-button illuminator-button-primary bhm-footer-btn"
               >
-                {isClear
-                  ? `Clear Annotations (${progress.totalEntities} entities)`
-                  : isReview
-                    ? `Start Annotation (${progress.totalEntities} entities)`
-                    : `Start Copy Edit (${progress.totalEntities} entities)`}
+                {(() => {
+                  if (isClear) return `Clear Annotations (${progress.totalEntities} entities)`;
+                  if (isReview) return `Start Annotation (${progress.totalEntities} entities)`;
+                  return `Start Copy Edit (${progress.totalEntities} entities)`;
+                })()}
               </button>
             </>
           )}
@@ -424,3 +423,12 @@ export default function BulkHistorianModal({
     </div>
   );
 }
+
+BulkHistorianModal.propTypes = {
+  progress: PropTypes.object,
+  onConfirm: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onChangeTone: PropTypes.func,
+  editionMaxTokens: PropTypes.number,
+};

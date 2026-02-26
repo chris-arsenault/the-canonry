@@ -7,7 +7,7 @@ import { WorldRuntime } from '../runtime/worldRuntime';
 import { pickRandom } from '../utils';
 import { initializeCatalystSmart } from '../systems/catalystHelpers';
 import { StatisticsCollector } from '../statistics/statisticsCollector';
-import type { HardState, Relationship } from '../core/worldTypes';
+import type { HardState } from '../core/worldTypes';
 import type { DiscretePressureModification, ISimulationEmitter, PressureModificationSource } from '../observer/types';
 import type { StateChangeTracker, RelationshipSummary } from '../narrative/stateChangeTracker';
 import type { MutationTracker } from '../narrative/mutationTracker';
@@ -124,7 +124,7 @@ export function createGrowthSystem(
   async function applyTemplateOnce(
     template: GrowthTemplate,
     graphView: WorldRuntime,
-    era: Era
+    _era: Era
   ): Promise<number> {
     try {
       // Check applicability
@@ -162,7 +162,7 @@ export function createGrowthSystem(
       // NOTE: Context must stay open until AFTER addEntity/createRelationship calls below.
       deps.mutationTracker?.enterContext('template', template.id);
 
-      let result;
+      let result: import('../engine/types').TemplateResult;
       try {
         result = await template.expand(graphView, target);
       } catch (error) {
@@ -266,7 +266,7 @@ export function createGrowthSystem(
           // Use entityRefToIndex mapping since createChance can skip entities
           if (result.entityRefToIndex) {
             for (const [entityRef, idx] of Object.entries(result.entityRefToIndex)) {
-              const index = idx as number;
+              const index = idx;
               if (createdEntities[index]) {
                 // Ensure $ prefix for the key
                 const key = entityRef.startsWith('$') ? entityRef : `$${entityRef}`;

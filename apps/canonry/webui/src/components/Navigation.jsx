@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import {
   colors,
   typography,
@@ -163,3 +164,10 @@ export default function Navigation({ activeTab, onTabChange, onHelpClick, onAwsC
     </nav>
   );
 }
+
+Navigation.propTypes = {
+  activeTab: PropTypes.string.isRequired,
+  onTabChange: PropTypes.func.isRequired,
+  onHelpClick: PropTypes.func,
+  onAwsClick: PropTypes.func,
+};

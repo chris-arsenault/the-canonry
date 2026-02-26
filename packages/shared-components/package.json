@@ -11,5 +11,8 @@
   },
   "peerDependencies": {
     "react": "^19.0.0"
+  },
+  "dependencies": {
+    "prop-types": "^15.8.1"
   }
 }

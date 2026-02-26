@@ -31,7 +31,7 @@ export default function TimelineBrush({
   selection,
   onSelectionChange,
   minSelectionWidth = 20,
-}: TimelineBrushProps) {
+}: Readonly<TimelineBrushProps>) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragMode, setDragMode] = useState<DragMode>("none");
   const [dragStart, setDragStart] = useState<{ x: number; selection: [number, number] | null }>({
@@ -87,7 +87,7 @@ export default function TimelineBrush({
       const dx = x - dragStart.x;
 
       if (dragMode === "create") {
-        const startTick = dragStart.selection![0];
+        const startTick = dragStart.selection[0];
         const currentTick = xToTick(x, extent, width, padding);
         const newSelection: [number, number] =
           currentTick >= startTick ? [startTick, currentTick] : [currentTick, startTick];

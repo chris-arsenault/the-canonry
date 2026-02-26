@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import VariableSelectionEditor from "../../shared/VariableSelectionEditor";
 
 export function InstigatorTab({ action, onChange, schema }) {
@@ -89,5 +90,11 @@ export function InstigatorTab({ action, onChange, schema }) {
     </div>
   );
 }
+
+InstigatorTab.propTypes = {
+  action: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+};
 
 export default InstigatorTab;

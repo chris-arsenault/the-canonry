@@ -113,8 +113,9 @@ export const visualThesisTask = {
     );
     const visualIdentityContext = visualIdentityMatch ? visualIdentityMatch[0].trim() : "";
 
+    const thesisIdentitySuffix = visualIdentityContext ? "\n\n" + visualIdentityContext : "";
     const visualContext = `Entity: ${task.entityName} (${task.entityKind})
-Culture: ${task.entityCulture || "unaffiliated"}${visualIdentityContext ? `\n\n${visualIdentityContext}` : ""}`;
+Culture: ${task.entityCulture || "unaffiliated"}${thesisIdentitySuffix}`;
 
     // ========================================================================
     // Step 1: Visual Thesis

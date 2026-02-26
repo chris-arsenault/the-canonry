@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { PATH_DIRECTIONS, PATH_CONSTRAINT_TYPES } from "../constants";
 import { ReferenceDropdown } from "../../shared";
 
@@ -52,38 +53,41 @@ export function PathConstraintEditor({ constraint, onChange, onRemove, schema, a
       case "in":
         return (
           <div>
-            <label className="label label-micro">Set Variable</label>
+            <label className="label label-micro">Set Variable
             <ReferenceDropdown
               value={constraint.set || ""}
               onChange={(v) => updateConstraint("set", v)}
               options={refOptions}
               placeholder="e.g. $allies"
             />
+            </label>
           </div>
         );
 
       case "kind_equals":
         return (
           <div>
-            <label className="label label-micro">Entity Kind</label>
+            <label className="label label-micro">Entity Kind
             <ReferenceDropdown
               value={constraint.kind || ""}
               onChange={(v) => updateConstraint("kind", v)}
               options={entityKindOptions}
             />
+            </label>
           </div>
         );
 
       case "subtype_equals":
         return (
           <div>
-            <label className="label label-micro">Subtype</label>
+            <label className="label label-micro">Subtype
             <ReferenceDropdown
               value={constraint.subtype || ""}
               onChange={(v) => updateConstraint("subtype", v)}
               options={allSubtypeOptions}
               placeholder="Select subtype..."
             />
+            </label>
           </div>
         );
 
@@ -92,28 +96,31 @@ export function PathConstraintEditor({ constraint, onChange, onRemove, schema, a
         return (
           <div className="constraint-fields-grid">
             <div>
-              <label className="label label-micro">Kind</label>
+              <label className="label label-micro">Kind
               <ReferenceDropdown
                 value={constraint.kind || ""}
                 onChange={(v) => updateConstraint("kind", v)}
                 options={relationshipKindOptions}
               />
+              </label>
             </div>
             <div>
-              <label className="label label-micro">With</label>
+              <label className="label label-micro">With
               <ReferenceDropdown
                 value={constraint.with || ""}
                 onChange={(v) => updateConstraint("with", v)}
                 options={refOptions}
               />
+              </label>
             </div>
             <div>
-              <label className="label label-micro">Direction</label>
+              <label className="label label-micro">Direction
               <ReferenceDropdown
                 value={constraint.direction || "any"}
                 onChange={(v) => updateConstraint("direction", v)}
                 options={PATH_DIRECTIONS}
               />
+              </label>
             </div>
           </div>
         );
@@ -138,5 +145,13 @@ export function PathConstraintEditor({ constraint, onChange, onRemove, schema, a
     </div>
   );
 }
+
+PathConstraintEditor.propTypes = {
+  constraint: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  availableRefs: PropTypes.array,
+};
 
 export default PathConstraintEditor;

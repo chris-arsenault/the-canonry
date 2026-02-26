@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { APPLICABILITY_TYPES } from "../constants";
 
 /**
@@ -32,6 +33,9 @@ export function AddRuleButton({ onAdd, depth = 0 }) {
                     onAdd(type);
                     setShowPicker(false);
                   }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
                   <div
                     className="dropdown-menu-icon"
@@ -55,5 +59,10 @@ export function AddRuleButton({ onAdd, depth = 0 }) {
     </div>
   );
 }
+
+AddRuleButton.propTypes = {
+  onAdd: PropTypes.func.isRequired,
+  depth: PropTypes.number,
+};
 
 export default AddRuleButton;

@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -37,3 +38,12 @@ export function SectionHeader({
 }
 
 export default SectionHeader;
+
+SectionHeader.propTypes = {
+  title: PropTypes.string.isRequired,
+  description: PropTypes.string,
+  icon: PropTypes.string,
+  count: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  actions: PropTypes.node,
+  className: PropTypes.string,
+};

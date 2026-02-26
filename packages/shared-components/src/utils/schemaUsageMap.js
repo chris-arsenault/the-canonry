@@ -29,8 +29,8 @@ export function computeUsageMap(schema, pressures, eras, generators, systems, ac
 
     // Cross-tab reference tracking
     pressures: {},        // { pressureId: { generators: [], systems: [], actions: [], eras: [] } }
-    generators: {},       // { generatorId: { eras: [{ id, weight }] } }
-    systems: {},          // { systemId: { eras: [{ id, weight }] } }
+    generators: {},       // generatorId -> eras with id and weight
+    systems: {},          // systemId -> eras with id and weight
 
     // Validation results
     validation: {
@@ -462,11 +462,6 @@ function scanMutations(mutations, usageMap, pressureIds, contextKey, ref, info) 
         recordTagRef(usageMap, mutation.tag, contextKey, ref);
         break;
       case 'create_relationship':
-        recordRelationshipKindRef(usageMap, mutation.kind, contextKey, ref, {
-          ...info,
-          field: `${info.field}[${idx}].kind`,
-        });
-        break;
       case 'adjust_relationship_strength':
         recordRelationshipKindRef(usageMap, mutation.kind, contextKey, ref, {
           ...info,
@@ -504,6 +499,7 @@ function scanMetric(metric, usageMap, contextKey, ref, info) {
       break;
     case 'relationship_count':
     case 'connection_count':
+    case 'cross_culture_ratio':
       (metric.relationshipKinds || []).forEach((kind) =>
         recordRelationshipKindRef(usageMap, kind, contextKey, ref, info)
       );
@@ -519,11 +515,6 @@ function scanMetric(metric, usageMap, contextKey, ref, info) {
       recordEntityKindRef(usageMap, metric.kind, contextKey, ref, info);
       recordSubtypeRef(usageMap, metric.subtype, contextKey, ref);
       recordStatusRef(usageMap, metric.aliveStatus, contextKey, ref);
-      break;
-    case 'cross_culture_ratio':
-      (metric.relationshipKinds || []).forEach((kind) =>
-        recordRelationshipKindRef(usageMap, kind, contextKey, ref, info)
-      );
       break;
     case 'shared_relationship':
       recordRelationshipKindRef(usageMap, metric.sharedRelationshipKind, contextKey, ref, info);
@@ -555,7 +546,7 @@ function scanMetric(metric, usageMap, contextKey, ref, info) {
   }
 }
 
-function scanPressureReferences(usageMap, pressures, schema) {
+function scanPressureReferences(usageMap, pressures, _schema) {
   (pressures || []).forEach(pressure => {
     const scanFeedbackFactors = (factors, isPositive) => {
       (factors || []).forEach(factor => {
@@ -798,6 +789,128 @@ function scanGeneratorReferences(usageMap, generators, schema, pressures) {
   });
 }
 
+function scanContagionSystem(config, usageMap, pressureIds, sysRef, sysId, location) {
+  if (config.contagion?.type === 'relationship') {
+    recordRelationshipKindRef(usageMap, config.contagion.relationshipKind, 'systems', sysRef, {
+      type: 'system', id: sysId, field: 'contagion.relationshipKind', location,
+    });
+  }
+  if (config.contagion?.type === 'tag' && config.contagion.tagPattern) {
+    recordTagRef(usageMap, config.contagion.tagPattern, 'systems', sysRef);
+  }
+  (config.vectors || []).forEach((vector, idx) => {
+    recordRelationshipKindRef(usageMap, vector.relationshipKind, 'systems', sysRef, {
+      type: 'system', id: sysId, field: `vectors[${idx}].relationshipKind`, location,
+    });
+  });
+  scanMutations(config.infectionAction ? [config.infectionAction] : [], usageMap, pressureIds, 'systems', sysRef, {
+    type: 'system', id: sysId, field: 'infectionAction', location,
+  });
+  (config.phaseTransitions || []).forEach((transition, idx) => {
+    scanSelectionRule(transition.selection, usageMap, 'systems', sysRef, {
+      type: 'system', id: sysId, field: `phaseTransitions[${idx}].selection`, location,
+    });
+    if (transition.toStatus) recordStatusRef(usageMap, transition.toStatus, 'systems', sysRef);
+  });
+  if (config.multiSource?.sourceSelection) {
+    scanSelectionRule(config.multiSource.sourceSelection, usageMap, 'systems', sysRef, {
+      type: 'system', id: sysId, field: 'multiSource.sourceSelection', location,
+    });
+  }
+  if (config.multiSource?.immunityTagPrefix) {
+    recordTagRef(usageMap, config.multiSource.immunityTagPrefix, 'systems', sysRef);
+  }
+}
+
+function scanEvolutionSystem(config, usageMap, pressureIds, sysRef, sysId, location) {
+  (config.subtypeBonuses || []).forEach((bonus) => recordSubtypeRef(usageMap, bonus.subtype, 'systems', sysRef));
+  scanMetric(config.metric, usageMap, 'systems', sysRef, {
+    type: 'system', id: sysId, field: 'metric', location,
+  });
+  (config.rules || []).forEach((rule, idx) => {
+    scanMutations(rule?.action ? [rule.action] : [], usageMap, pressureIds, 'systems', sysRef, {
+      type: 'system', id: sysId, field: `rules[${idx}].action`, location,
+    });
+  });
+}
+
+function scanThresholdSystem(config, usageMap, pressureIds, sysRef, sysId, location) {
+  (config.conditions || []).forEach((cond, idx) => {
+    scanCondition(cond, usageMap, pressureIds, 'systems', sysRef, {
+      type: 'system', id: sysId, field: `conditions[${idx}]`, location,
+    });
+  });
+  scanMutations(config.actions || [], usageMap, pressureIds, 'systems', sysRef, {
+    type: 'system', id: sysId, field: 'actions', location,
+  });
+  if (config.clusterRelationshipKind) {
+    recordRelationshipKindRef(usageMap, config.clusterRelationshipKind, 'systems', sysRef, {
+      type: 'system', id: sysId, field: 'clusterRelationshipKind', location,
+    });
+  }
+}
+
+function scanClusterSystem(config, usageMap, pressureIds, sysRef, sysId, location) {
+  (config.clustering?.criteria || []).forEach((crit, idx) => {
+    if (crit.type === 'shared_relationship') {
+      recordRelationshipKindRef(usageMap, crit.relationshipKind, 'systems', sysRef, {
+        type: 'system', id: sysId, field: `clustering.criteria[${idx}].relationshipKind`, location,
+      });
+    }
+  });
+  if (config.metaEntity?.kind) {
+    recordEntityKindRef(usageMap, config.metaEntity.kind, 'systems', sysRef, {
+      type: 'system', id: sysId, field: 'metaEntity.kind', location,
+    });
+  }
+  (config.metaEntity?.additionalTags || []).forEach((tag) => recordTagRef(usageMap, tag, 'systems', sysRef));
+  Object.keys(config.postProcess?.pressureChanges || {}).forEach((pressureId) => {
+    recordPressureRef(usageMap, pressureIds, pressureId, 'systems', sysRef, {
+      type: 'system', id: sysId, field: 'postProcess.pressureChanges', location,
+    });
+  });
+  if (config.postProcess?.governanceRelationship) {
+    recordRelationshipKindRef(usageMap, config.postProcess.governanceRelationship, 'systems', sysRef, {
+      type: 'system', id: sysId, field: 'postProcess.governanceRelationship', location,
+    });
+  }
+  if (config.postProcess?.governanceFactionSubtype) {
+    recordSubtypeRef(usageMap, config.postProcess.governanceFactionSubtype, 'systems', sysRef);
+  }
+}
+
+function scanTagDiffusionSystem(config, usageMap, pressureIds, sysRef, sysId, location) {
+  if (config.connectionKind) {
+    recordRelationshipKindRef(usageMap, config.connectionKind, 'systems', sysRef, {
+      type: 'system', id: sysId, field: 'connectionKind', location,
+    });
+  }
+  (config.convergence?.tags || []).forEach((tag) => recordTagRef(usageMap, tag, 'systems', sysRef));
+  (config.divergence?.tags || []).forEach((tag) => recordTagRef(usageMap, tag, 'systems', sysRef));
+  if (config.divergencePressure?.pressureName) {
+    recordPressureRef(usageMap, pressureIds, config.divergencePressure.pressureName, 'systems', sysRef, {
+      type: 'system', id: sysId, field: 'divergencePressure.pressureName', location,
+    });
+  }
+}
+
+function scanPlaneDiffusionSystem(config, usageMap, sysRef) {
+  if (config.sources?.tagFilter) recordTagRef(usageMap, config.sources.tagFilter, 'systems', sysRef);
+  if (config.sources?.strengthTag) recordTagRef(usageMap, config.sources.strengthTag, 'systems', sysRef);
+  if (config.sinks?.tagFilter) recordTagRef(usageMap, config.sinks.tagFilter, 'systems', sysRef);
+  if (config.sinks?.strengthTag) recordTagRef(usageMap, config.sinks.strengthTag, 'systems', sysRef);
+  (config.outputTags || []).forEach((tagConfig) => recordTagRef(usageMap, tagConfig.tag, 'systems', sysRef));
+  if (config.valueTag) recordTagRef(usageMap, config.valueTag, 'systems', sysRef);
+}
+
+const systemTypeScanners = {
+  graphContagion: scanContagionSystem,
+  connectionEvolution: scanEvolutionSystem,
+  thresholdTrigger: scanThresholdSystem,
+  clusterFormation: scanClusterSystem,
+  tagDiffusion: scanTagDiffusionSystem,
+};
+
 function scanSystemReferences(usageMap, systems, schema, pressures) {
   const pressureIds = new Set((pressures || []).map(p => p.id));
 
@@ -809,195 +922,20 @@ function scanSystemReferences(usageMap, systems, schema, pressures) {
     const location = `System "${sysName}"`;
 
     scanSelectionRule(config.selection, usageMap, 'systems', sysRef, {
-      type: 'system',
-      id: sysId,
-      field: 'selection',
-      location,
+      type: 'system', id: sysId, field: 'selection', location,
     });
 
     Object.keys(config.pressureChanges || {}).forEach((pressureId) => {
       recordPressureRef(usageMap, pressureIds, pressureId, 'systems', sysRef, {
-        type: 'system',
-        id: sysId,
-        field: 'pressureChanges',
-        location,
+        type: 'system', id: sysId, field: 'pressureChanges', location,
       });
     });
 
-    // Type-specific scanning
-    switch (sys.systemType) {
-      case 'graphContagion':
-        if (config.contagion?.type === 'relationship') {
-          recordRelationshipKindRef(usageMap, config.contagion.relationshipKind, 'systems', sysRef, {
-            type: 'system',
-            id: sysId,
-            field: 'contagion.relationshipKind',
-            location,
-          });
-        }
-        if (config.contagion?.type === 'tag' && config.contagion.tagPattern) {
-          recordTagRef(usageMap, config.contagion.tagPattern, 'systems', sysRef);
-        }
-        (config.vectors || []).forEach((vector, idx) => {
-          recordRelationshipKindRef(usageMap, vector.relationshipKind, 'systems', sysRef, {
-            type: 'system',
-            id: sysId,
-            field: `vectors[${idx}].relationshipKind`,
-            location,
-          });
-        });
-        scanMutations(
-          config.infectionAction ? [config.infectionAction] : [],
-          usageMap,
-          pressureIds,
-          'systems',
-          sysRef,
-          {
-            type: 'system',
-            id: sysId,
-            field: 'infectionAction',
-            location,
-          }
-        );
-        (config.phaseTransitions || []).forEach((transition, idx) => {
-          scanSelectionRule(transition.selection, usageMap, 'systems', sysRef, {
-            type: 'system',
-            id: sysId,
-            field: `phaseTransitions[${idx}].selection`,
-            location,
-          });
-          if (transition.toStatus) {
-            recordStatusRef(usageMap, transition.toStatus, 'systems', sysRef);
-          }
-        });
-        if (config.multiSource?.sourceSelection) {
-          scanSelectionRule(config.multiSource.sourceSelection, usageMap, 'systems', sysRef, {
-            type: 'system',
-            id: sysId,
-            field: 'multiSource.sourceSelection',
-            location,
-          });
-        }
-        if (config.multiSource?.immunityTagPrefix) {
-          recordTagRef(usageMap, config.multiSource.immunityTagPrefix, 'systems', sysRef);
-        }
-        break;
-
-      case 'connectionEvolution':
-        (config.subtypeBonuses || []).forEach((bonus) => recordSubtypeRef(usageMap, bonus.subtype, 'systems', sysRef));
-        scanMetric(config.metric, usageMap, 'systems', sysRef, {
-          type: 'system',
-          id: sysId,
-          field: 'metric',
-          location,
-        });
-        (config.rules || []).forEach((rule, idx) => {
-          scanMutations(rule?.action ? [rule.action] : [], usageMap, pressureIds, 'systems', sysRef, {
-            type: 'system',
-            id: sysId,
-            field: `rules[${idx}].action`,
-            location,
-          });
-        });
-        break;
-
-      case 'thresholdTrigger':
-        (config.conditions || []).forEach((cond, idx) => {
-          scanCondition(cond, usageMap, pressureIds, 'systems', sysRef, {
-            type: 'system',
-            id: sysId,
-            field: `conditions[${idx}]`,
-            location,
-          });
-        });
-        scanMutations(config.actions || [], usageMap, pressureIds, 'systems', sysRef, {
-          type: 'system',
-          id: sysId,
-          field: 'actions',
-          location,
-        });
-        if (config.clusterRelationshipKind) {
-          recordRelationshipKindRef(usageMap, config.clusterRelationshipKind, 'systems', sysRef, {
-            type: 'system',
-            id: sysId,
-            field: 'clusterRelationshipKind',
-            location,
-          });
-        }
-        break;
-
-      case 'clusterFormation':
-        (config.clustering?.criteria || []).forEach((crit, idx) => {
-          if (crit.type === 'shared_relationship') {
-            recordRelationshipKindRef(usageMap, crit.relationshipKind, 'systems', sysRef, {
-              type: 'system',
-              id: sysId,
-              field: `clustering.criteria[${idx}].relationshipKind`,
-              location,
-            });
-          }
-        });
-        if (config.metaEntity?.kind) {
-          recordEntityKindRef(usageMap, config.metaEntity.kind, 'systems', sysRef, {
-            type: 'system',
-            id: sysId,
-            field: 'metaEntity.kind',
-            location,
-          });
-        }
-        (config.metaEntity?.additionalTags || []).forEach((tag) => recordTagRef(usageMap, tag, 'systems', sysRef));
-        Object.keys(config.postProcess?.pressureChanges || {}).forEach((pressureId) => {
-          recordPressureRef(usageMap, pressureIds, pressureId, 'systems', sysRef, {
-            type: 'system',
-            id: sysId,
-            field: 'postProcess.pressureChanges',
-            location,
-          });
-        });
-        if (config.postProcess?.governanceRelationship) {
-          recordRelationshipKindRef(usageMap, config.postProcess.governanceRelationship, 'systems', sysRef, {
-            type: 'system',
-            id: sysId,
-            field: 'postProcess.governanceRelationship',
-            location,
-          });
-        }
-        if (config.postProcess?.governanceFactionSubtype) {
-          recordSubtypeRef(usageMap, config.postProcess.governanceFactionSubtype, 'systems', sysRef);
-        }
-        break;
-
-      case 'tagDiffusion':
-        if (config.connectionKind) {
-          recordRelationshipKindRef(usageMap, config.connectionKind, 'systems', sysRef, {
-            type: 'system',
-            id: sysId,
-            field: 'connectionKind',
-            location,
-          });
-        }
-        (config.convergence?.tags || []).forEach((tag) => recordTagRef(usageMap, tag, 'systems', sysRef));
-        (config.divergence?.tags || []).forEach((tag) => recordTagRef(usageMap, tag, 'systems', sysRef));
-        if (config.divergencePressure?.pressureName) {
-          recordPressureRef(usageMap, pressureIds, config.divergencePressure.pressureName, 'systems', sysRef, {
-            type: 'system',
-            id: sysId,
-            field: 'divergencePressure.pressureName',
-            location,
-          });
-        }
-        break;
-
-      case 'planeDiffusion':
-        if (config.sources?.tagFilter) recordTagRef(usageMap, config.sources.tagFilter, 'systems', sysRef);
-        if (config.sources?.strengthTag) recordTagRef(usageMap, config.sources.strengthTag, 'systems', sysRef);
-        if (config.sinks?.tagFilter) recordTagRef(usageMap, config.sinks.tagFilter, 'systems', sysRef);
-        if (config.sinks?.strengthTag) recordTagRef(usageMap, config.sinks.strengthTag, 'systems', sysRef);
-        (config.outputTags || []).forEach((tagConfig) => recordTagRef(usageMap, tagConfig.tag, 'systems', sysRef));
-        if (config.valueTag) recordTagRef(usageMap, config.valueTag, 'systems', sysRef);
-        break;
-      default:
-        break;
+    const scanner = systemTypeScanners[sys.systemType];
+    if (scanner) {
+      scanner(config, usageMap, pressureIds, sysRef, sysId, location);
+    } else if (sys.systemType === 'planeDiffusion') {
+      scanPlaneDiffusionSystem(config, usageMap, sysRef);
     }
   });
 }
@@ -1060,7 +998,7 @@ function scanActionReferences(usageMap, actions, schema, pressures) {
   });
 }
 
-function detectOrphans(usageMap, schema, pressures, generators, systems) {
+function detectOrphans(usageMap, schema, pressures, _generators, _systems) {
   // Check for unused entity kinds
   Object.entries(usageMap.entityKinds).forEach(([kind, usage]) => {
     const totalUsage = usage.generators.length + usage.systems.length + usage.actions.length + usage.pressures.length;
@@ -1145,9 +1083,7 @@ function checkRelationshipCompatibility(usageMap, generators, actions, schema) {
 
   // Check generator relationship compatibility
   (generators || []).forEach(gen => {
-    const createdKinds = new Set((gen.creation || []).map(c => c.kind));
-
-    (gen.relationships || []).forEach((rel, idx) => {
+    (gen.relationships || []).forEach((rel) => {
       const rkDef = relationshipKinds[rel.kind];
       if (!rkDef) return; // Already flagged as invalid ref
 
@@ -1284,6 +1220,119 @@ export function getUsageSummary(usage) {
  * @param {Array} params.axisDefinitions - Axis definitions referenced by semantic planes
  * @returns {Object} - Map of tag -> { nameforge, seed, generators, systems, pressures, axis }
  */
+function collectCultureTags(cultures, ensureTag, usage) {
+  (cultures || []).forEach(culture => {
+    (culture.naming?.profiles || []).forEach(profile => {
+      (profile.strategyGroups || []).forEach(group => {
+        (group.conditions?.tags || []).forEach(tag => {
+          ensureTag(tag);
+          usage[tag].nameforge = (usage[tag].nameforge || 0) + 1;
+        });
+      });
+    });
+  });
+}
+
+function collectSeedEntityTags(seedEntities, ensureTag, usage) {
+  (seedEntities || []).forEach(entity => {
+    Object.keys(entity.tags || {}).forEach(tag => {
+      ensureTag(tag);
+      usage[tag].seed = (usage[tag].seed || 0) + 1;
+    });
+  });
+}
+
+function collectGeneratorTags(generators, addTagUsage, collectTagsFromCondition, collectTagsFromFilters, collectTagsFromMutations) {
+  (generators || []).forEach(gen => {
+    (gen.creation || []).forEach(creation => {
+      if (creation.tags && typeof creation.tags === 'object') {
+        Object.keys(creation.tags).forEach(tag => addTagUsage(tag, 'generators'));
+      }
+    });
+    (gen.applicability || []).forEach((rule) => collectTagsFromCondition(rule, 'generators'));
+    collectTagsFromFilters(gen.selection?.filters, 'generators');
+    collectTagsFromMutations(gen.stateUpdates || [], 'generators');
+    (gen.variants?.options || []).forEach(variant => {
+      collectTagsFromCondition(variant.when, 'generators');
+      if (variant.apply?.tags && typeof variant.apply.tags === 'object') {
+        Object.entries(variant.apply.tags).forEach(([_ref, tagMap]) => {
+          Object.keys(tagMap).forEach(tag => addTagUsage(tag, 'generators'));
+        });
+      }
+      collectTagsFromMutations(variant.apply?.stateUpdates || [], 'generators');
+    });
+  });
+}
+
+function collectSystemTagsByType(sys, config, addTagUsage, collectTagsFromCondition, collectTagsFromMutations) {
+  if (sys.systemType === 'tagDiffusion') {
+    (config.convergence?.tags || []).forEach(tag => addTagUsage(tag, 'systems'));
+    (config.divergence?.tags || []).forEach(tag => addTagUsage(tag, 'systems'));
+  } else if (sys.systemType === 'thresholdTrigger') {
+    (config.conditions || []).forEach((cond) => collectTagsFromCondition(cond, 'systems'));
+    collectTagsFromMutations(config.actions || [], 'systems');
+  } else if (sys.systemType === 'graphContagion') {
+    if (config.contagion?.type === 'tag' && config.contagion.tagPattern) addTagUsage(config.contagion.tagPattern, 'systems');
+    collectTagsFromMutations(config.infectionAction ? [config.infectionAction] : [], 'systems');
+  } else if (sys.systemType === 'connectionEvolution') {
+    (config.rules || []).forEach((rule) => collectTagsFromMutations(rule?.action ? [rule.action] : [], 'systems'));
+  } else if (sys.systemType === 'clusterFormation') {
+    (config.metaEntity?.additionalTags || []).forEach((tag) => addTagUsage(tag, 'systems'));
+  } else if (sys.systemType === 'planeDiffusion') {
+    if (config.sources?.tagFilter) addTagUsage(config.sources.tagFilter, 'systems');
+    if (config.sources?.strengthTag) addTagUsage(config.sources.strengthTag, 'systems');
+    if (config.sinks?.tagFilter) addTagUsage(config.sinks.tagFilter, 'systems');
+    if (config.sinks?.strengthTag) addTagUsage(config.sinks.strengthTag, 'systems');
+    (config.outputTags || []).forEach((tagConfig) => addTagUsage(tagConfig.tag, 'systems'));
+    if (config.valueTag) addTagUsage(config.valueTag, 'systems');
+  }
+}
+
+function collectSystemTags(systems, addTagUsage, collectTagsFromFilters, collectTagsFromCondition, collectTagsFromMutations) {
+  (systems || []).forEach(sys => {
+    const config = sys.config;
+    collectTagsFromFilters(config.selection?.filters, 'systems');
+    collectTagsFromFilters(config.multiSource?.sourceSelection?.filters, 'systems');
+    (config.phaseTransitions || []).forEach((transition) => collectTagsFromFilters(transition.selection?.filters, 'systems'));
+    collectSystemTagsByType(sys, config, addTagUsage, collectTagsFromCondition, collectTagsFromMutations);
+  });
+}
+
+function scanFeedbackFactors(factors, ensureTag, usage) {
+  (factors || []).forEach(factor => {
+    if (factor.tag) {
+      ensureTag(factor.tag);
+      usage[factor.tag].pressures = (usage[factor.tag].pressures || 0) + 1;
+    }
+    if (factor.tags && Array.isArray(factor.tags)) {
+      factor.tags.forEach(tag => {
+        ensureTag(tag);
+        usage[tag].pressures = (usage[tag].pressures || 0) + 1;
+      });
+    }
+  });
+}
+
+function collectPressureTags(pressures, ensureTag, usage) {
+  (pressures || []).forEach(pressure => {
+    scanFeedbackFactors(pressure.growth?.positiveFeedback, ensureTag, usage);
+    scanFeedbackFactors(pressure.growth?.negativeFeedback, ensureTag, usage);
+  });
+}
+
+function collectAxisTags(entityKinds, axisDefinitions, ensureTag, usage) {
+  const axisById = new Map((axisDefinitions || []).map(axis => [axis.id, axis]));
+  (entityKinds || []).forEach(ek => {
+    Object.values(ek.semanticPlane?.axes || {}).forEach(axisRef => {
+      if (!axisRef?.axisId) return;
+      const axis = axisById.get(axisRef.axisId);
+      if (!axis) return;
+      if (axis.lowTag) { ensureTag(axis.lowTag); usage[axis.lowTag].axis = (usage[axis.lowTag].axis || 0) + 1; }
+      if (axis.highTag) { ensureTag(axis.highTag); usage[axis.highTag].axis = (usage[axis.highTag].axis || 0) + 1; }
+    });
+  });
+}
+
 export function computeTagUsage({ cultures, seedEntities, generators, systems, pressures, entityKinds, axisDefinitions } = {}) {
   const usage = {};
 
@@ -1341,156 +1390,12 @@ export function computeTagUsage({ cultures, seedEntities, generators, systems, p
     });
   };
 
-  // Count tags used in Name Forge profiles
-  (cultures || []).forEach(culture => {
-    const profiles = culture.naming?.profiles || [];
-    profiles.forEach(profile => {
-      const groups = profile.strategyGroups || [];
-      groups.forEach(group => {
-        const tags = group.conditions?.tags || [];
-        tags.forEach(tag => {
-          ensureTag(tag);
-          usage[tag].nameforge = (usage[tag].nameforge || 0) + 1;
-        });
-      });
-    });
-  });
-
-  // Count tags used in seed entities (tags stored as { tag: true } object)
-  (seedEntities || []).forEach(entity => {
-    const tags = entity.tags || {};
-    Object.keys(tags).forEach(tag => {
-      ensureTag(tag);
-      usage[tag].seed = (usage[tag].seed || 0) + 1;
-    });
-  });
-
-  // Count tags used in generators
-  (generators || []).forEach(gen => {
-    // Tags in creation entries
-    (gen.creation || []).forEach(creation => {
-      if (creation.tags && typeof creation.tags === 'object') {
-        Object.keys(creation.tags).forEach(tag => addTagUsage(tag, 'generators'));
-      }
-    });
-
-    // Tags in applicability rules
-    (gen.applicability || []).forEach((rule) => collectTagsFromCondition(rule, 'generators'));
-
-    // Tags in selection filters
-    collectTagsFromFilters(gen.selection?.filters, 'generators');
-
-    // Tags in stateUpdates (set_tag, remove_tag)
-    collectTagsFromMutations(gen.stateUpdates || [], 'generators');
-
-    // Tags in variants
-    (gen.variants?.options || []).forEach(variant => {
-      // Tags in variant conditions
-      collectTagsFromCondition(variant.when, 'generators');
-      // Tags in variant effects
-      if (variant.apply?.tags && typeof variant.apply.tags === 'object') {
-        Object.entries(variant.apply.tags).forEach(([ref, tagMap]) => {
-          Object.keys(tagMap).forEach(tag => {
-            addTagUsage(tag, 'generators');
-          });
-        });
-      }
-      collectTagsFromMutations(variant.apply?.stateUpdates || [], 'generators');
-    });
-  });
-
-  // Count tags used in systems
-  (systems || []).forEach(sys => {
-    const config = sys.config;
-
-    // Tags in selection filters
-    collectTagsFromFilters(config.selection?.filters, 'systems');
-    collectTagsFromFilters(config.multiSource?.sourceSelection?.filters, 'systems');
-    (config.phaseTransitions || []).forEach((transition) => {
-      collectTagsFromFilters(transition.selection?.filters, 'systems');
-    });
-
-    // Tag diffusion systems
-    if (sys.systemType === 'tagDiffusion') {
-      (config.convergence?.tags || []).forEach(tag => {
-        addTagUsage(tag, 'systems');
-      });
-      (config.divergence?.tags || []).forEach(tag => {
-        addTagUsage(tag, 'systems');
-      });
-    }
-
-    // Threshold trigger conditions
-    if (sys.systemType === 'thresholdTrigger') {
-      (config.conditions || []).forEach((cond) => collectTagsFromCondition(cond, 'systems'));
-      collectTagsFromMutations(config.actions || [], 'systems');
-    }
-
-    if (sys.systemType === 'graphContagion') {
-      if (config.contagion?.type === 'tag' && config.contagion.tagPattern) {
-        addTagUsage(config.contagion.tagPattern, 'systems');
-      }
-      collectTagsFromMutations(config.infectionAction ? [config.infectionAction] : [], 'systems');
-    }
-
-    if (sys.systemType === 'connectionEvolution') {
-      (config.rules || []).forEach((rule) => {
-        collectTagsFromMutations(rule?.action ? [rule.action] : [], 'systems');
-      });
-    }
-
-    if (sys.systemType === 'clusterFormation') {
-      (config.metaEntity?.additionalTags || []).forEach((tag) => addTagUsage(tag, 'systems'));
-    }
-
-    if (sys.systemType === 'planeDiffusion') {
-      if (config.sources?.tagFilter) addTagUsage(config.sources.tagFilter, 'systems');
-      if (config.sources?.strengthTag) addTagUsage(config.sources.strengthTag, 'systems');
-      if (config.sinks?.tagFilter) addTagUsage(config.sinks.tagFilter, 'systems');
-      if (config.sinks?.strengthTag) addTagUsage(config.sinks.strengthTag, 'systems');
-      (config.outputTags || []).forEach((tagConfig) => addTagUsage(tagConfig.tag, 'systems'));
-      if (config.valueTag) addTagUsage(config.valueTag, 'systems');
-    }
-  });
-
-  // Count tags used in pressures (feedback factors)
-  (pressures || []).forEach(pressure => {
-    const scanFeedbackFactors = (factors) => {
-      (factors || []).forEach(factor => {
-        if (factor.tag) {
-          ensureTag(factor.tag);
-          usage[factor.tag].pressures = (usage[factor.tag].pressures || 0) + 1;
-        }
-        if (factor.tags && Array.isArray(factor.tags)) {
-          factor.tags.forEach(tag => {
-            ensureTag(tag);
-            usage[tag].pressures = (usage[tag].pressures || 0) + 1;
-          });
-        }
-      });
-    };
-    scanFeedbackFactors(pressure.growth?.positiveFeedback);
-    scanFeedbackFactors(pressure.growth?.negativeFeedback);
-  });
-
-  // Count tags used as semantic plane axis labels
-  const axisById = new Map((axisDefinitions || []).map(axis => [axis.id, axis]));
-  (entityKinds || []).forEach(ek => {
-    const axes = ek.semanticPlane?.axes || {};
-    Object.values(axes).forEach(axisRef => {
-      if (!axisRef?.axisId) return;
-      const axis = axisById.get(axisRef.axisId);
-      if (!axis) return;
-      if (axis.lowTag) {
-        ensureTag(axis.lowTag);
-        usage[axis.lowTag].axis = (usage[axis.lowTag].axis || 0) + 1;
-      }
-      if (axis.highTag) {
-        ensureTag(axis.highTag);
-        usage[axis.highTag].axis = (usage[axis.highTag].axis || 0) + 1;
-      }
-    });
-  });
+  collectCultureTags(cultures, ensureTag, usage);
+  collectSeedEntityTags(seedEntities, ensureTag, usage);
+  collectGeneratorTags(generators, addTagUsage, collectTagsFromCondition, collectTagsFromFilters, collectTagsFromMutations);
+  collectSystemTags(systems, addTagUsage, collectTagsFromFilters, collectTagsFromCondition, collectTagsFromMutations);
+  collectPressureTags(pressures, ensureTag, usage);
+  collectAxisTags(entityKinds, axisDefinitions, ensureTag, usage);
 
   return usage;
 }
@@ -1556,11 +1461,50 @@ export function getRelationshipKindUsageSummary(schemaUsage, kind) {
  *   statuses: { [kindId]: { [statusId]: { generators: [], systems: [] } } }
  * }
  */
+function analyzeSystemSchemaUsage(sys, recordSelectionUsage, addRelationshipKindUsage, addEntityKindUsage, recordConditionUsage, recordMutationUsage) {
+  const cfg = sys.config;
+  const sysId = cfg.id;
+  recordSelectionUsage(cfg.selection, 'systems', sysId);
+
+  if (sys.systemType === 'graphContagion') {
+    if (cfg.contagion?.relationshipKind) addRelationshipKindUsage(cfg.contagion.relationshipKind, 'systems', sysId);
+    (cfg.vectors || []).forEach((vector) => {
+      if (vector.relationshipKind) addRelationshipKindUsage(vector.relationshipKind, 'systems', sysId);
+    });
+    recordMutationUsage(cfg.infectionAction, 'systems', sysId);
+    if (cfg.multiSource?.sourceSelection) recordSelectionUsage(cfg.multiSource.sourceSelection, 'systems', sysId);
+    (cfg.phaseTransitions || []).forEach((transition) => recordSelectionUsage(transition.selection, 'systems', sysId));
+    return;
+  }
+  if (sys.systemType === 'thresholdTrigger') {
+    (cfg.conditions || []).forEach((condition) => recordConditionUsage(condition, 'systems', sysId));
+    (cfg.actions || []).forEach((mutation) => recordMutationUsage(mutation, 'systems', sysId));
+    if (cfg.clusterRelationshipKind) addRelationshipKindUsage(cfg.clusterRelationshipKind, 'systems', sysId);
+    return;
+  }
+  if (sys.systemType === 'connectionEvolution') {
+    if (cfg.metric?.relationshipKinds) cfg.metric.relationshipKinds.forEach((kind) => addRelationshipKindUsage(kind, 'systems', sysId));
+    if (cfg.metric?.sharedRelationshipKind) addRelationshipKindUsage(cfg.metric.sharedRelationshipKind, 'systems', sysId);
+    (cfg.rules || []).forEach((rule) => recordMutationUsage(rule?.action, 'systems', sysId));
+    return;
+  }
+  if (sys.systemType === 'tagDiffusion') {
+    if (cfg.connectionKind) addRelationshipKindUsage(cfg.connectionKind, 'systems', sysId);
+    return;
+  }
+  if (sys.systemType === 'clusterFormation') {
+    if (cfg.metaEntity?.kind) addEntityKindUsage(cfg.metaEntity.kind, 'systems', sysId);
+    (cfg.clustering?.criteria || []).forEach((criterion) => {
+      if (criterion.type === 'shared_relationship') addRelationshipKindUsage(criterion.relationshipKind, 'systems', sysId);
+    });
+  }
+}
+
 export function computeSchemaUsage({
   generators = [],
   systems = [],
   actions = [],
-  pressures = [],
+  pressures: _pressures = [],
   seedEntities = [],
 }) {
   const usage = {
@@ -1727,55 +1671,7 @@ export function computeSchemaUsage({
 
   // Analyze systems
   systems.forEach((sys) => {
-    const cfg = sys.config;
-    const sysId = cfg.id;
-
-    recordSelectionUsage(cfg.selection, 'systems', sysId);
-
-    if (sys.systemType === 'graphContagion') {
-      if (cfg.contagion?.relationshipKind) {
-        addRelationshipKindUsage(cfg.contagion.relationshipKind, 'systems', sysId);
-      }
-      (cfg.vectors || []).forEach((vector) => {
-        if (vector.relationshipKind) addRelationshipKindUsage(vector.relationshipKind, 'systems', sysId);
-      });
-      recordMutationUsage(cfg.infectionAction, 'systems', sysId);
-      if (cfg.multiSource?.sourceSelection) {
-        recordSelectionUsage(cfg.multiSource.sourceSelection, 'systems', sysId);
-      }
-      (cfg.phaseTransitions || []).forEach((transition) => {
-        recordSelectionUsage(transition.selection, 'systems', sysId);
-      });
-    }
-
-    if (sys.systemType === 'thresholdTrigger') {
-      (cfg.conditions || []).forEach((condition) => recordConditionUsage(condition, 'systems', sysId));
-      (cfg.actions || []).forEach((mutation) => recordMutationUsage(mutation, 'systems', sysId));
-      if (cfg.clusterRelationshipKind) addRelationshipKindUsage(cfg.clusterRelationshipKind, 'systems', sysId);
-    }
-
-    if (sys.systemType === 'connectionEvolution') {
-      if (cfg.metric?.relationshipKinds) {
-        cfg.metric.relationshipKinds.forEach((kind) => addRelationshipKindUsage(kind, 'systems', sysId));
-      }
-      if (cfg.metric?.sharedRelationshipKind) {
-        addRelationshipKindUsage(cfg.metric.sharedRelationshipKind, 'systems', sysId);
-      }
-      (cfg.rules || []).forEach((rule) => recordMutationUsage(rule?.action, 'systems', sysId));
-    }
-
-    if (sys.systemType === 'tagDiffusion') {
-      if (cfg.connectionKind) addRelationshipKindUsage(cfg.connectionKind, 'systems', sysId);
-    }
-
-    if (sys.systemType === 'clusterFormation') {
-      if (cfg.metaEntity?.kind) addEntityKindUsage(cfg.metaEntity.kind, 'systems', sysId);
-      (cfg.clustering?.criteria || []).forEach((criterion) => {
-        if (criterion.type === 'shared_relationship') {
-          addRelationshipKindUsage(criterion.relationshipKind, 'systems', sysId);
-        }
-      });
-    }
+    analyzeSystemSchemaUsage(sys, recordSelectionUsage, addRelationshipKindUsage, addEntityKindUsage, recordConditionUsage, recordMutationUsage);
   });
 
   // Analyze actions

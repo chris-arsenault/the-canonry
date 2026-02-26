@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { APPLICABILITY_TYPES } from "../constants";
 import { ReferenceDropdown, ChipSelect, NumberInput, PROMINENCE_LEVELS } from "../../shared";
 import { AddRuleButton } from "./AddRuleButton";
@@ -69,18 +70,27 @@ export function ApplicabilityRuleCard({
 
   const getSummary = () => {
     switch (rule.type) {
-      case "entity_count":
-        return `${rule.kind || "?"}${rule.subtype ? ":" + rule.subtype : ""} ${rule.min !== undefined ? `>= ${rule.min}` : ""}${rule.max !== undefined ? ` <= ${rule.max}` : ""}`;
+      case "entity_count": {
+        const kindSpec = `${rule.kind || "?"}${rule.subtype ? ":" + rule.subtype : ""}`;
+        const minPart = rule.min !== undefined ? `>= ${rule.min}` : "";
+        const maxPart = rule.max !== undefined ? ` <= ${rule.max}` : "";
+        return `${kindSpec} ${minPart}${maxPart}`;
+      }
       case "pressure":
-        return `${rule.pressureId || "?"} in [${rule.min ?? "-∞"}, ${rule.max ?? "∞"}]`;
+        return `${rule.pressureId || "?"} in [${rule.min ?? "-\u221E"}, ${rule.max ?? "\u221E"}]`;
       case "pressure_any_above":
         return `Any of [${rule.pressureIds?.join(", ") || "?"}] > ${rule.threshold ?? "?"}`;
       case "pressure_compare":
         return `${rule.pressureA || "?"} ${rule.operator || ">"} ${rule.pressureB || "?"}`;
-      case "relationship_count":
-        return `${rule.relationshipKind || "any"} count ${rule.min !== undefined ? `>= ${rule.min}` : ""}${rule.max !== undefined ? ` <= ${rule.max}` : ""}`;
-      case "relationship_exists":
-        return `${rule.relationshipKind || "?"} exists${rule.targetKind ? ` to ${rule.targetKind}` : ""}`;
+      case "relationship_count": {
+        const relMinPart = rule.min !== undefined ? `>= ${rule.min}` : "";
+        const relMaxPart = rule.max !== undefined ? ` <= ${rule.max}` : "";
+        return `${rule.relationshipKind || "any"} count ${relMinPart}${relMaxPart}`;
+      }
+      case "relationship_exists": {
+        const targetSuffix = rule.targetKind ? ` to ${rule.targetKind}` : "";
+        return `${rule.relationshipKind || "?"} exists${targetSuffix}`;
+      }
       case "tag_exists":
         return `has tag "${rule.tag || "?"}"`;
       case "tag_absent":
@@ -91,8 +101,10 @@ export function ApplicabilityRuleCard({
         return `prominence ${rule.min || "?"}-${rule.max || "?"}`;
       case "time_elapsed":
         return `${rule.minTicks || "?"} ticks since ${rule.since || "updated"}`;
-      case "growth_phases_complete":
-        return `${rule.minPhases ?? "?"} growth phases${rule.eraId ? ` in ${rule.eraId}` : ""}`;
+      case "growth_phases_complete": {
+        const eraSuffix = rule.eraId ? ` in ${rule.eraId}` : "";
+        return `${rule.minPhases ?? "?"} growth phases${eraSuffix}`;
+      }
       case "era_match":
         return rule.eras?.length ? rule.eras.join(", ") : "No eras selected";
       case "random_chance":
@@ -166,7 +178,7 @@ export function ApplicabilityRuleCard({
                   placeholder="Any"
                 />
                 <div className="form-group">
-                  <label className="label">Min</label>
+                  <label className="label">Min
                   <NumberInput
                     value={rule.min}
                     onChange={(v) => updateField("min", v)}
@@ -174,9 +186,10 @@ export function ApplicabilityRuleCard({
                     integer
                     allowEmpty
                   />
+                  </label>
                 </div>
                 <div className="form-group">
-                  <label className="label">Max</label>
+                  <label className="label">Max
                   <NumberInput
                     value={rule.max}
                     onChange={(v) => updateField("max", v)}
@@ -184,6 +197,7 @@ export function ApplicabilityRuleCard({
                     integer
                     allowEmpty
                   />
+                  </label>
                 </div>
               </>
             )}
@@ -197,7 +211,7 @@ export function ApplicabilityRuleCard({
                   options={pressureOptions}
                 />
                 <div className="form-group">
-                  <label className="label">Min Value</label>
+                  <label className="label">Min Value
                   <NumberInput
                     value={rule.min}
                     onChange={(v) => updateField("min", v)}
@@ -207,9 +221,10 @@ export function ApplicabilityRuleCard({
                     allowEmpty
                     placeholder="0"
                   />
+                  </label>
                 </div>
                 <div className="form-group">
-                  <label className="label">Max Value</label>
+                  <label className="label">Max Value
                   <NumberInput
                     value={rule.max}
                     onChange={(v) => updateField("max", v)}
@@ -219,6 +234,7 @@ export function ApplicabilityRuleCard({
                     allowEmpty
                     placeholder="100"
                   />
+                  </label>
                 </div>
               </>
             )}
@@ -235,7 +251,7 @@ export function ApplicabilityRuleCard({
                   />
                 </div>
                 <div className="form-group">
-                  <label className="label">Threshold</label>
+                  <label className="label">Threshold
                   <NumberInput
                     value={rule.threshold}
                     onChange={(v) => updateField("threshold", v ?? 0)}
@@ -244,6 +260,7 @@ export function ApplicabilityRuleCard({
                     integer
                     placeholder="50"
                   />
+                  </label>
                 </div>
               </>
             )}
@@ -277,6 +294,7 @@ export function ApplicabilityRuleCard({
                 />
               </>
             )}
+
 
             {rule.type === "era_match" && (
               <div style={{ gridColumn: "1 / -1" }}>
@@ -317,9 +335,10 @@ export function ApplicabilityRuleCard({
               </div>
             )}
 
+
             {rule.type === "cooldown_elapsed" && (
               <div className="form-group">
-                <label className="label">Cooldown (ticks)</label>
+                <label className="label">Cooldown (ticks)
                 <NumberInput
                   value={rule.cooldownTicks}
                   onChange={(v) => updateField("cooldownTicks", v ?? 0)}
@@ -327,12 +346,13 @@ export function ApplicabilityRuleCard({
                   integer
                   placeholder="10"
                 />
+                </label>
               </div>
             )}
 
             {rule.type === "creations_per_epoch" && (
               <div className="form-group">
-                <label className="label">Max Creations Per Epoch</label>
+                <label className="label">Max Creations Per Epoch
                 <NumberInput
                   value={rule.maxPerEpoch}
                   onChange={(v) => updateField("maxPerEpoch", v ?? 0)}
@@ -340,6 +360,7 @@ export function ApplicabilityRuleCard({
                   integer
                   placeholder="3"
                 />
+                </label>
               </div>
             )}
 
@@ -363,7 +384,7 @@ export function ApplicabilityRuleCard({
                   ]}
                 />
                 <div className="form-group">
-                  <label className="label">Min Count</label>
+                  <label className="label">Min Count
                   <NumberInput
                     value={rule.min}
                     onChange={(v) => updateField("min", v)}
@@ -371,9 +392,10 @@ export function ApplicabilityRuleCard({
                     integer
                     allowEmpty
                   />
+                  </label>
                 </div>
                 <div className="form-group">
-                  <label className="label">Max Count</label>
+                  <label className="label">Max Count
                   <NumberInput
                     value={rule.max}
                     onChange={(v) => updateField("max", v)}
@@ -381,6 +403,7 @@ export function ApplicabilityRuleCard({
                     integer
                     allowEmpty
                   />
+                  </label>
                 </div>
               </>
             )}
@@ -411,8 +434,8 @@ export function ApplicabilityRuleCard({
                   placeholder="Any"
                 />
                 <div className="form-group">
-                  <label className="label">Target Subtype</label>
-                  <input
+                  <label htmlFor="target-subtype" className="label">Target Subtype</label>
+                  <input id="target-subtype"
                     type="text"
                     value={rule.targetSubtype || ""}
                     onChange={(e) => updateField("targetSubtype", e.target.value || undefined)}
@@ -421,8 +444,8 @@ export function ApplicabilityRuleCard({
                   />
                 </div>
                 <div className="form-group">
-                  <label className="label">Target Status</label>
-                  <input
+                  <label htmlFor="target-status" className="label">Target Status</label>
+                  <input id="target-status"
                     type="text"
                     value={rule.targetStatus || ""}
                     onChange={(e) => updateField("targetStatus", e.target.value || undefined)}
@@ -435,7 +458,7 @@ export function ApplicabilityRuleCard({
 
             {(rule.type === "tag_exists" || rule.type === "tag_absent") && (
               <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-                <label className="label">Tag</label>
+                <label className="label">Tag
                 <TagSelector
                   value={rule.tag ? [rule.tag] : []}
                   onChange={(tags) => updateField("tag", tags[0] || "")}
@@ -443,13 +466,14 @@ export function ApplicabilityRuleCard({
                   placeholder="Select tag..."
                   singleSelect
                 />
+                </label>
               </div>
             )}
 
             {rule.type === "tag_exists" && (
               <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-                <label className="label">Value (optional)</label>
-                <input
+                <label htmlFor="value-optional" className="label">Value (optional)</label>
+                <input id="value-optional"
                   type="text"
                   value={rule.value ?? ""}
                   onChange={(e) => updateField("value", e.target.value || undefined)}
@@ -462,8 +486,8 @@ export function ApplicabilityRuleCard({
             {rule.type === "status" && (
               <>
                 <div className="form-group">
-                  <label className="label">Status</label>
-                  <input
+                  <label htmlFor="status" className="label">Status</label>
+                  <input id="status"
                     type="text"
                     value={rule.status || ""}
                     onChange={(e) => updateField("status", e.target.value || undefined)}
@@ -506,13 +530,14 @@ export function ApplicabilityRuleCard({
             {rule.type === "time_elapsed" && (
               <>
                 <div className="form-group">
-                  <label className="label">Min Ticks</label>
+                  <label className="label">Min Ticks
                   <NumberInput
                     value={rule.minTicks}
                     onChange={(v) => updateField("minTicks", v ?? 0)}
                     min={0}
                     integer
                   />
+                  </label>
                 </div>
                 <ReferenceDropdown
                   label="Since"
@@ -529,13 +554,14 @@ export function ApplicabilityRuleCard({
             {rule.type === "growth_phases_complete" && (
               <>
                 <div className="form-group">
-                  <label className="label">Min Growth Phases</label>
+                  <label className="label">Min Growth Phases
                   <NumberInput
                     value={rule.minPhases}
                     onChange={(v) => updateField("minPhases", v ?? 0)}
                     min={0}
                     integer
                   />
+                  </label>
                 </div>
                 {eraOptions.length > 0 ? (
                   <ReferenceDropdown
@@ -547,8 +573,8 @@ export function ApplicabilityRuleCard({
                   />
                 ) : (
                   <div className="form-group">
-                    <label className="label">Era Id (optional)</label>
-                    <input
+                    <label htmlFor="era-id-optional" className="label">Era Id (optional)</label>
+                    <input id="era-id-optional"
                       type="text"
                       value={rule.eraId || ""}
                       onChange={(e) => updateField("eraId", e.target.value || undefined)}
@@ -573,8 +599,8 @@ export function ApplicabilityRuleCard({
 
             {rule.type === "entity_exists" && (
               <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-                <label className="label">Entity Reference</label>
-                <input
+                <label htmlFor="entity-reference" className="label">Entity Reference</label>
+                <input id="entity-reference"
                   type="text"
                   value={rule.entity || ""}
                   onChange={(e) => updateField("entity", e.target.value)}
@@ -587,8 +613,8 @@ export function ApplicabilityRuleCard({
             {rule.type === "entity_has_relationship" && (
               <>
                 <div className="form-group">
-                  <label className="label">Entity Reference</label>
-                  <input
+                  <label htmlFor="entity-reference" className="label">Entity Reference</label>
+                  <input id="entity-reference"
                     type="text"
                     value={rule.entity || ""}
                     onChange={(e) => updateField("entity", e.target.value)}
@@ -653,5 +679,15 @@ export function ApplicabilityRuleCard({
     </div>
   );
 }
+
+ApplicabilityRuleCard.propTypes = {
+  rule: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+  eras: PropTypes.array,
+  depth: PropTypes.number,
+};
 
 export default ApplicabilityRuleCard;

@@ -25,13 +25,16 @@ function AssembledContentViewer({
     return diffWords(compareContent, content);
   }, [content, compareContent]);
 
-  const qcColorClass = quickCheckReport
-    ? quickCheckReport.assessment === "clean"
-      ? "ctab-qc-indicator-clean"
-      : quickCheckReport.assessment === "minor"
-        ? "ctab-qc-indicator-minor"
-        : "ctab-qc-indicator-major"
-    : "";
+  let qcColorClass = "";
+  if (quickCheckReport) {
+    if (quickCheckReport.assessment === "clean") {
+      qcColorClass = "ctab-qc-indicator-clean";
+    } else if (quickCheckReport.assessment === "minor") {
+      qcColorClass = "ctab-qc-indicator-minor";
+    } else {
+      qcColorClass = "ctab-qc-indicator-major";
+    }
+  }
 
   return (
     <div className="ctab-viewer">
@@ -72,6 +75,9 @@ function AssembledContentViewer({
                   onClick={onShowQuickCheck}
                   className={`ctab-qc-indicator ${qcColorClass}`}
                   title={`Quick check: ${quickCheckReport.assessment} (${quickCheckReport.suspects.length} suspects)`}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onShowQuickCheck(e); }}
                 >
                   {quickCheckReport.assessment === "clean"
                     ? "\u2713"
@@ -192,6 +198,9 @@ export default function ContentTab({
           <div
             onClick={() => setSummaryExpanded((v) => !v)}
             className={`ctab-summary-header ${summaryExpanded ? "ctab-summary-header-expanded" : ""}`}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           >
             <span className="ctab-summary-label">
               <span className="ctab-collapse-icon">{summaryExpanded ? "\u25BC" : "\u25B6"}</span>
@@ -216,6 +225,9 @@ export default function ContentTab({
         <div
           onClick={() => hasTertiaryCast && setTertiaryCastExpanded((v) => !v)}
           className={`ctab-tertiary-header ${hasTertiaryCast ? "ctab-tertiary-header-expandable" : "ctab-tertiary-header-default"} ${tertiaryExpanded ? "ctab-tertiary-header-expanded" : "ctab-tertiary-header-collapsed"}`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           <span className="ctab-tertiary-label">
             {hasTertiaryCast && (
@@ -271,6 +283,9 @@ export default function ContentTab({
                     <span
                       onClick={() => onToggleTertiaryCast?.(entry.entityId)}
                       className={`ctab-tertiary-chip ${entry.accepted ? "ctab-tertiary-chip-accepted" : "ctab-tertiary-chip-rejected"}`}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                     >
                       {entry.name}
                       <span className="ctab-tertiary-chip-kind">{entry.kind}</span>
@@ -281,7 +296,7 @@ export default function ContentTab({
                           <span>{entry.kind}</span>
                           <span>click to {entry.accepted ? "reject" : "accept"}</span>
                         </div>
-                        {contextSnippet ? (
+                        {contextSnippet && (
                           <div className="ctab-tooltip-context">
                             {contextSnippet.before}
                             <span className="ctab-tooltip-match-highlight">
@@ -289,13 +304,14 @@ export default function ContentTab({
                             </span>
                             {contextSnippet.after}
                           </div>
-                        ) : entry.matchedAs !== entry.name ? (
+                        )}
+                        {!contextSnippet && entry.matchedAs !== entry.name && (
                           <div className="ctab-tooltip-matched-as">
                             matched as &ldquo;
                             <span className="ctab-tooltip-matched-name">{entry.matchedAs}</span>
                             &rdquo;
                           </div>
-                        ) : null}
+                        )}
                         <div className="ctab-tooltip-arrow" />
                       </div>
                     )}

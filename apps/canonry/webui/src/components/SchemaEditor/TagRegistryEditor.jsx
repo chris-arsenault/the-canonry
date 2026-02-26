@@ -5,7 +5,8 @@
  * Tags can be referenced by templates, regions, and profiles.
  */
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import PropTypes from "prop-types";
 import {
   ExpandableCard,
   SectionHeader,
@@ -107,9 +108,9 @@ export default function TagRegistryEditor({
     });
   }, [tagRegistry, searchQuery, categoryFilter, rarityFilter]);
 
-  const toggleTag = (tagId) => {
+  const toggleTag = useCallback((tagId) => {
     setExpandedTags((prev) => ({ ...prev, [tagId]: !prev[tagId] }));
-  };
+  }, []);
 
   const addTag = () => {
     const newTag = {
@@ -192,6 +193,43 @@ export default function TagRegistryEditor({
 
   const allTagNames = useMemo(() => tagRegistry.map((t) => t.tag), [tagRegistry]);
 
+  const handleTagIdChange = (oldId, newId) => {
+    const updatedRegistry = tagRegistry.map((t) => {
+      if (t.tag === oldId) return { ...t, tag: newId };
+      const updated = { ...t };
+      if (t.relatedTags?.includes(oldId)) {
+        updated.relatedTags = t.relatedTags.map((r) =>
+          r === oldId ? newId : r
+        );
+      }
+      if (t.conflictingTags?.includes(oldId)) {
+        updated.conflictingTags = t.conflictingTags.map((c) =>
+          c === oldId ? newId : c
+        );
+      }
+      return updated;
+    });
+    setExpandedTags((prev) => {
+      const updated = { ...prev };
+      if (updated[oldId]) {
+        updated[newId] = updated[oldId];
+        delete updated[oldId];
+      }
+      return updated;
+    });
+    onChange(updatedRegistry);
+  };
+
+  const handleEntityKindToggle = (tag, ek, isFramework) => {
+    if (isFramework) return;
+    const isSelected = (tag.entityKinds || []).includes(ek.kind);
+    const current = tag.entityKinds || [];
+    const updated = isSelected
+      ? current.filter((k) => k !== ek.kind)
+      : [...current, ek.kind];
+    updateTag(tag.tag, { entityKinds: updated });
+  };
+
   return (
     <div className="editor-container" style={{ maxWidth: "1100px" }}>
       <SectionHeader
@@ -265,11 +303,13 @@ export default function TagRegistryEditor({
         </button>
       </div>
 
-      {tagRegistry.length === 0 ? (
+      {tagRegistry.length === 0 && (
         <EmptyState icon="🏷️" title="No tags defined" description="Add one to get started." />
-      ) : filteredTags.length === 0 ? (
+      )}
+      {tagRegistry.length > 0 && filteredTags.length === 0 && (
         <EmptyState icon="🔍" title="No matches" description="No tags match your filters." />
-      ) : (
+      )}
+      {filteredTags.length > 0 && (
         <div className="list-stack">
           {filteredTags.map((tag) => {
             const isExpanded = expandedTags[tag.tag];
@@ -281,7 +321,8 @@ export default function TagRegistryEditor({
               <ExpandableCard
                 key={tag.tag}
                 expanded={isExpanded}
-                onToggle={() => toggleTag(tag.tag)}
+                onToggle={toggleTag}
+                toggleId={tag.tag}
                 title={renderTagTitle(tag)}
                 actions={renderTagActions(tag, catColor, rarColor, isFramework)}
               >
@@ -303,33 +344,7 @@ export default function TagRegistryEditor({
                       value={tag.tag}
                       allTagIds={allTagNames.filter((t) => t !== tag.tag)}
                       disabled={isFramework}
-                      onChange={(newId) => {
-                        const oldId = tag.tag;
-                        const updatedRegistry = tagRegistry.map((t) => {
-                          if (t.tag === oldId) return { ...t, tag: newId };
-                          const updated = { ...t };
-                          if (t.relatedTags?.includes(oldId)) {
-                            updated.relatedTags = t.relatedTags.map((r) =>
-                              r === oldId ? newId : r
-                            );
-                          }
-                          if (t.conflictingTags?.includes(oldId)) {
-                            updated.conflictingTags = t.conflictingTags.map((c) =>
-                              c === oldId ? newId : c
-                            );
-                          }
-                          return updated;
-                        });
-                        setExpandedTags((prev) => {
-                          const updated = { ...prev };
-                          if (updated[oldId]) {
-                            updated[newId] = updated[oldId];
-                            delete updated[oldId];
-                          }
-                          return updated;
-                        });
-                        onChange(updatedRegistry);
-                      }}
+                      onChange={(newId) => handleTagIdChange(tag.tag, newId)}
                     />
                   </div>
                   <div>
@@ -477,19 +492,15 @@ export default function TagRegistryEditor({
                             <div
                               key={ek.kind}
                               className={`chip chip-clickable ${isSelected ? "chip-active" : ""}`}
-                              onClick={() => {
-                                if (isFramework) return;
-                                const current = tag.entityKinds || [];
-                                const updated = isSelected
-                                  ? current.filter((k) => k !== ek.kind)
-                                  : [...current, ek.kind];
-                                updateTag(tag.tag, { entityKinds: updated });
-                              }}
+                              onClick={() => handleEntityKindToggle(tag, ek, isFramework)}
                               style={
                                 isFramework
                                   ? { pointerEvents: "none", opacity: 0.6 }
                                   : { padding: "4px 8px", fontSize: "12px" }
                               }
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                             >
                               {ek.description || ek.kind}
                             </div>
@@ -642,3 +653,17 @@ export default function TagRegistryEditor({
     </div>
   );
 }
+
+TagIdInput.propTypes = {
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+  allTagIds: PropTypes.arrayOf(PropTypes.string).isRequired,
+  disabled: PropTypes.bool,
+};
+
+TagRegistryEditor.propTypes = {
+  tagRegistry: PropTypes.array,
+  entityKinds: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  tagUsage: PropTypes.object,
+};

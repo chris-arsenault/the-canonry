@@ -29,7 +29,7 @@ export default function IntensitySparkline({
   selectedRange,
   fillColor = "rgba(99, 102, 241, 0.2)",
   strokeColor = "rgba(99, 102, 241, 0.6)",
-}: IntensitySparklineProps) {
+}: Readonly<IntensitySparklineProps>) {
   // Match padding with NarrativeTimeline for visual alignment
   const padding = { left: 40, right: 40, top: 4, bottom: 4 };
   const innerWidth = width - padding.left - padding.right;
@@ -49,8 +49,8 @@ export default function IntensitySparkline({
     const scaleY = (intensity: number) => padding.top + (1 - intensity) * innerHeight;
 
     // Build line path
-    let lineParts: string[] = [];
-    let areaParts: string[] = [];
+    const lineParts: string[] = [];
+    const areaParts: string[] = [];
 
     points.forEach((point, i) => {
       const x = scaleX(point.tick);

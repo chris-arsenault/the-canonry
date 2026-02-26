@@ -6,7 +6,8 @@
  * - Searchable mode: Popover with search filtering for large lists
  */
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useId } from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -27,6 +28,7 @@ export function ReferenceDropdown({
   searchable = false,
   className = '',
 }) {
+  const generatedId = useId();
   // Searchable mode state
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -62,8 +64,8 @@ export function ReferenceDropdown({
   if (!searchable) {
     return (
       <div className={`form-group ${className}`.trim()}>
-        {label && <label className="label">{label}</label>}
-        <select
+        {label && <label htmlFor={generatedId} className="label">{label}</label>}
+        <select id={generatedId}
           className="select"
           value={value || ''}
           onChange={(e) => onChange(e.target.value || undefined)}
@@ -87,6 +89,9 @@ export function ReferenceDropdown({
         <div
           className="dropdown-trigger"
           onClick={() => setIsOpen(!isOpen)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           <span className={selectedOption ? '' : 'dropdown-trigger-placeholder'}>
             {selectedOption?.label ||
@@ -106,6 +111,7 @@ export function ReferenceDropdown({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
+                // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
               />
             </div>
@@ -122,6 +128,9 @@ export function ReferenceDropdown({
                       setIsOpen(false);
                       setSearch('');
                     }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                   >
                     <span>{opt.label || opt.value}</span>
                     {opt.meta && (
@@ -139,3 +148,13 @@ export function ReferenceDropdown({
 }
 
 export default ReferenceDropdown;
+
+ReferenceDropdown.propTypes = {
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  options: PropTypes.array.isRequired,
+  placeholder: PropTypes.string,
+  label: PropTypes.string,
+  searchable: PropTypes.bool,
+  className: PropTypes.string,
+};

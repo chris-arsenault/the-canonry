@@ -424,7 +424,10 @@ export function buildDescriptionPromptFromGuidance(
             if (r.targetSubtype) line += `/${r.targetSubtype}`;
             line += ")";
             const strength = r.strength ?? 0.5;
-            const label = strength >= 0.7 ? "strong" : strength >= 0.4 ? "moderate" : "weak";
+            let label: string;
+            if (strength >= 0.7) label = "strong";
+            else if (strength >= 0.4) label = "moderate";
+            else label = "weak";
             line += ` [${label}]`;
             return line;
           })
@@ -475,7 +478,7 @@ export function buildDescriptionPromptFromGuidance(
           .join("\n")}`
       : "",
     "",
-    `ERA: ${entityContext.era.name}${entityContext.era.description ? ` - ${entityContext.era.description}` : ""}`,
+    `ERA: ${entityContext.era.name}${entityContext.era.description ? " - " + entityContext.era.description : ""}`,
     "",
     "---",
     "",
@@ -524,8 +527,11 @@ export function buildImagePromptFromGuidance(
     : "";
 
   // Supporting traits
-  const supportingTraitsSection = e.visualTraits?.length
-    ? `SUPPORTING TRAITS (reinforce the thesis):\n${e.visualTraits.map((t) => `- ${t}`).join("\n")}`
+  const traitsBody = e.visualTraits?.length
+    ? e.visualTraits.map((t) => `- ${t}`).join("\n")
+    : "";
+  const supportingTraitsSection = traitsBody
+    ? `SUPPORTING TRAITS (reinforce the thesis):\n${traitsBody}`
     : "";
 
   // Cultural visual identity
@@ -542,11 +548,12 @@ export function buildImagePromptFromGuidance(
     ? `STYLE: ${styleInfo.artisticPromptFragment}`
     : "";
 
-  const colorPaletteSection = styleInfo?.colorPalettePromptFragment
-    ? styleInfo.colorPalettePromptFragment.startsWith("COLOR PALETTE")
+  let colorPaletteSection = "";
+  if (styleInfo?.colorPalettePromptFragment) {
+    colorPaletteSection = styleInfo.colorPalettePromptFragment.startsWith("COLOR PALETTE")
       ? styleInfo.colorPalettePromptFragment
-      : `COLOR PALETTE: ${styleInfo.colorPalettePromptFragment}`
-    : "";
+      : `COLOR PALETTE: ${styleInfo.colorPalettePromptFragment}`;
+  }
 
   const compositionSection = styleInfo?.compositionPromptFragment
     ? `COMPOSITION: ${styleInfo.compositionPromptFragment}`
@@ -675,11 +682,12 @@ export function buildChronicleScenePrompt(
     ? `STYLE: ${styleInfo.artisticPromptFragment}`
     : "";
 
-  const colorPaletteSection = styleInfo?.colorPalettePromptFragment
-    ? styleInfo.colorPalettePromptFragment.startsWith("COLOR PALETTE")
+  let colorPaletteSection = "";
+  if (styleInfo?.colorPalettePromptFragment) {
+    colorPaletteSection = styleInfo.colorPalettePromptFragment.startsWith("COLOR PALETTE")
       ? styleInfo.colorPalettePromptFragment
-      : `COLOR PALETTE: ${styleInfo.colorPalettePromptFragment}`
-    : "";
+      : `COLOR PALETTE: ${styleInfo.colorPalettePromptFragment}`;
+  }
 
   const compositionHint = SIZE_COMPOSITION_HINTS[size] || SIZE_COMPOSITION_HINTS.medium;
   const compositionSection = styleInfo?.compositionPromptFragment
@@ -689,8 +697,9 @@ export function buildChronicleScenePrompt(
   const sizeHint = `SIZE HINT: ${compositionHint}`;
 
   // Scene content
+  const worldDescSuffix = world?.description ? ` - ${world.description}` : "";
   const worldSection = world
-    ? `WORLD: ${world.name}${world.description ? ` - ${world.description}` : ""}`
+    ? `WORLD: ${world.name}${worldDescSuffix}`
     : "";
 
   const speciesSection = world?.speciesConstraint

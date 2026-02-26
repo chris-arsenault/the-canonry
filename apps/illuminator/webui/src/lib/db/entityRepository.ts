@@ -55,7 +55,7 @@ export async function createEntity(
     throw new Error("simulationRunId is required to create an entity");
   }
   const now = Date.now();
-  const id = `manual_${entity.kind}_${now}_${Math.random().toString(36).slice(2, 8)}`;
+  const id = `manual_${entity.kind}_${now}_${crypto.randomUUID().slice(0, 8)}`;
   const record: PersistedEntity = {
     ...entity,
     id,
@@ -180,6 +180,80 @@ export async function updateEntityFields(
  *
  * Returns IDs of all updated entities (for cache invalidation + host notification).
  */
+async function renameTargetEntity(
+  targetEntityId: string,
+  newName: string,
+  addOldNameAsAlias: boolean | undefined,
+  updatedIds: string[]
+): Promise<void> {
+  const target = await db.entities.get(targetEntityId);
+  if (!target) return;
+
+  const existingAliases = target.enrichment?.slugAliases || [];
+  const slugAliases = existingAliases.includes(targetEntityId)
+    ? existingAliases
+    : [...existingAliases, targetEntityId];
+
+  let textEnrichment = target.enrichment?.text;
+  if (addOldNameAsAlias && target.name && target.name !== newName && textEnrichment) {
+    const existingTextAliases = textEnrichment.aliases || [];
+    if (!existingTextAliases.includes(target.name)) {
+      textEnrichment = { ...textEnrichment, aliases: [...existingTextAliases, target.name] };
+    }
+  }
+
+  await db.entities.update(targetEntityId, {
+    name: newName,
+    enrichment: {
+      ...target.enrichment,
+      slugAliases,
+      ...(textEnrichment ? { text: textEnrichment } : {}),
+    },
+  });
+  updatedIds.push(targetEntityId);
+}
+
+function applyFieldReplacement(
+  field: string,
+  replacements: FieldReplacement[],
+  entity: PersistedEntity,
+  updates: Partial<PersistedEntity>
+): boolean {
+  if (field === "summary" && typeof entity.summary === "string") {
+    updates.summary = applyReplacements(entity.summary, replacements);
+    return true;
+  }
+  if (field === "description" && typeof entity.description === "string") {
+    updates.description = applyReplacements(entity.description, replacements);
+    return true;
+  }
+  if (field === "narrativeHint" && typeof entity.narrativeHint === "string") {
+    updates.narrativeHint = applyReplacements(entity.narrativeHint, replacements);
+    return true;
+  }
+  if (field.startsWith("enrichment.descriptionHistory[")) {
+    return applyDescriptionHistoryReplacement(field, replacements, entity, updates);
+  }
+  return false;
+}
+
+function applyDescriptionHistoryReplacement(
+  field: string,
+  replacements: FieldReplacement[],
+  entity: PersistedEntity,
+  updates: Partial<PersistedEntity>
+): boolean {
+  const idxMatch = field.match(/\[(\d+)\]/);
+  if (!idxMatch || !entity.enrichment?.descriptionHistory) return false;
+  const idx = parseInt(idxMatch[1], 10);
+  const history = [...entity.enrichment.descriptionHistory];
+  const entry = history[idx];
+  if (!entry) return false;
+  history[idx] = { ...entry, description: applyReplacements(entry.description, replacements) };
+  updates.enrichment = { ...entity.enrichment, descriptionHistory: history };
+  return true;
+}
+
 export async function applyRename(
   targetEntityId: string | null,
   newName: string,
@@ -190,39 +264,11 @@ export async function applyRename(
   const updatedIds: string[] = [];
 
   await db.transaction("rw", db.entities, async () => {
-    // 1. Target entity: update name + slugAlias + optional text alias
     if (targetEntityId) {
-      const target = await db.entities.get(targetEntityId);
-      if (target) {
-        const existingAliases = target.enrichment?.slugAliases || [];
-        const slugAliases = existingAliases.includes(targetEntityId)
-          ? existingAliases
-          : [...existingAliases, targetEntityId];
-
-        // Add old name to text aliases if requested (for wiki link resolution)
-        let textEnrichment = target.enrichment?.text;
-        if (addOldNameAsAlias && target.name && target.name !== newName && textEnrichment) {
-          const existingTextAliases = textEnrichment.aliases || [];
-          if (!existingTextAliases.includes(target.name)) {
-            textEnrichment = { ...textEnrichment, aliases: [...existingTextAliases, target.name] };
-          }
-        }
-
-        await db.entities.update(targetEntityId, {
-          name: newName,
-          enrichment: {
-            ...target.enrichment,
-            slugAliases,
-            ...(textEnrichment ? { text: textEnrichment } : {}),
-          },
-        });
-        updatedIds.push(targetEntityId);
-      }
+      await renameTargetEntity(targetEntityId, newName, addOldNameAsAlias, updatedIds);
     }
 
-    // 2. Apply text patches to affected entities
     for (const patch of entityPatches) {
-      // Target entity name is already handled above; skip if only __replacements_ for it
       const entity = await db.entities.get(patch.entityId);
       if (!entity) continue;
 
@@ -233,39 +279,14 @@ export async function applyRename(
         if (!key.startsWith("__replacements_")) continue;
         const field = key.replace("__replacements_", "");
         const replacements: FieldReplacement[] = JSON.parse(value);
-
-        if (field === "summary" && typeof entity.summary === "string") {
-          updates.summary = applyReplacements(entity.summary, replacements);
+        if (applyFieldReplacement(field, replacements, entity, updates)) {
           changed = true;
-        } else if (field === "description" && typeof entity.description === "string") {
-          updates.description = applyReplacements(entity.description, replacements);
-          changed = true;
-        } else if (field === "narrativeHint" && typeof entity.narrativeHint === "string") {
-          updates.narrativeHint = applyReplacements(entity.narrativeHint, replacements);
-          changed = true;
-        } else if (field.startsWith("enrichment.descriptionHistory[")) {
-          const idxMatch = field.match(/\[(\d+)\]/);
-          if (idxMatch && entity.enrichment?.descriptionHistory) {
-            const idx = parseInt(idxMatch[1], 10);
-            const history = [...entity.enrichment.descriptionHistory];
-            const entry = history[idx];
-            if (entry) {
-              history[idx] = {
-                ...entry,
-                description: applyReplacements(entry.description, replacements),
-              };
-              updates.enrichment = { ...entity.enrichment, descriptionHistory: history };
-              changed = true;
-            }
-          }
         }
       }
 
       if (changed) {
         await db.entities.update(patch.entityId, updates);
-        if (!updatedIds.includes(patch.entityId)) {
-          updatedIds.push(patch.entityId);
-        }
+        if (!updatedIds.includes(patch.entityId)) updatedIds.push(patch.entityId);
       }
     }
   });
@@ -472,7 +493,7 @@ export async function undoDescription(entityId: string): Promise<void> {
     if (!entity) return;
     const history = [...(entity.enrichment?.descriptionHistory || [])];
     if (history.length === 0) return;
-    const previous = history.pop()!;
+    const previous = history.pop();
     await db.entities.update(entityId, {
       description: previous.description,
       enrichment: { ...entity.enrichment, descriptionHistory: history },
@@ -615,6 +636,50 @@ export async function applyRevisionPatches(
  * Revalidate chronicle backrefs against updated description text.
  * Optionally upsert a new backref (backport flow) or use fuzzy fallback (copy-edit flow).
  */
+interface BackrefEntry {
+  entityId: string;
+  chronicleId: string;
+  anchorPhrase: string;
+  createdAt: number;
+}
+
+function reResolveBackref(
+  br: BackrefEntry,
+  desc: string,
+  oldDescription: string | undefined,
+  useFuzzyFallback: boolean
+): BackrefEntry {
+  const resolved = resolveAnchorPhrase(br.anchorPhrase, desc);
+  if (resolved) {
+    return resolved.phrase !== br.anchorPhrase ? { ...br, anchorPhrase: resolved.phrase } : br;
+  }
+  if (!useFuzzyFallback || !oldDescription) return br;
+
+  const oldIndex = oldDescription.indexOf(br.anchorPhrase);
+  if (oldIndex < 0) return br;
+
+  const newIndex = Math.round((oldIndex / oldDescription.length) * desc.length);
+  const fallbackPhrase = extractWordsAroundIndex(desc, newIndex, 5);
+  return fallbackPhrase ? { ...br, anchorPhrase: fallbackPhrase } : br;
+}
+
+function upsertBackref(
+  backrefs: BackrefEntry[],
+  chronicleId: string,
+  anchorPhrase: string,
+  desc: string,
+  entityId: string
+): void {
+  const resolved = resolveAnchorPhrase(anchorPhrase, desc);
+  if (!resolved) return;
+  const existingIdx = backrefs.findIndex((br) => br.chronicleId === chronicleId);
+  if (existingIdx >= 0) {
+    backrefs[existingIdx] = { ...backrefs[existingIdx], anchorPhrase: resolved.phrase };
+  } else {
+    backrefs.push({ entityId, chronicleId, anchorPhrase: resolved.phrase, createdAt: Date.now() });
+  }
+}
+
 export async function revalidateBackrefs(
   patches: RevisionPatch[],
   options?: {
@@ -633,46 +698,14 @@ export async function revalidateBackrefs(
       let backrefs = [...(entity.enrichment?.chronicleBackrefs || [])];
       if (backrefs.length === 0 && !patch.anchorPhrase) continue;
 
-      // Re-resolve existing anchor phrases against updated description
       if (patch.description && backrefs.length > 0) {
-        backrefs = backrefs.map((br) => {
-          const resolved = resolveAnchorPhrase(br.anchorPhrase, desc);
-          if (!resolved) {
-            // Fuzzy fallback for copy-edit: proportional index mapping
-            if (options?.fuzzyFallback && entity.description) {
-              const oldIndex = entity.description.indexOf(br.anchorPhrase);
-              if (oldIndex >= 0) {
-                const newIndex = Math.round((oldIndex / entity.description.length) * desc.length);
-                const fallbackPhrase = extractWordsAroundIndex(desc, newIndex, 5);
-                if (fallbackPhrase) {
-                  return { ...br, anchorPhrase: fallbackPhrase };
-                }
-              }
-            }
-            return br;
-          }
-          return resolved.phrase !== br.anchorPhrase
-            ? { ...br, anchorPhrase: resolved.phrase }
-            : br;
-        });
+        backrefs = backrefs.map((br) =>
+          reResolveBackref(br, desc, entity.description, Boolean(options?.fuzzyFallback))
+        );
       }
 
-      // Upsert backref for a specific chronicle (backport flow)
       if (options?.chronicleId && patch.anchorPhrase) {
-        const resolved = resolveAnchorPhrase(patch.anchorPhrase, desc);
-        if (resolved) {
-          const existingIdx = backrefs.findIndex((br) => br.chronicleId === options.chronicleId);
-          if (existingIdx >= 0) {
-            backrefs[existingIdx] = { ...backrefs[existingIdx], anchorPhrase: resolved.phrase };
-          } else {
-            backrefs.push({
-              entityId: entity.id,
-              chronicleId: options.chronicleId,
-              anchorPhrase: resolved.phrase,
-              createdAt: Date.now(),
-            });
-          }
-        }
+        upsertBackref(backrefs, options.chronicleId, patch.anchorPhrase, desc, entity.id);
       }
 
       await db.entities.update(patch.entityId, {
@@ -731,7 +764,7 @@ export async function resetEntitiesToPreBackportState(
 
   await db.transaction("rw", db.entities, async () => {
     const existing = await db.entities.bulkGet(entities.map((entity) => entity.id));
-    const existingIds = new Set(existing.filter(Boolean).map((entity) => entity!.id));
+    const existingIds = new Set(existing.filter(Boolean).map((entity) => entity.id));
 
     for (const entity of entities) {
       const history = entity.enrichment?.descriptionHistory || [];

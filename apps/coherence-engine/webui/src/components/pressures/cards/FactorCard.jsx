@@ -3,21 +3,25 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { FACTOR_TYPES } from "../constants";
 
-export function FactorCard({ factor, feedbackType, onEdit, onDelete, schema }) {
+export function FactorCard({ factor, feedbackType, onEdit, onDelete, schema: _schema }) {
   const typeConfig = FACTOR_TYPES[factor.type] || {};
 
   // Generate summary based on factor type
   const getSummary = () => {
     switch (factor.type) {
-      case "entity_count":
-        return `${factor.kind}${factor.subtype ? `:${factor.subtype}` : ""}${factor.status ? ` (${factor.status})` : ""}`;
+      case "entity_count": {
+        const entityKindSpec = `${factor.kind}${factor.subtype ? ":" + factor.subtype : ""}`;
+        const statusSuffix = factor.status ? ` (${factor.status})` : "";
+        return `${entityKindSpec}${statusSuffix}`;
+      }
       case "relationship_count":
         return factor.relationshipKinds?.join(", ") || "No relationships selected";
       case "tag_count":
         return factor.tags?.join(", ") || "No tags selected";
-      case "ratio":
+      case "ratio": {
         const num = factor.numerator?.kind || factor.numerator?.relationshipKinds?.join(",") || "?";
         const den =
           factor.denominator?.kind ||
@@ -25,8 +29,11 @@ export function FactorCard({ factor, feedbackType, onEdit, onDelete, schema }) {
           factor.denominator?.type ||
           "?";
         return `${num} / ${den}`;
-      case "status_ratio":
-        return `${factor.kind}${factor.subtype ? `:${factor.subtype}` : ""} (${factor.aliveStatus})`;
+      }
+      case "status_ratio": {
+        const statusKindSpec = `${factor.kind}${factor.subtype ? ":" + factor.subtype : ""}`;
+        return `${statusKindSpec} (${factor.aliveStatus})`;
+      }
       case "cross_culture_ratio":
         return factor.relationshipKinds?.join(", ") || "No relationships selected";
       default:
@@ -36,7 +43,7 @@ export function FactorCard({ factor, feedbackType, onEdit, onDelete, schema }) {
 
   return (
     <div className="nested-card">
-      <div className="nested-card-header" onClick={onEdit}>
+      <div className="nested-card-header" onClick={onEdit} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onEdit(e); }} >
         <div className="nested-card-icon" style={{ backgroundColor: `${typeConfig.color}20` }}>
           {typeConfig.icon}
         </div>
@@ -78,3 +85,11 @@ export function FactorCard({ factor, feedbackType, onEdit, onDelete, schema }) {
     </div>
   );
 }
+
+FactorCard.propTypes = {
+  factor: PropTypes.object.isRequired,
+  feedbackType: PropTypes.string.isRequired,
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+};

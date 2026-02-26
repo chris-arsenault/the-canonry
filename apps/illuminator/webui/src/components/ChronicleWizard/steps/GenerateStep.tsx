@@ -11,7 +11,7 @@ interface GenerateStepProps {
   onGenerate: () => void;
 }
 
-export default function GenerateStep({ onGenerate }: GenerateStepProps) {
+export default function GenerateStep({ onGenerate: _onGenerate }: Readonly<GenerateStepProps>) {
   const { state, setNarrativeDirection } = useWizard();
 
   // Count primary vs supporting roles
@@ -257,7 +257,7 @@ export default function GenerateStep({ onGenerate }: GenerateStepProps) {
       >
         <span style={{ fontSize: "16px" }}>💡</span>
         <span>
-          Click "Generate Chronicle" to start generation. The complete chronicle will be ready in
+          Click &quot;Generate Chronicle&quot; to start generation. The complete chronicle will be ready in
           about 30-60 seconds.
         </span>
       </div>

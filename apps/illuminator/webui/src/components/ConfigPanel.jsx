@@ -71,8 +71,8 @@ export default function ConfigPanel({ config, onConfigChange }) {
         </div>
 
         <div className="illuminator-form-group">
-          <label className="illuminator-label">Model (OpenAI)</label>
-          <select
+          <label htmlFor="model-openai" className="illuminator-label">Model (OpenAI)</label>
+          <select id="model-openai"
             value={config.imageModel}
             onChange={(e) => handleModelChange(e.target.value)}
             className="illuminator-select"
@@ -128,7 +128,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
         {config.useClaudeForImagePrompt && (
           <>
             <div className="illuminator-form-group cfgp-indented-group">
-              <label className="illuminator-label">Global Image Rules</label>
+              <label className="illuminator-label">Global Image Rules
               <LocalTextArea
                 value={config.globalImageRules || ""}
                 onChange={(value) => onConfigChange({ globalImageRules: value })}
@@ -136,19 +136,21 @@ export default function ConfigPanel({ config, onConfigChange }) {
                 placeholder="SPECIES RULE: This world contains only [species]. Any figures depicted must be explicitly described as [species], never as humans or generic figures."
                 rows={4}
               />
+              </label>
               <p className="cfgp-hint">
                 Domain-specific rules injected into all image prompts. Use this to enforce species,
                 setting constraints, or other world-specific requirements.
               </p>
             </div>
             <div className="illuminator-form-group cfgp-indented-group">
-              <label className="illuminator-label">Entity image prompt template</label>
+              <label className="illuminator-label">Entity image prompt template
               <LocalTextArea
                 value={config.claudeImagePromptTemplate || DEFAULT_IMAGE_PROMPT_TEMPLATE}
                 onChange={(value) => onConfigChange({ claudeImagePromptTemplate: value })}
                 className="illuminator-template-textarea"
                 placeholder={DEFAULT_IMAGE_PROMPT_TEMPLATE}
               />
+              </label>
               <p className="cfgp-hint">
                 Used for entity portrait images. Use {"{{modelName}}"} for the image model name,{" "}
                 {"{{prompt}}"} for the original prompt, and {"{{globalImageRules}}"} for the global
@@ -156,7 +158,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
               </p>
             </div>
             <div className="illuminator-form-group cfgp-indented-group">
-              <label className="illuminator-label">Chronicle image prompt template</label>
+              <label className="illuminator-label">Chronicle image prompt template
               <LocalTextArea
                 value={
                   config.claudeChronicleImagePromptTemplate ||
@@ -166,6 +168,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
                 className="illuminator-template-textarea"
                 placeholder={DEFAULT_CHRONICLE_IMAGE_PROMPT_TEMPLATE}
               />
+              </label>
               <p className="cfgp-hint">
                 Used for chronicle cover and scene images. Use {"{{modelName}}"} for the image model
                 name, {"{{prompt}}"} for the original prompt, and {"{{globalImageRules}}"} for the

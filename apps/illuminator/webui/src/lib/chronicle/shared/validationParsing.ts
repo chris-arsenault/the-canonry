@@ -8,6 +8,7 @@ import type {
 
 export function parseValidationResponse(response: string, plan: ChroniclePlan): CohesionReport {
   let jsonStr = response;
+  // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
   const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (jsonMatch) {
     jsonStr = jsonMatch[1];

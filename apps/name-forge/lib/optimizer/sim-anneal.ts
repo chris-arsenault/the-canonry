@@ -11,7 +11,6 @@ import {
   encodeParameters,
   decodeParameters,
   perturbParameters,
-  parameterDistance,
 } from "../parameter-encoder.js";
 import { computeFitness, computeFitnessLight } from "./fitness.js";
 import type { NamingDomain } from "../types/domain.js";
@@ -24,6 +23,57 @@ import type {
   EvaluationResult,
 } from "./optimization.js";
 import { DEFAULT_BOUNDS } from "./optimization.js";
+
+/** Determine whether to accept a proposed move (better moves always, worse by probability). */
+function shouldAcceptMove(delta: number, temperature: number, rng: () => number, verbose: boolean, iteration: number): boolean {
+  if (delta > 0) return true;
+  const acceptanceProbability = Math.exp(delta / temperature);
+  const accept = rng() < acceptanceProbability;
+  if (verbose && accept) {
+    console.log(
+      `[${iteration}] Accepting worse move: Δf = ${delta.toFixed(4)}, P = ${acceptanceProbability.toFixed(3)}, T = ${temperature.toFixed(3)}`
+    );
+  }
+  return accept;
+}
+
+function logNewBest(verbose: boolean, i: number, iterations: number, bestFitness: number, initialFitness: number): void {
+  if (!verbose) return;
+  console.log(
+    `[${i}/${iterations}] New best: ${bestFitness.toFixed(4)} (+${((bestFitness - initialFitness) * 100).toFixed(1)}%)`
+  );
+}
+
+function checkSAConvergence(
+  bestFitness: number, lastBestFitness: number, threshold: number,
+  noImprovementCount: number, window: number, verbose: boolean, iteration: number
+): { shouldBreak: boolean; noImprovementCount: number; lastBestFitness: number } {
+  const improvement = bestFitness - lastBestFitness;
+  if (improvement < threshold) {
+    const newCount = noImprovementCount + 1;
+    if (newCount >= window) {
+      if (verbose) {
+        console.log(`Converged after ${iteration} iterations (no significant improvement for ${newCount} iterations)`);
+      }
+      return { shouldBreak: true, noImprovementCount: newCount, lastBestFitness };
+    }
+    return { shouldBreak: false, noImprovementCount: newCount, lastBestFitness };
+  }
+  return { shouldBreak: false, noImprovementCount: 0, lastBestFitness: bestFitness };
+}
+
+function logSAProgress(
+  verbose: boolean, i: number, iterations: number,
+  bestEval: EvaluationResult, currentEval: EvaluationResult,
+  temperature: number, acceptedMoves: number, rejectedMoves: number
+): void {
+  if (!verbose || i % 10 !== 0) return;
+  const acceptanceRate = acceptedMoves / (acceptedMoves + rejectedMoves);
+  console.log(
+    `[${i}/${iterations}] Best: ${bestEval.fitness.toFixed(4)}, Current: ${currentEval.fitness.toFixed(4)}, ` +
+    `T: ${temperature.toFixed(3)}, Accept rate: ${(acceptanceRate * 100).toFixed(1)}%`
+  );
+}
 
 /**
  * Run simulated annealing optimization
@@ -92,93 +142,44 @@ export async function simulatedAnnealing(
 
   // Simulated annealing loop
   for (let i = 1; i <= iterations; i++) {
-    // Propose perturbation
     const proposedTheta = perturbParameters(currentTheta, stepSizes, rng);
     const proposedDomain = decodeParameters(proposedTheta, initialDomain, bounds);
 
-    // Evaluate proposed config
     const proposedEval = useSeparation
       ? await computeFitness(proposedDomain, proposedTheta, validationSettings, fitnessWeights, siblingDomains, i)
       : await computeFitnessLight(proposedDomain, proposedTheta, validationSettings, fitnessWeights, i);
 
     evaluations.push(proposedEval);
 
-    // Calculate fitness delta
     const delta = proposedEval.fitness - currentEval.fitness;
+    const accept = shouldAcceptMove(delta, temperature, rng, verbose, i);
 
-    // Acceptance criterion
-    let accept = false;
-    if (delta > 0) {
-      // Always accept improvements
-      accept = true;
-    } else {
-      // Accept worse moves with probability exp(delta / T)
-      const acceptanceProbability = Math.exp(delta / temperature);
-      accept = rng() < acceptanceProbability;
-
-      if (verbose && accept) {
-        console.log(
-          `[${i}] Accepting worse move: ` +
-            `Δf = ${delta.toFixed(4)}, P = ${acceptanceProbability.toFixed(3)}, T = ${temperature.toFixed(3)}`
-        );
-      }
-    }
-
-    // Apply move if accepted
     if (accept) {
       currentTheta = proposedTheta;
-      currentDomain = proposedDomain;
+      currentDomain = proposedDomain; // eslint-disable-line sonarjs/no-dead-store -- loop-carried variable
       currentEval = proposedEval;
       acceptedMoves++;
 
-      // Track best ever seen
       if (proposedEval.fitness > bestEval.fitness) {
         bestEval = proposedEval;
-
-        if (verbose) {
-          console.log(
-            `[${i}/${iterations}] New best: ${bestEval.fitness.toFixed(4)} ` +
-              `(+${((bestEval.fitness - initialFitness) * 100).toFixed(1)}%)`
-          );
-        }
+        logNewBest(verbose, i, iterations, bestEval.fitness, initialFitness);
       }
     } else {
       rejectedMoves++;
     }
 
     convergenceHistory.push(bestEval.fitness);
-
-    // Cool temperature
     temperature *= coolingRate;
 
-    // Check for convergence
-    const improvement = bestEval.fitness - lastBestFitness;
-    if (improvement < convergenceThreshold) {
-      noImprovementCount++;
-      if (noImprovementCount >= convergenceWindow) {
-        if (verbose) {
-          console.log(
-            `Converged after ${i} iterations (no significant improvement for ${noImprovementCount} iterations)`
-          );
-        }
-        break;
-      }
-    } else {
-      noImprovementCount = 0;
-      lastBestFitness = bestEval.fitness;
-    }
+    const converged = checkSAConvergence(
+      bestEval.fitness, lastBestFitness, convergenceThreshold,
+      noImprovementCount, convergenceWindow, verbose, i
+    );
+    if (converged.shouldBreak) break;
+    noImprovementCount = converged.noImprovementCount;
+    lastBestFitness = converged.lastBestFitness;
 
-    // Progress logging
-    if (verbose && i % 10 === 0) {
-      const acceptanceRate = acceptedMoves / (acceptedMoves + rejectedMoves);
-      console.log(
-        `[${i}/${iterations}] ` +
-          `Best: ${bestEval.fitness.toFixed(4)}, ` +
-          `Current: ${currentEval.fitness.toFixed(4)}, ` +
-          `T: ${temperature.toFixed(3)}, ` +
-          `Accept rate: ${(acceptanceRate * 100).toFixed(1)}%`
-      );
-    }
+    logSAProgress(verbose, i, iterations, bestEval, currentEval, temperature, acceptedMoves, rejectedMoves);
   }
 
   const finalFitness = bestEval.fitness;

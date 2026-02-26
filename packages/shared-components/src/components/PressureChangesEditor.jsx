@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -14,6 +15,11 @@ import React from 'react';
  * @param {string} [props.label] - Optional custom label (default: "Pressure Changes")
  * @param {string} [props.className] - Additional class names
  */
+const styles = {
+  deltaInput: { width: '80px' },
+  addSelect: { maxWidth: '200px' },
+};
+
 export function PressureChangesEditor({
   value = {},
   onChange,
@@ -53,7 +59,7 @@ export function PressureChangesEditor({
               className="input"
               value={delta}
               onChange={(e) => updateDelta(pressureId, e.target.value)}
-              style={{ width: '80px' }}
+              style={styles.deltaInput}
             />
             <button
               className="btn-icon btn-icon-danger"
@@ -69,7 +75,7 @@ export function PressureChangesEditor({
           className="select mt-md"
           value=""
           onChange={(e) => addPressure(e.target.value)}
-          style={{ maxWidth: '200px' }}
+          style={styles.addSelect}
         >
           <option value="">+ Add pressure change...</option>
           {availablePressures.map((p) => (
@@ -82,3 +88,11 @@ export function PressureChangesEditor({
     </div>
   );
 }
+
+PressureChangesEditor.propTypes = {
+  value: PropTypes.object,
+  onChange: PropTypes.func.isRequired,
+  pressures: PropTypes.array,
+  label: PropTypes.string,
+  className: PropTypes.string,
+};

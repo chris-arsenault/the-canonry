@@ -9,6 +9,7 @@
  */
 
 import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import PropTypes from "prop-types";
 import { Group } from "@visx/group";
 import { ParentSize } from "@visx/responsive";
 import * as d3Force from "d3-force";
@@ -142,7 +143,7 @@ function StateLegend() {
 /**
  * Main graph visualization component
  */
-function ContagionGraph({ width, height, network, config, selectedTick, isPlaying }) {
+function ContagionGraph({ width, height, network, config: _config, selectedTick: _selectedTick, isPlaying }) {
   const [tooltip, setTooltip] = useState(null);
   const [hoveredNode, setHoveredNode] = useState(null);
   const svgRef = useRef(null);
@@ -433,5 +434,20 @@ export function GraphContagionVis({ config, systemActions, selectedTick }) {
     </div>
   );
 }
+
+ContagionGraph.propTypes = {
+  width: PropTypes.number,
+  height: PropTypes.number,
+  network: PropTypes.object,
+  config: PropTypes.object,
+  selectedTick: PropTypes.number,
+  isPlaying: PropTypes.bool,
+};
+
+GraphContagionVis.propTypes = {
+  config: PropTypes.object,
+  systemActions: PropTypes.array,
+  selectedTick: PropTypes.number,
+};
 
 export default GraphContagionVis;

@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 
 /**
  * Tags input with auto-split on space/comma
@@ -43,3 +44,9 @@ export default function TagsInput({ value, onChange, placeholder }) {
     </div>
   );
 }
+
+TagsInput.propTypes = {
+  value: PropTypes.array,
+  onChange: PropTypes.func,
+  placeholder: PropTypes.string,
+};

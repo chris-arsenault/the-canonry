@@ -1,5 +1,5 @@
-import { useState, useRef, lazy, Suspense, useMemo, useEffect, useCallback } from "react";
-import type { WorldState, Filters, EntityKind, LoreData } from "../types/world.ts";
+import React, { useState, useRef, lazy, Suspense, useMemo, useEffect, useCallback } from "react";
+import type { WorldState, Filters, LoreData } from "../types/world.ts";
 import { applyFilters, applyTemporalFilter, getProminenceLevels } from "../utils/dataTransform.ts";
 import CoordinateMapView from "./CoordinateMapView.tsx";
 import FilterPanel from "./FilterPanel.tsx";
@@ -60,7 +60,7 @@ function detectWebGL(): boolean {
 
 const webglAvailable = detectWebGL();
 
-export default function WorldExplorer({ worldData, loreData }: WorldExplorerProps) {
+export default function WorldExplorer({ worldData, loreData }: Readonly<WorldExplorerProps>) {
   // Initialize from hash on mount
   const [selectedEntityId, setSelectedEntityId] = useState<string | undefined>(() =>
     parseHashEntityId()
@@ -70,6 +70,12 @@ export default function WorldExplorer({ worldData, loreData }: WorldExplorerProp
   const [viewMode, setViewMode] = useState<ViewMode>(webglAvailable ? "graph3d" : "graph2d");
   const [edgeMetric, setEdgeMetric] = useState<EdgeMetric>("strength");
   const recalculateLayoutRef = useRef<(() => void) | null>(null);
+  const handleRecalculateLayout = useCallback(() => recalculateLayoutRef.current?.(), []);
+  const handleToggleStats = useCallback(() => setIsStatsPanelOpen(prev => !prev), []);
+  const handleRecalculateLayoutRef = useCallback(
+    (handler: (() => void) | null) => { recalculateLayoutRef.current = handler; },
+    []
+  );
 
   // Sync hash changes to state (for back/forward buttons)
   useEffect(() => {
@@ -101,7 +107,7 @@ export default function WorldExplorer({ worldData, loreData }: WorldExplorerProp
   }, [worldData]);
 
   const [filters, setFilters] = useState<Filters>({
-    kinds: entityKinds as EntityKind[],
+    kinds: entityKinds,
     minProminence: defaultMinProminence,
     timeRange: [0, worldData.metadata.tick],
     tags: [],
@@ -130,8 +136,8 @@ export default function WorldExplorer({ worldData, loreData }: WorldExplorerProp
           edgeMetric={edgeMetric}
           onViewModeChange={setViewMode}
           onEdgeMetricChange={setEdgeMetric}
-          onRecalculateLayout={() => recalculateLayoutRef.current?.()}
-          onToggleStats={() => setIsStatsPanelOpen(!isStatsPanelOpen)}
+          onRecalculateLayout={handleRecalculateLayout}
+          onToggleStats={handleToggleStats}
         />
 
         {/* Graph View */}
@@ -155,9 +161,7 @@ export default function WorldExplorer({ worldData, loreData }: WorldExplorerProp
                 selectedNodeId={selectedEntityId}
                 onNodeSelect={handleEntitySelect}
                 showCatalyzedBy={filters.showCatalyzedBy}
-                onRecalculateLayoutRef={(handler) => {
-                  recalculateLayoutRef.current = handler;
-                }}
+                onRecalculateLayoutRef={handleRecalculateLayoutRef}
                 prominenceScale={prominenceScale}
               />
             )}
@@ -205,7 +209,7 @@ export default function WorldExplorer({ worldData, loreData }: WorldExplorerProp
       <StatsPanel
         worldData={worldData}
         isOpen={isStatsPanelOpen}
-        onToggle={() => setIsStatsPanelOpen(!isStatsPanelOpen)}
+        onToggle={handleToggleStats}
       />
     </div>
   );

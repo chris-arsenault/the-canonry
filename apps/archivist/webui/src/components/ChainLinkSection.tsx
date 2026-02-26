@@ -1,11 +1,12 @@
 import type { ChainLinkLore } from "../types/world.ts";
 import "./ChainLinkSection.css";
+import React from "react";
 
 interface ChainLinkSectionProps {
   lore: ChainLinkLore;
 }
 
-export default function ChainLinkSection({ lore }: ChainLinkSectionProps) {
+export default function ChainLinkSection({ lore }: Readonly<ChainLinkSectionProps>) {
   // Parse the text which is formatted as "observation | clue"
   const parts = lore.text.split("|").map((p) => p.trim());
   const observation = parts[0] || "";

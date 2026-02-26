@@ -97,7 +97,7 @@ ctx.onmessage = async (event: MessageEvent<WorkerInboundMessage>) => {
       break;
 
     case "startStepping":
-      await initializeForStepping(message.config as EngineConfig, message.initialState);
+      initializeForStepping(message.config as EngineConfig, message.initialState);
       break;
 
     case "step":
@@ -165,7 +165,7 @@ async function runSimulation(config: EngineConfig, state: HardState[]): Promise<
  * Initialize for step mode without running
  * Creates engine and emits initial paused state
  */
-async function initializeForStepping(config: EngineConfig, state: HardState[]): Promise<void> {
+function initializeForStepping(config: EngineConfig, state: HardState[]): void {
   emitter = createWorkerEmitter();
   initialState = state;
   engineMaxTicks = config.maxTicks;

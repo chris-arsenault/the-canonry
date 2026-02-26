@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useRef, useLayoutEffect, useEffect } from "react";
+import PropTypes from "prop-types";
 import { FILTER_TYPES } from "../constants";
 import { SelectionFilterCard } from "./SelectionFilterCard";
 
@@ -124,7 +125,7 @@ export function SelectionFiltersEditor({ filters, onChange, schema, availableRef
             }}
           >
             {Object.entries(FILTER_TYPES).map(([type, config]) => (
-              <div key={type} onClick={() => handleAddFilter(type)} className="dropdown-menu-item">
+              <div key={type} onClick={() => handleAddFilter(type)} className="dropdown-menu-item" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
                 <span
                   className="dropdown-menu-icon"
                   style={{ backgroundColor: `${config.color}20` }}
@@ -140,5 +141,12 @@ export function SelectionFiltersEditor({ filters, onChange, schema, availableRef
     </div>
   );
 }
+
+SelectionFiltersEditor.propTypes = {
+  filters: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  availableRefs: PropTypes.array,
+};
 
 export default SelectionFiltersEditor;

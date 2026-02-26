@@ -95,8 +95,9 @@ export async function pullImagesFromS3({ s3, config, projectId, onProgress }) {
   // Filter to requested project if provided
   const entries = projectId ? allEntries.filter((e) => e.projectId === projectId) : allEntries;
 
+  const projectScope = projectId ? ` for project ${projectId}` : " (all projects)";
   report(
-    `Manifest has ${entries.length} images${projectId ? ` for project ${projectId}` : " (all projects)"}. Checking local state...`
+    `Manifest has ${entries.length} images${projectScope}. Checking local state...`
   );
 
   // 2. Check what exists locally

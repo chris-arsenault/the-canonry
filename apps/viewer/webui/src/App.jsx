@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import ChroniclerRemote from "@chronicler/ChroniclerRemote.tsx";
 import parchmentTileUrl from "@chronicler/assets/textures/parchment-tile.jpg";
 import HeaderSearch from "./HeaderSearch";
@@ -18,6 +18,7 @@ export default function App() {
     preloadedEraNarratives,
   } = useBundleLoader();
   const [chroniclerRequestedPage, setChroniclerRequestedPage] = useState(null);
+  const clearChroniclerRequestedPage = useCallback(() => setChroniclerRequestedPage(null), []);
 
   if (status !== "ready" || !bundle?.worldData) {
     return (
@@ -61,7 +62,7 @@ export default function App() {
             projectId={bundle.projectId}
             activeSlotIndex={bundle.slot?.index ?? 0}
             requestedPageId={chroniclerRequestedPage}
-            onRequestedPageConsumed={() => setChroniclerRequestedPage(null)}
+            onRequestedPageConsumed={clearChroniclerRequestedPage}
             dexieSeededAt={dexieSeededAt}
             preloadedWorldData={bundle.worldData}
             preloadedChronicles={preloadedChronicles}

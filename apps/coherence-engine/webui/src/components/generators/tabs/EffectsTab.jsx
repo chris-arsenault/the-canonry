@@ -11,6 +11,7 @@
  */
 
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import MutationCard, { DEFAULT_MUTATION_TYPES } from "../../shared/MutationCard";
 import { MUTATION_TYPE_OPTIONS } from "../../actions/constants";
 
@@ -153,7 +154,7 @@ export function EffectsTab({ generator, onChange, pressures, schema }) {
                   >
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, marginBottom: "8px", color: "#f87171" }}>
-                        Unknown type: "{update.type || "(no type)"}"
+                        Unknown type: &quot;{update.type || "(no type)"}&quot;
                       </div>
                       <pre
                         style={{
@@ -232,6 +233,9 @@ export function EffectsTab({ generator, onChange, pressures, schema }) {
                     setShowTypeMenu(false);
                   }}
                   className="dropdown-menu-item"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
                   <span
                     className="dropdown-menu-icon"
@@ -249,5 +253,12 @@ export function EffectsTab({ generator, onChange, pressures, schema }) {
     </div>
   );
 }
+
+EffectsTab.propTypes = {
+  generator: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  pressures: PropTypes.array,
+  schema: PropTypes.object,
+};
 
 export default EffectsTab;

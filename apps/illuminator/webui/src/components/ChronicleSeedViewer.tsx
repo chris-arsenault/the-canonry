@@ -106,15 +106,126 @@ const styles = {
   },
   emptyState: {
     color: "var(--text-muted)",
-    fontStyle: "italic",
+    fontStyle: "italic" as const,
   },
-};
+  narrativeDirectionWrapper: {
+    marginTop: "8px",
+  },
+  narrativeDirectionLabel: {
+    fontSize: "11px",
+    color: "var(--text-muted)",
+    marginBottom: "4px",
+  },
+  narrativeDirectionBody: {
+    fontSize: "12px",
+    lineHeight: 1.5,
+    color: "var(--text-primary)",
+    padding: "8px 10px",
+    background: "var(--bg-tertiary)",
+    borderRadius: "4px",
+    borderLeft: "3px solid var(--accent-color)",
+    whiteSpace: "pre-wrap" as const,
+    cursor: "pointer",
+  },
+  primaryRoleBadge: {
+    padding: "2px 6px",
+    borderRadius: "3px",
+    fontSize: "10px",
+    fontWeight: 600,
+    textTransform: "uppercase" as const,
+    background: "var(--accent-color)",
+    color: "white",
+  },
+  supportingRoleBadge: {
+    padding: "2px 6px",
+    borderRadius: "3px",
+    fontSize: "10px",
+    fontWeight: 600,
+    textTransform: "uppercase" as const,
+    background: "var(--bg-secondary)",
+    color: "var(--text-muted)",
+    border: "1px solid var(--border-color)",
+  },
+  expandableContainer: {
+    marginBottom: "16px",
+    background: "var(--bg-secondary)",
+    borderRadius: "8px",
+    border: "1px solid var(--border-color)",
+    overflow: "hidden" as const,
+  },
+  expandableButton: {
+    width: "100%",
+    padding: "12px 16px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    background: "var(--bg-tertiary)",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "13px",
+    fontWeight: 500,
+    color: "var(--text-primary)",
+  },
+  expandableMeta: { fontSize: "11px", color: "var(--text-muted)" },
+  expandableContent: { padding: "16px" },
+  modalOverlay: {
+    position: "fixed" as const,
+    inset: 0,
+    background: "rgba(0, 0, 0, 0.6)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+  },
+  modalDialog: {
+    background: "var(--bg-primary)",
+    borderRadius: "12px",
+    maxWidth: "600px",
+    width: "90%",
+    maxHeight: "80vh",
+    overflow: "hidden" as const,
+    display: "flex",
+    flexDirection: "column" as const,
+    boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
+  },
+  modalHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px 20px",
+    borderBottom: "1px solid var(--border-color)",
+  },
+  modalTitle: { margin: 0, fontSize: "16px" },
+  modalCloseButton: {
+    background: "none",
+    border: "none",
+    fontSize: "20px",
+    cursor: "pointer",
+    color: "var(--text-muted)",
+    padding: "4px 8px",
+  },
+  modalBody: { padding: "20px", overflowY: "auto" as const },
+  modalFooter: {
+    padding: "12px 20px",
+    borderTop: "1px solid var(--border-color)",
+    display: "flex",
+    justifyContent: "flex-end",
+  },
+  modalFooterButton: {
+    padding: "8px 16px",
+    background: "var(--bg-tertiary)",
+    border: "1px solid var(--border-color)",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "13px",
+  },
+} as const;
 
 export default function ChronicleSeedViewer({
   seed,
   eventNames,
   relationshipLabels,
-}: ChronicleSeedViewerProps) {
+}: Readonly<ChronicleSeedViewerProps>) {
   const primaryRoles = seed.roleAssignments.filter((r) => r.isPrimary);
   const supportingRoles = seed.roleAssignments.filter((r) => !r.isPrimary);
 
@@ -134,24 +245,17 @@ export default function ChronicleSeedViewer({
           </div>
         )}
         {seed.narrativeDirection && (
-          <div style={{ marginTop: "8px" }}>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>
+          <div style={styles.narrativeDirectionWrapper}>
+            <div style={styles.narrativeDirectionLabel}>
               Narrative Direction:
             </div>
             <div
-              style={{
-                fontSize: "12px",
-                lineHeight: 1.5,
-                color: "var(--text-primary)",
-                padding: "8px 10px",
-                background: "var(--bg-tertiary)",
-                borderRadius: "4px",
-                borderLeft: "3px solid var(--accent-color)",
-                whiteSpace: "pre-wrap",
-                cursor: "pointer",
-              }}
+              style={styles.narrativeDirectionBody}
               title="Click to copy"
-              onClick={() => navigator.clipboard.writeText(seed.narrativeDirection!)}
+              onClick={() => void navigator.clipboard.writeText(seed.narrativeDirection)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
             >
               {seed.narrativeDirection}
             </div>
@@ -169,7 +273,7 @@ export default function ChronicleSeedViewer({
             {/* Primary roles first */}
             {primaryRoles.map((role, i) => (
               <div key={`primary-${i}`} style={styles.roleItem}>
-                <span style={{ ...styles.roleBadge, ...styles.primaryBadge }}>{role.role}</span>
+                <span style={styles.primaryRoleBadge}>{role.role}</span>
                 <span style={styles.entityName}>{role.entityName}</span>
                 <span style={styles.entityKind}>({role.entityKind})</span>
               </div>
@@ -177,7 +281,7 @@ export default function ChronicleSeedViewer({
             {/* Supporting roles */}
             {supportingRoles.map((role, i) => (
               <div key={`supporting-${i}`} style={styles.roleItem}>
-                <span style={{ ...styles.roleBadge, ...styles.supportingBadge }}>{role.role}</span>
+                <span style={styles.supportingRoleBadge}>{role.role}</span>
                 <span style={styles.entityName}>{role.entityName}</span>
                 <span style={styles.entityKind}>({role.entityKind})</span>
               </div>
@@ -236,43 +340,25 @@ export function ExpandableSeedSection({
   eventNames,
   relationshipLabels,
   defaultExpanded = false,
-}: ExpandableSeedSectionProps) {
+}: Readonly<ExpandableSeedSectionProps>) {
   const [expanded, setExpanded] = React.useState(defaultExpanded);
 
   return (
     <div
-      style={{
-        marginBottom: "16px",
-        background: "var(--bg-secondary)",
-        borderRadius: "8px",
-        border: "1px solid var(--border-color)",
-        overflow: "hidden",
-      }}
+      style={styles.expandableContainer}
     >
       <button
         onClick={() => setExpanded(!expanded)}
-        style={{
-          width: "100%",
-          padding: "12px 16px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          background: "var(--bg-tertiary)",
-          border: "none",
-          cursor: "pointer",
-          fontSize: "13px",
-          fontWeight: 500,
-          color: "var(--text-primary)",
-        }}
+        style={styles.expandableButton}
       >
         <span>Generation Context</span>
-        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+        <span style={styles.expandableMeta}>
           {expanded ? "▼" : "▶"} {seed.roleAssignments.length} roles, {seed.selectedEventIds.length}{" "}
           events
         </span>
       </button>
       {expanded && (
-        <div style={{ padding: "16px" }}>
+        <div style={styles.expandableContent}>
           <ChronicleSeedViewer
             seed={seed}
             eventNames={eventNames}
@@ -303,64 +389,39 @@ export function SeedModal({
   eventNames,
   relationshipLabels,
   title = "Generation Context",
-}: SeedModalProps) {
+}: Readonly<SeedModalProps>) {
   if (!isOpen) return null;
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0, 0, 0, 0.6)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1000,
-      }}
+      style={styles.modalOverlay}
       onClick={onClose}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(e); }}
     >
       <div
-        style={{
-          background: "var(--bg-primary)",
-          borderRadius: "12px",
-          maxWidth: "600px",
-          width: "90%",
-          maxHeight: "80vh",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
-        }}
+        style={styles.modalDialog}
         onClick={(e) => e.stopPropagation()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         {/* Header */}
         <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-color)",
-          }}
+          style={styles.modalHeader}
         >
-          <h3 style={{ margin: 0, fontSize: "16px" }}>{title}</h3>
+          <h3 style={styles.modalTitle}>{title}</h3>
           <button
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: "20px",
-              cursor: "pointer",
-              color: "var(--text-muted)",
-              padding: "4px 8px",
-            }}
+            style={styles.modalCloseButton}
           >
             ×
           </button>
         </div>
 
         {/* Content */}
-        <div style={{ padding: "20px", overflowY: "auto" }}>
+        <div style={styles.modalBody}>
           <ChronicleSeedViewer
             seed={seed}
             eventNames={eventNames}
@@ -370,23 +431,11 @@ export function SeedModal({
 
         {/* Footer */}
         <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
+          style={styles.modalFooter}
         >
           <button
             onClick={onClose}
-            style={{
-              padding: "8px 16px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontSize: "13px",
-            }}
+            style={styles.modalFooterButton}
           >
             Close
           </button>

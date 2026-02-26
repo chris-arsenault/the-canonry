@@ -16,8 +16,10 @@ const normalizeFact = (fact, index) => {
   const id = String(fact.id || `fact_${index}`).trim();
   if (!id) return null;
   const type = fact.type || "world_truth";
-  const text =
-    typeof fact.text === "string" ? fact.text : fact.text != null ? String(fact.text) : "";
+  let text;
+  if (typeof fact.text === "string") text = fact.text;
+  else if (fact.text != null) text = String(fact.text);
+  else text = "";
   return {
     id,
     text,
@@ -178,7 +180,6 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
     const chronicleList = [...(chronicles || [])].sort(sortChronicles);
     const facts = normalizedWorldFacts.filter((fact) => fact.type !== "generation_constraint");
     const enabledFacts = facts.filter((fact) => !fact.disabled);
-    const factIdSet = new Set(enabledFacts.map((fact) => fact.id));
     const allFactIdSet = new Set(facts.map((fact) => fact.id));
 
     const rows = chronicleList.map((chronicle) => {
@@ -363,6 +364,9 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
       <div
         className="illuminator-card-header cvp-header-clickable"
         onClick={() => setExpanded((prev) => !prev)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         <span className="cvp-expand-icon">{expanded ? "\u25BC" : "\u25B6"}</span>
         <h2 className="illuminator-card-title">Lore Coverage</h2>
@@ -418,10 +422,14 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
                 <tr>
                   <th className="illuminator-coverage-sticky">Chronicle</th>
                   <th className="illuminator-coverage-toggle-col">Counted</th>
-                  {facts.map((fact) => (
-                    <th
+                  {facts.map((fact) => {
+                    const factText = fact.text ? `: ${fact.text}` : "";
+                    const requiredLabel = fact.required ? " (required)" : "";
+                    const disabledLabel = fact.disabled ? " (disabled \u2014 click to enable)" : " (click to disable)";
+                    const factTitle = `${fact.id}${factText}${requiredLabel}${disabledLabel}`;
+                    return (<th
                       key={fact.id}
-                      title={`${fact.id}${fact.text ? `: ${fact.text}` : ""}${fact.required ? " (required)" : ""}${fact.disabled ? " (disabled \u2014 click to enable)" : " (click to disable)"}`}
+                      title={factTitle}
                       onClick={onWorldContextChange ? () => toggleFact(fact.id) : undefined}
                       className={onWorldContextChange ? "cvp-fact-header-clickable" : undefined}
                     >
@@ -432,8 +440,8 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
                         {fact.required && <span className="illuminator-coverage-required">R</span>}
                         {fact.disabled && <span className="cvp-fact-disabled-label">off</span>}
                       </div>
-                    </th>
-                  ))}
+                    </th>);
+                  })}
                   <th className="illuminator-coverage-unparsed-col">Unparsed</th>
                   <th className="illuminator-coverage-total-col">Total</th>
                 </tr>
@@ -564,8 +572,10 @@ export default function CoveragePanel({ worldContext, simulationRunId, onWorldCo
                         (agg.total * 3)) *
                         100
                     );
-                    const strengthColor =
-                      strength >= 60 ? "#10b981" : strength >= 30 ? "#f59e0b" : "#ef4444";
+                    let strengthColor;
+                    if (strength >= 60) strengthColor = "#10b981";
+                    else if (strength >= 30) strengthColor = "#f59e0b";
+                    else strengthColor = "#ef4444";
                     return (
                       <tr key={fact.id}>
                         <td className="cvp-analysis-td-fact" title={fact.text}>

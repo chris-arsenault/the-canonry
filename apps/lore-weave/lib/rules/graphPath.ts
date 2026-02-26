@@ -84,22 +84,14 @@ export function evaluateGraphPath(
 /**
  * Traverse one step in a graph path.
  */
-function traverseStep(
+function collectRelatedEntities(
   entity: HardState,
-  step: PathStep,
+  viaKinds: string[],
+  direction: string,
   graphView: WorldRuntime
 ): HardState[] {
-  // Convert direction format from JSON ('out'/'in'/'any') to internal ('src'/'dst'/'both')
-  const direction = step.direction === 'out' ? 'src' :
-                   step.direction === 'in' ? 'dst' : 'both';
-
-  // Support both single relationship kind and array of kinds
-  const viaKinds = Array.isArray(step.via) ? step.via : [step.via];
-
-  // Collect entities connected via any of the specified relationship kinds
   const relatedSet = new Set<string>();
   const related: HardState[] = [];
-
   for (const viaKind of viaKinds) {
     const entities = graphView.getConnectedEntities(entity.id, viaKind, direction);
     for (const e of entities) {
@@ -109,9 +101,11 @@ function traverseStep(
       }
     }
   }
+  return related;
+}
 
-  // Filter by target kind/subtype/status ("any" means no filtering)
-  let filtered = related;
+function filterByStepCriteria(entities: HardState[], step: PathStep): HardState[] {
+  let filtered = entities;
   if (step.targetKind && step.targetKind !== 'any') {
     filtered = filtered.filter(e => e.kind === step.targetKind);
   }
@@ -121,8 +115,81 @@ function traverseStep(
   if (step.targetStatus && step.targetStatus !== 'any') {
     filtered = filtered.filter(e => e.status === step.targetStatus);
   }
-
   return filtered;
+}
+
+function traverseStep(
+  entity: HardState,
+  step: PathStep,
+  graphView: WorldRuntime
+): HardState[] {
+  let direction: 'src' | 'dst' | 'both';
+  if (step.direction === 'out') direction = 'src';
+  else if (step.direction === 'in') direction = 'dst';
+  else direction = 'both';
+  const viaKinds = Array.isArray(step.via) ? step.via : [step.via];
+  const related = collectRelatedEntities(entity, viaKinds, direction, graphView);
+  return filterByStepCriteria(related, step);
+}
+
+function evaluateSingleConstraint(
+  entity: HardState,
+  startEntity: HardState,
+  constraint: PathConstraint,
+  resolver: EntityResolver
+): boolean {
+  const graphView = resolver.getGraphView();
+
+  switch (constraint.type) {
+    case 'not_in': {
+      const set = resolver.getPathSet(constraint.set);
+      return !(set && set.has(entity.id));
+    }
+    case 'in': {
+      const set = resolver.getPathSet(constraint.set);
+      return !!(set && set.has(entity.id));
+    }
+    case 'not_self':
+      return entity.id !== startEntity.id;
+    case 'kind_equals':
+      return entity.kind === constraint.kind;
+    case 'subtype_equals':
+      return entity.subtype === constraint.subtype;
+    case 'lacks_relationship':
+      return evaluateRelConstraint(entity, startEntity, constraint, graphView, resolver, false);
+    case 'has_relationship':
+      return evaluateRelConstraint(entity, startEntity, constraint, graphView, resolver, true);
+    default:
+      return true;
+  }
+}
+
+function evaluateRelConstraint(
+  entity: HardState,
+  startEntity: HardState,
+  constraint: PathConstraint & { kind: string; with: string; direction?: string },
+  graphView: WorldRuntime,
+  resolver: EntityResolver,
+  requireExists: boolean
+): boolean {
+  let direction: 'src' | 'dst' | 'both';
+  if (constraint.direction === 'out') direction = 'src';
+  else if (constraint.direction === 'in') direction = 'dst';
+  else direction = 'both';
+  const withEntity = constraint.with === '$self' ? startEntity :
+                    resolver.resolveEntity(constraint.with);
+
+  if (withEntity) {
+    const hasRel = graphView.hasRelationship(entity.id, withEntity.id, constraint.kind) ||
+                  (direction === 'both' && graphView.hasRelationship(withEntity.id, entity.id, constraint.kind));
+    return requireExists ? hasRel : !hasRel;
+  }
+
+  if (requireExists) {
+    const related = graphView.getConnectedEntities(entity.id, constraint.kind, 'both');
+    return related.length > 0;
+  }
+  return true;
 }
 
 /**
@@ -134,86 +201,5 @@ function evaluatePathConstraints(
   constraints: PathConstraint[],
   resolver: EntityResolver
 ): boolean {
-  const graphView = resolver.getGraphView();
-
-  for (const constraint of constraints) {
-    switch (constraint.type) {
-      case 'not_in': {
-        const set = resolver.getPathSet(constraint.set);
-        if (set && set.has(entity.id)) {
-          return false;
-        }
-        break;
-      }
-
-      case 'in': {
-        const set = resolver.getPathSet(constraint.set);
-        if (!set || !set.has(entity.id)) {
-          return false;
-        }
-        break;
-      }
-
-      case 'not_self': {
-        if (entity.id === startEntity.id) {
-          return false;
-        }
-        break;
-      }
-
-      case 'lacks_relationship': {
-        const direction = constraint.direction === 'out' ? 'src' :
-                         constraint.direction === 'in' ? 'dst' : 'both';
-        const withEntity = constraint.with === '$self' ? startEntity :
-                          resolver.resolveEntity(constraint.with);
-
-        if (withEntity) {
-          const hasRel = graphView.hasRelationship(entity.id, withEntity.id, constraint.kind) ||
-                        (direction === 'both' && graphView.hasRelationship(withEntity.id, entity.id, constraint.kind));
-          if (hasRel) {
-            return false;
-          }
-        }
-        break;
-      }
-
-      case 'has_relationship': {
-        const direction = constraint.direction === 'out' ? 'src' :
-                         constraint.direction === 'in' ? 'dst' : 'both';
-        const withEntity = constraint.with === '$self' ? startEntity :
-                          resolver.resolveEntity(constraint.with);
-
-        if (withEntity) {
-          const hasRel = graphView.hasRelationship(entity.id, withEntity.id, constraint.kind) ||
-                        (direction === 'both' && graphView.hasRelationship(withEntity.id, entity.id, constraint.kind));
-          if (!hasRel) {
-            return false;
-          }
-        } else {
-          // No withEntity specified - just check if any such relationship exists
-          const related = graphView.getConnectedEntities(entity.id, constraint.kind, 'both');
-          if (related.length === 0) {
-            return false;
-          }
-        }
-        break;
-      }
-
-      case 'kind_equals': {
-        if (entity.kind !== constraint.kind) {
-          return false;
-        }
-        break;
-      }
-
-      case 'subtype_equals': {
-        if (entity.subtype !== constraint.subtype) {
-          return false;
-        }
-        break;
-      }
-    }
-  }
-
-  return true;
+  return constraints.every(c => evaluateSingleConstraint(entity, startEntity, c, resolver));
 }

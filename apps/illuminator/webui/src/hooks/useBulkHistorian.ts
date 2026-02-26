@@ -276,7 +276,7 @@ export function useBulkHistorian(deps: {
 
     setProgress((p) => ({ ...p, status: "running" }));
 
-    (async () => {
+    void (async () => {
       try {
         const { operation, tone, entities, reEdition } = scan;
 
@@ -314,6 +314,7 @@ export function useBulkHistorian(deps: {
           // Review or edition — shuffle then process sequentially
           const shuffled = [...entities];
           for (let s = shuffled.length - 1; s > 0; s--) {
+            // eslint-disable-next-line sonarjs/pseudo-random -- non-security shuffle for processing order
             const j = Math.floor(Math.random() * (s + 1));
             [shuffled[s], shuffled[j]] = [shuffled[j], shuffled[s]];
           }
@@ -350,7 +351,7 @@ export function useBulkHistorian(deps: {
                   projectId: config.projectId,
                   simulationRunId: config.simulationRunId,
                   status: "pending",
-                  tone: config.tone as HistorianTone,
+                  tone: config.tone,
                   targetType: config.targetType,
                   targetId: config.targetId,
                   targetName: config.targetName,

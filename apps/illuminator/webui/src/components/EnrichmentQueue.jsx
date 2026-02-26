@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import {
   buildProminenceScale,
   DEFAULT_PROMINENCE_DISTRIBUTION,
@@ -36,7 +37,7 @@ function TaskStatusBadge({ status }) {
 }
 
 function EntityTaskGroup({
-  entityId,
+  entityId: _entityId,
   entityName,
   entityKind,
   entitySubtype,
@@ -102,7 +103,7 @@ export default function EnrichmentQueue({
   tasks,
   onRunTasks,
   onRunAll,
-  worldSchema,
+  worldSchema: _worldSchema,
   hasRequiredKeys,
   prominenceScale,
 }) {
@@ -196,8 +197,6 @@ export default function EnrichmentQueue({
   };
 
   const totalPending = tasks.filter((t) => t.status === "pending").length;
-  const totalError = tasks.filter((t) => t.status === "error").length;
-
   return (
     <div>
       <div className="illuminator-card">
@@ -221,8 +220,8 @@ export default function EnrichmentQueue({
         {/* Filters */}
         <div className="eq-filters">
           <div>
-            <label className="eq-filter-label">Entity Kind</label>
-            <select
+            <label htmlFor="entity-kind" className="eq-filter-label">Entity Kind</label>
+            <select id="entity-kind"
               value={filterKind}
               onChange={(e) => setFilterKind(e.target.value)}
               className="illuminator-select eq-filter-select"
@@ -237,8 +236,8 @@ export default function EnrichmentQueue({
           </div>
 
           <div>
-            <label className="eq-filter-label">Prominence</label>
-            <select
+            <label htmlFor="prominence" className="eq-filter-label">Prominence</label>
+            <select id="prominence"
               value={filterProminence}
               onChange={(e) => setFilterProminence(e.target.value)}
               className="illuminator-select eq-filter-select"
@@ -253,8 +252,8 @@ export default function EnrichmentQueue({
           </div>
 
           <div>
-            <label className="eq-filter-label">Status</label>
-            <select
+            <label htmlFor="status" className="eq-filter-label">Status</label>
+            <select id="status"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               className="illuminator-select eq-filter-select"
@@ -320,3 +319,31 @@ export default function EnrichmentQueue({
     </div>
   );
 }
+
+TaskStatusBadge.propTypes = {
+  status: PropTypes.string.isRequired,
+};
+
+EntityTaskGroup.propTypes = {
+  entityId: PropTypes.string.isRequired,
+  entityName: PropTypes.string.isRequired,
+  entityKind: PropTypes.string,
+  entitySubtype: PropTypes.string,
+  prominence: PropTypes.number,
+  tasks: PropTypes.array.isRequired,
+  selectedTasks: PropTypes.object.isRequired,
+  onToggleTask: PropTypes.func.isRequired,
+  onRunTask: PropTypes.func.isRequired,
+  expanded: PropTypes.bool,
+  onToggleExpand: PropTypes.func.isRequired,
+  prominenceScale: PropTypes.object,
+};
+
+EnrichmentQueue.propTypes = {
+  tasks: PropTypes.array.isRequired,
+  onRunTasks: PropTypes.func.isRequired,
+  onRunAll: PropTypes.func.isRequired,
+  worldSchema: PropTypes.object,
+  hasRequiredKeys: PropTypes.bool,
+  prominenceScale: PropTypes.object,
+};

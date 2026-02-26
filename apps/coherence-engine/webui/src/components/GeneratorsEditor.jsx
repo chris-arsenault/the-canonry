@@ -15,4 +15,3 @@
  */
 
 export { default } from "./generators";
-export * from "./generators";

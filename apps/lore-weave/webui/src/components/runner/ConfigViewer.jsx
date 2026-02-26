@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useCallback } from "react";
+import PropTypes from "prop-types";
 
 export default function ConfigViewer({ engineConfig, debugConfig, onShowDebugModal }) {
   const [showConfig, setShowConfig] = useState(false);
@@ -18,6 +19,9 @@ export default function ConfigViewer({ engineConfig, debugConfig, onShowDebugMod
           className="lw-config-toggle"
           style={{ flex: 1, marginTop: 0 }}
           onClick={() => setShowConfig(!showConfig)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           <span>{showConfig ? "▼" : "▶"}</span>
           <span>View Engine Configuration</span>
@@ -44,3 +48,9 @@ export default function ConfigViewer({ engineConfig, debugConfig, onShowDebugMod
     </>
   );
 }
+
+ConfigViewer.propTypes = {
+  engineConfig: PropTypes.object,
+  debugConfig: PropTypes.object,
+  onShowDebugModal: PropTypes.func,
+};

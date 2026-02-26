@@ -6,6 +6,10 @@ import "@penguin-tales/shared-components/styles";
 // Standalone entry point for development
 // In production, this is loaded via Module Federation from The Canonry
 
+const styles = {
+  root: { height: "100vh", backgroundColor: "#1e1e2e" },
+};
+
 const mockSchema = Object.freeze({
   entityKinds: [],
   relationshipKinds: [],
@@ -14,7 +18,7 @@ const mockSchema = Object.freeze({
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <div style={{ height: "100vh", backgroundColor: "#1e1e2e" }}>
+    <div style={styles.root}>
       <CoherenceEngineRemote
         schema={mockSchema}
         activeSection="pressures"

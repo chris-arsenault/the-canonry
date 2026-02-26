@@ -56,7 +56,22 @@ export function generateEntityIdFromName(
 /**
  * Initial state normalization
  */
-export function normalizeInitialState(entities: any[]): HardState[] {
+export interface RawEntityInput {
+  id?: string;
+  name?: string;
+  kind?: string;
+  subtype?: string;
+  status?: string;
+  prominence?: number;
+  culture?: string;
+  coordinates?: import('../coordinates/types').Point;
+  tags?: string[] | EntityTags;
+  description?: string;
+  summary?: string;
+  narrativeHint?: string;
+}
+
+export function normalizeInitialState(entities: RawEntityInput[]): HardState[] {
   return entities.map((entity, index) => {
     if (!entity.id) {
       throw new Error(
@@ -114,14 +129,14 @@ export function normalizeInitialState(entities: any[]): HardState[] {
 
     return {
       id: entity.id,
-      kind: entity.kind as HardState['kind'],
+      kind: entity.kind,
       subtype: entity.subtype,
       name: entity.name,
       summary: entity.summary,
       narrativeHint,
       description: entity.description || '',
       status: entity.status,
-      prominence: entity.prominence as HardState['prominence'],
+      prominence: entity.prominence,
       culture: entity.culture,
       tags,
       createdAt: 0,
@@ -137,49 +152,30 @@ export function normalizeInitialState(entities: any[]): HardState[] {
  * @param source - Optional source identifier for debugging (e.g., template ID)
  * @param placementStrategy - Optional placement strategy for debugging
  */
-export async function addEntity(graph: Graph, entity: Partial<HardState>, source?: string, placementStrategy?: string): Promise<string> {
-  // Coordinates are required - fail loudly
-  // Check for valid numeric values, not just object existence
+function validateEntityForAdd(entity: Partial<HardState>): void {
   const coords = entity.coordinates;
   if (!coords || typeof coords.x !== 'number' || typeof coords.y !== 'number') {
     throw new Error(
       `addEntity: valid coordinates {x: number, y: number, z: number} are required. ` +
       `Entity kind: ${entity.kind || 'unknown'}, name: ${entity.name || 'unnamed'}. ` +
-      `Received: ${JSON.stringify(coords)}. ` +
-      `Provide valid coordinates explicitly.`
+      `Received: ${JSON.stringify(coords)}.`
     );
   }
-  if (!entity.kind) {
-    throw new Error('addEntity: kind is required.');
-  }
-  if (!entity.subtype) {
-    throw new Error(`addEntity: subtype is required for kind "${entity.kind}".`);
-  }
-  if (!entity.status) {
-    throw new Error(`addEntity: status is required for kind "${entity.kind}".`);
-  }
-  if (!entity.prominence) {
-    throw new Error(`addEntity: prominence is required for kind "${entity.kind}".`);
-  }
-  if (!entity.culture) {
-    throw new Error(`addEntity: culture is required for kind "${entity.kind}".`);
-  }
-
-  // Normalize tags: handle both old array format and new KVP format
-  // Clone to avoid mutating source object
-  let tags: EntityTags;
-  if (Array.isArray(entity.tags)) {
-    tags = arrayToTags(entity.tags);
-  } else {
-    tags = { ...(entity.tags || {}) };
-  }
-
+  if (!entity.kind) throw new Error('addEntity: kind is required.');
+  if (!entity.subtype) throw new Error(`addEntity: subtype is required for kind "${entity.kind}".`);
+  if (!entity.status) throw new Error(`addEntity: status is required for kind "${entity.kind}".`);
+  if (!entity.prominence) throw new Error(`addEntity: prominence is required for kind "${entity.kind}".`);
+  if (!entity.culture) throw new Error(`addEntity: culture is required for kind "${entity.kind}".`);
   if (!entity.name) {
-    throw new Error(
-      `addEntity: name is required for GraphStore. ` +
-      `Use WorldRuntime.createEntity() to generate names.`
-    );
+    throw new Error(`addEntity: name is required for GraphStore. Use WorldRuntime.createEntity() to generate names.`);
   }
+}
+
+export async function addEntity(graph: Graph, entity: Partial<HardState>, source?: string, placementStrategy?: string): Promise<string> {
+  validateEntityForAdd(entity);
+
+  const coords = entity.coordinates!;
+  const tags: EntityTags = Array.isArray(entity.tags) ? arrayToTags(entity.tags) : { ...(entity.tags || {}) };
 
   const entityId = generateEntityIdFromName(entity.name, id => graph.hasEntity(id));
 
@@ -201,9 +197,14 @@ export async function addEntity(graph: Graph, entity: Partial<HardState>, source
       })[0]
     : undefined;
   const explicitEraId = entity.eraId;
-  const resolvedEraId = typeof explicitEraId === 'string' && explicitEraId
-    ? explicitEraId
-    : (entity.kind === FRAMEWORK_ENTITY_KINDS.ERA ? entity.subtype : currentEraEntity?.id);
+  let resolvedEraId: string | undefined;
+  if (typeof explicitEraId === 'string' && explicitEraId) {
+    resolvedEraId = explicitEraId;
+  } else if (entity.kind === FRAMEWORK_ENTITY_KINDS.ERA) {
+    resolvedEraId = entity.subtype;
+  } else {
+    resolvedEraId = currentEraEntity?.id;
+  }
 
   const narrativeHint = entity.narrativeHint ?? entity.summary ?? (entity.description ? entity.description : undefined);
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { WorldState, LoreData, EraNarrativeLore, DiscoveryEventLore } from "../types/world.ts";
 import EraNarrative from "./EraNarrative.tsx";
 import DiscoveryStory from "./DiscoveryStory.tsx";
@@ -37,7 +37,7 @@ export default function TimelineControl({
   loreData,
   currentTick,
   onTickChange,
-}: TimelineControlProps) {
+}: Readonly<TimelineControlProps>) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playSpeed, setPlaySpeed] = useState(1);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -47,6 +47,9 @@ export default function TimelineControl({
   );
   const [selectedDiscovery, setSelectedDiscovery] = useState<DiscoveryEventLore | null>(null);
   const previousTickRef = useRef(currentTick);
+  const clearEraNarrative = useCallback(() => setSelectedEraNarrative(null), []);
+  const clearDiscovery = useCallback(() => setSelectedDiscovery(null), []);
+  const noopExplorerClick = useCallback(() => {}, []);
 
   const maxTick = worldData.metadata.tick;
   const minTick = 0;
@@ -71,7 +74,7 @@ export default function TimelineControl({
 
   // Get era transitions from narrativeHistory (fallback when no loreData)
   const eraTransitions = useMemo(() => {
-    const history = (worldData as any).narrativeHistory as NarrativeEvent[] | undefined;
+    const history = worldData.narrativeHistory as NarrativeEvent[] | undefined;
     if (!history) return [];
     return history
       .filter((e) => e.eventKind === "era_transition")
@@ -88,7 +91,7 @@ export default function TimelineControl({
 
   // Get events at the current tick from narrativeHistory (significance > 0.75 only)
   const currentEvents = useMemo(() => {
-    const history = (worldData as any).narrativeHistory as NarrativeEvent[] | undefined;
+    const history = worldData.narrativeHistory as NarrativeEvent[] | undefined;
     if (!history) return [];
 
     // Get high-significance events at exact tick, sorted by significance
@@ -319,8 +322,8 @@ export default function TimelineControl({
             </button>
 
             <div className="timeline-speed">
-              <label>Speed:</label>
-              <select
+              <label htmlFor="speed">Speed:</label>
+              <select id="speed"
                 value={playSpeed}
                 onChange={(e) => setPlaySpeed(Number(e.target.value))}
                 className="timeline-speed-select"
@@ -359,13 +362,13 @@ export default function TimelineControl({
 
       {/* Era Narrative Modal (from loreData) */}
       {selectedEraNarrative && (
-        <EraNarrative lore={selectedEraNarrative} onClose={() => setSelectedEraNarrative(null)} />
+        <EraNarrative lore={selectedEraNarrative} onClose={clearEraNarrative} />
       )}
 
       {/* Era Transition Modal (from narrativeHistory) */}
       {selectedEraTransition && (
-        <div className="era-transition-modal" onClick={() => setSelectedEraTransition(null)}>
-          <div className="era-transition-content" onClick={(e) => e.stopPropagation()}>
+        <div className="era-transition-modal" onClick={() => setSelectedEraTransition(null)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+          <div className="era-transition-content" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
             <div className="era-transition-header">
               <span className="era-transition-icon">🏛️</span>
               <h2>Era Transition</h2>
@@ -389,8 +392,8 @@ export default function TimelineControl({
       {selectedDiscovery && (
         <DiscoveryStory
           lore={selectedDiscovery}
-          onExplorerClick={() => {}}
-          onClose={() => setSelectedDiscovery(null)}
+          onExplorerClick={noopExplorerClick}
+          onClose={clearDiscovery}
           isModal={true}
         />
       )}

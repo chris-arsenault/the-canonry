@@ -24,7 +24,8 @@
  * />
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
+import PropTypes from 'prop-types';
 
 export function LocalTextArea({
   value,
@@ -40,11 +41,13 @@ export function LocalTextArea({
   const isFocusedRef = useRef(false);
 
   // Sync local value when external value changes, but NOT while user is editing
-  useEffect(() => {
+  const prevValueRef = useRef(value);
+  if (prevValueRef.current !== value) {
+    prevValueRef.current = value;
     if (!isFocusedRef.current) {
       setLocalValue(value || '');
     }
-  }, [value]);
+  }
 
   const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
@@ -72,3 +75,12 @@ export function LocalTextArea({
     />
   );
 }
+
+LocalTextArea.propTypes = {
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  className: PropTypes.string,
+  placeholder: PropTypes.string,
+  rows: PropTypes.number,
+  style: PropTypes.object,
+};

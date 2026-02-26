@@ -1,5 +1,6 @@
 import { ImageSettingsTrigger } from "./ImageSettingsDrawer";
 import { useIlluminatorModals } from "../lib/db/modalStore";
+import PropTypes from "prop-types";
 import "./IlluminatorSidebar.css";
 import React from "react";
 
@@ -156,3 +157,39 @@ export default function IlluminatorSidebar({
     </div>
   );
 }
+
+NavButton.propTypes = {
+  tab: PropTypes.object.isRequired,
+  activeTab: PropTypes.string.isRequired,
+  setActiveTab: PropTypes.func.isRequired,
+  stats: PropTypes.object.isRequired,
+};
+
+ApiKeySection.propTypes = {
+  showApiKeyInput: PropTypes.bool,
+  setShowApiKeyInput: PropTypes.func.isRequired,
+  hasRequiredKeys: PropTypes.bool,
+  anthropicApiKey: PropTypes.string,
+  setAnthropicApiKey: PropTypes.func.isRequired,
+  openaiApiKey: PropTypes.string,
+  setOpenaiApiKey: PropTypes.func.isRequired,
+  persistApiKeys: PropTypes.bool,
+  setPersistApiKeys: PropTypes.func.isRequired,
+};
+
+IlluminatorSidebar.propTypes = {
+  activeTab: PropTypes.string.isRequired,
+  setActiveTab: PropTypes.func.isRequired,
+  stats: PropTypes.object,
+  imageGenSettings: PropTypes.object,
+  styleLibrary: PropTypes.object,
+  showApiKeyInput: PropTypes.bool,
+  setShowApiKeyInput: PropTypes.func.isRequired,
+  hasRequiredKeys: PropTypes.bool,
+  anthropicApiKey: PropTypes.string,
+  setAnthropicApiKey: PropTypes.func.isRequired,
+  openaiApiKey: PropTypes.string,
+  setOpenaiApiKey: PropTypes.func.isRequired,
+  persistApiKeys: PropTypes.bool,
+  setPersistApiKeys: PropTypes.func.isRequired,
+};

@@ -9,6 +9,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { NumberInput } from "../../shared";
 import TagSelector from "@penguin-tales/shared-components/TagSelector";
 
@@ -92,7 +93,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
         </div>
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">Tag Filter</label>
+            <label className="label">Tag Filter
             <TagSelector
               value={config.sources?.tagFilter ? [config.sources.tagFilter] : []}
               onChange={(tags) => updateSources("tagFilter", tags[0] || "")}
@@ -100,15 +101,17 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               placeholder="Select tag..."
               singleSelect
             />
+            </label>
             <div style={styles.hint}>Tag that marks an entity as a source</div>
           </div>
           <div className="form-group">
-            <label className="label">Default Strength</label>
+            <label className="label">Default Strength
             <NumberInput
               value={config.sources?.defaultStrength}
               onChange={(v) => updateSources("defaultStrength", v)}
               allowEmpty
             />
+            </label>
             <div style={styles.hint}>
               Any number. Simulation is uncapped. Output tags clamp to -100/100.
             </div>
@@ -123,7 +126,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
         </div>
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">Tag Filter</label>
+            <label className="label">Tag Filter
             <TagSelector
               value={config.sinks?.tagFilter ? [config.sinks.tagFilter] : []}
               onChange={(tags) => updateSinks("tagFilter", tags[0] || "")}
@@ -131,15 +134,17 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               placeholder="Select tag..."
               singleSelect
             />
+            </label>
             <div style={styles.hint}>Tag that marks an entity as a sink</div>
           </div>
           <div className="form-group">
-            <label className="label">Default Strength</label>
+            <label className="label">Default Strength
             <NumberInput
               value={config.sinks?.defaultStrength}
               onChange={(v) => updateSinks("defaultStrength", v)}
               allowEmpty
             />
+            </label>
             <div style={styles.hint}>Will be negated. Any number - simulation is uncapped.</div>
           </div>
         </div>
@@ -153,7 +158,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
         </div>
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">Rate</label>
+            <label className="label">Rate
             <NumberInput
               value={config.diffusion?.rate}
               onChange={(v) => updateDiffusion("rate", v)}
@@ -161,12 +166,13 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               max={1}
               allowEmpty
             />
+            </label>
             <div style={styles.hint}>
               0-1. Recommended 0.1-0.25. Above 0.25 may cause oscillations.
             </div>
           </div>
           <div className="form-group">
-            <label className="label">Source Radius</label>
+            <label className="label">Source Radius
             <NumberInput
               value={config.diffusion?.sourceRadius}
               onChange={(v) => updateDiffusion("sourceRadius", v)}
@@ -175,11 +181,12 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               integer
               allowEmpty
             />
+            </label>
             <div style={styles.hint}>Grid cells where source/sink SET values. Default: 1.</div>
           </div>
           <div className="form-group">
-            <label className="label">Falloff Type</label>
-            <select
+            <label htmlFor="falloff-type" className="label">Falloff Type</label>
+            <select id="falloff-type"
               className="input"
               value={config.diffusion?.falloffType || "absolute"}
               onChange={(e) => updateDiffusion("falloffType", e.target.value)}
@@ -193,7 +200,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
             <div style={styles.hint}>How strength decreases within source radius.</div>
           </div>
           <div className="form-group">
-            <label className="label">Decay Rate</label>
+            <label className="label">Decay Rate
             <NumberInput
               value={config.diffusion?.decayRate}
               onChange={(v) => updateDiffusion("decayRate", v)}
@@ -201,12 +208,13 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               max={1}
               allowEmpty
             />
+            </label>
             <div style={styles.hint}>
               0-1. Default: 0 (no decay). Decay fights diffusion spreading.
             </div>
           </div>
           <div className="form-group">
-            <label className="label">Iterations Per Tick</label>
+            <label className="label">Iterations Per Tick
             <NumberInput
               value={config.diffusion?.iterationsPerTick}
               onChange={(v) => updateDiffusion("iterationsPerTick", v)}
@@ -215,6 +223,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               integer
               allowEmpty
             />
+            </label>
             <div style={styles.hint}>
               Default: 20. Higher = faster spreading. 20 achieves ~50 cells in 15 ticks.
             </div>
@@ -234,7 +243,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               <div className="form-row-with-delete">
                 <div className="form-row-fields">
                   <div className="form-group">
-                    <label className="label">Tag</label>
+                    <label className="label">Tag
                     <TagSelector
                       value={tag.tag ? [tag.tag] : []}
                       onChange={(tags) => updateOutputTag(index, { ...tag, tag: tags[0] || "" })}
@@ -242,9 +251,10 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
                       placeholder="Select tag..."
                       singleSelect
                     />
+                    </label>
                   </div>
                   <div className="form-group">
-                    <label className="label">Min Value</label>
+                    <label className="label">Min Value
                     <NumberInput
                       value={tag.minValue}
                       onChange={(v) => updateOutputTag(index, { ...tag, minValue: v })}
@@ -252,10 +262,11 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
                       max={100}
                       allowEmpty
                     />
+                    </label>
                     <div style={styles.hint}>-100 to 100</div>
                   </div>
                   <div className="form-group">
-                    <label className="label">Max Value</label>
+                    <label className="label">Max Value
                     <NumberInput
                       value={tag.maxValue}
                       onChange={(v) => updateOutputTag(index, { ...tag, maxValue: v })}
@@ -263,6 +274,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
                       max={100}
                       allowEmpty
                     />
+                    </label>
                     <div style={styles.hint}>-100 to 100</div>
                   </div>
                 </div>
@@ -280,7 +292,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
 
         <div style={{ marginTop: "16px" }}>
           <div className="form-group">
-            <label className="label">Value Tag</label>
+            <label className="label">Value Tag
             <TagSelector
               value={config.valueTag ? [config.valueTag] : []}
               onChange={(tags) => updateConfig("valueTag", tags[0] || "")}
@@ -288,8 +300,9 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               placeholder="Select tag..."
               singleSelect
             />
+            </label>
             <div style={styles.hint}>
-              Optional: Store clamped field value as tag (e.g., "field_value:25.5")
+              Optional: Store clamped field value as tag (e.g., &quot;field_value:25.5&quot;)
             </div>
           </div>
         </div>
@@ -297,3 +310,9 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
     </div>
   );
 }
+
+PlaneDiffusionTab.propTypes = {
+  system: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+};

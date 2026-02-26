@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { NumberInput } from "@penguin-tales/shared-components";
 import { LEXEME_CATEGORIES, WORD_STYLE_PRESETS } from "../../constants";
 import { generateLexemesWithAnthropic } from "../../../lib/anthropicClient";
@@ -7,8 +8,8 @@ import { CopyLexemeModal } from "./CopyLexemeModal";
 function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCultures }) {
   const [mode, setMode] = useState("view"); // 'view', 'create-spec', 'edit-spec', 'create-manual', 'edit-list'
   const [selectedList, setSelectedList] = useState(null);
-  const [editingListId, setEditingListId] = useState(null);
-  const [editingSpecId, setEditingSpecId] = useState(null);
+  const [, setEditingListId] = useState(null);
+  const [, setEditingSpecId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showCopyModal, setShowCopyModal] = useState(false);
@@ -278,7 +279,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
                         onClick={() => handleGenerate(spec)}
                         disabled={loading}
                       >
-                        {loading ? "..." : hasGenerated ? "Regenerate" : "Generate"}
+                        {(() => { if (loading) return "..."; if (hasGenerated) return "Regenerate"; return "Generate"; })()}
                       </button>
                       <button className="danger sm" onClick={() => handleDeleteSpec(spec.id)}>
                         Delete
@@ -313,6 +314,9 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
                       key={listId}
                       className={`list-item ${isSelected ? "selected" : ""}`}
                       onClick={() => setSelectedList(listId)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                     >
                       <div className="list-item-header">
                         <div>
@@ -424,8 +428,8 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
         {error && <div className="error mb-md">{error}</div>}
 
         <div className="form-group">
-          <label>Spec ID</label>
-          <input
+          <label htmlFor="spec-id">Spec ID</label>
+          <input id="spec-id"
             value={specForm.id}
             onChange={(e) => setSpecForm({ ...specForm, id: e.target.value })}
             placeholder={`${cultureId}_nouns`}
@@ -439,8 +443,8 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
 
         <div className="form-grid-2">
           <div className="form-group">
-            <label>Category</label>
-            <select
+            <label htmlFor="category">Category</label>
+            <select id="category"
               value={specForm.pos}
               onChange={(e) => setSpecForm({ ...specForm, pos: e.target.value })}
             >
@@ -489,8 +493,8 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
           </div>
 
           <div className="form-group">
-            <label>Word Style Preset</label>
-            <select
+            <label htmlFor="word-style-preset">Word Style Preset</label>
+            <select id="word-style-preset"
               value={specForm.wordStylePreset}
               onChange={(e) => {
                 const presetKey = e.target.value;
@@ -518,31 +522,33 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
           </div>
 
           <div className="form-group">
-            <label>Target Count</label>
+            <label>Target Count
             <NumberInput
               value={specForm.targetCount}
               onChange={(v) => setSpecForm({ ...specForm, targetCount: v ?? 30 })}
               integer
             />
+            </label>
           </div>
 
           <div className="form-group">
-            <label>Max Words per Entry</label>
+            <label>Max Words per Entry
             <NumberInput
               value={specForm.maxWords}
               onChange={(v) => setSpecForm({ ...specForm, maxWords: v ?? 1 })}
               integer
               min={1}
             />
+            </label>
             <small className="text-muted">
-              Allow short phrases (e.g., "hunting grounds"). Entries stay capped at this word count.
+              Allow short phrases (e.g., &quot;hunting grounds&quot;). Entries stay capped at this word count.
             </small>
           </div>
         </div>
 
         <div className="form-group">
-          <label>Style Description</label>
-          <textarea
+          <label htmlFor="style-description">Style Description</label>
+          <textarea id="style-description"
             value={specForm.style}
             onChange={(e) => setSpecForm({ ...specForm, style: e.target.value })}
             placeholder="e.g., Norse-inspired, dark and brooding, elegant elvish, gritty medieval"
@@ -555,7 +561,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
 
         <div className="form-grid-2">
           <div className="form-group">
-            <label>Min Length</label>
+            <label>Min Length
             <NumberInput
               value={specForm.qualityFilter.minLength}
               onChange={(v) =>
@@ -566,9 +572,10 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
               }
               integer
             />
+            </label>
           </div>
           <div className="form-group">
-            <label>Max Length</label>
+            <label>Max Length
             <NumberInput
               value={specForm.qualityFilter.maxLength}
               onChange={(v) =>
@@ -579,6 +586,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
               }
               integer
             />
+            </label>
           </div>
         </div>
       </div>
@@ -617,8 +625,8 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
         {error && <div className="error mb-md">{error}</div>}
 
         <div className="form-group">
-          <label>List ID</label>
-          <input
+          <label htmlFor="list-id">List ID</label>
+          <input id="list-id"
             value={listForm.id}
             onChange={(e) => setListForm({ ...listForm, id: e.target.value })}
             placeholder={`${cultureId}_titles`}
@@ -630,8 +638,8 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
         </div>
 
         <div className="form-group">
-          <label>Description (optional)</label>
-          <input
+          <label htmlFor="description-optional">Description (optional)</label>
+          <input id="description-optional"
             value={listForm.description}
             onChange={(e) => setListForm({ ...listForm, description: e.target.value })}
             placeholder="e.g., Noble titles and honorifics"
@@ -639,10 +647,10 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
         </div>
 
         <div className="form-group">
-          <label>
+          <label htmlFor="e-trim-length-items">
             Entries ({listForm.entries.split(/[\n,]/).filter((e) => e.trim()).length} items)
           </label>
-          <textarea
+          <textarea id="e-trim-length-items"
             value={listForm.entries}
             onChange={(e) => setListForm({ ...listForm, entries: e.target.value })}
             placeholder={`Enter one per line:\nLord\nLady\nSir\nMaster\nElder`}
@@ -659,5 +667,13 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
 
   return null;
 }
+
+LexemesTab.propTypes = {
+  cultureId: PropTypes.string,
+  cultureConfig: PropTypes.object,
+  onLexemesChange: PropTypes.func,
+  apiKey: PropTypes.string,
+  allCultures: PropTypes.object,
+};
 
 export default LexemesTab;

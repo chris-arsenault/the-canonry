@@ -188,7 +188,7 @@ export default function HistorianTab({
         <div className="htab-section">
           <div className="htab-section-title htab-section-title-mb8">Historian Prep</div>
           <div className="htab-prep-description">
-            Private reading notes in the historian's voice — observations and thematic threads for
+            Private reading notes in the historian&apos;s voice — observations and thematic threads for
             era narrative input.
           </div>
           <div className="htab-prep-actions">
@@ -232,7 +232,7 @@ export default function HistorianTab({
       {!onHistorianReview &&
         !onBackportLore &&
         !onGeneratePrep &&
-        !(item.historianNotes?.length > 0) && (
+        (item.historianNotes?.length ?? 0) <= 0 && (
           <div className="htab-empty">No historian tools available for this chronicle.</div>
         )}
     </div>

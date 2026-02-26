@@ -3,6 +3,7 @@
  */
 
 import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import { getElementValidation } from "@penguin-tales/shared-components";
 import { ErrorBadge, OrphanBadge, EraBadges, EnableToggle } from "../../shared";
 
@@ -46,6 +47,9 @@ export function GeneratorListCard({ generator, onClick, onToggle, usageMap }) {
     <div
       className={`card card-clickable ${!isEnabled ? "card-disabled" : ""} ${hasErrors ? "card-error" : ""} ${isOrphan && !hasErrors ? "card-warning" : ""}`}
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(e); }}
     >
       <div className="card-header">
         <div>
@@ -93,5 +97,12 @@ export function GeneratorListCard({ generator, onClick, onToggle, usageMap }) {
     </div>
   );
 }
+
+GeneratorListCard.propTypes = {
+  generator: PropTypes.object.isRequired,
+  onClick: PropTypes.func.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  usageMap: PropTypes.object,
+};
 
 export default GeneratorListCard;

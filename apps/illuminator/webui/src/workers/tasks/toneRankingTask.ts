@@ -111,6 +111,7 @@ export const toneRankingTask = {
 
     // Parse the JSON response
     const responseText = result.text.trim();
+    // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text, stripping code fences
     const jsonText = responseText.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
 
     let parsed: { ranking: string[]; rationales?: Record<string, string>; rationale?: string };

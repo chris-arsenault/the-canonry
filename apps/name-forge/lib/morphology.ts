@@ -1,6 +1,64 @@
 import type { MorphologyProfile } from "./types/domain.js";
 import { pickWeighted, pickRandom } from "./utils/rng.js";
 
+interface MorphState {
+  result: string;
+  parts: string[];
+  syllables: string[];
+}
+
+function applyRootToken(state: MorphState, root: string, rootSyllables?: string[]): void {
+  state.result += root;
+  state.parts.push(`root:${root}`);
+  if (rootSyllables && rootSyllables.length > 0) {
+    state.syllables.push(...rootSyllables);
+  } else {
+    state.syllables.push(root);
+  }
+}
+
+function applyPrefixToken(state: MorphState, rng: () => number, profile: MorphologyProfile): void {
+  if (!profile.prefixes || profile.prefixes.length === 0) return;
+  const prefix = pickWeighted(rng, profile.prefixes, profile.prefixWeights);
+  state.result += prefix;
+  state.parts.push(`prefix:${prefix}`);
+  state.syllables.push(prefix);
+}
+
+function applySuffixToken(state: MorphState, rng: () => number, profile: MorphologyProfile): void {
+  if (!profile.suffixes || profile.suffixes.length === 0) return;
+  const suffix = pickWeighted(rng, profile.suffixes, profile.suffixWeights);
+  state.result += suffix;
+  state.parts.push(`suffix:${suffix}`);
+  state.syllables.push(suffix);
+}
+
+function applyInfixToken(state: MorphState, rng: () => number, profile: MorphologyProfile, root: string): void {
+  if (!profile.infixes || profile.infixes.length === 0 || root.length <= 2) return;
+  const infix = pickRandom(rng, profile.infixes);
+  const mid = Math.floor(root.length / 2);
+  state.result = state.result.slice(0, -root.length) + root.slice(0, mid) + infix + root.slice(mid);
+  state.parts.push(`infix:${infix}`);
+}
+
+function applyWordrootToken(state: MorphState, rng: () => number, profile: MorphologyProfile, root: string, rootSyllables?: string[]): void {
+  if (profile.wordRoots && profile.wordRoots.length > 0) {
+    const wordRoot = pickRandom(rng, profile.wordRoots);
+    state.result += wordRoot;
+    state.parts.push(`wordroot:${wordRoot}`);
+    state.syllables.push(wordRoot);
+  } else {
+    applyRootToken(state, root, rootSyllables);
+  }
+}
+
+function applyHonorificToken(state: MorphState, rng: () => number, profile: MorphologyProfile): void {
+  if (!profile.honorifics || profile.honorifics.length === 0) return;
+  const honorific = pickRandom(rng, profile.honorifics);
+  state.result = honorific + " " + state.result;
+  state.parts.push(`honorific:${honorific}`);
+}
+
 /**
  * Apply morphological structure to a base word (root)
  * @param rootSyllables - Original syllables from phonology (used to track syllable boundaries)
@@ -11,107 +69,23 @@ export function applyMorphology(
   profile: MorphologyProfile,
   rootSyllables?: string[]
 ): { result: string; structure: string; parts: string[]; syllables: string[] } {
-  // Pick a structure pattern
-  const structure = pickWeighted(
-    rng,
-    profile.structure,
-    profile.structureWeights
-  );
-
-  const parts: string[] = [];
-  const syllables: string[] = [];
-  let result = "";
-
-  // Parse and apply structure
-  // Supported patterns: "root", "root-suffix", "prefix-root", "prefix-root-suffix", "root-root"
+  const structure = pickWeighted(rng, profile.structure, profile.structureWeights);
+  const state: MorphState = { result: "", parts: [], syllables: [] };
   const tokens = structure.split("-");
 
   for (const token of tokens) {
     switch (token) {
-      case "root":
-        result += root;
-        parts.push(`root:${root}`);
-        // Add root syllables
-        if (rootSyllables && rootSyllables.length > 0) {
-          syllables.push(...rootSyllables);
-        } else {
-          syllables.push(root); // Treat whole root as one syllable
-        }
-        break;
-
-      case "prefix":
-        if (profile.prefixes && profile.prefixes.length > 0) {
-          const prefix = pickWeighted(
-            rng,
-            profile.prefixes,
-            profile.prefixWeights
-          );
-          result += prefix;
-          parts.push(`prefix:${prefix}`);
-          syllables.push(prefix); // Prefix becomes a syllable
-        }
-        break;
-
-      case "suffix":
-        if (profile.suffixes && profile.suffixes.length > 0) {
-          const suffix = pickWeighted(
-            rng,
-            profile.suffixes,
-            profile.suffixWeights
-          );
-          result += suffix;
-          parts.push(`suffix:${suffix}`);
-          syllables.push(suffix); // Suffix becomes a syllable
-        }
-        break;
-
-      case "infix":
-        // Infixes are inserted in the middle of the root
-        if (profile.infixes && profile.infixes.length > 0 && root.length > 2) {
-          const infix = pickRandom(rng, profile.infixes);
-          const mid = Math.floor(root.length / 2);
-          result = result.slice(0, -root.length) + root.slice(0, mid) + infix + root.slice(mid);
-          parts.push(`infix:${infix}`);
-          // For infixes, we can't easily track syllables - leave as-is
-        }
-        break;
-
-      case "wordroot":
-        // Use a predefined word root instead of generated phonology
-        if (profile.wordRoots && profile.wordRoots.length > 0) {
-          const wordRoot = pickRandom(rng, profile.wordRoots);
-          result += wordRoot;
-          parts.push(`wordroot:${wordRoot}`);
-          syllables.push(wordRoot); // Treat wordroot as one syllable
-        } else {
-          // Fallback to generated root
-          result += root;
-          parts.push(`root:${root}`);
-          if (rootSyllables && rootSyllables.length > 0) {
-            syllables.push(...rootSyllables);
-          } else {
-            syllables.push(root);
-          }
-        }
-        break;
-
-      case "honorific":
-        // Add honorific (usually as prefix with space)
-        if (profile.honorifics && profile.honorifics.length > 0) {
-          const honorific = pickRandom(rng, profile.honorifics);
-          result = honorific + " " + result;
-          parts.push(`honorific:${honorific}`);
-          // Honorifics are separate words, don't add to syllables
-        }
-        break;
-
-      default:
-        // Unknown token, skip
-        break;
+      case "root": applyRootToken(state, root, rootSyllables); break;
+      case "prefix": applyPrefixToken(state, rng, profile); break;
+      case "suffix": applySuffixToken(state, rng, profile); break;
+      case "infix": applyInfixToken(state, rng, profile, root); break;
+      case "wordroot": applyWordrootToken(state, rng, profile, root, rootSyllables); break;
+      case "honorific": applyHonorificToken(state, rng, profile); break;
+      default: break;
     }
   }
 
-  return { result, structure, parts, syllables };
+  return { result: state.result, structure, parts: state.parts, syllables: state.syllables };
 }
 
 /**

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import React, { useRef } from "react";
 import type { EraNarrativeLore } from "../types/world.ts";
 import "./EraNarrative.css";
 
@@ -7,7 +7,7 @@ interface EraNarrativeProps {
   onClose: () => void;
 }
 
-export default function EraNarrative({ lore, onClose }: EraNarrativeProps) {
+export default function EraNarrative({ lore, onClose }: Readonly<EraNarrativeProps>) {
   const mouseDownOnOverlay = useRef(false);
 
   const handleOverlayMouseDown = (e: React.MouseEvent) => {
@@ -29,6 +29,9 @@ export default function EraNarrative({ lore, onClose }: EraNarrativeProps) {
       className="era-narrative-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="era-narrative-modal">
         <div className="era-narrative-header">

@@ -13,9 +13,9 @@
  */
 
 import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import {
   validateAllConfigs,
-  formatValidationResult,
 } from "../../../../lib/engine/configSchemaValidator";
 
 const styles = {
@@ -395,3 +395,21 @@ export default function ValidationPanel({
     </div>
   );
 }
+
+ErrorCard.propTypes = {
+  error: PropTypes.object,
+};
+
+WarningCard.propTypes = {
+  warning: PropTypes.object,
+};
+
+ValidationPanel.propTypes = {
+  schema: PropTypes.object,
+  eras: PropTypes.array,
+  generators: PropTypes.array,
+  pressures: PropTypes.array,
+  systems: PropTypes.array,
+  actions: PropTypes.array,
+  seedEntities: PropTypes.array,
+};

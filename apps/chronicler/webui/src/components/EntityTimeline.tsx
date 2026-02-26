@@ -90,7 +90,7 @@ export default function EntityTimeline({
   onHoverEnter,
   onHoverLeave,
   loading = false,
-}: EntityTimelineProps) {
+}: Readonly<EntityTimelineProps>) {
   // Multi-expand state: set of expanded event IDs
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   // Whether to show prominence-only events (default: hidden)
@@ -169,6 +169,7 @@ export default function EntityTimeline({
 
   // Render description with wiki links
   const renderDescription = useCallback(
+    // eslint-disable-next-line sonarjs/function-return-type -- returns React.ReactNode by design
     (event: NarrativeEvent): React.ReactNode => {
       const description = event.description || "";
       return linkifyText(description, linkableEntities, onNavigate, {

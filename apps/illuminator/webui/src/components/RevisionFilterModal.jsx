@@ -54,6 +54,7 @@ export default function RevisionFilterModal({
 
           {/* Chronicle filter toggle */}
           {usedInChronicles > 0 && (
+            // eslint-disable-next-line jsx-a11y/label-has-associated-control
             <label className="rfm-filter-toggle">
               <input
                 type="checkbox"

@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { SectionHeader, EmptyState, AddItemButton } from "../../shared";
 import { TransitionConditionEditor } from "../shared";
 
@@ -74,3 +75,17 @@ export function ConditionsSection({
     </div>
   );
 }
+
+ConditionsSection.propTypes = {
+  title: PropTypes.string.isRequired,
+  icon: PropTypes.string,
+  description: PropTypes.string,
+  emptyMessage: PropTypes.string,
+  conditions: PropTypes.array.isRequired,
+  onUpdate: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  onAdd: PropTypes.func.isRequired,
+  addLabel: PropTypes.string,
+  pressures: PropTypes.array,
+  schema: PropTypes.object,
+};

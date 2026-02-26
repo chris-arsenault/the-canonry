@@ -18,7 +18,7 @@ const STATIC_PAGE_STORE_NAME = "staticPages";
 // ============================================================================
 
 function generatePageId() {
-  return `static_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  return `static_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 }
 
 function generateSlug(title) {
@@ -48,7 +48,7 @@ function generateSlug(title) {
 }
 
 function extractEntityLinks(content) {
-  const regex = /\[\[([^\]]+)\]\]/g;
+  const regex = /\[\[([^\]]+)\]\]/g; // eslint-disable-line sonarjs/slow-regex -- character-class bounded, no backtracking
   const matches = [];
   let match;
   while ((match = regex.exec(content)) !== null) {
@@ -61,10 +61,12 @@ function extractEntityLinks(content) {
 }
 
 function countWords(content) {
+  /* eslint-disable sonarjs/slow-regex -- character-class bounded markdown patterns, no backtracking */
   const plainText = content
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
     .replace(/\[\[([^\]]+)\]\]/g, "$1")
     .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+    /* eslint-enable sonarjs/slow-regex */
     .replace(/[#*_~`>]/g, "")
     .replace(/\n+/g, " ")
     .trim();

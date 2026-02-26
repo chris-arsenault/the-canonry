@@ -8,7 +8,7 @@
  * - Mini constellation showing 1-hop network preview
  */
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import type {
   EntityContext,
   RelationshipContext,
@@ -49,7 +49,7 @@ interface UsageMetrics {
   prominence: number;
 }
 
-export default function EntryPointStep({ entities, relationships, events }: EntryPointStepProps) {
+export default function EntryPointStep({ entities, relationships, events }: Readonly<EntryPointStepProps>) {
   const {
     state,
     eras,
@@ -65,12 +65,19 @@ export default function EntryPointStep({ entities, relationships, events }: Entr
   const [usageStats, setUsageStats] = useState<Map<string, { usageCount: number }>>(new Map());
   const [usageLoading, setUsageLoading] = useState(false);
 
+  // Render-phase sync: clear usage stats when no simulationRunId
+  const prevSimRunIdRef = useRef(simulationRunId);
+  if (prevSimRunIdRef.current !== simulationRunId && !simulationRunId) {
+    prevSimRunIdRef.current = simulationRunId;
+    setUsageStats(new Map());
+    setUsageLoading(false);
+  }
+  if (prevSimRunIdRef.current !== simulationRunId) {
+    prevSimRunIdRef.current = simulationRunId;
+  }
+
   useEffect(() => {
-    if (!simulationRunId) {
-      setUsageStats(new Map());
-      setUsageLoading(false);
-      return;
-    }
+    if (!simulationRunId) return;
 
     let isActive = true;
     setUsageLoading(true);
@@ -114,8 +121,8 @@ export default function EntryPointStep({ entities, relationships, events }: Entr
 
     for (const rel of relationships) {
       if (!adjacency.has(rel.src) || !adjacency.has(rel.dst)) continue;
-      adjacency.get(rel.src)!.add(rel.dst);
-      adjacency.get(rel.dst)!.add(rel.src);
+      adjacency.get(rel.src).add(rel.dst);
+      adjacency.get(rel.dst).add(rel.src);
     }
 
     const visitStamp = new Map<string, number>();
@@ -364,17 +371,20 @@ export default function EntryPointStep({ entities, relationships, events }: Entr
                       padding: "10px 14px",
                       borderBottom: "1px solid var(--border-color)",
                       cursor: "pointer",
-                      background: isSelected
-                        ? "var(--accent-color)"
-                        : isHovered
-                          ? "var(--bg-tertiary)"
-                          : "transparent",
+                      background: (() => {
+                        if (isSelected) return "var(--accent-color)";
+                        if (isHovered) return "var(--bg-tertiary)";
+                        return "transparent";
+                      })(),
                       color: isSelected ? "white" : "inherit",
                       display: "flex",
                       alignItems: "center",
                       gap: "12px",
                       transition: "background 0.15s ease",
                     }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                   >
                     {/* Selection indicator */}
                     <div
@@ -426,16 +436,16 @@ export default function EntryPointStep({ entities, relationships, events }: Entr
                         {entity.eraId &&
                           eraNameMap.has(entity.eraId) &&
                           (() => {
-                            const eraColor = eraColorMap.get(entity.eraId!);
+                            const eraColor = eraColorMap.get(entity.eraId);
                             return (
                               <span
                                 style={{
                                   padding: "1px 6px",
-                                  background: isSelected
-                                    ? "rgba(255,255,255,0.2)"
-                                    : eraColor
-                                      ? `${eraColor}26`
-                                      : "var(--bg-tertiary)",
+                                  background: (() => {
+                                    if (isSelected) return "rgba(255,255,255,0.2)";
+                                    if (eraColor) return `${eraColor}26`;
+                                    return "var(--bg-tertiary)";
+                                  })(),
                                   borderRadius: "4px",
                                   fontSize: "9px",
                                   color: isSelected
@@ -443,7 +453,7 @@ export default function EntryPointStep({ entities, relationships, events }: Entr
                                     : (eraColor ?? "var(--text-muted)"),
                                 }}
                               >
-                                {eraNameMap.get(entity.eraId!)}
+                                {eraNameMap.get(entity.eraId)}
                               </span>
                             );
                           })()}
@@ -457,9 +467,11 @@ export default function EntryPointStep({ entities, relationships, events }: Entr
                           }}
                           title="Prominence-weighted underuse: prominence ÷ (usage + 1)"
                         >
-                          {usageLoading
-                            ? "Underused ..."
-                            : `Underused ${usage ? usage.underusedScore.toFixed(2) : "0.00"}`}
+                          {(() => {
+                            if (usageLoading) return "Underused ...";
+                            const score = usage ? usage.underusedScore.toFixed(2) : "0.00";
+                            return `Underused ${score}`;
+                          })()}
                         </span>
                       </div>
                       <div
@@ -489,9 +501,11 @@ export default function EntryPointStep({ entities, relationships, events }: Entr
                           marginTop: "2px",
                         }}
                       >
-                        {usageLoading
-                          ? "Unused: ..."
-                          : `Unused: self ${usage?.unusedSelf ? "1" : "0"}/1 · 1-hop ${usage?.hop1Unused ?? 0}/${usage?.hop1Total ?? 0} · 2-hop ${usage?.hop2Unused ?? 0}/${usage?.hop2Total ?? 0}`}
+                        {(() => {
+                          if (usageLoading) return "Unused: ...";
+                          const selfStr = usage?.unusedSelf ? "1" : "0";
+                          return `Unused: self ${selfStr}/1 · 1-hop ${usage?.hop1Unused ?? 0}/${usage?.hop1Total ?? 0} · 2-hop ${usage?.hop2Unused ?? 0}/${usage?.hop2Total ?? 0}`;
+                        })()}
                       </div>
                     </div>
 
@@ -596,9 +610,11 @@ export default function EntryPointStep({ entities, relationships, events }: Entr
                     color: "var(--text-muted)",
                   }}
                 >
-                  {usageLoading || !detailUsage
-                    ? "Unused: ..."
-                    : `Unused: self ${detailUsage.unusedSelf ? "1" : "0"}/1 · 1-hop ${detailUsage.hop1Unused}/${detailUsage.hop1Total} · 2-hop ${detailUsage.hop2Unused}/${detailUsage.hop2Total}`}
+                  {(() => {
+                    if (usageLoading || !detailUsage) return "Unused: ...";
+                    const selfStr = detailUsage.unusedSelf ? "1" : "0";
+                    return `Unused: self ${selfStr}/1 · 1-hop ${detailUsage.hop1Unused}/${detailUsage.hop1Total} · 2-hop ${detailUsage.hop2Unused}/${detailUsage.hop2Total}`;
+                  })()}
                 </div>
                 <div
                   style={{

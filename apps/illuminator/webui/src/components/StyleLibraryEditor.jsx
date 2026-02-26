@@ -16,6 +16,23 @@ import { SCENE_PROMPT_TEMPLATES, getCoverImageConfig } from "../lib/coverImageSt
 import "./StyleLibraryEditor.css";
 
 /**
+ * Shared hook for modal overlay click-to-dismiss behavior.
+ * Returns { mouseDownOnOverlay, handleOverlayMouseDown, handleOverlayClick }.
+ */
+function useOverlayDismiss(onDismiss) {
+  const mouseDownOnOverlay = useRef(false);
+  const handleOverlayMouseDown = useCallback((e) => {
+    mouseDownOnOverlay.current = e.target === e.currentTarget;
+  }, []);
+  const handleOverlayClick = useCallback((e) => {
+    if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
+      onDismiss();
+    }
+  }, [onDismiss]);
+  return { mouseDownOnOverlay, handleOverlayMouseDown, handleOverlayClick };
+}
+
+/**
  * Generate a unique ID for a new style
  */
 function generateStyleId(prefix) {
@@ -25,7 +42,7 @@ function generateStyleId(prefix) {
 /**
  * Style card component for displaying a single style
  */
-function StyleCard({ style, type, onEdit, onDelete }) {
+function StyleCard({ style, type: _type, onEdit, onDelete }) {
   return (
     <div className="illuminator-style-card">
       <div className="illuminator-style-card-header">
@@ -80,17 +97,7 @@ function StyleEditModal({ style, type, onSave, onCancel }) {
     promptFragment: style?.promptFragment || "",
     keywords: style?.keywords?.join(", ") || "",
   });
-  const mouseDownOnOverlay = useRef(false);
-
-  const handleOverlayMouseDown = (e) => {
-    mouseDownOnOverlay.current = e.target === e.currentTarget;
-  };
-
-  const handleOverlayClick = (e) => {
-    if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
-      onCancel();
-    }
-  };
+  const { handleOverlayMouseDown, handleOverlayClick } = useOverlayDismiss(onCancel);
 
   const isNew = !style?.id;
 
@@ -128,6 +135,9 @@ function StyleEditModal({ style, type, onSave, onCancel }) {
       className="illuminator-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="illuminator-modal">
         <div className="illuminator-modal-header">
@@ -141,20 +151,21 @@ function StyleEditModal({ style, type, onSave, onCancel }) {
 
         <form onSubmit={handleSubmit} className="illuminator-modal-body">
           <div className="illuminator-form-group">
-            <label className="illuminator-label">Name *</label>
-            <input
+            <label htmlFor="name" className="illuminator-label">Name *</label>
+            <input id="name"
               type="text"
               value={formData.name}
               onChange={(e) => handleChange("name", e.target.value)}
               className="illuminator-input"
               placeholder="e.g., Oil Painting"
+              // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
             />
           </div>
 
           <div className="illuminator-form-group">
-            <label className="illuminator-label">Description</label>
-            <input
+            <label htmlFor="description" className="illuminator-label">Description</label>
+            <input id="description"
               type="text"
               value={formData.description}
               onChange={(e) => handleChange("description", e.target.value)}
@@ -164,7 +175,7 @@ function StyleEditModal({ style, type, onSave, onCancel }) {
           </div>
 
           <div className="illuminator-form-group">
-            <label className="illuminator-label">Prompt Fragment *</label>
+            <label className="illuminator-label">Prompt Fragment *
             <LocalTextArea
               value={formData.promptFragment}
               onChange={(value) => handleChange("promptFragment", value)}
@@ -172,6 +183,7 @@ function StyleEditModal({ style, type, onSave, onCancel }) {
               rows={3}
               placeholder="e.g., oil painting style, rich textures, visible brushstrokes"
             />
+            </label>
             <p className="style-editor-hint">
               This text will be injected into the image generation prompt.
             </p>
@@ -179,8 +191,8 @@ function StyleEditModal({ style, type, onSave, onCancel }) {
 
           {type === "artistic" && (
             <div className="illuminator-form-group">
-              <label className="illuminator-label">Keywords</label>
-              <input
+              <label htmlFor="keywords" className="illuminator-label">Keywords</label>
+              <input id="keywords"
                 type="text"
                 value={formData.keywords}
                 onChange={(e) => handleChange("keywords", e.target.value)}
@@ -219,15 +231,16 @@ StyleEditModal.propTypes = {
 /**
  * Narrative style card component
  */
-function NarrativeStyleCard({ style, compositionStyles, onEdit, onDelete }) {
+function NarrativeStyleCard({ style, compositionStyles: _compositionStyles, onEdit, onDelete }) {
   const isDocument = style.format === "document";
 
   // Extract a short preview of instructions for display
-  const instructionsPreview = isDocument
-    ? style.documentInstructions?.slice(0, 80) +
-      (style.documentInstructions?.length > 80 ? "..." : "")
-    : style.narrativeInstructions?.slice(0, 80) +
-      (style.narrativeInstructions?.length > 80 ? "..." : "");
+  const rawInstructions = isDocument ? style.documentInstructions : style.narrativeInstructions;
+  let instructionsPreview = "";
+  if (rawInstructions) {
+    const suffix = rawInstructions.length > 80 ? "..." : "";
+    instructionsPreview = rawInstructions.slice(0, 80) + suffix;
+  }
 
   // Get word count from appropriate location
   const wordCountMin = isDocument
@@ -240,7 +253,6 @@ function NarrativeStyleCard({ style, compositionStyles, onEdit, onDelete }) {
   // Cover image config
   const coverConfig = getCoverImageConfig(style.id);
   const sceneTemplate = SCENE_PROMPT_TEMPLATES.find((t) => t.id === coverConfig.scenePromptId);
-  const coverComposition = compositionStyles?.find((c) => c.id === coverConfig.compositionStyleId);
 
   return (
     <div className="illuminator-style-card">
@@ -352,23 +364,16 @@ CoverImageConfigSection.propTypes = {
  * Modal for viewing/editing a document-format narrative style (read-only for now)
  */
 function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
-  const mouseDownOnOverlay = useRef(false);
-
-  const handleOverlayMouseDown = (e) => {
-    mouseDownOnOverlay.current = e.target === e.currentTarget;
-  };
-
-  const handleOverlayClick = (e) => {
-    if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
-      onCancel();
-    }
-  };
+  const { handleOverlayMouseDown, handleOverlayClick } = useOverlayDismiss(onCancel);
 
   return (
     <div
       className="illuminator-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="illuminator-modal style-editor-modal-wide">
         <div className="illuminator-modal-header">
@@ -486,31 +491,8 @@ DocumentStyleViewModal.propTypes = {
  */
 function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel }) {
   const isNew = !style?.id;
-  const mouseDownOnOverlay = useRef(false);
 
-  const handleOverlayMouseDown = (e) => {
-    mouseDownOnOverlay.current = e.target === e.currentTarget;
-  };
-
-  const handleOverlayClick = (e) => {
-    if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
-      onCancel();
-    }
-  };
-
-  // If this is a document format, show view-only modal
-  if (style?.format === "document") {
-    return (
-      <DocumentStyleViewModal
-        // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
-        style={style}
-        compositionStyles={compositionStyles}
-        onCancel={onCancel}
-      />
-    );
-  }
-
-  // Default roles for new styles
+  // Default roles for new styles (must be before useState so initializer can reference it)
   const defaultRoles = [
     {
       role: "protagonist",
@@ -544,6 +526,19 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
   });
 
   const [activeTab, setActiveTab] = useState("basic");
+  const { handleOverlayMouseDown, handleOverlayClick } = useOverlayDismiss(onCancel);
+
+  // If this is a document format, show view-only modal
+  if (style?.format === "document") {
+    return (
+      <DocumentStyleViewModal
+        // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
+        style={style}
+        compositionStyles={compositionStyles}
+        onCancel={onCancel}
+      />
+    );
+  }
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -636,6 +631,9 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
       className="illuminator-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="illuminator-modal style-editor-modal-extra-wide">
         <div className="illuminator-modal-header">
@@ -664,18 +662,19 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
             {activeTab === "basic" && (
               <>
                 <div className="illuminator-form-group">
-                  <label className="illuminator-label">Name *</label>
-                  <input
+                  <label htmlFor="name" className="illuminator-label">Name *</label>
+                  <input id="name"
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleChange("name", e.target.value)}
                     className="illuminator-input"
                     placeholder="e.g., Epic Drama"
+                    // eslint-disable-next-line jsx-a11y/no-autofocus
                     autoFocus
                   />
                 </div>
                 <div className="illuminator-form-group">
-                  <label className="illuminator-label">Description</label>
+                  <label className="illuminator-label">Description
                   <LocalTextArea
                     value={formData.description}
                     onChange={(value) => handleChange("description", value)}
@@ -683,10 +682,11 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
                     rows={2}
                     placeholder="Brief description of this narrative style"
                   />
+                  </label>
                 </div>
                 <div className="illuminator-form-group">
-                  <label className="illuminator-label">Tags</label>
-                  <input
+                  <label htmlFor="tags" className="illuminator-label">Tags</label>
+                  <input id="tags"
                     type="text"
                     value={formData.tags}
                     onChange={(e) => handleChange("tags", e.target.value)}
@@ -755,7 +755,7 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
             {activeTab === "narrative" && (
               <>
                 <div className="illuminator-form-group">
-                  <label className="illuminator-label">Narrative Instructions *</label>
+                  <label className="illuminator-label">Narrative Instructions *
                   <LocalTextArea
                     value={formData.narrativeInstructions}
                     onChange={(value) => handleChange("narrativeInstructions", value)}
@@ -779,12 +779,13 @@ Scene Types:
 - The Climax: Peak confrontation where everything comes together
 - The Resolution: Show the changed world and transformed characters"`}
                   />
+                  </label>
                   <p className="style-editor-hint">
                     Freeform instructions for plot structure, scenes, and dramatic beats.
                   </p>
                 </div>
                 <div className="illuminator-form-group">
-                  <label className="illuminator-label">Event Instructions</label>
+                  <label className="illuminator-label">Event Instructions
                   <LocalTextArea
                     value={formData.eventInstructions}
                     onChange={(value) => handleChange("eventInstructions", value)}
@@ -792,6 +793,7 @@ Scene Types:
                     rows={3}
                     placeholder="How to incorporate events from the world data into the narrative. E.g., 'Use events as dramatic turning points. Higher significance events should be climactic moments...'"
                   />
+                  </label>
                   <p className="style-editor-hint">
                     Optional guidance for how world events should be woven into the story.
                   </p>
@@ -803,7 +805,7 @@ Scene Types:
             {activeTab === "prose" && (
               <>
                 <div className="illuminator-form-group">
-                  <label className="illuminator-label">Prose Instructions *</label>
+                  <label className="illuminator-label">Prose Instructions *
                   <LocalTextArea
                     value={formData.proseInstructions}
                     onChange={(value) => handleChange("proseInstructions", value)}
@@ -826,6 +828,7 @@ Pacing: Build tension steadily. Allow quiet moments to breathe.
 World Elements: Integrate locations and cultural practices naturally.
 Avoid: modern slang, breaking fourth wall, rushed emotional beats."`}
                   />
+                  </label>
                   <p className="style-editor-hint">
                     Freeform instructions for tone, dialogue, description, and writing style.
                   </p>
@@ -918,6 +921,13 @@ Avoid: modern slang, breaking fourth wall, rushed emotional beats."`}
     </div>
   );
 }
+
+NarrativeStyleEditModal.propTypes = {
+  style: PropTypes.object,
+  compositionStyles: PropTypes.array,
+  onSave: PropTypes.func,
+  onCancel: PropTypes.func,
+};
 
 /**
  * Main StyleLibraryEditor component
@@ -1272,3 +1282,19 @@ export default function StyleLibraryEditor({
     </div>
   );
 }
+
+StyleLibraryEditor.propTypes = {
+  styleLibrary: PropTypes.object,
+  loading: PropTypes.bool,
+  isCustom: PropTypes.bool,
+  onAddArtisticStyle: PropTypes.func,
+  onUpdateArtisticStyle: PropTypes.func,
+  onDeleteArtisticStyle: PropTypes.func,
+  onAddCompositionStyle: PropTypes.func,
+  onUpdateCompositionStyle: PropTypes.func,
+  onDeleteCompositionStyle: PropTypes.func,
+  onAddNarrativeStyle: PropTypes.func,
+  onUpdateNarrativeStyle: PropTypes.func,
+  onDeleteNarrativeStyle: PropTypes.func,
+  onReset: PropTypes.func,
+};

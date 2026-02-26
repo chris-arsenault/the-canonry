@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { ReferenceDropdown, ChipSelect, NumberInput } from "./index";
 import { VARIABLE_PICK_STRATEGIES } from "../generators/constants";
 import { SelectionFiltersEditor } from "../generators/filters";
@@ -185,7 +186,7 @@ export function VariableSelectionEditor({
 
         {showMaxResults && (
           <div className="form-group">
-            <label className="label">Max Results</label>
+            <label className="label">Max Results
             <NumberInput
               value={select.maxResults}
               onChange={(v) => updateSelect("maxResults", v)}
@@ -194,6 +195,7 @@ export function VariableSelectionEditor({
               allowEmpty
               placeholder="1"
             />
+            </label>
           </div>
         )}
       </div>
@@ -285,8 +287,8 @@ export function VariableSelectionEditor({
       )}
 
       <div style={{ marginTop: "16px" }}>
-        <label className="label">Status Filter (optional)</label>
-        <input
+        <label htmlFor="status-filter-optional" className="label">Status Filter (optional)</label>
+        <input id="status-filter-optional"
           type="text"
           value={select.status || ""}
           onChange={(e) => updateSelect("status", e.target.value || undefined)}
@@ -296,8 +298,8 @@ export function VariableSelectionEditor({
       </div>
 
       <div style={{ marginTop: "16px" }}>
-        <label className="label">Not Status (optional)</label>
-        <input
+        <label htmlFor="not-status-optional" className="label">Not Status (optional)</label>
+        <input id="not-status-optional"
           type="text"
           value={select.notStatus || ""}
           onChange={(e) => updateSelect("notStatus", e.target.value || undefined)}
@@ -339,5 +341,15 @@ export function VariableSelectionEditor({
     </div>
   );
 }
+
+VariableSelectionEditor.propTypes = {
+  value: PropTypes.object,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  availableRefs: PropTypes.array,
+  showPickStrategy: PropTypes.bool,
+  showMaxResults: PropTypes.bool,
+  allowPreferFilters: PropTypes.bool,
+};
 
 export default VariableSelectionEditor;

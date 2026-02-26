@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useEffect } from "react";
+import PropTypes from "prop-types";
 import { useChronicleStore } from "../lib/db/chronicleStore";
 import { useEraNarrative } from "../hooks/useEraNarrative";
 import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
@@ -298,22 +299,16 @@ export default function EraNarrativeModal({
   useEffect(() => {
     if (!isMinimized || !narrative) return;
     const stepLabel = { threads: "Threads", generate: "Writing", edit: "Editing" };
-    const statusColor =
-      narrative.status === "generating" || narrative.status === "pending"
-        ? "#f59e0b"
-        : narrative.status === "step_complete"
-          ? "#3b82f6"
-          : narrative.status === "complete"
-            ? "#10b981"
-            : narrative.status === "failed"
-              ? "#ef4444"
-              : "#6b7280";
-    const statusText =
-      narrative.status === "complete"
-        ? "Complete"
-        : narrative.status === "failed"
-          ? "Failed"
-          : stepLabel[narrative.currentStep] || narrative.currentStep;
+    let statusColor;
+    if (narrative.status === "generating" || narrative.status === "pending") statusColor = "#f59e0b";
+    else if (narrative.status === "step_complete") statusColor = "#3b82f6";
+    else if (narrative.status === "complete") statusColor = "#10b981";
+    else if (narrative.status === "failed") statusColor = "#ef4444";
+    else statusColor = "#6b7280";
+    let statusText;
+    if (narrative.status === "complete") statusText = "Complete";
+    else if (narrative.status === "failed") statusText = "Failed";
+    else statusText = stepLabel[narrative.currentStep] || narrative.currentStep;
     useFloatingPillStore.getState().updatePill(PILL_ID, { statusText, statusColor });
   }, [isMinimized, narrative?.status, narrative?.currentStep]);
 
@@ -395,16 +390,15 @@ export default function EraNarrativeModal({
   const showEditReview =
     isStepComplete && narrative?.currentStep === "edit" && (viewedContent || narrativeContent);
 
-  // Word count from resolved version
-  const wordCount =
-    viewedWordCount || narrativeContent?.editedWordCount || narrativeContent?.wordCount || 0;
-
   return (
     <div
       className="era-narr-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
       }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
     >
       <div className="era-narr-modal">
         {/* Header */}
@@ -442,8 +436,8 @@ export default function EraNarrativeModal({
           {showSetup && (
             <>
               <div className="era-narr-field">
-                <label className="era-narr-label">Era</label>
-                <select
+                <label htmlFor="era" className="era-narr-label">Era</label>
+                <select id="era"
                   className="illuminator-select era-narr-select-full"
                   value={selectedEraId}
                   onChange={(e) => setSelectedEraId(e.target.value)}
@@ -491,22 +485,16 @@ export default function EraNarrativeModal({
                     {eraChronicles.map((c) => {
                       const weight =
                         c.eraNarrativeWeight || narrativeWeightMap[c.narrativeStyleId] || null;
-                      const weightSymbol =
-                        weight === "structural"
-                          ? "\u25A0"
-                          : weight === "contextual"
-                            ? "\u25A1"
-                            : weight === "flavor"
-                              ? "\u25CB"
-                              : "\u2013";
-                      const weightColor =
-                        weight === "structural"
-                          ? "#3b82f6"
-                          : weight === "contextual"
-                            ? "#f59e0b"
-                            : weight === "flavor"
-                              ? "#a855f7"
-                              : "var(--text-muted)";
+                      let weightSymbol;
+                      if (weight === "structural") weightSymbol = "\u25A0";
+                      else if (weight === "contextual") weightSymbol = "\u25A1";
+                      else if (weight === "flavor") weightSymbol = "\u25CB";
+                      else weightSymbol = "\u2013";
+                      let weightColor;
+                      if (weight === "structural") weightColor = "#3b82f6";
+                      else if (weight === "contextual") weightColor = "#f59e0b";
+                      else if (weight === "flavor") weightColor = "#a855f7";
+                      else weightColor = "var(--text-muted)";
                       return (
                         <div
                           key={c.chronicleId}
@@ -562,20 +550,15 @@ export default function EraNarrativeModal({
                   <div className="era-narr-existing-list">
                     {existingNarratives.map((rec) => {
                       const stepLabel = { threads: "Threads", generate: "Draft", edit: "Edit" };
-                      const statusIcon =
-                        rec.status === "complete"
-                          ? "\u2713"
-                          : rec.status === "failed"
-                            ? "\u2717"
-                            : rec.status === "step_complete"
-                              ? "\u25CB"
-                              : "\u2026";
-                      const statusColor =
-                        rec.status === "complete"
-                          ? "#10b981"
-                          : rec.status === "failed"
-                            ? "#ef4444"
-                            : "#f59e0b";
+                      let statusIcon;
+                      if (rec.status === "complete") statusIcon = "\u2713";
+                      else if (rec.status === "failed") statusIcon = "\u2717";
+                      else if (rec.status === "step_complete") statusIcon = "\u25CB";
+                      else statusIcon = "\u2026";
+                      let statusColor;
+                      if (rec.status === "complete") statusColor = "#10b981";
+                      else if (rec.status === "failed") statusColor = "#ef4444";
+                      else statusColor = "#f59e0b";
                       const date = new Date(rec.updatedAt);
                       const timeStr =
                         date.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
@@ -584,9 +567,10 @@ export default function EraNarrativeModal({
                       const canResume = rec.status !== "complete";
                       return (
                         <div key={rec.narrativeId} className="era-narr-existing-item">
-                          {/* eslint-disable-next-line local/no-inline-styles */}
+                          { }
                           <span
                             className="era-narr-existing-item-status"
+                            // eslint-disable-next-line local/no-inline-styles -- dynamic color from status
                             style={{ color: statusColor }}
                             title={rec.status}
                           >
@@ -620,7 +604,7 @@ export default function EraNarrativeModal({
                             </button>
                           )}
                           <button
-                            onClick={() => handleDeleteExisting(rec.narrativeId)}
+                            onClick={() => void handleDeleteExisting(rec.narrativeId)}
                             className="illuminator-button era-narr-existing-item-delete-btn"
                             title="Delete narrative"
                           >
@@ -651,10 +635,10 @@ export default function EraNarrativeModal({
 
               {/* Arc Direction Override (optional) */}
               <div className="era-narr-field-lg">
-                <label className="era-narr-label">
+                <label htmlFor="arc-direction" className="era-narr-label">
                   Arc Direction <span className="era-narr-label-optional">(optional)</span>
                 </label>
-                <textarea
+                <textarea id="arc-direction"
                   value={arcDirection}
                   onChange={(e) => setArcDirection(e.target.value)}
                   placeholder="Override the era's narrative arc. When set, the historian's thesis, thread arcs, and register choices must honor this direction."
@@ -664,7 +648,7 @@ export default function EraNarrativeModal({
 
               <div className="era-narr-start-row">
                 <button
-                  onClick={handleStart}
+                  onClick={() => void handleStart()}
                   disabled={!selectedEraId || !selectedEra || selectedEra.preppedCount === 0}
                   className={`illuminator-button era-narr-start-btn ${selectedEraId && selectedEra?.preppedCount > 0 ? "era-narr-start-btn-primary" : ""}`}
                   // eslint-disable-next-line local/no-inline-styles
@@ -673,7 +657,7 @@ export default function EraNarrativeModal({
                   Start Narrative
                 </button>
                 <button
-                  onClick={handleStartHeadless}
+                  onClick={() => void handleStartHeadless()}
                   disabled={!selectedEraId || !selectedEra || selectedEra.preppedCount === 0}
                   className="illuminator-button era-narr-headless-btn"
                   title="Run all steps without pausing for review"
@@ -884,9 +868,10 @@ export default function EraNarrativeModal({
                   </select>
 
                   {/* Active badge or Make Active button */}
-                  {viewedVersion && viewedVersion.versionId === resolved.activeVersionId ? (
+                  {viewedVersion && viewedVersion.versionId === resolved.activeVersionId && (
                     <span className="era-narr-version-active-badge">Active</span>
-                  ) : viewedVersion ? (
+                  )}
+                  {viewedVersion && viewedVersion.versionId !== resolved.activeVersionId && (
                     <button
                       onClick={() => {
                         setActiveVersion(viewedVersion.versionId);
@@ -896,7 +881,7 @@ export default function EraNarrativeModal({
                     >
                       Make Active
                     </button>
-                  ) : null}
+                  )}
 
                   {/* Delete version button (cannot delete generate versions) */}
                   {viewedVersion &&
@@ -1019,3 +1004,16 @@ export default function EraNarrativeModal({
     </div>
   );
 }
+
+EraNarrativeModal.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func.isRequired,
+  chronicleItems: PropTypes.array.isRequired,
+  wizardEras: PropTypes.array.isRequired,
+  projectId: PropTypes.string,
+  simulationRunId: PropTypes.string,
+  historianConfig: PropTypes.object,
+  onEnqueue: PropTypes.func,
+  resumeNarrativeId: PropTypes.string,
+  styleLibrary: PropTypes.object,
+};

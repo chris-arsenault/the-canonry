@@ -58,30 +58,34 @@ function formatActivityError(item) {
   return `${baseError} (Anthropic: ${providerError})`;
 }
 
+const TASK_STATUS_STYLES = {
+  queued: { color: "var(--text-muted)" },
+  running: { color: "#f59e0b" },
+  complete: { color: "#10b981" },
+  error: { color: "#ef4444" },
+};
+
+const TASK_STATUS_ICONS = {
+  queued: "◷",
+  running: "◐",
+  complete: "✓",
+  error: "✗",
+};
+
 function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
   const streamEntry = useThinkingStore((s) => s.entries.get(item.id));
   const hasStream = Boolean(streamEntry);
   const openThinking = useThinkingStore((s) => s.openViewer);
 
-  const duration = item.startedAt
-    ? item.completedAt
+  let duration = null;
+  if (item.startedAt) {
+    duration = item.completedAt
       ? item.completedAt - item.startedAt
-      : Date.now() - item.startedAt
-    : null;
+      : Date.now() - item.startedAt;
+  }
 
-  const statusStyles = {
-    queued: { color: "var(--text-muted)" },
-    running: { color: "#f59e0b" },
-    complete: { color: "#10b981" },
-    error: { color: "#ef4444" },
-  };
-
-  const statusIcons = {
-    queued: "◷",
-    running: "◐",
-    complete: "✓",
-    error: "✗",
-  };
+  const statusStyles = TASK_STATUS_STYLES;
+  const statusIcons = TASK_STATUS_ICONS;
   const hasDebug = Boolean(item.debug && (item.debug.request || item.debug.response));
 
   return (
@@ -97,11 +101,11 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
       <div className="ap-task-info">
         <div className="ap-task-name">{item.entityName}</div>
         <div className="ap-task-type">
-          {item.type === "description"
-            ? "Description"
-            : item.type === "image"
-              ? "Image"
-              : "Chronicle"}
+          {(() => {
+            if (item.type === "description") return "Description";
+            if (item.type === "image") return "Image";
+            return "Chronicle";
+          })()}
           {item.entityKind && ` · ${item.entityKind}`}
         </div>
       </div>
@@ -138,13 +142,12 @@ function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
           className="illuminator-button-link ap-task-action"
           title="View LLM stream (thinking + response)"
         >
-          {streamEntry.isActive
-            ? streamEntry.text.length > 0
-              ? `${Math.round(streamEntry.text.length / 1000)}K`
-              : streamEntry.thinking.length > 0
-                ? "Thinking"
-                : "..."
-            : "Stream"}
+          {(() => {
+            if (!streamEntry.isActive) return "Stream";
+            if (streamEntry.text.length > 0) return `${Math.round(streamEntry.text.length / 1000)}K`;
+            if (streamEntry.thinking.length > 0) return "Thinking";
+            return "...";
+          })()}
         </button>
       )}
 
@@ -315,6 +318,9 @@ export default function ActivityPanel({
           className="illuminator-modal-overlay"
           onMouseDown={handleOverlayMouseDown}
           onClick={handleOverlayClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
         >
           <div className="illuminator-modal ap-debug-modal">
             <div className="illuminator-modal-header">
@@ -326,23 +332,23 @@ export default function ActivityPanel({
             <div className="illuminator-modal-body ap-debug-body">
               <div className="ap-debug-entity-info">
                 {debugItem.entityName}
-                {debugItem.type === "description"
-                  ? " · Description"
-                  : debugItem.type === "image"
-                    ? " · Image"
-                    : " · Chronicle"}
+                {(() => {
+                  if (debugItem.type === "description") return " · Description";
+                  if (debugItem.type === "image") return " · Image";
+                  return " · Chronicle";
+                })()}
               </div>
               <div>
-                <label className="ap-debug-label">Request (raw)</label>
-                <textarea
+                <label htmlFor="request-raw" className="ap-debug-label">Request (raw)</label>
+                <textarea id="request-raw"
                   className="illuminator-textarea ap-debug-request-textarea"
                   value={debugRequest}
                   readOnly
                 />
               </div>
               <div>
-                <label className="ap-debug-label">Response (raw)</label>
-                <textarea
+                <label htmlFor="response-raw" className="ap-debug-label">Response (raw)</label>
+                <textarea id="response-raw"
                   className="illuminator-textarea ap-debug-response-textarea"
                   value={debugResponse}
                   readOnly

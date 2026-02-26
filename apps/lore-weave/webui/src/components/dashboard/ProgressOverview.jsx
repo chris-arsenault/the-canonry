@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import StatusBadge from "./StatusBadge";
 
 export default function ProgressOverview({ progress, status }) {
@@ -37,16 +38,11 @@ export default function ProgressOverview({ progress, status }) {
   const epochProgress =
     progress.totalEpochs > 0 ? (progress.epoch / progress.totalEpochs) * 100 : 0;
 
-  const percent =
-    status === "complete"
-      ? 100
-      : status === "initializing"
-        ? 0
-        : status === "validating"
-          ? 0
-          : status === "finalizing"
-            ? 99
-            : Math.round(epochProgress);
+  let percent;
+  if (status === "complete") percent = 100;
+  else if (status === "initializing" || status === "validating") percent = 0;
+  else if (status === "finalizing") percent = 99;
+  else percent = Math.round(epochProgress);
 
   return (
     <div className="lw-overview-bar">
@@ -76,3 +72,8 @@ export default function ProgressOverview({ progress, status }) {
     </div>
   );
 }
+
+ProgressOverview.propTypes = {
+  progress: PropTypes.object,
+  status: PropTypes.string,
+};

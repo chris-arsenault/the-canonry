@@ -35,7 +35,7 @@ export default function EnsembleHealthBar({
   assignments,
   candidates,
   kindToCategory,
-}: EnsembleHealthBarProps) {
+}: Readonly<EnsembleHealthBarProps>) {
   // Compute category stats
   const stats = useMemo(() => {
     // Get all unique categories from candidates

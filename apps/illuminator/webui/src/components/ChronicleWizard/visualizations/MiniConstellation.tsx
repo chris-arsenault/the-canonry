@@ -32,11 +32,11 @@ const KIND_COLORS: Record<string, string> = {
 };
 
 export default function MiniConstellation({
-  centerName,
+  centerName: _centerName,
   connections,
   size = 180,
   maxConnections = 8,
-}: MiniConstellationProps) {
+}: Readonly<MiniConstellationProps>) {
   const cx = size / 2;
   const cy = size / 2;
   const centerRadius = 16;

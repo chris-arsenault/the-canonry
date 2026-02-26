@@ -15,11 +15,13 @@ import type { ChronicleRecord } from "./db/chronicleRepository";
 /** How closely related this match source is to the entity being renamed. */
 export type MatchTier = "self" | "related" | "cast" | "participant" | "mention" | "general";
 
+export type MatchSourceType = "entity" | "chronicle" | "event";
+
 export interface RenameMatch {
   /** Unique match ID */
   id: string;
   /** Where the match was found */
-  sourceType: "entity" | "chronicle" | "event";
+  sourceType: MatchSourceType;
   /** Entity ID, chronicle ID, or event ID */
   sourceId: string;
   /** Entity name, chronicle title, or event description snippet (for display) */
@@ -210,6 +212,28 @@ interface RawMatch {
 }
 
 /**
+ * Extend rawEnd past trailing decorative chars (e.g. ~ or ]) that belong
+ * to the matched word, stopping at whitespace, alphanumeric, or apostrophes.
+ */
+function extendToTrailingDecorativeChars(originalText: string, rawEnd: number): number {
+  let end = rawEnd;
+  while (end < originalText.length) {
+    const ch = originalText[end];
+    if (/\s/.test(ch)) break;
+    if (isAsciiAlphaNumeric(ch.toLowerCase())) break;
+    if (ch === "'" || ch === "\u2019") break;
+    end++;
+  }
+  return end;
+}
+
+function isWordBoundaryMatch(normalizedText: string, idx: number, matchEnd: number): boolean {
+  const beforeOk = idx === 0 || normalizedText[idx - 1] === "-";
+  const afterOk = matchEnd === normalizedText.length || normalizedText[matchEnd] === "-";
+  return beforeOk && afterOk;
+}
+
+/**
  * Find all occurrences of `slug` in `text` on word boundaries.
  * Returns positions mapped back to the original text.
  */
@@ -230,32 +254,9 @@ function findAllOccurrences(
 
     const matchEnd = idx + slug.length;
 
-    // Check word boundaries
-    const beforeOk = idx === 0 || normalizedText[idx - 1] === "-";
-    const afterOk = matchEnd === normalizedText.length || normalizedText[matchEnd] === "-";
-
-    if (beforeOk && afterOk) {
+    if (isWordBoundaryMatch(normalizedText, idx, matchEnd)) {
       const rawStart = indexMap[idx];
-      // For end: find the last char of the match in the original text
-      // The indexMap entry at matchEnd-1 is the last matched normalized char.
-      // We need to extend to include any trailing non-normalized chars that belong to this word.
-      const lastNormIdx = matchEnd - 1;
-      let rawEnd = indexMap[lastNormIdx] + 1;
-      // Extend past any non-ASCII/non-alpha trailing chars that are part of the same "word"
-      // (e.g., decorative chars like ~ or ]) but stop at possessive markers ('s)
-      // and whitespace or the next word
-      while (rawEnd < originalText.length) {
-        const ch = originalText[rawEnd];
-        if (/\s/.test(ch)) break;
-        // If the next char is a letter/number, we've hit the next word - stop
-        if (isAsciiAlphaNumeric(ch.toLowerCase())) break;
-        // Stop at apostrophes — trailing apostrophes are grammatical (possessive/
-        // contraction), not part of the entity name. Apostrophes *within* names
-        // (e.g. O'Brien) are already captured via the indexMap within the match span.
-        if (ch === "'" || ch === "\u2019") break;
-        // Include trailing non-alphanumeric, non-space chars (like ~ or ])
-        rawEnd++;
-      }
+      const rawEnd = extendToTrailingDecorativeChars(originalText, indexMap[matchEnd - 1] + 1);
 
       matches.push({
         start: rawStart,
@@ -338,518 +339,329 @@ interface ScanRelationship {
   status?: string;
 }
 
-/**
- * Scan all entities and chronicles for references to the given entity name.
- * Also surfaces all foreign-key references to the entity ID (relationships,
- * chronicle selectedEntityIds, etc.) so the user can verify completeness.
- */
-export async function scanForReferences(
+// ---------------------------------------------------------------------------
+// Scan context — shared state for a single scanForReferences call
+// ---------------------------------------------------------------------------
+
+type ScanFn = (
+  sourceType: MatchSourceType,
+  sourceId: string,
+  sourceName: string,
+  field: string,
+  text: string | undefined | null
+) => void;
+
+interface ScanContext {
+  entityId: string;
+  fullSlug: string;
+  partialSlugs: string[];
+  matches: RenameMatch[];
+  coveredPositions: Map<string, Set<string>>;
+  currentTier: MatchTier;
+}
+
+function markCovered(ctx: ScanContext, key: string, start: number, end: number) {
+  let set = ctx.coveredPositions.get(key);
+  if (!set) {
+    set = new Set();
+    ctx.coveredPositions.set(key, set);
+  }
+  set.add(`${start}:${end}`);
+}
+
+function isOverlapping(ctx: ScanContext, key: string, start: number, end: number): boolean {
+  const set = ctx.coveredPositions.get(key);
+  if (!set) return false;
+  for (const entry of set) {
+    const [cs, ce] = entry.split(":").map(Number);
+    if (start < ce && end > cs) return true;
+  }
+  return false;
+}
+
+function pushMatch(
+  ctx: ScanContext,
+  sourceType: MatchSourceType,
+  sourceId: string,
+  sourceName: string,
+  field: string,
+  matchType: RenameMatch["matchType"],
+  m: RawMatch,
+  text: string,
+  partialFragment?: string
+) {
+  const ctxText = extractContext(text, m.start, m.end);
+  ctx.matches.push({
+    id: nextMatchId(),
+    sourceType,
+    sourceId,
+    sourceName,
+    field,
+    matchType,
+    matchedText: m.matchedText,
+    position: m.start,
+    contextBefore: ctxText.before,
+    contextAfter: ctxText.after,
+    partialFragment,
+    tier: ctx.currentTier,
+  });
+}
+
+function scanTextField(
+  ctx: ScanContext,
+  sourceType: MatchSourceType,
+  sourceId: string,
+  sourceName: string,
+  field: string,
+  text: string | undefined | null
+) {
+  if (!text) return;
+  const { normalized, indexMap } = normalizeForMatch(text);
+  const posKey = `${sourceType}:${sourceId}:${field}`;
+
+  const fullMatches = findAllOccurrences(ctx.fullSlug, normalized, indexMap, text);
+  for (const m of fullMatches) {
+    markCovered(ctx, posKey, m.start, m.end);
+    pushMatch(ctx, sourceType, sourceId, sourceName, field, "full", m, text);
+  }
+
+  for (const partialSlug of ctx.partialSlugs) {
+    const partialMatches = findAllOccurrences(partialSlug, normalized, indexMap, text);
+    for (const m of partialMatches) {
+      if (isOverlapping(ctx, posKey, m.start, m.end)) continue;
+      markCovered(ctx, posKey, m.start, m.end);
+      pushMatch(ctx, sourceType, sourceId, sourceName, field, "partial", m, text, partialSlug);
+    }
+  }
+}
+
+function scanTextFieldFullNameOnly(
+  ctx: ScanContext,
+  sourceType: MatchSourceType,
+  sourceId: string,
+  sourceName: string,
+  field: string,
+  text: string | undefined | null
+) {
+  if (!text) return;
+  const { normalized, indexMap } = normalizeForMatch(text);
+  const posKey = `${sourceType}:${sourceId}:${field}`;
+
+  const fullMatches = findAllOccurrences(ctx.fullSlug, normalized, indexMap, text);
+  for (const m of fullMatches) {
+    if (isOverlapping(ctx, posKey, m.start, m.end)) continue;
+    markCovered(ctx, posKey, m.start, m.end);
+    pushMatch(ctx, sourceType, sourceId, sourceName, field, "full", m, text);
+  }
+}
+
+function scanEntityTextFields(entity: ScanEntity, ctx: ScanContext, scanFn: ScanFn) {
+  scanFn("entity", entity.id, entity.name, "summary", entity.summary);
+  scanFn("entity", entity.id, entity.name, "description", entity.description);
+  scanFn("entity", entity.id, entity.name, "narrativeHint", entity.narrativeHint);
+  if (entity.enrichment?.descriptionHistory) {
+    for (let i = 0; i < entity.enrichment.descriptionHistory.length; i++) {
+      scanFn(
+        "entity",
+        entity.id,
+        entity.name,
+        `enrichment.descriptionHistory[${i}].description`,
+        entity.enrichment.descriptionHistory[i].description
+      );
+    }
+  }
+}
+
+function pushMetadataMatch(
+  ctx: ScanContext,
+  sourceType: MatchSourceType,
+  sourceId: string,
+  sourceName: string,
+  field: string,
+  matchedText: string,
+  contextBefore: string,
+  contextAfter: string
+) {
+  ctx.matches.push({
+    id: nextMatchId(),
+    sourceType,
+    sourceId,
+    sourceName,
+    field,
+    matchType: "metadata",
+    matchedText,
+    position: 0,
+    contextBefore,
+    contextAfter,
+    tier: ctx.currentTier,
+  });
+}
+
+function scanChronicleMetadata(
+  chronicle: ChronicleRecord,
   entityId: string,
-  oldName: string,
-  entities: ScanEntity[],
-  chronicles: ChronicleRecord[],
-  relationships?: ScanRelationship[],
-  narrativeEvents?: ScanNarrativeEvent[]
-): Promise<RenameScanResult> {
-  matchIdCounter = 0;
-  const matches: RenameMatch[] = [];
-  const fullSlug = normalizeSlug(oldName);
-  const partialSlugs = generatePartials(oldName);
+  ctx: ScanContext
+) {
+  const cId = chronicle.chronicleId;
+  const cTitle = chronicle.title;
 
-  // Current tier label — set before each scan pass, read by match-push sites.
-  let currentTier: MatchTier = "general";
-
-  // Track positions covered by full matches to exclude from partial results
-  // Key: `${sourceType}:${sourceId}:${field}`, Value: Set of `${start}:${end}`
-  const coveredPositions = new Map<string, Set<string>>();
-
-  function markCovered(key: string, start: number, end: number) {
-    let set = coveredPositions.get(key);
-    if (!set) {
-      set = new Set();
-      coveredPositions.set(key, set);
-    }
-    set.add(`${start}:${end}`);
-  }
-
-  function isOverlapping(key: string, start: number, end: number): boolean {
-    const set = coveredPositions.get(key);
-    if (!set) return false;
-    for (const entry of set) {
-      const [cs, ce] = entry.split(":").map(Number);
-      // Overlap if ranges intersect
-      if (start < ce && end > cs) return true;
-    }
-    return false;
-  }
-
-  function scanTextField(
-    sourceType: "entity" | "chronicle" | "event",
-    sourceId: string,
-    sourceName: string,
-    field: string,
-    text: string | undefined | null
-  ) {
-    if (!text) return;
-
-    const { normalized, indexMap } = normalizeForMatch(text);
-    const posKey = `${sourceType}:${sourceId}:${field}`;
-
-    // Full name matches
-    const fullMatches = findAllOccurrences(fullSlug, normalized, indexMap, text);
-    for (const m of fullMatches) {
-      const ctx = extractContext(text, m.start, m.end);
-      markCovered(posKey, m.start, m.end);
-      matches.push({
-        id: nextMatchId(),
-        sourceType,
-        sourceId,
-        sourceName,
-        field,
-        matchType: "full",
-        matchedText: m.matchedText,
-        position: m.start,
-        contextBefore: ctx.before,
-        contextAfter: ctx.after,
-        tier: currentTier,
-      });
-    }
-
-    // Partial matches
-    for (const partialSlug of partialSlugs) {
-      const partialMatches = findAllOccurrences(partialSlug, normalized, indexMap, text);
-      for (const m of partialMatches) {
-        if (isOverlapping(posKey, m.start, m.end)) continue;
-        const ctx = extractContext(text, m.start, m.end);
-        markCovered(posKey, m.start, m.end);
-        matches.push({
-          id: nextMatchId(),
-          sourceType,
-          sourceId,
-          sourceName,
-          field,
-          matchType: "partial",
-          matchedText: m.matchedText,
-          position: m.start,
-          contextBefore: ctx.before,
-          contextAfter: ctx.after,
-          partialFragment: partialSlug,
-          tier: currentTier,
-        });
+  if (chronicle.roleAssignments) {
+    for (let i = 0; i < chronicle.roleAssignments.length; i++) {
+      const ra = chronicle.roleAssignments[i];
+      if (ra.entityId === entityId) {
+        pushMetadataMatch(ctx, "chronicle", cId, cTitle,
+          `roleAssignments[${i}].entityName`, ra.entityName,
+          `Role: ${ra.role}`, `(${ra.entityKind})`);
       }
     }
   }
 
-  // Scan uses a tiered approach based on hard FK links:
-  //
-  // 1. SELF: The entity's own summary/description/descriptionHistory (full + partial)
-  // 2. RELATED: Entities with relationships to this entity (full + partial)
-  //    Found via hard relationship FK lookup, not blind text search.
-  // 3. CAST CHRONICLES: Chronicles where this entity is a cast member (full + partial)
-  //    Found via selectedEntityIds FK, plus metadata (roleAssignments, lens, directives).
-  // 4. GENERAL: All other entities and chronicles (FULL NAME ONLY, no partials)
-  //    Avoids noise from common word fragments like "amulet" appearing everywhere.
-  //
-  // FK references (relationships, chronicle cast) are shown as non-actionable
-  // id_slug matches so the user can audit whether the sweep was comprehensive.
-
-  const entityById = new Map(entities.map((e) => [e.id, e]));
-
-  // --- Build related entity set from relationships ---
-  const relatedEntityIds = new Set<string>();
-  if (relationships) {
-    for (const rel of relationships) {
-      if (rel.src === entityId) relatedEntityIds.add(rel.dst);
-      if (rel.dst === entityId) relatedEntityIds.add(rel.src);
-    }
+  if (chronicle.lens && chronicle.lens.entityId === entityId) {
+    pushMetadataMatch(ctx, "chronicle", cId, cTitle,
+      "lens.entityName", chronicle.lens.entityName,
+      "Lens:", `(${chronicle.lens.entityKind})`);
   }
 
-  // --- Build cast chronicle set from selectedEntityIds ---
-  const castChronicleIds = new Set<string>();
-  for (const chronicle of chronicles) {
-    if (chronicle.selectedEntityIds?.includes(entityId)) {
-      castChronicleIds.add(chronicle.chronicleId);
-    }
-  }
-
-  // --- Helper: scan all entity text fields (summary, description, narrativeHint, descriptionHistory) ---
-  function scanEntityTextFields(
-    entity: ScanEntity,
-    scanFn: (
-      sourceType: "entity" | "chronicle" | "event",
-      sourceId: string,
-      sourceName: string,
-      field: string,
-      text: string | undefined | null
-    ) => void
-  ) {
-    scanFn("entity", entity.id, entity.name, "summary", entity.summary);
-    scanFn("entity", entity.id, entity.name, "description", entity.description);
-    scanFn("entity", entity.id, entity.name, "narrativeHint", entity.narrativeHint);
-    if (entity.enrichment?.descriptionHistory) {
-      for (let i = 0; i < entity.enrichment.descriptionHistory.length; i++) {
-        scanFn(
-          "entity",
-          entity.id,
-          entity.name,
-          `enrichment.descriptionHistory[${i}].description`,
-          entity.enrichment.descriptionHistory[i].description
-        );
+  if (chronicle.generationContext?.entityDirectives) {
+    for (let i = 0; i < chronicle.generationContext.entityDirectives.length; i++) {
+      const ed = chronicle.generationContext.entityDirectives[i];
+      if (ed.entityId === entityId) {
+        pushMetadataMatch(ctx, "chronicle", cId, cTitle,
+          `generationContext.entityDirectives[${i}].entityName`, ed.entityName,
+          "Directive:", ed.directive.slice(0, 40) + (ed.directive.length > 40 ? "..." : ""));
       }
     }
   }
+}
 
-  // --- Full + partial scan (for self, related, cast) ---
-  function scanTextFieldFullAndPartial(
-    sourceType: "entity" | "chronicle" | "event",
-    sourceId: string,
-    sourceName: string,
-    field: string,
-    text: string | undefined | null
-  ) {
-    scanTextField(sourceType, sourceId, sourceName, field, text);
-  }
+function scanChronicleTextFields(
+  chronicle: ChronicleRecord,
+  scanFn: ScanFn
+) {
+  const cId = chronicle.chronicleId;
+  const cTitle = chronicle.title;
 
-  // --- Full name only scan (for general sweep) ---
-  function scanTextFieldFullNameOnly(
-    sourceType: "entity" | "chronicle" | "event",
-    sourceId: string,
-    sourceName: string,
-    field: string,
-    text: string | undefined | null
-  ) {
-    if (!text) return;
+  scanFn("chronicle", cId, cTitle, "assembledContent", chronicle.assembledContent);
+  scanFn("chronicle", cId, cTitle, "finalContent", chronicle.finalContent);
+  scanFn("chronicle", cId, cTitle, "summary", chronicle.summary);
 
-    const { normalized, indexMap } = normalizeForMatch(text);
-    const posKey = `${sourceType}:${sourceId}:${field}`;
-
-    const fullMatches = findAllOccurrences(fullSlug, normalized, indexMap, text);
-    for (const m of fullMatches) {
-      if (isOverlapping(posKey, m.start, m.end)) continue;
-      const ctx = extractContext(text, m.start, m.end);
-      markCovered(posKey, m.start, m.end);
-      matches.push({
-        id: nextMatchId(),
-        sourceType,
-        sourceId,
-        sourceName,
-        field,
-        matchType: "full",
-        matchedText: m.matchedText,
-        position: m.start,
-        contextBefore: ctx.before,
-        contextAfter: ctx.after,
-        tier: currentTier,
-      });
+  if (chronicle.generationHistory) {
+    for (const version of chronicle.generationHistory) {
+      scanFn("chronicle", cId, cTitle, `generationHistory.${version.versionId}`, version.content);
     }
   }
+}
 
-  // =========================================================================
-  // 1. SELF: The renamed entity's own fields (full + partial)
-  // =========================================================================
-  currentTier = "self";
-  const selfEntity = entityById.get(entityId);
-  if (selfEntity) {
-    scanEntityTextFields(selfEntity, scanTextFieldFullAndPartial);
+function scanEventMetadataFields(
+  event: ScanNarrativeEvent,
+  entityId: string,
+  ctx: ScanContext
+) {
+  const eId = event.id;
+  const eName = event.description.length > 60
+    ? event.description.slice(0, 57) + "..."
+    : event.description;
+
+  if (event.subject.id === entityId) {
+    pushMetadataMatch(ctx, "event", eId, eName, "subject.name",
+      event.subject.name, "Subject:", "");
   }
 
-  // =========================================================================
-  // 2. RELATED: Entities connected via relationship FK (full + partial)
-  // =========================================================================
-  currentTier = "related";
-  for (const relEntityId of relatedEntityIds) {
-    const relEntity = entityById.get(relEntityId);
-    if (!relEntity) continue;
-    scanEntityTextFields(relEntity, scanTextFieldFullAndPartial);
-  }
-
-  // =========================================================================
-  // 3. CAST CHRONICLES: Chronicles where entity is a cast member (full + partial + metadata)
-  // =========================================================================
-  currentTier = "cast";
-  for (const chronicle of chronicles) {
-    if (!castChronicleIds.has(chronicle.chronicleId)) continue;
-
-    const cId = chronicle.chronicleId;
-    const cTitle = chronicle.title;
-
-    // Metadata matches (denormalized entityName fields)
-    if (chronicle.roleAssignments) {
-      for (let i = 0; i < chronicle.roleAssignments.length; i++) {
-        const ra = chronicle.roleAssignments[i];
-        if (ra.entityId === entityId) {
-          matches.push({
-            id: nextMatchId(),
-            sourceType: "chronicle",
-            sourceId: cId,
-            sourceName: cTitle,
-            field: `roleAssignments[${i}].entityName`,
-            matchType: "metadata",
-            matchedText: ra.entityName,
-            position: 0,
-            contextBefore: `Role: ${ra.role}`,
-            contextAfter: `(${ra.entityKind})`,
-            tier: currentTier,
-          });
-        }
-      }
+  for (let pi = 0; pi < event.participantEffects.length; pi++) {
+    const pe = event.participantEffects[pi];
+    if (pe.entity.id === entityId) {
+      pushMetadataMatch(ctx, "event", eId, eName,
+        `participantEffects[${pi}].entity.name`, pe.entity.name,
+        "Participant:", "");
     }
-
-    if (chronicle.lens && chronicle.lens.entityId === entityId) {
-      matches.push({
-        id: nextMatchId(),
-        sourceType: "chronicle",
-        sourceId: cId,
-        sourceName: cTitle,
-        field: "lens.entityName",
-        matchType: "metadata",
-        matchedText: chronicle.lens.entityName,
-        position: 0,
-        contextBefore: "Lens:",
-        contextAfter: `(${chronicle.lens.entityKind})`,
-        tier: currentTier,
-      });
-    }
-
-    if (chronicle.generationContext?.entityDirectives) {
-      for (let i = 0; i < chronicle.generationContext.entityDirectives.length; i++) {
-        const ed = chronicle.generationContext.entityDirectives[i];
-        if (ed.entityId === entityId) {
-          matches.push({
-            id: nextMatchId(),
-            sourceType: "chronicle",
-            sourceId: cId,
-            sourceName: cTitle,
-            field: `generationContext.entityDirectives[${i}].entityName`,
-            matchType: "metadata",
-            matchedText: ed.entityName,
-            position: 0,
-            contextBefore: "Directive:",
-            contextAfter: ed.directive.slice(0, 40) + (ed.directive.length > 40 ? "..." : ""),
-            tier: currentTier,
-          });
-        }
-      }
-    }
-
-    // Text field matches (full + partial since this entity is in the cast)
-    scanTextFieldFullAndPartial(
-      "chronicle",
-      cId,
-      cTitle,
-      "assembledContent",
-      chronicle.assembledContent
-    );
-    scanTextFieldFullAndPartial("chronicle", cId, cTitle, "finalContent", chronicle.finalContent);
-    scanTextFieldFullAndPartial("chronicle", cId, cTitle, "summary", chronicle.summary);
-
-    if (chronicle.generationHistory) {
-      for (const version of chronicle.generationHistory) {
-        scanTextFieldFullAndPartial(
-          "chronicle",
-          cId,
-          cTitle,
-          `generationHistory.${version.versionId}`,
-          version.content
-        );
+    for (let ei = 0; ei < pe.effects.length; ei++) {
+      const eff = pe.effects[ei];
+      if (eff.relatedEntity && eff.relatedEntity.id === entityId) {
+        pushMetadataMatch(ctx, "event", eId, eName,
+          `participantEffects[${pi}].effects[${ei}].relatedEntity.name`,
+          eff.relatedEntity.name, `Related entity (${pe.entity.name}):`, "");
       }
     }
   }
+}
 
-  // =========================================================================
-  // 4. GENERAL SWEEP: All other entities and chronicles (FULL NAME ONLY)
-  //    No partial matches here to avoid noise from common word fragments.
-  // =========================================================================
-  currentTier = "general";
-  const scannedEntityIds = new Set([entityId, ...relatedEntityIds]);
-  for (const entity of entities) {
-    if (scannedEntityIds.has(entity.id)) continue;
-    scanEntityTextFields(entity, scanTextFieldFullNameOnly);
-  }
+function scanEventEffectDescriptions(
+  event: ScanNarrativeEvent,
+  scanFn: ScanFn
+) {
+  const eId = event.id;
+  const eName = event.description.length > 60
+    ? event.description.slice(0, 57) + "..."
+    : event.description;
 
-  for (const chronicle of chronicles) {
-    if (castChronicleIds.has(chronicle.chronicleId)) continue;
-    const cId = chronicle.chronicleId;
-    const cTitle = chronicle.title;
-
-    // Still check metadata by ID (these are always relevant)
-    if (chronicle.roleAssignments) {
-      for (let i = 0; i < chronicle.roleAssignments.length; i++) {
-        const ra = chronicle.roleAssignments[i];
-        if (ra.entityId === entityId) {
-          matches.push({
-            id: nextMatchId(),
-            sourceType: "chronicle",
-            sourceId: cId,
-            sourceName: cTitle,
-            field: `roleAssignments[${i}].entityName`,
-            matchType: "metadata",
-            matchedText: ra.entityName,
-            position: 0,
-            contextBefore: `Role: ${ra.role}`,
-            contextAfter: `(${ra.entityKind})`,
-            tier: currentTier,
-          });
-        }
-      }
-    }
-
-    if (chronicle.lens && chronicle.lens.entityId === entityId) {
-      matches.push({
-        id: nextMatchId(),
-        sourceType: "chronicle",
-        sourceId: cId,
-        sourceName: cTitle,
-        field: "lens.entityName",
-        matchType: "metadata",
-        matchedText: chronicle.lens.entityName,
-        position: 0,
-        contextBefore: "Lens:",
-        contextAfter: `(${chronicle.lens.entityKind})`,
-        tier: currentTier,
-      });
-    }
-
-    // Full name only text search
-    scanTextFieldFullNameOnly(
-      "chronicle",
-      cId,
-      cTitle,
-      "assembledContent",
-      chronicle.assembledContent
-    );
-    scanTextFieldFullNameOnly("chronicle", cId, cTitle, "finalContent", chronicle.finalContent);
-    scanTextFieldFullNameOnly("chronicle", cId, cTitle, "summary", chronicle.summary);
-
-    if (chronicle.generationHistory) {
-      for (const version of chronicle.generationHistory) {
-        scanTextFieldFullNameOnly(
-          "chronicle",
-          cId,
-          cTitle,
-          `generationHistory.${version.versionId}`,
-          version.content
-        );
-      }
+  for (let pi = 0; pi < event.participantEffects.length; pi++) {
+    const pe = event.participantEffects[pi];
+    for (let ei = 0; ei < pe.effects.length; ei++) {
+      scanFn("event", eId, eName,
+        `participantEffects[${pi}].effects[${ei}].description`,
+        pe.effects[ei].description);
     }
   }
+}
 
-  // =========================================================================
-  // 5. NARRATIVE EVENTS: Events from simulation history
-  //    Participant events (entity is subject or participant) → full + partial
-  //    Non-participant events → full name only
-  // =========================================================================
-  if (narrativeEvents) {
-    // Build set of events where entity is a participant
-    const participantEventIds = new Set<string>();
-    for (const event of narrativeEvents) {
-      if (event.subject.id === entityId) {
+function scanNarrativeEvents(
+  narrativeEvents: ScanNarrativeEvent[],
+  entityId: string,
+  ctx: ScanContext
+) {
+  const participantEventIds = new Set<string>();
+  for (const event of narrativeEvents) {
+    if (event.subject.id === entityId) {
+      participantEventIds.add(event.id);
+      continue;
+    }
+    for (const pe of event.participantEffects) {
+      if (pe.entity.id === entityId) {
         participantEventIds.add(event.id);
-        continue;
-      }
-      for (const pe of event.participantEffects) {
-        if (pe.entity.id === entityId) {
-          participantEventIds.add(event.id);
-          break;
-        }
-      }
-    }
-
-    for (const event of narrativeEvents) {
-      const eId = event.id;
-      const eName =
-        event.description.length > 60 ? event.description.slice(0, 57) + "..." : event.description;
-      const isParticipant = participantEventIds.has(eId);
-      currentTier = isParticipant ? "participant" : "mention";
-      const scan = isParticipant ? scanTextFieldFullAndPartial : scanTextFieldFullNameOnly;
-
-      // Structured name fields (metadata matches for participant events)
-      if (isParticipant) {
-        if (event.subject.id === entityId) {
-          matches.push({
-            id: nextMatchId(),
-            sourceType: "event",
-            sourceId: eId,
-            sourceName: eName,
-            field: "subject.name",
-            matchType: "metadata",
-            matchedText: event.subject.name,
-            position: 0,
-            contextBefore: "Subject:",
-            contextAfter: "",
-            tier: currentTier,
-          });
-        }
-        for (let pi = 0; pi < event.participantEffects.length; pi++) {
-          const pe = event.participantEffects[pi];
-          if (pe.entity.id === entityId) {
-            matches.push({
-              id: nextMatchId(),
-              sourceType: "event",
-              sourceId: eId,
-              sourceName: eName,
-              field: `participantEffects[${pi}].entity.name`,
-              matchType: "metadata",
-              matchedText: pe.entity.name,
-              position: 0,
-              contextBefore: "Participant:",
-              contextAfter: "",
-              tier: currentTier,
-            });
-          }
-          for (let ei = 0; ei < pe.effects.length; ei++) {
-            const eff = pe.effects[ei];
-            if (eff.relatedEntity && eff.relatedEntity.id === entityId) {
-              matches.push({
-                id: nextMatchId(),
-                sourceType: "event",
-                sourceId: eId,
-                sourceName: eName,
-                field: `participantEffects[${pi}].effects[${ei}].relatedEntity.name`,
-                matchType: "metadata",
-                matchedText: eff.relatedEntity.name,
-                position: 0,
-                contextBefore: `Related entity (${pe.entity.name}):`,
-                contextAfter: "",
-                tier: currentTier,
-              });
-            }
-          }
-        }
-      }
-
-      // Free-text fields
-      scan("event", eId, eName, "description", event.description);
-      scan("event", eId, eName, "action", event.action);
-
-      // Scan effect descriptions for participant events
-      if (isParticipant) {
-        for (let pi = 0; pi < event.participantEffects.length; pi++) {
-          const pe = event.participantEffects[pi];
-          for (let ei = 0; ei < pe.effects.length; ei++) {
-            scan(
-              "event",
-              eId,
-              eName,
-              `participantEffects[${pi}].effects[${ei}].description`,
-              pe.effects[ei].description
-            );
-          }
-        }
+        break;
       }
     }
   }
 
-  // =========================================================================
-  // FK references (informational) - show the user all hard connections
-  // =========================================================================
+  const fullAndPartial: ScanFn = (st, si, sn, f, t) => scanTextField(ctx, st, si, sn, f, t);
+  const fullOnly: ScanFn = (st, si, sn, f, t) => scanTextFieldFullNameOnly(ctx, st, si, sn, f, t);
+
+  for (const event of narrativeEvents) {
+    const eId = event.id;
+    const eName = event.description.length > 60
+      ? event.description.slice(0, 57) + "..."
+      : event.description;
+    const isParticipant = participantEventIds.has(eId);
+    ctx.currentTier = isParticipant ? "participant" : "mention";
+    const scan = isParticipant ? fullAndPartial : fullOnly;
+
+    if (isParticipant) {
+      scanEventMetadataFields(event, entityId, ctx);
+    }
+
+    scan("event", eId, eName, "description", event.description);
+    scan("event", eId, eName, "action", event.action);
+
+    if (isParticipant) {
+      scanEventEffectDescriptions(event, scan);
+    }
+  }
+}
+
+function scanFkReferences(
+  entityId: string,
+  entityById: Map<string, ScanEntity>,
+  relationships: ScanRelationship[] | undefined,
+  chronicles: ChronicleRecord[],
+  ctx: ScanContext
+) {
   if (relationships) {
     for (const rel of relationships) {
       if (rel.src !== entityId && rel.dst !== entityId) continue;
       const otherId = rel.src === entityId ? rel.dst : rel.src;
       const otherName = entityById.get(otherId)?.name || otherId;
       const direction = rel.src === entityId ? "outgoing" : "incoming";
-      matches.push({
+      ctx.matches.push({
         id: nextMatchId(),
         sourceType: "entity",
         sourceId: otherId,
@@ -859,7 +671,7 @@ export async function scanForReferences(
         matchedText: entityId,
         position: 0,
         contextBefore: `${direction} ${rel.kind}:`,
-        contextAfter: `→ ${otherName}${rel.status === "historical" ? " (historical)" : ""}`,
+        contextAfter: `\u2192 ${otherName}${rel.status === "historical" ? " (historical)" : ""}`,
         tier: "related",
       });
     }
@@ -867,7 +679,7 @@ export async function scanForReferences(
 
   for (const chronicle of chronicles) {
     if (chronicle.selectedEntityIds?.includes(entityId)) {
-      matches.push({
+      ctx.matches.push({
         id: nextMatchId(),
         sourceType: "chronicle",
         sourceId: chronicle.chronicleId,
@@ -882,8 +694,97 @@ export async function scanForReferences(
       });
     }
   }
+}
 
-  return { entityId, oldName, matches };
+/**
+ * Scan all entities and chronicles for references to the given entity name.
+ * Also surfaces all foreign-key references to the entity ID (relationships,
+ * chronicle selectedEntityIds, etc.) so the user can verify completeness.
+ */
+export function scanForReferences(
+  entityId: string,
+  oldName: string,
+  entities: ScanEntity[],
+  chronicles: ChronicleRecord[],
+  relationships?: ScanRelationship[],
+  narrativeEvents?: ScanNarrativeEvent[]
+): RenameScanResult {
+  matchIdCounter = 0;
+
+  const ctx: ScanContext = {
+    entityId,
+    fullSlug: normalizeSlug(oldName),
+    partialSlugs: generatePartials(oldName),
+    matches: [],
+    coveredPositions: new Map(),
+    currentTier: "general",
+  };
+
+  const fullAndPartial: ScanFn = (st, si, sn, f, t) => scanTextField(ctx, st, si, sn, f, t);
+  const fullOnly: ScanFn = (st, si, sn, f, t) => scanTextFieldFullNameOnly(ctx, st, si, sn, f, t);
+
+  const entityById = new Map(entities.map((e) => [e.id, e]));
+
+  // Build related entity set from relationships
+  const relatedEntityIds = new Set<string>();
+  if (relationships) {
+    for (const rel of relationships) {
+      if (rel.src === entityId) relatedEntityIds.add(rel.dst);
+      if (rel.dst === entityId) relatedEntityIds.add(rel.src);
+    }
+  }
+
+  // Build cast chronicle set
+  const castChronicleIds = new Set<string>();
+  for (const chronicle of chronicles) {
+    if (chronicle.selectedEntityIds?.includes(entityId)) {
+      castChronicleIds.add(chronicle.chronicleId);
+    }
+  }
+
+  // 1. SELF
+  ctx.currentTier = "self";
+  const selfEntity = entityById.get(entityId);
+  if (selfEntity) scanEntityTextFields(selfEntity, ctx, fullAndPartial);
+
+  // 2. RELATED
+  ctx.currentTier = "related";
+  for (const relEntityId of relatedEntityIds) {
+    const relEntity = entityById.get(relEntityId);
+    if (relEntity) scanEntityTextFields(relEntity, ctx, fullAndPartial);
+  }
+
+  // 3. CAST CHRONICLES
+  ctx.currentTier = "cast";
+  for (const chronicle of chronicles) {
+    if (!castChronicleIds.has(chronicle.chronicleId)) continue;
+    scanChronicleMetadata(chronicle, entityId, ctx);
+    scanChronicleTextFields(chronicle, fullAndPartial);
+  }
+
+  // 4. GENERAL SWEEP
+  ctx.currentTier = "general";
+  const scannedEntityIds = new Set([entityId, ...relatedEntityIds]);
+  for (const entity of entities) {
+    if (scannedEntityIds.has(entity.id)) continue;
+    scanEntityTextFields(entity, ctx, fullOnly);
+  }
+
+  for (const chronicle of chronicles) {
+    if (castChronicleIds.has(chronicle.chronicleId)) continue;
+    scanChronicleMetadata(chronicle, entityId, ctx);
+    scanChronicleTextFields(chronicle, fullOnly);
+  }
+
+  // 5. NARRATIVE EVENTS
+  if (narrativeEvents) {
+    scanNarrativeEvents(narrativeEvents, entityId, ctx);
+  }
+
+  // FK references
+  scanFkReferences(entityId, entityById, relationships, chronicles, ctx);
+
+  return { entityId, oldName, matches: ctx.matches };
 }
 
 // ---------------------------------------------------------------------------
@@ -985,6 +886,95 @@ interface AdjustedReplacement {
  * Applies deterministic rules for article deduplication, case echo,
  * mid-sentence lowercasing, a/an agreement, and possessive transfer.
  */
+interface GrammarState {
+  position: number;
+  originalLength: number;
+  replacement: string;
+}
+
+function applyCaseEcho(state: GrammarState, casePattern: CasePattern): void {
+  if (casePattern === "allCaps") {
+    state.replacement = state.replacement.toUpperCase();
+  } else if (casePattern === "allLower") {
+    state.replacement = state.replacement.toLowerCase();
+  }
+}
+
+function applyArticleDeduplication(
+  state: GrammarState,
+  matchPosition: number,
+  matchedTextLength: number,
+  precedingArticle: PrecedingArticle | null
+): boolean {
+  const startsWithThe = /^the\s/i.test(state.replacement);
+  if (!startsWithThe || !precedingArticle) return false;
+
+  const theMatch = state.replacement.match(/^(the\s+)/i);
+  if (!theMatch) return false;
+  const thePrefix = theMatch[0];
+  const withoutThe = state.replacement.slice(thePrefix.length);
+
+  if (precedingArticle.normalized === "the") {
+    state.replacement = withoutThe;
+  } else {
+    state.position = matchPosition - precedingArticle.length;
+    state.originalLength = matchedTextLength + precedingArticle.length;
+    const wasCapitalized = /^[A-Z]/.test(precedingArticle.text);
+    state.replacement = (wasCapitalized ? "The " : "the ") + withoutThe;
+  }
+  return true;
+}
+
+function applyMidSentenceArticleLowercasing(state: GrammarState): void {
+  const articleMatch = state.replacement.match(/^(The|A|An)\b/);
+  if (articleMatch) {
+    state.replacement = articleMatch[1].toLowerCase() + state.replacement.slice(articleMatch[1].length);
+  }
+}
+
+function applyAAnAgreement(
+  state: GrammarState,
+  matchPosition: number,
+  matchedTextLength: number,
+  precedingArticle: PrecedingArticle
+): void {
+  const needsAn = startsWithVowelSound(state.replacement);
+  const hasAn = precedingArticle.normalized === "an";
+  if (needsAn === hasAn) return;
+
+  const correctArticle = needsAn ? "an" : "a";
+  const wasCapitalized = /^[A-Z]/.test(precedingArticle.text);
+  const casedArticle = wasCapitalized
+    ? correctArticle[0].toUpperCase() + correctArticle.slice(1)
+    : correctArticle;
+
+  state.position = matchPosition - precedingArticle.length;
+  state.originalLength = matchedTextLength + precedingArticle.length;
+  state.replacement = casedArticle + " " + state.replacement;
+}
+
+function applyPossessiveTransfer(state: GrammarState, rawAfter: string): void {
+  const possessiveMatch = rawAfter.match(
+    /^(?:'\u0073|\u2019s|'(?=[^a-zA-Z]|$)|\u2019(?=[^a-zA-Z]|$))/
+  );
+  if (!possessiveMatch) return;
+
+  const possessiveText = possessiveMatch[0];
+  const alreadyPossessive =
+    state.replacement.endsWith("'s") ||
+    state.replacement.endsWith("\u2019s") ||
+    state.replacement.endsWith("'") ||
+    state.replacement.endsWith("\u2019");
+
+  if (alreadyPossessive) return;
+
+  state.originalLength += possessiveText.length;
+  const lastChar = state.replacement[state.replacement.length - 1]?.toLowerCase() ?? "";
+  const useBareSuffix = lastChar === "s" || lastChar === "x" || lastChar === "z";
+  const apostrophe = possessiveText.includes("\u2019") ? "\u2019" : "'";
+  state.replacement += useBareSuffix ? apostrophe : apostrophe + "s";
+}
+
 export function adjustReplacementForGrammar(
   contextBefore: string,
   contextAfter: string,
@@ -992,98 +982,39 @@ export function adjustReplacementForGrammar(
   matchedText: string,
   replacement: string
 ): AdjustedReplacement {
-  let adjPosition = matchPosition;
-  let adjOriginalLength = matchedText.length;
-  let adjReplacement = replacement;
+  const state: GrammarState = {
+    position: matchPosition,
+    originalLength: matchedText.length,
+    replacement,
+  };
 
   const rawBefore = rawCtxBefore(contextBefore);
   const rawAfter = rawCtxAfter(contextAfter);
   const sentenceStart = isAtSentenceStart(rawBefore);
   const casePattern = detectCasePattern(matchedText);
 
-  // ── Rule 1: Case Echo ──
-  if (casePattern === "allCaps") {
-    adjReplacement = adjReplacement.toUpperCase();
-  } else if (casePattern === "allLower") {
-    adjReplacement = adjReplacement.toLowerCase();
-  }
+  applyCaseEcho(state, casePattern);
 
-  // ── Rule 2: Article Deduplication ──
-  const replacementStartsWithThe = /^the\s/i.test(adjReplacement);
   const precedingArticle = findPrecedingArticle(rawBefore);
-  let articleAbsorbed = false;
+  const replacementStartsWithThe = /^the\s/i.test(state.replacement);
+  const articleAbsorbed = applyArticleDeduplication(state, matchPosition, matchedText.length, precedingArticle);
 
-  if (replacementStartsWithThe && precedingArticle) {
-    const thePrefix = adjReplacement.match(/^(the\s+)/i)![0];
-    const replacementWithoutThe = adjReplacement.slice(thePrefix.length);
-
-    if (precedingArticle.normalized === "the") {
-      // "the Gore-Ruin" → "the End War" — keep preceding "the", strip from replacement
-      adjReplacement = replacementWithoutThe;
-    } else {
-      // "a Gore-Ruin" → "the End War" — absorb preceding article, replace with "the"
-      adjPosition = matchPosition - precedingArticle.length;
-      adjOriginalLength = matchedText.length + precedingArticle.length;
-      const wasCapitalized = /^[A-Z]/.test(precedingArticle.text);
-      adjReplacement = (wasCapitalized ? "The " : "the ") + replacementWithoutThe;
-    }
-    articleAbsorbed = true;
-  }
-
-  // ── Rule 3: Mid-sentence article lowercasing ──
   if (!sentenceStart && casePattern !== "allCaps" && !articleAbsorbed) {
-    const articleMatch = adjReplacement.match(/^(The|A|An)\b/);
-    if (articleMatch) {
-      adjReplacement = articleMatch[1].toLowerCase() + adjReplacement.slice(articleMatch[1].length);
-    }
+    applyMidSentenceArticleLowercasing(state);
   }
 
-  // ── Rule 4: A/an agreement ──
   if (
     precedingArticle &&
     !replacementStartsWithThe &&
     !articleAbsorbed &&
     (precedingArticle.normalized === "a" || precedingArticle.normalized === "an")
   ) {
-    const needsAn = startsWithVowelSound(adjReplacement);
-    const hasAn = precedingArticle.normalized === "an";
-
-    if (needsAn !== hasAn) {
-      const correctArticle = needsAn ? "an" : "a";
-      const wasCapitalized = /^[A-Z]/.test(precedingArticle.text);
-      const casedArticle = wasCapitalized
-        ? correctArticle[0].toUpperCase() + correctArticle.slice(1)
-        : correctArticle;
-
-      adjPosition = matchPosition - precedingArticle.length;
-      adjOriginalLength = matchedText.length + precedingArticle.length;
-      adjReplacement = casedArticle + " " + adjReplacement;
-    }
+    applyAAnAgreement(state, matchPosition, matchedText.length, precedingArticle);
   }
 
-  // ── Rule 5: Possessive transfer ──
-  const possessiveMatch = rawAfter.match(
-    /^(?:'\u0073|\u2019s|'(?=[^a-zA-Z]|$)|\u2019(?=[^a-zA-Z]|$))/
-  );
-  if (possessiveMatch) {
-    const possessiveText = possessiveMatch[0];
-    const alreadyPossessive =
-      adjReplacement.endsWith("'s") ||
-      adjReplacement.endsWith("\u2019s") ||
-      adjReplacement.endsWith("'") ||
-      adjReplacement.endsWith("\u2019");
+  applyPossessiveTransfer(state, rawAfter);
 
-    if (!alreadyPossessive) {
-      adjOriginalLength += possessiveText.length;
-      const lastChar = adjReplacement[adjReplacement.length - 1]?.toLowerCase() ?? "";
-      const useBareSuffix = lastChar === "s" || lastChar === "x" || lastChar === "z";
-      const apostrophe = possessiveText.includes("\u2019") ? "\u2019" : "'";
-
-      adjReplacement += useBareSuffix ? apostrophe : apostrophe + "s";
-    }
-  }
-
-  return { position: adjPosition, originalLength: adjOriginalLength, replacement: adjReplacement };
+  return { position: state.position, originalLength: state.originalLength, replacement: state.replacement };
 }
 
 // ---------------------------------------------------------------------------
@@ -1114,6 +1045,62 @@ export function applyReplacements(text: string, replacements: FieldReplacement[]
 /**
  * Build concrete patches from scan results and user decisions.
  */
+function processChronicleMetadataMatch(
+  meta: Partial<ChronicleRecord>,
+  field: string,
+  replacementText: string
+): void {
+  if (field.startsWith("roleAssignments[")) {
+    const idxMatch = field.match(/\[(\d+)\]/);
+    if (idxMatch) {
+      const idx = parseInt(idxMatch[1], 10);
+      if (!meta.roleAssignments) {
+        meta._roleAssignmentUpdates = meta._roleAssignmentUpdates || [];
+        (meta as any)._roleAssignmentUpdates.push({ index: idx, entityName: replacementText });
+      }
+    }
+  } else if (field === "lens.entityName") {
+    (meta as any)._lensNameUpdate = replacementText;
+  } else if (field.startsWith("generationContext.entityDirectives[")) {
+    const idxMatch = field.match(/\[(\d+)\]/);
+    if (idxMatch) {
+      const idx = parseInt(idxMatch[1], 10);
+      (meta as any)._directiveUpdates = (meta as any)._directiveUpdates || [];
+      (meta as any)._directiveUpdates.push({ index: idx, entityName: replacementText });
+    }
+  }
+}
+
+function computeReplacement(match: RenameMatch, decision: MatchDecision, newName: string): FieldReplacement {
+  const replacementText = decision.action === "edit" ? (decision.editText ?? newName) : newName;
+  const isEdit = decision.action === "edit";
+  const adjusted = isEdit
+    ? { position: match.position, originalLength: match.matchedText.length, replacement: replacementText }
+    : adjustReplacementForGrammar(match.contextBefore, match.contextAfter, match.position, match.matchedText, replacementText);
+  return { position: adjusted.position, originalLength: adjusted.originalLength, replacement: adjusted.replacement };
+}
+
+function appendReplacementToMap(
+  patchMap: Map<string, Record<string, any>>,
+  sourceId: string,
+  field: string,
+  replacement: FieldReplacement,
+  serialize: boolean
+): void {
+  const existing = patchMap.get(sourceId) || {};
+  const rKey = `__replacements_${field}`;
+  if (serialize) {
+    const list: FieldReplacement[] = existing[rKey] ? JSON.parse(existing[rKey]) : [];
+    list.push(replacement);
+    existing[rKey] = JSON.stringify(list);
+  } else {
+    const list: FieldReplacement[] = (existing[rKey] as FieldReplacement[]) || [];
+    list.push(replacement);
+    existing[rKey] = list;
+  }
+  patchMap.set(sourceId, existing);
+}
+
 export function buildRenamePatches(
   scanResult: RenameScanResult,
   newName: string,
@@ -1121,15 +1108,10 @@ export function buildRenamePatches(
 ): RenamePatches {
   const decisionMap = new Map(decisions.map((d) => [d.matchId, d]));
 
-  // Patch maps — accumulated directly during the match loop
-  const entityPatchMap = new Map<string, Record<string, string>>();
-  const chroniclePatchMap = new Map<string, Record<string, unknown>>();
-  const eventPatchMap = new Map<string, Record<string, string>>();
-
-  // Track metadata updates per chronicle
+  const entityPatchMap = new Map<string, Record<string, any>>();
+  const chroniclePatchMap = new Map<string, Record<string, any>>();
+  const eventPatchMap = new Map<string, Record<string, any>>();
   const chronicleMetaUpdates = new Map<string, Partial<ChronicleRecord>>();
-
-  // Track metadata updates per event (structured name fields)
   const eventMetaUpdates = new Map<string, Record<string, string>>();
 
   for (const match of scanResult.matches) {
@@ -1140,83 +1122,23 @@ export function buildRenamePatches(
 
     if (match.matchType === "metadata") {
       if (match.sourceType === "event") {
-        // Event metadata: structured name fields (subject.name, participant names, etc.)
         const meta = eventMetaUpdates.get(match.sourceId) || {};
         meta[match.field] = replacementText;
         eventMetaUpdates.set(match.sourceId, meta);
       } else {
-        // Chronicle metadata: denormalized fields
         const meta = chronicleMetaUpdates.get(match.sourceId) || {};
-
-        if (match.field.startsWith("roleAssignments[")) {
-          const idxMatch = match.field.match(/\[(\d+)\]/);
-          if (idxMatch) {
-            const idx = parseInt(idxMatch[1], 10);
-            if (!meta.roleAssignments) {
-              meta._roleAssignmentUpdates = meta._roleAssignmentUpdates || [];
-              (meta as any)._roleAssignmentUpdates.push({
-                index: idx,
-                entityName: replacementText,
-              });
-            }
-          }
-        } else if (match.field === "lens.entityName") {
-          (meta as any)._lensNameUpdate = replacementText;
-        } else if (match.field.startsWith("generationContext.entityDirectives[")) {
-          const idxMatch = match.field.match(/\[(\d+)\]/);
-          if (idxMatch) {
-            const idx = parseInt(idxMatch[1], 10);
-            (meta as any)._directiveUpdates = (meta as any)._directiveUpdates || [];
-            (meta as any)._directiveUpdates.push({ index: idx, entityName: replacementText });
-          }
-        }
-
+        processChronicleMetadataMatch(meta, match.field, replacementText);
         chronicleMetaUpdates.set(match.sourceId, meta);
       }
     } else {
-      // Text field replacement — apply grammar adjustment for accepts only
-      // Edit mode uses the user's exact text (preserves intentional casing)
-      const isEdit = decision.action === "edit";
-      const adjusted = isEdit
-        ? {
-            position: match.position,
-            originalLength: match.matchedText.length,
-            replacement: replacementText,
-          }
-        : adjustReplacementForGrammar(
-            match.contextBefore,
-            match.contextAfter,
-            match.position,
-            match.matchedText,
-            replacementText
-          );
-      const replacement: FieldReplacement = {
-        position: adjusted.position,
-        originalLength: adjusted.originalLength,
-        replacement: adjusted.replacement,
-      };
+      const replacement = computeReplacement(match, decision, newName);
 
       if (match.sourceType === "entity") {
-        const existing = entityPatchMap.get(match.sourceId) || {};
-        const rKey = `__replacements_${match.field}`;
-        const list: FieldReplacement[] = existing[rKey] ? JSON.parse(existing[rKey]) : [];
-        list.push(replacement);
-        existing[rKey] = JSON.stringify(list);
-        entityPatchMap.set(match.sourceId, existing);
+        appendReplacementToMap(entityPatchMap, match.sourceId, match.field, replacement, true);
       } else if (match.sourceType === "chronicle") {
-        const existing = chroniclePatchMap.get(match.sourceId) || {};
-        const rKey = `__replacements_${match.field}`;
-        const list: FieldReplacement[] = (existing[rKey] as FieldReplacement[]) || [];
-        list.push(replacement);
-        existing[rKey] = list;
-        chroniclePatchMap.set(match.sourceId, existing);
+        appendReplacementToMap(chroniclePatchMap, match.sourceId, match.field, replacement, false);
       } else if (match.sourceType === "event") {
-        const existing = eventPatchMap.get(match.sourceId) || {};
-        const rKey = `__replacements_${match.field}`;
-        const list: FieldReplacement[] = existing[rKey] ? JSON.parse(existing[rKey]) : [];
-        list.push(replacement);
-        existing[rKey] = JSON.stringify(list);
-        eventPatchMap.set(match.sourceId, existing);
+        appendReplacementToMap(eventPatchMap, match.sourceId, match.field, replacement, true);
       }
     }
   }
@@ -1228,7 +1150,6 @@ export function buildRenamePatches(
     chroniclePatchMap.set(chronicleId, existing);
   }
 
-  // Merge event metadata updates
   for (const [eventId, meta] of eventMetaUpdates) {
     const existing = eventPatchMap.get(eventId) || {};
     Object.assign(existing, meta);
@@ -1304,14 +1225,14 @@ export function applyEntityPatches<T extends ScanEntity>(
             updated.enrichment = { ...entity.enrichment };
           }
           if (
-            !updated.enrichment!.descriptionHistory ||
-            updated.enrichment!.descriptionHistory === entity.enrichment.descriptionHistory
+            !updated.enrichment.descriptionHistory ||
+            updated.enrichment.descriptionHistory === entity.enrichment.descriptionHistory
           ) {
-            updated.enrichment!.descriptionHistory = [...entity.enrichment.descriptionHistory];
+            updated.enrichment.descriptionHistory = [...entity.enrichment.descriptionHistory];
           }
-          const entry = updated.enrichment!.descriptionHistory![idx];
+          const entry = updated.enrichment.descriptionHistory[idx];
           if (entry) {
-            updated.enrichment!.descriptionHistory![idx] = {
+            updated.enrichment.descriptionHistory[idx] = {
               ...entry,
               description: applyReplacements(entry.description, replacements),
             };
@@ -1378,9 +1299,9 @@ export async function applyChroniclePatches(
           entityDirectives: [...chronicle.generationContext.entityDirectives],
         };
         for (const u of updates) {
-          if (updated.generationContext.entityDirectives![u.index]) {
-            updated.generationContext.entityDirectives![u.index] = {
-              ...updated.generationContext.entityDirectives![u.index],
+          if (updated.generationContext.entityDirectives[u.index]) {
+            updated.generationContext.entityDirectives[u.index] = {
+              ...updated.generationContext.entityDirectives[u.index],
               entityName: u.entityName,
             };
           }

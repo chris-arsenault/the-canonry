@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import type { WorldState, HardState, Point, Region } from "../types/world.ts";
 import type { EntityKindDefinition } from "@canonry/world-schema";
 import "./CoordinateMapView.css";
@@ -41,6 +41,99 @@ function getRegionColor(region: Region): { fill: string; stroke: string } {
     fill: hexToRgba(region.color, 0.15),
     stroke: hexToRgba(region.color, 0.7),
   };
+}
+
+/** Draw a single region shape on the canvas. */
+function drawRegion(
+  ctx: CanvasRenderingContext2D,
+  region: Region,
+  hoveredRegion: Region | null | undefined,
+  selectedRegionId: string | null,
+  worldToCanvas: (x: number, y: number) => { x: number; y: number },
+  worldToCanvasDistance: (d: number) => number
+): void {
+  const colors = getRegionColor(region);
+  const isHovered = hoveredRegion?.id === region.id;
+  const isSelected = selectedRegionId === region.id;
+  const highlighted = isHovered || isSelected;
+
+  // Adjust colors for hover/selection state
+  ctx.fillStyle = highlighted
+    ? colors.fill.replace(/[\d.]+\)$/, "0.3)") // eslint-disable-line sonarjs/slow-regex -- short rgba() string
+    : colors.fill;
+  const hoverStroke = isHovered
+    ? colors.stroke.replace(/[\d.]+\)$/, "1)") // eslint-disable-line sonarjs/slow-regex -- short rgba() string
+    : colors.stroke;
+  ctx.strokeStyle = isSelected ? "#ffffff" : hoverStroke;
+  const baseWidth = isHovered ? 2.5 : 2;
+  ctx.lineWidth = isSelected ? 3 : baseWidth;
+
+  if (region.bounds.shape === "circle") {
+    drawCircleRegion(ctx, region, highlighted, colors, worldToCanvas, worldToCanvasDistance);
+  } else if (region.bounds.shape === "rect") {
+    drawRectRegion(ctx, region, highlighted, colors, worldToCanvas);
+  } else if (region.bounds.shape === "polygon") {
+    drawPolygonRegion(ctx, region, worldToCanvas);
+  }
+}
+
+function drawCircleRegion(
+  ctx: CanvasRenderingContext2D,
+  region: Region,
+  highlighted: boolean,
+  colors: { fill: string; stroke: string },
+  worldToCanvas: (x: number, y: number) => { x: number; y: number },
+  worldToCanvasDistance: (d: number) => number
+): void {
+  const center = worldToCanvas(region.bounds.center.x, region.bounds.center.y);
+  const radiusPixels = worldToCanvasDistance(region.bounds.radius);
+
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, radiusPixels, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = highlighted ? "#ffffff" : colors.stroke;
+  ctx.font = highlighted ? "bold 13px sans-serif" : "bold 12px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(region.label, center.x, center.y);
+}
+
+function drawRectRegion(
+  ctx: CanvasRenderingContext2D,
+  region: Region,
+  highlighted: boolean,
+  colors: { fill: string; stroke: string },
+  worldToCanvas: (x: number, y: number) => { x: number; y: number }
+): void {
+  const topLeft = worldToCanvas(region.bounds.x1, region.bounds.y2);
+  const bottomRight = worldToCanvas(region.bounds.x2, region.bounds.y1);
+
+  ctx.beginPath();
+  ctx.rect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = highlighted ? "#ffffff" : colors.stroke;
+  ctx.font = highlighted ? "bold 13px sans-serif" : "bold 12px sans-serif";
+  ctx.textAlign = "center";
+  const centerX = (topLeft.x + bottomRight.x) / 2;
+  const centerY = (topLeft.y + bottomRight.y) / 2;
+  ctx.fillText(region.label, centerX, centerY);
+}
+
+function drawPolygonRegion(
+  ctx: CanvasRenderingContext2D,
+  region: Region,
+  worldToCanvas: (x: number, y: number) => { x: number; y: number }
+): void {
+  const points = region.bounds.points.map((p: { x: number; y: number }) => worldToCanvas(p.x, p.y));
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  points.slice(1).forEach((p: { x: number; y: number }) => ctx.lineTo(p.x, p.y));
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
 }
 
 // Get entity coordinates (requires valid x/y/z)
@@ -136,7 +229,7 @@ export default function CoordinateMapView({
   data,
   selectedNodeId,
   onNodeSelect,
-}: CoordinateMapViewProps) {
+}: Readonly<CoordinateMapViewProps>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -158,7 +251,7 @@ export default function CoordinateMapView({
     return new Map(entityKindSchemas.map((kind) => [kind.kind, getKindDisplayName(kind)]));
   }, [entityKindSchemas]);
 
-  const axisDefinitions = data.schema.axisDefinitions || [];
+  const axisDefinitions = useMemo(() => data.schema.axisDefinitions || [], [data.schema.axisDefinitions]);
   const axisById = useMemo(() => {
     return new Map(axisDefinitions.map((axis) => [axis.id, axis]));
   }, [axisDefinitions]);
@@ -169,15 +262,11 @@ export default function CoordinateMapView({
   );
   const mappableKinds = mappableKindSchemas.map((kind) => kind.kind);
 
-  // Ensure mapKind is valid - default to first available kind if current selection is invalid
-  useEffect(() => {
-    if (mappableKinds.length > 0 && !mappableKinds.includes(mapKind)) {
-      setMapKind(mappableKinds[0]);
-    }
-  }, [mappableKinds, mapKind]);
+  // Derive effective map kind: if current selection is invalid, fall back to first available
+  const effectiveMapKind = mappableKinds.includes(mapKind) ? mapKind : (mappableKinds[0] ?? mapKind);
 
   // Get per-kind map config and regions (seed + emergent)
-  const activeKindDef = mappableKindSchemas.find((kind) => kind.kind === mapKind);
+  const activeKindDef = mappableKindSchemas.find((kind) => kind.kind === effectiveMapKind);
   if (!activeKindDef || !activeKindDef.semanticPlane) {
     throw new Error("Archivist: map view requires a semantic plane on the selected entity kind.");
   }
@@ -193,13 +282,13 @@ export default function CoordinateMapView({
   }
   const mapDescription = `Coordinate space for ${displayName} entities`;
   const seedRegions = activeKindDef.semanticPlane.regions ?? [];
-  const emergentRegions = data.coordinateState?.emergentRegions?.[mapKind] ?? [];
+  const emergentRegions = data.coordinateState?.emergentRegions?.[effectiveMapKind] ?? [];
   const regions = mergeRegions(seedRegions, emergentRegions);
   const bounds = { min: 0, max: 100 };
 
   // Filter entities for the current map - primary kind always shown, related kinds optionally
   const mapEntities = useMemo(() => {
-    const primaryEntities = data.hardState.filter((e) => e.kind === mapKind);
+    const primaryEntities = data.hardState.filter((e) => e.kind === effectiveMapKind);
 
     if (!showRelatedKinds) {
       return primaryEntities;
@@ -219,7 +308,7 @@ export default function CoordinateMapView({
     );
 
     return [...primaryEntities, ...relatedEntities];
-  }, [data.hardState, data.relationships, mapKind, showRelatedKinds]);
+  }, [data.hardState, data.relationships, effectiveMapKind, showRelatedKinds]);
 
   // Build entity color map
   const entityColorMap = useMemo(() => {
@@ -248,7 +337,7 @@ export default function CoordinateMapView({
         vx: 0,
         vy: 0,
         // Only anchor primary kind entities
-        anchored: entity.kind === mapKind,
+        anchored: entity.kind === effectiveMapKind,
         entity,
       });
     });
@@ -265,7 +354,7 @@ export default function CoordinateMapView({
     runForceLayout(nodes, relationships);
 
     return new Map(nodes.map((n) => [n.id, { x: n.x, y: n.y, anchored: n.anchored }]));
-  }, [mapEntities, data.relationships, mapKind]);
+  }, [mapEntities, data.relationships, effectiveMapKind]);
 
   // Use uniform scale to preserve aspect ratio (circles stay circular)
   const padding = 40;
@@ -424,61 +513,7 @@ export default function CoordinateMapView({
     // Draw regions if layer is visible
     if (visibleLayers.has("regions")) {
       regions.forEach((region) => {
-        const colors = getRegionColor(region);
-        const isHovered = hoveredRegion?.id === region.id;
-        const isSelected = selectedRegionId === region.id;
-
-        // Adjust colors for hover/selection state
-        ctx.fillStyle =
-          isHovered || isSelected
-            ? colors.fill.replace(/[\d.]+\)$/, "0.3)") // Brighter fill
-            : colors.fill;
-        ctx.strokeStyle = isSelected
-          ? "#ffffff" // White stroke for selected
-          : isHovered
-            ? colors.stroke.replace(/[\d.]+\)$/, "1)") // Full opacity on hover
-            : colors.stroke;
-        ctx.lineWidth = isSelected ? 3 : isHovered ? 2.5 : 2;
-
-        if (region.bounds.shape === "circle") {
-          const center = worldToCanvas(region.bounds.center.x, region.bounds.center.y);
-          const radiusPixels = worldToCanvasDistance(region.bounds.radius);
-
-          ctx.beginPath();
-          ctx.arc(center.x, center.y, radiusPixels, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-
-          // Draw label
-          ctx.fillStyle = isHovered || isSelected ? "#ffffff" : colors.stroke;
-          ctx.font = isHovered || isSelected ? "bold 13px sans-serif" : "bold 12px sans-serif";
-          ctx.textAlign = "center";
-          ctx.fillText(region.label, center.x, center.y);
-        } else if (region.bounds.shape === "rect") {
-          const topLeft = worldToCanvas(region.bounds.x1, region.bounds.y2);
-          const bottomRight = worldToCanvas(region.bounds.x2, region.bounds.y1);
-
-          ctx.beginPath();
-          ctx.rect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y);
-          ctx.fill();
-          ctx.stroke();
-
-          // Draw label
-          ctx.fillStyle = isHovered || isSelected ? "#ffffff" : colors.stroke;
-          ctx.font = isHovered || isSelected ? "bold 13px sans-serif" : "bold 12px sans-serif";
-          ctx.textAlign = "center";
-          const centerX = (topLeft.x + bottomRight.x) / 2;
-          const centerY = (topLeft.y + bottomRight.y) / 2;
-          ctx.fillText(region.label, centerX, centerY);
-        } else if (region.bounds.shape === "polygon") {
-          const points = region.bounds.points.map((p) => worldToCanvas(p.x, p.y));
-          ctx.beginPath();
-          ctx.moveTo(points[0].x, points[0].y);
-          points.slice(1).forEach((p) => ctx.lineTo(p.x, p.y));
-          ctx.closePath();
-          ctx.fill();
-          ctx.stroke();
-        }
+        drawRegion(ctx, region, hoveredRegion, selectedRegionId, worldToCanvas, worldToCanvasDistance);
       });
     }
 
@@ -515,7 +550,7 @@ export default function CoordinateMapView({
         if (!color) {
           throw new Error(`Archivist: entity kind "${entity.kind}" is missing style.color.`);
         }
-        const isPrimaryKind = entity.kind === mapKind;
+        const isPrimaryKind = entity.kind === effectiveMapKind;
         const isSelected = entity.id === selectedNodeId;
         const isHovered = entity.id === hoveredEntity?.id;
 
@@ -554,7 +589,7 @@ export default function CoordinateMapView({
   }, [
     data,
     dimensions,
-    mapKind,
+    effectiveMapKind,
     visibleLayers,
     entityPositions,
     entityColorMap,
@@ -566,6 +601,8 @@ export default function CoordinateMapView({
     mapEntities,
     xAxis,
     yAxis,
+    worldToCanvas,
+    worldToCanvasDistance,
   ]);
 
   // Check if a point is inside a region
@@ -634,8 +671,8 @@ export default function CoordinateMapView({
     if (hoveredEntity) {
       onNodeSelect(hoveredEntity.id);
     } else if (hoveredRegion) {
-      // Use prefixed ID for region selection: "region:{mapKind}:{regionId}"
-      onNodeSelect(`region:${mapKind}:${hoveredRegion.id}`);
+      // Use prefixed ID for region selection: "region:{effectiveMapKind}:{regionId}"
+      onNodeSelect(`region:${effectiveMapKind}:${hoveredRegion.id}`);
     } else {
       onNodeSelect(undefined);
     }
@@ -723,11 +760,11 @@ export default function CoordinateMapView({
                 className="legend-dot"
                 style={{
                   backgroundColor: ek.style.color,
-                  border: ek.kind === mapKind ? "2px solid white" : "none",
+                  border: ek.kind === effectiveMapKind ? "2px solid white" : "none",
                 }}
               />
               <span>{ek.description || ek.kind}</span>
-              {ek.kind === mapKind && <span className="anchor-badge">primary</span>}
+              {ek.kind === effectiveMapKind && <span className="anchor-badge">primary</span>}
             </div>
           );
         })}

@@ -111,10 +111,10 @@ export async function executeBrowserTask(
       imageClient,
       isAborted: () => false,
       onThinkingDelta: callbacks?.onThinkingDelta
-        ? (delta) => callbacks.onThinkingDelta!(task.id, delta)
+        ? (delta) => callbacks.onThinkingDelta(task.id, delta)
         : undefined,
       onTextDelta: callbacks?.onTextDelta
-        ? (delta) => callbacks.onTextDelta!(task.id, delta)
+        ? (delta) => callbacks.onTextDelta(task.id, delta)
         : undefined,
     });
 

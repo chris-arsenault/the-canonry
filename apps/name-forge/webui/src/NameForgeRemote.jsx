@@ -9,7 +9,8 @@
  * without the project management or schema editing overhead.
  */
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
+import PropTypes from "prop-types";
 import "./App.css";
 import { CultureSidebar } from "./components/sidebar";
 import { EntityWorkspace } from "./components/workspace";
@@ -265,7 +266,7 @@ export default function NameForgeRemote({
             <ProfileCoverageMatrix
               cultures={cultures}
               worldSchema={worldSchema}
-              onNavigateToProfile={(cultureId, profileId) => {
+              onNavigateToProfile={(cultureId, _profileId) => {
                 setSelectedCulture(cultureId);
                 setWorkspaceTab("profiles");
                 setActiveTab("workshop");
@@ -277,3 +278,13 @@ export default function NameForgeRemote({
     </div>
   );
 }
+
+NameForgeRemote.propTypes = {
+  projectId: PropTypes.string,
+  schema: PropTypes.object,
+  onNamingDataChange: PropTypes.func,
+  onAddTag: PropTypes.func,
+  activeSection: PropTypes.string,
+  onSectionChange: PropTypes.func,
+  generators: PropTypes.array,
+};

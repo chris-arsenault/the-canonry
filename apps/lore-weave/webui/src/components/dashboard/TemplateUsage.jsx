@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 
 function FilterStepsList({ filterSteps }) {
   return (
@@ -32,7 +33,7 @@ function SelectionBreakdown({ diagnosis }) {
   return (
     <div className="lw-selection-breakdown">
       <div className="lw-selection-header">
-        selection: {diagnosis.strategy} '{diagnosis.targetKind}'
+        selection: {diagnosis.strategy} &apos;{diagnosis.targetKind}&apos;
       </div>
       <FilterStepsList filterSteps={diagnosis.filterSteps} />
     </div>
@@ -49,13 +50,14 @@ function VariableBreakdown({ diagnoses }) {
           <div className="lw-variable-header">
             <span className="lw-variable-icon">📊</span>
             <span className="lw-variable-name">${diag.name}</span>
-            {diag.fromType === "related" ? (
+            {diag.fromType === "related" && (
               <span className="lw-variable-source">
                 via {diag.relationshipKind} from {diag.relatedTo}
               </span>
-            ) : diag.kind ? (
+            )}
+            {diag.fromType !== "related" && diag.kind && (
               <span className="lw-variable-source">from {diag.kind}</span>
-            ) : null}
+            )}
           </div>
           <FilterStepsList filterSteps={diag.filterSteps} />
         </div>
@@ -74,7 +76,7 @@ function UnusedTemplateItem({ template }) {
 
   return (
     <div className="lw-unused-template">
-      <div className="lw-unused-template-header" onClick={() => setExpanded(!expanded)}>
+      <div className="lw-unused-template-header" onClick={() => setExpanded(!expanded)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
         <span className="lw-unused-icon">{icon}</span>
         <span className="lw-unused-name">{template.templateId}</span>
         <span className="lw-unused-summary">{template.summary}</span>
@@ -82,15 +84,17 @@ function UnusedTemplateItem({ template }) {
       </div>
       {expanded && (
         <div className="lw-unused-details">
-          {hasFailedRules ? (
+          {hasFailedRules && (
             <ul className="lw-failed-rules">
               {template.failedRules.map((rule, idx) => (
                 <li key={idx}>{rule}</li>
               ))}
             </ul>
-          ) : hasSelectionDiagnosis ? (
+          )}
+          {!hasFailedRules && hasSelectionDiagnosis && (
             <SelectionBreakdown diagnosis={template.selectionDiagnosis} />
-          ) : hasVariableDiagnoses ? (
+          )}
+          {!hasFailedRules && !hasSelectionDiagnosis && hasVariableDiagnoses && (
             <>
               <div className="lw-targets-found">
                 Found {template.selectionCount} valid target
@@ -98,7 +102,8 @@ function UnusedTemplateItem({ template }) {
               </div>
               <VariableBreakdown diagnoses={template.variableDiagnoses} />
             </>
-          ) : (
+          )}
+          {!hasFailedRules && !hasSelectionDiagnosis && !hasVariableDiagnoses && (
             <div className="lw-no-targets">Found {template.selectionCount} valid targets</div>
           )}
         </div>
@@ -150,12 +155,11 @@ export default function TemplateUsage({ templateUsage, systemHealth }) {
             <div
               className={`lw-health-dot ${systemHealth.status}`}
               style={{
-                backgroundColor:
-                  systemHealth.status === "stable"
-                    ? "var(--lw-success)"
-                    : systemHealth.status === "functional"
-                      ? "var(--lw-warning)"
-                      : "var(--lw-danger)",
+                backgroundColor: (() => {
+                  if (systemHealth.status === "stable") return "var(--lw-success)";
+                  if (systemHealth.status === "functional") return "var(--lw-warning)";
+                  return "var(--lw-danger)";
+                })(),
               }}
             />
             <span className="lw-health-text">
@@ -170,12 +174,10 @@ export default function TemplateUsage({ templateUsage, systemHealth }) {
         {/* Top templates */}
         <div className="lw-template-list">
           {templateUsage.usage.slice(0, 8).map((template) => {
-            const fillColor =
-              template.status === "saturated"
-                ? "var(--lw-danger)"
-                : template.status === "warning"
-                  ? "var(--lw-warning)"
-                  : "var(--lw-accent)";
+            let fillColor;
+            if (template.status === "saturated") fillColor = "var(--lw-danger)";
+            else if (template.status === "warning") fillColor = "var(--lw-warning)";
+            else fillColor = "var(--lw-accent)";
             return (
               <div key={template.templateId} className="lw-template-item">
                 <span className="lw-template-name" title={template.templateId}>
@@ -199,7 +201,7 @@ export default function TemplateUsage({ templateUsage, systemHealth }) {
         {/* Unused templates section */}
         {unusedCount > 0 && (
           <div className="lw-unused-section">
-            <div className="lw-unused-header" onClick={() => setShowUnused(!showUnused)}>
+            <div className="lw-unused-header" onClick={() => setShowUnused(!showUnused)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
               <span className="lw-unused-toggle">{showUnused ? "▼" : "▶"}</span>
               <span className="lw-unused-title">Unused Templates ({unusedCount})</span>
             </div>
@@ -216,3 +218,24 @@ export default function TemplateUsage({ templateUsage, systemHealth }) {
     </div>
   );
 }
+
+FilterStepsList.propTypes = {
+  filterSteps: PropTypes.array,
+};
+
+SelectionBreakdown.propTypes = {
+  diagnosis: PropTypes.object,
+};
+
+VariableBreakdown.propTypes = {
+  diagnoses: PropTypes.array,
+};
+
+UnusedTemplateItem.propTypes = {
+  template: PropTypes.object,
+};
+
+TemplateUsage.propTypes = {
+  templateUsage: PropTypes.object,
+  systemHealth: PropTypes.object,
+};

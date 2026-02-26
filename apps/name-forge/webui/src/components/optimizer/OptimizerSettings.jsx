@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { NumberInput } from "@penguin-tales/shared-components";
 import { ALGORITHMS } from "./constants";
 
@@ -23,6 +24,10 @@ export default function OptimizerSettings({
   onSaveResults,
   onShowModal,
 }) {
+  const handleAlgorithmParamChange = (key, defaultValue) => (v) => {
+    onAlgorithmParamsChange((prev) => ({ ...prev, [key]: v ?? defaultValue }));
+  };
+
   // Render algorithm parameter inputs
   const renderAlgorithmParams = () => {
     const config = ALGORITHMS[algorithm];
@@ -36,17 +41,16 @@ export default function OptimizerSettings({
       <div className="optimizer-param-grid">
         {Object.entries(config.params).map(([key, param]) => (
           <div key={key} className="flex flex-col gap-xs">
-            <label className="text-small">{param.label}</label>
+            <label className="text-small">{param.label}
             <NumberInput
               value={algorithmParams[key] ?? param.default}
-              onChange={(v) =>
-                onAlgorithmParamsChange((prev) => ({ ...prev, [key]: v ?? param.default }))
-              }
+              onChange={handleAlgorithmParamChange(key, param.default)}
               min={param.min}
               max={param.max}
               step={param.step || 1}
               className="optimizer-input"
             />
+            </label>
           </div>
         ))}
       </div>
@@ -68,6 +72,9 @@ export default function OptimizerSettings({
                 key={key}
                 onClick={() => onAlgorithmChange(key)}
                 className={`algorithm-card ${algorithm === key ? "selected" : ""}`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
               >
                 <div className={`algorithm-name ${algorithm === key ? "selected" : ""}`}>
                   {config.name}
@@ -89,7 +96,7 @@ export default function OptimizerSettings({
           <h3 className="section-title">Validation Settings</h3>
           <div className="optimizer-param-grid-small">
             <div className="flex flex-col gap-xs">
-              <label className="text-small">Sample Size</label>
+              <label className="text-small">Sample Size
               <NumberInput
                 value={validationSettings.requiredNames}
                 onChange={(v) =>
@@ -100,9 +107,10 @@ export default function OptimizerSettings({
                 className="optimizer-input"
                 integer
               />
+              </label>
             </div>
             <div className="flex flex-col gap-xs">
-              <label className="text-small">Sample Factor</label>
+              <label className="text-small">Sample Factor
               <NumberInput
                 value={validationSettings.sampleFactor}
                 onChange={(v) =>
@@ -113,6 +121,7 @@ export default function OptimizerSettings({
                 className="optimizer-input"
                 integer
               />
+              </label>
             </div>
           </div>
         </div>
@@ -207,3 +216,22 @@ export default function OptimizerSettings({
     </div>
   );
 }
+
+OptimizerSettings.propTypes = {
+  algorithm: PropTypes.string,
+  onAlgorithmChange: PropTypes.func,
+  algorithmParams: PropTypes.object,
+  onAlgorithmParamsChange: PropTypes.func,
+  validationSettings: PropTypes.object,
+  onValidationSettingsChange: PropTypes.func,
+  fitnessWeights: PropTypes.object,
+  onFitnessWeightsChange: PropTypes.func,
+  selectedDomains: PropTypes.instanceOf(Set),
+  allDomains: PropTypes.array,
+  optimizing: PropTypes.bool,
+  progress: PropTypes.object,
+  results: PropTypes.array,
+  onOptimize: PropTypes.func,
+  onSaveResults: PropTypes.func,
+  onShowModal: PropTypes.func,
+};

@@ -5,7 +5,7 @@
  * Templates are pure JSON data; this interpreter provides the execution logic.
  */
 
-import type { HardState, Relationship } from '../core/worldTypes';
+import type { HardState, Relationship, VariableValue } from '../core/worldTypes';
 import type { WorldRuntime } from '../runtime/worldRuntime';
 import type { TemplateResult, PlacementDebug } from './types';
 import { pickRandom } from '../utils';
@@ -23,7 +23,7 @@ import {
   createRuleContext,
   prominenceThreshold,
 } from '../rules';
-import type { EntityResolver, SelectionTrace, Condition, Mutation, RuleContext } from '../rules';
+import type { EntityResolver, SelectionTrace } from '../rules';
 // Narration is generated in growthSystem AFTER entities have names
 // import { interpolate, createGeneratorContext } from '../narrative/narrationTemplate';
 
@@ -32,7 +32,6 @@ import type {
   ApplicabilityRule,
   SelectionRule,
   SelectionFilter,
-  SaturationLimit,
   CreationRule,
   RelationshipRule,
   StateUpdateRule,
@@ -43,8 +42,6 @@ import type {
   DescriptionSpec,
   PlacementSpec,
   PlacementAnchor,
-  PlacementSpacing,
-  PlacementRegionPolicy,
   CountRange,
   RelationshipCondition,
   GraphPathAssertion,
@@ -97,7 +94,7 @@ export interface VariableDiagnosis {
  */
 class ExecutionContext implements IExecutionContext, EntityResolver {
   graphView: WorldRuntime;
-  variables: Map<string, HardState | HardState[] | undefined> = new Map();
+  variables: Map<string, VariableValue> = new Map();
   target?: HardState;
   pathSets: Map<string, Set<string>> = new Map();
   /** Current template being executed (for error context) */
@@ -107,11 +104,12 @@ class ExecutionContext implements IExecutionContext, EntityResolver {
     this.graphView = graphView;
   }
 
-  set(name: string, value: HardState | HardState[] | undefined): void {
+  set(name: string, value: VariableValue): void {
     this.variables.set(name, value);
   }
 
-  get(name: string): HardState | HardState[] | undefined {
+  // eslint-disable-next-line sonarjs/function-return-type -- union return type by design
+  get(name: string): VariableValue {
     return this.variables.get(name);
   }
 
@@ -170,39 +168,54 @@ class ExecutionContext implements IExecutionContext, EntityResolver {
     }
 
     let result = ref;
+    result = this.resolveFallbackRefs(result, ref);
+    result = this.resolveDirectRefs(result);
+    return result;
+  }
 
-    // Handle fallback syntax: {$var.prop|fallback} or $var.prop|fallback
-    // This regex finds patterns like {$location.name|the frozen depths} or $location.name|fallback
+  /**
+   * Handle fallback syntax: {$var.prop|fallback} or $var.prop|fallback
+   */
+  private resolveFallbackRefs(result: string, originalRef: string): string {
     const fallbackPattern = /\{?\$(\w+)\.(\w+)\|([^}]+)\}?/g;
     let fallbackMatch;
-    while ((fallbackMatch = fallbackPattern.exec(ref)) !== null) {
-      const [fullMatch, varPart, propPart, fallback] = fallbackMatch;
+    while ((fallbackMatch = fallbackPattern.exec(originalRef)) !== null) {
+      const fullMatch = fallbackMatch[0];
+      const varPart = fallbackMatch[1] as string;
+      const propPart = fallbackMatch[2] as string;
+      const fallback = fallbackMatch[3] as string;
       const entity = varPart === 'target' ? this.target : this.resolveEntity('$' + varPart);
-      if (entity && propPart in entity) {
-        result = result.replace(fullMatch, String((entity as unknown as Record<string, unknown>)[propPart]));
-      } else {
-        // Use the fallback value - no warning needed since fallback was provided
-        result = result.replace(fullMatch, fallback);
-      }
+      const propValue = this.getEntityProp(entity, propPart);
+      result = result.replace(fullMatch, propValue ?? fallback);
     }
-
-    // Handle property access WITHOUT fallback like "$target.name"
-    const match = result.match(/\$(\w+)\.(\w+)/g);
-    if (match) {
-      for (const m of match) {
-        const [varPart, propPart] = m.slice(1).split('.');
-        const entity = varPart === 'target' ? this.target : this.resolveEntity('$' + varPart);
-        if (entity && propPart in entity) {
-          result = result.replace(m, String((entity as unknown as Record<string, unknown>)[propPart]));
-        } else {
-          // Warn: unresolved variable reference without fallback
-          const templateCtx = this.templateId ? ` in template "${this.templateId}"` : '';
-          console.warn(`[Template] Unresolved variable ${m}${templateCtx}. Add fallback like {${m.slice(1)}|default} or define ${varPart} in variables.`);
-        }
-      }
-    }
-
     return result;
+  }
+
+  /**
+   * Handle property access WITHOUT fallback like "$target.name"
+   */
+  private resolveDirectRefs(result: string): string {
+    const match = result.match(/\$(\w+)\.(\w+)/g);
+    if (!match) return result;
+
+    for (const m of match) {
+      const [varPart, propPart] = m.slice(1).split('.');
+      const entity = varPart === 'target' ? this.target : this.resolveEntity('$' + varPart);
+      const propValue = this.getEntityProp(entity, propPart);
+      if (propValue !== null) {
+        result = result.replace(m, propValue);
+      } else {
+        const templateCtx = this.templateId ? ` in template "${this.templateId}"` : '';
+        console.warn(`[Template] Unresolved variable ${m}${templateCtx}. Add fallback like {${m.slice(1)}|default} or define ${varPart} in variables.`);
+      }
+    }
+    return result;
+  }
+
+  private getEntityProp(entity: VariableValue, prop: string): string | null {
+    if (!entity || Array.isArray(entity)) return null;
+    if (!(prop in entity)) return null;
+    return String((entity as unknown as Record<string, unknown>)[prop]);
   }
 }
 
@@ -263,62 +276,15 @@ export class TemplateInterpreter {
     failedVariableDiagnoses: VariableDiagnosis[];
   } {
     const context = new ExecutionContext(graphView);
-    const failedRules: string[] = [];
 
-    // Check each applicability rule individually
-    const rules = template.applicability || [];
-    for (const rule of rules) {
-      if (!this.evaluateApplicabilityRule(rule, context)) {
-        failedRules.push(this.describeRuleFailure(rule, context));
-      }
-    }
-
+    const failedRules = this.collectFailedRules(template, context);
     const applicabilityPassed = failedRules.length === 0;
 
-    // Check selection if applicability passed
-    let selectionCount = 0;
-    let selectionStrategy = 'none';
-    let selectionDiagnosis: SelectionDiagnosis | undefined;
-    let targets: HardState[] = [];
-    if (applicabilityPassed && template.selection) {
-      targets = this.executeSelection(template.selection, context);
-      selectionCount = targets.length;
-      selectionStrategy = template.selection.strategy || 'random';
+    const { targets, selectionCount, selectionStrategy, selectionDiagnosis } =
+      this.diagnoseSelection_phase(template, context, applicabilityPassed);
 
-      // If no targets found, get detailed diagnosis
-      if (selectionCount === 0) {
-        selectionDiagnosis = this.diagnoseSelection(template.selection, context);
-      }
-    }
-
-    // Check required variables if selection passed
-    const failedVariables: string[] = [];
-    const failedVariableDiagnoses: VariableDiagnosis[] = [];
-    let requiredVariablesPassed = true;
-    if (applicabilityPassed && selectionCount > 0 && template.variables) {
-      const requiredVariables = this.getRequiredVariableEntries(template);
-      if (requiredVariables.length > 0) {
-        const hasValidTarget = targets.some((target) =>
-          this.targetResolvesRequiredVariables(requiredVariables, graphView, target)
-        );
-        if (!hasValidTarget) {
-          requiredVariablesPassed = false;
-          context.target = targets[0];
-          context.set('$target', targets[0]);
-
-          for (const [name, def] of requiredVariables) {
-            const resolved = this.resolveVariable(def, context);
-            if (!resolved || (Array.isArray(resolved) && resolved.length === 0)) {
-              failedVariables.push(name);
-              failedVariableDiagnoses.push(this.diagnoseVariable(name, def, context));
-            } else {
-              // Store for subsequent variable resolution
-              context.set(name, resolved);
-            }
-          }
-        }
-      }
-    }
+    const { requiredVariablesPassed, failedVariables, failedVariableDiagnoses } =
+      this.diagnoseVariables_phase(template, context, graphView, applicabilityPassed, selectionCount, targets);
 
     return {
       canApply: applicabilityPassed && selectionCount > 0 && requiredVariablesPassed,
@@ -331,6 +297,77 @@ export class TemplateInterpreter {
       failedVariables,
       failedVariableDiagnoses
     };
+  }
+
+  private collectFailedRules(template: DeclarativeTemplate, context: ExecutionContext): string[] {
+    const failedRules: string[] = [];
+    const rules = template.applicability || [];
+    for (const rule of rules) {
+      if (!this.evaluateApplicabilityRule(rule, context)) {
+        failedRules.push(this.describeRuleFailure(rule, context));
+      }
+    }
+    return failedRules;
+  }
+
+  private diagnoseSelection_phase(
+    template: DeclarativeTemplate,
+    context: ExecutionContext,
+    applicabilityPassed: boolean
+  ): { targets: HardState[]; selectionCount: number; selectionStrategy: string; selectionDiagnosis?: SelectionDiagnosis } {
+    if (!applicabilityPassed || !template.selection) {
+      return { targets: [], selectionCount: 0, selectionStrategy: 'none' };
+    }
+    const targets = this.executeSelection(template.selection, context);
+    const selectionCount = targets.length;
+    const selectionStrategy = template.selection.strategy || 'random';
+    const selectionDiagnosis = selectionCount === 0
+      ? this.diagnoseSelection(template.selection, context)
+      : undefined;
+    return { targets, selectionCount, selectionStrategy, selectionDiagnosis };
+  }
+
+  private diagnoseVariables_phase(
+    template: DeclarativeTemplate,
+    context: ExecutionContext,
+    graphView: WorldRuntime,
+    applicabilityPassed: boolean,
+    selectionCount: number,
+    targets: HardState[]
+  ): { requiredVariablesPassed: boolean; failedVariables: string[]; failedVariableDiagnoses: VariableDiagnosis[] } {
+    const failedVariables: string[] = [];
+    const failedVariableDiagnoses: VariableDiagnosis[] = [];
+
+    if (!applicabilityPassed || selectionCount === 0 || !template.variables) {
+      return { requiredVariablesPassed: true, failedVariables, failedVariableDiagnoses };
+    }
+
+    const requiredVariables = this.getRequiredVariableEntries(template);
+    if (requiredVariables.length === 0) {
+      return { requiredVariablesPassed: true, failedVariables, failedVariableDiagnoses };
+    }
+
+    const hasValidTarget = targets.some((target) =>
+      this.targetResolvesRequiredVariables(requiredVariables, graphView, target)
+    );
+    if (hasValidTarget) {
+      return { requiredVariablesPassed: true, failedVariables, failedVariableDiagnoses };
+    }
+
+    context.target = targets[0];
+    context.set('$target', targets[0]);
+
+    for (const [name, def] of requiredVariables) {
+      const resolved = this.resolveVariable(def, context);
+      if (!resolved || (Array.isArray(resolved) && resolved.length === 0)) {
+        failedVariables.push(name);
+        failedVariableDiagnoses.push(this.diagnoseVariable(name, def, context));
+      } else {
+        context.set(name, resolved);
+      }
+    }
+
+    return { requiredVariablesPassed: false, failedVariables, failedVariableDiagnoses };
   }
 
   /**
@@ -368,9 +405,14 @@ export class TemplateInterpreter {
     const isFromPath = fromSpec && typeof fromSpec === 'object' && 'path' in fromSpec;
     const isFromRelated = fromSpec && typeof fromSpec === 'object' && 'relatedTo' in fromSpec;
 
+    let fromType: 'graph' | 'path' | 'related';
+    if (isFromGraph) fromType = 'graph';
+    else if (isFromPath) fromType = 'path';
+    else fromType = 'related';
+
     return {
       name,
-      fromType: isFromGraph ? 'graph' : isFromPath ? 'path' : 'related',
+      fromType,
       kind: select.kind,
       relationshipKind: isFromRelated ? fromSpec.relationshipKind : undefined,
       relatedTo: isFromRelated ? fromSpec.relatedTo : undefined,
@@ -457,30 +499,7 @@ export class TemplateInterpreter {
     context.set('$target', target);
 
     // Resolve variables
-    const unresolvedVariables: Array<{
-      name: string;
-      required: boolean;
-      diagnosis: VariableDiagnosis;
-    }> = [];
-    if (template.variables) {
-      for (const [name, def] of Object.entries(template.variables)) {
-        const resolved = this.resolveVariable(def, context);
-        if (!resolved || (Array.isArray(resolved) && resolved.length === 0)) {
-          const diagnosticContext = new ExecutionContext(graphView);
-          diagnosticContext.templateId = template.id;
-          diagnosticContext.target = context.target;
-          for (const [key, value] of context.variables.entries()) {
-            diagnosticContext.set(key, value);
-          }
-          unresolvedVariables.push({
-            name,
-            required: Boolean(def.required),
-            diagnosis: this.diagnoseVariable(name, def, diagnosticContext)
-          });
-        }
-        context.set(name, resolved);
-      }
-    }
+    const unresolvedVariables = this.resolveTemplateVariables(template, context, graphView);
 
     // Execute creation rules
     const entities: Partial<HardState>[] = [];
@@ -524,7 +543,7 @@ export class TemplateInterpreter {
 
     // Export resolved variables for narration generation in growthSystem
     // Narration is generated AFTER entities have names assigned
-    const resolvedVariables: Record<string, HardState | HardState[] | undefined> = {};
+    const resolvedVariables: Record<string, VariableValue> = {};
     for (const [key, value] of context.variables.entries()) {
       resolvedVariables[key] = value;
     }
@@ -554,6 +573,34 @@ export class TemplateInterpreter {
       resolvedVariables,
       entityRefToIndex,
     };
+  }
+
+  private resolveTemplateVariables(
+    template: DeclarativeTemplate,
+    context: ExecutionContext,
+    graphView: WorldRuntime
+  ): Array<{ name: string; required: boolean; diagnosis: VariableDiagnosis }> {
+    const unresolvedVariables: Array<{ name: string; required: boolean; diagnosis: VariableDiagnosis }> = [];
+    if (!template.variables) return unresolvedVariables;
+
+    for (const [name, def] of Object.entries(template.variables)) {
+      const resolved = this.resolveVariable(def, context);
+      if (!resolved || (Array.isArray(resolved) && resolved.length === 0)) {
+        const diagnosticContext = new ExecutionContext(graphView);
+        diagnosticContext.templateId = template.id;
+        diagnosticContext.target = context.target;
+        for (const [key, value] of context.variables.entries()) {
+          diagnosticContext.set(key, value);
+        }
+        unresolvedVariables.push({
+          name,
+          required: Boolean(def.required),
+          diagnosis: this.diagnoseVariable(name, def, diagnosticContext)
+        });
+      }
+      context.set(name, resolved);
+    }
+    return unresolvedVariables;
   }
 
   // ===========================================================================
@@ -633,6 +680,7 @@ export class TemplateInterpreter {
 
     // Check createChance - if specified, roll to see if this entity should be created
     if (rule.createChance !== undefined && rule.createChance < 1.0) {
+      // eslint-disable-next-line sonarjs/pseudo-random -- simulation probability roll
       const roll = Math.random();
       if (roll > rule.createChance) {
         // Creation skipped due to chance roll
@@ -643,98 +691,91 @@ export class TemplateInterpreter {
     // Determine count
     const count = this.resolveCount(rule.count);
 
+    this.validateCreationRule(rule);
+
     for (let i = 0; i < count; i++) {
       const placeholder = `will-be-assigned-${startIndex + i}`;
       placeholders.push(placeholder);
 
-      // Resolve subtype
-      const subtype = this.resolveSubtype(rule.subtype, context, rule.kind);
-
-      // Resolve culture
-      if (!rule.culture) {
-        throw new Error(
-          `Creation rule for kind "${rule.kind}" is missing culture spec.`
-        );
-      }
-      const culture = this.resolveCulture(rule.culture, context);
-
-      if (!rule.status) {
-        throw new Error(
-          `Creation rule for kind "${rule.kind}" is missing status.`
-        );
-      }
-      if (!rule.prominence) {
-        throw new Error(
-          `Creation rule for kind "${rule.kind}" is missing prominence.`
-        );
-      }
-
-      // Resolve narrative hint
-      const narrativeHint = this.resolveDescription(rule.description, context);
-
-      // Resolve placement
-      let placementResult;
-      try {
-        placementResult = await this.resolvePlacement(rule.placement, context, culture, placeholder, rule.kind);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        throw new Error(
-          `${message} (template "${templateName}", entityRef "${rule.entityRef}", kind "${rule.kind}")`
-        );
-      }
-
-      // Merge template tags with derived tags from placement (derived tags take precedence)
-      const derivedTags = placementResult.derivedTags || {};
-      const mergedTags = { ...(rule.tags || {}), ...derivedTags };
-
-      // Build naming context from internal rules, including region info for context:region support
-      const namingContext = this.buildNamingContext(
-        context,
-        rule.kind,
-        placementResult.regionId,
-        placementResult.debug?.emergentRegionCreated?.label
-      );
-
-      // Convert prominence label to numeric value (midpoint of range)
-      const prominenceValue = prominenceThreshold(rule.prominence) + 0.5;
-
-      const entity: Partial<HardState> & { namingContext?: Record<string, string> } = {
-        kind: rule.kind,
-        subtype,
-        status: rule.status,
-        prominence: prominenceValue,
-        culture,
-        narrativeHint,
-        tags: mergedTags,
-        coordinates: placementResult.coordinates,
-        regionId: placementResult.regionId,
-        allRegionIds: placementResult.allRegionIds,
-        namingContext
-      };
-
-      entities.push(entity);
-      placementStrategies.push(placementResult.strategy);
-      derivedTagsList.push(derivedTags);
-
-      // Collect placement debug info
-      placementDebugList.push({
-        anchorType: placementResult.debug?.anchorType || rule.placement.anchor.type,
-        anchorEntity: placementResult.debug?.anchorEntity,
-        anchorCulture: placementResult.debug?.anchorCulture,
-        resolvedVia: placementResult.debug?.resolvedVia || placementResult.strategy,
-        seedRegionsAvailable: placementResult.debug?.seedRegionsAvailable,
-        emergentRegionCreated: placementResult.debug?.emergentRegionCreated,
-        regionId: placementResult.regionId,
-        allRegionIds: placementResult.allRegionIds
-      });
+      const created = await this.createSingleEntity(rule, context, placeholder, templateName);
+      entities.push(created.entity);
+      placementStrategies.push(created.strategy);
+      derivedTagsList.push(created.derivedTags);
+      placementDebugList.push(created.placementDebug);
     }
 
     return { entities, placeholders, placementStrategies, derivedTagsList, placementDebugList };
   }
 
+  private validateCreationRule(rule: CreationRule): void {
+    if (!rule.culture) {
+      throw new Error(`Creation rule for kind "${rule.kind}" is missing culture spec.`);
+    }
+    if (!rule.status) {
+      throw new Error(`Creation rule for kind "${rule.kind}" is missing status.`);
+    }
+    if (!rule.prominence) {
+      throw new Error(`Creation rule for kind "${rule.kind}" is missing prominence.`);
+    }
+  }
+
+  private async createSingleEntity(
+    rule: CreationRule,
+    context: ExecutionContext,
+    placeholder: string,
+    templateName: string
+  ): Promise<{
+    entity: Partial<HardState> & { namingContext?: Record<string, string> };
+    strategy: string;
+    derivedTags: Record<string, string | boolean>;
+    placementDebug: PlacementDebug;
+  }> {
+    const subtype = this.resolveSubtype(rule.subtype, context, rule.kind);
+    const culture = this.resolveCulture(rule.culture, context);
+    const narrativeHint = this.resolveDescription(rule.description, context);
+
+    let placementResult: Awaited<ReturnType<typeof this.resolvePlacement>>;
+    try {
+      placementResult = await this.resolvePlacement(rule.placement, context, culture, placeholder, rule.kind);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`${message} (template "${templateName}", entityRef "${rule.entityRef}", kind "${rule.kind}")`);
+    }
+
+    const derivedTags = placementResult.derivedTags || {};
+    const mergedTags = { ...(rule.tags || {}), ...derivedTags };
+    const namingContext = this.buildNamingContext(
+      context, rule.kind, placementResult.regionId,
+      placementResult.debug?.emergentRegionCreated?.label
+    );
+    const prominenceValue = prominenceThreshold(rule.prominence) + 0.5;
+
+    const entity: Partial<HardState> & { namingContext?: Record<string, string> } = {
+      kind: rule.kind, subtype, status: rule.status,
+      prominence: prominenceValue, culture, narrativeHint,
+      tags: mergedTags, coordinates: placementResult.coordinates,
+      regionId: placementResult.regionId, allRegionIds: placementResult.allRegionIds,
+      namingContext
+    };
+
+    const placementDebug: PlacementDebug = {
+      anchorType: placementResult.debug?.anchorType || rule.placement.anchor.type,
+      anchorEntity: placementResult.debug?.anchorEntity,
+      anchorCulture: placementResult.debug?.anchorCulture,
+      resolvedVia: placementResult.debug?.resolvedVia || placementResult.strategy,
+      seedRegionsAvailable: placementResult.debug?.seedRegionsAvailable,
+      emergentRegionCreated: placementResult.debug?.emergentRegionCreated,
+      regionId: placementResult.regionId,
+      allRegionIds: placementResult.allRegionIds
+    };
+
+    return { entity, strategy: placementResult.strategy, derivedTags, placementDebug };
+  }
+
   private resolveCount(count: number | CountRange | undefined): number {
     if (!count) return 1;
     if (typeof count === 'number') return count;
+    // eslint-disable-next-line sonarjs/pseudo-random -- simulation randomness for count range
     return count.min + Math.floor(Math.random() * (count.max - count.min + 1));
   }
 
@@ -745,6 +786,7 @@ export class TemplateInterpreter {
 
     if ('inherit' in spec) {
       const refEntity = context.resolveEntity(spec.inherit);
+      // eslint-disable-next-line sonarjs/pseudo-random -- simulation probability for subtype inheritance
       if (refEntity && (!spec.chance || Math.random() < spec.chance)) {
         return refEntity.subtype;
       }
@@ -804,8 +846,10 @@ export class TemplateInterpreter {
         const maxOk = condition.max === undefined || pressure <= condition.max;
         return minOk && maxOk;
       }
-      default:
-        throw new Error(`Unknown subtype condition type: ${JSON.stringify(condition)}`);
+      default: {
+        const exhaustive: never = condition;
+        throw new Error(`Unknown subtype condition type: ${JSON.stringify(exhaustive)}`);
+      }
     }
   }
 
@@ -935,40 +979,8 @@ export class TemplateInterpreter {
   }> {
     const { graphView } = context;
 
-    // Collect anchor entities for placement
-    const anchorEntities: HardState[] = [];
-    const avoidEntities: HardState[] = [];
-
-    // Clone spec to allow modification of anchor.id for culture type
-    let resolvedSpec = spec;
-
-    if (spec.anchor.type === 'entity') {
-      const ref = context.resolveEntity(spec.anchor.ref);
-      if (ref) anchorEntities.push(ref);
-    } else if (spec.anchor.type === 'culture') {
-      // Resolve culture anchor id: if it's a variable reference like "$target",
-      // resolve to the entity's culture
-      const anchorWithId = spec.anchor as { type: 'culture'; id?: string };
-      if (anchorWithId.id?.startsWith('$')) {
-        const refEntity = context.resolveEntity(anchorWithId.id);
-        const resolvedCultureId = refEntity?.culture || culture;
-        // Clone the spec with resolved culture id
-        resolvedSpec = {
-          ...spec,
-          anchor: { ...spec.anchor, id: resolvedCultureId }
-        };
-      }
-    } else if (spec.anchor.type === 'refs_centroid') {
-      for (const refId of spec.anchor.refs) {
-        const ref = context.resolveEntity(refId);
-        if (ref) anchorEntities.push(ref);
-      }
-    }
-
-    (spec.spacing?.avoidRefs || []).forEach(refId => {
-      const ref = context.resolveEntity(refId);
-      if (ref) avoidEntities.push(ref);
-    });
+    const { anchorEntities, resolvedSpec } = this.resolveAnchor(spec, context, culture);
+    const avoidEntities = this.resolveAvoidEntities(spec, context);
 
     const placementResult = await graphView.placeWithPlacementOptions(
       entityKind,
@@ -992,6 +1004,54 @@ export class TemplateInterpreter {
     throw new Error(
       `resolvePlacement: could not resolve placement for "${entityKind}" using anchor "${spec.anchor.type}".`
     );
+  }
+
+  private resolveAnchor(
+    spec: PlacementSpec,
+    context: ExecutionContext,
+    culture: string
+  ): { anchorEntities: HardState[]; resolvedSpec: PlacementSpec } {
+    const anchorEntities: HardState[] = [];
+    let resolvedSpec = spec;
+
+    if (spec.anchor.type === 'entity') {
+      const ref = context.resolveEntity(spec.anchor.ref);
+      if (ref) anchorEntities.push(ref);
+    } else if (spec.anchor.type === 'culture') {
+      resolvedSpec = this.resolveCultureAnchor(spec, context, culture);
+    } else if (spec.anchor.type === 'refs_centroid') {
+      for (const refId of spec.anchor.refs) {
+        const ref = context.resolveEntity(refId);
+        if (ref) anchorEntities.push(ref);
+      }
+    }
+
+    return { anchorEntities, resolvedSpec };
+  }
+
+  private resolveCultureAnchor(
+    spec: PlacementSpec,
+    context: ExecutionContext,
+    culture: string
+  ): PlacementSpec {
+    const anchorWithId = spec.anchor as { type: 'culture'; id?: string };
+    if (!anchorWithId.id?.startsWith('$')) return spec;
+
+    const refEntity = context.resolveEntity(anchorWithId.id);
+    const resolvedCultureId = refEntity?.culture || culture;
+    return {
+      ...spec,
+      anchor: { ...spec.anchor, id: resolvedCultureId }
+    };
+  }
+
+  private resolveAvoidEntities(spec: PlacementSpec, context: ExecutionContext): HardState[] {
+    const avoidEntities: HardState[] = [];
+    for (const refId of (spec.spacing?.avoidRefs || [])) {
+      const ref = context.resolveEntity(refId);
+      if (ref) avoidEntities.push(ref);
+    }
+    return avoidEntities;
   }
 
   // ===========================================================================
@@ -1132,9 +1192,7 @@ export class TemplateInterpreter {
    * Evaluate a variant condition.
    */
   private evaluateVariantCondition(condition: VariantCondition, context: ExecutionContext): boolean {
-    const ruleCtx = createRuleContext(context.graphView, context, context.target);
-    const result = rulesEvaluateCondition(condition, ruleCtx);
-    return result.passed;
+    return this.evaluateRelationshipCondition(condition, context);
   }
 
   /**
@@ -1147,50 +1205,60 @@ export class TemplateInterpreter {
     relationships: Relationship[],
     context: ExecutionContext
   ): void {
-    // Apply subtype overrides
     if (effects.subtype) {
-      for (const [entityRef, newSubtype] of Object.entries(effects.subtype)) {
-        const placeholders = entityRefs.get(entityRef);
-        if (placeholders) {
-          // Find the entity indices matching these placeholders
-          for (let i = 0; i < entities.length; i++) {
-            // Entities are created in order, match by index to placeholder
-            const placeholder = `will-be-assigned-${i}`;
-            if (placeholders.includes(placeholder)) {
-              entities[i].subtype = newSubtype;
-            }
-          }
-        }
-      }
+      this.applyVariantSubtypes(effects.subtype, entities, entityRefs);
     }
-
-    // Apply additional tags
     if (effects.tags) {
-      for (const [entityRef, tagMap] of Object.entries(effects.tags)) {
-        const placeholders = entityRefs.get(entityRef);
-        if (placeholders) {
-          for (let i = 0; i < entities.length; i++) {
-            const placeholder = `will-be-assigned-${i}`;
-            if (placeholders.includes(placeholder)) {
-              entities[i].tags = { ...(entities[i].tags || {}), ...tagMap };
-            }
-          }
-        }
-      }
+      this.applyVariantTags(effects.tags, entities, entityRefs);
     }
-
-    // Apply additional relationships
     if (effects.relationships) {
       for (const rule of effects.relationships) {
-        const rels = this.executeRelationship(rule, context, entityRefs);
-        relationships.push(...rels);
+        relationships.push(...this.executeRelationship(rule, context, entityRefs));
       }
     }
-
-    // Apply additional state updates
     if (effects.stateUpdates) {
       for (const rule of effects.stateUpdates) {
         this.executeStateUpdate(rule, context);
+      }
+    }
+  }
+
+  private applyVariantSubtypes(
+    subtypeMap: Record<string, string>,
+    entities: Partial<HardState>[],
+    entityRefs: Map<string, string[]>
+  ): void {
+    for (const [entityRef, newSubtype] of Object.entries(subtypeMap)) {
+      this.applyToMatchingEntities(entityRefs, entityRef, entities, (entity) => {
+        entity.subtype = newSubtype;
+      });
+    }
+  }
+
+  private applyVariantTags(
+    tagsMap: Record<string, Record<string, string | boolean>>,
+    entities: Partial<HardState>[],
+    entityRefs: Map<string, string[]>
+  ): void {
+    for (const [entityRef, tagMap] of Object.entries(tagsMap)) {
+      this.applyToMatchingEntities(entityRefs, entityRef, entities, (entity) => {
+        entity.tags = { ...(entity.tags || {}), ...tagMap };
+      });
+    }
+  }
+
+  private applyToMatchingEntities(
+    entityRefs: Map<string, string[]>,
+    entityRef: string,
+    entities: Partial<HardState>[],
+    apply: (entity: Partial<HardState>) => void
+  ): void {
+    const placeholders = entityRefs.get(entityRef);
+    if (!placeholders) return;
+    for (let i = 0; i < entities.length; i++) {
+      const placeholder = `will-be-assigned-${i}`;
+      if (placeholders.includes(placeholder)) {
+        apply(entities[i]);
       }
     }
   }
@@ -1199,10 +1267,11 @@ export class TemplateInterpreter {
   // VARIABLE RESOLUTION
   // ===========================================================================
 
+  // eslint-disable-next-line sonarjs/function-return-type -- VariableValue is an intentional union
   private resolveVariable(
     def: VariableDefinition,
     context: ExecutionContext
-  ): HardState | HardState[] | undefined {
+  ): VariableValue {
     const ruleCtx = createRuleContext(context.graphView, context, context.target);
     return resolveSingleVariable(def.select, ruleCtx);
   }

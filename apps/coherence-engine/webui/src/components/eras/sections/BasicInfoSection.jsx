@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { SectionHeader, LocalTextArea } from "../../shared";
 
 /**
@@ -16,8 +17,8 @@ export function BasicInfoSection({ era, onFieldChange }) {
       <SectionHeader icon="📝" title="Basic Information" />
       <div className="input-grid">
         <div className="form-group">
-          <label className="label">ID</label>
-          <input
+          <label htmlFor="id" className="label">ID</label>
+          <input id="id"
             type="text"
             value={era.id}
             onChange={(e) => onFieldChange("id", e.target.value)}
@@ -25,8 +26,8 @@ export function BasicInfoSection({ era, onFieldChange }) {
           />
         </div>
         <div className="form-group">
-          <label className="label">Name</label>
-          <input
+          <label htmlFor="name" className="label">Name</label>
+          <input id="name"
             type="text"
             value={era.name}
             onChange={(e) => onFieldChange("name", e.target.value)}
@@ -35,9 +36,15 @@ export function BasicInfoSection({ era, onFieldChange }) {
         </div>
       </div>
       <div className="form-group" style={{ marginTop: "16px" }}>
-        <label className="label">Summary</label>
+        <label className="label">Summary
         <LocalTextArea value={era.summary} onChange={(value) => onFieldChange("summary", value)} />
+        </label>
       </div>
     </div>
   );
 }
+
+BasicInfoSection.propTypes = {
+  era: PropTypes.object.isRequired,
+  onFieldChange: PropTypes.func.isRequired,
+};

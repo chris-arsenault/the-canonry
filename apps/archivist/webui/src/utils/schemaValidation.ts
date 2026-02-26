@@ -117,18 +117,19 @@ export function validateWorldData(worldData: WorldState): string[] {
     }
 
     if (prominenceLevels) {
-      if (typeof entity.prominence === "string") {
-        if (!prominenceLevels.includes(entity.prominence)) {
+      const prom: unknown = entity.prominence;
+      if (typeof prom === "string") {
+        if (!prominenceLevels.includes(prom)) {
           addIssue(
-            `Entity "${entity.id}" uses prominence "${entity.prominence}" not in schema.uiConfig.prominenceLevels.`
+            `Entity "${entity.id}" uses prominence "${prom}" not in schema.uiConfig.prominenceLevels.`
           );
         }
-      } else if (typeof entity.prominence === "number") {
-        if (!Number.isFinite(entity.prominence) || entity.prominence < 0 || entity.prominence > 5) {
-          addIssue(`Entity "${entity.id}" has invalid numeric prominence "${entity.prominence}".`);
+      } else if (typeof prom === "number") {
+        if (!Number.isFinite(prom) || prom < 0 || prom > 5) {
+          addIssue(`Entity "${entity.id}" has invalid numeric prominence "${String(prom)}".`);
         }
       } else {
-        addIssue(`Entity "${entity.id}" has invalid prominence "${entity.prominence}".`);
+        addIssue(`Entity "${entity.id}" has invalid prominence "${String(prom)}".`);
       }
     }
 

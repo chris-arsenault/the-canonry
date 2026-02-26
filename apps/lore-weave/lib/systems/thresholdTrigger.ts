@@ -1,4 +1,4 @@
-import { SimulationSystem, SystemResult, ComponentPurpose } from '../engine/types';
+import { SimulationSystem, SystemResult } from '../engine/types';
 import { HardState, Relationship } from '../core/worldTypes';
 import { WorldRuntime } from '../runtime/worldRuntime';
 import { rollProbability, hasTag, generateId } from '../utils';
@@ -16,10 +16,8 @@ import type {
   Mutation,
   MutationResult,
   Condition,
-  RuleContext,
   EntityModification,
   VariableSelectionRule,
-  VariableDefinitionForResolution,
 } from '../rules';
 
 /**

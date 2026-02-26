@@ -2,7 +2,8 @@
  * FactorEditorModal - Modal for editing feedback factors
  */
 
-import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
 import { FACTOR_TYPES } from "../constants";
 import { ReferenceDropdown, ChipSelect, NumberInput } from "../../shared";
 import TagSelector from "@penguin-tales/shared-components/TagSelector";
@@ -51,7 +52,10 @@ export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackT
     }));
   }, [schema]);
 
-  useEffect(() => {
+  // Sync local state when factor or isOpen changes (during render)
+  const prevSyncKeyRef = useRef({ factor, isOpen });
+  if (prevSyncKeyRef.current.factor !== factor || prevSyncKeyRef.current.isOpen !== isOpen) {
+    prevSyncKeyRef.current = { factor, isOpen };
     if (factor) {
       setLocalFactor(factor);
       setSelectedType(factor.type);
@@ -59,7 +63,7 @@ export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackT
       setLocalFactor({ type: "entity_count", coefficient: 1 });
       setSelectedType("entity_count");
     }
-  }, [factor, isOpen]);
+  }
 
   const handleTypeChange = (type) => {
     setSelectedType(type);
@@ -154,6 +158,9 @@ export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackT
       className="modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="modal">
         <div className="modal-header">
@@ -188,6 +195,9 @@ export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackT
                   key={type}
                   onClick={() => handleTypeChange(type)}
                   className={`type-pill ${selectedType === type ? "type-pill-selected" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
                   <span className="type-pill-icon">{config.icon}</span>
                   <span>{config.label}</span>
@@ -246,13 +256,14 @@ export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackT
             {/* Tag Count fields */}
             {selectedType === "tag_count" && (
               <div style={{ gridColumn: "1 / -1" }}>
-                <label className="label">Tags</label>
+                <label className="label">Tags
                 <TagSelector
                   value={localFactor.tags || []}
                   onChange={(v) => updateField("tags", v)}
                   tagRegistry={schema?.tagRegistry || []}
                   placeholder="Select tags..."
                 />
+                </label>
               </div>
             )}
 
@@ -306,34 +317,37 @@ export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackT
 
             {/* Common numeric fields */}
             <div className="input-group">
-              <label className="label">Coefficient</label>
+              <label className="label">Coefficient
               <NumberInput
                 value={localFactor.coefficient ?? 1}
                 onChange={(v) => updateField("coefficient", v ?? 0)}
               />
+              </label>
             </div>
 
             {(selectedType === "entity_count" ||
               selectedType === "relationship_count" ||
               selectedType === "ratio") && (
               <div className="input-group">
-                <label className="label">Cap (optional)</label>
+                <label className="label">Cap (optional)
                 <NumberInput
                   value={localFactor.cap}
                   onChange={(v) => updateField("cap", v)}
                   allowEmpty
                   placeholder="No cap"
                 />
+                </label>
               </div>
             )}
 
             {selectedType === "ratio" && (
               <div className="input-group">
-                <label className="label">Fallback Value</label>
+                <label className="label">Fallback Value
                 <NumberInput
                   value={localFactor.fallbackValue ?? 0}
                   onChange={(v) => updateField("fallbackValue", v ?? 0)}
                 />
+                </label>
               </div>
             )}
           </div>
@@ -367,3 +381,12 @@ export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackT
     </div>
   );
 }
+
+FactorEditorModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  factor: PropTypes.object,
+  onChange: PropTypes.func.isRequired,
+  feedbackType: PropTypes.string.isRequired,
+  schema: PropTypes.object,
+};

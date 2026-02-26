@@ -24,7 +24,7 @@ export default function WikiSearch({
   onQueryChange,
   onSelect,
   expandDirection = "down",
-}: WikiSearchProps) {
+}: Readonly<WikiSearchProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -89,10 +89,12 @@ export default function WikiSearch({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Reset selection when results change
-  useEffect(() => {
+  // Reset selection when results change (during render, not in effect)
+  const prevResultsRef = useRef(results);
+  if (prevResultsRef.current !== results) {
+    prevResultsRef.current = results;
     setSelectedIndex(0);
-  }, [results]);
+  }
 
   return (
     <div ref={containerRef} className={styles.container}>

@@ -113,10 +113,15 @@ Three functions named `loadWorldData()`, `fetchEntities()`, and `buildStateForSl
 that all load entity data from persistence. Traditional DRY detection misses these
 because they share no naming or structural similarity.
 
-**Method:** Agent-driven. The agent reads a diverse sample of 30-50 files to build a
-role taxonomy (what functional roles exist), then systematically searches for all
-implementations of each role — clustering by what code DOES, not what it's NAMED.
-This leverages the LLM's unique capability for semantic understanding of code.
+**Method A (preferred):** Deterministic CLI tool at `tools/drift-semantic/`. Parses
+ASTs with ts-morph, computes structural fingerprints (JSX hash, hook profile, import
+constellation, type signatures, call graph vectors, dependency context), runs ast-grep
+pattern matching, scores all unit pairs across 13 signals with adaptive weights, and
+clusters similar units. The agent then reads cluster source code and verifies semantic
+equivalence. Run: `bash tools/drift-semantic/cli.sh run --project .`
+
+**Method B (fallback):** Agent-driven. Reads a diverse sample of 30-50 files to build
+a role taxonomy, then systematically searches for all implementations of each role.
 
 **Scope layers:**
 1. UI components (same UI element rendered differently)
@@ -244,3 +249,6 @@ reports like `behavioral-drift-report.md` when running standalone).
 
 - **ripgrep (`rg`)** — strongly recommended for discovery speed. Falls back to grep.
 - **ESLint flat config** — for drift-guard rule generation.
+- **Node.js** — for the semantic drift extractor (ts-morph).
+- **Python 3.10+** — for the semantic drift pipeline (numpy, scipy, networkx, click).
+- **ast-grep (`sg`)** — optional, adds structural pattern matching signal.

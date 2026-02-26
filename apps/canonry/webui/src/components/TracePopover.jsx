@@ -6,7 +6,8 @@
  * SimulationTraceVisx from lore-weave.
  */
 
-import React, { useState, useMemo, lazy, Suspense } from "react";
+import React, { useState, useMemo, useCallback, lazy, Suspense } from "react";
+import PropTypes from "prop-types";
 import { colors } from "../theme";
 
 // Lazy load the trace visualization from lore-weave remote
@@ -90,6 +91,7 @@ export default function TracePopover({ simulationState }) {
       setIsOpen(true);
     }
   };
+  const handleClose = useCallback(() => setIsOpen(false), []);
 
   return (
     <>
@@ -115,10 +117,14 @@ export default function TracePopover({ simulationState }) {
             templateApplications={simulationState.templateApplications}
             actionApplications={simulationState.actionApplications}
             systemActions={simulationState.systemActions}
-            onClose={() => setIsOpen(false)}
+            onClose={handleClose}
           />
         </Suspense>
       )}
     </>
   );
 }
+
+TracePopover.propTypes = {
+  simulationState: PropTypes.object,
+};

@@ -70,6 +70,13 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
 
   const backportProgress = computeBackportProgress(record);
 
+  let focalEraOrder: number | undefined;
+  if (typeof record.temporalContext?.focalEra?.order === "number") {
+    focalEraOrder = record.temporalContext.focalEra.order;
+  } else if (typeof record.temporalContext?.focalEra?.startTick === "number") {
+    focalEraOrder = record.temporalContext.focalEra.startTick;
+  }
+
   return {
     id: record.chronicleId,
     chronicleId: record.chronicleId,
@@ -104,12 +111,7 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
       .split(/\s+/)
       .filter(Boolean).length,
     focalEraName: record.temporalContext?.focalEra?.name,
-    focalEraOrder:
-      typeof record.temporalContext?.focalEra?.order === "number"
-        ? record.temporalContext.focalEra.order
-        : typeof record.temporalContext?.focalEra?.startTick === "number"
-          ? record.temporalContext.focalEra.startTick
-          : undefined,
+    focalEraOrder,
     focalEraStartTick: record.temporalContext?.focalEra?.startTick,
     eraYear: record.eraYear,
     hasTemporalNarrative: !!record.perspectiveSynthesis?.temporalNarrative,

@@ -238,6 +238,9 @@ export default function ChronicleImagePicker({
       className="illuminator-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="illuminator-modal cip-modal">
         <div className="illuminator-modal-header">
@@ -275,13 +278,15 @@ export default function ChronicleImagePicker({
 
           {/* Image grid */}
           <div className="cip-grid-area">
-            {loading && images.length === 0 ? (
+            {loading && images.length === 0 && (
               <div className="cip-empty-state">Loading images...</div>
-            ) : images.length === 0 ? (
+            )}
+            {!loading && images.length === 0 && (
               <div className="cip-empty-state">
                 No images found. Try unchecking filters to see more.
               </div>
-            ) : (
+            )}
+            {images.length > 0 && (
               <>
                 <div className="cip-grid">
                   {images.map((img) => {
@@ -292,7 +297,14 @@ export default function ChronicleImagePicker({
                       <div
                         key={img.imageId}
                         onClick={() => setSelectedImageId(img.imageId)}
-                        className={`cip-image-card${isSelected ? " cip-image-card-selected" : isCurrent ? " cip-image-card-current" : ""}`}
+                        className={(() => {
+                          if (isSelected) return "cip-image-card cip-image-card-selected";
+                          if (isCurrent) return "cip-image-card cip-image-card-current";
+                          return "cip-image-card";
+                        })()}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                       >
                         <LazyThumbnail
                           imageId={img.imageId}
@@ -314,7 +326,7 @@ export default function ChronicleImagePicker({
                 {hasMore && (
                   <div className="cip-load-more-wrapper">
                     <button
-                      onClick={handleLoadMore}
+                      onClick={() => void handleLoadMore()}
                       disabled={loading}
                       className="cip-load-more-btn"
                     >

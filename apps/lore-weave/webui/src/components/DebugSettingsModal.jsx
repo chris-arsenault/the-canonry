@@ -7,6 +7,7 @@
  */
 
 import React, { useRef } from "react";
+import PropTypes from "prop-types";
 
 // Debug category metadata - matches types.ts DEBUG_CATEGORY_INFO
 const DEBUG_CATEGORIES = [
@@ -101,6 +102,9 @@ export default function DebugSettingsModal({ isOpen, onClose, debugConfig, onDeb
       className="lw-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="lw-modal">
         <div className="lw-modal-header">
@@ -117,6 +121,9 @@ export default function DebugSettingsModal({ isOpen, onClose, debugConfig, onDeb
             <div
               className={`lw-toggle ${debugConfig.enabled ? "active" : ""}`}
               onClick={handleMasterToggle}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleMasterToggle(); }}
             >
               <div className="lw-toggle-knob" />
             </div>
@@ -129,6 +136,9 @@ export default function DebugSettingsModal({ isOpen, onClose, debugConfig, onDeb
                 key={category.id}
                 className={`lw-category-item ${!debugConfig.enabled ? "disabled" : ""}`}
                 onClick={() => handleCategoryToggle(category.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
               >
                 <div
                   className={`lw-category-checkbox ${debugConfig.enabled && isCategoryEnabled(category.id) ? "checked" : ""}`}
@@ -159,3 +169,13 @@ export default function DebugSettingsModal({ isOpen, onClose, debugConfig, onDeb
     </div>
   );
 }
+
+DebugSettingsModal.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  debugConfig: PropTypes.shape({
+    enabled: PropTypes.bool,
+    enabledCategories: PropTypes.arrayOf(PropTypes.string),
+  }),
+  onDebugConfigChange: PropTypes.func,
+};

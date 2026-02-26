@@ -6,7 +6,8 @@
  * - Naming data is edited in Name Forge
  */
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
+import PropTypes from "prop-types";
 import {
   ExpandableCard,
   FormGroup,
@@ -40,9 +41,9 @@ export default function CultureEditor({ cultures, onChange }) {
 
   const getStableKey = (culture) => culture._key || culture.id;
 
-  const toggleCulture = (stableKey) => {
+  const toggleCulture = useCallback((stableKey) => {
     setExpandedCultures((prev) => ({ ...prev, [stableKey]: !prev[stableKey] }));
-  };
+  }, []);
 
   const addCulture = () => {
     const stableKey = `culture_${Date.now()}`;
@@ -136,7 +137,8 @@ export default function CultureEditor({ cultures, onChange }) {
               <ExpandableCard
                 key={stableKey}
                 expanded={isExpanded}
-                onToggle={() => toggleCulture(stableKey)}
+                onToggle={toggleCulture}
+                toggleId={stableKey}
                 title={renderCultureTitle(culture)}
                 subtitle={culture.id}
                 actions={renderCultureActions(culture, isFramework)}
@@ -208,6 +210,9 @@ export default function CultureEditor({ cultures, onChange }) {
                             pointerEvents: isFramework ? "none" : "auto",
                           }}
                           onClick={() => updateCulture(culture.id, { color })}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                         />
                       ))}
                     </div>
@@ -248,3 +253,8 @@ export default function CultureEditor({ cultures, onChange }) {
     </div>
   );
 }
+
+CultureEditor.propTypes = {
+  cultures: PropTypes.array.isRequired,
+  onChange: PropTypes.func.isRequired,
+};

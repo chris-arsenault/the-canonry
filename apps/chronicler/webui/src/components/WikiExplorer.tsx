@@ -16,6 +16,8 @@ import type {
   WikiPageIndex,
   HardState,
   SerializedPageIndex,
+  PageIndexEntry,
+  DisambiguationEntry,
 } from "../types/world.ts";
 import { useImageUrl } from "@penguin-tales/image-store";
 import { buildPageIndex, buildPageById } from "../lib/wikiBuilder.ts";
@@ -152,7 +154,7 @@ export default function WikiExplorer({
   preloadedEraNarratives,
   prebakedParchmentUrl,
   precomputedPageIndex,
-}: WikiExplorerProps) {
+}: Readonly<WikiExplorerProps>) {
   // Initialize from hash on mount
   const [currentPageId, setCurrentPageId] = useState<string | null>(() => parseHashPageId());
   const [searchQuery, setSearchQuery] = useState("");
@@ -201,7 +203,7 @@ export default function WikiExplorer({
       }
     }
 
-    loadChronicles();
+    void loadChronicles();
 
     return () => {
       cancelled = true;
@@ -232,7 +234,7 @@ export default function WikiExplorer({
       }
     }
 
-    loadStaticPages();
+    void loadStaticPages();
 
     return () => {
       cancelled = true;
@@ -263,7 +265,7 @@ export default function WikiExplorer({
       }
     }
 
-    loadEraNarratives();
+    void loadEraNarratives();
 
     return () => {
       cancelled = true;
@@ -276,10 +278,11 @@ export default function WikiExplorer({
     for (const entity of worldData.hardState) {
       // Validate prominence is numeric
       if (typeof entity.prominence !== "number") {
+        const prom: unknown = entity.prominence;
         return {
           message: "Invalid entity data format",
           details:
-            `Entity "${entity.name}" (${entity.id}) has prominence="${entity.prominence}" (${typeof entity.prominence}). ` +
+            `Entity "${entity.name}" (${entity.id}) has prominence="${String(prom)}" (${typeof prom}). ` +
             `Expected a number (0-5). The saved simulation data may be from an older format.`,
         };
       }
@@ -304,13 +307,13 @@ export default function WikiExplorer({
       return {
         pageIndex: {
           entries: [],
-          byId: new Map(),
-          byName: new Map(),
-          byAlias: new Map(),
-          bySlug: new Map(),
+          byId: new Map<string, PageIndexEntry>(),
+          byName: new Map<string, string>(),
+          byAlias: new Map<string, string>(),
+          bySlug: new Map<string, string>(),
           categories: [],
-          byBaseName: new Map(),
-        },
+          byBaseName: new Map<string, DisambiguationEntry[]>(),
+        } satisfies WikiPageIndex,
         entityIndex: new Map<string, HardState>(),
       };
     }
@@ -641,7 +644,7 @@ export default function WikiExplorer({
               <strong>How to fix:</strong>
               <ol>
                 <li>
-                  In the Canonry shell, click the <strong>"Run Slots"</strong> dropdown in the top
+                  In the Canonry shell, click the <strong>&quot;Run Slots&quot;</strong> dropdown in the top
                   navigation bar
                 </li>
                 <li>
@@ -667,7 +670,7 @@ export default function WikiExplorer({
       onSearchQueryChange={setSearchQuery}
       onNavigate={handleNavigate}
       onGoHome={handleGoHome}
-      onRefreshIndex={handleRefreshIndex}
+      onRefreshIndex={() => void handleRefreshIndex()}
       isRefreshing={isRefreshing}
       isDrawer={isMobile}
       onCloseDrawer={() => setIsSidebarOpen(false)}
@@ -690,7 +693,7 @@ export default function WikiExplorer({
       {/* Mobile: Drawer overlay */}
       {isMobile && isSidebarOpen && (
         <>
-          <div className={styles.sidebarBackdrop} onClick={() => setIsSidebarOpen(false)} />
+          <div className={styles.sidebarBackdrop} onClick={() => setIsSidebarOpen(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} />
           <div className={styles.sidebarDrawer}>{sidebarContent}</div>
         </>
       )}
@@ -707,50 +710,54 @@ export default function WikiExplorer({
         />
         <PageFrame className={styles.pageFrame} />
         <div className={isMobile ? styles.contentMobile : styles.content}>
-          {isChronicleIndex ? (
+          {isChronicleIndex && (
             <ChronicleIndex
               chronicles={chroniclePages}
               eraNarrativePages={eraNarrativePages}
-              filter={
-                currentPageId === "chronicles-story"
-                  ? { kind: "format", format: "story" }
-                  : currentPageId === "chronicles-document"
-                    ? { kind: "format", format: "document" }
-                    : currentPageId?.startsWith("chronicles-type-")
-                      ? { kind: "type", typeId: currentPageId.replace("chronicles-type-", "") }
-                      : currentPageId?.startsWith("chronicles-era-")
-                        ? (() => {
-                            // Parse: chronicles-era-{eraId} or chronicles-era-{eraId}-story or chronicles-era-{eraId}-document
-                            const suffix = currentPageId!.replace("chronicles-era-", "");
-                            if (suffix.endsWith("-story")) {
-                              return {
-                                kind: "era" as const,
-                                eraId: suffix.replace(/-story$/, ""),
-                                format: "story" as const,
-                              };
-                            }
-                            if (suffix.endsWith("-document")) {
-                              return {
-                                kind: "era" as const,
-                                eraId: suffix.replace(/-document$/, ""),
-                                format: "document" as const,
-                              };
-                            }
-                            return { kind: "era" as const, eraId: suffix };
-                          })()
-                        : { kind: "all" }
-              }
+              filter={(() => {
+                if (currentPageId === "chronicles-story") {
+                  return { kind: "format" as const, format: "story" as const };
+                }
+                if (currentPageId === "chronicles-document") {
+                  return { kind: "format" as const, format: "document" as const };
+                }
+                if (currentPageId?.startsWith("chronicles-type-")) {
+                  return { kind: "type" as const, typeId: currentPageId.replace("chronicles-type-", "") };
+                }
+                if (currentPageId?.startsWith("chronicles-era-")) {
+                  const suffix = currentPageId.replace("chronicles-era-", "");
+                  if (suffix.endsWith("-story")) {
+                    return {
+                      kind: "era" as const,
+                      eraId: suffix.replace(/-story$/, ""),
+                      format: "story" as const,
+                    };
+                  }
+                  if (suffix.endsWith("-document")) {
+                    return {
+                      kind: "era" as const,
+                      eraId: suffix.replace(/-document$/, ""),
+                      format: "document" as const,
+                    };
+                  }
+                  return { kind: "era" as const, eraId: suffix };
+                }
+                return { kind: "all" as const };
+              })()}
               onNavigate={handleNavigate}
             />
-          ) : isPagesIndex ? (
+          )}
+          {!isChronicleIndex && isPagesIndex && (
             <PagesIndex pages={staticPagesAsWikiPages} onNavigate={handleNavigate} />
-          ) : isPageCategory && pageCategoryNamespace ? (
+          )}
+          {!isChronicleIndex && !isPagesIndex && isPageCategory && pageCategoryNamespace && (
             <PageCategoryIndex
               namespace={pageCategoryNamespace}
               pages={staticPagesAsWikiPages}
               onNavigate={handleNavigate}
             />
-          ) : currentPage ? (
+          )}
+          {!isChronicleIndex && !isPagesIndex && !(isPageCategory && pageCategoryNamespace) && currentPage && (
             <WikiPageView
               page={currentPage}
               pages={indexAsPages}
@@ -761,7 +768,8 @@ export default function WikiExplorer({
               prominenceScale={prominenceScale}
               breakpoint={breakpoint}
             />
-          ) : (
+          )}
+          {!isChronicleIndex && !isPagesIndex && !(isPageCategory && pageCategoryNamespace) && !currentPage && (
             <HomePage
               worldData={worldData}
               pages={indexAsPages}
@@ -825,6 +833,7 @@ function weightedRandomSelect<T extends { prominence?: number }>(
 
   for (let i = 0; i < count && available.length > 0; i++) {
     const totalWeight = available.reduce((sum, w) => sum + w.weight, 0);
+    // eslint-disable-next-line sonarjs/pseudo-random -- non-security weighted selection for UI display
     let random = Math.random() * totalWeight;
 
     for (let j = 0; j < available.length; j++) {
@@ -848,7 +857,7 @@ function HomePage({
   prominenceScale,
   breakpoint,
   eraNarrativeByEraId,
-}: HomePageProps) {
+}: Readonly<HomePageProps>) {
   const isMobile = breakpoint === "mobile";
   // Find System:About This Project page
   const aboutPage = useMemo(() => {
@@ -956,6 +965,7 @@ function HomePage({
     const entityMap = new Map(worldData.hardState.map((e) => [e.id, e]));
 
     // Shuffle and pick 5 interesting relationships
+    // eslint-disable-next-line sonarjs/pseudo-random -- non-security shuffle for UI display
     const shuffled = [...worldData.relationships].sort(() => Math.random() - 0.5).slice(0, 20); // Get more, then filter for good ones
 
     const facts: Array<{
@@ -997,6 +1007,7 @@ function HomePage({
   // Truncate summary to max length
   const truncateSummary = (text: string, maxLen: number) => {
     if (text.length <= maxLen) return text;
+    // eslint-disable-next-line sonarjs/slow-regex -- bounded by maxLen slice (short string)
     return text.slice(0, maxLen).replace(/\s+\S*$/, "") + "...";
   };
 
@@ -1036,7 +1047,7 @@ function HomePage({
               <div className={isMobile ? styles.featuredLayoutMobile : styles.featuredLayout}>
                 {featuredImageUrl && (
                   <button
-                    onClick={openFeaturedImage}
+                    onClick={() => void openFeaturedImage()}
                     className={isMobile ? styles.featuredImageMobile : styles.featuredImage}
                     aria-label={`Enlarge ${featuredArticle.name} image`}
                   >
@@ -1079,7 +1090,7 @@ function HomePage({
           {/* Did You Know - Wikipedia style */}
           {didYouKnow.length > 0 && (
             <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>From the Historian's Desk</h2>
+              <h2 className={styles.sectionTitle}>From the Historian&apos;s Desk</h2>
               <ul className={styles.didYouKnowList}>
                 {didYouKnow.map((fact, idx) => (
                   <li key={idx} className={styles.didYouKnowItem}>
@@ -1263,7 +1274,7 @@ interface PagesIndexProps {
   onNavigate: (pageId: string) => void;
 }
 
-function PagesIndex({ pages, onNavigate }: PagesIndexProps) {
+function PagesIndex({ pages, onNavigate }: Readonly<PagesIndexProps>) {
   // Group pages by namespace
   const pagesByNamespace = useMemo(() => {
     const grouped = new Map<string, WikiPage[]>();
@@ -1333,7 +1344,7 @@ interface PageCategoryIndexProps {
   onNavigate: (pageId: string) => void;
 }
 
-function PageCategoryIndex({ namespace, pages, onNavigate }: PageCategoryIndexProps) {
+function PageCategoryIndex({ namespace, pages, onNavigate }: Readonly<PageCategoryIndexProps>) {
   // Filter pages to this namespace
   const filteredPages = useMemo(() => {
     return pages.filter((page) => {

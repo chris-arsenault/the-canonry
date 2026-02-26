@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { colors, typography, spacing, radius } from "../theme";
 
 const styles = {
@@ -45,7 +46,7 @@ const styles = {
   },
 };
 
-export default function RemotePlaceholder({ name, port, instructions }) {
+export default function RemotePlaceholder({ name, instructions }) {
   return (
     <div style={styles.container}>
       <div style={styles.icon}>🔌</div>
@@ -57,3 +58,8 @@ export default function RemotePlaceholder({ name, port, instructions }) {
     </div>
   );
 }
+
+RemotePlaceholder.propTypes = {
+  name: PropTypes.string.isRequired,
+  instructions: PropTypes.string,
+};

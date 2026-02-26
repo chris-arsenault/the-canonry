@@ -97,7 +97,7 @@ function buildUserPrompt(entries: BulkChronicleEntry[]): string {
     const e = entries[i];
     lines.push(`--- Chronicle ${i + 1}: ${e.title} ---`);
     lines.push(
-      `Format: ${e.format}${e.narrativeStyleName ? ` | Style: ${e.narrativeStyleName}` : ""}`
+      `Format: ${e.format}${e.narrativeStyleName ? " | Style: " + e.narrativeStyleName : ""}`
     );
     lines.push(`Summary: ${e.summary}`);
     if (e.brief) {
@@ -123,6 +123,7 @@ async function processBatchResponse(
   batchEntries: BulkChronicleEntry[],
   costPerChronicle: number
 ): Promise<{ successCount: number; failCount: number }> {
+  // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text, stripping code fences
   const jsonText = responseText
     .trim()
     .replace(/^```(?:json)?\s*/, "")

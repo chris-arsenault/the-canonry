@@ -11,7 +11,7 @@
  * The factory creates a SimulationSystem from a ClusterFormationConfig.
  */
 
-import { SimulationSystem, SystemResult, ComponentPurpose } from '../engine/types';
+import { SimulationSystem, SystemResult } from '../engine/types';
 import { HardState, Relationship } from '../core/worldTypes';
 import { WorldRuntime } from '../runtime/worldRuntime';
 import {
@@ -22,7 +22,7 @@ import {
   filterClusterableEntities
 } from '../graph/clusteringUtils';
 import { FRAMEWORK_RELATIONSHIP_KINDS, FRAMEWORK_TAGS, FRAMEWORK_STATUS } from '@canonry/world-schema';
-import { pickRandom, weightedRandom } from '../utils';
+import { weightedRandom } from '../utils';
 import { selectEntities, createSystemContext } from '../rules';
 import type { SelectionRule } from '../rules';
 import type { SelectionFilter } from '../rules/filters/types';
@@ -281,6 +281,7 @@ function sampleRandom(entities: HardState[], count: number): HardState[] {
   const shuffled = [...entities];
   // Fisher-Yates shuffle
   for (let i = shuffled.length - 1; i > 0; i--) {
+    // eslint-disable-next-line sonarjs/pseudo-random -- simulation shuffle for cluster sampling
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
@@ -350,7 +351,7 @@ async function createMetaEntity(
 
   // Build narrative hint
   const entityNames = cluster.map(e => e.name).join(', ');
-  let narrativeHint = config.descriptionTemplate
+  const narrativeHint = config.descriptionTemplate
     ? config.descriptionTemplate
         .replace('{count}', String(cluster.length))
         .replace('{names}', entityNames)
@@ -492,7 +493,7 @@ export function createClusterFormationSystem(
     id: config.id,
     name: config.name,
 
-    apply: async (graphView: WorldRuntime, modifier: number = 1.0): Promise<SystemResult> => {
+    apply: async (graphView: WorldRuntime, _modifier: number = 1.0): Promise<SystemResult> => {
       // Check epoch end if required
       if (config.runAtEpochEnd) {
         const ticksPerEpoch = graphView.config.ticksPerEpoch || 15;

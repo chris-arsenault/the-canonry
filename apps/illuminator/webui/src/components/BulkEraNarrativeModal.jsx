@@ -7,7 +7,7 @@
  * 3. Terminal: completion/cancellation/failure summary
  */
 
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import PropTypes from "prop-types";
 import { useBulkEraNarrativeStore } from "../lib/db/bulkEraNarrativeStore";
 import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
@@ -112,50 +112,48 @@ export default function BulkEraNarrativeModal({
     activeTaskId ? s.entries.get(activeTaskId) : undefined
   );
 
+  // Refs for values used in the prepare effect that shouldn't trigger re-run
+  const prepareDepsRef = useRef({ chronicleItems, wizardEras, eraTemporalInfo, projectId, simulationRunId, narrativeWeightMap, prepareBulk, progress });
+  prepareDepsRef.current = { chronicleItems, wizardEras, eraTemporalInfo, projectId, simulationRunId, narrativeWeightMap, prepareBulk, progress };
+
   // Prepare when opening
   useEffect(() => {
+    const { chronicleItems: ci, wizardEras: we, eraTemporalInfo: eti, projectId: pid, simulationRunId: sid, narrativeWeightMap: nwm, prepareBulk: pb, progress: p } = prepareDepsRef.current;
     if (
       isOpen &&
-      progress.status === "idle" &&
-      chronicleItems?.length > 0 &&
-      wizardEras?.length > 0
+      p.status === "idle" &&
+      ci?.length > 0 &&
+      we?.length > 0
     ) {
-      prepareBulk(
-        chronicleItems,
-        wizardEras,
-        eraTemporalInfo,
-        projectId,
-        simulationRunId,
-        "witty",
-        narrativeWeightMap
-      );
+      pb(ci, we, eti, pid, sid, "witty", nwm);
     }
   }, [isOpen]);
+
+  const progressStatus = progress?.status;
+  const processedEras = progress?.processedEras;
+  const totalEras = progress?.totalEras;
 
   // Update pill while minimized
   useEffect(() => {
     if (!isMinimized || !progress) return;
-    const statusColor =
-      progress.status === "running"
-        ? "#f59e0b"
-        : progress.status === "complete"
-          ? "#10b981"
-          : progress.status === "failed"
-            ? "#ef4444"
-            : "#6b7280";
+    let statusColor;
+    if (progressStatus === "running") statusColor = "#f59e0b";
+    else if (progressStatus === "complete") statusColor = "#10b981";
+    else if (progressStatus === "failed") statusColor = "#ef4444";
+    else statusColor = "#6b7280";
     const statusText =
-      progress.status === "running"
-        ? `${progress.processedEras}/${progress.totalEras}`
-        : progress.status;
+      progressStatus === "running"
+        ? `${processedEras}/${totalEras}`
+        : progressStatus;
     useFloatingPillStore.getState().updatePill(PILL_ID, { statusText, statusColor });
-  }, [isMinimized, progress?.status, progress?.processedEras]);
+  }, [isMinimized, progress, progressStatus, processedEras, totalEras]);
 
   // Remove pill when idle
   useEffect(() => {
-    if (!progress || progress.status === "idle") {
+    if (!progress || progressStatus === "idle") {
       useFloatingPillStore.getState().remove(PILL_ID);
     }
-  }, [progress?.status]);
+  }, [progress, progressStatus]);
 
   if (!isOpen) return null;
   if (!progress || progress.status === "idle") return null;
@@ -187,21 +185,17 @@ export default function BulkEraNarrativeModal({
     onClose();
   };
 
-  const statusColor =
-    progress.status === "complete"
-      ? "#10b981"
-      : progress.status === "failed"
-        ? "#ef4444"
-        : progress.status === "cancelled"
-          ? "#f59e0b"
-          : "var(--text-muted)";
+  let statusColor;
+  if (progress.status === "complete") statusColor = "#10b981";
+  else if (progress.status === "failed") statusColor = "#ef4444";
+  else if (progress.status === "cancelled") statusColor = "#f59e0b";
+  else statusColor = "var(--text-muted)";
 
-  const progressFillClass =
-    progress.status === "failed"
-      ? "benm-progress-fill benm-progress-fill-failed"
-      : progress.status === "cancelled"
-        ? "benm-progress-fill benm-progress-fill-cancelled"
-        : "benm-progress-fill benm-progress-fill-complete";
+  let progressFillModifier;
+  if (progress.status === "failed") progressFillModifier = "benm-progress-fill-failed";
+  else if (progress.status === "cancelled") progressFillModifier = "benm-progress-fill-cancelled";
+  else progressFillModifier = "benm-progress-fill-complete";
+  const progressFillClass = `benm-progress-fill ${progressFillModifier}`;
 
   return (
     <div className="benm-overlay">
@@ -225,12 +219,11 @@ export default function BulkEraNarrativeModal({
                         progress.status === "running"
                           ? `${progress.processedEras}/${progress.totalEras}`
                           : progress.status,
-                      statusColor:
-                        progress.status === "running"
-                          ? "#f59e0b"
-                          : progress.status === "complete"
-                            ? "#10b981"
-                            : "#ef4444",
+                      statusColor: (() => {
+                        if (progress.status === "running") return "#f59e0b";
+                        if (progress.status === "complete") return "#10b981";
+                        return "#ef4444";
+                      })(),
                       tabId: "chronicle",
                     })
                   }
@@ -384,16 +377,20 @@ export default function BulkEraNarrativeModal({
                           const isDone = idx < activeIdx;
                           const isActive = idx === activeIdx;
                           const isPending = idx > activeIdx;
-                          const icon = isDone ? "\u2713" : isActive ? "\u25B8" : "\u25CB";
-                          const iconColor = isDone
-                            ? "#10b981"
-                            : isActive
-                              ? "#f59e0b"
-                              : "var(--text-muted)";
+                          let icon;
+                          if (isDone) icon = "\u2713";
+                          else if (isActive) icon = "\u25B8";
+                          else icon = "\u25CB";
+                          let iconColor;
+                          if (isDone) iconColor = "#10b981";
+                          else if (isActive) iconColor = "#f59e0b";
+                          else iconColor = "var(--text-muted)";
 
                           // Word count bar caps for visual scaling
-                          const barMax =
-                            step === "generate" ? 4000 : step === "threads" ? 2000 : 3000;
+                          let barMax;
+                          if (step === "generate") barMax = 4000;
+                          else if (step === "threads") barMax = 2000;
+                          else barMax = 3000;
                           const barPercent = isActive
                             ? Math.min(100, (outputWords / barMax) * 100)
                             : 0;

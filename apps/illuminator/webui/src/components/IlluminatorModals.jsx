@@ -269,3 +269,52 @@ export default function IlluminatorModals({
     </>
   );
 }
+
+ImageSettingsSection.propTypes = {
+  imageGenSettings: PropTypes.object,
+  updateImageGenSettings: PropTypes.func,
+  styleLibrary: PropTypes.object,
+  worldSchema: PropTypes.object,
+  config: PropTypes.object,
+};
+
+DynamicsSection.propTypes = {
+  dynamicsFlow: PropTypes.object.isRequired,
+};
+
+RevisionSection.propTypes = {
+  revisionFlow: PropTypes.object.isRequired,
+};
+
+BackportSection.propTypes = {
+  backportFlow: PropTypes.object.isRequired,
+  revisionFlow: PropTypes.object.isRequired,
+};
+
+HistorianSection.propTypes = {
+  historianFlow: PropTypes.object.isRequired,
+  revisionFlow: PropTypes.object.isRequired,
+};
+
+EntityModals.propTypes = {
+  worldSchema: PropTypes.object,
+  handleRenameApplied: PropTypes.func,
+  handleCreateEntity: PropTypes.func,
+  handleEditEntity: PropTypes.func,
+};
+
+IlluminatorModals.propTypes = {
+  revisionFlow: PropTypes.object,
+  backportFlow: PropTypes.object,
+  historianFlow: PropTypes.object,
+  dynamicsFlow: PropTypes.object,
+  imageGenSettings: PropTypes.object,
+  updateImageGenSettings: PropTypes.func,
+  styleLibrary: PropTypes.object,
+  worldSchema: PropTypes.object,
+  config: PropTypes.object,
+  handleRenameApplied: PropTypes.func,
+  handleCreateEntity: PropTypes.func,
+  handleEditEntity: PropTypes.func,
+  setActiveTab: PropTypes.func,
+};

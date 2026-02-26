@@ -184,12 +184,12 @@ export function ParchmentTexture({
   className,
   config = DEFAULT_PARCHMENT_CONFIG,
   prebakedUrl,
-}: {
+}: Readonly<{
   className?: string;
   config?: ParchmentConfig;
   /** Pre-baked tile URL — skips runtime canvas pipeline when provided */
   prebakedUrl?: string;
-}) {
+}>) {
   const [textureUrl, setTextureUrl] = useState<string | null>(prebakedUrl ?? null);
   const [prevUrl, setPrevUrl] = useState<string | null>(null);
 
@@ -231,7 +231,7 @@ export function ParchmentTexture({
       }
     }
 
-    generate();
+    void generate();
     return () => {
       cancelled = true;
     };
@@ -288,14 +288,14 @@ function Slider({
   max,
   step,
   onChange,
-}: {
+}: Readonly<{
   label: string;
   value: number;
   min: number;
   max: number;
   step: number;
   onChange: (v: number) => void;
-}) {
+}>) {
   return (
     <div className={ornStyles.sliderRow}>
       <span className={ornStyles.sliderLabel}>{label}</span>
@@ -316,10 +316,10 @@ function Slider({
 export function ParchmentDebugPanel({
   config,
   onChange,
-}: {
+}: Readonly<{
   config: ParchmentConfig;
   onChange: (c: ParchmentConfig) => void;
-}) {
+}>) {
   const [open, setOpen] = useState(false);
 
   const set = useCallback(
@@ -442,7 +442,7 @@ function ScrollCorner() {
   );
 }
 
-export function PageFrame({ className }: { className?: string }) {
+export function PageFrame({ className }: Readonly<{ className?: string }>) {
   return (
     <div aria-hidden="true" className={`${className ?? ""} ${ornStyles.pageFrame}`}>
       {/* Top-left */}
@@ -471,7 +471,7 @@ export function PageFrame({ className }: { className?: string }) {
    with frost blue accent tendrils. Replaces Unicode ❦.
    =================== */
 
-export function SectionDivider({ className }: { className?: string }) {
+export function SectionDivider({ className }: Readonly<{ className?: string }>) {
   return (
     <svg
       aria-hidden="true"
@@ -534,15 +534,15 @@ export function SectionDivider({ className }: { className?: string }) {
 export function FrostEdge({
   position = "top",
   className,
-}: {
+}: Readonly<{
   position?: "top" | "bottom";
   className?: string;
-}) {
+}>) {
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 260 12"
-      className={`${className ?? ""}${position === "bottom" ? ` ${ornStyles.frostFlipped}` : ""}`}
+      className={[className ?? "", position === "bottom" ? ornStyles.frostFlipped : ""].filter(Boolean).join(" ")}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="none"

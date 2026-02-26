@@ -4,7 +4,8 @@
  * Dynamic tabs: Overview, [each strategy group], Test
  */
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import PropTypes from "prop-types";
 import { ModalShell } from "@penguin-tales/shared-components";
 import { OverviewTab, SingleGroupTab, TestTab } from "./tabs";
 
@@ -263,3 +264,16 @@ export default function ProfileModal({
     </ModalShell>
   );
 }
+
+ProfileModal.propTypes = {
+  profile: PropTypes.object,
+  isNew: PropTypes.bool,
+  onSave: PropTypes.func,
+  onClose: PropTypes.func,
+  onDelete: PropTypes.func,
+  onDuplicate: PropTypes.func,
+  cultureConfig: PropTypes.object,
+  worldSchema: PropTypes.object,
+  onAddTag: PropTypes.func,
+  generatorUsage: PropTypes.object,
+};

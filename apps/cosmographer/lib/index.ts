@@ -21,7 +21,6 @@ import type {
   CosmographerInput,
   CosmographerOutput,
   PlaneClassification,
-  GenerationOptions
 } from './types/index.js';
 
 import { classifyPlanes, getMatchedKeywords } from './analysis/index.js';
@@ -104,9 +103,9 @@ export const VERSION = '0.1.0';
  * @param input - Domain specification with planes and hints
  * @returns Complete manifold configuration for lore-weave
  */
-export async function generateManifold(
+export function generateManifold(
   input: CosmographerInput
-): Promise<CosmographerOutput> {
+): CosmographerOutput {
   const options = input.options ?? {};
 
   // Register any custom categories
@@ -120,7 +119,7 @@ export async function generateManifold(
   }
 
   // Classify all planes
-  const classifications = await classifyPlanes(input.planes, {
+  const classifications = classifyPlanes(input.planes, {
     domainClass: input.spaceType,
     keywordWeight: options.weights?.semantic ?? 0.5,
     embeddingWeight: options.weights?.embedding ?? 0.3,
@@ -182,17 +181,17 @@ export async function generateManifold(
  * @param domainClass - Domain class to search within
  * @returns Array of category matches with confidence scores
  */
-export async function analyzeTerm(
+export function analyzeTerm(
   term: string,
   domainClass: import('./types/index.js').DomainClass = 'hybrid'
-): Promise<Array<{ category: string; confidence: number }>> {
+): Array<{ category: string; confidence: number }> {
   const fakeSpec = {
     id: term.toLowerCase().replace(/\s+/g, '_'),
     label: term,
     description: term
   };
 
-  const result = await classifyPlanes([fakeSpec], { domainClass });
+  const result = classifyPlanes([fakeSpec], { domainClass });
   const classification = result.get(fakeSpec.id);
 
   if (!classification) {

@@ -9,40 +9,58 @@ export function stripLeadingWrapper(text: string): string {
     .trim();
 }
 
+interface JsonScanState {
+  inString: boolean;
+  escaped: boolean;
+  depth: number;
+  start: number;
+}
+
+function handleStringChar(char: string, state: JsonScanState): void {
+  if (state.escaped) {
+    state.escaped = false;
+  } else if (char === "\\") {
+    state.escaped = true;
+  } else if (char === '"') {
+    state.inString = false;
+  }
+}
+
+function handleStructuralChar(
+  char: string,
+  i: number,
+  state: JsonScanState,
+  text: string
+): string | null {
+  if (char === '"') {
+    state.inString = true;
+    return null;
+  }
+  if (char === "{") {
+    if (state.depth === 0) state.start = i;
+    state.depth++;
+    return null;
+  }
+  if (char === "}") {
+    state.depth--;
+    if (state.depth === 0 && state.start !== -1) {
+      return text.slice(state.start, i + 1);
+    }
+  }
+  return null;
+}
+
 export function extractFirstJsonObject(text: string): string | null {
-  let inString = false;
-  let escaped = false;
-  let depth = 0;
-  let start = -1;
+  const state: JsonScanState = { inString: false, escaped: false, depth: 0, start: -1 };
 
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
-
-    if (inString) {
-      if (escaped) {
-        escaped = false;
-      } else if (char === "\\") {
-        escaped = true;
-      } else if (char === '"') {
-        inString = false;
-      }
+    if (state.inString) {
+      handleStringChar(char, state);
       continue;
     }
-
-    if (char === '"') {
-      inString = true;
-      continue;
-    }
-
-    if (char === "{") {
-      if (depth === 0) start = i;
-      depth++;
-    } else if (char === "}") {
-      depth--;
-      if (depth === 0 && start !== -1) {
-        return text.slice(start, i + 1);
-      }
-    }
+    const result = handleStructuralChar(char, i, state, text);
+    if (result !== null) return result;
   }
 
   return null;

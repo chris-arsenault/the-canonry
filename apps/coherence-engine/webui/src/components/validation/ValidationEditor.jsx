@@ -15,6 +15,7 @@
  */
 
 import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import DependencyViewer from "../DependencyViewer";
 import NamingProfileMappingViewer from "../NamingProfileMappingViewer";
 import "./validation.css";
@@ -40,7 +41,7 @@ export default function ValidationEditor({
   pressures = [],
   generators = [],
   systems = [],
-  actions = [],
+  actions: _actions = [],
   usageMap = null,
   onNavigateToGenerator,
 }) {
@@ -67,13 +68,15 @@ export default function ValidationEditor({
     [schema]
   );
 
-  const statusBadgeClass = `validation-status-badge ${
-    overallStatus === "clean"
-      ? "validation-status-clean"
-      : overallStatus === "warning"
-        ? "validation-status-warning"
-        : "validation-status-error"
-  }`;
+  let statusModifier;
+  if (overallStatus === "clean") {
+    statusModifier = "validation-status-clean";
+  } else if (overallStatus === "warning") {
+    statusModifier = "validation-status-warning";
+  } else {
+    statusModifier = "validation-status-error";
+  }
+  const statusBadgeClass = `validation-status-badge ${statusModifier}`;
 
   const handleItemClick = (itemId) => {
     if (onNavigateToGenerator) {
@@ -95,9 +98,11 @@ export default function ValidationEditor({
             <h1 className="validation-title">
               Validation
               <span className={statusBadgeClass}>
-                {overallStatus === "clean"
-                  ? "All Clear"
-                  : `${totalIssues} ${totalIssues === 1 ? "Issue" : "Issues"}`}
+                {(() => {
+                  if (overallStatus === "clean") return "All Clear";
+                  const issueWord = totalIssues === 1 ? "Issue" : "Issues";
+                  return `${totalIssues} ${issueWord}`;
+                })()}
               </span>
             </h1>
             <p className="validation-subtitle">
@@ -247,6 +252,17 @@ export default function ValidationEditor({
     </div>
   );
 }
+
+ValidationEditor.propTypes = {
+  schema: PropTypes.object,
+  eras: PropTypes.array,
+  pressures: PropTypes.array,
+  generators: PropTypes.array,
+  systems: PropTypes.array,
+  actions: PropTypes.array,
+  usageMap: PropTypes.object,
+  onNavigateToGenerator: PropTypes.func,
+};
 
 /**
  * Export validation status calculation for use by parent

@@ -83,8 +83,8 @@ export function useImageUrl(imageId: string | null | undefined): UseImageUrlResu
           setError("Image not found in storage");
         }
       })
-      .catch((err) => {
-        setError(err.message || "Failed to load image");
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "Failed to load image");
       })
       .finally(() => {
         setLoading(false);

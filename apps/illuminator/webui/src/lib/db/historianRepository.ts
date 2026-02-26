@@ -8,7 +8,7 @@ import type { HistorianRun, HistorianRunStatus, HistorianNote } from "../histori
 export type { HistorianRun, HistorianRunStatus, HistorianNote };
 
 export function generateHistorianRunId(): string {
-  return `histrun_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  return `histrun_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 }
 
 export async function createHistorianRun(run: HistorianRun): Promise<HistorianRun> {

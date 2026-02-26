@@ -1,4 +1,4 @@
-import { SimulationSystem, SystemResult, ComponentPurpose } from '../engine/types';
+import { SimulationSystem, SystemResult } from '../engine/types';
 import { HardState, Relationship } from '../core/worldTypes';
 import { WorldRuntime } from '../runtime/worldRuntime';
 import { rollProbability, hasTag } from '../utils';
@@ -418,6 +418,7 @@ function applySingleSourceContagion(
         }
       }
 
+      // eslint-disable-next-line sonarjs/pseudo-random -- simulation random source selection
       const source = infectedContacts[Math.floor(Math.random() * infectedContacts.length)];
 
       // Check excluded relationships (e.g., don't spread war between allies)
@@ -571,10 +572,15 @@ function applySingleSourceContagion(
     nodes: entities.map(e => ({
       id: e.id,
       name: e.name,
+      /* eslint-disable sonarjs/pseudo-random -- fallback coordinates for visualization */
       x: e.coordinates?.x ?? Math.random() * 100,
       y: e.coordinates?.y ?? Math.random() * 100,
-      state: infected.some(i => i.id === e.id) ? 'infected' :
-             immune.some(i => i.id === e.id) ? 'recovered' : 'susceptible',
+      /* eslint-enable sonarjs/pseudo-random */
+      state: (() => {
+        if (infected.some(i => i.id === e.id)) return 'infected' as const;
+        if (immune.some(i => i.id === e.id)) return 'recovered' as const;
+        return 'susceptible' as const;
+      })(),
       prominence: e.prominence,
     })),
     // Edges (transmission vectors)
@@ -879,8 +885,10 @@ function applyMultiSourceContagion(
     nodes: entities.map(e => ({
       id: e.id,
       name: e.name,
+      /* eslint-disable sonarjs/pseudo-random -- fallback coordinates for visualization */
       x: e.coordinates?.x ?? Math.random() * 100,
       y: e.coordinates?.y ?? Math.random() * 100,
+      /* eslint-enable sonarjs/pseudo-random */
       state: allInfected.has(e.id) ? 'infected' : 'susceptible',
       prominence: e.prominence,
       // Which sources this entity is infected with

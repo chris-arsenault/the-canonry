@@ -17,7 +17,7 @@ function ImageRefVersionWarning({
   item,
   versions,
   activeVersionId,
-  chronicleText,
+  chronicleText: _chronicleText,
   onAnalyzeCompatibility,
   isAnalyzing,
 }) {
@@ -142,7 +142,7 @@ function ImageRefCompatibilityResults({
 
       <div className="itab-compat-footer">
         <div className="itab-compat-help">
-          "Keep" preserves the ref. "Regenerate" resets for new image. "Skip" removes.
+          &quot;Keep&quot; preserves the ref. &quot;Regenerate&quot; resets for new image. &quot;Skip&quot; removes.
         </div>
         {onApply && (
           <button
@@ -179,9 +179,12 @@ function CoverImagePreview({ imageId, onImageClick }) {
     <div className="itab-cover-preview">
       <img
         src={url}
-        alt="Cover image"
+        alt="Cover"
         onClick={onImageClick ? () => onImageClick(imageId, "Cover Image") : undefined}
         className={`itab-cover-img ${onImageClick ? "itab-cover-img-clickable" : ""}`}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       />
     </div>
   );
@@ -458,3 +461,58 @@ export default function ImagesTab({
     </div>
   );
 }
+
+ImageRefVersionWarning.propTypes = {
+  item: PropTypes.object.isRequired,
+  versions: PropTypes.array,
+  activeVersionId: PropTypes.string,
+  chronicleText: PropTypes.string,
+  onAnalyzeCompatibility: PropTypes.func.isRequired,
+  isAnalyzing: PropTypes.bool,
+};
+
+ImageRefCompatibilityResults.propTypes = {
+  analysis: PropTypes.object,
+  imageRefs: PropTypes.object,
+  entityMap: PropTypes.object,
+  onSelectionChange: PropTypes.func.isRequired,
+  selections: PropTypes.array,
+  onApply: PropTypes.func,
+  isApplying: PropTypes.bool,
+};
+
+CoverImagePreview.propTypes = {
+  imageId: PropTypes.string,
+  onImageClick: PropTypes.func,
+};
+
+ImagesTab.propTypes = {
+  item: PropTypes.object.isRequired,
+  isGenerating: PropTypes.bool,
+  entityMap: PropTypes.object,
+  onGenerateCoverImageScene: PropTypes.func,
+  onGenerateCoverImage: PropTypes.func,
+  onImageClick: PropTypes.func,
+  onGenerateChronicleImage: PropTypes.func,
+  onResetChronicleImage: PropTypes.func,
+  onRegenerateDescription: PropTypes.func,
+  onUpdateChronicleAnchorText: PropTypes.func,
+  onUpdateChronicleImageSize: PropTypes.func,
+  onUpdateChronicleImageJustification: PropTypes.func,
+  styleLibrary: PropTypes.object,
+  styleSelection: PropTypes.object,
+  cultures: PropTypes.array,
+  cultureIdentities: PropTypes.object,
+  worldContext: PropTypes.object,
+  imageSize: PropTypes.string,
+  imageQuality: PropTypes.string,
+  imageModel: PropTypes.string,
+  imageGenSettings: PropTypes.object,
+  onOpenImageSettings: PropTypes.func,
+  chronicleText: PropTypes.string,
+  versions: PropTypes.array,
+  activeVersionId: PropTypes.string,
+  onApplyImageRefSelections: PropTypes.func,
+  onSelectExistingImage: PropTypes.func,
+  onSelectExistingCoverImage: PropTypes.func,
+};

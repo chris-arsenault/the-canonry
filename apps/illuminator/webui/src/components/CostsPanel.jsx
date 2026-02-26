@@ -302,7 +302,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
           />
 
           <button
-            onClick={handleClearHistory}
+            onClick={() => void handleClearHistory()}
             className="illuminator-button-link cpanel-clear-button"
           >
             Clear History

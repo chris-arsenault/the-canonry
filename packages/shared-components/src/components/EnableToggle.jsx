@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -12,6 +13,10 @@ import React from 'react';
  * @param {string} [props.label] - Optional label beside the toggle
  * @param {string} [props.className] - Optional additional class names
  */
+const styles = {
+  container: { alignItems: 'center' },
+};
+
 export function EnableToggle({ enabled, onChange, onClick, label, className = '' }) {
   const handleClick = (e) => {
     if (onClick) {
@@ -22,10 +27,13 @@ export function EnableToggle({ enabled, onChange, onClick, label, className = ''
   };
 
   return (
-    <div className={`flex gap-lg ${className}`.trim()} style={{ alignItems: 'center' }}>
+    <div className={`flex gap-lg ${className}`.trim()} style={styles.container}>
       <div
         onClick={handleClick}
         className={`toggle ${enabled ? 'toggle-on' : ''}`}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleClick(e); }}
       >
         <div className="toggle-knob" />
       </div>
@@ -37,3 +45,11 @@ export function EnableToggle({ enabled, onChange, onClick, label, className = ''
 }
 
 export default EnableToggle;
+
+EnableToggle.propTypes = {
+  enabled: PropTypes.bool.isRequired,
+  onChange: PropTypes.func,
+  onClick: PropTypes.func,
+  label: PropTypes.string,
+  className: PropTypes.string,
+};

@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { NumberInput } from "@penguin-tales/shared-components";
 
 export default function EntityTargets({ entities, updateTargets, distributionTargets }) {
@@ -55,3 +56,9 @@ export default function EntityTargets({ entities, updateTargets, distributionTar
     </>
   );
 }
+
+EntityTargets.propTypes = {
+  entities: PropTypes.object,
+  updateTargets: PropTypes.func,
+  distributionTargets: PropTypes.object,
+};

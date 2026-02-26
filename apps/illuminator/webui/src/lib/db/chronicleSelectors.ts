@@ -38,7 +38,7 @@ export function useChronicleNavItems(
   const navOrder = useChronicleStore((state) => state.navOrder);
 
   return useMemo(() => {
-    const items = navOrder.map((id) => navItems[id]).filter(Boolean) as ChronicleNavItem[];
+    const items = navOrder.map((id) => navItems[id]).filter(Boolean);
     if (!getEffectiveStatus) return items;
     return items.map((item) => ({
       ...item,
@@ -59,7 +59,7 @@ export function useSelectedChronicle(chronicleId: string | null): ChronicleRecor
 
   useEffect(() => {
     if (chronicleId) {
-      loadChronicle(chronicleId);
+      void loadChronicle(chronicleId);
     }
   }, [chronicleId, loadChronicle]);
 

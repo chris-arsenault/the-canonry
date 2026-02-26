@@ -3,6 +3,7 @@
  */
 
 import React, { Suspense, lazy } from "react";
+import PropTypes from "prop-types";
 import RemotePlaceholder from "./RemotePlaceholder";
 import { colors, typography } from "../theme";
 
@@ -91,3 +92,24 @@ export default function LoreWeaveHost({
     </div>
   );
 }
+
+LoreWeaveHost.propTypes = {
+  projectId: PropTypes.string,
+  schema: PropTypes.object,
+  eras: PropTypes.array,
+  pressures: PropTypes.array,
+  generators: PropTypes.array,
+  systems: PropTypes.array,
+  actions: PropTypes.array,
+  seedEntities: PropTypes.array,
+  seedRelationships: PropTypes.array,
+  distributionTargets: PropTypes.object,
+  onDistributionTargetsChange: PropTypes.func,
+  activeSection: PropTypes.string,
+  onSectionChange: PropTypes.func,
+  simulationResults: PropTypes.object,
+  onSimulationResultsChange: PropTypes.func,
+  simulationState: PropTypes.object,
+  onSimulationStateChange: PropTypes.func,
+  onSearchRunScored: PropTypes.func,
+};

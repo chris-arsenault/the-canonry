@@ -43,7 +43,7 @@ export default function FilterChips<T extends string>({
   multiSelect = true,
   formatLabel,
   getColor,
-}: FilterChipsProps<T>) {
+}: Readonly<FilterChipsProps<T>>) {
   const handleChipClick = (option: T) => {
     const newSelected = new Set(selected);
 

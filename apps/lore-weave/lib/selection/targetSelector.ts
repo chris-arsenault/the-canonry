@@ -12,8 +12,8 @@
  */
 
 import { Graph } from '../engine/types';
-import { HardState, Relationship, ProminenceLabel } from '../core/worldTypes';
-import { findEntities, hasTag } from '../utils';
+import { HardState, ProminenceLabel } from '../core/worldTypes';
+import { hasTag } from '../utils';
 import { prominenceLabel } from '../rules/types';
 
 /**

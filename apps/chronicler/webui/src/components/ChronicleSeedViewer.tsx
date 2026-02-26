@@ -46,7 +46,7 @@ export default function ChronicleSeedViewer({
   seed,
   eventNames,
   relationshipLabels,
-}: ChronicleSeedViewerProps) {
+}: Readonly<ChronicleSeedViewerProps>) {
   const primaryRoles = seed.roleAssignments.filter((r) => r.isPrimary);
   const supportingRoles = seed.roleAssignments.filter((r) => !r.isPrimary);
 
@@ -210,12 +210,12 @@ export function SeedModal({
   eventNames,
   relationshipLabels,
   title = "Generation Context",
-}: SeedModalProps) {
+}: Readonly<SeedModalProps>) {
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+    <div className={styles.modalOverlay} onClick={onClose} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(e); }} >
+      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
         {/* Header */}
         <div className={styles.modalHeader}>
           <h3 className={styles.modalTitle}>{title}</h3>

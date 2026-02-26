@@ -112,59 +112,34 @@ function encodeConfig(domain: NamingDomain): ConfigPoint {
   };
 }
 
+/** Collect enabled items from a boolean map. */
+function collectEnabled(map: Map<string, boolean>): string[] {
+  const result: string[] = [];
+  map.forEach((included, item) => { if (included) result.push(item); });
+  return result;
+}
+
+/** Pad an array with items from a source until it reaches minCount. */
+function ensureMinimum(arr: string[], source: string[], minCount: number): void {
+  for (const item of source) {
+    if (arr.length >= minCount) break;
+    if (!arr.includes(item)) arr.push(item);
+  }
+}
+
 /**
  * Decode a ConfigPoint back to a domain configuration
  */
 function decodeConfig(point: ConfigPoint, baseDomain: NamingDomain): NamingDomain {
-  const consonants: string[] = [];
-  const vowels: string[] = [];
-  const templates: string[] = [];
-  const clusters: string[] = [];
-
-  point.consonants.forEach((included, phoneme) => {
-    if (included) consonants.push(phoneme);
-  });
-
-  point.vowels.forEach((included, phoneme) => {
-    if (included) vowels.push(phoneme);
-  });
-
-  point.templates.forEach((included, template) => {
-    if (included) templates.push(template);
-  });
-
-  point.clusters.forEach((included, cluster) => {
-    if (included) clusters.push(cluster);
-  });
+  const consonants = collectEnabled(point.consonants);
+  const vowels = collectEnabled(point.vowels);
+  const templates = collectEnabled(point.templates);
+  const clusters = collectEnabled(point.clusters);
 
   // Ensure minimum viable configuration
-  if (consonants.length < 3) {
-    // Add back some from original domain
-    for (const c of baseDomain.phonology.consonants) {
-      if (!consonants.includes(c)) {
-        consonants.push(c);
-        if (consonants.length >= 5) break;
-      }
-    }
-  }
-
-  if (vowels.length < 2) {
-    for (const v of baseDomain.phonology.vowels) {
-      if (!vowels.includes(v)) {
-        vowels.push(v);
-        if (vowels.length >= 3) break;
-      }
-    }
-  }
-
-  if (templates.length < 2) {
-    for (const t of baseDomain.phonology.syllableTemplates) {
-      if (!templates.includes(t)) {
-        templates.push(t);
-        if (templates.length >= 3) break;
-      }
-    }
-  }
+  ensureMinimum(consonants, baseDomain.phonology.consonants, 5);
+  ensureMinimum(vowels, baseDomain.phonology.vowels, 3);
+  ensureMinimum(templates, baseDomain.phonology.syllableTemplates, 3);
 
   return {
     ...baseDomain,
@@ -184,59 +159,34 @@ function decodeConfig(point: ConfigPoint, baseDomain: NamingDomain): NamingDomai
   };
 }
 
+/** Sample boolean inclusion for a set of items, biasing toward keeping existing domain items. */
+function sampleBooleanMap(
+  allItems: string[], domainItems: Set<string>,
+  keepRate: number, addRate: number, rng: () => number
+): Map<string, boolean> {
+  const result = new Map<string, boolean>();
+  for (const item of allItems) {
+    result.set(item, domainItems.has(item) ? rng() < keepRate : rng() < addRate);
+  }
+  return result;
+}
+
 /**
  * Sample a random configuration point
  */
 function sampleRandom(baseDomain: NamingDomain, rng: () => number): ConfigPoint {
-  const allConsonants = getAllConsonants();
-  const allVowels = getAllVowels();
-  const allTemplates = getAllTemplates();
-  const allClusters = getAllClusters();
-
-  const consonants = new Map<string, boolean>();
-  const vowels = new Map<string, boolean>();
-  const templates = new Map<string, boolean>();
-  const clusters = new Map<string, boolean>();
-
-  // Sample consonants (keep most from domain, random chance for others)
-  const domainConsonants = new Set(baseDomain.phonology.consonants);
-  for (const c of allConsonants) {
-    if (domainConsonants.has(c)) {
-      consonants.set(c, rng() > 0.2); // 80% chance to keep
-    } else {
-      consonants.set(c, rng() < 0.15); // 15% chance to add new
-    }
-  }
-
-  // Sample vowels
-  const domainVowels = new Set(baseDomain.phonology.vowels);
-  for (const v of allVowels) {
-    if (domainVowels.has(v)) {
-      vowels.set(v, rng() > 0.2);
-    } else {
-      vowels.set(v, rng() < 0.15);
-    }
-  }
-
-  // Sample templates
-  const domainTemplates = new Set(baseDomain.phonology.syllableTemplates);
-  for (const t of allTemplates) {
-    if (domainTemplates.has(t)) {
-      templates.set(t, rng() > 0.3);
-    } else {
-      templates.set(t, rng() < 0.2);
-    }
-  }
-
-  // Sample clusters
-  const domainClusters = new Set(baseDomain.phonology.favoredClusters || []);
-  for (const c of allClusters) {
-    if (domainClusters.has(c)) {
-      clusters.set(c, rng() > 0.3);
-    } else {
-      clusters.set(c, rng() < 0.1);
-    }
-  }
+  const consonants = sampleBooleanMap(
+    getAllConsonants(), new Set(baseDomain.phonology.consonants), 0.8, 0.15, rng
+  );
+  const vowels = sampleBooleanMap(
+    getAllVowels(), new Set(baseDomain.phonology.vowels), 0.8, 0.15, rng
+  );
+  const templates = sampleBooleanMap(
+    getAllTemplates(), new Set(baseDomain.phonology.syllableTemplates), 0.7, 0.2, rng
+  );
+  const clusters = sampleBooleanMap(
+    getAllClusters(), new Set(baseDomain.phonology.favoredClusters || []), 0.7, 0.1, rng
+  );
 
   return {
     consonants,
@@ -259,7 +209,7 @@ function estimateInclusionProbability(
   goodObs: Observation[],
   badObs: Observation[],
   accessor: (point: ConfigPoint) => Map<string, boolean>,
-  prior: number = 0.5
+  _prior: number = 0.5
 ): number {
   // Count inclusions in good vs bad
   let goodIncluded = 0;
@@ -422,6 +372,20 @@ function computeEI(
   return logGood - logBad;
 }
 
+/** Generate TPE candidates and return the one with highest expected improvement. */
+function selectBestTPECandidate(
+  goodObs: Observation[], badObs: Observation[],
+  baseDomain: NamingDomain, rng: () => number, nCandidates: number
+): { point: ConfigPoint; ei: number } {
+  const candidates: { point: ConfigPoint; ei: number }[] = [];
+  for (let c = 0; c < nCandidates; c++) {
+    const point = sampleFromTPE(goodObs, badObs, baseDomain, rng);
+    candidates.push({ point, ei: computeEI(point, goodObs, badObs) });
+  }
+  candidates.sort((a, b) => b.ei - a.ei);
+  return candidates[0];
+}
+
 /**
  * Run Bayesian optimization with TPE
  */
@@ -447,7 +411,8 @@ export async function bayesianOptimization(
   console.log(`Initial samples: ${tpeSettings.nInitial}`);
   console.log(`Total iterations: ${totalIterations}`);
   console.log(`Gamma (quantile): ${tpeSettings.gamma}`);
-  console.log(`Separation: ${useSeparation ? `yes (${siblingDomains.length} siblings)` : "no"}`);
+  const separationLabel = useSeparation ? `yes (${siblingDomains.length} siblings)` : "no";
+  console.log(`Separation: ${separationLabel}`);
 
   const observations: Observation[] = [];
   const evaluations: EvaluationResult[] = [];
@@ -511,26 +476,12 @@ export async function bayesianOptimization(
   // Phase 2: TPE-guided search
   console.log("\nPhase 2: TPE-guided optimization...");
   for (let iter = tpeSettings.nInitial; iter < totalIterations; iter++) {
-    // Split observations into good and bad
     const sorted = [...observations].sort((a, b) => b.fitness - a.fitness);
     const splitIdx = Math.max(1, Math.floor(sorted.length * tpeSettings.gamma));
     const goodObs = sorted.slice(0, splitIdx);
     const badObs = sorted.slice(splitIdx);
 
-    // Generate candidates from TPE model
-    const candidates: { point: ConfigPoint; ei: number }[] = [];
-
-    for (let c = 0; c < tpeSettings.nCandidates; c++) {
-      const point = sampleFromTPE(goodObs, badObs, initialDomain, rng);
-      const ei = computeEI(point, goodObs, badObs);
-      candidates.push({ point, ei });
-    }
-
-    // Select best candidate by EI
-    candidates.sort((a, b) => b.ei - a.ei);
-    const bestCandidate = candidates[0];
-
-    // Evaluate the selected candidate
+    const bestCandidate = selectBestTPECandidate(goodObs, badObs, initialDomain, rng, tpeSettings.nCandidates);
     const domain = decodeConfig(bestCandidate.point, initialDomain);
 
     const evalResult = await computeFitness(
@@ -543,26 +494,16 @@ export async function bayesianOptimization(
       false
     );
 
-    observations.push({
-      point: bestCandidate.point,
-      fitness: evalResult.fitness,
-      domain,
-    });
+    observations.push({ point: bestCandidate.point, fitness: evalResult.fitness, domain });
     evaluations.push(evalResult);
     convergenceHistory.push(Math.max(bestFitness, evalResult.fitness));
 
     if (evalResult.fitness > bestFitness) {
       bestFitness = evalResult.fitness;
       bestDomain = domain;
-      console.log(
-        `[${iter + 1}/${totalIterations}] New best: ${bestFitness.toFixed(4)} ` +
-        `(EI: ${bestCandidate.ei.toFixed(2)})`
-      );
+      console.log(`[${iter + 1}/${totalIterations}] New best: ${bestFitness.toFixed(4)} (EI: ${bestCandidate.ei.toFixed(2)})`);
     } else if ((iter + 1) % 10 === 0) {
-      console.log(
-        `[${iter + 1}/${totalIterations}] Best: ${bestFitness.toFixed(4)}, ` +
-        `Current: ${evalResult.fitness.toFixed(4)}`
-      );
+      console.log(`[${iter + 1}/${totalIterations}] Best: ${bestFitness.toFixed(4)}, Current: ${evalResult.fitness.toFixed(4)}`);
     }
   }
 

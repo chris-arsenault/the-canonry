@@ -8,6 +8,7 @@
  */
 
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -86,6 +87,9 @@ export function LevelSelector({
                 transform: hoveredLevel === idx ? 'scale(1.2)' : 'scale(1)',
               }}
               title={`${level.label}`}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
             >
               <div
                 className="level-selector-dot-fill"
@@ -134,3 +138,14 @@ export const PROMINENCE_LEVELS = [
   { value: 'renowned', label: 'Renowned', color: '#fbbf24' },
   { value: 'mythic', label: 'Mythic', color: '#a855f7' },
 ];
+
+LevelSelector.propTypes = {
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  onChange: PropTypes.func.isRequired,
+  levels: PropTypes.array.isRequired,
+  showNumeric: PropTypes.bool,
+  min: PropTypes.number,
+  max: PropTypes.number,
+  step: PropTypes.number,
+  className: PropTypes.string,
+};

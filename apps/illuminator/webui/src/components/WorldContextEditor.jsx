@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useCallback } from "react";
+import PropTypes from "prop-types";
 import { LocalTextArea } from "@penguin-tales/shared-components";
 import "./WorldContextEditor.css";
 
@@ -36,7 +37,7 @@ function FactCard({ fact, onUpdate, onRemove }) {
   return (
     <div className={`wce-fact-card ${isDisabled ? "wce-fact-card-disabled" : ""}`}>
       {/* Header */}
-      <div className="wce-fact-header" onClick={() => setIsExpanded(!isExpanded)}>
+      <div className="wce-fact-header" onClick={() => setIsExpanded(!isExpanded)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
         <span className="wce-fact-chevron">{isExpanded ? "▼" : "▶"}</span>
         <span className="wce-fact-id">{fact.id}</span>
         <span className="wce-fact-preview">{fact.text}</span>
@@ -81,18 +82,19 @@ function FactCard({ fact, onUpdate, onRemove }) {
       {isExpanded && (
         <div className="wce-fact-detail">
           <div>
-            <label className="wce-field-label">Text</label>
+            <label className="wce-field-label">Text
             <LocalTextArea
               value={fact.text || ""}
               onChange={(value) => updateField("text", value)}
               className="illuminator-input wce-textarea-compact"
             />
+            </label>
           </div>
 
           <div className="wce-fact-detail-grid">
             <div>
-              <label className="wce-field-label">Fact Type</label>
-              <select
+              <label htmlFor="fact-type" className="wce-field-label">Fact Type</label>
+              <select id="fact-type"
                 value={fact.type || "world_truth"}
                 onChange={(e) => updateField("type", e.target.value)}
                 className="illuminator-input wce-input-sm"
@@ -226,7 +228,7 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
   return (
     <div className="wce-dynamic-card">
       {/* Header */}
-      <div className="wce-dynamic-header" onClick={() => setIsExpanded(!isExpanded)}>
+      <div className="wce-dynamic-header" onClick={() => setIsExpanded(!isExpanded)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
         <span className="wce-dynamic-chevron">{isExpanded ? "▼" : "▶"}</span>
         <span className="wce-dynamic-id">{dynamic.id}</span>
         <span className="wce-dynamic-preview">{dynamic.text}</span>
@@ -255,20 +257,21 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
       {isExpanded && (
         <div className="wce-dynamic-detail">
           <div>
-            <label className="wce-field-label">Dynamic Statement</label>
+            <label className="wce-field-label">Dynamic Statement
             <LocalTextArea
               value={dynamic.text || ""}
               onChange={(value) => updateField("text", value)}
               className="illuminator-input wce-textarea-compact"
             />
+            </label>
           </div>
 
           <div className="wce-dynamic-detail-grid">
             <div>
-              <label className="wce-field-label">
+              <label htmlFor="relevant-cultures" className="wce-field-label">
                 Relevant Cultures (comma-separated, empty = always)
               </label>
-              <input
+              <input id="relevant-cultures"
                 type="text"
                 value={formatArray(dynamic.cultures)}
                 onChange={(e) => updateField("cultures", parseArray(e.target.value))}
@@ -277,10 +280,10 @@ function WorldDynamicCard({ dynamic, onUpdate, onRemove, eras }) {
               />
             </div>
             <div>
-              <label className="wce-field-label">
+              <label htmlFor="relevant-kinds" className="wce-field-label">
                 Relevant Kinds (comma-separated, empty = always)
               </label>
-              <input
+              <input id="relevant-kinds"
                 type="text"
                 value={formatArray(dynamic.kinds)}
                 onChange={(e) => updateField("kinds", parseArray(e.target.value))}
@@ -460,13 +463,14 @@ function ToneFragmentsEditor({ fragments, onChange }) {
     <div className="wce-tone-layout">
       {/* Core Tone */}
       <div>
-        <label className="wce-tone-core-label">Core Tone (always included)</label>
+        <label className="wce-tone-core-label">Core Tone (always included)
         <LocalTextArea
           value={fragments?.core || ""}
           onChange={(value) => updateField("core", value)}
           placeholder="Core style principles that apply to all chronicles..."
           className="illuminator-input wce-textarea-core-tone"
         />
+        </label>
       </div>
 
       {/* Note about where other guidance lives */}
@@ -474,7 +478,7 @@ function ToneFragmentsEditor({ fragments, onChange }) {
         <strong>Note:</strong> Culture-specific prose guidance is now in{" "}
         <em>Identity → Descriptive → PROSE_STYLE</em>. Entity kind prose guidance is in{" "}
         <em>Guidance → [kind] → proseHint</em>. These are automatically assembled during perspective
-        synthesis based on the chronicle's entity constellation.
+        synthesis based on the chronicle&apos;s entity constellation.
       </div>
     </div>
   );
@@ -548,6 +552,38 @@ export default function WorldContextEditor({
     [onWorldContextChange]
   );
 
+  const handleImportDynamicsJson = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          if (!Array.isArray(parsed)) {
+            alert("Invalid dynamics file: expected a JSON array.");
+            return;
+          }
+          const valid = parsed.every(
+            (d) => d && typeof d.id === "string" && typeof d.text === "string"
+          );
+          if (!valid) {
+            alert("Invalid dynamics file: each entry must have id and text strings.");
+            return;
+          }
+          updateField("worldDynamics", parsed);
+        } catch (err) {
+          alert(`Failed to parse dynamics JSON: ${err.message}`);
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }, [updateField]);
+
   return (
     <div>
       {/* Info Banner */}
@@ -567,8 +603,8 @@ export default function WorldContextEditor({
         </div>
 
         <div className="illuminator-form-group">
-          <label className="illuminator-label">World Name</label>
-          <input
+          <label htmlFor="world-name" className="illuminator-label">World Name</label>
+          <input id="world-name"
             type="text"
             value={worldContext.name || ""}
             onChange={(e) => updateField("name", e.target.value)}
@@ -578,13 +614,14 @@ export default function WorldContextEditor({
         </div>
 
         <div className="illuminator-form-group">
-          <label className="illuminator-label">World Description</label>
+          <label className="illuminator-label">World Description
           <LocalTextArea
             value={worldContext.description || ""}
             onChange={(value) => updateField("description", value)}
             placeholder="Brief description of your world's setting, themes, and what makes it unique..."
             className="illuminator-input wce-textarea-description"
           />
+          </label>
         </div>
       </div>
 
@@ -595,7 +632,7 @@ export default function WorldContextEditor({
         </div>
         <p className="wce-description-text">
           Rule for what species can appear in generated images. This is added as a SPECIES
-          REQUIREMENT at the top of image prompts to ensure all depicted figures match your world's
+          REQUIREMENT at the top of image prompts to ensure all depicted figures match your world&apos;s
           inhabitants.
         </p>
         <div className="illuminator-form-group">
@@ -614,7 +651,7 @@ export default function WorldContextEditor({
           <h2 className="wce-section-title">Chronicle Generation</h2>
           <p className="wce-section-subtitle">
             Tone and facts for chronicle generation. Chronicles use perspective synthesis to create
-            focused, faceted views based on each chronicle's entity constellation.
+            focused, faceted views based on each chronicle&apos;s entity constellation.
           </p>
         </div>
 
@@ -638,12 +675,14 @@ export default function WorldContextEditor({
                 onChange={(e) => {
                   const raw = e.target.value;
                   const num = Number(raw);
-                  const parsed =
-                    raw === ""
-                      ? undefined
-                      : Number.isFinite(num)
-                        ? Math.max(1, Math.floor(num))
-                        : undefined;
+                  let parsed;
+                  if (raw === "") {
+                    parsed = undefined;
+                  } else if (Number.isFinite(num)) {
+                    parsed = Math.max(1, Math.floor(num));
+                  } else {
+                    parsed = undefined;
+                  }
                   updateField("factSelection", {
                     ...(worldContext.factSelection || {}),
                     minCount: parsed,
@@ -661,12 +700,14 @@ export default function WorldContextEditor({
                 onChange={(e) => {
                   const raw = e.target.value;
                   const num = Number(raw);
-                  const parsed =
-                    raw === ""
-                      ? undefined
-                      : Number.isFinite(num)
-                        ? Math.max(1, Math.floor(num))
-                        : undefined;
+                  let parsed;
+                  if (raw === "") {
+                    parsed = undefined;
+                  } else if (Number.isFinite(num)) {
+                    parsed = Math.max(1, Math.floor(num));
+                  } else {
+                    parsed = undefined;
+                  }
                   updateField("factSelection", {
                     ...(worldContext.factSelection || {}),
                     maxCount: parsed,
@@ -693,37 +734,7 @@ export default function WorldContextEditor({
             <h2 className="illuminator-card-title">World Dynamics</h2>
             <div className="wce-dynamics-actions">
               <button
-                onClick={() => {
-                  const input = document.createElement("input");
-                  input.type = "file";
-                  input.accept = ".json";
-                  input.onchange = (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      try {
-                        const parsed = JSON.parse(ev.target.result);
-                        if (!Array.isArray(parsed)) {
-                          alert("Invalid dynamics file: expected a JSON array.");
-                          return;
-                        }
-                        const valid = parsed.every(
-                          (d) => d && typeof d.id === "string" && typeof d.text === "string"
-                        );
-                        if (!valid) {
-                          alert("Invalid dynamics file: each entry must have id and text strings.");
-                          return;
-                        }
-                        updateField("worldDynamics", parsed);
-                      } catch (err) {
-                        alert(`Failed to parse dynamics JSON: ${err.message}`);
-                      }
-                    };
-                    reader.readAsText(file);
-                  };
-                  input.click();
-                }}
+                onClick={handleImportDynamicsJson}
                 className="illuminator-button illuminator-button-secondary wce-dynamics-btn"
               >
                 Import JSON
@@ -770,6 +781,7 @@ export default function WorldContextEditor({
           />
         </div>
 
+
         {/* Tone Fragments */}
         <div className="illuminator-card">
           <div className="illuminator-card-header">
@@ -777,7 +789,7 @@ export default function WorldContextEditor({
           </div>
           <p className="wce-description-text">
             Composable tone guidance. Core is always included; culture and kind overlays are added
-            based on the chronicle's entity constellation.
+            based on the chronicle&apos;s entity constellation.
           </p>
           <ToneFragmentsEditor
             fragments={worldContext.toneFragments || {}}
@@ -788,3 +800,46 @@ export default function WorldContextEditor({
     </div>
   );
 }
+
+FactCard.propTypes = {
+  fact: PropTypes.object.isRequired,
+  onUpdate: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+};
+
+FactsEditor.propTypes = {
+  facts: PropTypes.array.isRequired,
+  onChange: PropTypes.func.isRequired,
+};
+
+WorldDynamicCard.propTypes = {
+  dynamic: PropTypes.object.isRequired,
+  onUpdate: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  eras: PropTypes.array,
+};
+
+WorldDynamicsEditor.propTypes = {
+  dynamics: PropTypes.array.isRequired,
+  onChange: PropTypes.func.isRequired,
+  eras: PropTypes.array,
+};
+
+ToneFragmentsEditor.propTypes = {
+  fragments: PropTypes.object,
+  onChange: PropTypes.func.isRequired,
+};
+
+EditableList.propTypes = {
+  items: PropTypes.array.isRequired,
+  onChange: PropTypes.func.isRequired,
+  placeholder: PropTypes.string,
+};
+
+WorldContextEditor.propTypes = {
+  worldContext: PropTypes.object.isRequired,
+  onWorldContextChange: PropTypes.func.isRequired,
+  eras: PropTypes.array,
+  onGenerateDynamics: PropTypes.func,
+  isGeneratingDynamics: PropTypes.bool,
+};

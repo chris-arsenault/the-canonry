@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState, useMemo } from "react";
+import React, { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import ForceGraph3D from "react-force-graph-3d";
 import type { WorldState } from "../types/world.ts";
 import type { ProminenceScale } from "@canonry/world-schema";
@@ -6,6 +6,21 @@ import { getKindColor, prominenceToNumber } from "../utils/dataTransform.ts";
 import * as THREE from "three";
 
 export type EdgeMetric = "strength" | "distance" | "none";
+
+/** Minimal typing for the d3 link force returned by ForceGraph */
+interface D3LinkForce {
+  distance(fn: (link: GraphLink) => number): D3LinkForce;
+  strength(val: number): D3LinkForce;
+  stop?: () => void;
+}
+
+/** Minimal typing for the imperative handle exposed by react-force-graph-3d */
+interface ForceGraphInstance {
+  camera(): THREE.Camera;
+  pauseAnimation?: () => void;
+  d3Force(name: string): D3LinkForce | undefined;
+  d3ReheatSimulation(): void;
+}
 
 interface GraphView3DProps {
   data: WorldState;
@@ -52,8 +67,8 @@ export default function GraphView3D({
   showCatalyzedBy = false,
   edgeMetric = "strength",
   prominenceScale,
-}: GraphView3DProps) {
-  const fgRef = useRef<any>(null);
+}: Readonly<GraphView3DProps>) {
+  const fgRef = useRef<ForceGraphInstance>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   // Delay render by one frame to let any stale animation callbacks clear
@@ -61,34 +76,8 @@ export default function GraphView3D({
   // Unique ID per mount to ensure ForceGraph gets a fresh instance
   const [mountId] = useState(() => Date.now());
 
-  if (!webglAvailable) {
-    return (
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#0a1929",
-          color: "#93c5fd",
-        }}
-      >
-        <div style={{ textAlign: "center", maxWidth: 400 }}>
-          <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>&#x1F4A0;</div>
-          <div style={{ fontSize: 16, fontWeight: 500, color: "#fff", marginBottom: 8 }}>
-            WebGL not available
-          </div>
-          <div style={{ fontSize: 13 }}>
-            3D graph view requires WebGL. Switch to the <strong>2D Graph</strong> or{" "}
-            <strong>Map</strong> view instead.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
+    if (!webglAvailable) return;
     const frameId = requestAnimationFrame(() => {
       setIsReady(true);
     });
@@ -97,6 +86,7 @@ export default function GraphView3D({
 
   // Get container dimensions
   useEffect(() => {
+    if (!webglAvailable) return;
     if (containerRef.current) {
       const updateDimensions = () => {
         if (containerRef.current) {
@@ -128,7 +118,7 @@ export default function GraphView3D({
     }));
 
     const links: GraphLink[] = data.relationships.map((rel) => {
-      const catalyzedBy = (rel as any).catalyzedBy;
+      const catalyzedBy = rel.catalyzedBy;
       return {
         source: rel.src,
         target: rel.dst,
@@ -161,7 +151,7 @@ export default function GraphView3D({
 
   // Calculate link distance based on selected metric
   const linkDistance = useCallback(
-    (link: any) => {
+    (link: GraphLink) => {
       if (edgeMetric === "none") {
         return 100; // Equal distance for all links
       } else if (edgeMetric === "distance") {
@@ -182,7 +172,7 @@ export default function GraphView3D({
 
   // Handle node click
   const handleNodeClick = useCallback(
-    (node: any) => {
+    (node: GraphNode) => {
       onNodeSelect(node.id);
     },
     [onNodeSelect]
@@ -195,7 +185,7 @@ export default function GraphView3D({
 
   // Custom node appearance with text label
   const nodeThreeObject = useCallback(
-    (node: any) => {
+    (node: GraphNode) => {
       const group = new THREE.Group();
 
       // Node sphere
@@ -254,7 +244,7 @@ export default function GraphView3D({
   );
 
   // Custom link appearance
-  const linkColor = useCallback((link: any) => {
+  const linkColor = useCallback((link: GraphLink) => {
     if (link.catalyzed) {
       return "#a78bfa"; // Purple for catalyzed
     }
@@ -265,25 +255,23 @@ export default function GraphView3D({
     return `#ffffff${opacity}`;
   }, []);
 
-  const linkWidth = useCallback((link: any) => {
+  const linkWidth = useCallback((link: GraphLink) => {
     return link.strength * 2; // 0-2px width based on strength
   }, []);
 
   // Set initial camera position and cleanup on unmount
   useEffect(() => {
-    if (fgRef.current) {
-      const camera = fgRef.current.camera();
-      camera.position.set(0, 0, 500);
-    }
+    if (!fgRef.current) return;
+    const fg = fgRef.current;
+    const camera = fg.camera();
+    camera.position.set(0, 0, 500);
 
     // Cleanup: pause animation when component unmounts to prevent stale tick errors
     return () => {
-      if (fgRef.current) {
-        fgRef.current.pauseAnimation?.();
-        // Also stop the d3 simulation
-        const simulation = fgRef.current.d3Force?.("simulation");
-        simulation?.stop?.();
-      }
+      fg.pauseAnimation?.();
+      // Also stop the d3 simulation
+      const simulation = fg.d3Force("simulation");
+      simulation?.stop?.();
     };
   }, []);
 
@@ -296,7 +284,7 @@ export default function GraphView3D({
       const linkForce = fg.d3Force("link");
       if (linkForce) {
         linkForce
-          .distance((link: any) => {
+          .distance((link: GraphLink) => {
             if (edgeMetric === "none") {
               return 100;
             } else if (edgeMetric === "distance") {
@@ -314,6 +302,33 @@ export default function GraphView3D({
       }
     }
   }, [edgeMetric]);
+
+  if (!webglAvailable) {
+    return (
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#0a1929",
+          color: "#93c5fd",
+        }}
+      >
+        <div style={{ textAlign: "center", maxWidth: 400 }}>
+          <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>&#x1F4A0;</div>
+          <div style={{ fontSize: 16, fontWeight: 500, color: "#fff", marginBottom: 8 }}>
+            WebGL not available
+          </div>
+          <div style={{ fontSize: 13 }}>
+            3D graph view requires WebGL. Switch to the <strong>2D Graph</strong> or{" "}
+            <strong>Map</strong> view instead.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} style={{ position: "absolute", inset: 0, overflow: "hidden" }}>

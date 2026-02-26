@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import { TagSelector } from "@penguin-tales/shared-components";
 
 const styles = {
@@ -467,26 +468,27 @@ export default function AxisRegistryEditor({
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div style={styles.modal} onClick={closeModal}>
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modal} onClick={closeModal} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") closeModal(); }} >
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
             <div style={styles.modalTitle}>
               {editingAxis ? `Edit Axis: ${editingAxis.name}` : "New Axis Definition"}
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Name</label>
-              <input
+              <label htmlFor="name" style={styles.label}>Name</label>
+              <input id="name"
                 style={styles.input}
                 placeholder="e.g., Power, Alignment, Element"
                 value={formData.name}
                 onChange={(e) => handleNameChange(e.target.value)}
+                // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
               />
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>ID</label>
-              <input
+              <label htmlFor="id" style={styles.label}>ID</label>
+              <input id="id"
                 style={styles.input}
                 placeholder="e.g., power, alignment, element"
                 value={formData.id}
@@ -499,8 +501,8 @@ export default function AxisRegistryEditor({
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Description (optional)</label>
-              <input
+              <label htmlFor="description-optional" style={styles.label}>Description (optional)</label>
+              <input id="description-optional"
                 style={styles.input}
                 placeholder="Brief description of this axis"
                 value={formData.description}
@@ -511,7 +513,7 @@ export default function AxisRegistryEditor({
             <div style={styles.inputRow}>
               <div style={styles.inputHalf}>
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Low Tag (0)</label>
+                  <label style={styles.label}>Low Tag (0)
                   <TagSelector
                     tagRegistry={tagRegistry}
                     value={formData.lowTag ? [formData.lowTag] : []}
@@ -520,11 +522,12 @@ export default function AxisRegistryEditor({
                     placeholder="Select or create tag..."
                     singleSelect
                   />
+                  </label>
                 </div>
               </div>
               <div style={styles.inputHalf}>
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>High Tag (100)</label>
+                  <label style={styles.label}>High Tag (100)
                   <TagSelector
                     tagRegistry={tagRegistry}
                     value={formData.highTag ? [formData.highTag] : []}
@@ -533,6 +536,7 @@ export default function AxisRegistryEditor({
                     placeholder="Select or create tag..."
                     singleSelect
                   />
+                  </label>
                 </div>
               </div>
             </div>
@@ -563,3 +567,11 @@ export default function AxisRegistryEditor({
     </div>
   );
 }
+
+AxisRegistryEditor.propTypes = {
+  axisDefinitions: PropTypes.array,
+  entityKinds: PropTypes.array,
+  tagRegistry: PropTypes.array,
+  onAxisDefinitionsChange: PropTypes.func,
+  onTagRegistryChange: PropTypes.func,
+};

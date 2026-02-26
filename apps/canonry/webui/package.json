@@ -11,17 +11,18 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
-    "@canonry/dsl": "workspace:*",
-    "@canonry/world-schema": "workspace:*",
-    "@penguin-tales/shared-components": "workspace:*",
     "@aws-sdk/client-s3": "^3.760.0",
     "@aws-sdk/credential-provider-cognito-identity": "^3.760.0",
+    "@canonry/dsl": "workspace:*",
+    "@canonry/world-schema": "workspace:*",
+    "@penguin-tales/image-store": "workspace:*",
+    "@penguin-tales/shared-components": "workspace:*",
     "amazon-cognito-identity-js": "^6.3.12",
     "jszip": "^3.10.1",
+    "prop-types": "^15.8.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zustand": "^5.0.2",
-    "@penguin-tales/image-store": "workspace:*"
+    "zustand": "^5.0.2"
   },
   "devDependencies": {
     "@module-federation/vite": "^1.1.0",

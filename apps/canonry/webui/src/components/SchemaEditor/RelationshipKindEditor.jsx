@@ -2,7 +2,8 @@
  * RelationshipKindEditor - Edit relationship kinds
  */
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
+import PropTypes from "prop-types";
 import {
   ExpandableCard,
   FormGroup,
@@ -24,9 +25,9 @@ export default function RelationshipKindEditor({
 
   const getStableKey = (rel) => rel._key || rel.kind;
 
-  const toggleRel = (stableKey) => {
+  const toggleRel = useCallback((stableKey) => {
     setExpandedRels((prev) => ({ ...prev, [stableKey]: !prev[stableKey] }));
-  };
+  }, []);
 
   const addRelationship = () => {
     const stableKey = `rel_${Date.now()}`;
@@ -145,7 +146,8 @@ export default function RelationshipKindEditor({
               <ExpandableCard
                 key={stableKey}
                 expanded={isExpanded}
-                onToggle={() => toggleRel(stableKey)}
+                onToggle={toggleRel}
+                toggleId={stableKey}
                 title={rel.description}
                 subtitle={rel.kind}
                 actions={renderRelationshipActions(rel, srcNames, dstNames, isFramework)}
@@ -213,6 +215,9 @@ export default function RelationshipKindEditor({
                               style={
                                 isFramework ? { pointerEvents: "none", opacity: 0.6 } : undefined
                               }
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                             >
                               {ek.description}
                             </div>
@@ -244,6 +249,9 @@ export default function RelationshipKindEditor({
                               style={
                                 isFramework ? { pointerEvents: "none", opacity: 0.6 } : undefined
                               }
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                             >
                               {ek.description}
                             </div>
@@ -369,3 +377,10 @@ export default function RelationshipKindEditor({
     </div>
   );
 }
+
+RelationshipKindEditor.propTypes = {
+  relationshipKinds: PropTypes.array.isRequired,
+  entityKinds: PropTypes.array.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schemaUsage: PropTypes.object,
+};

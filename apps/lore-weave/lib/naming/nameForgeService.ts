@@ -222,7 +222,7 @@ export class NameForgeService {
         prominence,
         tags,
         context,
-        seed: `${Date.now()}-${Math.random()}`,
+        seed: `${Date.now()}-${crypto.randomUUID()}`,
       });
 
       if (!name) {
@@ -238,7 +238,7 @@ export class NameForgeService {
       return name;
     } catch (error) {
       this.log('error',
-        `[NameForge] Generation failed for ${kind}:${subtype}: ${error instanceof Error ? error.message : error}`,
+        `[NameForge] Generation failed for ${kind}:${subtype}: ${error instanceof Error ? error.message : String(error)}`,
         { kind, subtype, cultureId, error: error instanceof Error ? error.message : String(error) }
       );
       this.trackCall(cultureId, kind, false);

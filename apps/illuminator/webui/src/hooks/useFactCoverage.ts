@@ -94,7 +94,7 @@ export function useFactCoverage(): UseFactCoverageReturn {
     const facts = rawFacts
       .filter((f: Record<string, unknown>) => !f.disabled)
       .map((f: Record<string, unknown>) => ({
-        id: (f.id as string) || String(f.text).slice(0, 20),
+        id: (f.id as string) || (typeof f.text === 'string' ? f.text : String(f.text)).slice(0, 20),
         text: f.text as string,
       }));
 
@@ -127,7 +127,7 @@ export function useFactCoverage(): UseFactCoverageReturn {
 
     setProgress((p) => ({ ...p, status: "running" }));
 
-    (async () => {
+    void (async () => {
       try {
         const { chronicles, facts } = scan;
         let globalProcessed = 0;

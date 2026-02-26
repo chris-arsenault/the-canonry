@@ -85,8 +85,8 @@ export default function ImagePickerModal({
   isOpen,
   onClose,
   onSelect,
-  entityKind,
-  entityCulture,
+  entityKind: _entityKind,
+  entityCulture: _entityCulture,
   currentImageId,
 }) {
   const [images, setImages] = useState([]);
@@ -203,6 +203,9 @@ export default function ImagePickerModal({
       className="illuminator-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="illuminator-modal ipm-modal">
         <div className="illuminator-modal-header">
@@ -216,8 +219,8 @@ export default function ImagePickerModal({
           {/* Filters */}
           <div className="ipm-filters">
             <div>
-              <label className="ipm-filter-label">Search</label>
-              <input
+              <label htmlFor="search" className="ipm-filter-label">Search</label>
+              <input id="search"
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
@@ -227,8 +230,8 @@ export default function ImagePickerModal({
             </div>
 
             <div>
-              <label className="ipm-filter-label">Entity Kind</label>
-              <select
+              <label htmlFor="entity-kind" className="ipm-filter-label">Entity Kind</label>
+              <select id="entity-kind"
                 value={filterKind}
                 onChange={(e) => setFilterKind(e.target.value)}
                 className="illuminator-select ipm-filter-select"
@@ -243,8 +246,8 @@ export default function ImagePickerModal({
             </div>
 
             <div>
-              <label className="ipm-filter-label">Culture</label>
-              <select
+              <label htmlFor="culture" className="ipm-filter-label">Culture</label>
+              <select id="culture"
                 value={filterCulture}
                 onChange={(e) => setFilterCulture(e.target.value)}
                 className="illuminator-select ipm-filter-select"
@@ -259,8 +262,8 @@ export default function ImagePickerModal({
             </div>
 
             <div>
-              <label className="ipm-filter-label">Model</label>
-              <select
+              <label htmlFor="model" className="ipm-filter-label">Model</label>
+              <select id="model"
                 value={filterModel}
                 onChange={(e) => setFilterModel(e.target.value)}
                 className="illuminator-select ipm-filter-select"
@@ -281,13 +284,15 @@ export default function ImagePickerModal({
 
           {/* Image grid */}
           <div className="ipm-grid-container">
-            {loading ? (
+            {loading && (
               <div className="ipm-loading">Loading images...</div>
-            ) : images.length === 0 ? (
+            )}
+            {!loading && images.length === 0 && (
               <div className="ipm-empty">
                 No images found. Try adjusting the filters or generate some images first.
               </div>
-            ) : (
+            )}
+            {!loading && images.length > 0 && (
               <div className="ipm-grid">
                 {images.map((img) => {
                   const isSelected = selectedImageId === img.imageId;
@@ -298,6 +303,9 @@ export default function ImagePickerModal({
                       key={img.imageId}
                       onClick={() => setSelectedImageId(img.imageId)}
                       className={`ipm-card ${isSelected ? "ipm-card-selected" : ""} ${isCurrent ? "ipm-card-current" : ""}`}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                     >
                       {/* Current badge */}
                       {isCurrent && <div className="ipm-current-badge">CURRENT</div>}
@@ -333,6 +341,9 @@ export default function ImagePickerModal({
                               );
                             }}
                             title="Click to expand/collapse prompt"
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                           >
                             {img.finalPrompt || img.originalPrompt}
                           </div>

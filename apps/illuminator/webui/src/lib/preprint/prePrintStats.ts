@@ -7,7 +7,7 @@
  */
 
 import type { PersistedEntity } from "../db/illuminatorDb";
-import type { ChronicleRecord, ChronicleImageRef } from "../chronicleTypes";
+import type { ChronicleRecord } from "../chronicleTypes";
 import type { ImageRecord, ImageAspect, ImageType } from "../imageTypes";
 
 /** Image metadata without blob — what getAllImages() returns */
@@ -219,13 +219,6 @@ export function computePrePrintStats(
   // Historian Notes
   // =========================================================================
 
-  const noteTypes: HistorianNoteType[] = [
-    "commentary",
-    "correction",
-    "tangent",
-    "skepticism",
-    "pedantic",
-  ];
   const byNoteType: Record<HistorianNoteType, number> = {
     commentary: 0,
     correction: 0,

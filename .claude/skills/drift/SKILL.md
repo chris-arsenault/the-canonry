@@ -59,9 +59,10 @@ Read `.claude/skills/drift-audit-ux/SKILL.md` and follow its complete methodolog
 ### Step 3: Semantic Audit
 
 Read `.claude/skills/drift-audit-semantic/SKILL.md` and follow its complete methodology:
-- Sample 30-50 files to build a role taxonomy
-- Systematically search for all implementations of each role
-- Perform divergence analysis per role cluster
+- If `tools/drift-semantic/` exists, use **Method A** (tool-assisted):
+  run `bash tools/drift-semantic/cli.sh run --project .`, then verify clusters
+- Otherwise, use **Method B** (agent-driven): sample files, build role taxonomy,
+  search for all implementations of each role
 - Append findings to manifest with `"type": "semantic"`
 - Append `## Semantic Findings` section to drift-report.md
 
@@ -115,6 +116,34 @@ For each area in the manifest:
    TypeScript version. Use judgment.
 
 Produce a DAG of area IDs.
+
+### Step 1b: Deduplicate Cross-Type Overlap
+
+The three audit types have genuine overlap. The semantic tool's structural fingerprinting
+can surface findings that also appear in structural or behavioral audits (e.g., "these
+components all handle loading states differently" may appear as both a behavioral Domain 4
+finding and a semantic cluster). Before prioritizing, merge overlapping entries:
+
+1. **Detect overlap by file sets.** For every pair of areas, compute the Jaccard similarity
+   of their file sets (union of all variant files). If overlap > 0.5, they likely describe
+   the same drift from different angles.
+
+2. **Merge strategy.** When two areas overlap:
+   - Keep the **higher-impact** entry as the primary. If equal impact, prefer semantic
+     (it has richer metadata: cluster scores, signal breakdowns, consolidation reasoning).
+   - Merge the other entry's unique files and variants into the primary.
+   - Append the other entry's `analysis` text to the primary's analysis as an
+     "Also noted by [type] audit:" addendum.
+   - Record the merged area's ID in a `merged_from` array on the primary entry.
+   - Delete the secondary entry from the manifest.
+
+3. **Log merges.** When presenting the plan, note which areas were merged so the user
+   understands why a behavioral finding disappeared (it was absorbed into a semantic one).
+
+Common overlaps to watch for:
+- Behavioral Domain 4 (loading/error states) ↔ semantic clusters with `hasLoadingState`/`hasErrorHandling` behavior signals
+- Behavioral Domain 2 (shared component adoption) ↔ semantic clusters where one member is in the shared library
+- Structural "naming cluster" findings ↔ semantic clusters of the same units
 
 ### Step 2: Topological Sort with Impact Weighting
 

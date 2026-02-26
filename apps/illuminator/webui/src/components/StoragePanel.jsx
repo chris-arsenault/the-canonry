@@ -23,7 +23,7 @@ import "./StoragePanel.css";
 const DEFAULT_PAGE_SIZE = 24;
 const PAGE_SIZE_OPTIONS = [24, 48, 96];
 
-export default function StoragePanel({ projectId }) {
+export default function StoragePanel({ projectId: _projectId }) {
   const [images, setImages] = useState([]);
   const [stats, setStats] = useState({ totalCount: 0, totalSize: 0, byProject: {} });
   const [loading, setLoading] = useState(true);
@@ -363,7 +363,7 @@ export default function StoragePanel({ projectId }) {
           <h2 className="illuminator-card-title">Image Storage</h2>
           <div className="storage-panel-header-actions">
             <button
-              onClick={handleExportPrompts}
+              onClick={() => void handleExportPrompts()}
               className="illuminator-button illuminator-button-secondary storage-panel-compact-btn"
               disabled={exportingPrompts || stats.totalCount === 0}
               title="Export all image prompt data (original, refined, revised) as JSON for analysis"
@@ -371,7 +371,7 @@ export default function StoragePanel({ projectId }) {
               {exportingPrompts ? "Exporting..." : "Export Prompt Data"}
             </button>
             <button
-              onClick={loadData}
+              onClick={() => void loadData()}
               className="illuminator-button illuminator-button-secondary storage-panel-compact-btn"
             >
               Refresh
@@ -457,14 +457,14 @@ export default function StoragePanel({ projectId }) {
             <div className="storage-panel-selection-actions">
               <span className="storage-panel-selected-count">{selectedIds.size} selected</span>
               <button
-                onClick={handleDownloadSelected}
+                onClick={() => void handleDownloadSelected()}
                 className="illuminator-button illuminator-button-secondary storage-panel-compact-btn"
                 disabled={downloadingIds.size > 0}
               >
                 {downloadingIds.size > 0 ? "Downloading..." : "Download"}
               </button>
               <button
-                onClick={handleDeleteSelected}
+                onClick={() => void handleDeleteSelected()}
                 className="illuminator-button storage-panel-delete-selected-btn"
               >
                 Delete
@@ -550,6 +550,9 @@ export default function StoragePanel({ projectId }) {
                       title: img.entityName || img.imageId,
                     })
                   }
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
                   {thumbnailUrls[img.imageId] ? (
                     <img
@@ -577,7 +580,7 @@ export default function StoragePanel({ projectId }) {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDownload(img.imageId, img.entityName);
+                        void handleDownload(img.imageId, img.entityName);
                       }}
                       className="illuminator-button illuminator-button-secondary storage-panel-download-btn"
                       disabled={downloadingIds.has(img.imageId)}

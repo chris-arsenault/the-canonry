@@ -7,6 +7,7 @@
  */
 
 import React, { useRef } from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -49,8 +50,8 @@ export function ModalShell({
   };
 
   return (
-    <div className="modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
-      <div className={`modal ${className}`.trim()} onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }} >
+      <div className={`modal ${className}`.trim()} onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
         <div className="modal-header">
           <div className="modal-title">
             {icon && <span className="modal-title-icon">{icon}</span>}
@@ -86,3 +87,23 @@ export function ModalShell({
     </div>
   );
 }
+
+ModalShell.propTypes = {
+  onClose: PropTypes.func.isRequired,
+  icon: PropTypes.string,
+  title: PropTypes.string.isRequired,
+  disabled: PropTypes.bool,
+  tabs: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      icon: PropTypes.string,
+      label: PropTypes.string.isRequired,
+    })
+  ),
+  activeTab: PropTypes.string,
+  onTabChange: PropTypes.func,
+  renderTabBadge: PropTypes.func,
+  sidebarFooter: PropTypes.node,
+  children: PropTypes.node,
+  className: PropTypes.string,
+};

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useCallback } from "react";
 import type {
   WorldState,
   LoreData,
@@ -61,11 +61,11 @@ function RegionDetail({
   region,
   entityKind,
   worldData,
-}: {
+}: Readonly<{
   region: Region;
   entityKind: string;
   worldData: WorldState;
-}) {
+}>) {
   const culture = region.culture
     ? worldData.schema.cultures.find((c) => c.id === region.culture)
     : undefined;
@@ -153,10 +153,11 @@ export default function EntityDetail({
   loreData,
   onRelatedClick,
   prominenceScale,
-}: EntityDetailProps) {
+}: Readonly<EntityDetailProps>) {
   // Hooks must be called before any early returns
   const [selectedRelationshipLore, setSelectedRelationshipLore] =
     useState<RelationshipBackstoryLore | null>(null);
+  const clearRelationshipLore = useCallback(() => setSelectedRelationshipLore(null), []);
   const [expandedOutgoing, setExpandedOutgoing] = useState<Set<string>>(new Set());
   const [expandedIncoming, setExpandedIncoming] = useState<Set<string>>(new Set());
 
@@ -241,7 +242,7 @@ export default function EntityDetail({
   ): RelationshipBackstoryLore | undefined => {
     return loreData?.records.find((record) => {
       if (record.type !== "relationship_backstory") return false;
-      const relLore = record as RelationshipBackstoryLore;
+      const relLore = record;
       return (
         relLore.relationship.src === srcId &&
         relLore.relationship.dst === dstId &&
@@ -351,7 +352,7 @@ export default function EntityDetail({
             </button>
           </div>
           <p className="text-sm text-blue-100 leading-relaxed break-words detail-card-content">
-            {(entity as any).summary || "No summary available"}
+            {entity.summary || "No summary available"}
           </p>
         </div>
       )}
@@ -594,7 +595,7 @@ export default function EntityDetail({
         <RelationshipStoryModal
           lore={selectedRelationshipLore}
           worldData={worldData}
-          onClose={() => setSelectedRelationshipLore(null)}
+          onClose={clearRelationshipLore}
         />
       )}
     </div>

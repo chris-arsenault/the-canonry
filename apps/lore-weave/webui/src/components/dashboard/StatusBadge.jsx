@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { STATUS_CONFIGS } from "./constants";
 
 export default function StatusBadge({ status }) {
@@ -15,3 +16,7 @@ export default function StatusBadge({ status }) {
     </div>
   );
 }
+
+StatusBadge.propTypes = {
+  status: PropTypes.string,
+};

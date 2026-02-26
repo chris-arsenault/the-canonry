@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { SectionHeader, EmptyState, SearchableDropdown } from "../../shared";
 import { TransitionEffectItem } from "../shared";
 
@@ -76,3 +77,17 @@ export function EffectsSection({
     </div>
   );
 }
+
+EffectsSection.propTypes = {
+  title: PropTypes.string.isRequired,
+  icon: PropTypes.string,
+  description: PropTypes.string,
+  emptyMessage: PropTypes.string,
+  pressureChanges: PropTypes.array.isRequired,
+  onUpdate: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  availablePressures: PropTypes.array,
+  onAdd: PropTypes.func.isRequired,
+  addPlaceholder: PropTypes.string,
+  pressures: PropTypes.array,
+};

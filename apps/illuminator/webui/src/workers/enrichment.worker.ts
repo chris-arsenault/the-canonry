@@ -137,8 +137,8 @@ async function executeTask(task: WorkerTask): Promise<WorkerResult> {
 
   const checkAborted = () => isAborted;
   const taskConfig = task.llmCallSettings
-    ? { ...config!, llmCallSettings: task.llmCallSettings }
-    : config!;
+    ? { ...config, llmCallSettings: task.llmCallSettings }
+    : config;
 
   const onThinkingDelta = (delta: string) => {
     emit({ type: "thinking_delta", taskId: task.id, delta });
@@ -148,12 +148,10 @@ async function executeTask(task: WorkerTask): Promise<WorkerResult> {
   };
 
   try {
-    let result;
-
-    result = await executeEnrichmentTask(task, {
+    const result = await executeEnrichmentTask(task, {
       config: taskConfig,
-      llmClient: llmClient!,
-      imageClient: imageClient!,
+      llmClient: llmClient,
+      imageClient: imageClient,
       isAborted: checkAborted,
       onThinkingDelta,
       onTextDelta,

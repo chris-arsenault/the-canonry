@@ -6,7 +6,6 @@
  */
 
 import { openIlluminatorDb } from "./illuminatorDbReader";
-import React from "react";
 
 const STATIC_PAGE_STORE_NAME = "staticPages";
 
@@ -49,8 +48,8 @@ export async function getStaticPage(pageId: string): Promise<StaticPage | undefi
     return await new Promise((resolve, reject) => {
       const tx = db.transaction(STATIC_PAGE_STORE_NAME, "readonly");
       const req = tx.objectStore(STATIC_PAGE_STORE_NAME).get(pageId);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error || new Error("Failed to get static page"));
+      req.onsuccess = () => resolve((req.result as StaticPage | undefined) ?? undefined);
+      req.onerror = () => reject(req.error ?? new Error("Failed to get static page"));
     });
   } finally {
     db.close();

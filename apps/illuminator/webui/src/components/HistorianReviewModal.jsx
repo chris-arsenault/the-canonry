@@ -102,7 +102,7 @@ function NoteCard({ note, accepted, onToggle, onEditText }) {
           </div>
         </div>
       ) : (
-        <div onClick={() => setEditing(true)} title="Click to edit" className="hrm-note-text">
+        <div onClick={() => setEditing(true)} title="Click to edit" className="hrm-note-text" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
           {note.text}
         </div>
       )}

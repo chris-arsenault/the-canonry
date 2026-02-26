@@ -23,15 +23,17 @@
  * />
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 export function useLocalInputState(externalValue, onUpdate) {
   const [localValue, setLocalValue] = useState(externalValue || '');
 
-  // Sync local value when external value changes
-  useEffect(() => {
+  // Sync local value when external value changes (during render)
+  const prevExternalRef = useRef(externalValue);
+  if (prevExternalRef.current !== externalValue) {
+    prevExternalRef.current = externalValue;
     setLocalValue(externalValue || '');
-  }, [externalValue]);
+  }
 
   // Call onUpdate if value changed
   const handleBlur = useCallback(() => {

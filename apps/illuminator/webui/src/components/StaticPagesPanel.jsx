@@ -120,7 +120,7 @@ export default function StaticPagesPanel({ projectId }) {
       <div className="static-pages-sidebar">
         <div className="static-pages-sidebar-header">
           <h3>Static Pages</h3>
-          <button className="static-page-button primary" onClick={handleCreatePage}>
+          <button className="static-page-button primary" onClick={() => void handleCreatePage()}>
             + New Page
           </button>
         </div>
@@ -155,7 +155,7 @@ export default function StaticPagesPanel({ projectId }) {
           page={selectedPage}
           projectId={projectId}
           onSave={handleSavePage}
-          onDelete={handleDeletePage}
+          onDelete={() => void handleDeletePage()}
           onPublishToggle={handlePublishToggle}
         />
       </div>

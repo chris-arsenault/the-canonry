@@ -58,7 +58,7 @@ interface TraitPaletteSectionProps {
 
 export default function TraitPaletteSection({
   projectId,
-  simulationRunId,
+  simulationRunId: _simulationRunId,
   worldContext,
   entityKinds: rawEntityKinds = [],
   subtypesByKind = {},
@@ -67,7 +67,7 @@ export default function TraitPaletteSection({
   enqueue,
   queue,
   isWorkerReady,
-}: TraitPaletteSectionProps) {
+}: Readonly<TraitPaletteSectionProps>) {
   // Filter to valid, unique entity kinds
   const entityKinds = useMemo(
     () => [...new Set((rawEntityKinds || []).filter((k) => k && typeof k === "string"))],
@@ -123,7 +123,7 @@ export default function TraitPaletteSection({
   }, [projectId, entityKindsKey]);
 
   useEffect(() => {
-    loadPalettes();
+    void loadPalettes();
   }, [loadPalettes]);
 
   // Refresh palettes when a palette expansion task completes
@@ -134,7 +134,7 @@ export default function TraitPaletteSection({
       for (const id of newCompletions) {
         lastCompletedRef.ids.add(id);
       }
-      loadPalettes();
+      void loadPalettes();
     }
   }, [completedPaletteTaskIds, lastCompletedRef, loadPalettes]);
 
@@ -252,7 +252,7 @@ export default function TraitPaletteSection({
         <h2 className="illuminator-card-title">Trait Palettes</h2>
         <div style={{ display: "flex", gap: "8px" }}>
           <button
-            onClick={handleExport}
+            onClick={() => void handleExport()}
             className="illuminator-button illuminator-button-secondary"
             style={{ padding: "4px 8px", fontSize: "11px" }}
             disabled={totalCategories === 0}
@@ -260,7 +260,7 @@ export default function TraitPaletteSection({
             Export
           </button>
           <button
-            onClick={loadPalettes}
+            onClick={() => void loadPalettes()}
             className="illuminator-button illuminator-button-secondary"
             style={{ padding: "4px 8px", fontSize: "11px" }}
           >
@@ -334,6 +334,9 @@ export default function TraitPaletteSection({
                   cursor: "pointer",
                 }}
                 onClick={() => setSelectedKind(isSelected ? null : kind)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <code
@@ -404,7 +407,7 @@ export default function TraitPaletteSection({
                         fontSize: "12px",
                       }}
                     >
-                      No palette categories yet. Click "Expand Palette" to generate some.
+                      No palette categories yet. Click &quot;Expand Palette&quot; to generate some.
                     </div>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -458,7 +461,7 @@ export default function TraitPaletteSection({
                             </div>
                           )}
                           {/* Binding tags: subtypes and era */}
-                          {(item.subtypes?.length || item.era) && (
+                          {(item.subtypes?.length || item.era) ? (
                             <div
                               style={{
                                 display: "flex",
@@ -497,7 +500,7 @@ export default function TraitPaletteSection({
                                 </span>
                               ))}
                             </div>
-                          )}
+                          ) : null}
                         </div>
                       ))}
                     </div>

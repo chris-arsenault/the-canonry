@@ -1,13 +1,29 @@
-import { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import cytoscape from "cytoscape";
-import type { Core, NodeSingular, StylesheetJsonBlock } from "cytoscape";
-// @ts-ignore
+import type { Core, EdgeSingular, NodeSingular, StylesheetJsonBlock, LayoutOptions } from "cytoscape";
+// @ts-expect-error No types available for cytoscape-cose-bilkent
 import coseBilkent from "cytoscape-cose-bilkent";
 import type { WorldState } from "../types/world.ts";
 import type { EntityKindDefinition, ProminenceScale } from "@canonry/world-schema";
 import { transformWorldData } from "../utils/dataTransform.ts";
 
-cytoscape.use(coseBilkent);
+cytoscape.use(coseBilkent as cytoscape.Ext);
+
+interface CoseBilkentLayoutOptions extends LayoutOptions {
+  name: "cose-bilkent";
+  randomize?: boolean;
+  fit?: boolean;
+  idealEdgeLength?: number;
+  edgeLength?: (edge: EdgeSingular) => number;
+  nodeRepulsion?: number;
+  gravity?: number;
+  numIter?: number;
+  tile?: boolean;
+  tilingPaddingVertical?: number;
+  tilingPaddingHorizontal?: number;
+  animate?: boolean;
+  animationDuration?: number;
+}
 
 const SUPPORTED_NODE_SHAPES = new Set<cytoscape.Css.NodeShape>([
   "ellipse",
@@ -93,13 +109,17 @@ export default function GraphView({
   showCatalyzedBy = false,
   onRecalculateLayoutRef,
   prominenceScale,
-}: GraphViewProps) {
+}: Readonly<GraphViewProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<Core | null>(null);
   const isInitializedRef = useRef(false);
 
   // Get entity kind schemas from canonical schema
   const entityKindSchemas = useMemo(() => data.schema.entityKinds, [data.schema.entityKinds]);
+
+  // Stable ref for onNodeSelect so the init effect doesn't re-run when callback changes
+  const onNodeSelectRef = useRef(onNodeSelect);
+  onNodeSelectRef.current = onNodeSelect;
 
   const handleRecalculateLayout = () => {
     if (!cyRef.current) return;
@@ -110,8 +130,8 @@ export default function GraphView({
       fit: true,
       idealEdgeLength: 100,
       // Non-linear edge strength → spring length mapping for dramatic clustering
-      edgeLength: (edge: any) => {
-        const strength = edge.data("strength") ?? 0.5;
+      edgeLength: (edge: EdgeSingular) => {
+        const strength = (edge.data("strength") as number | undefined) ?? 0.5;
         // Non-linear scaling: emphasizes extremes away from 0.5
         // strength 1.0 → 25px (extremely tight clustering)
         // strength 0.7 → 70px (moderate clustering)
@@ -129,7 +149,7 @@ export default function GraphView({
       tilingPaddingHorizontal: 10,
       animate: true,
       animationDuration: 1000,
-    } as any);
+    } as CoseBilkentLayoutOptions);
 
     layout.run();
   };
@@ -184,12 +204,12 @@ export default function GraphView({
           // Note: mapData doesn't work with colors, so we use fixed color + opacity
           selector: "edge",
           style: {
-            width: "mapData(strength, 0, 1, 0.5, 7)" as any,
+            width: "mapData(strength, 0, 1, 0.5, 7)" as unknown as number,
             "line-color": "#888",
             "target-arrow-color": "#888",
             "target-arrow-shape": "triangle",
             "curve-style": "bezier",
-            opacity: "mapData(strength, 0, 1, 0.2, 1)" as any,
+            opacity: "mapData(strength, 0, 1, 0.2, 1)" as unknown as number,
             label: "data(label)",
             "font-size": "8px",
             color: "#999",
@@ -209,12 +229,12 @@ export default function GraphView({
           // Catalyzed edges - special styling to show meta-relationships
           selector: "edge.catalyzed",
           style: {
-            "line-style": "dashed" as any,
-            "line-dash-pattern": [6, 3] as any,
-            "line-color": "#a78bfa" as any, // Purple color for catalyzed relationships
-            "target-arrow-color": "#a78bfa" as any,
-            width: "mapData(strength, 0, 1, 1, 4)" as any,
-            opacity: 0.9 as any,
+            "line-style": "dashed" as cytoscape.Css.LineStyle,
+            "line-dash-pattern": [6, 3] as unknown as number[],
+            "line-color": "#a78bfa", // Purple color for catalyzed relationships
+            "target-arrow-color": "#a78bfa",
+            width: "mapData(strength, 0, 1, 1, 4)" as unknown as number,
+            opacity: 0.9,
           },
         },
       ],
@@ -222,8 +242,8 @@ export default function GraphView({
         name: "cose-bilkent",
         randomize: true,
         idealEdgeLength: 100,
-        edgeLength: (edge: any) => {
-          const strength = edge.data("strength") ?? 0.5;
+        edgeLength: (edge: EdgeSingular) => {
+          const strength = (edge.data("strength") as number | undefined) ?? 0.5;
           const invStrength = 1 - strength;
           return 25 + Math.pow(invStrength, 1.8) * 375;
         },
@@ -233,19 +253,19 @@ export default function GraphView({
         tile: true,
         tilingPaddingVertical: 10,
         tilingPaddingHorizontal: 10,
-      } as any,
+      } as CoseBilkentLayoutOptions,
     });
 
     // Handle node click
     cy.on("tap", "node", (evt) => {
       const node = evt.target as NodeSingular;
-      onNodeSelect(node.id());
+      onNodeSelectRef.current(node.id());
     });
 
     // Handle background click (deselect)
     cy.on("tap", (evt) => {
       if (evt.target === cy) {
-        onNodeSelect(undefined);
+        onNodeSelectRef.current(undefined);
       }
     });
 
@@ -256,7 +276,7 @@ export default function GraphView({
       cy.destroy();
       isInitializedRef.current = false;
     };
-  }, []);
+  }, [entityKindSchemas]);
 
   // Update styles when entity kind schema changes
   useEffect(() => {
@@ -290,12 +310,12 @@ export default function GraphView({
       {
         selector: "edge",
         style: {
-          width: "mapData(strength, 0, 1, 0.5, 7)" as any,
+          width: "mapData(strength, 0, 1, 0.5, 7)" as unknown as number,
           "line-color": "#888",
           "target-arrow-color": "#888",
           "target-arrow-shape": "triangle",
           "curve-style": "bezier",
-          opacity: "mapData(strength, 0, 1, 0.2, 1)" as any,
+          opacity: "mapData(strength, 0, 1, 0.2, 1)" as unknown as number,
           label: "data(label)",
           "font-size": "8px",
           color: "#999",
@@ -314,12 +334,12 @@ export default function GraphView({
       {
         selector: "edge.catalyzed",
         style: {
-          "line-style": "dashed" as any,
-          "line-dash-pattern": [6, 3] as any,
-          "line-color": "#a78bfa" as any,
-          "target-arrow-color": "#a78bfa" as any,
-          width: "mapData(strength, 0, 1, 1, 4)" as any,
-          opacity: 0.9 as any,
+          "line-style": "dashed" as cytoscape.Css.LineStyle,
+          "line-dash-pattern": [6, 3] as unknown as number[],
+          "line-color": "#a78bfa",
+          "target-arrow-color": "#a78bfa",
+          width: "mapData(strength, 0, 1, 1, 4)" as unknown as number,
+          opacity: 0.9,
         },
       },
     ]);
@@ -377,8 +397,8 @@ export default function GraphView({
         randomize: shouldFullLayout,
         fit: shouldFullLayout,
         idealEdgeLength: 100,
-        edgeLength: (edge: any) => {
-          const strength = edge.data("strength") ?? 0.5;
+        edgeLength: (edge: EdgeSingular) => {
+          const strength = (edge.data("strength") as number | undefined) ?? 0.5;
           const invStrength = 1 - strength;
           return 25 + Math.pow(invStrength, 1.8) * 375;
         },
@@ -390,7 +410,7 @@ export default function GraphView({
         tilingPaddingHorizontal: 10,
         animate: shouldFullLayout ? true : false,
         animationDuration: shouldFullLayout ? 1000 : 0,
-      } as any);
+      } as CoseBilkentLayoutOptions);
 
       layout.run();
     }

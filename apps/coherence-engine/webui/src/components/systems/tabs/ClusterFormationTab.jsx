@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { CLUSTERING_CRITERIA_TYPES } from "../constants";
 import { ReferenceDropdown, NumberInput, LocalTextArea } from "../../shared";
 
@@ -63,7 +64,7 @@ export function ClusterFormationTab({ system, onChange, schema }) {
         <div className="section-title">Clustering Configuration</div>
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">Min Size</label>
+            <label className="label">Min Size
             <NumberInput
               value={config.clustering?.minSize}
               onChange={(v) => updateClustering("minSize", v)}
@@ -71,9 +72,10 @@ export function ClusterFormationTab({ system, onChange, schema }) {
               integer
               allowEmpty
             />
+            </label>
           </div>
           <div className="form-group">
-            <label className="label">Max Size</label>
+            <label className="label">Max Size
             <NumberInput
               value={config.clustering?.maxSize}
               onChange={(v) => updateClustering("maxSize", v)}
@@ -81,15 +83,17 @@ export function ClusterFormationTab({ system, onChange, schema }) {
               integer
               allowEmpty
             />
+            </label>
           </div>
           <div className="form-group">
-            <label className="label">Minimum Score</label>
+            <label className="label">Minimum Score
             <NumberInput
               value={config.clustering?.minimumScore}
               onChange={(v) => updateClustering("minimumScore", v)}
               min={0}
               allowEmpty
             />
+            </label>
           </div>
         </div>
 
@@ -109,12 +113,13 @@ export function ClusterFormationTab({ system, onChange, schema }) {
                     options={CLUSTERING_CRITERIA_TYPES}
                   />
                   <div className="form-group">
-                    <label className="label">Weight</label>
+                    <label className="label">Weight
                     <NumberInput
                       value={crit.weight}
                       onChange={(v) => updateCriterion(index, { ...crit, weight: v ?? 0 })}
                       min={0}
                     />
+                    </label>
                   </div>
                   {crit.type === "shared_relationship" && (
                     <ReferenceDropdown
@@ -149,8 +154,8 @@ export function ClusterFormationTab({ system, onChange, schema }) {
             options={entityKindOptions}
           />
           <div className="form-group">
-            <label className="label">Status</label>
-            <input
+            <label htmlFor="status" className="label">Status</label>
+            <input id="status"
               type="text"
               value={config.metaEntity?.status || ""}
               onChange={(e) => updateMetaEntity("status", e.target.value)}
@@ -160,12 +165,13 @@ export function ClusterFormationTab({ system, onChange, schema }) {
         </div>
         <div style={{ marginTop: "16px" }}>
           <div className="form-group">
-            <label className="label">Description Template</label>
+            <label className="label">Description Template
             <LocalTextArea
               value={config.metaEntity?.descriptionTemplate || ""}
               onChange={(value) => updateMetaEntity("descriptionTemplate", value)}
               placeholder="Use {names}, {count} placeholders"
             />
+            </label>
           </div>
         </div>
       </div>
@@ -185,3 +191,9 @@ export function ClusterFormationTab({ system, onChange, schema }) {
     </div>
   );
 }
+
+ClusterFormationTab.propTypes = {
+  system: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+};

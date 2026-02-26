@@ -55,6 +55,7 @@ function AnchorEditor({ anchorPhrase, sourceText, onSave, onCancel }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           className="hmn-anchor-input"
+          // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
           onKeyDown={(e) => {
             if (e.key === "Enter" && resolved) {
@@ -79,11 +80,13 @@ function AnchorEditor({ anchorPhrase, sourceText, onSave, onCancel }) {
       <div
         className={`hmn-anchor-status ${resolved ? "hmn-anchor-status-resolved" : "hmn-anchor-status-unresolved"}`}
       >
-        {!value.trim()
-          ? ""
-          : resolved
-            ? `${resolved.method === "exact" ? "Exact" : "Fuzzy"} match: "${resolved.phrase.length > 60 ? resolved.phrase.slice(0, 60) + "\u2026" : resolved.phrase}"`
-            : "No match found in source text"}
+        {(() => {
+          if (!value.trim()) return "";
+          if (!resolved) return "No match found in source text";
+          const methodLabel = resolved.method === "exact" ? "Exact" : "Fuzzy";
+          const phrasePreview = resolved.phrase.length > 60 ? resolved.phrase.slice(0, 60) + "\u2026" : resolved.phrase;
+          return `${methodLabel} match: "${phrasePreview}"`;
+        })()}
       </div>
     </div>
   );
@@ -166,8 +169,11 @@ function NoteItem({ note, sourceText, onUpdateNote }) {
             onClick={() => !editingAnchor && setEditingAnchor(true)}
             className={`hmn-anchor-text ${anchorMissing ? "hmn-anchor-text-missing" : "hmn-anchor-text-normal"} ${onUpdateNote ? "hmn-anchor-text-editable" : "hmn-anchor-text-readonly"}`}
             title={`Anchor: "${note.anchorPhrase}"${anchorMissing ? " (not found in source text)" : ""}${onUpdateNote ? " — click to edit" : ""}`}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           >
-            "{note.anchorPhrase}"
+            &quot;{note.anchorPhrase}&quot;
           </span>
         </div>
 
@@ -190,6 +196,9 @@ function NoteItem({ note, sourceText, onUpdateNote }) {
         <div
           className={`hmn-note-text ${isDisabled ? "hmn-note-text-disabled" : "hmn-note-text-active"}`}
           onClick={() => setExpanded(!expanded)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           {expanded || note.text.length <= 120 ? note.text : note.text.slice(0, 120) + "\u2026"}
         </div>
@@ -209,9 +218,8 @@ NoteItem.propTypes = {
 // ============================================================================
 
 export default function HistorianMarginNotes({ notes, sourceText, style, onUpdateNote }) {
-  if (!notes || notes.length === 0) return null;
-
   const counts = useMemo(() => {
+    if (!notes || notes.length === 0) return { full: 0, popout: 0, disabled: 0 };
     let full = 0,
       popout = 0,
       disabled = 0;
@@ -223,6 +231,8 @@ export default function HistorianMarginNotes({ notes, sourceText, style, onUpdat
     }
     return { full, popout, disabled };
   }, [notes]);
+
+  if (!notes || notes.length === 0) return null;
 
   const summaryParts = [];
   if (counts.full > 0) summaryParts.push(`${counts.full} full`);

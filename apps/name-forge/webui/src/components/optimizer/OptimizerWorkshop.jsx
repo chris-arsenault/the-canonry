@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import PropTypes from "prop-types";
 import { optimizeDomain as runOptimizer } from "../../lib/browser-optimizer.js";
 import { ALGORITHMS } from "./constants";
 import DomainSelector from "./DomainSelector";
@@ -332,3 +333,8 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
     </div>
   );
 }
+
+OptimizerWorkshop.propTypes = {
+  cultures: PropTypes.object,
+  onCulturesChange: PropTypes.func,
+};

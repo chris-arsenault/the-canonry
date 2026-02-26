@@ -5,14 +5,14 @@
  * Semantic planes are edited in Cosmographer.
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
 import {
   ExpandableCard,
   FormGroup,
   FormRow,
   SectionHeader,
   EmptyState,
-  AddItemButton,
 } from "@penguin-tales/shared-components";
 import {
   ToolUsageBadges as UsageBadges,
@@ -23,6 +23,29 @@ import { ENTITY_CATEGORIES } from "@canonry/world-schema";
 /**
  * Compute naming profile usage for each entity kind
  */
+function recordGroupUsage(usage, cultureId, profile, group) {
+  const cond = group.conditions || {};
+  const entityKinds = cond.entityKinds || [];
+
+  if (entityKinds.length === 0) {
+    if (!usage["*"]) usage["*"] = { profiles: [] };
+    usage["*"].profiles.push({
+      cultureId,
+      profileId: profile.id,
+      groupName: group.name || "Default",
+    });
+  } else {
+    entityKinds.forEach((kind) => {
+      if (!usage[kind]) usage[kind] = { profiles: [] };
+      usage[kind].profiles.push({
+        cultureId,
+        profileId: profile.id,
+        groupName: group.name,
+      });
+    });
+  }
+}
+
 function computeNamingProfileUsage(namingData) {
   const usage = {};
 
@@ -31,29 +54,7 @@ function computeNamingProfileUsage(namingData) {
 
     profiles.forEach((profile) => {
       const groups = profile.strategyGroups || [];
-
-      groups.forEach((group) => {
-        const cond = group.conditions || {};
-        const entityKinds = cond.entityKinds || [];
-
-        if (entityKinds.length === 0) {
-          if (!usage["*"]) usage["*"] = { profiles: [] };
-          usage["*"].profiles.push({
-            cultureId,
-            profileId: profile.id,
-            groupName: group.name || "Default",
-          });
-        } else {
-          entityKinds.forEach((kind) => {
-            if (!usage[kind]) usage[kind] = { profiles: [] };
-            usage[kind].profiles.push({
-              cultureId,
-              profileId: profile.id,
-              groupName: group.name,
-            });
-          });
-        }
-      });
+      groups.forEach((group) => recordGroupUsage(usage, cultureId, profile, group));
     });
   });
 
@@ -126,9 +127,9 @@ export default function EntityKindEditor({
 
   const getStableKey = (ek) => ek._key || ek.kind;
 
-  const toggleKind = (stableKey) => {
+  const toggleKind = useCallback((stableKey) => {
     setExpandedKinds((prev) => ({ ...prev, [stableKey]: !prev[stableKey] }));
-  };
+  }, []);
 
   const addEntityKind = () => {
     const stableKey = `kind_${Date.now()}`;
@@ -284,7 +285,7 @@ export default function EntityKindEditor({
         />
       ) : (
         <div className="list-stack">
-          {entityKinds.map((ek, index) => {
+          {entityKinds.map((ek) => {
             const stableKey = getStableKey(ek);
             const isExpanded = expandedKinds[stableKey];
             const profileCount = getNamingProfileCount(ek.kind);
@@ -295,7 +296,8 @@ export default function EntityKindEditor({
               <ExpandableCard
                 key={stableKey}
                 expanded={isExpanded}
-                onToggle={() => toggleKind(stableKey)}
+                onToggle={toggleKind}
+                toggleId={stableKey}
                 title={ek.description}
                 subtitle={ek.kind}
                 actions={renderKindActions(ek, profileCount, isFramework)}
@@ -616,3 +618,10 @@ export default function EntityKindEditor({
     </div>
   );
 }
+
+EntityKindEditor.propTypes = {
+  entityKinds: PropTypes.array.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schemaUsage: PropTypes.object,
+  namingData: PropTypes.object,
+};

@@ -2,7 +2,8 @@
  * OverviewTab - Profile ID, stats, and groups overview with drag-to-reorder
  */
 
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
+import PropTypes from "prop-types";
 import MultiSelectPills from "../MultiSelectPills";
 
 export default function OverviewTab({
@@ -72,8 +73,8 @@ export default function OverviewTab({
     <div className="profile-overview-tab">
       {/* Profile ID */}
       <div className="form-group">
-        <label>Profile ID</label>
-        <input
+        <label htmlFor="profile-id">Profile ID</label>
+        <input id="profile-id"
           value={profile.id || ""}
           onChange={(e) => onChange({ ...profile, id: e.target.value })}
           placeholder="e.g., culture_default"
@@ -109,7 +110,7 @@ export default function OverviewTab({
           allLabel="Any"
         />
         <small className="text-muted">
-          Profile applies when generating names for these entity kinds. "Any" means use default
+          Profile applies when generating names for these entity kinds. &quot;Any&quot; means use default
           profile logic.
         </small>
       </div>
@@ -165,6 +166,9 @@ export default function OverviewTab({
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, idx)}
                   onClick={() => onNavigateToGroup?.(idx)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
                   <div className="drag-handle" title="Drag to reorder">
                     <span>⋮⋮</span>
@@ -206,7 +210,7 @@ export default function OverviewTab({
         )}
 
         <p className="text-muted text-xs mt-sm">
-          Groups are evaluated by priority (highest first). First matching group's strategies are
+          Groups are evaluated by priority (highest first). First matching group&apos;s strategies are
           used.
         </p>
       </div>
@@ -228,3 +232,13 @@ export default function OverviewTab({
     </div>
   );
 }
+
+OverviewTab.propTypes = {
+  profile: PropTypes.object,
+  onChange: PropTypes.func,
+  onDelete: PropTypes.func,
+  onDuplicate: PropTypes.func,
+  onNavigateToGroup: PropTypes.func,
+  generatorUsage: PropTypes.object,
+  entityKinds: PropTypes.array,
+};

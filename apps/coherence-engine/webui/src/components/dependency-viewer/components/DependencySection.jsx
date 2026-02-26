@@ -3,11 +3,12 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import "../dependency-viewer.css";
 
 export function DependencySection({ title, icon, items, renderItem, defaultExpanded = false }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const [hovering, setHovering] = useState(false);
+  const [, setHovering] = useState(false);
 
   if (items.length === 0) return null;
 
@@ -18,6 +19,9 @@ export function DependencySection({ title, icon, items, renderItem, defaultExpan
         onClick={() => setExpanded(!expanded)}
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         <div className="dependency-section-title">
           <span>{icon}</span>
@@ -36,3 +40,11 @@ export function DependencySection({ title, icon, items, renderItem, defaultExpan
     </div>
   );
 }
+
+DependencySection.propTypes = {
+  title: PropTypes.string.isRequired,
+  icon: PropTypes.string,
+  items: PropTypes.array.isRequired,
+  renderItem: PropTypes.func.isRequired,
+  defaultExpanded: PropTypes.bool,
+};

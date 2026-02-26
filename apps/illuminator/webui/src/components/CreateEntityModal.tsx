@@ -82,7 +82,7 @@ export default function CreateEntityModal({
   defaults,
   onSubmit,
   onClose,
-}: CreateEntityModalProps) {
+}: Readonly<CreateEntityModalProps>) {
   const isEdit = Boolean(editEntity);
   const entityKinds = useMemo(
     () => (worldSchema.entityKinds || []).filter((k) => !k.isFramework),
@@ -101,20 +101,16 @@ export default function CreateEntityModal({
   const [prominence, setProminence] = useState(() => editEntity?.prominence ?? 1);
   const [description, setDescription] = useState(() => editEntity?.description || "");
   const [eraId, setEraId] = useState(() => editEntity?.eraId || d?.eraId || "");
-  const [startTick, setStartTick] = useState(() =>
-    editEntity?.temporal?.startTick != null
-      ? String(editEntity.temporal.startTick)
-      : d?.startTick != null
-        ? String(d.startTick)
-        : ""
-  );
-  const [endTick, setEndTick] = useState(() =>
-    editEntity?.temporal?.endTick != null
-      ? String(editEntity.temporal.endTick)
-      : d?.endTick != null
-        ? String(d.endTick)
-        : ""
-  );
+  const [startTick, setStartTick] = useState(() => {
+    if (editEntity?.temporal?.startTick != null) return String(editEntity.temporal.startTick);
+    if (d?.startTick != null) return String(d.startTick);
+    return "";
+  });
+  const [endTick, setEndTick] = useState(() => {
+    if (editEntity?.temporal?.endTick != null) return String(editEntity.temporal.endTick);
+    if (d?.endTick != null) return String(d.endTick);
+    return "";
+  });
   const [tags, setTags] = useState<Record<string, string>>(() =>
     tagsToStringRecord(editEntity?.tags)
   );
@@ -209,9 +205,9 @@ export default function CreateEntityModal({
       <div style={backdropStyle}>
         <div style={cardStyle}>
           <div style={headerStyle}>
-            <h2 style={{ margin: 0, fontSize: "16px" }}>{title}</h2>
+            <h2 style={titleStyle}>{title}</h2>
           </div>
-          <div style={{ padding: "20px", fontSize: "13px", color: "var(--text-muted)" }}>
+          <div style={emptyBodyStyle}>
             No entity kinds available in the schema.
           </div>
           <div style={footerStyle}>
@@ -229,32 +225,27 @@ export default function CreateEntityModal({
       <div style={cardStyle}>
         {/* Header */}
         <div style={headerStyle}>
-          <h2 style={{ margin: 0, fontSize: "16px" }}>{title}</h2>
+          <h2 style={titleStyle}>{title}</h2>
           {isEdit && (
-            <p style={{ margin: "4px 0 0", fontSize: "11px", color: "var(--text-muted)" }}>
+            <p style={editSubtitleStyle}>
               {name}
             </p>
           )}
         </div>
 
         {/* Body */}
-        <div style={{ padding: "16px 20px", overflowY: "auto", flex: 1, minHeight: 0 }}>
+        <div style={bodyStyle}>
           {/* Kind + Subtype row */}
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "8px",
-              marginBottom: "12px",
-            }}
+            style={twoColumnGrid}
           >
             <div>
-              <label style={labelStyle}>Kind</label>
-              <select
+              <label htmlFor="kind" style={labelStyle}>Kind</label>
+              <select id="kind"
                 value={kind}
                 onChange={(e) => handleKindChange(e.target.value)}
                 className="illuminator-select"
-                style={{ width: "100%" }}
+                style={fullWidthStyle}
               >
                 {entityKinds.map((k) => (
                   <option key={k.kind} value={k.kind}>
@@ -264,12 +255,12 @@ export default function CreateEntityModal({
               </select>
             </div>
             <div>
-              <label style={labelStyle}>Subtype</label>
-              <select
+              <label htmlFor="subtype" style={labelStyle}>Subtype</label>
+              <select id="subtype"
                 value={subtype}
                 onChange={(e) => setSubtype(e.target.value)}
                 className="illuminator-select"
-                style={{ width: "100%" }}
+                style={fullWidthStyle}
                 disabled={subtypes.length === 0}
               >
                 {subtypes.map((s) => (
@@ -284,15 +275,16 @@ export default function CreateEntityModal({
 
           {/* Name — only editable in create mode */}
           {!isEdit && (
-            <div style={{ marginBottom: "12px" }}>
-              <label style={labelStyle}>Name *</label>
-              <input
+            <div style={fieldGroupStyle}>
+              <label htmlFor="name" style={labelStyle}>Name *</label>
+              <input id="name"
                 type="text"
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Entity name"
                 className="illuminator-select"
-                style={{ width: "100%", boxSizing: "border-box" }}
+                style={fullWidthBoxStyle}
+                // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
               />
             </div>
@@ -300,20 +292,15 @@ export default function CreateEntityModal({
 
           {/* Culture + Status row */}
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "8px",
-              marginBottom: "12px",
-            }}
+            style={twoColumnGrid}
           >
             <div>
-              <label style={labelStyle}>Culture</label>
-              <select
+              <label htmlFor="culture" style={labelStyle}>Culture</label>
+              <select id="culture"
                 value={culture}
                 onChange={(e) => setCulture(e.target.value)}
                 className="illuminator-select"
-                style={{ width: "100%" }}
+                style={fullWidthStyle}
               >
                 {cultures.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -323,12 +310,12 @@ export default function CreateEntityModal({
               </select>
             </div>
             <div>
-              <label style={labelStyle}>Status</label>
-              <select
+              <label htmlFor="status" style={labelStyle}>Status</label>
+              <select id="status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
                 className="illuminator-select"
-                style={{ width: "100%" }}
+                style={fullWidthStyle}
               >
                 {statuses.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -340,13 +327,13 @@ export default function CreateEntityModal({
           </div>
 
           {/* Prominence */}
-          <div style={{ marginBottom: "12px" }}>
-            <label style={labelStyle}>Prominence</label>
-            <select
+          <div style={fieldGroupStyle}>
+            <label htmlFor="prominence" style={labelStyle}>Prominence</label>
+            <select id="prominence"
               value={prominence}
               onChange={(e) => setProminence(Number(e.target.value))}
               className="illuminator-select"
-              style={{ width: "100%" }}
+              style={fullWidthStyle}
             >
               {PROMINENCE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -358,13 +345,13 @@ export default function CreateEntityModal({
 
           {/* Era */}
           {eras.length > 0 && (
-            <div style={{ marginBottom: "12px" }}>
-              <label style={labelStyle}>Era</label>
-              <select
+            <div style={fieldGroupStyle}>
+              <label htmlFor="era" style={labelStyle}>Era</label>
+              <select id="era"
                 value={eraId}
                 onChange={(e) => setEraId(e.target.value)}
                 className="illuminator-select"
-                style={{ width: "100%" }}
+                style={fullWidthStyle}
               >
                 <option value="">None</option>
                 {eras.map((era) => (
@@ -378,41 +365,36 @@ export default function CreateEntityModal({
 
           {/* Temporal */}
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "8px",
-              marginBottom: "12px",
-            }}
+            style={twoColumnGrid}
           >
             <div>
-              <label style={labelStyle}>Start Tick</label>
-              <input
+              <label htmlFor="start-tick" style={labelStyle}>Start Tick</label>
+              <input id="start-tick"
                 type="number"
                 value={startTick}
                 onChange={(e) => setStartTick(e.target.value)}
                 placeholder="Optional"
                 className="illuminator-select"
-                style={{ width: "100%", boxSizing: "border-box" }}
+                style={fullWidthBoxStyle}
               />
             </div>
             <div>
-              <label style={labelStyle}>End Tick</label>
-              <input
+              <label htmlFor="end-tick" style={labelStyle}>End Tick</label>
+              <input id="end-tick"
                 type="number"
                 value={endTick}
                 onChange={(e) => setEndTick(e.target.value)}
                 placeholder="Ongoing"
                 className="illuminator-select"
-                style={{ width: "100%", boxSizing: "border-box" }}
+                style={fullWidthBoxStyle}
               />
             </div>
           </div>
 
           {/* Description */}
-          <div style={{ marginBottom: "12px" }}>
-            <label style={labelStyle}>Description</label>
-            <textarea
+          <div style={fieldGroupStyle}>
+            <label htmlFor="description" style={labelStyle}>Description</label>
+            <textarea id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional description"
@@ -571,4 +553,95 @@ const labelStyle: React.CSSProperties = {
   textTransform: "uppercase",
   fontWeight: 600,
   marginBottom: "4px",
+};
+
+const titleStyle: React.CSSProperties = { margin: 0, fontSize: "16px" };
+
+const editSubtitleStyle: React.CSSProperties = {
+  margin: "4px 0 0",
+  fontSize: "11px",
+  color: "var(--text-muted)",
+};
+
+const bodyStyle: React.CSSProperties = {
+  padding: "16px 20px",
+  overflowY: "auto",
+  flex: 1,
+  minHeight: 0,
+};
+
+const twoColumnGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "8px",
+  marginBottom: "12px",
+};
+
+const fullWidthStyle: React.CSSProperties = { width: "100%" };
+
+const fullWidthBoxStyle: React.CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+};
+
+const fieldGroupStyle: React.CSSProperties = { marginBottom: "12px" };
+
+const textareaStyle: React.CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  resize: "vertical",
+  fontFamily: "inherit",
+};
+
+const emptyBodyStyle: React.CSSProperties = {
+  padding: "20px",
+  fontSize: "13px",
+  color: "var(--text-muted)",
+};
+
+const tagsContainer: React.CSSProperties = { marginBottom: "8px" };
+
+const tagRowStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "6px",
+  padding: "3px 0",
+  fontSize: "12px",
+};
+
+const tagKeyStyle: React.CSSProperties = {
+  color: "var(--text-secondary)",
+  fontWeight: 500,
+};
+
+const tagValueStyle: React.CSSProperties = {
+  flex: 1,
+  color: "var(--text-primary)",
+};
+
+const removeTagButton: React.CSSProperties = {
+  background: "none",
+  border: "none",
+  color: "var(--text-muted)",
+  cursor: "pointer",
+  fontSize: "14px",
+  padding: "0 4px",
+};
+
+const tagInputRow: React.CSSProperties = {
+  display: "flex",
+  gap: "6px",
+  alignItems: "center",
+};
+
+const tagInputStyle: React.CSSProperties = {
+  flex: 1,
+  boxSizing: "border-box",
+  fontSize: "12px",
+};
+
+const addTagButtonStyle: React.CSSProperties = {
+  padding: "4px 10px",
+  fontSize: "11px",
+  whiteSpace: "nowrap",
 };

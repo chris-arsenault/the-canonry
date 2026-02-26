@@ -39,7 +39,7 @@ export default function TreeNodeRenderer({
   node,
   style,
   dragHandle,
-}: NodeRendererProps<TreeNodeData>) {
+}: Readonly<NodeRendererProps<TreeNodeData>>) {
   const data = node.data;
   const meta = data.meta;
   const isFolder = data.type === "folder";
@@ -50,9 +50,15 @@ export default function TreeNodeRenderer({
       style={style}
       ref={dragHandle}
       onClick={() => node.isInternal && node.toggle()}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
     >
       <span className="preprint-tree-node-icon" title={TYPE_LABELS[data.type] || data.type}>
-        {isFolder ? (node.isOpen ? "\u{1F4C2}" : "\u{1F4C1}") : TYPE_ICONS[data.type] || "?"}
+        {(() => {
+          if (isFolder) return node.isOpen ? "\u{1F4C2}" : "\u{1F4C1}";
+          return TYPE_ICONS[data.type] || "?";
+        })()}
       </span>
 
       {node.isEditing ? (
@@ -60,6 +66,7 @@ export default function TreeNodeRenderer({
           type="text"
           className="preprint-tree-node-edit"
           defaultValue={data.name}
+          // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
           onBlur={() => node.reset()}
           onKeyDown={(e) => {
@@ -87,27 +94,24 @@ export default function TreeNodeRenderer({
           )}
           <span
             className="preprint-tree-node-status"
-            title={
-              meta.hasDescription && meta.hasImage
-                ? "Complete"
-                : meta.hasDescription
-                  ? "Missing image"
-                  : "Missing content"
-            }
+            title={(() => {
+              if (meta.hasDescription && meta.hasImage) return "Complete";
+              if (meta.hasDescription) return "Missing image";
+              return "Missing content";
+            })()}
             style={{
-              color:
-                meta.hasDescription && meta.hasImage
-                  ? "#22c55e"
-                  : meta.hasDescription
-                    ? "#f59e0b"
-                    : "#ef4444",
+              color: (() => {
+                if (meta.hasDescription && meta.hasImage) return "#22c55e";
+                if (meta.hasDescription) return "#f59e0b";
+                return "#ef4444";
+              })(),
             }}
           >
-            {meta.hasDescription && meta.hasImage
-              ? "\u25CF"
-              : meta.hasDescription
-                ? "\u25D2"
-                : "\u25CB"}
+            {(() => {
+              if (meta.hasDescription && meta.hasImage) return "\u25CF";
+              if (meta.hasDescription) return "\u25D2";
+              return "\u25CB";
+            })()}
           </span>
         </span>
       )}

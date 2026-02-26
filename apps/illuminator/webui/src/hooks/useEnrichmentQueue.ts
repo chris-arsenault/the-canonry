@@ -176,6 +176,20 @@ function findLeastBusyWorker(workers: WorkerState[], queue: QueueItem[]): Worker
   return leastBusy;
 }
 
+/**
+ * Create an updater function for setQueue that patches a single item by ID.
+ * Extracted to reduce nesting depth in callbacks.
+ */
+function patchQueueItem(
+  itemId: string,
+  patch: Partial<QueueItem>
+): (prev: QueueItem[]) => QueueItem[] {
+  return (prev) =>
+    prev.map((item) =>
+      item.id === itemId ? { ...item, ...patch } : item
+    );
+}
+
 export function useEnrichmentQueue(
   onEntityUpdate: (entityId: string, output: ApplyEnrichmentOutput) => void,
   projectId?: string,
@@ -265,7 +279,8 @@ export function useEnrichmentQueue(
         )
       );
 
-      // Build task payload
+      // Build task payload — strip runtime-only fields via rest destructuring
+      /* eslint-disable @typescript-eslint/no-unused-vars, sonarjs/no-unused-vars, sonarjs/no-dead-store */
       const {
         status: _status,
         queuedAt: _queuedAt,
@@ -277,6 +292,7 @@ export function useEnrichmentQueue(
         estimatedCost: _estimatedCost,
         ...taskPayload
       } = nextItem;
+      /* eslint-enable @typescript-eslint/no-unused-vars, sonarjs/no-unused-vars, sonarjs/no-dead-store */
       const latestLlmSettings = getResolvedLLMCallSettings();
       if (configRef.current) {
         configRef.current = { ...configRef.current, llmCallSettings: latestLlmSettings };
@@ -298,7 +314,7 @@ export function useEnrichmentQueue(
         // Initialize thinking entry (same as 'started' message handler)
         useThinkingStore.getState().startTask(task.id, nextItem.entityName, nextItem.type);
 
-        executeBrowserTask(task, configRef.current, {
+        void executeBrowserTask(task, configRef.current, {
           onThinkingDelta: (taskId, delta) =>
             useThinkingStore.getState().appendDelta(taskId, delta),
           onTextDelta: (taskId, delta) =>
@@ -307,19 +323,12 @@ export function useEnrichmentQueue(
           browserRunningTasksRef.current.delete(task.id);
           taskWorkerMapRef.current.delete(task.id);
           if (taskResult.success) {
-            setQueue((prev) =>
-              prev.map((item) =>
-                item.id === task.id
-                  ? {
-                      ...item,
-                      status: "complete" as const,
-                      completedAt: Date.now(),
-                      result: taskResult.result,
-                      debug: taskResult.debug,
-                    }
-                  : item
-              )
-            );
+            setQueue(patchQueueItem(task.id, {
+              status: "complete" as const,
+              completedAt: Date.now(),
+              result: taskResult.result,
+              debug: taskResult.debug,
+            }));
             if (taskResult.result) {
               const queueItem = queueRef.current.find((item) => item.id === task.id);
               const isChronicleImage = queueItem?.imageType === "chronicle";
@@ -334,19 +343,12 @@ export function useEnrichmentQueue(
               }
             }
           } else {
-            setQueue((prev) =>
-              prev.map((item) =>
-                item.id === task.id
-                  ? {
-                      ...item,
-                      status: "error" as const,
-                      completedAt: Date.now(),
-                      error: taskResult.error,
-                      debug: taskResult.debug,
-                    }
-                  : item
-              )
-            );
+            setQueue(patchQueueItem(task.id, {
+              status: "error" as const,
+              completedAt: Date.now(),
+              error: taskResult.error,
+              debug: taskResult.debug,
+            }));
           }
           useThinkingStore.getState().finishTask(task.id);
           // Process next tasks — browser execution freed this worker
@@ -414,19 +416,12 @@ export function useEnrichmentQueue(
           taskWorkerMapRef.current.delete(result.id);
 
           // Worker already saved image to IndexedDB, just update queue and notify parent
-          setQueue((prev) =>
-            prev.map((item) =>
-              item.id === result.id
-                ? {
-                    ...item,
-                    status: "complete" as const,
-                    completedAt: Date.now(),
-                    result: result.result,
-                    debug: result.debug,
-                  }
-                : item
-            )
-          );
+          setQueue(patchQueueItem(result.id, {
+            status: "complete" as const,
+            completedAt: Date.now(),
+            result: result.result,
+            debug: result.debug,
+          }));
 
           // Notify parent to update entity (skip for chronicle images - they have their own storage)
           if (result.result) {
@@ -458,19 +453,12 @@ export function useEnrichmentQueue(
           // Clean up task-worker mapping
           taskWorkerMapRef.current.delete(message.taskId);
 
-          setQueue((prev) =>
-            prev.map((item) =>
-              item.id === message.taskId
-                ? {
-                    ...item,
-                    status: "error" as const,
-                    completedAt: Date.now(),
-                    error: message.error,
-                    debug: message.debug,
-                  }
-                : item
-            )
-          );
+          setQueue(patchQueueItem(message.taskId, {
+            status: "error" as const,
+            completedAt: Date.now(),
+            error: message.error,
+            debug: message.debug,
+          }));
 
           useThinkingStore.getState().finishTask(message.taskId);
 
@@ -560,18 +548,11 @@ export function useEnrichmentQueue(
           const failedTaskId = workerState.currentTaskId;
           if (failedTaskId) {
             taskWorkerMapRef.current.delete(failedTaskId);
-            setQueue((prev) =>
-              prev.map((item) =>
-                item.id === failedTaskId
-                  ? {
-                      ...item,
-                      status: "error" as const,
-                      completedAt: Date.now(),
-                      error: error.message || "Worker error",
-                    }
-                  : item
-              )
-            );
+            setQueue(patchQueueItem(failedTaskId, {
+              status: "error" as const,
+              completedAt: Date.now(),
+              error: error.message || "Worker error",
+            }));
           }
           workerState.currentTaskId = null;
           setTimeout(() => processNextForWorker(workerState.workerId), 0);
@@ -617,7 +598,7 @@ export function useEnrichmentQueue(
       for (const item of items) {
         const { entity, ...taskFields } = item;
         const queueItem: QueueItem = {
-          id: `${item.type}_${entity.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          id: `${item.type}_${entity.id}_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`,
           entityId: entity.id,
           entityName: entity.name,
           entityKind: entity.kind,
@@ -687,9 +668,6 @@ export function useEnrichmentQueue(
 
   // Cancel all
   const cancelAll = useCallback(() => {
-    // Get all running task IDs to abort
-    const runningTasks = queueRef.current.filter((item) => item.status === "running");
-
     for (const workerState of workersRef.current) {
       // Abort each running task on this worker
       if (workerState.currentTaskId) {

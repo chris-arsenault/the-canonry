@@ -8,7 +8,7 @@ import type { DynamicsRun, DynamicsRunStatus } from "../dynamicsGenerationTypes"
 export type { DynamicsRun, DynamicsRunStatus };
 
 export function generateRunId(): string {
-  return `dynrun_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  return `dynrun_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 }
 
 export async function createDynamicsRun(

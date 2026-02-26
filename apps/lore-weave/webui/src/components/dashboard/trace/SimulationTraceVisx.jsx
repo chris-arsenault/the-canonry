@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
 import { ParentSize } from "@visx/responsive";
 import "./SimulationTraceVisx.css";
 import { createXScale, createPressureYScale, DEFAULT_MARGIN, ERA_TIMELINE_HEIGHT } from "./scales";
@@ -138,7 +139,7 @@ function transformPressureData(pressureUpdates) {
  * Transform template applications, action applications, and system actions for event markers
  * Each marker is colored by the kind of the first entity created or system type
  */
-function transformEventData(templateApplications, actionApplications, systemActions, pressureData) {
+function transformEventData(templateApplications, actionApplications, systemActions, _pressureData) {
   const events = {
     template: [],
     system: [],
@@ -348,7 +349,7 @@ function DetailPanel({
   lockedTick,
   breakdownsByTick,
   pressureIds,
-  pressureData,
+  pressureData: _pressureData,
   onUnlock,
 }) {
   const displayTick = lockedTick !== null ? lockedTick : selectedTick;
@@ -401,7 +402,7 @@ function DetailPanel({
           const info = tickBreakdowns.get(id);
           if (!info) return null;
 
-          const { name, value, previousValue, breakdown, discreteModifications, discreteTotal } =
+          const { name, value, previousValue, breakdown, discreteModifications } =
             info;
           const delta = value - previousValue;
           const hasDiscrete = discreteModifications && discreteModifications.length > 0;
@@ -442,7 +443,7 @@ function DetailPanel({
                             className="lw-trace-view-discrete-badge"
                             style={{ color: EVENT_COLORS[sourceType] || "#888" }}
                           >
-                            {sourceType === "template" ? "▲" : sourceType === "system" ? "◆" : "●"}
+                            {(() => { if (sourceType === "template") return "▲"; if (sourceType === "system") return "◆"; return "●"; })()}
                           </span>
                           {sourceId}
                         </span>
@@ -1226,7 +1227,6 @@ function TraceVisualization({
 }) {
   // Tooltip state
   const [tooltip, setTooltip] = useState(null);
-  const svgRef = useRef(null);
 
   // Calculate layout dimensions from top to bottom:
   // Space needed for x-axis labels below the chart line
@@ -1339,7 +1339,6 @@ function TraceVisualization({
       // to convert from rect-relative coords to SVG coords for xScale
       const rectBounds = event.currentTarget.getBoundingClientRect();
       const xInRect = event.clientX - rectBounds.left;
-      const yInRect = event.clientY - rectBounds.top;
       const xInSvg = xInRect + margin.left;
 
       // Find closest tick
@@ -1487,8 +1486,14 @@ function TraceVisualization({
             const cy = chartBottom - 10 - event.stackIndex * MARKER_STACK_OFFSET;
             const isHovered = event.uniqueId === hoveredEventId;
             const isSelected = event.uniqueId === selectedEventId;
-            const size = isSelected ? MARKER_SIZE + 3 : isHovered ? MARKER_SIZE + 2 : MARKER_SIZE;
-            const opacity = isSelected ? 1 : isHovered ? 0.9 : 0.7;
+            let size;
+            if (isSelected) size = MARKER_SIZE + 3;
+            else if (isHovered) size = MARKER_SIZE + 2;
+            else size = MARKER_SIZE;
+            let opacity;
+            if (isSelected) opacity = 1;
+            else if (isHovered) opacity = 0.9;
+            else opacity = 0.7;
 
             // Triangle pointing up
             const h = size * 0.866;
@@ -1509,7 +1514,7 @@ function TraceVisualization({
                   points={points}
                   fill={event.color}
                   fillOpacity={opacity}
-                  stroke={isSelected ? "#fff" : isHovered ? event.color : "rgba(0,0,0,0.3)"}
+                  stroke={(() => { if (isSelected) return "#fff"; if (isHovered) return event.color; return "rgba(0,0,0,0.3)"; })()}
                   strokeWidth={isSelected ? 2 : 1}
                 />
                 {/* Show count badge if many at same tick and this is the top one */}
@@ -1548,8 +1553,14 @@ function TraceVisualization({
             const cy = margin.top - 10 - event.stackIndex * MARKER_STACK_OFFSET;
             const isHovered = event.uniqueId === hoveredEventId;
             const isSelected = event.uniqueId === selectedEventId;
-            const size = isSelected ? MARKER_SIZE + 3 : isHovered ? MARKER_SIZE + 2 : MARKER_SIZE;
-            const opacity = isSelected ? 1 : isHovered ? 0.9 : 0.7;
+            let size;
+            if (isSelected) size = MARKER_SIZE + 3;
+            else if (isHovered) size = MARKER_SIZE + 2;
+            else size = MARKER_SIZE;
+            let opacity;
+            if (isSelected) opacity = 1;
+            else if (isHovered) opacity = 0.9;
+            else opacity = 0.7;
 
             // Era transitions get a star shape, other systems get a diamond
             if (event.isEraTransition) {
@@ -1578,7 +1589,7 @@ function TraceVisualization({
                     points={points.join(" ")}
                     fill={event.color}
                     fillOpacity={opacity}
-                    stroke={isSelected ? "#fff" : isHovered ? event.color : "rgba(0,0,0,0.3)"}
+                    stroke={(() => { if (isSelected) return "#fff"; if (isHovered) return event.color; return "rgba(0,0,0,0.3)"; })()}
                     strokeWidth={isSelected ? 2 : 1}
                   />
                   {/* Vertical line extending into chart for era transitions */}
@@ -1614,7 +1625,7 @@ function TraceVisualization({
                     points={points}
                     fill={event.color}
                     fillOpacity={opacity}
-                    stroke={isSelected ? "#fff" : isHovered ? event.color : "rgba(0,0,0,0.3)"}
+                    stroke={(() => { if (isSelected) return "#fff"; if (isHovered) return event.color; return "rgba(0,0,0,0.3)"; })()}
                     strokeWidth={isSelected ? 2 : 1}
                   />
                 </g>
@@ -1631,8 +1642,14 @@ function TraceVisualization({
             const cy = baseY - event.stackIndex * MARKER_STACK_OFFSET;
             const isHovered = event.uniqueId === hoveredEventId;
             const isSelected = event.uniqueId === selectedEventId;
-            const radius = isSelected ? 6 : isHovered ? 5 : 4;
-            const opacity = isSelected ? 1 : isHovered ? 0.9 : 0.7;
+            let radius;
+            if (isSelected) radius = 6;
+            else if (isHovered) radius = 5;
+            else radius = 4;
+            let opacity;
+            if (isSelected) opacity = 1;
+            else if (isHovered) opacity = 0.9;
+            else opacity = 0.7;
 
             return (
               <g
@@ -1651,7 +1668,7 @@ function TraceVisualization({
                   r={radius}
                   fill={event.color}
                   fillOpacity={opacity}
-                  stroke={isSelected ? "#fff" : isHovered ? event.color : "rgba(0,0,0,0.3)"}
+                  stroke={(() => { if (isSelected) return "#fff"; if (isHovered) return event.color; return "rgba(0,0,0,0.3)"; })()}
                   strokeWidth={isSelected ? 2 : 1}
                 />
                 {/* Show count badge if many at same tick and this is the top one */}
@@ -2189,26 +2206,29 @@ export default function SimulationTraceVisx({
           </div>
 
           {/* Right: Detail panel */}
-          {selectedEvent?.type === "template" ? (
+          {selectedEvent?.type === "template" && (
             <TemplateDetailPanel
               template={selectedEvent.data}
               isLocked={!!selectedEventId}
               onClear={handleClearEvent}
             />
-          ) : selectedEvent?.type === "action" ? (
+          )}
+          {selectedEvent?.type === "action" && (
             <ActionDetailPanel
               actionApplication={selectedEvent.data}
               isLocked={!!selectedEventId}
               onClear={handleClearEvent}
             />
-          ) : selectedEvent?.type === "system" ? (
+          )}
+          {selectedEvent?.type === "system" && (
             <SystemActionDetailPanel
               systemAction={selectedEvent.data}
               isEraTransition={selectedEvent.isEraTransition}
               isLocked={!!selectedEventId}
               onClear={handleClearEvent}
             />
-          ) : (
+          )}
+          {!selectedEvent?.type && (
             <DetailPanel
               selectedTick={selectedTick}
               lockedTick={lockedTick}
@@ -2223,3 +2243,60 @@ export default function SimulationTraceVisx({
     </div>
   );
 }
+
+DetailPanel.propTypes = {
+  selectedTick: PropTypes.number,
+  lockedTick: PropTypes.number,
+  breakdownsByTick: PropTypes.instanceOf(Map),
+  pressureIds: PropTypes.array,
+  pressureData: PropTypes.array,
+  onUnlock: PropTypes.func,
+};
+
+TemplateDetailPanel.propTypes = {
+  template: PropTypes.object,
+  isLocked: PropTypes.bool,
+  onClear: PropTypes.func,
+};
+
+SystemActionDetailPanel.propTypes = {
+  systemAction: PropTypes.object,
+  isEraTransition: PropTypes.bool,
+  isLocked: PropTypes.bool,
+  onClear: PropTypes.func,
+};
+
+ActionDetailPanel.propTypes = {
+  actionApplication: PropTypes.object,
+  isLocked: PropTypes.bool,
+  onClear: PropTypes.func,
+};
+
+TraceVisualization.propTypes = {
+  width: PropTypes.number,
+  height: PropTypes.number,
+  pressureData: PropTypes.array,
+  pressureIds: PropTypes.array,
+  eventData: PropTypes.object,
+  eraBoundaries: PropTypes.array,
+  hiddenPressures: PropTypes.instanceOf(Set),
+  selectedTick: PropTypes.number,
+  lockedTick: PropTypes.number,
+  hoveredEventId: PropTypes.string,
+  selectedEventId: PropTypes.string,
+  onTickHover: PropTypes.func,
+  onTickClick: PropTypes.func,
+  onEventHover: PropTypes.func,
+  onEventClick: PropTypes.func,
+  scrollOffset: PropTypes.number,
+  onScrollChange: PropTypes.func,
+};
+
+SimulationTraceVisx.propTypes = {
+  pressureUpdates: PropTypes.array,
+  epochStats: PropTypes.array,
+  templateApplications: PropTypes.array,
+  actionApplications: PropTypes.array,
+  systemActions: PropTypes.array,
+  onClose: PropTypes.func,
+};

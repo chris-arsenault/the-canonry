@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { ApplicabilityRuleCard } from "../../generators/applicability/ApplicabilityRuleCard";
 
 /**
@@ -17,7 +18,7 @@ import { ApplicabilityRuleCard } from "../../generators/applicability/Applicabil
  */
 export function TransitionConditionEditor({
   condition,
-  index,
+  index: _index,
   onChange,
   onRemove,
   pressures,
@@ -36,3 +37,13 @@ export function TransitionConditionEditor({
     />
   );
 }
+
+TransitionConditionEditor.propTypes = {
+  condition: PropTypes.object.isRequired,
+  index: PropTypes.number.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  pressures: PropTypes.array,
+  schema: PropTypes.object,
+  eras: PropTypes.array,
+};

@@ -188,6 +188,7 @@ async function executeDynamicsGenerationTask(
     // Parse LLM response
     let parsed: DynamicsLLMResponse;
     try {
+      // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
       const jsonMatch = resultText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("No JSON object found");
       parsed = JSON.parse(jsonMatch[0]);

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { NumberInput } from "@penguin-tales/shared-components";
 import { getAllDomains } from "../../utils";
 import PhonemeWeightGrid from "./PhonemeWeightGrid";
@@ -254,8 +255,8 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
       </div>
 
       <div className="form-group mb-md">
-        <label>Domain ID</label>
-        <input
+        <label htmlFor="domain-id">Domain ID</label>
+        <input id="domain-id"
           value={formData.id}
           onChange={(e) => setFormData({ ...formData, id: e.target.value })}
           placeholder={`${cultureId}_domain`}
@@ -268,7 +269,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
 
       {/* Phonology Section */}
       <div className="collapsible-section">
-        <div className="collapsible-header" onClick={() => toggleSection("phonology")}>
+        <div className="collapsible-header" onClick={() => toggleSection("phonology")} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
           <h4>Phonology</h4>
           <span>{expandedSections.phonology ? "▼" : "▶"}</span>
         </div>
@@ -276,8 +277,8 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
           <div className="collapsible-content">
             <div className="form-grid-2">
               <div className="form-group">
-                <label>Consonants (space-separated)</label>
-                <input
+                <label htmlFor="consonants-space-separated">Consonants (space-separated)</label>
+                <input id="consonants-space-separated"
                   defaultValue={formData.phonology?.consonants?.join(" ") || ""}
                   onBlur={(e) =>
                     setFormData({
@@ -292,8 +293,8 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                 />
               </div>
               <div className="form-group">
-                <label>Vowels (space-separated)</label>
-                <input
+                <label htmlFor="vowels-space-separated">Vowels (space-separated)</label>
+                <input id="vowels-space-separated"
                   defaultValue={formData.phonology?.vowels?.join(" ") || ""}
                   onBlur={(e) =>
                     setFormData({
@@ -308,8 +309,8 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                 />
               </div>
               <div className="form-group">
-                <label>Syllable Templates</label>
-                <input
+                <label htmlFor="syllable-templates">Syllable Templates</label>
+                <input id="syllable-templates"
                   defaultValue={formData.phonology?.syllableTemplates?.join(" ") || ""}
                   onBlur={(e) =>
                     setFormData({
@@ -325,7 +326,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
               </div>
               <div className="flex-row-responsive">
                 <div className="form-group" style={{ flex: 1 }}>
-                  <label>Min Length</label>
+                  <label>Min Length
                   <NumberInput
                     value={formData.phonology?.lengthRange?.[0] || 2}
                     onChange={(v) =>
@@ -339,9 +340,10 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                     }
                     integer
                   />
+                  </label>
                 </div>
                 <div className="form-group" style={{ flex: 1 }}>
-                  <label>Max Length</label>
+                  <label>Max Length
                   <NumberInput
                     value={formData.phonology?.lengthRange?.[1] || 4}
                     onChange={(v) =>
@@ -355,11 +357,12 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                     }
                     integer
                   />
+                  </label>
                 </div>
               </div>
               <div className="form-group">
-                <label>Favored Clusters (optional)</label>
-                <input
+                <label htmlFor="favored-clusters-optional">Favored Clusters (optional)</label>
+                <input id="favored-clusters-optional"
                   defaultValue={formData.phonology?.favoredClusters?.join(" ") || ""}
                   onBlur={(e) =>
                     setFormData({
@@ -374,8 +377,8 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                 />
               </div>
               <div className="form-group">
-                <label>Forbidden Clusters (optional)</label>
-                <input
+                <label htmlFor="forbidden-clusters-optional">Forbidden Clusters (optional)</label>
+                <input id="forbidden-clusters-optional"
                   defaultValue={formData.phonology?.forbiddenClusters?.join(" ") || ""}
                   onBlur={(e) =>
                     setFormData({
@@ -396,7 +399,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
 
       {/* Morphology Section */}
       <div className="collapsible-section">
-        <div className="collapsible-header" onClick={() => toggleSection("morphology")}>
+        <div className="collapsible-header" onClick={() => toggleSection("morphology")} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
           <h4>Morphology</h4>
           <span>{expandedSections.morphology ? "▼" : "▶"}</span>
         </div>
@@ -404,8 +407,8 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
           <div className="collapsible-content">
             <div className="form-grid-2">
               <div className="form-group">
-                <label>Prefixes (space-separated)</label>
-                <input
+                <label htmlFor="prefixes-space-separated">Prefixes (space-separated)</label>
+                <input id="prefixes-space-separated"
                   defaultValue={formData.morphology?.prefixes?.join(" ") || ""}
                   onBlur={(e) =>
                     setFormData({
@@ -420,8 +423,8 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                 />
               </div>
               <div className="form-group">
-                <label>Suffixes (space-separated)</label>
-                <input
+                <label htmlFor="suffixes-space-separated">Suffixes (space-separated)</label>
+                <input id="suffixes-space-separated"
                   defaultValue={formData.morphology?.suffixes?.join(" ") || ""}
                   onBlur={(e) =>
                     setFormData({
@@ -436,8 +439,8 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                 />
               </div>
               <div className="form-group">
-                <label>Structure (comma-separated)</label>
-                <input
+                <label htmlFor="structure-comma-separated">Structure (comma-separated)</label>
+                <input id="structure-comma-separated"
                   defaultValue={formData.morphology?.structure?.join(", ") || ""}
                   onBlur={(e) =>
                     setFormData({
@@ -455,8 +458,8 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                 />
               </div>
               <div className="form-group">
-                <label>Structure Weights (comma-separated)</label>
-                <input
+                <label htmlFor="structure-weights-comma-separated">Structure Weights (comma-separated)</label>
+                <input id="structure-weights-comma-separated"
                   defaultValue={formData.morphology?.structureWeights?.join(", ") || ""}
                   onBlur={(e) =>
                     setFormData({
@@ -480,7 +483,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
 
       {/* Style Section */}
       <div className="collapsible-section">
-        <div className="collapsible-header" onClick={() => toggleSection("style")}>
+        <div className="collapsible-header" onClick={() => toggleSection("style")} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
           <h4>Style</h4>
           <span>{expandedSections.style ? "▼" : "▶"}</span>
         </div>
@@ -488,8 +491,8 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
           <div className="collapsible-content">
             <div className="form-grid-3">
               <div className="form-group">
-                <label>Capitalization</label>
-                <select
+                <label htmlFor="capitalization">Capitalization</label>
+                <select id="capitalization"
                   value={formData.style?.capitalization || "title"}
                   onChange={(e) =>
                     setFormData({
@@ -505,8 +508,8 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                 </select>
               </div>
               <div className="form-group">
-                <label>Rhythm Bias</label>
-                <select
+                <label htmlFor="rhythm-bias">Rhythm Bias</label>
+                <select id="rhythm-bias"
                   value={formData.style?.rhythmBias || "neutral"}
                   onChange={(e) =>
                     setFormData({
@@ -522,7 +525,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                 </select>
               </div>
               <div className="form-group">
-                <label>Apostrophe Rate</label>
+                <label>Apostrophe Rate
                 <NumberInput
                   step={0.05}
                   min={0}
@@ -535,9 +538,10 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                     })
                   }
                 />
+                </label>
               </div>
               <div className="form-group">
-                <label>Hyphen Rate</label>
+                <label>Hyphen Rate
                 <NumberInput
                   step={0.05}
                   min={0}
@@ -550,10 +554,11 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                     })
                   }
                 />
+                </label>
               </div>
               <div className="form-group">
-                <label>Preferred Endings</label>
-                <input
+                <label htmlFor="preferred-endings">Preferred Endings</label>
+                <input id="preferred-endings"
                   defaultValue={formData.style?.preferredEndings?.join(" ") || ""}
                   onBlur={(e) =>
                     setFormData({
@@ -568,7 +573,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                 />
               </div>
               <div className="form-group">
-                <label>Ending Boost</label>
+                <label>Ending Boost
                 <NumberInput
                   step={0.1}
                   value={formData.style?.preferredEndingBoost || 1.0}
@@ -579,6 +584,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                     })
                   }
                 />
+                </label>
               </div>
             </div>
           </div>
@@ -587,7 +593,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
 
       {/* Weights Section */}
       <div className="collapsible-section">
-        <div className="collapsible-header" onClick={() => toggleSection("weights")}>
+        <div className="collapsible-header" onClick={() => toggleSection("weights")} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
           <h4>Weights (Advanced Tuning)</h4>
           <span>{expandedSections.weights ? "▼" : "▶"}</span>
         </div>
@@ -597,6 +603,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
               Fine-tune phoneme selection probabilities. Higher weights = more likely to appear.
               Default is 1.0 for all.
             </p>
+
 
             <PhonemeWeightGrid
               label="Consonant Weights"
@@ -610,6 +617,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
               }
             />
 
+
             <PhonemeWeightGrid
               label="Vowel Weights"
               items={formData.phonology?.vowels || []}
@@ -621,6 +629,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                 })
               }
             />
+
 
             <PhonemeWeightGrid
               label="Template Weights"
@@ -635,7 +644,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
             />
 
             <div className="form-group mt-md">
-              <label>Favored Cluster Boost</label>
+              <label>Favored Cluster Boost
               <NumberInput
                 step={0.1}
                 min={1.0}
@@ -648,6 +657,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                   })
                 }
               />
+              </label>
               <small className="text-muted">
                 Multiplier applied to favored clusters (defined in Phonology section). Default: 1.0
               </small>
@@ -658,5 +668,12 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
     </div>
   );
 }
+
+DomainTab.propTypes = {
+  cultureId: PropTypes.string,
+  cultureConfig: PropTypes.object,
+  allCultures: PropTypes.object,
+  onDomainsChange: PropTypes.func,
+};
 
 export default DomainTab;

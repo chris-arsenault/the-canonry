@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import { TagSelector, NumberInput } from "@penguin-tales/shared-components";
 import { generateTestNames } from "../../lib/browser-generator.js";
 
@@ -189,8 +190,8 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
 
             {/* Culture Selection */}
             <div className="form-group">
-              <label>Culture *</label>
-              <select
+              <label htmlFor="culture">Culture *</label>
+              <select id="culture"
                 value={selectedCulture}
                 onChange={(e) => {
                   setState({ ...state, selectedCulture: e.target.value, selectedProfile: "" });
@@ -207,8 +208,8 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
 
             {/* Profile Selection */}
             <div className="form-group">
-              <label>Profile</label>
-              <select
+              <label htmlFor="profile">Profile</label>
+              <select id="profile"
                 value={selectedProfile}
                 onChange={(e) => updateField("selectedProfile", e.target.value)}
                 disabled={availableProfiles.length === 0}
@@ -232,8 +233,8 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
 
               {/* Entity Kind */}
               <div className="form-group">
-                <label>Entity Kind</label>
-                <select
+                <label htmlFor="entity-kind">Entity Kind</label>
+                <select id="entity-kind"
                   value={selectedKind}
                   onChange={(e) => {
                     setState({ ...state, selectedKind: e.target.value, selectedSubKind: "" });
@@ -250,8 +251,8 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
 
               {/* SubKind */}
               <div className="form-group">
-                <label>Subtype</label>
-                <select
+                <label htmlFor="subtype">Subtype</label>
+                <select id="subtype"
                   value={selectedSubKind}
                   onChange={(e) => updateField("selectedSubKind", e.target.value)}
                   disabled={subKinds.length === 0}
@@ -267,19 +268,20 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
 
               {/* Tags */}
               <div className="form-group">
-                <label>Tags</label>
+                <label>Tags
                 <TagSelector
                   value={tags || []}
                   onChange={(vals) => updateField("tags", vals)}
                   tagRegistry={tagRegistry}
                   placeholder="Select tags..."
                 />
+                </label>
               </div>
 
               {/* Prominence */}
               <div className="form-group">
-                <label>Prominence</label>
-                <select
+                <label htmlFor="prominence">Prominence</label>
+                <select id="prominence"
                   value={prominence}
                   onChange={(e) => updateField("prominence", e.target.value)}
                 >
@@ -337,7 +339,7 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
 
             {/* Count */}
             <div className="form-group">
-              <label>Number of Names</label>
+              <label>Number of Names
               <NumberInput
                 value={count}
                 onChange={(v) => updateField("count", v ?? 1)}
@@ -345,6 +347,7 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
                 max={100}
                 integer
               />
+              </label>
             </div>
 
             {/* Generate Button */}
@@ -461,6 +464,9 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
                       className={`name-card ${debug?.strategyType === "fallback" ? "fallback" : ""}`}
                       onClick={() => navigator.clipboard.writeText(name)}
                       title={tooltip || "Click to copy"}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                     >
                       {name}
                       {debug && (
@@ -479,5 +485,12 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
     </div>
   );
 }
+
+GenerateTab.propTypes = {
+  worldSchema: PropTypes.object,
+  cultures: PropTypes.object,
+  formState: PropTypes.object,
+  onFormStateChange: PropTypes.func,
+};
 
 export default GenerateTab;

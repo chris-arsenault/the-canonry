@@ -63,9 +63,9 @@ export interface UseHistorianEditionReturn {
   /** Whether a historian edition session is active */
   isActive: boolean;
   /** Start a new historian edition session */
-  startHistorianEdition: (config: HistorianEditionConfig) => void;
+  startHistorianEdition: (config: HistorianEditionConfig) => Promise<void>;
   /** Toggle accept/reject for the entity patch */
-  togglePatchDecision: (entityId: string, accepted: boolean) => void;
+  togglePatchDecision: (entityId: string, accepted: boolean) => Promise<void>;
   /** Apply the accepted patch and close the session */
   applyAccepted: () => SummaryRevisionPatch[];
   /** Cancel the current session */
@@ -126,22 +126,24 @@ export function useHistorianEdition(): UseHistorianEditionReturn {
   const startPolling = useCallback(
     (runId: string) => {
       stopPolling();
-      pollRef.current = setInterval(async () => {
-        const updated = await getRevisionRun(runId);
-        if (!updated) return;
+      pollRef.current = setInterval(() => {
+        void (async () => {
+          const updated = await getRevisionRun(runId);
+          if (!updated) return;
 
-        setRun(updated);
+          setRun(updated);
 
-        // Stop polling on review/terminal states
-        if (
-          updated.status === "batch_reviewing" ||
-          updated.status === "run_reviewing" ||
-          updated.status === "complete" ||
-          updated.status === "failed" ||
-          updated.status === "cancelled"
-        ) {
-          stopPolling();
-        }
+          // Stop polling on review/terminal states
+          if (
+            updated.status === "batch_reviewing" ||
+            updated.status === "run_reviewing" ||
+            updated.status === "complete" ||
+            updated.status === "failed" ||
+            updated.status === "cancelled"
+          ) {
+            stopPolling();
+          }
+        })();
       }, POLL_INTERVAL_MS);
     },
     [stopPolling]

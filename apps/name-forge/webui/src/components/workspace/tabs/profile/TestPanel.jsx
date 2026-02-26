@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 
 /**
  * Test panel for generating test names from a profile
@@ -58,3 +59,13 @@ export default function TestPanel({
     </div>
   );
 }
+
+TestPanel.propTypes = {
+  profile: PropTypes.object,
+  testNames: PropTypes.array,
+  testLoading: PropTypes.bool,
+  testError: PropTypes.string,
+  strategyUsage: PropTypes.object,
+  onTest: PropTypes.func,
+  onClose: PropTypes.func,
+};

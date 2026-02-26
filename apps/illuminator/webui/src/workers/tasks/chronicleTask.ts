@@ -30,7 +30,6 @@ import {
   updateChronicleImageRefs,
   updateChronicleImageRef,
   updateChronicleCoverImage,
-  updateChronicleCoverImageStatus,
   updateChronicleFailure,
   getChronicle,
   putChronicle,
@@ -46,7 +45,6 @@ import {
   getCreativeSystemPrompt,
   DEFAULT_V2_CONFIG,
 } from "../../lib/chronicle/v2";
-import type { NarrativeStyle } from "@canonry/world-schema";
 import { getStyleLibrary } from "../../lib/db/styleRepository";
 import {
   buildCopyEditSystemPrompt,
@@ -62,7 +60,7 @@ import type { TaskResult } from "../types";
 // Chronicle Task Execution
 // ============================================================================
 
-async function markChronicleFailure(
+async function _markChronicleFailure(
   chronicleId: string,
   step: string,
   reason: string
@@ -78,7 +76,7 @@ async function executeEntityChronicleTask(
   task: WorkerTask,
   context: TaskContext
 ): Promise<TaskResult> {
-  const { config, llmClient, isAborted } = context;
+  const { llmClient } = context;
 
   if (!llmClient.isEnabled()) {
     return { success: false, error: "Text generation not configured - missing Anthropic API key" };
@@ -338,7 +336,7 @@ async function executeFullRegenerationStep(
     return { success: false, error: "Chronicle context required for full regeneration" };
   }
 
-  let chronicleContext = task.chronicleContext!;
+  let chronicleContext = task.chronicleContext;
   const narrativeStyle = chronicleContext.narrativeStyle;
 
   if (!narrativeStyle) {
@@ -460,9 +458,10 @@ async function executeFullRegenerationStep(
         actualCost: perspectiveResult.usage.actualCost,
       };
 
+      const motifLines = perspectiveResult.synthesis.suggestedMotifs.map((m) => `- "${m}"`).join("\n");
       const motifSection =
         perspectiveResult.synthesis.suggestedMotifs.length > 0
-          ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${perspectiveResult.synthesis.suggestedMotifs.map((m) => `- "${m}"`).join("\n")}`
+          ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${motifLines}`
           : "";
 
       // coreTone is excluded from the generation prompt for all formats.
@@ -680,9 +679,10 @@ async function executeCreativeRegenerationStep(
   // Reconstruct tone from PS outputs (same pattern as regenerate_full)
   // coreTone excluded — PS already received it and incorporated it into synthesis.
   // Generation prompt gets only PS brief + motifs + narrative style proseInstructions.
+  const psMotifLines = ps.suggestedMotifs.map((m) => `- "${m}"`).join("\n");
   const motifSection =
     ps.suggestedMotifs.length > 0
-      ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${ps.suggestedMotifs.map((m) => `- "${m}"`).join("\n")}`
+      ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${psMotifLines}`
       : "";
   const toneForGeneration = "PERSPECTIVE FOR THIS CHRONICLE:\n" + ps.brief + motifSection;
 
@@ -800,7 +800,7 @@ async function executeV2GenerationStep(
   context: TaskContext
 ): Promise<TaskResult> {
   const { config, llmClient, isAborted } = context;
-  let chronicleContext = task.chronicleContext!;
+  let chronicleContext = task.chronicleContext;
   const narrativeStyle = chronicleContext.narrativeStyle;
 
   if (!narrativeStyle) {
@@ -938,9 +938,10 @@ async function executeV2GenerationStep(
       };
 
       // Build perspective section with brief and motifs
+      const resynthMotifLines = perspectiveResult.synthesis.suggestedMotifs.map((m) => `- "${m}"`).join("\n");
       const motifSection =
         perspectiveResult.synthesis.suggestedMotifs.length > 0
-          ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${perspectiveResult.synthesis.suggestedMotifs.map((m) => `- "${m}"`).join("\n")}`
+          ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${resynthMotifLines}`
           : "";
 
       // Update context with synthesized perspective
@@ -1184,16 +1185,16 @@ async function executeCompareStep(
     const parts: string[] = [`**${narrativeStyle.name}** (${narrativeStyle.format})`];
     if (narrativeStyle.description) parts.push(narrativeStyle.description);
     if ("narrativeInstructions" in narrativeStyle && narrativeStyle.narrativeInstructions) {
-      parts.push(`Structure: ${(narrativeStyle.narrativeInstructions as string).slice(0, 500)}`);
+      parts.push(`Structure: ${(narrativeStyle.narrativeInstructions).slice(0, 500)}`);
     }
     if ("proseInstructions" in narrativeStyle && narrativeStyle.proseInstructions) {
-      parts.push(`Prose: ${(narrativeStyle.proseInstructions as string).slice(0, 500)}`);
+      parts.push(`Prose: ${(narrativeStyle.proseInstructions).slice(0, 500)}`);
     }
     if ("documentInstructions" in narrativeStyle && narrativeStyle.documentInstructions) {
-      parts.push(`Document: ${(narrativeStyle.documentInstructions as string).slice(0, 500)}`);
+      parts.push(`Document: ${(narrativeStyle.documentInstructions).slice(0, 500)}`);
     }
     if ("craftPosture" in narrativeStyle && narrativeStyle.craftPosture) {
-      parts.push(`Craft Posture: ${(narrativeStyle.craftPosture as string).slice(0, 300)}`);
+      parts.push(`Craft Posture: ${(narrativeStyle.craftPosture).slice(0, 300)}`);
     }
     narrativeStyleBlock = parts.join("\n");
   }
@@ -1204,9 +1205,10 @@ async function executeCompareStep(
 
   // Build world facts block from canon facts (these are the faceted interpretations used in generation)
   const canonFacts = chronicleRecord.generationContext?.canonFacts || [];
+  const canonFactLines = canonFacts.map((f, i) => `${i + 1}. ${f}`).join("\n");
   const worldFactsBlock =
     canonFacts.length > 0
-      ? `## World Facts (Faceted)\nThese are the world truths provided to the chronicle generator, already interpreted through the chronicle's perspective:\n${canonFacts.map((f, i) => `${i + 1}. ${f}`).join("\n")}\n`
+      ? `## World Facts (Faceted)\nThese are the world truths provided to the chronicle generator, already interpreted through the chronicle's perspective:\n${canonFactLines}\n`
       : "";
 
   // Narrative direction (optional, from wizard)
@@ -1217,9 +1219,13 @@ async function executeCompareStep(
 
   const isDocumentFormat = chronicleRecord.narrativeStyle?.format === "document";
 
+  const docFormatRef = narrativeStyleBlock ? `\n## Document Format Reference\n${narrativeStyleBlock}\n` : "";
+  const narrativeStyleRef = narrativeStyleBlock ? `\n## Narrative Style Reference\n${narrativeStyleBlock}\n` : "";
+  const worldFactsRef = worldFactsBlock ? `\n${worldFactsBlock}` : "";
+
   const comparePrompt = isDocumentFormat
     ? `You are comparing ${versions.length} versions of the same in-universe document. Each was generated from the same prompt and document format (${narrativeStyleName}) but with different sampling modes (normal vs low).
-${narrativeStyleBlock ? `\n## Document Format Reference\n${narrativeStyleBlock}\n` : ""}${worldFactsBlock ? `\n${worldFactsBlock}` : ""}${narrativeDirectionBlock}
+${docFormatRef}${worldFactsRef}${narrativeDirectionBlock}
 Your output must have THREE sections in this exact order. Keep the total output under 800 words.
 
 ## Comparative Analysis
@@ -1250,7 +1256,7 @@ Don't recommend swapping names or terminology between versions. Trust the writer
 
 ${versionsBlock}`
     : `You are comparing ${versions.length} versions of the same chronicle. Each was generated from the same prompt and narrative style (${narrativeStyleName}) but with different sampling modes (normal vs low).
-${narrativeStyleBlock ? `\n## Narrative Style Reference\n${narrativeStyleBlock}\n` : ""}${worldFactsBlock ? `\n${worldFactsBlock}` : ""}${narrativeDirectionBlock}
+${narrativeStyleRef}${worldFactsRef}${narrativeDirectionBlock}
 Your output must have THREE sections in this exact order. Keep the total output under 800 words.
 
 ## Comparative Analysis
@@ -1389,7 +1395,7 @@ async function executeCombineStep(
     : "unknown";
   const craftPosture =
     narrativeStyle && "craftPosture" in narrativeStyle
-      ? (narrativeStyle.craftPosture as string | undefined)
+      ? (narrativeStyle.craftPosture)
       : undefined;
   const isDocumentFormat = narrativeStyle?.format === "document";
 
@@ -1402,20 +1408,15 @@ async function executeCombineStep(
   // Check for combine instructions from a prior compare step
   const hasCombineInstructions = !!chronicleRecord.combineInstructions;
 
-  const combinePrompt = isDocumentFormat
-    ? `You are an editorial reviewer combining ${versions.length} versions of the same in-universe document into a single final version. All versions follow the same prompt and document format — they differ in sampling mode (normal vs low).
-
-You have two drafts of the same in-universe document. Read both. Build your revision from the ground up: which version has the stronger opening? Which handles each section better? Which included details, structure, or framing the other missed? Take the best from each. Where they cover the same ground differently, go with whichever makes the document feel more like a real artifact from its world. Where one draft has something the other lacks entirely, bring it in.
-
-Do not swap names or terminology between versions — keep each draft's choices consistent within the sections you draw from. A polish pass will follow to smooth voice and register; your job is to produce the best possible version of this document.
-${
-  hasCombineInstructions
+  const editorialDirectionBlock = hasCombineInstructions
     ? `
 ## Editorial Direction
 
 ${chronicleRecord.combineInstructions}
 `
-    : `
+    : "";
+
+  const docSelectionCriteria = `
 ## Selection Criteria
 
 Prefer whichever version:
@@ -1426,12 +1427,36 @@ Prefer whichever version:
 - **Grounds itself in specifics** — concrete details (titles, dates, procedures) over generic atmosphere
 
 If one version has a better opening and another has better closing sections, use each. If versions handle the same section differently, pick the one that feels more like it belongs in this world.
-`
-}${combineNarrativeDirectionBlock}
+`;
+
+  const storySelectionCriteria = `
+## Selection Criteria
+
+Prefer whichever version has:
+- **Richer world-building details** — invented names, places, customs that feel grounded
+- **More surprising structural choices** — non-obvious scene ordering, interesting POV decisions
+- **More natural prose** — sentences that flow without feeling templated
+- **Better adherence to the narrative voice and entity directives**
+- **Stronger emotional range** — not every beat should feel the same
+
+If one version has a better opening and another has a better middle, use each. If versions handle the same beat differently, pick the one that reads more naturally.
+`;
+
+  const craftPostureBlock = craftPosture ? `\n\n## Craft Posture\nDensity and restraint constraints for this format:\n${craftPosture}` : "";
+  const docCriteriaBlock = hasCombineInstructions ? editorialDirectionBlock : docSelectionCriteria;
+  const storyCriteriaBlock = hasCombineInstructions ? editorialDirectionBlock : storySelectionCriteria;
+
+  const combinePrompt = isDocumentFormat
+    ? `You are an editorial reviewer combining ${versions.length} versions of the same in-universe document into a single final version. All versions follow the same prompt and document format — they differ in sampling mode (normal vs low).
+
+You have two drafts of the same in-universe document. Read both. Build your revision from the ground up: which version has the stronger opening? Which handles each section better? Which included details, structure, or framing the other missed? Take the best from each. Where they cover the same ground differently, go with whichever makes the document feel more like a real artifact from its world. Where one draft has something the other lacks entirely, bring it in.
+
+Do not swap names or terminology between versions — keep each draft's choices consistent within the sections you draw from. A polish pass will follow to smooth voice and register; your job is to produce the best possible version of this document.
+${docCriteriaBlock}${combineNarrativeDirectionBlock}
 ## Original System Prompt Context
 ${generationSystemPrompt}
 
-Style: ${styleName}${craftPosture ? `\n\n## Craft Posture\nDensity and restraint constraints for this format:\n${craftPosture}` : ""}
+Style: ${styleName}${craftPostureBlock}
 
 ## Document Versions
 
@@ -1445,30 +1470,11 @@ Produce the final document by selecting the strongest elements from each version
 You have two drafts of the same story. Read both. Build your revision from the ground up: which version has the stronger opening? Which handles the climax better? Which invented scenes, character beats, or details the other missed? Take the best from each. Where they cover the same ground differently, go with whichever makes the better story. Where one draft has something the other lacks entirely, bring it in.
 
 Do not swap names or terminology between versions — keep each draft's choices consistent within the sections you draw from. A polish pass will follow to smooth voice and tone; your job is to produce the best possible version of this story.
-${
-  hasCombineInstructions
-    ? `
-## Editorial Direction
-
-${chronicleRecord.combineInstructions}
-`
-    : `
-## Selection Criteria
-
-Prefer whichever version has:
-- **Richer world-building details** — invented names, places, customs that feel grounded
-- **More surprising structural choices** — non-obvious scene ordering, interesting POV decisions
-- **More natural prose** — sentences that flow without feeling templated
-- **Better adherence to the narrative voice and entity directives**
-- **Stronger emotional range** — not every beat should feel the same
-
-If one version has a better opening and another has a better middle, use each. If versions handle the same beat differently, pick the one that reads more naturally.
-`
-}${combineNarrativeDirectionBlock}
+${storyCriteriaBlock}${combineNarrativeDirectionBlock}
 ## Original System Prompt Context
 ${generationSystemPrompt}
 
-Style: ${styleName}${craftPosture ? `\n\n## Craft Posture\nDensity and restraint constraints for this format:\n${craftPosture}` : ""}
+Style: ${styleName}${craftPostureBlock}
 
 ## Chronicle Versions
 
@@ -1706,7 +1712,8 @@ async function executeTemporalCheckStep(
           .map((era) => {
             const isFocal = focalEra?.id === era.id ? " ← FOCAL ERA" : "";
             const isTouched = touchedEraIds.includes(era.id) ? " (touched)" : "";
-            return `- **${era.name}** (years ${era.startTick}–${era.endTick})${isFocal}${isTouched}${era.summary ? `: ${era.summary}` : ""}`;
+            const summarySuffix = era.summary ? `: ${era.summary}` : "";
+            return `- **${era.name}** (years ${era.startTick}\u2013${era.endTick})${isFocal}${isTouched}${summarySuffix}`;
           })
           .join("\n")
       : "No era information available.";
@@ -1768,9 +1775,12 @@ async function executeTemporalCheckStep(
 
   // Get world dynamics if available
   const worldDynamicsResolved = (chronicleRecord as any).generationContext?.worldDynamicsResolved;
+  const dynamicsLines = worldDynamicsResolved?.length
+    ? worldDynamicsResolved.map((d: string, i: number) => `${i + 1}. ${d}`).join("\n")
+    : "";
   const dynamicsBlock =
     worldDynamicsResolved && worldDynamicsResolved.length > 0
-      ? `## World Dynamics (as provided to generation)\n${worldDynamicsResolved.map((d: string, i: number) => `${i + 1}. ${d}`).join("\n")}\n`
+      ? `## World Dynamics (as provided to generation)\n${dynamicsLines}\n`
       : "";
 
   const callConfig = getCallConfig(config, "chronicle.compare");
@@ -1935,7 +1945,7 @@ function buildQuickCheckUserPrompt(chronicleRecord: ChronicleRecord, content: st
   const nameBank = chronicleRecord.generationContext?.nameBank;
   if (nameBank && Object.keys(nameBank).length > 0) {
     const nbLines = Object.entries(nameBank).map(
-      ([culture, names]) => `${culture}: ${(names as string[]).join(", ")}`
+      ([culture, names]) => `${culture}: ${(names).join(", ")}`
     );
     sections.push(`== NAME BANK (expected invented names) ==\n${nbLines.join("\n")}`);
   }
@@ -2222,7 +2232,8 @@ function buildFragmentExtractionUserPrompt(content: string, ctx: TitlePromptCont
     parts.push(`Thematic context:\n${ctx.perspectiveBrief}`);
   }
   if (ctx.motifs && ctx.motifs.length > 0) {
-    parts.push(`Recurring motifs:\n${ctx.motifs.map((m) => `- "${m}"`).join("\n")}`);
+    const motifList = ctx.motifs.map((m) => `- "${m}"`).join("\n");
+    parts.push(`Recurring motifs:\n${motifList}`);
   }
 
   parts.push(content);
@@ -2278,7 +2289,8 @@ function buildTitleShapingUserPrompt(
     const fragmentLower = new Set(fragments.map((f) => f.toLowerCase()));
     const uniqueMotifs = ctx.motifs.filter((m) => !fragmentLower.has(m.toLowerCase()));
     if (uniqueMotifs.length > 0) {
-      parts.push(`Recurring motifs:\n${uniqueMotifs.map((m) => `- "${m}"`).join("\n")}`);
+      const uniqueMotifList = uniqueMotifs.map((m) => `- "${m}"`).join("\n");
+      parts.push(`Recurring motifs:\n${uniqueMotifList}`);
     }
   }
 
@@ -2326,7 +2338,13 @@ function splitIntoChunks(
   else baseChunkCount = 7;
 
   // Add slight randomness: +/-1 chunk
-  const randomOffset = Math.random() < 0.3 ? -1 : Math.random() > 0.7 ? 1 : 0;
+  // eslint-disable-next-line sonarjs/pseudo-random -- non-security chunk size jitter
+  const rng = Math.random();
+  let randomOffset: number;
+  if (rng < 0.3) randomOffset = -1;
+  // eslint-disable-next-line sonarjs/pseudo-random -- non-security chunk size jitter
+  else if (Math.random() > 0.7) randomOffset = 1;
+  else randomOffset = 0;
   const chunkCount = Math.max(3, Math.min(7, baseChunkCount + randomOffset));
 
   const targetChunkSize = Math.ceil(content.length / chunkCount);
@@ -2836,7 +2854,7 @@ async function executeImageRefsStep(
 
   const callConfig = getCallConfig(config, "chronicle.imageRefs");
   const chronicleId = chronicleRecord.chronicleId;
-  const chronicleContext = task.chronicleContext!;
+  const chronicleContext = task.chronicleContext;
   const imageRefsPrompt = buildImageRefsPrompt(
     imageRefsContent,
     chronicleContext,
@@ -3132,11 +3150,11 @@ async function executeCoverImageSceneStep(
 // is needed. For now, the UI handles: build prompt → dispatch image task →
 // update cover image status via updateChronicleCoverImageStatus.
 
-async function executeCoverImageStep(
+function executeCoverImageStep(
   _task: WorkerTask,
   chronicleRecord: ChronicleRecord,
   _context: TaskContext
-): Promise<TaskResult> {
+): TaskResult {
   if (!chronicleRecord.coverImage) {
     return { success: false, error: "Chronicle has no cover image scene description" };
   }

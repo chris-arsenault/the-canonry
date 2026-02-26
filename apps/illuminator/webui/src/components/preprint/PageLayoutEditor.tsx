@@ -71,7 +71,7 @@ export default function PageLayoutEditor({
   pageId,
   pageName,
   simulationRunId,
-}: PageLayoutEditorProps) {
+}: Readonly<PageLayoutEditorProps>) {
   const [override, setOverride] = useState<PageLayoutOverride | null>(null);
   const [loading, setLoading] = useState(true);
   const [dirty, setDirty] = useState(false);
@@ -80,7 +80,7 @@ export default function PageLayoutEditor({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    getPageLayout(simulationRunId, pageId).then((result) => {
+    void getPageLayout(simulationRunId, pageId).then((result) => {
       if (!cancelled) {
         setOverride(result);
         setLoading(false);
@@ -141,7 +141,7 @@ export default function PageLayoutEditor({
         {hasOverride && (
           <button
             className="preprint-layout-clear"
-            onClick={handleClear}
+            onClick={() => void handleClear()}
             title="Reset to engine defaults"
           >
             Clear
@@ -204,8 +204,8 @@ export default function PageLayoutEditor({
         </div>
 
         <div className="preprint-layout-row">
-          <label className="preprint-layout-label-block">Custom CSS class</label>
-          <input
+          <label htmlFor="custom-css-class" className="preprint-layout-label-block">Custom CSS class</label>
+          <input id="custom-css-class"
             type="text"
             className="preprint-input preprint-layout-text"
             value={override?.customClass ?? ""}
@@ -217,7 +217,7 @@ export default function PageLayoutEditor({
 
       {dirty && (
         <div className="preprint-layout-actions">
-          <button className="preprint-layout-save" onClick={handleSave}>
+          <button className="preprint-layout-save" onClick={() => void handleSave()}>
             Save
           </button>
         </div>
@@ -231,16 +231,17 @@ function SelectField({
   value,
   options,
   onChange,
-}: {
+}: Readonly<{
   label: string;
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
-}) {
+}>) {
+  const id = React.useId();
   return (
     <div className="preprint-layout-row">
-      <label className="preprint-layout-label-block">{label}</label>
-      <select
+      <label htmlFor={id} className="preprint-layout-label-block">{label}</label>
+      <select id={id}
         className="preprint-layout-select"
         value={value}
         onChange={(e) => onChange(e.target.value)}

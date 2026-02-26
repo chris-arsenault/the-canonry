@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import { ModalShell, TagSelector } from "@penguin-tales/shared-components";
 import { PROMINENCE_LEVELS } from "../constants";
 
@@ -31,7 +32,7 @@ function ConditionsModal({ isOpen, onClose, conditions, onChange, tagRegistry = 
 
       {/* Tags */}
       <div className="form-group">
-        <label>Entity Tags</label>
+        <label>Entity Tags
         <TagSelector
           value={localConditions.tags || []}
           onChange={(tags) =>
@@ -46,6 +47,7 @@ function ConditionsModal({ isOpen, onClose, conditions, onChange, tagRegistry = 
           }
           onAddToRegistry={onAddTag}
         />
+        </label>
         <small className="text-muted">
           Use tags from the shared registry; toggle match-all when needed.
         </small>
@@ -85,8 +87,8 @@ function ConditionsModal({ isOpen, onClose, conditions, onChange, tagRegistry = 
 
       {/* Subtype */}
       <div className="form-group">
-        <label>Entity Subtypes</label>
-        <input
+        <label htmlFor="entity-subtypes">Entity Subtypes</label>
+        <input id="entity-subtypes"
           value={(localConditions.subtype || []).join(", ")}
           onChange={(e) => {
             const subtypes = e.target.value
@@ -133,5 +135,14 @@ function ConditionsModal({ isOpen, onClose, conditions, onChange, tagRegistry = 
     </ModalShell>
   );
 }
+
+ConditionsModal.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  conditions: PropTypes.object,
+  onChange: PropTypes.func,
+  tagRegistry: PropTypes.array,
+  onAddTag: PropTypes.func,
+};
 
 export default ConditionsModal;

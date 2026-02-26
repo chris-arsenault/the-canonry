@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { FILTER_TYPES } from "../constants";
 import { ReferenceDropdown, ChipSelect, PROMINENCE_LEVELS } from "../../shared";
 import { GraphPathEditor } from "./GraphPathEditor";
@@ -40,8 +41,10 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
 
   const getSummary = () => {
     switch (filter.type) {
-      case "has_tag":
-        return `${filter.tag || "?"}${filter.value !== undefined ? ` = ${filter.value}` : ""}`;
+      case "has_tag": {
+        const valueSuffix = filter.value !== undefined ? ` = ${filter.value}` : "";
+        return `${filter.tag || "?"}${valueSuffix}`;
+      }
       case "has_tags":
         return (filter.tags || []).join(", ") || "no tags";
       case "has_any_tag":
@@ -86,7 +89,7 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
         return (
           <div className="filter-fields">
             <div style={{ flex: "1 1 150px" }}>
-              <label className="label label-small">Tag</label>
+              <label className="label label-small">Tag
               <TagSelector
                 value={filter.tag ? [filter.tag] : []}
                 onChange={(v) => updateFilter("tag", v[0] || "")}
@@ -94,10 +97,11 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
                 placeholder="Select tag..."
                 singleSelect
               />
+              </label>
             </div>
             <div style={{ flex: "1 1 150px" }}>
-              <label className="label label-small">Value (optional)</label>
-              <input
+              <label htmlFor="value-optional" className="label label-small">Value (optional)</label>
+              <input id="value-optional"
                 type="text"
                 value={filter.value ?? ""}
                 onChange={(e) => updateFilter("value", e.target.value || undefined)}
@@ -109,22 +113,12 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
         );
 
       case "has_tags":
-        return (
-          <div>
-            <label className="label label-small">Tags (must have ALL)</label>
-            <TagSelector
-              value={filter.tags || []}
-              onChange={(v) => updateFilter("tags", v)}
-              tagRegistry={schema?.tagRegistry || []}
-              placeholder="Select tags..."
-            />
-          </div>
-        );
-
       case "has_any_tag":
         return (
           <div>
-            <label className="label label-small">Tags (must have at least ONE)</label>
+            <label className="label label-small">
+              {filter.type === "has_tags" ? "Tags (must have ALL)" : "Tags (must have at least ONE)"}
+            </label>
             <TagSelector
               value={filter.tags || []}
               onChange={(v) => updateFilter("tags", v)}
@@ -138,7 +132,7 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
         return (
           <div className="filter-fields">
             <div style={{ flex: "1 1 150px" }}>
-              <label className="label label-small">Tag</label>
+              <label className="label label-small">Tag
               <TagSelector
                 value={filter.tag ? [filter.tag] : []}
                 onChange={(v) => updateFilter("tag", v[0] || "")}
@@ -146,10 +140,11 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
                 placeholder="Select tag..."
                 singleSelect
               />
+              </label>
             </div>
             <div style={{ flex: "1 1 150px" }}>
-              <label className="label label-small">Value (optional)</label>
-              <input
+              <label htmlFor="value-optional" className="label label-small">Value (optional)</label>
+              <input id="value-optional"
                 type="text"
                 value={filter.value ?? ""}
                 onChange={(e) => updateFilter("value", e.target.value || undefined)}
@@ -163,20 +158,22 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
       case "lacks_any_tag":
         return (
           <div>
-            <label className="label label-small">Tags (exclude if has ANY)</label>
+            <label className="label label-small">Tags (exclude if has ANY)
             <TagSelector
               value={filter.tags || []}
               onChange={(v) => updateFilter("tags", v)}
               tagRegistry={schema?.tagRegistry || []}
               placeholder="Select tags..."
             />
+            </label>
           </div>
         );
+
 
       case "has_culture":
         return (
           <div>
-            <label className="label label-small">Culture</label>
+            <label className="label label-small">Culture
             <ReferenceDropdown
               value={filter.culture || ""}
               onChange={(v) => updateFilter("culture", v)}
@@ -186,27 +183,29 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
               }))}
               placeholder="Select culture..."
             />
+            </label>
           </div>
         );
 
       case "matches_culture":
         return (
           <div>
-            <label className="label label-small">Same Culture As</label>
+            <label className="label label-small">Same Culture As
             <ReferenceDropdown
               value={filter.with || ""}
               onChange={(v) => updateFilter("with", v)}
               options={refOptions}
               placeholder="Select variable..."
             />
+            </label>
           </div>
         );
 
       case "has_status":
         return (
           <div>
-            <label className="label label-small">Status</label>
-            <input
+            <label htmlFor="status" className="label label-small">Status</label>
+            <input id="status"
               type="text"
               value={filter.status || ""}
               onChange={(e) => updateFilter("status", e.target.value)}
@@ -219,13 +218,14 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
       case "has_prominence":
         return (
           <div>
-            <label className="label label-small">Minimum Prominence</label>
+            <label className="label label-small">Minimum Prominence
             <ReferenceDropdown
               value={filter.minProminence || ""}
               onChange={(v) => updateFilter("minProminence", v)}
               options={PROMINENCE_LEVELS.map((p) => ({ value: p.value, label: p.label }))}
               placeholder="Select prominence..."
             />
+            </label>
           </div>
         );
 
@@ -234,26 +234,28 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
         return (
           <div className="filter-fields">
             <div style={{ flex: "1 1 140px" }}>
-              <label className="label label-small">Relationship Kind</label>
+              <label className="label label-small">Relationship Kind
               <ReferenceDropdown
                 value={filter.kind || ""}
                 onChange={(v) => updateFilter("kind", v)}
                 options={relationshipKindOptions}
                 placeholder="Select kind..."
               />
+              </label>
             </div>
             <div style={{ flex: "1 1 120px" }}>
-              <label className="label label-small">With Entity (optional)</label>
+              <label className="label label-small">With Entity (optional)
               <ReferenceDropdown
                 value={filter.with || ""}
                 onChange={(v) => updateFilter("with", v || undefined)}
                 options={refOptions}
                 placeholder="Any entity"
               />
+              </label>
             </div>
             {filter.type === "has_relationship" && (
               <div style={{ flex: "1 1 100px" }}>
-                <label className="label label-small">Direction</label>
+                <label className="label label-small">Direction
                 <ReferenceDropdown
                   value={filter.direction || "both"}
                   onChange={(v) => updateFilter("direction", v)}
@@ -263,6 +265,7 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
                     { value: "dst", label: "Incoming" },
                   ]}
                 />
+                </label>
               </div>
             )}
           </div>
@@ -283,22 +286,24 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
         return (
           <div className="filter-fields">
             <div style={{ flex: "1 1 140px" }}>
-              <label className="label label-small">Via Relationship</label>
+              <label className="label label-small">Via Relationship
               <ReferenceDropdown
                 value={filter.relationshipKind || ""}
                 onChange={(v) => updateFilter("relationshipKind", v)}
                 options={relationshipKindOptions}
                 placeholder="Select kind..."
               />
+              </label>
             </div>
             <div style={{ flex: "1 1 120px" }}>
-              <label className="label label-small">With Entity</label>
+              <label className="label label-small">With Entity
               <ReferenceDropdown
                 value={filter.with || ""}
                 onChange={(v) => updateFilter("with", v)}
                 options={refOptions}
                 placeholder="Select variable..."
               />
+              </label>
             </div>
           </div>
         );
@@ -346,5 +351,13 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
     </div>
   );
 }
+
+SelectionFilterCard.propTypes = {
+  filter: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  availableRefs: PropTypes.array,
+};
 
 export default SelectionFilterCard;

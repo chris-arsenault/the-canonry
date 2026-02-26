@@ -7,6 +7,60 @@ import {
   endsWithAny,
 } from "./utils/helpers.js";
 
+/** Insert both apostrophe and hyphen markers at different boundaries. */
+function insertBothMarkers(
+  text: string,
+  boundaries: number[],
+  rng: () => number,
+  transforms: string[]
+): string {
+  if (boundaries.length >= 2) {
+    const shuffled = [...boundaries].sort(() => rng() - 0.5);
+    const apoIdx = shuffled[0];
+    const hypIdx = shuffled[1];
+
+    // Insert at higher index first to preserve positions
+    let result = text;
+    if (apoIdx > hypIdx) {
+      result = result.slice(0, apoIdx) + "'" + result.slice(apoIdx);
+      result = result.slice(0, hypIdx) + "-" + result.slice(hypIdx);
+    } else {
+      result = result.slice(0, hypIdx) + "-" + result.slice(hypIdx);
+      result = result.slice(0, apoIdx) + "'" + result.slice(apoIdx);
+    }
+    transforms.push("apostrophe", "hyphen");
+    return result;
+  }
+
+  // Only one boundary: randomly pick one marker
+  if (rng() < 0.5) {
+    transforms.push("apostrophe");
+    return insertAtBoundary(text, "'", boundaries, rng);
+  }
+  transforms.push("hyphen");
+  return insertAtBoundary(text, "-", boundaries, rng);
+}
+
+/** Insert stylistic markers (apostrophe/hyphen) at syllable boundaries. */
+function insertStyleMarkers(
+  text: string,
+  boundaries: number[],
+  wantApostrophe: boolean,
+  wantHyphen: boolean,
+  rng: () => number,
+  transforms: string[]
+): string {
+  if (wantApostrophe && wantHyphen) {
+    return insertBothMarkers(text, boundaries, rng, transforms);
+  }
+  if (wantApostrophe) {
+    transforms.push("apostrophe");
+    return insertAtBoundary(text, "'", boundaries, rng);
+  }
+  transforms.push("hyphen");
+  return insertAtBoundary(text, "-", boundaries, rng);
+}
+
 /**
  * Apply stylistic transforms to a name
  */
@@ -19,58 +73,20 @@ export function applyStyle(
   let result = name;
   const transforms: string[] = [];
 
-  // Apply defaults for optional fields
   const apostropheRate = style.apostropheRate ?? 0;
   const hyphenRate = style.hyphenRate ?? 0;
   const capitalization = style.capitalization ?? "title";
 
-  // Determine which markers to insert
   const wantApostrophe = apostropheRate > 0 && chance(rng, apostropheRate);
   const wantHyphen = hyphenRate > 0 && chance(rng, hyphenRate);
 
-  // Insert markers at syllable boundaries (avoiding adjacent placement)
   if ((wantApostrophe || wantHyphen) && syllables && syllables.length > 1) {
     const boundaries = findSyllableBoundaries(result, syllables);
-
     if (boundaries.length > 0) {
-      if (wantApostrophe && wantHyphen) {
-        // Both wanted - place at different boundaries if possible
-        if (boundaries.length >= 2) {
-          // Multiple boundaries: pick two different ones
-          const shuffled = [...boundaries].sort(() => rng() - 0.5);
-          const apoIdx = shuffled[0];
-          const hypIdx = shuffled[1];
-
-          // Insert at higher index first to preserve positions
-          if (apoIdx > hypIdx) {
-            result = result.slice(0, apoIdx) + "'" + result.slice(apoIdx);
-            result = result.slice(0, hypIdx) + "-" + result.slice(hypIdx);
-          } else {
-            result = result.slice(0, hypIdx) + "-" + result.slice(hypIdx);
-            result = result.slice(0, apoIdx) + "'" + result.slice(apoIdx);
-          }
-          transforms.push("apostrophe", "hyphen");
-        } else {
-          // Only one boundary: randomly pick one marker
-          if (rng() < 0.5) {
-            result = insertAtBoundary(result, "'", boundaries, rng);
-            transforms.push("apostrophe");
-          } else {
-            result = insertAtBoundary(result, "-", boundaries, rng);
-            transforms.push("hyphen");
-          }
-        }
-      } else if (wantApostrophe) {
-        result = insertAtBoundary(result, "'", boundaries, rng);
-        transforms.push("apostrophe");
-      } else if (wantHyphen) {
-        result = insertAtBoundary(result, "-", boundaries, rng);
-        transforms.push("hyphen");
-      }
+      result = insertStyleMarkers(result, boundaries, wantApostrophe, wantHyphen, rng, transforms);
     }
   }
 
-  // Apply capitalization
   result = applyCapitalization(result, capitalization);
   transforms.push(`cap:${capitalization}`);
 
@@ -137,44 +153,22 @@ export function selectWithPreferredEndings<T>(
  */
 export function applyRhythmBias(
   name: string,
-  rhythmBias?: "soft" | "harsh" | "staccato" | "flowing" | "neutral"
+  _rhythmBias?: "soft" | "harsh" | "staccato" | "flowing" | "neutral"
 ): string {
-  // For now, rhythm bias is primarily enforced during phonology generation
-  // This could be extended to do post-processing transformations
-  switch (rhythmBias) {
-    case "soft":
-      // Could soften harsh consonant clusters
-      return name;
-    case "harsh":
-      // Could emphasize consonants
-      return name;
-    case "staccato":
-      // Could add more syllable breaks
-      return name;
-    case "flowing":
-      // Could smooth transitions
-      return name;
-    case "neutral":
-    default:
-      return name;
-  }
+  // Rhythm bias is primarily enforced during phonology generation.
+  // Post-processing transformations (softening consonant clusters,
+  // emphasizing consonants, adding syllable breaks, smoothing transitions)
+  // can be added here in the future.
+  return name;
 }
 
 /**
  * Validate that a name meets style constraints
  */
-export function validateStyle(name: string, style: StyleRules): boolean {
-  // Basic validation
-  if (name.length === 0) {
-    return false;
-  }
-
-  // Could add more complex validation:
-  // - Check apostrophe/hyphen placement
-  // - Verify capitalization
-  // - Ensure no double apostrophes, etc.
-
-  return true;
+export function validateStyle(name: string, _style: StyleRules): boolean {
+  // Basic validation: more complex checks (apostrophe/hyphen placement,
+  // capitalization, double apostrophes) can be added here.
+  return name.length > 0;
 }
 
 /**

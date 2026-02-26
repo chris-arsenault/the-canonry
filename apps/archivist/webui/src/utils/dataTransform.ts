@@ -114,7 +114,7 @@ export function transformWorldData(
   const edges = worldState.relationships.map((rel) => {
     // Check if this relationship was catalyzed by an event or entity
     // In a full implementation, this would check for catalyzedBy metadata
-    const catalyzedBy = (rel as any).catalyzedBy;
+    const catalyzedBy = rel.catalyzedBy;
     const hasCatalyst = !!catalyzedBy;
 
     return {
@@ -146,7 +146,7 @@ export function applyFilters(
   const minProminenceIndex = prominenceOrder.indexOf(filters.minProminence);
   const resolvedScale = resolveProminenceScale(prominenceScale);
 
-  let filtered = worldState.hardState.filter((entity) => {
+  const filtered = worldState.hardState.filter((entity) => {
     // Filter by kind
     if (!filters.kinds.includes(entity.kind)) return false;
 
@@ -239,7 +239,7 @@ export function getAllTags(worldState: WorldState): string[] {
   worldState.hardState.forEach((entity) => {
     getTagsArray(entity.tags).forEach((tag) => tagSet.add(tag));
   });
-  return Array.from(tagSet).sort();
+  return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
 }
 
 export function getAllRelationshipTypes(worldState: WorldState): string[] {
@@ -247,7 +247,7 @@ export function getAllRelationshipTypes(worldState: WorldState): string[] {
   worldState.relationships.forEach((rel) => {
     typeSet.add(rel.kind);
   });
-  return Array.from(typeSet).sort();
+  return Array.from(typeSet).sort((a, b) => a.localeCompare(b));
 }
 
 export function getRelationshipTypeCounts(worldState: WorldState): Record<string, number> {

@@ -23,27 +23,43 @@ function createMetricContext(graph: Graph): MetricContext {
   return { graph };
 }
 
+function extractFromNumeratorDenominator(
+  factor: FeedbackFactor,
+  details: MetricResult['details']
+): number | null {
+  if (typeof details.numerator !== 'number' || typeof details.denominator !== 'number') return null;
+  if (details.denominator === 0) {
+    const fallback = factor.type === 'ratio' ? factor.fallbackValue : undefined;
+    return typeof fallback === 'number' ? fallback : 0;
+  }
+  return details.numerator / details.denominator;
+}
+
+function extractFromTotalAlive(details: MetricResult['details']): number | null {
+  if (typeof details.total !== 'number' || typeof details.alive !== 'number') return null;
+  return details.total === 0 ? 1 : details.alive / details.total;
+}
+
+function extractFromTotalCrossCulture(details: MetricResult['details']): number | null {
+  if (typeof details.total !== 'number' || typeof details.crossCulture !== 'number') return null;
+  return details.total === 0 ? 0 : details.crossCulture / details.total;
+}
+
 function extractRawValue(factor: FeedbackFactor, result: MetricResult): number {
-  const details = result.details as Record<string, unknown>;
+  const details = result.details;
 
   if (typeof details.rawCount === 'number') return details.rawCount;
   if (typeof details.ratio === 'number') return details.ratio;
   if (typeof details.value === 'number') return details.value;
 
-  if (typeof details.numerator === 'number' && typeof details.denominator === 'number') {
-    if (details.denominator === 0) {
-      return typeof (factor as any).fallbackValue === 'number' ? (factor as any).fallbackValue : 0;
-    }
-    return details.numerator / details.denominator;
-  }
+  const fromNumDenom = extractFromNumeratorDenominator(factor, details);
+  if (fromNumDenom !== null) return fromNumDenom;
 
-  if (typeof details.total === 'number' && typeof details.alive === 'number') {
-    return details.total === 0 ? 1 : details.alive / details.total;
-  }
+  const fromAlive = extractFromTotalAlive(details);
+  if (fromAlive !== null) return fromAlive;
 
-  if (typeof details.total === 'number' && typeof details.crossCulture === 'number') {
-    return details.total === 0 ? 0 : details.crossCulture / details.total;
-  }
+  const fromCross = extractFromTotalCrossCulture(details);
+  if (fromCross !== null) return fromCross;
 
   return result.value;
 }
@@ -55,7 +71,7 @@ function evaluateFactor(factor: FeedbackFactor, ctx: MetricContext): number {
 function evaluateFactorWithDetails(factor: FeedbackFactor, ctx: MetricContext): FeedbackContribution {
   const result = evaluateMetric(factor, ctx);
   const rawValue = extractRawValue(factor, result);
-  const coefficient = typeof (factor as any).coefficient === 'number' ? (factor as any).coefficient : 1;
+  const coefficient = typeof factor.coefficient === 'number' ? factor.coefficient : 1;
 
   return {
     label: describeMetric(factor),

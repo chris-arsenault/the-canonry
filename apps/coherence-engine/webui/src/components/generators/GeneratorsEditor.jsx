@@ -2,7 +2,8 @@
  * GeneratorsEditor - Main component for editing generators
  */
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import { CategorySection, AddCard } from "../shared";
 import { GeneratorModal } from "./GeneratorModal";
 import { GeneratorListCard } from "./cards";
@@ -101,24 +102,31 @@ export default function GeneratorsEditor({
     });
   }, [groupedGenerators, schema]);
 
-  // Initialize expanded state for new categories
-  useEffect(() => {
-    setExpandedCategories((prev) => {
-      const updated = { ...prev };
+  // Initialize expanded state for new categories (during render)
+  const prevCategoriesRef = useRef(categories);
+  if (prevCategoriesRef.current !== categories) {
+    prevCategoriesRef.current = categories;
+    const needsUpdate = categories.some((cat) => expandedCategories[cat] === undefined);
+    if (needsUpdate) {
+      const updated = { ...expandedCategories };
       categories.forEach((cat) => {
         if (updated[cat] === undefined) {
-          updated[cat] = true; // Start expanded
+          updated[cat] = true;
         }
       });
-      return updated;
-    });
-  }, [categories]);
+      setExpandedCategories(updated);
+    }
+  }
 
-  useEffect(() => {
+  // Restore selectedId from storage when selectionKey changes (during render)
+  const prevSelectionKeyRef = useRef(selectionKey);
+  if (prevSelectionKeyRef.current !== selectionKey) {
+    prevSelectionKeyRef.current = selectionKey;
     const stored = loadStoredValue(selectionKey);
     setSelectedId(typeof stored === "string" ? stored : null);
-  }, [selectionKey]);
+  }
 
+  // Persist selectedId to storage
   useEffect(() => {
     if (!selectionKey) return;
     if (selectedId) {
@@ -128,12 +136,11 @@ export default function GeneratorsEditor({
     }
   }, [selectionKey, selectedId]);
 
-  useEffect(() => {
-    if (selectedId && selectedIndex === null) {
-      setSelectedId(null);
-      clearStoredValue(selectionKey);
-    }
-  }, [selectedId, selectedIndex, selectionKey]);
+  // Clear invalid selectedId (during render)
+  if (selectedId && selectedIndex === null) {
+    setSelectedId(null);
+    clearStoredValue(selectionKey);
+  }
 
   const handleGeneratorChange = useCallback(
     (updated) => {
@@ -291,6 +298,16 @@ export default function GeneratorsEditor({
     </div>
   );
 }
+
+GeneratorsEditor.propTypes = {
+  projectId: PropTypes.string,
+  generators: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+  eras: PropTypes.array,
+  usageMap: PropTypes.object,
+};
 
 // Named export for flexibility
 export { GeneratorsEditor };

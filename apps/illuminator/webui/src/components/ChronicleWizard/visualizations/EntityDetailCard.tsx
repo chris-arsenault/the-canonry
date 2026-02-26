@@ -29,7 +29,7 @@ export default function EntityDetailCard({
   eraColor,
   isEntryPoint = false,
   isAssigned = false,
-}: EntityDetailCardProps) {
+}: Readonly<EntityDetailCardProps>) {
   // Empty state
   if (!entity) {
     return (
@@ -112,25 +112,20 @@ export default function EntityDetailCard({
             {metrics && (
               <>
                 <MetricChip
-                  label={
-                    metrics.distance === 0
-                      ? "Entry"
-                      : metrics.distance === 1
-                        ? "Direct"
-                        : metrics.distance >= 99
-                          ? "Distant"
-                          : `${metrics.distance}-hop`
-                  }
+                  label={(() => {
+                    if (metrics.distance === 0) return "Entry";
+                    if (metrics.distance === 1) return "Direct";
+                    if (metrics.distance >= 99) return "Distant";
+                    return `${metrics.distance}-hop`;
+                  })()}
                 />
                 <MetricChip
                   label={`${metrics.usageCount}x used`}
-                  variant={
-                    metrics.usageCount >= 5
-                      ? "error"
-                      : metrics.usageCount >= 2
-                        ? "warning"
-                        : "default"
-                  }
+                  variant={(() => {
+                    if (metrics.usageCount >= 5) return "error" as const;
+                    if (metrics.usageCount >= 2) return "warning" as const;
+                    return "default" as const;
+                  })()}
                 />
                 <MetricChip label={`${(metrics.avgStrength * 100).toFixed(0)}% link`} />
               </>
@@ -158,7 +153,7 @@ interface MetricChipProps {
   customColor?: string;
 }
 
-function MetricChip({ label, variant = "default", customColor }: MetricChipProps) {
+function MetricChip({ label, variant = "default", customColor }: Readonly<MetricChipProps>) {
   const colors = {
     default: { bg: "var(--bg-tertiary)", text: "var(--text-muted)" },
     success: { bg: "rgba(16, 185, 129, 0.15)", text: "var(--success)" },

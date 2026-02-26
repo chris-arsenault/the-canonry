@@ -6,12 +6,13 @@
 function extractJsonBlock(response: string): string {
   let jsonStr = response.trim();
 
-  const fenced = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+  // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
+  const fenced = jsonStr.match(/```(?:json)?[ \t]*([\s\S]*?)```/);
   if (fenced) {
     jsonStr = fenced[1].trim();
   } else if (jsonStr.startsWith("```")) {
     jsonStr = jsonStr
-      .replace(/^```(?:json)?[\s\n]*/, "")
+      .replace(/^```(?:json)?\s*/, "")
       .replace(/```\s*$/, "")
       .trim();
   }
@@ -45,11 +46,11 @@ function applyAggressiveFixes(raw: string): string {
   fixed = fixed.replace(/}(\s*){/g, "},$1{");
   fixed = fixed.replace(/](\s*)\[/g, "],$1[");
   // Missing commas after values
-  fixed = fixed.replace(/"(\s*\n\s*)"/g, '",$1"');
-  fixed = fixed.replace(/"(\s*\n\s*){/g, '",$1{');
-  fixed = fixed.replace(/}(\s*\n\s*)"/g, '},$1"');
-  fixed = fixed.replace(/](\s*\n\s*)"/g, '],$1"');
-  fixed = fixed.replace(/](\s*\n\s*){/g, "],$1{");
+  fixed = fixed.replace(/"([^\S\n]*\n[^\S\n]*)"/g, '",$1"');
+  fixed = fixed.replace(/"([^\S\n]*\n[^\S\n]*){/g, '",$1{');
+  fixed = fixed.replace(/}([^\S\n]*\n[^\S\n]*)"/g, '},$1"');
+  fixed = fixed.replace(/]([^\S\n]*\n[^\S\n]*)"/g, '],$1"');
+  fixed = fixed.replace(/]([^\S\n]*\n[^\S\n]*){/g, "],$1{");
   fixed = fixed.replace(/,\s*,/g, ",");
   fixed = fixed.replace(/,(\s*[}\]])/g, "$1");
 

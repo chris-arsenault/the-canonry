@@ -57,7 +57,7 @@ export default function NarrativeTimeline({
   focalEraId,
   extent: extentProp,
   castMarkers,
-}: NarrativeTimelineProps) {
+}: Readonly<NarrativeTimelineProps>) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoveredEvent, setHoveredEvent] = useState<TooltipData | null>(null);
   const [hoveredCastMarker, setHoveredCastMarker] = useState<CastTooltipData | null>(null);
@@ -318,7 +318,7 @@ export default function NarrativeTimeline({
               Cast
             </text>
             {/* Markers */}
-            {castMarkers!.map((marker) => {
+            {castMarkers.map((marker) => {
               if (typeof marker.createdAt !== "number" || Number.isNaN(marker.createdAt))
                 return null;
               const x = scaleX(marker.createdAt);

@@ -18,7 +18,7 @@ function normalizeId(value: string): string {
 function normalizeName(value: string): string {
   return stripReferenceDecorators(value)
     .toLowerCase()
-    .replace(/\([^)]*\)/g, " ")
+    .replace(/\([^)]*\)/g, " ") // eslint-disable-line sonarjs/slow-regex -- character-class bounded, no backtracking
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .replace(/\s+/g, " ");

@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { METRIC_TYPES, DIRECTIONS } from "../constants";
 import { ReferenceDropdown, NumberInput, LocalTextArea } from "../../shared";
 import TagSelector from "@penguin-tales/shared-components/TagSelector";
@@ -38,7 +39,7 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
 
   return (
     <div className="item-card">
-      <div className="item-card-header" onClick={() => setExpanded(!expanded)}>
+      <div className="item-card-header" onClick={() => setExpanded(!expanded)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
         <div className="item-card-icon" style={{ backgroundColor: "rgba(59, 130, 246, 0.2)" }}>
           R
         </div>
@@ -81,8 +82,8 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
               ]}
             />
             <div className="form-group">
-              <label className="label">Threshold</label>
-              <input
+              <label htmlFor="threshold" className="label">Threshold</label>
+              <input id="threshold"
                 type="text"
                 value={rule.condition?.threshold ?? ""}
                 onChange={(e) => {
@@ -95,23 +96,25 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
             </div>
             {rule.condition?.threshold === "prominence_scaled" && (
               <div className="form-group">
-                <label className="label">Multiplier</label>
+                <label className="label">Multiplier
                 <NumberInput
                   value={rule.condition?.multiplier}
                   onChange={(v) => updateCondition("multiplier", v)}
                   allowEmpty
                   placeholder="6"
                 />
+                </label>
               </div>
             )}
             <div className="form-group">
-              <label className="label">Probability</label>
+              <label className="label">Probability
               <NumberInput
                 value={rule.probability}
                 onChange={(v) => onChange({ ...rule, probability: v ?? 0 })}
                 min={0}
                 max={1}
               />
+              </label>
             </div>
           </div>
 
@@ -141,12 +144,13 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
               )}
               {rule.action?.type === "adjust_prominence" && (
                 <div className="form-group">
-                  <label className="label">Delta</label>
+                  <label className="label">Delta
                   <NumberInput
                     value={rule.action?.delta}
                     onChange={(v) => updateAction("delta", v ?? 0)}
                     placeholder="e.g., 0.25 or -0.15"
                   />
+                  </label>
                 </div>
               )}
               {rule.action?.type === "create_relationship" && (
@@ -170,8 +174,8 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
                     options={entityRefOptions}
                   />
                   <div className="form-group">
-                    <label className="label">Category</label>
-                    <input
+                    <label htmlFor="category" className="label">Category</label>
+                    <input id="category"
                       type="text"
                       value={rule.action?.category || ""}
                       onChange={(e) => updateAction("category", e.target.value || undefined)}
@@ -180,7 +184,7 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="label">Strength</label>
+                    <label className="label">Strength
                     <NumberInput
                       value={rule.action?.strength}
                       onChange={(v) => updateAction("strength", v)}
@@ -188,6 +192,7 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
                       max={1}
                       allowEmpty
                     />
+                    </label>
                   </div>
                   <div className="form-group">
                     <label className="checkbox-label">
@@ -206,8 +211,8 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
               )}
               {rule.action?.type === "change_status" && (
                 <div className="form-group">
-                  <label className="label">New Status</label>
-                  <input
+                  <label htmlFor="new-status" className="label">New Status</label>
+                  <input id="new-status"
                     type="text"
                     value={rule.action?.newStatus || ""}
                     onChange={(e) => updateAction("newStatus", e.target.value)}
@@ -218,7 +223,7 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
               {rule.action?.type === "set_tag" && (
                 <>
                   <div className="form-group">
-                    <label className="label">Tag</label>
+                    <label className="label">Tag
                     <TagSelector
                       value={rule.action?.tag ? [rule.action.tag] : []}
                       onChange={(tags) => updateAction("tag", tags[0] || "")}
@@ -226,10 +231,11 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
                       placeholder="Select tag..."
                       singleSelect
                     />
+                    </label>
                   </div>
                   <div className="form-group">
-                    <label className="label">Value (optional)</label>
-                    <input
+                    <label htmlFor="value-optional" className="label">Value (optional)</label>
+                    <input id="value-optional"
                       type="text"
                       value={rule.action?.value ?? ""}
                       onChange={(e) => updateAction("value", e.target.value || undefined)}
@@ -275,6 +281,13 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
     </div>
   );
 }
+
+RuleCard.propTypes = {
+  rule: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+};
 
 /**
  * @param {Object} props
@@ -375,8 +388,8 @@ export function ConnectionEvolutionTab({ system, onChange, schema }) {
           {(config.metric?.type === "connection_count" ||
             config.metric?.type === "relationship_count") && (
             <div className="form-group">
-              <label className="label">Filter by Relationship Kinds (optional)</label>
-              <input
+              <label htmlFor="filter-by-relationship-kinds-optional" className="label">Filter by Relationship Kinds (optional)</label>
+              <input id="filter-by-relationship-kinds-optional"
                 type="text"
                 value={(config.metric?.relationshipKinds || []).join(", ")}
                 onChange={(e) => {
@@ -411,7 +424,7 @@ export function ConnectionEvolutionTab({ system, onChange, schema }) {
             </>
           )}
           <div className="form-group">
-            <label className="label">Min Strength</label>
+            <label className="label">Min Strength
             <NumberInput
               value={config.metric?.minStrength}
               onChange={(v) => updateMetric("minStrength", v)}
@@ -420,6 +433,7 @@ export function ConnectionEvolutionTab({ system, onChange, schema }) {
               allowEmpty
               placeholder="0"
             />
+            </label>
           </div>
         </div>
       </div>
@@ -459,11 +473,12 @@ export function ConnectionEvolutionTab({ system, onChange, schema }) {
                     options={getSubtypeOptions(selectionKind)}
                   />
                   <div className="form-group">
-                    <label className="label">Bonus</label>
+                    <label className="label">Bonus
                     <NumberInput
                       value={bonus.bonus}
                       onChange={(v) => updateSubtypeBonus(index, { ...bonus, bonus: v ?? 0 })}
                     />
+                    </label>
                   </div>
                 </div>
                 <button
@@ -484,3 +499,9 @@ export function ConnectionEvolutionTab({ system, onChange, schema }) {
     </div>
   );
 }
+
+ConnectionEvolutionTab.propTypes = {
+  system: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+};

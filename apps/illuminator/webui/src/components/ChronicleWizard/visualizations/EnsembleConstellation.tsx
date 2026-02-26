@@ -7,7 +7,7 @@
  * ring color = era, red glow = overused.
  */
 
-import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import type { EntityContext, RelationshipContext } from "../../../lib/chronicleTypes";
 import type { EntitySelectionMetrics } from "../../../lib/chronicle/selectionWizard";
 
@@ -85,11 +85,11 @@ function computeLayout(
     const distance = metrics?.distance ?? 2;
 
     if (entity.id === entryPointId) {
-      byDistance.get(0)!.push(entity);
+      byDistance.get(0).push(entity);
     } else if (distance === 1) {
-      byDistance.get(1)!.push(entity);
+      byDistance.get(1).push(entity);
     } else {
-      byDistance.get(2)!.push(entity);
+      byDistance.get(2).push(entity);
     }
   }
 
@@ -113,6 +113,7 @@ function computeLayout(
     entities.forEach((entity, i) => {
       const angle = startAngle + i * angleStep;
       // Add slight jitter for 2-hop to avoid exact circles
+      // eslint-disable-next-line sonarjs/pseudo-random -- visual jitter for constellation layout
       const jitter = distance === 2 ? (Math.random() - 0.5) * 15 : 0;
 
       nodes.push({
@@ -145,7 +146,7 @@ function computeEdges(
     if (!nodeIds.has(rel.src) || !nodeIds.has(rel.dst)) continue;
 
     // Deduplicate
-    const key = [rel.src, rel.dst].sort().join(":");
+    const key = [rel.src, rel.dst].sort((a, b) => a.localeCompare(b)).join(":");
     if (seen.has(key)) continue;
     seen.add(key);
 
@@ -171,7 +172,7 @@ export default function EnsembleConstellation({
   width = 400,
   height = 350,
   eraColorMap,
-}: EnsembleConstellationProps) {
+}: Readonly<EnsembleConstellationProps>) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
@@ -211,11 +212,11 @@ export default function EnsembleConstellation({
 
       if (srcAssigned && !dstAssigned) {
         if (!connectedToAssigned.has(rel.dst)) connectedToAssigned.set(rel.dst, new Set());
-        connectedToAssigned.get(rel.dst)!.add(rel.src);
+        connectedToAssigned.get(rel.dst).add(rel.src);
       }
       if (dstAssigned && !srcAssigned) {
         if (!connectedToAssigned.has(rel.src)) connectedToAssigned.set(rel.src, new Set());
-        connectedToAssigned.get(rel.src)!.add(rel.dst);
+        connectedToAssigned.get(rel.src).add(rel.dst);
       }
     }
 
@@ -479,9 +480,11 @@ export default function EnsembleConstellation({
         }
         if (linksToEnsemble !== null) {
           infoParts.push(
-            linksToEnsemble > 0
-              ? `${linksToEnsemble} link${linksToEnsemble > 1 ? "s" : ""}`
-              : "no links"
+            (() => {
+              if (linksToEnsemble <= 0) return "no links";
+              const plural = linksToEnsemble > 1 ? "s" : "";
+              return `${linksToEnsemble} link${plural}`;
+            })()
           );
         }
 

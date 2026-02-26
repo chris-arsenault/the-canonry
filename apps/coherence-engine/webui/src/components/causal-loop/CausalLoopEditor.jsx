@@ -6,6 +6,7 @@
  */
 
 import React, { useMemo, useState, useRef, useCallback, useEffect } from "react";
+import PropTypes from "prop-types";
 import ForceGraph2D from "react-force-graph-2d";
 
 // Node type configurations
@@ -939,5 +940,14 @@ export default function CausalLoopEditor({
     </div>
   );
 }
+
+CausalLoopEditor.propTypes = {
+  pressures: PropTypes.array,
+  generators: PropTypes.array,
+  systems: PropTypes.array,
+  actions: PropTypes.array,
+  schema: PropTypes.object,
+  usageMap: PropTypes.object,
+};
 
 export { CausalLoopEditor };

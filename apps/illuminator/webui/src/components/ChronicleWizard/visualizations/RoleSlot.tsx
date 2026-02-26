@@ -35,7 +35,7 @@ export default function RoleSlot({
   onAssign,
   onRemove,
   onTogglePrimary,
-}: RoleSlotProps) {
+}: Readonly<RoleSlotProps>) {
   const canAccept = hasSelection && !isAtMax;
   const count = assignments.length;
 
@@ -46,14 +46,17 @@ export default function RoleSlot({
         padding: "8px 10px",
         background: canAccept ? "rgba(99, 102, 241, 0.1)" : "var(--bg-secondary)",
         borderRadius: "6px",
-        borderLeft: isUnderMin
-          ? "3px solid var(--error)"
-          : canAccept
-            ? "3px solid var(--accent-color)"
-            : "3px solid transparent",
+        borderLeft: (() => {
+          if (isUnderMin) return "3px solid var(--error)";
+          if (canAccept) return "3px solid var(--accent-color)";
+          return "3px solid transparent";
+        })(),
         cursor: canAccept ? "pointer" : "default",
         transition: "background 0.15s ease",
       }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
     >
       {/* Role header - single line */}
       <div
@@ -123,6 +126,9 @@ export default function RoleSlot({
                 fontSize: "10px",
               }}
               onClick={(e) => e.stopPropagation()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
             >
               {/* Entity name */}
               <span style={{ flex: 1, fontWeight: 500 }}>

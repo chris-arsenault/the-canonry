@@ -180,7 +180,7 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
 
   removeChronicle(chronicleId: string) {
     set((state) => {
-      const { [chronicleId]: _, ...rest } = state.navItems;
+      const { [chronicleId]: _removed, ...rest } = state.navItems; // eslint-disable-line sonarjs/no-unused-vars
       const nextOrder = state.navOrder.filter((id) => id !== chronicleId);
       const nextCache = new Map(state.cache);
       nextCache.delete(chronicleId);

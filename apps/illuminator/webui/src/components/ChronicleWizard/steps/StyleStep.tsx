@@ -4,11 +4,9 @@
  * Shows a grid of available narrative styles with role previews.
  */
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import type {
   NarrativeStyle,
-  StoryNarrativeStyle,
-  DocumentNarrativeStyle,
   RoleDefinition,
 } from "@canonry/world-schema";
 import { useWizard } from "../WizardContext";
@@ -17,10 +15,10 @@ import { getNarrativeStyleUsageStats } from "../../../lib/db/chronicleRepository
 /** Get roles from either story or document style */
 function getRoles(style: NarrativeStyle): RoleDefinition[] {
   if (style.format === "story") {
-    return (style as StoryNarrativeStyle).roles || [];
+    return (style).roles || [];
   }
   // Document styles have roles directly on the style object
-  const docStyle = style as DocumentNarrativeStyle;
+  const docStyle = style;
   return docStyle.roles || [];
 }
 
@@ -28,19 +26,26 @@ interface StyleStepProps {
   styles: NarrativeStyle[];
 }
 
-export default function StyleStep({ styles }: StyleStepProps) {
+export default function StyleStep({ styles }: Readonly<StyleStepProps>) {
   const { state, selectStyle, setAcceptDefaults, simulationRunId } = useWizard();
   const [searchText, setSearchText] = useState("");
   const [formatFilter, setFormatFilter] = useState<"all" | "story" | "document">("all");
   const [styleUsage, setStyleUsage] = useState<Map<string, { usageCount: number }>>(new Map());
   const [usageLoading, setUsageLoading] = useState(false);
 
+  // Render-phase sync: clear usage when no simulationRunId
+  const prevSimRunIdRef = useRef(simulationRunId);
+  if (prevSimRunIdRef.current !== simulationRunId && !simulationRunId) {
+    prevSimRunIdRef.current = simulationRunId;
+    setStyleUsage(new Map());
+    setUsageLoading(false);
+  }
+  if (prevSimRunIdRef.current !== simulationRunId) {
+    prevSimRunIdRef.current = simulationRunId;
+  }
+
   useEffect(() => {
-    if (!simulationRunId) {
-      setStyleUsage(new Map());
-      setUsageLoading(false);
-      return;
-    }
+    if (!simulationRunId) return;
 
     let isActive = true;
     setUsageLoading(true);
@@ -300,7 +305,7 @@ interface StyleCardProps {
   onSelect: () => void;
 }
 
-function StyleCard({ style, isSelected, usageCount, usageLoading, onSelect }: StyleCardProps) {
+function StyleCard({ style, isSelected, usageCount, usageLoading, onSelect }: Readonly<StyleCardProps>) {
   const roles = getRoles(style);
   const roleCount = roles.length;
   const requiredCount = roles.filter((r) => r.count.min > 0).length;
@@ -316,6 +321,9 @@ function StyleCard({ style, isSelected, usageCount, usageLoading, onSelect }: St
         cursor: "pointer",
         transition: "all 0.2s ease",
       }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(e); }}
     >
       <div
         style={{

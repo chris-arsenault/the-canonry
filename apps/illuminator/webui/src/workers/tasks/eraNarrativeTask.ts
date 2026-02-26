@@ -265,8 +265,9 @@ function buildThreadsUserPrompt(record: EraNarrativeRecord): string {
 
   // World dynamics — active forces and inter-cultural tensions
   if (wc?.resolvedDynamics?.length) {
+    const dynamicsBody = wc.resolvedDynamics.map((d, i) => `${i + 1}. ${d}`).join("\n");
     sections.push(
-      `=== WORLD DYNAMICS (active forces shaping this era) ===\n${wc.resolvedDynamics.map((d, i) => `${i + 1}. ${d}`).join("\n")}`
+      `=== WORLD DYNAMICS (active forces shaping this era) ===\n${dynamicsBody}`
     );
   }
 
@@ -468,7 +469,7 @@ The narrative is as long as it needs to be. 5,000-7,000 words is typical for an 
 }
 
 function buildGenerateUserPrompt(record: EraNarrativeRecord): string {
-  const synthesis = record.threadSynthesis!;
+  const synthesis = record.threadSynthesis;
   const wc = record.worldContext;
   const sections: string[] = [];
 
@@ -508,8 +509,9 @@ Year range: ${eraStart}–${eraEnd}`);
 
   // World dynamics
   if (wc?.resolvedDynamics?.length) {
+    const dynamicsForcesBody = wc.resolvedDynamics.map((d, i) => `${i + 1}. ${d}`).join("\n");
     sections.push(
-      `=== WORLD DYNAMICS (active forces) ===\n${wc.resolvedDynamics.map((d, i) => `${i + 1}. ${d}`).join("\n")}`
+      `=== WORLD DYNAMICS (active forces) ===\n${dynamicsForcesBody}`
     );
   }
 
@@ -600,7 +602,7 @@ The edited narrative. No commentary, no notes. Just the improved prose.`;
 }
 
 function buildEditUserPrompt(record: EraNarrativeRecord, contentToEdit: string): string {
-  const synthesis = record.threadSynthesis!;
+  const synthesis = record.threadSynthesis;
   const editSections: string[] = [];
 
   editSections.push(`=== ERA NARRATIVE: ${record.eraName} ===`);
@@ -703,6 +705,7 @@ async function executeThreadsStep(
     | "actualCost"
   >;
   try {
+    // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
     const jsonMatch = resultText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("No JSON object found");
     parsed = JSON.parse(jsonMatch[0]);
@@ -972,7 +975,8 @@ function buildCoverImageScenePrompt(
   const threadSummary = threads
     .map((t) => {
       const actors = t.culturalActors.length ? ` [${t.culturalActors.join(", ")}]` : "";
-      return `- ${t.name}${actors}: ${t.arc}${t.register ? ` (${t.register})` : ""}`;
+      const registerSuffix = t.register ? ` (${t.register})` : "";
+      return `- ${t.name}${actors}: ${t.arc}${registerSuffix}`;
     })
     .join("\n");
 
@@ -1051,6 +1055,7 @@ async function executeCoverImageSceneStep(
 
   let sceneDescription: string;
   try {
+    // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
     const jsonMatch = resultText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("No JSON found");
     const parsed = JSON.parse(jsonMatch[0]);
@@ -1105,8 +1110,13 @@ export interface AvailableChronicleImage {
 function splitNarrativeIntoChunks(content: string): { index: number; text: string }[] {
   const words = content.split(/\s+/);
   const wordCount = words.length;
-  let chunkCount =
-    wordCount < 1500 ? 3 : wordCount < 3000 ? 4 : wordCount < 5000 ? 5 : wordCount < 7000 ? 6 : 7;
+  let chunkCount: number;
+  if (wordCount < 1500) chunkCount = 3;
+  else if (wordCount < 3000) chunkCount = 4;
+  else if (wordCount < 5000) chunkCount = 5;
+  else if (wordCount < 7000) chunkCount = 6;
+  else chunkCount = 7;
+  // eslint-disable-next-line sonarjs/pseudo-random -- non-security chunk size jitter
   chunkCount += Math.random() < 0.5 ? -1 : 1;
   chunkCount = Math.max(3, Math.min(7, chunkCount));
 
@@ -1135,7 +1145,8 @@ function buildImageRefsPrompt(
       ? availableImages
           .map((img) => {
             const source = img.imageSource === "cover" ? "cover image" : "scene image";
-            return `- [${img.chronicleId}${img.imageRefId ? `:${img.imageRefId}` : ""}] "${img.chronicleTitle}" (${source}): ${img.sceneDescription}`;
+            const refSuffix = img.imageRefId ? `:${img.imageRefId}` : "";
+            return `- [${img.chronicleId}${refSuffix}] "${img.chronicleTitle}" (${source}): ${img.sceneDescription}`;
           })
           .join("\n")
       : "(No chronicle images available — use prompt_request for all images)";
@@ -1209,6 +1220,7 @@ function parseEraNarrativeImageRefsResponse(
   text: string,
   availableImages: AvailableChronicleImage[]
 ): EraNarrativeImageRef[] {
+  // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("No JSON object found");
 

@@ -1,5 +1,59 @@
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import DomainDiff from "./DomainDiff";
+
+function ResultRow({ result, index, isExpanded, onToggle }) {
+  return (
+    <React.Fragment key={result.domainId}>
+      <tr
+        onClick={result.success ? () => onToggle(result.domainId) : undefined}
+        className={`results-row ${isExpanded ? "expanded" : ""} ${result.success ? "clickable" : ""}`}
+      >
+        <td className="col-expand">
+          {result.success && (
+            <span className="text-small">{isExpanded ? "▼" : "▶"}</span>
+          )}
+        </td>
+        <td>
+          {result.success ? (
+            <span className="text-success mr-sm">✓</span>
+          ) : (
+            <span className="text-danger mr-sm">✗</span>
+          )}
+          {result.domainId}
+        </td>
+        <td className="text-right">
+          {result.success ? result.initialFitness?.toFixed(3) : "-"}
+        </td>
+        <td className="text-right">
+          {result.success ? result.finalFitness?.toFixed(3) : "-"}
+        </td>
+        <td className={`text-right ${result.success ? "text-gold font-bold" : "text-danger"}`}>
+          {result.success
+            ? `+${((result.improvement || 0) * 100).toFixed(1)}%`
+            : result.error}
+        </td>
+      </tr>
+      {isExpanded && result.success && (
+        <tr key={`${index}-diff`}>
+          <td colSpan={5} className="diff-cell">
+            <div className="diff-container">
+              <div className="diff-header">
+                <span className="text-gold text-xs font-bold uppercase">
+                  Parameter Changes
+                </span>
+              </div>
+              <DomainDiff
+                initial={result.initialConfig}
+                optimized={result.optimizedConfig}
+              />
+            </div>
+          </td>
+        </tr>
+      )}
+    </React.Fragment>
+  );
+}
 
 /**
  * ResultsModal - Modal showing optimization progress and results
@@ -35,6 +89,9 @@ export default function ResultsModal({
       onClick={(e) => {
         if (e.target === e.currentTarget && !optimizing) onClose();
       }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
     >
       <div className="optimizer-modal">
         {/* Modal Header */}
@@ -103,64 +160,15 @@ export default function ResultsModal({
                       </tr>
                     </thead>
                     <tbody>
-                      {results.map((result, i) => {
-                        const isExpanded = expandedResults.has(result.domainId);
-
-                        return (
-                          <React.Fragment key={result.domainId}>
-                            <tr
-                              onClick={
-                                result.success ? () => toggleExpand(result.domainId) : undefined
-                              }
-                              className={`results-row ${isExpanded ? "expanded" : ""} ${result.success ? "clickable" : ""}`}
-                            >
-                              <td className="col-expand">
-                                {result.success && (
-                                  <span className="text-small">{isExpanded ? "▼" : "▶"}</span>
-                                )}
-                              </td>
-                              <td>
-                                {result.success ? (
-                                  <span className="text-success mr-sm">✓</span>
-                                ) : (
-                                  <span className="text-danger mr-sm">✗</span>
-                                )}
-                                {result.domainId}
-                              </td>
-                              <td className="text-right">
-                                {result.success ? result.initialFitness?.toFixed(3) : "-"}
-                              </td>
-                              <td className="text-right">
-                                {result.success ? result.finalFitness?.toFixed(3) : "-"}
-                              </td>
-                              <td
-                                className={`text-right ${result.success ? "text-gold font-bold" : "text-danger"}`}
-                              >
-                                {result.success
-                                  ? `+${((result.improvement || 0) * 100).toFixed(1)}%`
-                                  : result.error}
-                              </td>
-                            </tr>
-                            {isExpanded && result.success && (
-                              <tr key={`${i}-diff`}>
-                                <td colSpan={5} className="diff-cell">
-                                  <div className="diff-container">
-                                    <div className="diff-header">
-                                      <span className="text-gold text-xs font-bold uppercase">
-                                        Parameter Changes
-                                      </span>
-                                    </div>
-                                    <DomainDiff
-                                      initial={result.initialConfig}
-                                      optimized={result.optimizedConfig}
-                                    />
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
+                      {results.map((result, i) => (
+                        <ResultRow
+                          key={result.domainId}
+                          result={result}
+                          index={i}
+                          isExpanded={expandedResults.has(result.domainId)}
+                          onToggle={toggleExpand}
+                        />
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -188,3 +196,13 @@ export default function ResultsModal({
     </div>
   );
 }
+
+ResultsModal.propTypes = {
+  show: PropTypes.bool,
+  onClose: PropTypes.func,
+  optimizing: PropTypes.bool,
+  progress: PropTypes.object,
+  logs: PropTypes.array,
+  results: PropTypes.array,
+  onSaveResults: PropTypes.func,
+};

@@ -98,7 +98,7 @@ export default function ExportView({
   treeState,
   projectId,
   simulationRunId,
-}: ExportViewProps) {
+}: Readonly<ExportViewProps>) {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exportFormat, setExportFormat] = useState<ExportFormat>("markdown");
@@ -182,7 +182,7 @@ export default function ExportView({
 
   const handleDownloadScript = useCallback(() => {
     const script = buildIdmlImageScript({
-      treeState: treeState!,
+      treeState: treeState,
       entities,
       chronicles,
       images,
@@ -486,12 +486,12 @@ export default function ExportView({
         )}
 
         <div style={{ display: "flex", gap: "var(--space-sm)", alignItems: "center" }}>
-          <button className="preprint-action-button" onClick={handleExport} disabled={exporting}>
-            {exporting
-              ? "Exporting..."
-              : exportFormat === "indesign"
-                ? "Export IDML"
-                : "Export Markdown ZIP"}
+          <button className="preprint-action-button" onClick={() => void handleExport()} disabled={exporting}>
+            {(() => {
+              if (exporting) return "Exporting...";
+              if (exportFormat === "indesign") return "Export IDML";
+              return "Export Markdown ZIP";
+            })()}
           </button>
           {exportFormat === "indesign" && s3Config && (
             <button

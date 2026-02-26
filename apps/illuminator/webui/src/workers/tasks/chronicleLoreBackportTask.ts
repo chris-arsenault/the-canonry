@@ -227,8 +227,9 @@ function buildUserPrompt(
         synthParts.push(`Brief: ${synthesis.brief}`);
       }
       if (synthesis.facets?.length) {
+        const facetLines = synthesis.facets.map((f: { factId: string; interpretation: string }) => `  - [${f.factId}] ${f.interpretation}`).join("\n");
         synthParts.push(
-          `Faceted Facts:\n${synthesis.facets.map((f: { factId: string; interpretation: string }) => `  - [${f.factId}] ${f.interpretation}`).join("\n")}`
+          `Faceted Facts:\n${facetLines}`
         );
       }
       if (synthesis.narrativeVoice && Object.keys(synthesis.narrativeVoice).length) {
@@ -239,8 +240,9 @@ function buildUserPrompt(
         );
       }
       if (synthesis.entityDirectives?.length) {
+        const directiveLines = synthesis.entityDirectives.map((d: { entityName: string; directive: string }) => `  - ${d.entityName}: ${d.directive}`).join("\n");
         synthParts.push(
-          `Entity Directives:\n${synthesis.entityDirectives.map((d: { entityName: string; directive: string }) => `  - ${d.entityName}: ${d.directive}`).join("\n")}`
+          `Entity Directives:\n${directiveLines}`
         );
       }
       if (synthesis.suggestedMotifs?.length) {
@@ -272,8 +274,9 @@ function buildUserPrompt(
     const displayName = e.chronicleName || e.name;
     const lensTag = e.isLens ? " [NARRATIVE LENS]" : "";
     const primaryTag = e.isPrimary ? " [PRIMARY]" : "";
+    const entityKindLabel = e.subtype ? `${e.kind} / ${e.subtype}` : e.kind;
     parts.push(
-      `### ${displayName} (${e.kind}${e.subtype ? ` / ${e.subtype}` : ""})${lensTag}${primaryTag}`
+      `### ${displayName} (${entityKindLabel})${lensTag}${primaryTag}`
     );
     if (e.chronicleName && e.chronicleName !== e.name) {
       parts.push(`Canonical name: ${e.name}`);
@@ -318,8 +321,9 @@ function buildUserPrompt(
     }
 
     if (e.existingAnchorPhrases?.length) {
+      const anchorLines = e.existingAnchorPhrases.map((a: string) => `  - "${a}"`).join("\n");
       parts.push(
-        `Existing Anchor Phrases (PRESERVE in description):\n${e.existingAnchorPhrases.map((a: string) => `  - "${a}"`).join("\n")}`
+        `Existing Anchor Phrases (PRESERVE in description):\n${anchorLines}`
       );
     }
 
@@ -483,6 +487,7 @@ async function executeChronicleLoreBackportTask(
     // Parse LLM response
     let parsed: SummaryRevisionLLMResponse;
     try {
+      // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
       const jsonMatch = resultText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("No JSON object found");
       parsed = JSON.parse(jsonMatch[0]);

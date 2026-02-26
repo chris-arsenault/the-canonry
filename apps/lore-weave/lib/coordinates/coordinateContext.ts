@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/pseudo-random -- coordinate geometry uses Math.random() for spatial sampling, not security */
 /**
  * Coordinate Context
  *
@@ -159,6 +160,22 @@ const EMERGENT_DEFAULTS = {
   maxAttempts: 50
 };
 
+/**
+ * Calculate whether an axis tag should be applied based on gradient probability.
+ * - At 0 or 100: distance = 50, probability = 100%
+ * - At 25 or 75: distance = 25, probability = 50%
+ * - At 50: distance = 0, probability = 0%
+ */
+function shouldApplyAxisTag(value: number, isLowTag: boolean): boolean {
+  // Only consider values on the appropriate side of center
+  if (isLowTag && value >= 50) return false;
+  if (!isLowTag && value <= 50) return false;
+
+  const distanceFromCenter = Math.abs(value - 50);
+  const probability = (distanceFromCenter / 50) * 100;
+  return Math.random() * 100 < probability;
+}
+
 // =============================================================================
 // COORDINATE CONTEXT
 // =============================================================================
@@ -213,31 +230,50 @@ export class CoordinateContext {
       throw new Error('CoordinateContext: schema.cultures is required.');
     }
 
-    // Validate semantic plane axis references and region colors
+    this.validateSemanticPlanes();
+    this.initializeRegionStorage();
+  }
+
+  /**
+   * Validate semantic plane axis references and region colors for all entity kinds.
+   */
+  private validateSemanticPlanes(): void {
     for (const entityKind of this.entityKinds) {
       const plane = entityKind.semanticPlane;
       if (plane?.axes) {
-        const axisRefs = [plane.axes.x, plane.axes.y, plane.axes.z].filter(Boolean) as Array<{ axisId: string }>;
-        for (const axisRef of axisRefs) {
-          if (!this.axisDefinitions.has(axisRef.axisId)) {
-            throw new Error(
-              `CoordinateContext: axis "${axisRef.axisId}" referenced by kind "${entityKind.kind}" is not defined.`
-            );
-          }
-        }
+        this.validateAxisReferences(entityKind.kind, plane.axes);
       }
       if (plane?.regions) {
-        for (const region of plane.regions) {
-          if (!region.color) {
-            throw new Error(
-              `CoordinateContext: region "${region.id}" in kind "${entityKind.kind}" is missing color.`
-            );
-          }
-        }
+        this.validateRegionColors(entityKind.kind, plane.regions);
       }
     }
+  }
 
-    // Initialize mutable region storage from entity kinds' semantic planes
+  private validateAxisReferences(kind: string, axes: NonNullable<SemanticPlane['axes']>): void {
+    const axisRefs = [axes.x, axes.y, axes.z].filter(Boolean) as Array<{ axisId: string }>;
+    for (const axisRef of axisRefs) {
+      if (!this.axisDefinitions.has(axisRef.axisId)) {
+        throw new Error(
+          `CoordinateContext: axis "${axisRef.axisId}" referenced by kind "${kind}" is not defined.`
+        );
+      }
+    }
+  }
+
+  private validateRegionColors(kind: string, regions: Region[]): void {
+    for (const region of regions) {
+      if (!region.color) {
+        throw new Error(
+          `CoordinateContext: region "${region.id}" in kind "${kind}" is missing color.`
+        );
+      }
+    }
+  }
+
+  /**
+   * Initialize mutable region storage from entity kinds' semantic planes.
+   */
+  private initializeRegionStorage(): void {
     for (const entityKind of this.entityKinds) {
       if (entityKind.semanticPlane?.regions) {
         this.regions[entityKind.kind] = [...entityKind.semanticPlane.regions];
@@ -578,8 +614,6 @@ export class CoordinateContext {
     const min = radius;        // 10
     const max = 100 - radius;  // 90
     const range = max - min;   // 80
-    const mid = min + range / 2; // 50
-
     // Use inverse transform to bias toward edges of valid range
     // This maps uniform [0,1] to values clustered near min and max
     const biasedSample = (): number => {
@@ -781,80 +815,99 @@ export class CoordinateContext {
   ): Promise<{ point: Point; resolvedVia: string; placedInRegion?: Region; emergentRegion?: { id: string; label: string } } | null> {
     // If reference entity provided AND we're not constrained to regions, sample near it
     // When stickToRegion is true, skip this to ensure placement stays within region bounds
-    if (context.referenceEntity?.coordinates && !context.stickToRegion) {
-      const point = this.sampleNearPoint(
-        context.referenceEntity.coordinates,
-        existingPoints
-      );
-      if (point) {
-        return { point, resolvedVia: 'near_reference' };
-      }
-    }
-
-    const regions = this.getRegions(entityKind);
+    const nearRef = this.trySampleNearReference(context, existingPoints);
+    if (nearRef) return nearRef;
 
     // Try seed regions first (regions belonging to this culture)
-    // If we have a reference entity, bias placement toward it within the region
-    if (context.seedRegionIds && context.seedRegionIds.length > 0) {
-      const referenceCoords = context.referenceEntity?.coordinates;
-
-      // Get valid regions from seed IDs
-      const validRegions = context.seedRegionIds
-        .map(id => regions.find(r => r.id === id))
-        .filter((r): r is Region => r !== undefined);
-
-      // Order regions - weighted by sparseness or random shuffle
-      const orderedRegions = context.preferSparse && validRegions.length > 1
-        ? this.weightedSparseSelection(validRegions, existingPoints)
-        : [...validRegions].sort(() => Math.random() - 0.5);
-
-      for (const region of orderedRegions) {
-        // Use biased sampling if we have a reference point, otherwise random
-        const point = this.sampleCircleRegionNear(region, referenceCoords, existingPoints);
-        if (point) {
-          const via = referenceCoords ? 'seed_region_near_ref' : 'seed_region';
-          // Return the region we actually placed in to avoid confusion with overlapping regions
-          return { point, resolvedVia: via, placedInRegion: region };
-        }
-      }
-    }
+    const seedResult = this.trySampleInSeedRegions(entityKind, context, existingPoints);
+    if (seedResult) return seedResult;
 
     // Seed regions exhausted or not defined - try sampling near culture's axis biases
-    if (context.axisBiases) {
-      const biasCenter: Point = {
-        x: context.axisBiases.x,
-        y: context.axisBiases.y,
-        z: context.axisBiases.z
-      };
-      const point = this.sampleNearPoint(biasCenter, existingPoints);
-      if (point) {
-        return { point, resolvedVia: 'axis_biases' };
-      }
-    }
+    const biasResult = this.trySampleNearAxisBiases(context, existingPoints);
+    if (biasResult) return biasResult;
 
     // Bias sampling failed - try emergent region creation near bias point (if allowed)
-    if (context.allowEmergent !== false && context.cultureId) {
-      const emergentResult = await this.createEmergentRegionForCulture(
-        entityKind,
-        context.cultureId,
-        existingPoints,
-        tick,
-        context.axisBiases
-      );
-      if (emergentResult) {
-        return {
-          point: emergentResult.point,
-          resolvedVia: 'emergent_region',
-          emergentRegion: {
-            id: emergentResult.region.id,
-            label: emergentResult.region.label
-          }
-        };
-      }
-    }
+    const emergentResult = await this.trySampleViaEmergentRegion(entityKind, context, existingPoints, tick);
+    if (emergentResult) return emergentResult;
 
     // No culture-aware placement possible - skip
     return null;
+  }
+
+  private trySampleNearReference(
+    context: PlacementContext,
+    existingPoints: Point[]
+  ): { point: Point; resolvedVia: string } | null {
+    if (!context.referenceEntity?.coordinates || context.stickToRegion) return null;
+    const point = this.sampleNearPoint(context.referenceEntity.coordinates, existingPoints);
+    return point ? { point, resolvedVia: 'near_reference' } : null;
+  }
+
+  private trySampleInSeedRegions(
+    entityKind: string,
+    context: PlacementContext,
+    existingPoints: Point[]
+  ): { point: Point; resolvedVia: string; placedInRegion: Region } | null {
+    if (!context.seedRegionIds || context.seedRegionIds.length === 0) return null;
+
+    const regions = this.getRegions(entityKind);
+    const referenceCoords = context.referenceEntity?.coordinates;
+
+    const validRegions = context.seedRegionIds
+      .map(id => regions.find(r => r.id === id))
+      .filter((r): r is Region => r !== undefined);
+
+    const orderedRegions = context.preferSparse && validRegions.length > 1
+      ? this.weightedSparseSelection(validRegions, existingPoints)
+      : [...validRegions].sort(() => Math.random() - 0.5);
+
+    for (const region of orderedRegions) {
+      const point = this.sampleCircleRegionNear(region, referenceCoords, existingPoints);
+      if (point) {
+        const via = referenceCoords ? 'seed_region_near_ref' : 'seed_region';
+        return { point, resolvedVia: via, placedInRegion: region };
+      }
+    }
+    return null;
+  }
+
+  private trySampleNearAxisBiases(
+    context: PlacementContext,
+    existingPoints: Point[]
+  ): { point: Point; resolvedVia: string } | null {
+    if (!context.axisBiases) return null;
+    const biasCenter: Point = {
+      x: context.axisBiases.x,
+      y: context.axisBiases.y,
+      z: context.axisBiases.z
+    };
+    const point = this.sampleNearPoint(biasCenter, existingPoints);
+    return point ? { point, resolvedVia: 'axis_biases' } : null;
+  }
+
+  private async trySampleViaEmergentRegion(
+    entityKind: string,
+    context: PlacementContext,
+    existingPoints: Point[],
+    tick: number
+  ): Promise<{ point: Point; resolvedVia: string; emergentRegion: { id: string; label: string } } | null> {
+    if (context.allowEmergent === false || !context.cultureId) return null;
+    const emergentResult = await this.createEmergentRegionForCulture(
+      entityKind,
+      context.cultureId,
+      existingPoints,
+      tick,
+      context.axisBiases
+    );
+    if (!emergentResult) return null;
+    return {
+      point: emergentResult.point,
+      resolvedVia: 'emergent_region',
+      emergentRegion: {
+        id: emergentResult.region.id,
+        label: emergentResult.region.label
+      }
+    };
   }
 
   /**
@@ -990,65 +1043,47 @@ export class CoordinateContext {
     }
 
     // 2. Derive tags from axis positions using gradient-based probability
-    // Probability scales linearly: 100% at extremes (0/100), 50% at quarter points (25/75), 0% at center (50)
-    const semanticPlane = this.getSemanticPlane(entityKind);
-
-    if (semanticPlane?.axes) {
-      const { axes } = semanticPlane;
-      const resolveAxis = (axisRef?: { axisId: string }) =>
-        axisRef?.axisId ? this.axisDefinitions.get(axisRef.axisId) : undefined;
-
-      /**
-       * Calculate tag probability based on distance from center.
-       * - At 0 or 100: distance = 50, probability = 100%
-       * - At 25 or 75: distance = 25, probability = 50%
-       * - At 50: distance = 0, probability = 0%
-       */
-      const shouldApplyTag = (value: number, isLowTag: boolean): boolean => {
-        // Only consider values on the appropriate side of center
-        if (isLowTag && value >= 50) return false;
-        if (!isLowTag && value <= 50) return false;
-
-        // Calculate probability: distance from center (0-50) mapped to 0-100%
-        const distanceFromCenter = Math.abs(value - 50);
-        const probability = (distanceFromCenter / 50) * 100;
-
-        // Roll the dice
-        return Math.random() * 100 < probability;
-      };
-
-      // X axis
-      const xAxis = resolveAxis(axes.x);
-      if (xAxis) {
-        if (xAxis.lowTag && shouldApplyTag(point.x, true)) {
-          addTag(xAxis.lowTag);
-        } else if (xAxis.highTag && shouldApplyTag(point.x, false)) {
-          addTag(xAxis.highTag);
-        }
-      }
-
-      // Y axis
-      const yAxis = resolveAxis(axes.y);
-      if (yAxis) {
-        if (yAxis.lowTag && shouldApplyTag(point.y, true)) {
-          addTag(yAxis.lowTag);
-        } else if (yAxis.highTag && shouldApplyTag(point.y, false)) {
-          addTag(yAxis.highTag);
-        }
-      }
-
-      // Z axis
-      const zAxis = resolveAxis(axes.z);
-      if (zAxis && point.z !== undefined) {
-        if (zAxis.lowTag && shouldApplyTag(point.z, true)) {
-          addTag(zAxis.lowTag);
-        } else if (zAxis.highTag && shouldApplyTag(point.z, false)) {
-          addTag(zAxis.highTag);
-        }
-      }
-    }
+    this.deriveAxisTags(entityKind, point, addTag);
 
     return tags;
+  }
+
+  /**
+   * Derive tags from axis positions using gradient-based probability.
+   * Probability scales linearly: 100% at extremes (0/100), 50% at quarter points (25/75), 0% at center (50).
+   */
+  private deriveAxisTags(
+    entityKind: string,
+    point: Point,
+    addTag: (tag: string) => void
+  ): void {
+    const semanticPlane = this.getSemanticPlane(entityKind);
+    if (!semanticPlane?.axes) return;
+
+    const { axes } = semanticPlane;
+    const resolveAxis = (axisRef?: { axisId: string }) =>
+      axisRef?.axisId ? this.axisDefinitions.get(axisRef.axisId) : undefined;
+
+    this.applyAxisTag(resolveAxis(axes.x), point.x, addTag);
+    this.applyAxisTag(resolveAxis(axes.y), point.y, addTag);
+    this.applyAxisTag(resolveAxis(axes.z), point.z, addTag);
+  }
+
+  /**
+   * Apply low/high tag from an axis definition based on gradient probability.
+   * At 0 or 100: probability = 100%. At 25 or 75: probability = 50%. At 50: probability = 0%.
+   */
+  private applyAxisTag(
+    axis: AxisDefinition | undefined,
+    value: number,
+    addTag: (tag: string) => void
+  ): void {
+    if (!axis) return;
+    if (axis.lowTag && shouldApplyAxisTag(value, true)) {
+      addTag(axis.lowTag);
+    } else if (axis.highTag && shouldApplyAxisTag(value, false)) {
+      addTag(axis.highTag);
+    }
   }
 
   /**

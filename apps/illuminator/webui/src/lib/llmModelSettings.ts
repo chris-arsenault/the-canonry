@@ -114,54 +114,51 @@ export function getLLMModelSettings(): LLMModelSettings {
 /**
  * Save settings to localStorage
  */
+type OverrideField = keyof LLMCallConfigStored;
+
+const OVERRIDE_FIELDS: Array<{ field: OverrideField; fallback?: unknown }> = [
+  { field: "model" },
+  { field: "thinkingBudget" },
+  { field: "maxTokens" },
+  { field: "temperature" },
+  { field: "topP" },
+  { field: "streamTimeout", fallback: 0 },
+  { field: "disableStreaming", fallback: false },
+  { field: "runInBrowser", fallback: false },
+];
+
+function extractNonDefaultOverrides(
+  config: LLMCallConfigStored,
+  defaults: LLMCallConfig
+): LLMCallConfigStored | null {
+  const overrides: Record<string, unknown> = {};
+  let hasAny = false;
+
+  for (const { field, fallback } of OVERRIDE_FIELDS) {
+    const value = config[field];
+    const defaultValue = (defaults as Record<string, unknown>)[field] ?? fallback;
+    const isModel = field === "model";
+    const isOverridden = isModel ? (value && value !== defaultValue) : (value !== undefined && value !== defaultValue);
+    if (isOverridden) {
+      overrides[field] = value;
+      hasAny = true;
+    }
+  }
+
+  return hasAny ? (overrides as LLMCallConfigStored) : null;
+}
+
 export function saveLLMModelSettings(settings: LLMModelSettings): void {
   try {
-    // Clean up: remove entries that match defaults
     const cleanOverrides: LLMModelSettings["callOverrides"] = {};
     for (const [callType, config] of Object.entries(settings.callOverrides)) {
       if (!config) continue;
       const metadata = LLM_CALL_METADATA[callType as LLMCallType];
       if (!metadata) continue;
 
-      const hasModelOverride = config.model && config.model !== metadata.defaults.model;
-      const hasThinkingOverride =
-        config.thinkingBudget !== undefined &&
-        config.thinkingBudget !== metadata.defaults.thinkingBudget;
-      const hasMaxTokensOverride =
-        config.maxTokens !== undefined && config.maxTokens !== metadata.defaults.maxTokens;
-      const hasTemperatureOverride =
-        config.temperature !== undefined && config.temperature !== metadata.defaults.temperature;
-      const hasTopPOverride = config.topP !== undefined && config.topP !== metadata.defaults.topP;
-      const hasStreamTimeoutOverride =
-        config.streamTimeout !== undefined &&
-        config.streamTimeout !== (metadata.defaults.streamTimeout ?? 0);
-      const hasDisableStreamingOverride =
-        config.disableStreaming !== undefined &&
-        config.disableStreaming !== (metadata.defaults.disableStreaming ?? false);
-      const hasRunInBrowserOverride =
-        config.runInBrowser !== undefined &&
-        config.runInBrowser !== (metadata.defaults.runInBrowser ?? false);
-
-      if (
-        hasModelOverride ||
-        hasThinkingOverride ||
-        hasMaxTokensOverride ||
-        hasTemperatureOverride ||
-        hasTopPOverride ||
-        hasStreamTimeoutOverride ||
-        hasDisableStreamingOverride ||
-        hasRunInBrowserOverride
-      ) {
-        cleanOverrides[callType as LLMCallType] = {
-          ...(hasModelOverride ? { model: config.model } : {}),
-          ...(hasThinkingOverride ? { thinkingBudget: config.thinkingBudget } : {}),
-          ...(hasMaxTokensOverride ? { maxTokens: config.maxTokens } : {}),
-          ...(hasTemperatureOverride ? { temperature: config.temperature } : {}),
-          ...(hasTopPOverride ? { topP: config.topP } : {}),
-          ...(hasStreamTimeoutOverride ? { streamTimeout: config.streamTimeout } : {}),
-          ...(hasDisableStreamingOverride ? { disableStreaming: config.disableStreaming } : {}),
-          ...(hasRunInBrowserOverride ? { runInBrowser: config.runInBrowser } : {}),
-        };
+      const overrides = extractNonDefaultOverrides(config, metadata.defaults);
+      if (overrides) {
+        cleanOverrides[callType as LLMCallType] = overrides;
       }
     }
 

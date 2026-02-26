@@ -387,7 +387,7 @@ export function autoPopulateBody(
       .filter((n) => n.eraId === eraId)
       .sort((a, b) => (b as any).updatedAt - (a as any).updatedAt)[0];
     if (narrative) {
-      eraFolder.children!.push({
+      eraFolder.children.push({
         id: generateId(),
         name: `${eraName} — Era Narrative`,
         type: "era_narrative",
@@ -406,7 +406,7 @@ export function autoPopulateBody(
       });
 
     for (const c of eraChronicles) {
-      eraFolder.children!.push({
+      eraFolder.children.push({
         id: generateId(),
         name: c.title || "Untitled Chronicle",
         type: "chronicle",
@@ -414,7 +414,7 @@ export function autoPopulateBody(
       });
     }
 
-    if (eraFolder.children!.length > 0) {
+    if (eraFolder.children.length > 0) {
       bodyChildren.push(eraFolder);
     }
   }
@@ -477,7 +477,7 @@ export function autoPopulateBody(
   const encyclopediaChildren: ContentTreeNode[] = [];
   const usedPageIds = new Set<string>();
 
-  const sortedCultures = [...byCulture.keys()].sort();
+  const sortedCultures = [...byCulture.keys()].sort((a, b) => a.localeCompare(b));
   for (const cultureName of sortedCultures) {
     const cultureFolder: ContentTreeNode = {
       id: generateId(),
@@ -489,7 +489,7 @@ export function autoPopulateBody(
     // Culture static page at top
     const culturePage = culturePageMap.get(cultureName.toLowerCase());
     if (culturePage) {
-      cultureFolder.children!.push({
+      cultureFolder.children.push({
         id: generateId(),
         name: culturePage.title,
         type: "static_page",
@@ -499,7 +499,7 @@ export function autoPopulateBody(
     }
 
     // Group entities by kind
-    const cultureEntities = byCulture.get(cultureName)!;
+    const cultureEntities = byCulture.get(cultureName);
     const byKind = new Map<string, typeof cultureEntities>();
     for (const e of cultureEntities) {
       const kind = e.kind;
@@ -508,9 +508,9 @@ export function autoPopulateBody(
       byKind.set(kind, list);
     }
 
-    const sortedKinds = [...byKind.keys()].sort();
+    const sortedKinds = [...byKind.keys()].sort((a, b) => a.localeCompare(b));
     for (const kind of sortedKinds) {
-      const kindEntities = byKind.get(kind)!.sort((a, b) => a.name.localeCompare(b.name));
+      const kindEntities = byKind.get(kind).sort((a, b) => a.name.localeCompare(b.name));
       const kindFolder: ContentTreeNode = {
         id: generateId(),
         name: kind.charAt(0).toUpperCase() + kind.slice(1) + "s",
@@ -522,10 +522,10 @@ export function autoPopulateBody(
           contentId: e.id,
         })),
       };
-      cultureFolder.children!.push(kindFolder);
+      cultureFolder.children.push(kindFolder);
     }
 
-    if (cultureFolder.children!.length > 0) {
+    if (cultureFolder.children.length > 0) {
       encyclopediaChildren.push(cultureFolder);
     }
   }
@@ -546,9 +546,9 @@ export function autoPopulateBody(
       children: [],
     };
 
-    const sortedKinds = [...byKind.keys()].sort();
+    const sortedKinds = [...byKind.keys()].sort((a, b) => a.localeCompare(b));
     for (const kind of sortedKinds) {
-      const kindEntities = byKind.get(kind)!.sort((a, b) => a.name.localeCompare(b.name));
+      const kindEntities = byKind.get(kind).sort((a, b) => a.name.localeCompare(b.name));
       const kindFolder: ContentTreeNode = {
         id: generateId(),
         name: kind.charAt(0).toUpperCase() + kind.slice(1) + "s",
@@ -560,10 +560,10 @@ export function autoPopulateBody(
           contentId: e.id,
         })),
       };
-      unculturedFolder.children!.push(kindFolder);
+      unculturedFolder.children.push(kindFolder);
     }
 
-    if (unculturedFolder.children!.length > 0) {
+    if (unculturedFolder.children.length > 0) {
       encyclopediaChildren.push(unculturedFolder);
     }
   }

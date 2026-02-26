@@ -6,7 +6,7 @@
  * (e.g., meta-entity formation, faction consolidation).
  */
 
-import { HardState, EntityTags } from '../core/worldTypes';
+import { HardState } from '../core/worldTypes';
 import { WorldRuntime } from '../runtime/worldRuntime';
 import { FRAMEWORK_STATUS, FRAMEWORK_TAGS } from '@canonry/world-schema';
 import { hasTag } from '../utils';
@@ -161,6 +161,39 @@ export function calculateSimilarity(
  * @param graphView - Graph view for relationship queries
  * @returns Array of detected clusters
  */
+function tryAddToExistingCluster(
+  entity: HardState,
+  clusters: Cluster[],
+  config: ClusterConfig,
+  clusterJoinThreshold: number,
+  graphView: WorldRuntime
+): boolean {
+  for (const cluster of clusters) {
+    let clusterScore = 0;
+    let matchCount = 0;
+    const allMatchedCriteria: string[] = [];
+
+    for (const member of cluster.entities) {
+      const { score, matchedCriteria } = calculateSimilarity(entity, member, config.criteria, graphView);
+      if (score > 0) {
+        clusterScore += score;
+        matchCount++;
+        allMatchedCriteria.push(...matchedCriteria);
+      }
+    }
+
+    const avgSimilarity = matchCount > 0 ? clusterScore / matchCount : 0;
+
+    if (avgSimilarity >= config.minimumScore * clusterJoinThreshold) {
+      cluster.entities.push(entity);
+      cluster.score = (cluster.score + avgSimilarity) / 2;
+      cluster.matchedCriteria = [...new Set([...cluster.matchedCriteria, ...allMatchedCriteria])];
+      return true;
+    }
+  }
+  return false;
+}
+
 export function detectClusters(
   entities: HardState[],
   config: ClusterConfig,
@@ -178,44 +211,8 @@ export function detectClusters(
   const clusterJoinThreshold = config.clusterJoinThreshold ?? 0.7;
 
   for (const entity of sorted) {
-    let addedToCluster = false;
-
-    // Try to add to existing cluster
-    for (const cluster of clusters) {
-      // Check if entity is similar enough to cluster members
-      let clusterScore = 0;
-      let matchCount = 0;
-      const allMatchedCriteria: string[] = [];
-
-      for (const member of cluster.entities) {
-        const { score, matchedCriteria } = calculateSimilarity(
-          entity,
-          member,
-          config.criteria,
-          graphView
-        );
-        if (score > 0) {
-          clusterScore += score;
-          matchCount++;
-          allMatchedCriteria.push(...matchedCriteria);
-        }
-      }
-
-      // Average similarity to cluster members
-      const avgSimilarity = matchCount > 0 ? clusterScore / matchCount : 0;
-
-      // If similar enough, add to cluster
-      if (avgSimilarity >= config.minimumScore * clusterJoinThreshold) {
-        cluster.entities.push(entity);
-        cluster.score = (cluster.score + avgSimilarity) / 2; // Update cluster score
-        cluster.matchedCriteria = [...new Set([...cluster.matchedCriteria, ...allMatchedCriteria])];
-        addedToCluster = true;
-        break;
-      }
-    }
-
-    // If not added to any cluster, create new cluster
-    if (!addedToCluster) {
+    const matched = tryAddToExistingCluster(entity, clusters, config, clusterJoinThreshold, graphView);
+    if (!matched) {
       clusters.push({
         entities: [entity],
         score: config.minimumScore,

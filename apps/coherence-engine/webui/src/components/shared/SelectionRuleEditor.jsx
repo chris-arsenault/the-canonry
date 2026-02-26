@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { ReferenceDropdown, ChipSelect, NumberInput, PROMINENCE_LEVELS } from "./index";
 import { PICK_STRATEGIES } from "../generators/constants";
 import { SelectionFiltersEditor } from "../generators/filters";
@@ -79,7 +80,7 @@ export function SelectionRuleEditor({
 
         {showMaxResults && (
           <div className="form-group">
-            <label className="label">Max Results</label>
+            <label className="label">Max Results
             <NumberInput
               value={selection.maxResults}
               onChange={(v) => updateSelection("maxResults", v)}
@@ -88,6 +89,7 @@ export function SelectionRuleEditor({
               allowEmpty
               placeholder="1"
             />
+            </label>
           </div>
         )}
       </div>
@@ -107,8 +109,8 @@ export function SelectionRuleEditor({
           placeholder="Any kind"
         />
         <div className="form-group">
-          <label className="label">Status (optional)</label>
-          <input
+          <label htmlFor="status-optional" className="label">Status (optional)</label>
+          <input id="status-optional"
             type="text"
             value={selection.status || ""}
             onChange={(e) => updateSelection("status", e.target.value || undefined)}
@@ -117,8 +119,8 @@ export function SelectionRuleEditor({
           />
         </div>
         <div className="form-group">
-          <label className="label">Not Status (optional)</label>
-          <input
+          <label htmlFor="not-status-optional" className="label">Not Status (optional)</label>
+          <input id="not-status-optional"
             type="text"
             value={selection.notStatus || ""}
             onChange={(e) => updateSelection("notStatus", e.target.value || undefined)}
@@ -154,8 +156,8 @@ export function SelectionRuleEditor({
 
       {selection.strategy === "by_preference_order" && (
         <div style={{ marginTop: "16px" }}>
-          <label className="label">Subtype Preferences (comma-separated)</label>
-          <input
+          <label htmlFor="subtype-preferences-comma-separated" className="label">Subtype Preferences (comma-separated)</label>
+          <input id="subtype-preferences-comma-separated"
             type="text"
             value={(selection.subtypePreferences || []).join(", ")}
             onChange={(e) => {
@@ -214,7 +216,7 @@ export function SelectionRuleEditor({
             placeholder={referenceOptions[0]?.value || ""}
           />
           <div className="form-group">
-            <label className="label">Max Distance</label>
+            <label className="label">Max Distance
             <NumberInput
               value={selection.maxDistance}
               onChange={(v) => updateSelection("maxDistance", v)}
@@ -222,6 +224,7 @@ export function SelectionRuleEditor({
               allowEmpty
               placeholder="50"
             />
+            </label>
           </div>
         </div>
       )}
@@ -257,5 +260,17 @@ export function SelectionRuleEditor({
     </div>
   );
 }
+
+SelectionRuleEditor.propTypes = {
+  value: PropTypes.object,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  availableRefs: PropTypes.array,
+  showPickStrategy: PropTypes.bool,
+  showMaxResults: PropTypes.bool,
+  showFilters: PropTypes.bool,
+  allowAnyKind: PropTypes.bool,
+  showExcludeSubtypes: PropTypes.bool,
+};
 
 export default SelectionRuleEditor;

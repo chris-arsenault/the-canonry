@@ -62,7 +62,7 @@ export async function updatePaletteItems(
 
   for (const newItem of updates.newItems || []) {
     filtered.push({
-      id: `palette_${now}_${Math.random().toString(36).slice(2, 8)}`,
+      id: `palette_${now}_${crypto.randomUUID().slice(0, 8)}`,
       category: newItem.category,
       description: newItem.description,
       examples: newItem.examples,
@@ -208,6 +208,7 @@ function selectCategoriesWeighted(items: PaletteItem[], count: number): PaletteI
   const availableIndices = items.map((_, i) => i);
 
   for (let i = 0; i < count && availableIndices.length > 0; i++) {
+    // eslint-disable-next-line sonarjs/pseudo-random -- non-security weighted selection for trait palette
     let random = Math.random() * totalWeight;
     let selectedIdx = 0;
 

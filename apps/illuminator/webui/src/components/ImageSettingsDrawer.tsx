@@ -139,11 +139,11 @@ function SpecialToggle({
   value,
   onChange,
   poolInfo,
-}: {
+}: Readonly<{
   value: string;
   onChange: (id: string) => void;
   poolInfo?: string;
-}) {
+}>) {
   return (
     <div className="isd-special-toggle-row">
       {[
@@ -171,14 +171,14 @@ function CollapsibleSection({
   onToggle,
   children,
   badge,
-}: {
+}: Readonly<{
   title: string;
   sectionKey: string;
   collapsed: boolean;
   onToggle: (key: string) => void;
   children: React.ReactNode;
   badge?: string;
-}) {
+}>) {
   return (
     <div className="isd-section">
       <button onClick={() => onToggle(sectionKey)} className="isd-section-btn">
@@ -193,7 +193,7 @@ function CollapsibleSection({
   );
 }
 
-function SwatchStrip({ colors }: { colors: string[] }) {
+function SwatchStrip({ colors }: Readonly<{ colors: string[] }>) {
   return (
     <div className="isd-swatch-strip">
       {colors.map((color, i) => (
@@ -284,7 +284,7 @@ export default function ImageSettingsDrawer({
     for (const style of styleLibrary.compositionStyles) {
       const cat = style.targetCategory || "other";
       if (!map.has(cat)) map.set(cat, []);
-      map.get(cat)!.push(style);
+      map.get(cat).push(style);
     }
     return map;
   }, [styleLibrary]);
@@ -296,7 +296,7 @@ export default function ImageSettingsDrawer({
     for (const style of styleLibrary.artisticStyles) {
       const cat = style.category || "other";
       if (!map.has(cat)) map.set(cat, []);
-      map.get(cat)!.push(style);
+      map.get(cat).push(style);
     }
     return map;
   }, [styleLibrary]);
@@ -375,7 +375,7 @@ export default function ImageSettingsDrawer({
       label: group.label,
       palettes: group.ids
         .map((id) => paletteMap.get(id))
-        .filter(Boolean) as typeof styleLibrary.colorPalettes,
+        .filter(Boolean),
     })).filter((g) => g.palettes.length > 0);
   }, [styleLibrary]);
 
@@ -421,10 +421,10 @@ export default function ImageSettingsDrawer({
   return createPortal(
     <>
       {/* Backdrop */}
-      <div onClick={onClose} className="isd-backdrop" />
+      <div onClick={onClose} className="isd-backdrop" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(e); }} />
 
       {/* Drawer */}
-      <div ref={drawerRef} onClick={(e) => e.stopPropagation()} className="isd-drawer">
+      <div ref={drawerRef} onClick={(e) => e.stopPropagation()} className="isd-drawer" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
         {/* Header */}
         <div className="isd-header">
           <span className="isd-header-title">Image Settings</span>
@@ -667,11 +667,11 @@ export function ImageSettingsSummary({
   settings,
   styleLibrary,
   onOpenSettings,
-}: {
+}: Readonly<{
   settings: ImageGenSettings;
   styleLibrary: StyleLibrary | null;
   onOpenSettings: () => void;
-}) {
+}>) {
   const resolve = (id: string, list: Array<{ id: string; name: string }> | undefined) => {
     if (id === RANDOM_ID) return "Random";
     if (id === NONE_ID) return "None";
@@ -706,11 +706,11 @@ export function ImageSettingsTrigger({
   settings,
   styleLibrary,
   onClick,
-}: {
+}: Readonly<{
   settings: ImageGenSettings;
   styleLibrary: StyleLibrary | null;
   onClick: () => void;
-}) {
+}>) {
   const resolve = (id: string, list: Array<{ id: string; name: string }> | undefined) => {
     if (id === RANDOM_ID) return "Random";
     if (id === NONE_ID) return "\u2014";

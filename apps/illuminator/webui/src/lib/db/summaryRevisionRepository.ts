@@ -12,7 +12,7 @@ import type {
 export type { SummaryRevisionRun, SummaryRevisionRunStatus, SummaryRevisionBatch };
 
 export function generateRevisionRunId(): string {
-  return `revrun_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  return `revrun_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 }
 
 export async function createRevisionRun(

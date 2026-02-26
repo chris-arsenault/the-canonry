@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { useLocalInputState, LocalTextArea } from "../../shared";
 
 export function OverviewTab({ action, onChange, onDelete }) {
@@ -25,8 +26,8 @@ export function OverviewTab({ action, onChange, onDelete }) {
         <div className="section-title">📋 Basic Information</div>
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">ID</label>
-            <input
+            <label htmlFor="id" className="label">ID</label>
+            <input id="id"
               type="text"
               value={localId}
               onChange={(e) => setLocalId(e.target.value)}
@@ -36,8 +37,8 @@ export function OverviewTab({ action, onChange, onDelete }) {
             />
           </div>
           <div className="form-group">
-            <label className="label">Name</label>
-            <input
+            <label htmlFor="name" className="label">Name</label>
+            <input id="name"
               type="text"
               value={localName}
               onChange={(e) => setLocalName(e.target.value)}
@@ -47,12 +48,13 @@ export function OverviewTab({ action, onChange, onDelete }) {
             />
           </div>
           <div className="form-group form-group-wide">
-            <label className="label">Description</label>
+            <label className="label">Description
             <LocalTextArea
               value={action.description || ""}
               onChange={(value) => updateAction("description", value)}
               placeholder="What does this action do?"
             />
+            </label>
           </div>
         </div>
       </div>
@@ -79,3 +81,9 @@ export function OverviewTab({ action, onChange, onDelete }) {
     </div>
   );
 }
+
+OverviewTab.propTypes = {
+  action: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+};

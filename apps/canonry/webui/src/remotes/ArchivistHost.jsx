@@ -5,6 +5,7 @@
  */
 
 import React, { Suspense, lazy } from "react";
+import PropTypes from "prop-types";
 import RemotePlaceholder from "./RemotePlaceholder";
 import { colors, typography } from "../theme";
 
@@ -52,3 +53,8 @@ export default function ArchivistHost({ projectId, activeSlotIndex }) {
     </div>
   );
 }
+
+ArchivistHost.propTypes = {
+  projectId: PropTypes.string,
+  activeSlotIndex: PropTypes.number,
+};

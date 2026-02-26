@@ -48,9 +48,9 @@ export interface UseHistorianChronologyReturn {
   /** Whether a chronology session is active */
   isActive: boolean;
   /** Start a new chronology session */
-  startChronology: (config: ChronologyConfig) => void;
+  startChronology: (config: ChronologyConfig) => Promise<void>;
   /** Adjust a year for a specific chronicle before applying */
-  adjustYear: (chronicleId: string, year: number) => void;
+  adjustYear: (chronicleId: string, year: number) => Promise<void>;
   /** Apply all assignments and close the session */
   applyChronology: () => ChronologyAssignment[];
   /** Cancel the current session */
@@ -133,21 +133,23 @@ export function useHistorianChronology(
   const startPolling = useCallback(
     (runId: string) => {
       stopPolling();
-      pollRef.current = setInterval(async () => {
-        const updated = await getHistorianRun(runId);
-        if (!updated) return;
+      pollRef.current = setInterval(() => {
+        void (async () => {
+          const updated = await getHistorianRun(runId);
+          if (!updated) return;
 
-        setRun(updated);
+          setRun(updated);
 
-        // Stop polling on review/terminal states
-        if (
-          updated.status === "reviewing" ||
-          updated.status === "complete" ||
-          updated.status === "failed" ||
-          updated.status === "cancelled"
-        ) {
-          stopPolling();
-        }
+          // Stop polling on review/terminal states
+          if (
+            updated.status === "reviewing" ||
+            updated.status === "complete" ||
+            updated.status === "failed" ||
+            updated.status === "cancelled"
+          ) {
+            stopPolling();
+          }
+        })();
       }, POLL_INTERVAL_MS);
     },
     [stopPolling]

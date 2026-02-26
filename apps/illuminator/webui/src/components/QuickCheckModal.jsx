@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import "./QuickCheckModal.css";
 
 // ---------------------------------------------------------------------------
@@ -144,6 +145,7 @@ function EntitySearchPanel({ entities, initialQuery, onClose }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search entities..."
+          // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
           className="qcm-search-input"
         />
@@ -153,11 +155,13 @@ function EntitySearchPanel({ entities, initialQuery, onClose }) {
       </div>
 
       <div className="qcm-search-results">
-        {query.trim().length < 2 ? (
+        {query.trim().length < 2 && (
           <div className="qcm-search-hint">Type at least 2 characters to search</div>
-        ) : results.length === 0 ? (
+        )}
+        {query.trim().length >= 2 && results.length === 0 && (
           <div className="qcm-search-hint">No matching entities found</div>
-        ) : (
+        )}
+        {query.trim().length >= 2 && results.length > 0 && (
           results.slice(0, 10).map(({ entity, matches }) => (
             <div key={entity.id} className="qcm-search-result-item">
               <div className="qcm-search-result-header">
@@ -273,6 +277,9 @@ export default function QuickCheckModal({ report, entities, onCreateEntity, onCl
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
     >
       <div className="qcm-dialog">
         {/* Header */}
@@ -326,3 +333,29 @@ export default function QuickCheckModal({ report, entities, onCreateEntity, onCl
     </div>
   );
 }
+
+HighlightMatch.propTypes = {
+  text: PropTypes.string,
+  query: PropTypes.string,
+  truncate: PropTypes.number,
+  matchIndex: PropTypes.number,
+};
+
+EntitySearchPanel.propTypes = {
+  entities: PropTypes.array,
+  initialQuery: PropTypes.string,
+  onClose: PropTypes.func.isRequired,
+};
+
+SuspectCard.propTypes = {
+  suspect: PropTypes.object.isRequired,
+  entities: PropTypes.array,
+  onCreateEntity: PropTypes.func,
+};
+
+QuickCheckModal.propTypes = {
+  report: PropTypes.object,
+  entities: PropTypes.array,
+  onCreateEntity: PropTypes.func,
+  onClose: PropTypes.func.isRequired,
+};

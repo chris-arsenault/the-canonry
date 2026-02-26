@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -32,3 +33,11 @@ export function IconButton({ icon, onClick, danger, title, className = '' }) {
 }
 
 export default IconButton;
+
+IconButton.propTypes = {
+  icon: PropTypes.string.isRequired,
+  onClick: PropTypes.func.isRequired,
+  danger: PropTypes.bool,
+  title: PropTypes.string,
+  className: PropTypes.string,
+};

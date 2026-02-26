@@ -4,7 +4,7 @@
  * Loads world data from the shared Dexie store.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./index.css";
 import WorldExplorer from "./components/WorldExplorer.tsx";
 import type { WorldState } from "./types/world.ts";
@@ -22,7 +22,7 @@ export default function ArchivistRemote({
   projectId,
   activeSlotIndex = 0,
   dexieSeededAt,
-}: ArchivistRemoteProps) {
+}: Readonly<ArchivistRemoteProps>) {
   const [worldDataState, setWorldDataState] = useState<WorldState | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -50,11 +50,11 @@ export default function ArchivistRemote({
         if (cancelled) return;
         setWorldDataState(loaded);
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         if (cancelled) return;
         console.error("[ArchivistRemote] Failed to load world data:", err);
         setWorldDataState(null);
-        setLoadError(err?.message || "Failed to load world data from Dexie.");
+        setLoadError(err instanceof Error ? err.message : "Failed to load world data from Dexie.");
       })
       .finally(() => {
         if (cancelled) return;
@@ -97,7 +97,7 @@ export default function ArchivistRemote({
           <div className="archivist-state-icon">📜</div>
           <div className="archivist-state-title">No World Data</div>
           <div className="archivist-state-message">
-            Run a simulation in Lore Weave and click "View in Archivist" to explore your world.
+            Run a simulation in Lore Weave and click &quot;View in Archivist&quot; to explore your world.
           </div>
         </div>
       </div>

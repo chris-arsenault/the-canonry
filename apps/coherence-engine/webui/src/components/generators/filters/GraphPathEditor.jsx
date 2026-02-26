@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { PATH_CHECK_TYPES, PATH_CONSTRAINT_TYPES } from "../constants";
 import { ReferenceDropdown, NumberInput } from "../../shared";
 import { PathStepEditor } from "./PathStepEditor";
@@ -72,16 +73,17 @@ export function GraphPathEditor({ assert, onChange, schema, availableRefs }) {
       {/* Check type and count */}
       <div className="path-editor-grid">
         <div>
-          <label className="label label-tiny">Check Type</label>
+          <label className="label label-tiny">Check Type
           <ReferenceDropdown
             value={assertion.check || "exists"}
             onChange={(v) => updateAssertion("check", v)}
             options={PATH_CHECK_TYPES}
           />
+          </label>
         </div>
         {(assertion.check === "count_min" || assertion.check === "count_max") && (
           <div>
-            <label className="label label-tiny">Count</label>
+            <label className="label label-tiny">Count
             <NumberInput
               value={assertion.count ?? 1}
               onChange={(v) => updateAssertion("count", v ?? 1)}
@@ -89,6 +91,7 @@ export function GraphPathEditor({ assert, onChange, schema, availableRefs }) {
               integer
               className="input input-compact"
             />
+            </label>
           </div>
         )}
       </div>
@@ -143,6 +146,9 @@ export function GraphPathEditor({ assert, onChange, schema, availableRefs }) {
                     key={value}
                     onClick={() => addConstraint(value)}
                     className="dropdown-menu-item"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                   >
                     {label}
                   </div>
@@ -155,5 +161,12 @@ export function GraphPathEditor({ assert, onChange, schema, availableRefs }) {
     </div>
   );
 }
+
+GraphPathEditor.propTypes = {
+  assert: PropTypes.object,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  availableRefs: PropTypes.array,
+};
 
 export default GraphPathEditor;

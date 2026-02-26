@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useCallback } from "react";
+import PropTypes from "prop-types";
 import { EraCard } from "./EraCard";
 
 /**
@@ -118,3 +119,10 @@ export default function ErasEditor({ eras = [], onChange, pressures = [], schema
     </div>
   );
 }
+
+ErasEditor.propTypes = {
+  eras: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  pressures: PropTypes.array,
+  schema: PropTypes.object,
+};

@@ -22,7 +22,11 @@ export default tseslint.config(
       "**/coverage/",
       "infrastructure/",
       "scripts/",
+      "**/scripts/",
       "**/*.min.js",
+      "**/.__mf__temp/",
+      "**/vitest.config.ts",
+      "tools/",
     ],
   },
 
@@ -75,7 +79,7 @@ export default tseslint.config(
       },
     },
     rules: {
-      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       "no-unused-vars": "off",
       "no-console": "off",
     },
@@ -111,11 +115,15 @@ export default tseslint.config(
       ...react.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
       ...jsxA11y.configs.recommended.rules,
+      "jsx-a11y/label-has-associated-control": ["error", {
+        controlComponents: ["NumberInput", "LocalTextArea", "TagSelector", "ReferenceDropdown", "ChipSelect", "LevelSelector"],
+        depth: 3,
+      }],
       "react/react-in-jsx-scope": "warn",
       "react/prop-types": "warn",
       "react/no-unescaped-entities": "warn",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       "no-unused-vars": "off",
       "react-perf/jsx-no-new-object-as-prop": ["warn", { nativeAllowList: "all" }],
       "react-perf/jsx-no-new-array-as-prop": ["warn", { nativeAllowList: "all" }],
@@ -140,6 +148,7 @@ export default tseslint.config(
   // SonarJS: full recommended config
   sonarjs.configs.recommended,
 
+  // TypeScript-specific rule overrides
   {
     files: ["**/*.{ts,tsx}"],
     rules: {

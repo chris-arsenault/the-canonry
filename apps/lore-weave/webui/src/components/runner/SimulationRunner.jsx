@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import { SimulationDashboard } from "../dashboard";
 import DebugSettingsModal from "../DebugSettingsModal";
 import ParameterForm from "./ParameterForm";
@@ -103,8 +104,8 @@ export default function SimulationRunner({
   seedRelationships,
   distributionTargets,
   validation,
-  isRunning,
-  setIsRunning,
+  isRunning: _isRunning,
+  setIsRunning: _setIsRunning,
   onComplete,
   onViewResults,
   onSearchRunScored,
@@ -627,3 +628,25 @@ export default function SimulationRunner({
     </div>
   );
 }
+
+SimulationRunner.propTypes = {
+  projectId: PropTypes.string,
+  schema: PropTypes.object,
+  eras: PropTypes.array,
+  pressures: PropTypes.array,
+  generators: PropTypes.array,
+  systems: PropTypes.array,
+  actions: PropTypes.array,
+  seedEntities: PropTypes.array,
+  seedRelationships: PropTypes.array,
+  distributionTargets: PropTypes.object,
+  validation: PropTypes.object,
+  isRunning: PropTypes.bool,
+  setIsRunning: PropTypes.func,
+  onComplete: PropTypes.func,
+  onViewResults: PropTypes.func,
+  onSearchRunScored: PropTypes.func,
+  externalSimulationState: PropTypes.object,
+  onSimulationStateChange: PropTypes.func,
+  simulationWorker: PropTypes.object,
+};

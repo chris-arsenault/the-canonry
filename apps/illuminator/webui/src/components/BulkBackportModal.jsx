@@ -16,28 +16,35 @@ const PILL_ID = "bulk-backport";
 export default function BulkBackportModal({ progress, onConfirm, onCancel, onClose }) {
   const isMinimized = useFloatingPillStore((s) => s.isMinimized(PILL_ID));
 
-  useEffect(() => {
-    if (!isMinimized || !progress) return;
-    const statusColor =
-      progress.status === "running"
-        ? "#f59e0b"
-        : progress.status === "complete"
-          ? "#10b981"
-          : progress.status === "failed"
-            ? "#ef4444"
-            : "#6b7280";
-    const statusText =
-      progress.status === "running"
-        ? `${progress.processedEntities}/${progress.totalEntities}`
-        : progress.status;
-    useFloatingPillStore.getState().updatePill(PILL_ID, { statusText, statusColor });
-  }, [isMinimized, progress?.status, progress?.processedEntities]);
+  const progressStatus = progress?.status;
+  const processedEntities = progress?.processedEntities;
+  const totalEntities = progress?.totalEntities;
+  const chronicles = progress?.chronicles;
 
   useEffect(() => {
-    if (!progress || progress.status === "idle") {
+    if (!isMinimized || !progress) return;
+    let statusColor;
+    if (progressStatus === "running") statusColor = "#f59e0b";
+    else if (progressStatus === "complete") statusColor = "#10b981";
+    else if (progressStatus === "failed") statusColor = "#ef4444";
+    else statusColor = "#6b7280";
+    const statusText =
+      progressStatus === "running"
+        ? `${processedEntities}/${totalEntities}`
+        : progressStatus;
+    useFloatingPillStore.getState().updatePill(PILL_ID, { statusText, statusColor });
+  }, [isMinimized, progress, progressStatus, processedEntities, totalEntities]);
+
+  useEffect(() => {
+    if (!progress || progressStatus === "idle") {
       useFloatingPillStore.getState().remove(PILL_ID);
     }
-  }, [progress?.status]);
+  }, [progress, progressStatus]);
+
+  const realTotal = useMemo(
+    () => chronicles ? chronicles.reduce((sum, c) => sum + c.totalEntities, 0) : 0,
+    [chronicles]
+  );
 
   if (!progress || progress.status === "idle") return null;
   if (isMinimized) return null;
@@ -57,26 +64,17 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
   const completedChronicles = progress.chronicles.filter((c) => c.status === "complete").length;
   const failedChronicles = progress.chronicles.filter((c) => c.status === "failed").length;
 
-  const realTotal = useMemo(
-    () => progress.chronicles.reduce((sum, c) => sum + c.totalEntities, 0),
-    [progress.chronicles]
-  );
+  let statusClass;
+  if (progress.status === "complete") statusClass = "bbm-status-complete";
+  else if (progress.status === "failed") statusClass = "bbm-status-failed";
+  else if (progress.status === "cancelled") statusClass = "bbm-status-cancelled";
+  else statusClass = "bbm-status-default";
 
-  const statusClass =
-    progress.status === "complete"
-      ? "bbm-status-complete"
-      : progress.status === "failed"
-        ? "bbm-status-failed"
-        : progress.status === "cancelled"
-          ? "bbm-status-cancelled"
-          : "bbm-status-default";
-
-  const progressFillClass =
-    progress.status === "failed"
-      ? "bbm-progress-fill bbm-progress-fill-failed"
-      : progress.status === "cancelled"
-        ? "bbm-progress-fill bbm-progress-fill-cancelled"
-        : "bbm-progress-fill bbm-progress-fill-ok";
+  let progressFillModifier;
+  if (progress.status === "failed") progressFillModifier = "bbm-progress-fill-failed";
+  else if (progress.status === "cancelled") progressFillModifier = "bbm-progress-fill-cancelled";
+  else progressFillModifier = "bbm-progress-fill-ok";
+  const progressFillClass = `bbm-progress-fill ${progressFillModifier}`;
 
   return (
     <div className="bbm-overlay">
@@ -98,12 +96,11 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
                         progress.status === "running"
                           ? `${progress.processedEntities}/${progress.totalEntities}`
                           : progress.status,
-                      statusColor:
-                        progress.status === "running"
-                          ? "#f59e0b"
-                          : progress.status === "complete"
-                            ? "#10b981"
-                            : "#ef4444",
+                      statusColor: (() => {
+                        if (progress.status === "running") return "#f59e0b";
+                        if (progress.status === "complete") return "#10b981";
+                        return "#ef4444";
+                      })(),
                     })
                   }
                   className="illuminator-button bbm-minimize-btn"
@@ -295,3 +292,10 @@ export default function BulkBackportModal({ progress, onConfirm, onCancel, onClo
     </div>
   );
 }
+
+BulkBackportModal.propTypes = {
+  progress: PropTypes.object,
+  onConfirm: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+};

@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/pseudo-random -- simulation probability rolls throughout, not security */
 import { SimulationSystem, SystemResult } from '../engine/types';
 import { FRAMEWORK_TAGS } from '@canonry/world-schema';
 import { HardState, Relationship } from '../core/worldTypes';
@@ -389,11 +390,11 @@ export function createUniversalCatalystSystem(config: UniversalCatalystConfig): 
         relationshipsToArchive,
         entitiesModified,
         pressureChanges,
-        description: actionsSucceeded > 0
-          ? `Agents shape the world (${actionsSucceeded}/${actionsAttempted} actions succeeded)`
-          : actionsAttempted > 0
-          ? `Agents attempt to act (all ${actionsAttempted} failed)`
-          : 'Agents dormant this cycle',
+        description: (() => {
+          if (actionsSucceeded > 0) return `Agents shape the world (${actionsSucceeded}/${actionsAttempted} actions succeeded)`;
+          if (actionsAttempted > 0) return `Agents attempt to act (all ${actionsAttempted} failed)`;
+          return 'Agents dormant this cycle';
+        })(),
         narrationsByGroup: Object.keys(narrationsByGroup).length > 0 ? narrationsByGroup : undefined,
       };
     }
@@ -621,10 +622,10 @@ function executeActionWithContext(
     }
 
     // Extract target info (prefer explicit IDs from handler result)
-    let targetId: string | undefined = handlerResult.targetId;
+    const targetId: string | undefined = handlerResult.targetId;
     let targetName: string | undefined;
     let targetKind: string | undefined;
-    let target2Id: string | undefined = handlerResult.target2Id;
+    const target2Id: string | undefined = handlerResult.target2Id;
     let target2Name: string | undefined;
 
     if (targetId) {

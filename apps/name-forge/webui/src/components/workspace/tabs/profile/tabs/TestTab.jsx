@@ -2,7 +2,8 @@
  * TestTab - Test name generation for a profile
  */
 
-import { useState } from "react";
+import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { NumberInput } from "@penguin-tales/shared-components";
 import { generateTestNames } from "../../../../../lib/browser-generator.js";
 
@@ -42,7 +43,7 @@ export default function TestTab({ profile, cultureConfig }) {
     <div className="profile-test-tab">
       <div className="test-controls">
         <div className="test-count-control">
-          <label>Count:</label>
+          <label>Count:
           <NumberInput
             min={1}
             max={100}
@@ -50,6 +51,7 @@ export default function TestTab({ profile, cultureConfig }) {
             onChange={(v) => setCount(v ?? 10)}
             integer
           />
+          </label>
         </div>
         <button className="primary" onClick={handleTestNames} disabled={testLoading}>
           {testLoading ? "Generating..." : "Generate Names"}
@@ -87,9 +89,14 @@ export default function TestTab({ profile, cultureConfig }) {
         </div>
       ) : (
         <div className="empty-test-state">
-          <p>Click "Generate Names" to test this profile</p>
+          <p>Click &quot;Generate Names&quot; to test this profile</p>
         </div>
       )}
     </div>
   );
 }
+
+TestTab.propTypes = {
+  profile: PropTypes.object,
+  cultureConfig: PropTypes.object,
+};

@@ -15,6 +15,7 @@
  */
 
 import React, { useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
 import SemanticPlaneEditor from "./components/SemanticPlane/index.jsx";
 import CultureEditor from "./components/CultureEditor/index.jsx";
 import EntityEditor from "./components/EntityEditor/index.jsx";
@@ -225,6 +226,7 @@ export default function CosmographerRemote({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
+              // eslint-disable-next-line local/no-inline-styles -- dynamic merge of extracted style objects
               style={{
                 ...styles.navButton,
                 ...(activeTab === tab.id ? styles.navButtonActive : styles.navButtonInactive),
@@ -243,3 +245,20 @@ export default function CosmographerRemote({
     </div>
   );
 }
+
+CosmographerRemote.propTypes = {
+  schema: PropTypes.object,
+  axisDefinitions: PropTypes.array,
+  seedEntities: PropTypes.array,
+  seedRelationships: PropTypes.array,
+  onEntityKindsChange: PropTypes.func,
+  onCulturesChange: PropTypes.func,
+  onAxisDefinitionsChange: PropTypes.func,
+  onTagRegistryChange: PropTypes.func,
+  onSeedEntitiesChange: PropTypes.func,
+  onSeedRelationshipsChange: PropTypes.func,
+  onAddTag: PropTypes.func,
+  activeSection: PropTypes.string,
+  onSectionChange: PropTypes.func,
+  schemaUsage: PropTypes.object,
+};

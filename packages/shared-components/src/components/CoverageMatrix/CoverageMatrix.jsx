@@ -24,6 +24,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
+import PropTypes from 'prop-types';
 import './CoverageMatrix.css';
 
 export default function CoverageMatrix({
@@ -112,6 +113,13 @@ export default function CoverageMatrix({
 
   const displayFn = getCellDisplay || defaultGetCellDisplay;
 
+  const handleCellClick = (e, rowId, colId, value) => {
+    if (onCellClick) {
+      e.stopPropagation();
+      onCellClick(rowId, colId, value);
+    }
+  };
+
   return (
     <div className="coverage-matrix">
       {/* Header */}
@@ -160,11 +168,13 @@ export default function CoverageMatrix({
 
       {/* Matrix Grid */}
       <div className="cm-container">
-        {normalizedColumns.length === 0 || rows.length === 0 ? (
+        {(normalizedColumns.length === 0 || rows.length === 0) && (
           <div className="cm-empty">{emptyMessage}</div>
-        ) : filteredRows.length === 0 ? (
+        )}
+        {normalizedColumns.length > 0 && rows.length > 0 && filteredRows.length === 0 && (
           <div className="cm-empty">No items match the current filters.</div>
-        ) : (
+        )}
+        {normalizedColumns.length > 0 && rows.length > 0 && filteredRows.length > 0 && (
           <table className="cm-table">
             <thead>
               <tr>
@@ -213,12 +223,7 @@ export default function CoverageMatrix({
                           key={col.id}
                           className={`cm-cell ${display.className || ''}`}
                           title={display.title}
-                          onClick={(e) => {
-                            if (onCellClick) {
-                              e.stopPropagation();
-                              onCellClick(row.id, col.id, value);
-                            }
-                          }}
+                          onClick={(e) => handleCellClick(e, row.id, col.id, value)}
                         >
                           <span className="cm-cell-icon">{display.icon}</span>
                         </td>
@@ -248,3 +253,21 @@ export default function CoverageMatrix({
     </div>
   );
 }
+
+CoverageMatrix.propTypes = {
+  rows: PropTypes.array,
+  columns: PropTypes.array,
+  getCellValue: PropTypes.func.isRequired,
+  getCellDisplay: PropTypes.func,
+  onRowClick: PropTypes.func,
+  onCellClick: PropTypes.func,
+  title: PropTypes.string,
+  subtitle: PropTypes.string,
+  stats: PropTypes.array,
+  legend: PropTypes.array,
+  searchPlaceholder: PropTypes.string,
+  groupByField: PropTypes.string,
+  columnHeaderClass: PropTypes.func,
+  emptyMessage: PropTypes.string,
+  filterOptions: PropTypes.array,
+};

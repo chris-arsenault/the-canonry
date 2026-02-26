@@ -38,7 +38,7 @@ export default function StatsView({
   images,
   staticPages,
   eraNarratives,
-}: StatsViewProps) {
+}: Readonly<StatsViewProps>) {
   const [stats, setStats] = useState<PrePrintStats | null>(null);
   const [calculating, setCalculating] = useState(false);
 
@@ -362,12 +362,12 @@ function WordRow({
   words,
   chars,
   total,
-}: {
+}: Readonly<{
   label: string;
   words: number;
   chars: number;
   total: number;
-}) {
+}>) {
   return (
     <div className="preprint-stats-table-row">
       <span>{label}</span>
@@ -378,7 +378,7 @@ function WordRow({
   );
 }
 
-function CompletenessRow({ label, count, total }: { label: string; count: number; total: number }) {
+function CompletenessRow({ label, count, total }: Readonly<{ label: string; count: number; total: number }>) {
   const complete = total > 0 && count === total;
   const partial = total > 0 && count > 0 && count < total;
   const missing = total > 0 && count === 0;
@@ -389,17 +389,24 @@ function CompletenessRow({ label, count, total }: { label: string; count: number
         <span
           className="preprint-completeness-dot"
           style={{
-            color: complete
-              ? "#22c55e"
-              : partial
-                ? "#f59e0b"
-                : missing
-                  ? "#ef4444"
-                  : "var(--text-secondary)",
+            color: (() => {
+              if (complete) return "#22c55e";
+              if (partial) return "#f59e0b";
+              if (missing) return "#ef4444";
+              return "var(--text-secondary)";
+            })(),
           }}
-          title={complete ? "Complete" : partial ? "Partial" : "Missing"}
+          title={(() => {
+            if (complete) return "Complete";
+            if (partial) return "Partial";
+            return "Missing";
+          })()}
         >
-          {complete ? "\u25CF" : partial ? "\u25D2" : "\u25CB"}
+          {(() => {
+            if (complete) return "\u25CF";
+            if (partial) return "\u25D2";
+            return "\u25CB";
+          })()}
         </span>{" "}
         {label}
       </span>

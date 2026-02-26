@@ -3,6 +3,7 @@
  */
 
 import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import { EnableToggle, useLocalInputState, LocalTextArea } from "../../shared";
 
 /**
@@ -40,8 +41,8 @@ export function OverviewTab({ generator, onChange, onDelete, onDuplicate }) {
         <div className="section-title">Basic Information</div>
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">Generator ID</label>
-            <input
+            <label htmlFor="generator-id" className="label">Generator ID</label>
+            <input id="generator-id"
               type="text"
               value={localId}
               onChange={(e) => setLocalId(e.target.value)}
@@ -50,8 +51,8 @@ export function OverviewTab({ generator, onChange, onDelete, onDuplicate }) {
             />
           </div>
           <div className="form-group">
-            <label className="label">Display Name</label>
-            <input
+            <label htmlFor="display-name" className="label">Display Name</label>
+            <input id="display-name"
               type="text"
               value={localName}
               onChange={(e) => setLocalName(e.target.value)}
@@ -116,5 +117,12 @@ export function OverviewTab({ generator, onChange, onDelete, onDuplicate }) {
     </div>
   );
 }
+
+OverviewTab.propTypes = {
+  generator: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  onDuplicate: PropTypes.func,
+};
 
 export default OverviewTab;

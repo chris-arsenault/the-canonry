@@ -16,29 +16,29 @@ const PILL_ID = "bulk-fact-coverage";
 
 export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, onClose }) {
   const isMinimized = useFloatingPillStore((s) => s.isMinimized(PILL_ID));
+  const progressStatus = progress?.status;
+  const processedChronicles = progress?.processedChronicles;
+  const totalChronicles = progress?.totalChronicles;
 
   useEffect(() => {
     if (!isMinimized || !progress) return;
-    const statusColor =
-      progress.status === "running"
-        ? "#f59e0b"
-        : progress.status === "complete"
-          ? "#10b981"
-          : progress.status === "failed"
-            ? "#ef4444"
-            : "#6b7280";
+    let statusColor;
+    if (progressStatus === "running") statusColor = "#f59e0b";
+    else if (progressStatus === "complete") statusColor = "#10b981";
+    else if (progressStatus === "failed") statusColor = "#ef4444";
+    else statusColor = "#6b7280";
     const statusText =
-      progress.status === "running"
-        ? `${progress.processedChronicles}/${progress.totalChronicles}`
-        : progress.status;
+      progressStatus === "running"
+        ? `${processedChronicles}/${totalChronicles}`
+        : progressStatus;
     useFloatingPillStore.getState().updatePill(PILL_ID, { statusText, statusColor });
-  }, [isMinimized, progress?.status, progress?.processedChronicles]);
+  }, [isMinimized, progress, progressStatus, processedChronicles, totalChronicles]);
 
   useEffect(() => {
-    if (!progress || progress.status === "idle") {
+    if (!progress || progressStatus === "idle") {
       useFloatingPillStore.getState().remove(PILL_ID);
     }
-  }, [progress?.status]);
+  }, [progress, progressStatus]);
 
   if (!progress || progress.status === "idle") return null;
   if (isMinimized) return null;
@@ -76,12 +76,11 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
                         progress.status === "running"
                           ? `${progress.processedChronicles}/${progress.totalChronicles}`
                           : progress.status,
-                      statusColor:
-                        progress.status === "running"
-                          ? "#f59e0b"
-                          : progress.status === "complete"
-                            ? "#10b981"
-                            : "#ef4444",
+                      statusColor: (() => {
+                        if (progress.status === "running") return "#f59e0b";
+                        if (progress.status === "complete") return "#10b981";
+                        return "#ef4444";
+                      })(),
                       tabId: "chronicle",
                     })
                   }
@@ -95,14 +94,12 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
                 className="bfc-status-text"
                 // eslint-disable-next-line local/no-inline-styles -- dynamic status color based on progress.status
                 style={{
-                  "--bfc-status-color":
-                    progress.status === "complete"
-                      ? "#10b981"
-                      : progress.status === "failed"
-                        ? "#ef4444"
-                        : progress.status === "cancelled"
-                          ? "#f59e0b"
-                          : "var(--text-muted)",
+                  "--bfc-status-color": (() => {
+                    if (progress.status === "complete") return "#10b981";
+                    if (progress.status === "failed") return "#ef4444";
+                    if (progress.status === "cancelled") return "#f59e0b";
+                    return "var(--text-muted)";
+                  })(),
                 }}
               >
                 {isConfirming && `${progress.totalChronicles} chronicles`}
@@ -121,7 +118,7 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
           {isConfirming && (
             <>
               <div className="bfc-confirm-info">
-                Analyze each chronicle's narrative against all canon facts using Haiku. Results are
+                Analyze each chronicle&apos;s narrative against all canon facts using Haiku. Results are
                 stored per-chronicle and visible in the Reference tab.
               </div>
 
@@ -159,12 +156,11 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
                     className="bfc-progress-fill"
                     // eslint-disable-next-line local/no-inline-styles -- dynamic progress width and color from JS variables
                     style={{
-                      "--bfc-progress-bg":
-                        progress.status === "failed"
-                          ? "#ef4444"
-                          : progress.status === "cancelled"
-                            ? "#f59e0b"
-                            : "#10b981",
+                      "--bfc-progress-bg": (() => {
+                        if (progress.status === "failed") return "#ef4444";
+                        if (progress.status === "cancelled") return "#f59e0b";
+                        return "#10b981";
+                      })(),
                       "--bfc-progress-width": `${globalPercent}%`,
                     }}
                   />
@@ -269,3 +265,10 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
     </div>
   );
 }
+
+BulkFactCoverageModal.propTypes = {
+  progress: PropTypes.object,
+  onConfirm: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+};

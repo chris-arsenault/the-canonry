@@ -78,7 +78,6 @@ export function generateWord(
   while (attempts < maxAttempts) {
     attempts++;
 
-    const syllables: string[] = [];
     let word = "";
     let valid = true;
 
@@ -98,7 +97,6 @@ export function generateWord(
         break;
       }
 
-      syllables.push(syllable);
       word += syllable;
     }
 

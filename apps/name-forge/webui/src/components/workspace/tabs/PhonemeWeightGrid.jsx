@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import PropTypes from "prop-types";
 
 /**
  * Visual grid editor for phoneme weights
@@ -76,7 +77,10 @@ function PhonemeWeightGrid({ label, items, weights, onChange, minWeight = 0.1, m
           const isEditing = editingIndex === index;
 
           // Color based on weight: low=cool, normal=neutral, high=warm
-          const hue = weight < 1 ? 200 : weight > 1 ? 30 : 150;
+          let hue;
+          if (weight < 1) hue = 200;
+          else if (weight > 1) hue = 30;
+          else hue = 150;
           const saturation = Math.abs(weight - 1) * 50 + 20;
 
           return (
@@ -84,6 +88,9 @@ function PhonemeWeightGrid({ label, items, weights, onChange, minWeight = 0.1, m
               key={index}
               className={`weight-cell ${isEditing ? "editing" : ""}`}
               onClick={() => !isEditing && handleCellClick(index)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
             >
               <div className="weight-cell-item" title={item}>
                 {item}
@@ -99,6 +106,7 @@ function PhonemeWeightGrid({ label, items, weights, onChange, minWeight = 0.1, m
                   step="0.1"
                   min={minWeight}
                   max={maxWeight}
+                  // eslint-disable-next-line jsx-a11y/no-autofocus
                   autoFocus
                 />
               ) : (
@@ -120,5 +128,14 @@ function PhonemeWeightGrid({ label, items, weights, onChange, minWeight = 0.1, m
     </div>
   );
 }
+
+PhonemeWeightGrid.propTypes = {
+  label: PropTypes.string,
+  items: PropTypes.array,
+  weights: PropTypes.array,
+  onChange: PropTypes.func,
+  minWeight: PropTypes.number,
+  maxWeight: PropTypes.number,
+};
 
 export default PhonemeWeightGrid;

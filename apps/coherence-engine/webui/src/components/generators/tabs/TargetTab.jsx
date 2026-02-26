@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { ReferenceDropdown, NumberInput } from "../../shared";
 import SelectionRuleEditor from "../../shared/SelectionRuleEditor";
 
@@ -27,7 +28,7 @@ export function TargetTab({ generator, onChange, schema }) {
           <div className="info-box-title">What is $target?</div>
           <div className="info-box-text">
             The <code className="inline-code">$target</code> is the primary entity this generator
-            operates on. It's selected from the world graph based on the rules you define here. Once
+            operates on. It&apos;s selected from the world graph based on the rules you define here. Once
             selected, you can reference it in creation rules (e.g., inherit culture from $target)
             and relationships (e.g., connect new entity to $target).
           </div>
@@ -66,6 +67,12 @@ export function TargetTab({ generator, onChange, schema }) {
     </div>
   );
 }
+
+TargetTab.propTypes = {
+  generator: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+};
 
 /**
  * Editor for saturation limits (simplified: just relationship kind + max count)
@@ -139,7 +146,7 @@ function SaturationLimitsEditor({ limits, onChange, schema, createdKind }) {
                 placeholder="Select relationship..."
               />
               <div className="form-group">
-                <label className="label">Max Count</label>
+                <label className="label">Max Count
                 <NumberInput
                   value={limit.maxCount}
                   onChange={(v) => updateLimit(index, "maxCount", v ?? 2)}
@@ -147,6 +154,7 @@ function SaturationLimitsEditor({ limits, onChange, schema, createdKind }) {
                   integer
                   placeholder="2"
                 />
+                </label>
               </div>
             </div>
           </div>
@@ -158,5 +166,12 @@ function SaturationLimitsEditor({ limits, onChange, schema, createdKind }) {
     </div>
   );
 }
+
+SaturationLimitsEditor.propTypes = {
+  limits: PropTypes.array.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  createdKind: PropTypes.string,
+};
 
 export default TargetTab;

@@ -8,7 +8,7 @@
  * - Ensemble health bar showing diversity
  */
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import type {
   StoryNarrativeStyle,
   DocumentNarrativeStyle,
@@ -84,13 +84,16 @@ export default function RoleAssignmentStep() {
       });
   }, [simulationRunId]);
 
-  // Compute metrics when candidates or usage stats change
-  useEffect(() => {
+  // Render-phase sync: recompute metrics when candidates or usage stats change
+  const metricsKey = `${state.candidates.length}|${state.entryPointId}|${usageStats.size}|${state.roleAssignments.length}`;
+  const prevMetricsKeyRef = useRef(metricsKey);
+  if (prevMetricsKeyRef.current !== metricsKey) {
+    prevMetricsKeyRef.current = metricsKey;
     if (state.candidates.length > 0 && state.entryPointId) {
       const metrics = computeMetrics(usageStats);
       setMetricsMap(metrics);
     }
-  }, [state.candidates, state.entryPointId, usageStats, state.roleAssignments, computeMetrics]);
+  }
 
   // Get assigned entity IDs
   const assignedEntityIds = useMemo(() => {
@@ -172,7 +175,7 @@ export default function RoleAssignmentStep() {
   }, [state.candidates]);
 
   const handleSetLens = useCallback(
-    (entity: (typeof state.candidates)[0]) => {
+    (entity: { id: string; name: string; kind: string }) => {
       const lens: NarrativeLens = {
         entityId: entity.id,
         entityName: entity.name,
@@ -189,7 +192,7 @@ export default function RoleAssignmentStep() {
     for (const candidate of state.candidates) {
       kinds.add(candidate.kind);
     }
-    return Array.from(kinds).sort();
+    return Array.from(kinds).sort((a, b) => a.localeCompare(b));
   }, [state.candidates]);
 
   // Available eras from candidates (in era order, only eras with entities)
@@ -213,11 +216,11 @@ export default function RoleAssignmentStep() {
 
       if (srcAssigned && !dstAssigned) {
         if (!connectedToAssigned.has(rel.dst)) connectedToAssigned.set(rel.dst, new Set());
-        connectedToAssigned.get(rel.dst)!.add(rel.src);
+        connectedToAssigned.get(rel.dst).add(rel.src);
       }
       if (dstAssigned && !srcAssigned) {
         if (!connectedToAssigned.has(rel.src)) connectedToAssigned.set(rel.src, new Set());
-        connectedToAssigned.get(rel.src)!.add(rel.dst);
+        connectedToAssigned.get(rel.src).add(rel.dst);
       }
     }
 
@@ -521,7 +524,7 @@ export default function RoleAssignmentStep() {
               hasSelection={
                 selectedEntityId !== null &&
                 !assignedEntityIds.has(selectedEntityId) &&
-                !(state.lens?.entityId === selectedEntityId)
+                state.lens?.entityId !== selectedEntityId
               }
               isAtMax={state.lens !== null}
               isUnderMin={false}

@@ -44,9 +44,9 @@ export interface UseDynamicsGenerationReturn {
   /** Whether a generation is active */
   isActive: boolean;
   /** Start a new dynamics generation session */
-  startGeneration: (config: DynamicsGenerationConfig) => void;
+  startGeneration: (config: DynamicsGenerationConfig) => Promise<void>;
   /** Submit user feedback and trigger next LLM turn */
-  submitFeedback: (feedback: string) => void;
+  submitFeedback: (feedback: string) => Promise<void>;
   /** Accept proposed dynamics and close the session */
   acceptDynamics: () => void;
   /** Cancel the current session */
@@ -81,20 +81,22 @@ export function useDynamicsGeneration(
   const startPolling = useCallback(
     (runId: string) => {
       stopPolling();
-      pollRef.current = setInterval(async () => {
-        const updated = await getDynamicsRun(runId);
-        if (!updated) return;
+      pollRef.current = setInterval(() => {
+        void (async () => {
+          const updated = await getDynamicsRun(runId);
+          if (!updated) return;
 
-        setRun(updated);
+          setRun(updated);
 
-        // Stop polling on terminal states
-        if (
-          updated.status === "awaiting_review" ||
-          updated.status === "complete" ||
-          updated.status === "failed"
-        ) {
-          stopPolling();
-        }
+          // Stop polling on terminal states
+          if (
+            updated.status === "awaiting_review" ||
+            updated.status === "complete" ||
+            updated.status === "failed"
+          ) {
+            stopPolling();
+          }
+        })();
       }, POLL_INTERVAL_MS);
     },
     [stopPolling]

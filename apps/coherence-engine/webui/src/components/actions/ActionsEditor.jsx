@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { useEditorState } from "../shared";
 import { buildStorageKey } from "../../utils/persistence";
 import { ActionListCard } from "./cards";
@@ -80,7 +81,7 @@ export default function ActionsEditor({
           />
         ))}
 
-        <div className="actions-add-card" onClick={() => handleAddAction()}>
+        <div className="actions-add-card" onClick={() => handleAddAction()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
           <span className="text-2xl">+</span>
           <span>Add Action</span>
         </div>
@@ -99,5 +100,14 @@ export default function ActionsEditor({
     </div>
   );
 }
+
+ActionsEditor.propTypes = {
+  projectId: PropTypes.string,
+  actions: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+  usageMap: PropTypes.object,
+};
 
 export { ActionsEditor };

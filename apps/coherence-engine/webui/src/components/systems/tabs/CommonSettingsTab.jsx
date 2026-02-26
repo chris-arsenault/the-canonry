@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { PressureChangesEditor, NumberInput } from "../../shared";
 import SelectionRuleEditor from "../../shared/SelectionRuleEditor";
 
@@ -56,7 +57,7 @@ export function CommonSettingsTab({ system, onChange, schema, pressures }) {
         <div className="section-title">Throttling</div>
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">Throttle Chance (0-1)</label>
+            <label className="label">Throttle Chance (0-1)
             <NumberInput
               value={config.throttleChance}
               onChange={(v) => updateConfig("throttleChance", v)}
@@ -67,9 +68,10 @@ export function CommonSettingsTab({ system, onChange, schema, pressures }) {
               placeholder="0.2"
               allowEmpty
             />
+            </label>
           </div>
           <div className="form-group">
-            <label className="label">Cooldown (ticks)</label>
+            <label className="label">Cooldown (ticks)
             <NumberInput
               value={config.cooldown}
               onChange={(v) => updateConfig("cooldown", v)}
@@ -79,6 +81,7 @@ export function CommonSettingsTab({ system, onChange, schema, pressures }) {
               allowEmpty
               integer
             />
+            </label>
           </div>
         </div>
       </div>
@@ -95,3 +98,10 @@ export function CommonSettingsTab({ system, onChange, schema, pressures }) {
     </div>
   );
 }
+
+CommonSettingsTab.propTypes = {
+  system: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+};

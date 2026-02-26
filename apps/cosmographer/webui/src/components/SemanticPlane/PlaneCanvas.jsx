@@ -3,12 +3,92 @@
  * Coordinate system: 0-100 on both axes, with (0,0) at bottom-left.
  */
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import PropTypes from "prop-types";
 
 const WORLD_MIN = 0;
 const WORLD_MAX = 100;
 const WORLD_SIZE = WORLD_MAX - WORLD_MIN;
 const PADDING = 40; // Padding for axis labels
+
+/** Resolve circle center/radius accounting for active drag overrides. */
+function resolveCircleDrag(regionBounds, regionId, dragPositionRef) {
+  let centerX = regionBounds.center.x;
+  let centerY = regionBounds.center.y;
+  let radiusVal = regionBounds.radius || 10;
+
+  const drag = dragPositionRef.current;
+  if (drag && drag.id === regionId) {
+    if (drag.type === "region") {
+      centerX = drag.position.x;
+      centerY = drag.position.y;
+    } else if (drag.type === "resize") {
+      radiusVal = drag.radius;
+    }
+  }
+
+  return { centerX, centerY, radiusVal };
+}
+
+/** Draw selection handles (center + cardinal resize) for a circle region. */
+function drawCircleHandles(ctx, cx, cy, radius, regionColor) {
+  // Center handle for moving
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff";
+  ctx.fill();
+  ctx.strokeStyle = regionColor || "#0f3460";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Edge handles for resizing (at cardinal points)
+  const handlePositions = [
+    { x: cx + radius, y: cy },
+    { x: cx - radius, y: cy },
+    { x: cx, y: cy - radius },
+    { x: cx, y: cy + radius },
+  ];
+  handlePositions.forEach((pos) => {
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = "#e94560";
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+}
+
+/** Draw a single region on the canvas. */
+function drawPlaneRegion(ctx, region, selectedRegionId, dragPositionRef, worldToCanvas, scale) {
+  const regionBounds = region.bounds;
+  if (!regionBounds) return;
+  if (regionBounds.shape !== "circle" || !regionBounds.center) return;
+
+  const isSelected = region.id === selectedRegionId;
+  ctx.fillStyle = (region.color || "#0f3460") + (isSelected ? "50" : "30");
+  ctx.strokeStyle = isSelected ? "#fff" : region.color || "#0f3460";
+  ctx.lineWidth = isSelected ? 3 : 2;
+
+  const { centerX, centerY, radiusVal } = resolveCircleDrag(regionBounds, region.id, dragPositionRef);
+  const { x: cx, y: cy } = worldToCanvas(centerX, centerY);
+  const radius = radiusVal * scale;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  if (isSelected) {
+    drawCircleHandles(ctx, cx, cy, radius, region.color);
+  }
+
+  // Label
+  ctx.fillStyle = isSelected ? "#fff" : "#888";
+  ctx.font = isSelected ? "bold 11px sans-serif" : "11px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(region.label || "", cx, cy + radius + 14);
+}
 
 export default function PlaneCanvas({
   plane,
@@ -54,12 +134,12 @@ export default function PlaneCanvas({
   }, []);
 
   // Calculate the drawable area (inside padding)
-  const drawArea = {
+  const drawArea = useMemo(() => ({
     left: PADDING,
     top: PADDING,
     width: size.width - PADDING * 2,
     height: size.height - PADDING * 2,
-  };
+  }), [size.width, size.height]);
 
   // Base scale to fit world in draw area (maintaining aspect ratio)
   const baseScale = Math.min(drawArea.width / WORLD_SIZE, drawArea.height / WORLD_SIZE);
@@ -161,73 +241,7 @@ export default function PlaneCanvas({
 
     // Draw regions
     regions.forEach((region) => {
-      const regionBounds = region.bounds;
-      if (!regionBounds) return;
-
-      const isSelected = region.id === selectedRegionId;
-      ctx.fillStyle = (region.color || "#0f3460") + (isSelected ? "50" : "30");
-      ctx.strokeStyle = isSelected ? "#fff" : region.color || "#0f3460";
-      ctx.lineWidth = isSelected ? 3 : 2;
-
-      if (regionBounds.shape === "circle" && regionBounds.center) {
-        // Check for drag override position
-        const drag = dragPositionRef.current;
-        let centerX = regionBounds.center.x;
-        let centerY = regionBounds.center.y;
-        let radiusVal = regionBounds.radius || 10;
-
-        if (drag && drag.id === region.id) {
-          if (drag.type === "region") {
-            centerX = drag.position.x;
-            centerY = drag.position.y;
-          } else if (drag.type === "resize") {
-            radiusVal = drag.radius;
-          }
-        }
-
-        const { x: cx, y: cy } = worldToCanvas(centerX, centerY);
-        const radius = radiusVal * scale;
-
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-        // Draw handles when selected
-        if (isSelected) {
-          // Center handle for moving
-          ctx.beginPath();
-          ctx.arc(cx, cy, 6, 0, Math.PI * 2);
-          ctx.fillStyle = "#fff";
-          ctx.fill();
-          ctx.strokeStyle = region.color || "#0f3460";
-          ctx.lineWidth = 2;
-          ctx.stroke();
-
-          // Edge handles for resizing (at cardinal points)
-          const handlePositions = [
-            { x: cx + radius, y: cy }, // right
-            { x: cx - radius, y: cy }, // left
-            { x: cx, y: cy - radius }, // top
-            { x: cx, y: cy + radius }, // bottom
-          ];
-          handlePositions.forEach((pos) => {
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
-            ctx.fillStyle = "#e94560";
-            ctx.fill();
-            ctx.strokeStyle = "#fff";
-            ctx.lineWidth = 1;
-            ctx.stroke();
-          });
-        }
-
-        // Label
-        ctx.fillStyle = isSelected ? "#fff" : "#888";
-        ctx.font = isSelected ? "bold 11px sans-serif" : "11px sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText(region.label || "", cx, cy + radius + 14);
-      }
+      drawPlaneRegion(ctx, region, selectedRegionId, dragPositionRef, worldToCanvas, scale);
     });
 
     // Draw entities
@@ -534,10 +548,7 @@ export default function PlaneCanvas({
     const newZoom = Math.max(0.5, Math.min(4, camera.zoom * zoomFactor));
 
     // Adjust pan to keep point under cursor stationary
-    const scale = baseScale * camera.zoom;
     const newScale = baseScale * newZoom;
-    const scaleRatio = newScale / scale;
-
     // Get world coords before zoom
     const worldPos = canvasToWorld(cx, cy);
 
@@ -675,3 +686,18 @@ export default function PlaneCanvas({
     </div>
   );
 }
+
+PlaneCanvas.propTypes = {
+  plane: PropTypes.object,
+  regions: PropTypes.array,
+  entities: PropTypes.array,
+  cultures: PropTypes.array,
+  axisDefinitions: PropTypes.array,
+  selectedEntityId: PropTypes.string,
+  selectedRegionId: PropTypes.string,
+  onSelectEntity: PropTypes.func,
+  onSelectRegion: PropTypes.func,
+  onMoveEntity: PropTypes.func,
+  onMoveRegion: PropTypes.func,
+  onResizeRegion: PropTypes.func,
+};

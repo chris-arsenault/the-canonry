@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import type { EntityKind, Filters, Prominence, WorldState } from "../types/world.ts";
 import {
   getAllTags,
@@ -32,7 +32,7 @@ export default function FilterPanel({
   onEdgeMetricChange,
   onRecalculateLayout,
   onToggleStats,
-}: FilterPanelProps) {
+}: Readonly<FilterPanelProps>) {
   const allTags = getAllTags(worldData);
   const relationshipTypeCounts = getRelationshipTypeCounts(worldData);
   const maxTick = worldData.metadata.tick;
@@ -167,8 +167,8 @@ export default function FilterPanel({
 
       {/* Search */}
       <div className="filter-section">
-        <label className="filter-section-label">Search</label>
-        <input
+        <label htmlFor="search" className="filter-section-label">Search</label>
+        <input id="search"
           type="text"
           value={filters.searchQuery}
           onChange={(e) => onChange({ ...filters, searchQuery: e.target.value })}
@@ -246,8 +246,8 @@ export default function FilterPanel({
 
       {/* Minimum Prominence */}
       <div className="filter-section">
-        <label className="filter-section-label">Minimum Prominence</label>
-        <select
+        <label htmlFor="minimum-prominence" className="filter-section-label">Minimum Prominence</label>
+        <select id="minimum-prominence"
           value={filters.minProminence}
           onChange={(e) => onChange({ ...filters, minProminence: e.target.value as Prominence })}
           className="filter-select"

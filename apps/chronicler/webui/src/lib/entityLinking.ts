@@ -89,7 +89,7 @@ function applyWikiLinksToSection(section: string, combinedPattern: RegExp): stri
   // Track which names have been linked in this section (lowercase for case-insensitive matching)
   const linkedInSection = new Set<string>();
 
-  return section.replace(combinedPattern, (match, _group, offset) => {
+  return section.replace(combinedPattern, (match: string, _group: string, offset: number) => {
     // Check if this position is already inside a wikilink
     if (isInsideWikilink(section, offset)) {
       return match;
@@ -126,7 +126,7 @@ export function applyWikiLinks(
 
   // Split by section headings (## or #), keeping the delimiter
   // This regex captures the heading line so we can preserve it
-  const sectionSplitRegex = /^(#{1,3}\s+.*)$/gm;
+  const sectionSplitRegex = /^(#{1,3}\s+.*)$/gm; // eslint-disable-line sonarjs/slow-regex -- single markdown lines, no backtracking risk
   const parts = content.split(sectionSplitRegex);
 
   // Process each part - headings pass through, content gets wiki-linked
@@ -180,6 +180,7 @@ const defaultLinkStyle: React.CSSProperties = {
  * @param onNavigate - Callback when an entity link is clicked
  * @param options - Optional configuration
  */
+// eslint-disable-next-line sonarjs/function-return-type -- returns React.ReactNode by design
 export function linkifyText(
   text: string,
   entities: LinkableEntity[],

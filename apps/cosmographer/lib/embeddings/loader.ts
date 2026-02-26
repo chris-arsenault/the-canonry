@@ -96,7 +96,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 /**
  * Get similarity between two words (0-1).
  */
-export async function getEmbeddingSimilarity(word1: string, word2: string): Promise<number | null> {
+export function getEmbeddingSimilarity(word1: string, word2: string): number | null {
   const v1 = getEmbedding(word1);
   const v2 = getEmbedding(word2);
 
@@ -126,7 +126,7 @@ export function findMostSimilar(word: string, topK: number = 5): Array<{ word: s
     similarities.push({ word: w, similarity: (sim + 1) / 2 });
   }
 
-  return similarities
+  return [...similarities]
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, topK);
 }
@@ -147,7 +147,7 @@ export function calculateCentroid(words: string[]): number[] | null {
   if (vectors.length === 0) return null;
 
   const dimensions = embeddings.dimensions;
-  const centroid = new Array(dimensions).fill(0);
+  const centroid: number[] = new Array<number>(dimensions).fill(0);
 
   for (const vec of vectors) {
     for (let i = 0; i < dimensions; i++) {

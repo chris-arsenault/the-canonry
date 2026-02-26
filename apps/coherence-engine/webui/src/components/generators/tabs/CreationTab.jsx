@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
 import TagSelector from "@penguin-tales/shared-components/TagSelector";
 import {
   ReferenceDropdown,
@@ -12,6 +13,15 @@ import {
   NumberInput,
   LocalTextArea,
 } from "../../shared";
+
+/**
+ * Get subtype options for an entity kind from schema
+ */
+function getSubtypeOptionsFromSchema(schema, kind) {
+  const ek = (schema?.entityKinds || []).find((e) => e.kind === kind);
+  if (!ek?.subtypes) return [];
+  return ek.subtypes.map((st) => ({ value: st.id, label: st.name || st.id }));
+}
 
 /**
  * Safely display a value that should be a string.
@@ -194,11 +204,7 @@ function CreationCard({
     label: ek.description || ek.kind,
   }));
 
-  const getSubtypeOptions = (kind) => {
-    const ek = (schema?.entityKinds || []).find((e) => e.kind === kind);
-    if (!ek?.subtypes) return [];
-    return ek.subtypes.map((st) => ({ value: st.id, label: st.name || st.id }));
-  };
+  const getSubtypeOptions = (kind) => getSubtypeOptionsFromSchema(schema, kind);
 
   const getStatusOptions = (kind) => {
     const ek = (schema?.entityKinds || []).find((e) => e.kind === kind);
@@ -278,6 +284,9 @@ function CreationCard({
         onClick={() => setExpanded(!expanded)}
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         <div className="item-card-icon item-card-icon-creation">✨</div>
         <div className="item-card-info">
@@ -327,8 +336,8 @@ function CreationCard({
         <div className="item-card-body">
           <div className="form-grid">
             <div className="form-group">
-              <label className="label">Entity Reference</label>
-              <input
+              <label htmlFor="entity-reference" className="label">Entity Reference</label>
+              <input id="entity-reference"
                 type="text"
                 value={item.entityRef || ""}
                 onChange={(e) => updateField("entityRef", e.target.value)}
@@ -367,15 +376,12 @@ function CreationCard({
               <div className="form-grid">
                 <ReferenceDropdown
                   label="Mode"
-                  value={
-                    typeof item.subtype === "string"
-                      ? "fixed"
-                      : item.subtype?.inherit
-                        ? "inherit"
-                        : item.subtype?.fromPressure
-                          ? "from_pressure"
-                          : ""
-                  }
+                  value={(() => {
+                    if (typeof item.subtype === "string") return "fixed";
+                    if (item.subtype?.inherit) return "inherit";
+                    if (item.subtype?.fromPressure) return "from_pressure";
+                    return "";
+                  })()}
                   onChange={(v) => {
                     if (v === "fixed") updateField("subtype", "");
                     else if (v === "inherit") updateField("subtype", { inherit: "$target" });
@@ -421,20 +427,26 @@ function CreationCard({
           )}
 
           <div className="form-group mt-lg">
-            <label className="label">Prominence</label>
+            <label className="label">Prominence
             <LevelSelector
               value={item.prominence}
               onChange={(v) => updateField("prominence", v)}
               levels={PROMINENCE_LEVELS}
             />
+            </label>
           </div>
+
 
           <div style={{ marginTop: "16px" }}>
             <label className="label">Culture</label>
             <div className="form-grid">
               <ReferenceDropdown
                 label="Mode"
-                value={item.culture?.inherit ? "inherit" : item.culture?.fixed ? "fixed" : "none"}
+                value={(() => {
+                  if (item.culture?.inherit) return "inherit";
+                  if (item.culture?.fixed) return "fixed";
+                  return "none";
+                })()}
                 onChange={(v) => {
                   if (v === "inherit") updateField("culture", { inherit: "$target" });
                   else if (v === "fixed") updateField("culture", { fixed: "" });
@@ -583,7 +595,7 @@ function CreationCard({
                     placeholder="Select entities..."
                   />
                   <div className="form-group">
-                    <label className="label">Jitter Radius</label>
+                    <label className="label">Jitter Radius
                     <NumberInput
                       value={placement.anchor?.jitter ?? ""}
                       onChange={(v) =>
@@ -593,6 +605,7 @@ function CreationCard({
                       step={1}
                       placeholder="0"
                     />
+                    </label>
                   </div>
                 </div>
               )}
@@ -635,7 +648,7 @@ function CreationCard({
                       Max
                     </label>
 
-                    <label className="label">X</label>
+                    <label className="label">X
                     <NumberInput
                       value={placement.anchor?.bounds?.x?.[0] ?? ""}
                       onChange={(v) => {
@@ -651,6 +664,7 @@ function CreationCard({
                       step={1}
                       placeholder="0"
                     />
+                    </label>
                     <NumberInput
                       value={placement.anchor?.bounds?.x?.[1] ?? ""}
                       onChange={(v) => {
@@ -667,7 +681,7 @@ function CreationCard({
                       placeholder="100"
                     />
 
-                    <label className="label">Y</label>
+                    <label className="label">Y
                     <NumberInput
                       value={placement.anchor?.bounds?.y?.[0] ?? ""}
                       onChange={(v) => {
@@ -683,6 +697,7 @@ function CreationCard({
                       step={1}
                       placeholder="0"
                     />
+                    </label>
                     <NumberInput
                       value={placement.anchor?.bounds?.y?.[1] ?? ""}
                       onChange={(v) => {
@@ -699,7 +714,7 @@ function CreationCard({
                       placeholder="100"
                     />
 
-                    <label className="label">Z</label>
+                    <label className="label">Z
                     <NumberInput
                       value={placement.anchor?.bounds?.z?.[0] ?? ""}
                       onChange={(v) => {
@@ -715,6 +730,7 @@ function CreationCard({
                       step={1}
                       placeholder="0"
                     />
+                    </label>
                     <NumberInput
                       value={placement.anchor?.bounds?.z?.[1] ?? ""}
                       onChange={(v) => {
@@ -734,6 +750,7 @@ function CreationCard({
                 </div>
               )}
 
+
               {!hasAnchor && (
                 <div className="hint" style={{ marginTop: "12px" }}>
                   Select an anchor strategy to configure spacing, region policy, and placement
@@ -749,7 +766,7 @@ function CreationCard({
                   </div>
                   <div className="form-grid">
                     <div className="form-group">
-                      <label className="label">Min Distance</label>
+                      <label className="label">Min Distance
                       <NumberInput
                         value={placement?.spacing?.minDistance ?? ""}
                         onChange={(v) => {
@@ -764,6 +781,7 @@ function CreationCard({
                         step={1}
                         placeholder="No minimum"
                       />
+                      </label>
                     </div>
                     <ChipSelect
                       label="Avoid Refs"
@@ -916,6 +934,20 @@ function CreationCard({
   );
 }
 
+
+CreationCard.propTypes = {
+  item: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  availableRefs: PropTypes.array,
+  culturesById: PropTypes.object,
+  cultureIds: PropTypes.array,
+  generator: PropTypes.object,
+  tagRegistry: PropTypes.array,
+  onAddToRegistry: PropTypes.func,
+};
+
 // ============================================================================
 // Variant Components - Conditional template modifications
 // ============================================================================
@@ -984,7 +1016,7 @@ function VariantConditionEditor({
             placeholder="Select pressure..."
           />
           <div className="form-group">
-            <label className="label">Min Value</label>
+            <label className="label">Min Value
             <NumberInput
               value={condition.min}
               onChange={(v) => setCondition({ ...condition, min: v })}
@@ -992,9 +1024,10 @@ function VariantConditionEditor({
               allowEmpty
               placeholder="0"
             />
+            </label>
           </div>
           <div className="form-group">
-            <label className="label">Max Value</label>
+            <label className="label">Max Value
             <NumberInput
               value={condition.max}
               onChange={(v) => setCondition({ ...condition, max: v })}
@@ -1002,6 +1035,7 @@ function VariantConditionEditor({
               allowEmpty
               placeholder="100"
             />
+            </label>
           </div>
         </>
       )}
@@ -1035,6 +1069,7 @@ function VariantConditionEditor({
         </>
       )}
 
+
       {conditionType === "entity_count" && (
         <>
           <ReferenceDropdown
@@ -1045,7 +1080,7 @@ function VariantConditionEditor({
             placeholder="Select kind..."
           />
           <div className="form-group">
-            <label className="label">Min Count</label>
+            <label className="label">Min Count
             <NumberInput
               value={condition.min}
               onChange={(v) => setCondition({ ...condition, min: v })}
@@ -1053,9 +1088,10 @@ function VariantConditionEditor({
               allowEmpty
               placeholder="0"
             />
+            </label>
           </div>
           <div className="form-group">
-            <label className="label">Max Count</label>
+            <label className="label">Max Count
             <NumberInput
               value={condition.max}
               onChange={(v) => setCondition({ ...condition, max: v })}
@@ -1063,6 +1099,7 @@ function VariantConditionEditor({
               allowEmpty
               placeholder="No limit"
             />
+            </label>
           </div>
         </>
       )}
@@ -1077,7 +1114,7 @@ function VariantConditionEditor({
             placeholder="Select entity..."
           />
           <div className="form-group">
-            <label className="label">Tag Name</label>
+            <label className="label">Tag Name
             <TagSelector
               value={condition.tag ? [condition.tag] : []}
               onChange={(tags) => setCondition({ ...condition, tag: tags[0] || "" })}
@@ -1085,24 +1122,35 @@ function VariantConditionEditor({
               placeholder="Select tag..."
               singleSelect
             />
+            </label>
           </div>
         </>
       )}
 
       {conditionType === "random_chance" && (
         <div className="form-group">
-          <label className="label">Chance (0-1)</label>
+          <label className="label">Chance (0-1)
           <NumberInput
             value={condition.chance ?? 0.5}
             onChange={(v) => setCondition({ ...condition, chance: v ?? 0.5 })}
             step={0.1}
             placeholder="0.5"
           />
+          </label>
         </div>
       )}
     </div>
   );
 }
+
+VariantConditionEditor.propTypes = {
+  condition: PropTypes.object,
+  onChange: PropTypes.func.isRequired,
+  pressureOptions: PropTypes.array,
+  entityKindOptions: PropTypes.array,
+  availableRefs: PropTypes.array,
+  tagRegistry: PropTypes.array,
+};
 
 function VariantEffectsEditor({
   effects,
@@ -1131,11 +1179,7 @@ function VariantEffectsEditor({
   };
 
   // Get subtypes for an entity kind
-  const getSubtypeOptions = (kind) => {
-    const ek = (schema?.entityKinds || []).find((e) => e.kind === kind);
-    if (!ek?.subtypes) return [];
-    return ek.subtypes.map((st) => ({ value: st.id, label: st.name || st.id }));
-  };
+  const getSubtypeOptions = (kind) => getSubtypeOptionsFromSchema(schema, kind);
 
   // Get the entity kind for a creation ref
   const getKindForRef = (ref) => {
@@ -1258,7 +1302,7 @@ function VariantEffectsEditor({
               placeholder="Select entity..."
             />
             <div className="form-group">
-              <label className="label">Tag</label>
+              <label className="label">Tag
               <TagSelector
                 value={[]}
                 onChange={(tags) => {
@@ -1270,6 +1314,7 @@ function VariantEffectsEditor({
                 placeholder="Select or type tag..."
                 singleSelect
               />
+              </label>
             </div>
           </div>
         ) : (
@@ -1303,7 +1348,7 @@ function VariantEffectsEditor({
                     placeholder="Select pressure..."
                   />
                   <div className="form-group">
-                    <label className="label">Delta</label>
+                    <label className="label">Delta
                     <NumberInput
                       value={update.delta}
                       onChange={(v) => {
@@ -1313,6 +1358,7 @@ function VariantEffectsEditor({
                       }}
                       placeholder="0"
                     />
+                    </label>
                   </div>
                 </div>
                 <button
@@ -1349,6 +1395,16 @@ function VariantEffectsEditor({
     </div>
   );
 }
+
+VariantEffectsEditor.propTypes = {
+  effects: PropTypes.object,
+  onChange: PropTypes.func.isRequired,
+  creationRefs: PropTypes.array,
+  creationRules: PropTypes.array,
+  pressureOptions: PropTypes.array,
+  tagRegistry: PropTypes.array,
+  schema: PropTypes.object,
+};
 
 function VariantCard({
   variant,
@@ -1387,7 +1443,7 @@ function VariantCard({
 
   return (
     <div className="item-card">
-      <div className="item-card-header" onClick={() => setExpanded(!expanded)}>
+      <div className="item-card-header" onClick={() => setExpanded(!expanded)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
         <div className="item-card-icon item-card-icon-variant">⚡</div>
         <div className="item-card-info">
           <div className="item-card-title">{variant.name || "Unnamed Variant"}</div>
@@ -1410,8 +1466,8 @@ function VariantCard({
       {expanded && (
         <div className="item-card-body">
           <div className="form-group">
-            <label className="label">Variant Name</label>
-            <input
+            <label htmlFor="variant-name" className="label">Variant Name</label>
+            <input id="variant-name"
               type="text"
               value={variant.name || ""}
               onChange={(e) => onChange({ ...variant, name: e.target.value })}
@@ -1454,6 +1510,18 @@ function VariantCard({
   );
 }
 
+VariantCard.propTypes = {
+  variant: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  pressureOptions: PropTypes.array,
+  entityKindOptions: PropTypes.array,
+  creationRefs: PropTypes.array,
+  creationRules: PropTypes.array,
+  tagRegistry: PropTypes.array,
+  schema: PropTypes.object,
+};
+
 function VariantsSection({ generator, onChange, pressures = [], schema, tagRegistry = [] }) {
   const variants = generator.variants || { selection: "first_match", options: [] };
 
@@ -1482,7 +1550,7 @@ function VariantsSection({ generator, onChange, pressures = [], schema, tagRegis
   const updateVariants = (newVariants) => {
     if (newVariants.options.length === 0) {
       // Remove variants entirely if empty
-      const { variants: _, ...rest } = generator;
+      const { variants: _omitVariants, ...rest } = generator; // eslint-disable-line sonarjs/no-unused-vars
       onChange(rest);
     } else {
       onChange({ ...generator, variants: newVariants });
@@ -1568,6 +1636,14 @@ function VariantsSection({ generator, onChange, pressures = [], schema, tagRegis
   );
 }
 
+VariantsSection.propTypes = {
+  generator: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  pressures: PropTypes.array,
+  schema: PropTypes.object,
+  tagRegistry: PropTypes.array,
+};
+
 // ============================================================================
 // CreationTab - Main tab component
 // ============================================================================
@@ -1620,6 +1696,7 @@ export function CreationTab({
       ],
     });
   };
+
 
   return (
     <div>
@@ -1678,5 +1755,14 @@ export function CreationTab({
     </div>
   );
 }
+
+CreationTab.propTypes = {
+  generator: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  tagRegistry: PropTypes.array,
+  onAddToRegistry: PropTypes.func,
+  pressures: PropTypes.array,
+};
 
 export default CreationTab;

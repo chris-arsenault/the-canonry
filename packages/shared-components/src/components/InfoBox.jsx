@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -20,3 +21,9 @@ export function InfoBox({ title, children, className = '' }) {
 }
 
 export default InfoBox;
+
+InfoBox.propTypes = {
+  title: PropTypes.string,
+  children: PropTypes.node.isRequired,
+  className: PropTypes.string,
+};

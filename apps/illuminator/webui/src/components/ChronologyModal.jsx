@@ -203,6 +203,9 @@ export default function ChronologyModal({
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
       }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
     >
       <div className="chm-dialog">
         {/* Header */}
@@ -221,8 +224,8 @@ export default function ChronologyModal({
           {!isActive && !isReviewing && !isFailed && (
             <>
               <div className="chm-field">
-                <label className="chm-field-label">Era</label>
-                <select
+                <label htmlFor="era" className="chm-field-label">Era</label>
+                <select id="era"
                   className="illuminator-select chm-era-select"
                   value={selectedEraId}
                   onChange={(e) => setSelectedEraId(e.target.value)}
@@ -269,7 +272,7 @@ export default function ChronologyModal({
               )}
 
               <button
-                onClick={handleStart}
+                onClick={() => void handleStart()}
                 disabled={!canStart}
                 className={`illuminator-button chm-start-btn ${canStart ? "chm-start-btn-active" : "chm-start-btn-disabled"}`}
               >
@@ -352,7 +355,7 @@ export default function ChronologyModal({
             <button onClick={handleCancel} className="illuminator-button">
               Cancel
             </button>
-            <button onClick={handleApply} className="illuminator-button chm-apply-btn">
+            <button onClick={() => void handleApply()} className="illuminator-button chm-apply-btn">
               Apply ({sortedAssignments.length} years)
             </button>
           </div>

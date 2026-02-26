@@ -9,7 +9,7 @@
  * - Continue/cancel/apply controls
  */
 
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import { diffWords } from "diff";
 import { resolveAnchorPhrase } from "../lib/fuzzyAnchor";
@@ -151,7 +151,7 @@ function PatchCard({
   return (
     <div className="srm-patch-card" data-accepted={accepted !== false}>
       {/* Header -- always visible */}
-      <div onClick={onToggleExpand} className="srm-patch-header">
+      <div onClick={onToggleExpand} className="srm-patch-header" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggleExpand(e); }} >
         <div className="srm-patch-header-left">
           <span className="srm-patch-expand-icon">{expanded ? "\u25BC" : "\u25B6"}</span>
           <span className="srm-patch-entity-name">{patch.entityName}</span>
@@ -477,3 +477,38 @@ export default function SummaryRevisionModal({
     </div>
   );
 }
+
+InlineDiff.propTypes = {
+  current: PropTypes.string,
+  proposed: PropTypes.string,
+  label: PropTypes.string,
+};
+
+AnchorPhraseEditor.propTypes = {
+  patch: PropTypes.object.isRequired,
+  onUpdate: PropTypes.func.isRequired,
+};
+
+PatchCard.propTypes = {
+  patch: PropTypes.object.isRequired,
+  currentEntity: PropTypes.object,
+  accepted: PropTypes.bool,
+  onToggle: PropTypes.func.isRequired,
+  expanded: PropTypes.bool,
+  onToggleExpand: PropTypes.func.isRequired,
+  onUpdateAnchorPhrase: PropTypes.func,
+  descriptionBaseline: PropTypes.string,
+};
+
+SummaryRevisionModal.propTypes = {
+  run: PropTypes.object,
+  isActive: PropTypes.bool,
+  onContinue: PropTypes.func,
+  onAutoContine: PropTypes.func,
+  onTogglePatch: PropTypes.func,
+  onAccept: PropTypes.func,
+  onCancel: PropTypes.func.isRequired,
+  getEntityContexts: PropTypes.func,
+  onUpdateAnchorPhrase: PropTypes.func,
+  descriptionBaseline: PropTypes.string,
+};

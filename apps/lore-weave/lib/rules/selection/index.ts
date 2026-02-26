@@ -38,17 +38,17 @@ export function describeSelectionFilter(filter: SelectionFilter): string {
     case 'exclude':
       return `exclude [${filter.entities.join(', ')}]`;
     case 'has_relationship':
-      return `has_relationship '${filter.kind}'${filter.with ? ` with ${filter.with}` : ''}`;
+      return `has_relationship '${filter.kind}'${filter.with ? ' with ' + filter.with : ''}`;
     case 'lacks_relationship':
-      return `lacks_relationship '${filter.kind}'${filter.with ? ` with ${filter.with}` : ''}`;
+      return `lacks_relationship '${filter.kind}'${filter.with ? ' with ' + filter.with : ''}`;
     case 'has_tag':
-      return `has_tag '${filter.tag}'${filter.value !== undefined ? ` = ${filter.value}` : ''}`;
+      return `has_tag '${filter.tag}'${filter.value !== undefined ? ' = ' + filter.value : ''}`;
     case 'has_tags':
       return `has_tags [${filter.tags.join(', ')}]`;
     case 'has_any_tag':
       return `has_any_tag [${filter.tags.join(', ')}]`;
     case 'lacks_tag':
-      return `lacks_tag '${filter.tag}'${filter.value !== undefined ? ` = ${filter.value}` : ''}`;
+      return `lacks_tag '${filter.tag}'${filter.value !== undefined ? ' = ' + filter.value : ''}`;
     case 'lacks_any_tag':
       return `lacks_any_tag [${filter.tags.join(', ')}]`;
     case 'has_culture':
@@ -151,6 +151,7 @@ function sampleRandom(entities: HardState[], count: number): HardState[] {
   if (count <= 0 || entities.length === 0) return [];
   const pool = entities.slice();
   for (let i = pool.length - 1; i > 0; i--) {
+    // eslint-disable-next-line sonarjs/pseudo-random -- simulation shuffle for entity selection
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
@@ -166,6 +167,7 @@ function pickWeighted(entities: HardState[]): HardState | undefined {
   if (entities.length === 0) return undefined;
   const weights = entities.map(getProminenceWeight);
   const total = weights.reduce((sum, w) => sum + w, 0);
+  // eslint-disable-next-line sonarjs/pseudo-random -- simulation weighted random pick
   let roll = Math.random() * total;
   for (let i = 0; i < entities.length; i++) {
     roll -= weights[i];
@@ -241,6 +243,7 @@ function sampleWeightedByScore(
       const remaining = pool.map(item => item.entity);
       return picks.concat(sampleRandom(remaining, limit - picks.length));
     }
+    // eslint-disable-next-line sonarjs/pseudo-random -- simulation weighted random selection
     let roll = Math.random() * total;
     let pickedIndex = -1;
     for (let idx = 0; idx < pool.length; idx++) {
@@ -287,14 +290,16 @@ function applyPickStrategyWithBias(
 
 export function applyPickStrategy(
   entities: HardState[],
-  pickStrategy: SelectionRule['pickStrategy'] | VariableSelectionRule['pickStrategy'] | undefined,
+  pickStrategy: SelectionRule['pickStrategy']   | undefined,
   maxResults?: number
 ): HardState[] {
   const limit = maxResults && maxResults > 0 ? Math.min(maxResults, entities.length) : undefined;
 
   switch (pickStrategy) {
-    case 'random':
-      return limit ? sampleRandom(entities, limit) : (entities.length > 0 ? [pickRandom(entities)] : []);
+    case 'random': {
+      if (limit) return sampleRandom(entities, limit);
+      return entities.length > 0 ? [pickRandom(entities)] : [];
+    }
     case 'weighted':
       if (limit) return sampleWeighted(entities, limit);
       const picked = pickWeighted(entities);
@@ -357,7 +362,14 @@ export function selectEntities(
 ): HardState[] {
   const graphView = ctx.graph;
   let entities: HardState[];
-  const kinds = rule.kinds && rule.kinds.length > 0 ? rule.kinds : (rule.kind ? [rule.kind] : []);
+  let kinds: string[];
+  if (rule.kinds && rule.kinds.length > 0) {
+    kinds = rule.kinds;
+  } else if (rule.kind) {
+    kinds = [rule.kind];
+  } else {
+    kinds = [];
+  }
   const kindLabel = kinds.length > 0 ? kinds.join('|') : 'any';
 
   // Include historical entities if the rule explicitly asks for them
@@ -424,9 +436,9 @@ export function selectEntities(
       const maxDist = rule.maxDistance || 50;
       entities = getCandidatesByKind().filter((e) => {
         if (!e.coordinates) return false;
-        const dx = e.coordinates.x - refEntity.coordinates!.x;
-        const dy = e.coordinates.y - refEntity.coordinates!.y;
-        const dz = e.coordinates.z - refEntity.coordinates!.z;
+        const dx = e.coordinates.x - refEntity.coordinates.x;
+        const dy = e.coordinates.y - refEntity.coordinates.y;
+        const dz = e.coordinates.z - refEntity.coordinates.z;
         return Math.sqrt(dx * dx + dy * dy + dz * dz) <= maxDist;
       });
       pushTrace(trace, `proximity<=${maxDist}`, entities.length);
@@ -489,7 +501,7 @@ export function selectEntities(
  * Type guard to check if a from spec is a path-based spec.
  */
 function isPathBasedSpec(from: VariableSelectionRule['from']): from is PathBasedSpec {
-  return typeof from === 'object' && from !== null && 'path' in from;
+  return typeof from === 'object' && from != null && 'path' in from;
 }
 
 /**

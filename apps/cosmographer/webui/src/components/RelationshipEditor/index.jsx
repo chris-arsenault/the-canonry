@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { NumberInput } from "@penguin-tales/shared-components";
 
 // Arctic Blue base theme with frost blue accent (Cosmographer)
@@ -323,13 +324,13 @@ export default function RelationshipEditor({ project, onSave }) {
 
       {/* Add Relationship Modal */}
       {showModal && (
-        <div style={styles.modal} onClick={() => setShowModal(false)}>
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modal} onClick={() => setShowModal(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
             <div style={styles.modalTitle}>Add Relationship</div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Relationship Kind</label>
-              <select
+              <label htmlFor="relationship-kind" style={styles.label}>Relationship Kind</label>
+              <select id="relationship-kind"
                 style={styles.select}
                 value={newRel.kind}
                 onChange={(e) => setNewRel({ ...newRel, kind: e.target.value, src: "", dst: "" })}
@@ -344,8 +345,8 @@ export default function RelationshipEditor({ project, onSave }) {
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Source Entity</label>
-              <select
+              <label htmlFor="source-entity" style={styles.label}>Source Entity</label>
+              <select id="source-entity"
                 style={styles.select}
                 value={newRel.src}
                 onChange={(e) => setNewRel({ ...newRel, src: e.target.value })}
@@ -361,8 +362,8 @@ export default function RelationshipEditor({ project, onSave }) {
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Destination Entity</label>
-              <select
+              <label htmlFor="destination-entity" style={styles.label}>Destination Entity</label>
+              <select id="destination-entity"
                 style={styles.select}
                 value={newRel.dst}
                 onChange={(e) => setNewRel({ ...newRel, dst: e.target.value })}
@@ -380,7 +381,7 @@ export default function RelationshipEditor({ project, onSave }) {
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Strength (0-1)</label>
+              <label style={styles.label}>Strength (0-1)
               <NumberInput
                 style={styles.input}
                 min={0}
@@ -389,6 +390,7 @@ export default function RelationshipEditor({ project, onSave }) {
                 value={newRel.strength}
                 onChange={(v) => setNewRel({ ...newRel, strength: v ?? 0.5 })}
               />
+              </label>
             </div>
 
             <div style={styles.modalActions}>
@@ -405,3 +407,8 @@ export default function RelationshipEditor({ project, onSave }) {
     </div>
   );
 }
+
+RelationshipEditor.propTypes = {
+  project: PropTypes.object,
+  onSave: PropTypes.func.isRequired,
+};

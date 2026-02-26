@@ -3,6 +3,7 @@
  */
 
 import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import { getElementValidation } from "../../shared";
 
 export function ActionListCard({ action, onClick, onToggle, usageMap }) {
@@ -47,7 +48,7 @@ export function ActionListCard({ action, onClick, onToggle, usageMap }) {
     .join(" ");
 
   return (
-    <div className={cardClasses} onClick={onClick}>
+    <div className={cardClasses} onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(e); }} >
       <div className="card-header">
         <div>
           <div className="flex items-center gap-md">
@@ -73,6 +74,9 @@ export function ActionListCard({ action, onClick, onToggle, usageMap }) {
             onToggle();
           }}
           className={isEnabled ? "toggle toggle-on" : "toggle"}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           <div className="toggle-knob" />
         </div>
@@ -92,3 +96,10 @@ export function ActionListCard({ action, onClick, onToggle, usageMap }) {
     </div>
   );
 }
+
+ActionListCard.propTypes = {
+  action: PropTypes.object.isRequired,
+  onClick: PropTypes.func.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  usageMap: PropTypes.object,
+};

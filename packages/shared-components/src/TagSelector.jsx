@@ -11,7 +11,8 @@
  * - Single-select mode for choosing exactly one tag
  */
 
-import { useState, useRef, useEffect, useMemo, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useLayoutEffect } from 'react';
+import PropTypes from 'prop-types';
 
 // Category colors matching the tag registry editor
 const CATEGORY_COLORS = {
@@ -29,6 +30,116 @@ const RARITY_DOTS = {
   uncommon: { color: '#22c55e', count: 2 },
   rare: { color: '#3b82f6', count: 3 },
   legendary: { color: '#fbbf24', count: 4 },
+};
+
+const styles = {
+  container: { position: 'relative' },
+  rarityDotsContainer: { display: 'inline-flex', gap: '2px', marginLeft: '4px' },
+  inputWrapper: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '4px',
+    padding: '6px',
+    background: 'rgba(0, 0, 0, 0.2)',
+    borderRadius: '6px',
+    minHeight: '36px',
+    alignItems: 'center',
+    cursor: 'text',
+    transition: 'border-color 0.15s',
+  },
+  inputWrapperOpen: { border: '1px solid var(--gold-accent)' },
+  inputWrapperClosed: { border: '1px solid rgba(59, 130, 246, 0.3)' },
+  invalidWarning: { color: '#fca5a5' },
+  axisIndicator: { color: '#22d3ee', fontSize: '0.7rem' },
+  removeButton: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '0 2px',
+    fontSize: '0.85rem',
+    lineHeight: 1,
+    opacity: 0.7,
+  },
+  invalidPopup: {
+    position: 'absolute',
+    top: '100%',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    marginTop: '4px',
+    background: '#0c1f2e',
+    border: '1px solid rgba(34, 197, 94, 0.5)',
+    borderRadius: '6px',
+    padding: '6px 10px',
+    fontSize: '0.7rem',
+    color: '#86efac',
+    whiteSpace: 'nowrap',
+    cursor: 'pointer',
+    zIndex: 1001,
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+  },
+  searchInput: {
+    flex: 1,
+    minWidth: '80px',
+    background: 'transparent',
+    border: 'none',
+    outline: 'none',
+    fontSize: '0.8rem',
+    color: 'var(--text-color)',
+    padding: '2px',
+  },
+  matchAllContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    marginTop: '4px',
+    fontSize: '0.7rem',
+    color: 'var(--arctic-frost)',
+  },
+  matchAllLabel: { display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' },
+  matchAllCheckbox: { width: '12px', height: '12px' },
+  matchAllHint: { opacity: 0.6 },
+  emptyDropdown: {
+    padding: '12px 16px',
+    color: 'var(--arctic-frost)',
+    fontSize: '0.8rem',
+    textAlign: 'center',
+  },
+  categoryHeader: {
+    padding: '6px 12px',
+    fontSize: '0.65rem',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    background: 'rgba(0, 0, 0, 0.2)',
+    borderBottom: '1px solid rgba(59, 130, 246, 0.2)',
+  },
+  tagOptionRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  tagName: {
+    fontFamily: 'monospace',
+    fontSize: '0.8rem',
+    color: 'var(--text-color)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  tagMeta: { display: 'flex', alignItems: 'center', gap: '4px' },
+  tagDescription: {
+    fontSize: '0.7rem',
+    color: 'var(--arctic-frost)',
+    marginTop: '2px',
+    opacity: 0.8,
+  },
+  createOptionRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  createIcon: { color: '#86efac', fontSize: '1rem' },
+  createLabel: { color: '#86efac', fontSize: '0.8rem' },
 };
 
 export default function TagSelector({
@@ -106,7 +217,7 @@ export default function TagSelector({
   // Flat list for keyboard navigation (includes "create new" option)
   const flatOptions = useMemo(() => {
     const result = [];
-    Object.entries(groupedTags).forEach(([category, tags]) => {
+    Object.entries(groupedTags).forEach(([_category, tags]) => {
       tags.forEach(t => result.push({ type: 'existing', ...t }));
     });
     if (canCreateTag) {
@@ -114,11 +225,6 @@ export default function TagSelector({
     }
     return result;
   }, [groupedTags, canCreateTag]);
-
-  // Check for invalid tags (selected but not in registry)
-  const invalidTags = useMemo(() => {
-    return value.filter(tag => !tagLookup[tag]);
-  }, [value, tagLookup]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -264,7 +370,7 @@ export default function TagSelector({
   const renderRarityDots = (rarity) => {
     const config = RARITY_DOTS[rarity] || RARITY_DOTS.common;
     return (
-      <span style={{ display: 'inline-flex', gap: '2px', marginLeft: '4px' }}>
+      <span style={styles.rarityDotsContainer}>
         {Array.from({ length: config.count }).map((_, i) => (
           <span
             key={i}
@@ -281,26 +387,21 @@ export default function TagSelector({
   };
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
+    <div ref={containerRef} style={styles.container}>
       {/* Selected tags + input */}
       <div
         onClick={() => {
           setIsOpen(true);
           inputRef.current?.focus();
         }}
+        // eslint-disable-next-line local/no-inline-styles -- dynamic merge of extracted style objects
         style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '4px',
-          padding: '6px',
-          background: 'rgba(0, 0, 0, 0.2)',
-          borderRadius: '6px',
-          border: isOpen ? '1px solid var(--gold-accent)' : '1px solid rgba(59, 130, 246, 0.3)',
-          minHeight: '36px',
-          alignItems: 'center',
-          cursor: 'text',
-          transition: 'border-color 0.15s',
+          ...styles.inputWrapper,
+          ...(isOpen ? styles.inputWrapperOpen : styles.inputWrapperClosed),
         }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         {value.map(tag => {
           const tagMeta = tagLookup[tag];
@@ -330,10 +431,10 @@ export default function TagSelector({
               onMouseEnter={() => isInvalid && onAddToRegistry && handleInvalidTagMouseEnter(tag)}
               onMouseLeave={() => isInvalid && handleInvalidTagMouseLeave()}
             >
-              {isInvalid && <span style={{ color: '#fca5a5' }}>⚠</span>}
+              {isInvalid && <span style={styles.invalidWarning}>⚠</span>}
               {tag}
               {tagMeta?.isAxis && (
-                <span style={{ color: '#22d3ee', fontSize: '0.7rem' }} title="Semantic plane axis label">↔</span>
+                <span style={styles.axisIndicator} title="Semantic plane axis label">↔</span>
               )}
               {tagMeta && renderRarityDots(tagMeta.rarity)}
               <button
@@ -342,15 +443,10 @@ export default function TagSelector({
                   e.stopPropagation();
                   handleRemoveTag(tag);
                 }}
+                // eslint-disable-next-line local/no-inline-styles -- dynamic color from category style
                 style={{
-                  background: 'none',
-                  border: 'none',
+                  ...styles.removeButton,
                   color: catStyle.text,
-                  cursor: 'pointer',
-                  padding: '0 2px',
-                  fontSize: '0.85rem',
-                  lineHeight: 1,
-                  opacity: 0.7,
                 }}
               >
                 ×
@@ -358,29 +454,16 @@ export default function TagSelector({
               {/* Hover menu for invalid tags */}
               {isInvalid && hoveredInvalidTag === tag && onAddToRegistry && (
                 <div
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    marginTop: '4px',
-                    background: '#0c1f2e',
-                    border: '1px solid rgba(34, 197, 94, 0.5)',
-                    borderRadius: '6px',
-                    padding: '6px 10px',
-                    fontSize: '0.7rem',
-                    color: '#86efac',
-                    whiteSpace: 'nowrap',
-                    cursor: 'pointer',
-                    zIndex: 1001,
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                  }}
+                  style={styles.invalidPopup}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleAddInvalidToRegistry(tag);
                   }}
                   onMouseEnter={handlePopupMouseEnter}
                   onMouseLeave={handlePopupMouseLeave}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
                   + Add to registry
                 </div>
@@ -396,39 +479,25 @@ export default function TagSelector({
           onKeyDown={handleKeyDown}
           onFocus={() => setIsOpen(true)}
           placeholder={value.length === 0 ? placeholder : ''}
-          style={{
-            flex: 1,
-            minWidth: '80px',
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            fontSize: '0.8rem',
-            color: 'var(--text-color)',
-            padding: '2px',
-          }}
+          // eslint-disable-next-line local/no-inline-styles -- extracted style object
+          style={styles.searchInput}
         />
       </div>
 
       {/* Match All toggle */}
       {matchAllEnabled && value.length > 1 && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          marginTop: '4px',
-          fontSize: '0.7rem',
-          color: 'var(--arctic-frost)',
-        }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+        <div style={styles.matchAllContainer}>
+          <label style={styles.matchAllLabel}>
             <input
               type="checkbox"
               checked={matchAll}
               onChange={(e) => onMatchAllChange?.(e.target.checked)}
-              style={{ width: '12px', height: '12px' }}
+              // eslint-disable-next-line local/no-inline-styles -- extracted style object
+              style={styles.matchAllCheckbox}
             />
             Match all tags (AND)
           </label>
-          <span style={{ opacity: 0.6 }}>
+          <span style={styles.matchAllHint}>
             {matchAll ? 'Entity must have all tags' : 'Entity must have any tag'}
           </span>
         </div>
@@ -463,6 +532,9 @@ export default function TagSelector({
                 borderBottom: '1px solid rgba(59, 130, 246, 0.2)',
                 borderLeft: highlightedIndex === flatOptions.length - 1 ? '3px solid #86efac' : '3px solid transparent',
               }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
             >
               <div style={{
                 display: 'flex',
@@ -471,7 +543,7 @@ export default function TagSelector({
               }}>
                 <span style={{ color: '#86efac', fontSize: '1rem' }}>+</span>
                 <span style={{ color: '#86efac', fontSize: '0.8rem' }}>
-                  Create "<strong>{canCreateTag}</strong>" and add to registry
+                  Create &quot;<strong>{canCreateTag}</strong>&quot; and add to registry
                 </span>
               </div>
             </div>
@@ -484,11 +556,11 @@ export default function TagSelector({
               fontSize: '0.8rem',
               textAlign: 'center',
             }}>
-              {tagRegistry.length === 0
-                ? 'No tags defined. Type to create a new tag.'
-                : searchQuery
-                  ? 'No matching tags. Press Enter to create.'
-                  : 'All tags selected'}
+              {(() => {
+                if (tagRegistry.length === 0) return 'No tags defined. Type to create a new tag.';
+                if (searchQuery) return 'No matching tags. Press Enter to create.';
+                return 'All tags selected';
+              })()}
             </div>
           ) : (
             Object.entries(groupedTags).map(([category, tags]) => (
@@ -521,6 +593,9 @@ export default function TagSelector({
                         borderLeft: isHighlighted ? '3px solid var(--gold-accent)' : '3px solid transparent',
                         transition: 'background 0.1s',
                       }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                     >
                       <div style={{
                         display: 'flex',
@@ -575,3 +650,15 @@ export default function TagSelector({
     </div>
   );
 }
+
+TagSelector.propTypes = {
+  value: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  tagRegistry: PropTypes.array,
+  onAddToRegistry: PropTypes.func,
+  placeholder: PropTypes.string,
+  matchAllEnabled: PropTypes.bool,
+  matchAll: PropTypes.bool,
+  onMatchAllChange: PropTypes.func,
+  singleSelect: PropTypes.bool,
+};

@@ -410,40 +410,47 @@ export function validateAllConfigs(config: {
 /**
  * Format validation results for display
  */
-export function formatValidationResult(result: SchemaValidationResult): string {
-  const lines: string[] = [];
+function formatErrorLines(errors: SchemaValidationResult['errors']): string[] {
+  if (errors.length === 0) return [];
+  const lines: string[] = [`ERRORS (${errors.length}):`];
+  for (const error of errors) {
+    lines.push(`  [${error.path}] ${error.message}`);
+    lines.push(`    Expected: ${error.expected}`);
+    if (error.value !== undefined) {
+      const valueStr = JSON.stringify(error.value);
+      if (valueStr.length < 100) {
+        lines.push(`    Got: ${valueStr}`);
+      }
+    }
+    if (error.suggestion) {
+      lines.push(`    Suggestion: ${error.suggestion}`);
+    }
+    lines.push('');
+  }
+  return lines;
+}
 
+function formatWarningLines(warnings: SchemaValidationResult['warnings']): string[] {
+  if (warnings.length === 0) return [];
+  const lines: string[] = [`WARNINGS (${warnings.length}):`];
+  for (const warning of warnings) {
+    lines.push(`  [${warning.path}] ${warning.message}`);
+    if (warning.suggestion) {
+      lines.push(`    Suggestion: ${warning.suggestion}`);
+    }
+  }
+  return lines;
+}
+
+export function formatValidationResult(result: SchemaValidationResult): string {
   if (result.valid && result.warnings.length === 0) {
     return 'Configuration is valid.';
   }
 
-  if (result.errors.length > 0) {
-    lines.push(`ERRORS (${result.errors.length}):`);
-    for (const error of result.errors) {
-      lines.push(`  [${error.path}] ${error.message}`);
-      lines.push(`    Expected: ${error.expected}`);
-      if (error.value !== undefined) {
-        const valueStr = JSON.stringify(error.value);
-        if (valueStr.length < 100) {
-          lines.push(`    Got: ${valueStr}`);
-        }
-      }
-      if (error.suggestion) {
-        lines.push(`    Suggestion: ${error.suggestion}`);
-      }
-      lines.push('');
-    }
-  }
-
-  if (result.warnings.length > 0) {
-    lines.push(`WARNINGS (${result.warnings.length}):`);
-    for (const warning of result.warnings) {
-      lines.push(`  [${warning.path}] ${warning.message}`);
-      if (warning.suggestion) {
-        lines.push(`    Suggestion: ${warning.suggestion}`);
-      }
-    }
-  }
+  const lines: string[] = [
+    ...formatErrorLines(result.errors),
+    ...formatWarningLines(result.warnings),
+  ];
 
   return lines.join('\n');
 }

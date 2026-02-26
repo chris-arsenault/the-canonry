@@ -25,7 +25,7 @@ interface IlluminatorModalsState {
   // State
   renameModal: RenameModalState | null;
   createEntityModal: boolean;
-  editEntityModal: unknown | null; // PersistedEntity | null
+  editEntityModal: unknown; // PersistedEntity | null
   imageSettingsOpen: boolean;
   eraNarrativeModal: EraNarrativeModalState | null;
 

@@ -6,7 +6,6 @@
  */
 
 import { openIlluminatorDb } from "./illuminatorDbReader";
-import React from "react";
 
 const ERA_NARRATIVE_STORE_NAME = "eraNarratives";
 
@@ -90,14 +89,17 @@ function projectToViewRecord(raw: Record<string, unknown>): EraNarrativeViewReco
   if (!content) return null;
 
   const threadSynthesis = raw.threadSynthesis as { thesis?: string } | undefined;
-  const prepBriefs = Array.isArray(raw.prepBriefs)
-    ? (raw.prepBriefs as Array<{ chronicleId: string; chronicleTitle: string }>).map((b) => ({
-        chronicleId: b.chronicleId,
-        chronicleTitle: b.chronicleTitle,
-      }))
-    : Array.isArray(raw.sourceChronicles)
-      ? (raw.sourceChronicles as Array<{ chronicleId: string; chronicleTitle: string }>)
-      : [];
+  let prepBriefs: Array<{ chronicleId: string; chronicleTitle: string }>;
+  if (Array.isArray(raw.prepBriefs)) {
+    prepBriefs = (raw.prepBriefs as Array<{ chronicleId: string; chronicleTitle: string }>).map((b) => ({
+      chronicleId: b.chronicleId,
+      chronicleTitle: b.chronicleTitle,
+    }));
+  } else if (Array.isArray(raw.sourceChronicles)) {
+    prepBriefs = raw.sourceChronicles as Array<{ chronicleId: string; chronicleTitle: string }>;
+  } else {
+    prepBriefs = [];
+  }
 
   const coverImage = raw.coverImage as EraNarrativeViewRecord["coverImage"] | undefined;
   const imageRefs = raw.imageRefs as EraNarrativeViewRecord["imageRefs"] | undefined;

@@ -6,6 +6,7 @@
  */
 
 import React, { Suspense, lazy } from "react";
+import PropTypes from "prop-types";
 import RemotePlaceholder from "./RemotePlaceholder";
 import { colors, typography } from "../theme";
 
@@ -91,3 +92,24 @@ export default function IlluminatorHost({
     </div>
   );
 }
+
+IlluminatorHost.propTypes = {
+  projectId: PropTypes.string,
+  schema: PropTypes.object,
+  worldData: PropTypes.object,
+  worldContext: PropTypes.object,
+  onWorldContextChange: PropTypes.func,
+  entityGuidance: PropTypes.object,
+  onEntityGuidanceChange: PropTypes.func,
+  cultureIdentities: PropTypes.object,
+  onCultureIdentitiesChange: PropTypes.func,
+  enrichmentConfig: PropTypes.object,
+  onEnrichmentConfigChange: PropTypes.func,
+  styleSelection: PropTypes.object,
+  onStyleSelectionChange: PropTypes.func,
+  historianConfig: PropTypes.object,
+  onHistorianConfigChange: PropTypes.func,
+  activeSection: PropTypes.string,
+  onSectionChange: PropTypes.func,
+  activeSlotIndex: PropTypes.number,
+};

@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -48,3 +49,17 @@ export function FormRow({ children, className = '' }) {
 }
 
 export default FormGroup;
+
+FormGroup.propTypes = {
+  label: PropTypes.string,
+  htmlFor: PropTypes.string,
+  hint: PropTypes.string,
+  children: PropTypes.node,
+  wide: PropTypes.bool,
+  className: PropTypes.string,
+};
+
+FormRow.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+};

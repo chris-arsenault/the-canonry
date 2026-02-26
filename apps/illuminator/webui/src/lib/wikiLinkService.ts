@@ -56,7 +56,7 @@ const linkerCache = new Map<string, Automaton>();
 function buildCacheKey(entities: WikiLinkEntity[]): string {
   return entities
     .map((entity) => `${entity.id}:${entity.name}`)
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .join("|");
 }
 
@@ -124,7 +124,10 @@ function normalizeSlug(text: string): string {
   return normalizeForMatch(text).normalized;
 }
 
-function buildAutomaton(entities: WikiLinkEntity[]): Automaton {
+function collectSlugMappings(entities: WikiLinkEntity[]): {
+  slugToIds: Map<string, string[]>;
+  slugToName: Map<string, string>;
+} {
   const slugToIds = new Map<string, string[]>();
   const slugToName = new Map<string, string>();
 
@@ -137,31 +140,34 @@ function buildAutomaton(entities: WikiLinkEntity[]): Automaton {
     } else {
       slugToIds.set(slug, [entity.id]);
     }
-    // Keep the first name that produced this slug (real name comes before aliases)
     if (!slugToName.has(slug)) {
       slugToName.set(slug, entity.name);
     }
   }
 
+  return { slugToIds, slugToName };
+}
+
+function partitionSlugMappings(
+  slugToIds: Map<string, string[]>,
+  slugToName: Map<string, string>
+): { patterns: Pattern[]; collisions: SlugCollision[] } {
   const collisions: SlugCollision[] = [];
   const patterns: Pattern[] = [];
 
   for (const [slug, ids] of slugToIds.entries()) {
     const uniqueIds = [...new Set(ids)];
     if (uniqueIds.length === 1) {
-      const entityId = uniqueIds[0];
-      patterns.push({
-        slug,
-        entityId,
-        name: slugToName.get(slug) || slug,
-      });
+      patterns.push({ slug, entityId: uniqueIds[0], name: slugToName.get(slug) || slug });
     } else {
       collisions.push({ slug, entityIds: uniqueIds });
     }
   }
 
-  const nodes: Node[] = [{ next: {}, fail: 0, outputs: [] }];
+  return { patterns, collisions };
+}
 
+function insertPatterns(patterns: Pattern[], nodes: Node[]): void {
   patterns.forEach((pattern, index) => {
     let nodeIndex = 0;
     for (const char of pattern.slug) {
@@ -177,7 +183,9 @@ function buildAutomaton(entities: WikiLinkEntity[]): Automaton {
     }
     nodes[nodeIndex].outputs.push(index);
   });
+}
 
+function buildFailLinks(nodes: Node[]): void {
   const queue: number[] = [];
   for (const char of Object.keys(nodes[0].next)) {
     const nextIndex = nodes[0].next[char];
@@ -186,7 +194,7 @@ function buildAutomaton(entities: WikiLinkEntity[]): Automaton {
   }
 
   while (queue.length > 0) {
-    const current = queue.shift()!;
+    const current = queue.shift();
     const node = nodes[current];
 
     for (const [char, nextIndex] of Object.entries(node.next)) {
@@ -204,6 +212,15 @@ function buildAutomaton(entities: WikiLinkEntity[]): Automaton {
       );
     }
   }
+}
+
+function buildAutomaton(entities: WikiLinkEntity[]): Automaton {
+  const { slugToIds, slugToName } = collectSlugMappings(entities);
+  const { patterns, collisions } = partitionSlugMappings(slugToIds, slugToName);
+
+  const nodes: Node[] = [{ next: {}, fail: 0, outputs: [] }];
+  insertPatterns(patterns, nodes);
+  buildFailLinks(nodes);
 
   return { nodes, patterns, collisions };
 }
@@ -231,6 +248,50 @@ function isBoundaryMatch(normalized: string, start: number, end: number): boolea
  * No overlap filtering — callers that need non-overlapping results should
  * use filterOverlaps().
  */
+function advanceState(state: number, char: string, nodes: Node[]): number {
+  let s = state;
+  while (s !== 0 && nodes[s].next[char] === undefined) {
+    s = nodes[s].fail;
+  }
+  const nextState = nodes[s].next[char];
+  return nextState !== undefined ? nextState : s;
+}
+
+function isBetterMatch(rawStart: number, rawEnd: number, existing: WikiLinkMatch | undefined): boolean {
+  if (!existing) return true;
+  if (rawStart < existing.start) return true;
+  return rawStart === existing.start && rawEnd > existing.end;
+}
+
+function recordOutputMatches(
+  outputs: number[],
+  i: number,
+  normalized: string,
+  indexMap: number[],
+  automaton: Automaton,
+  matchesByEntity: Map<string, WikiLinkMatch>
+): void {
+  for (const patternIndex of outputs) {
+    const pattern = automaton.patterns[patternIndex];
+    const matchEnd = i + 1;
+    const matchStart = matchEnd - pattern.slug.length;
+    if (matchStart < 0) continue;
+    if (!isBoundaryMatch(normalized, matchStart, matchEnd)) continue;
+
+    const rawStart = indexMap[matchStart];
+    const rawEnd = indexMap[matchEnd - 1] + 1;
+
+    if (isBetterMatch(rawStart, rawEnd, matchesByEntity.get(pattern.entityId))) {
+      matchesByEntity.set(pattern.entityId, {
+        entityId: pattern.entityId,
+        name: pattern.name,
+        start: rawStart,
+        end: rawEnd,
+      });
+    }
+  }
+}
+
 function scanEntityMatches(
   normalized: string,
   indexMap: number[],
@@ -242,42 +303,12 @@ function scanEntityMatches(
   let state = 0;
 
   for (let i = 0; i < normalized.length; i += 1) {
-    const char = normalized[i];
-    while (state !== 0 && automaton.nodes[state].next[char] === undefined) {
-      state = automaton.nodes[state].fail;
-    }
-    const nextState = automaton.nodes[state].next[char];
-    if (nextState !== undefined) {
-      state = nextState;
-    }
+    state = advanceState(state, normalized[i], automaton.nodes);
 
     const outputs = automaton.nodes[state].outputs;
     if (outputs.length === 0) continue;
 
-    for (const patternIndex of outputs) {
-      const pattern = automaton.patterns[patternIndex];
-      const matchEnd = i + 1;
-      const matchStart = matchEnd - pattern.slug.length;
-      if (matchStart < 0) continue;
-      if (!isBoundaryMatch(normalized, matchStart, matchEnd)) continue;
-
-      const rawStart = indexMap[matchStart];
-      const rawEnd = indexMap[matchEnd - 1] + 1;
-      const existing = matchesByEntity.get(pattern.entityId);
-
-      if (
-        !existing ||
-        rawStart < existing.start ||
-        (rawStart === existing.start && rawEnd > existing.end)
-      ) {
-        matchesByEntity.set(pattern.entityId, {
-          entityId: pattern.entityId,
-          name: pattern.name,
-          start: rawStart,
-          end: rawEnd,
-        });
-      }
-    }
+    recordOutputMatches(outputs, i, normalized, indexMap, automaton, matchesByEntity);
   }
 
   return matchesByEntity;

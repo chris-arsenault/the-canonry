@@ -89,7 +89,7 @@ function formatCost(cost: number | undefined): string {
 // Sidebar sub-components
 // ---------------------------------------------------------------------------
 
-function MetadataRow({ label, value }: { label: string; value: string | undefined | null }) {
+function MetadataRow({ label, value }: Readonly<{ label: string; value: string | undefined | null }>) {
   if (!value) return null;
   return (
     <div className="edv-meta-row">
@@ -103,11 +103,11 @@ function ExpandableSection({
   title,
   content,
   charCount,
-}: {
+}: Readonly<{
   title: string;
   content: string | undefined;
   charCount?: number;
-}) {
+}>) {
   const [expanded, setExpanded] = useState(false);
   if (!content) return null;
 
@@ -129,7 +129,7 @@ function ExpandableSection({
 // Main content sub-components
 // ---------------------------------------------------------------------------
 
-function VisualTraitsList({ traits }: { traits: string[] }) {
+function VisualTraitsList({ traits }: Readonly<{ traits: string[] }>) {
   if (!traits || traits.length === 0) return null;
   return (
     <div className="edv-traits">
@@ -148,10 +148,10 @@ function VisualTraitsList({ traits }: { traits: string[] }) {
 function AliasesList({
   aliases,
   onUpdate,
-}: {
+}: Readonly<{
   aliases: string[];
   onUpdate?: (aliases: string[]) => void;
-}) {
+}>) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
   const [adding, setAdding] = useState(false);
@@ -210,6 +210,7 @@ function AliasesList({
           editingIndex === i ? (
             <span key={i} className="edv-aliases-edit-wrap">
               <input
+                // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
@@ -232,6 +233,9 @@ function AliasesList({
               className={`edv-aliases-tag ${editable ? "edv-aliases-tag-editable" : ""}`}
               onClick={() => handleStartEdit(i)}
               title={editable ? "Click to edit" : undefined}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
             >
               {alias}
               {editable && (
@@ -242,6 +246,9 @@ function AliasesList({
                   }}
                   className="edv-aliases-remove"
                   title="Remove alias"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
                   ×
                 </span>
@@ -252,6 +259,7 @@ function AliasesList({
         {adding && (
           <span className="edv-aliases-edit-wrap">
             <input
+              // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
               value={addValue}
               onChange={(e) => setAddValue(e.target.value)}
@@ -285,7 +293,7 @@ function AliasesList({
 // EntityDetailView
 // ---------------------------------------------------------------------------
 
-export default function EntityDetailView({ entity, entities, onBack }: EntityDetailViewProps) {
+export default function EntityDetailView({ entity, entities, onBack }: Readonly<EntityDetailViewProps>) {
   const prominenceScale = useProminenceScale();
   const queue = useEnrichmentQueueStore((s) => s.queue);
   const {
@@ -327,7 +335,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
   const saveSummary = useCallback(() => {
     const trimmed = summaryDraft.trim();
     if (trimmed && trimmed !== entity.summary) {
-      handleUpdateSummary(entity.id, trimmed);
+      void handleUpdateSummary(entity.id, trimmed);
     }
     setEditingSummary(false);
   }, [handleUpdateSummary, summaryDraft, entity.summary, entity.id]);
@@ -345,7 +353,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
   const saveDescription = useCallback(() => {
     const trimmed = descriptionDraft.trim();
     if (trimmed && trimmed !== entity.description) {
-      handleUpdateDescription(entity.id, trimmed);
+      void handleUpdateDescription(entity.id, trimmed);
     }
     setEditingDescription(false);
   }, [handleUpdateDescription, descriptionDraft, entity.description, entity.id]);
@@ -382,7 +390,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
 
   // Description history
   const historyLen = enrichment?.descriptionHistory?.length || 0;
-  const lastEntry = historyLen > 0 ? enrichment!.descriptionHistory![historyLen - 1] : null;
+  const lastEntry = historyLen > 0 ? enrichment.descriptionHistory[historyLen - 1] : null;
 
   return (
     <>
@@ -424,6 +432,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                 </div>
                 {editingSummary ? (
                   <textarea
+                    // eslint-disable-next-line jsx-a11y/no-autofocus
                     autoFocus
                     value={summaryDraft}
                     onChange={(e) => setSummaryDraft(e.target.value)}
@@ -470,7 +479,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                   )}
                   {historyLen > 0 && handleUndoDescription && (
                     <button
-                      onClick={() => handleUndoDescription(entity.id)}
+                      onClick={() => void handleUndoDescription(entity.id)}
                       title={`Revert to previous version (from ${lastEntry?.source || "unknown"}, ${lastEntry?.replacedAt ? new Date(lastEntry.replacedAt).toLocaleDateString() : "unknown"})`}
                       className="edv-inline-btn"
                     >
@@ -506,7 +515,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                     <div className="edv-section-label">
                       Historian
                       <HistorianToneSelector
-                        onSelect={(tone: string) => handleHistorianEdition(entity.id, tone)}
+                        onSelect={(tone: string) => void handleHistorianEdition(entity.id, tone)}
                         disabled={isHistorianEditionActive}
                         label="Copy Edit"
                         hasNotes={false}
@@ -517,7 +526,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                         (h: { source?: string }) => h.source === "historian-edition"
                       ) && (
                         <HistorianToneSelector
-                          onSelect={(tone: string) => handleHistorianEdition(entity.id, tone, true)}
+                          onSelect={(tone: string) => void handleHistorianEdition(entity.id, tone, true)}
                           disabled={isHistorianEditionActive}
                           label="Re-Edit"
                           hasNotes={false}
@@ -526,7 +535,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                         />
                       )}
                       <HistorianToneSelector
-                        onSelect={(tone: string) => handleHistorianReview(entity.id, tone)}
+                        onSelect={(tone: string) => void handleHistorianReview(entity.id, tone)}
                         disabled={isHistorianActive}
                         label="Annotate"
                         hasNotes={
@@ -539,7 +548,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                         enrichment?.historianNotes &&
                         enrichment.historianNotes.length > 0 && (
                           <button
-                            onClick={() => handleClearNotes(entity.id)}
+                            onClick={() => void handleClearNotes(entity.id)}
                             title="Remove all annotations from this entity"
                             className="edv-inline-btn-ghost"
                           >
@@ -557,13 +566,14 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                           currentDescription={entity.description}
                           descriptionHistory={enrichment.descriptionHistory}
                           historianNotes={enrichment.historianNotes}
-                          onRestoreVersion={handleRestoreDescription}
+                          onRestoreVersion={(entityId, historyIndex) => void handleRestoreDescription(entityId, historyIndex)}
                         />
                       )}
                   </>
                 )}
                 {editingDescription ? (
                   <textarea
+                    // eslint-disable-next-line jsx-a11y/no-autofocus
                     autoFocus
                     value={descriptionDraft}
                     onChange={(e) => setDescriptionDraft(e.target.value)}
@@ -613,7 +623,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                         // eslint-disable-next-line local/no-inline-styles
                         style={{ marginTop: "12px" }}
                         onUpdateNote={(noteId: string, updates: Record<string, unknown>) =>
-                          handleUpdateHistorianNote("entity", entity.id, noteId, updates)
+                          void handleUpdateHistorianNote("entity", entity.id, noteId, updates)
                         }
                       />
                     )}
@@ -628,7 +638,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
             {/* Aliases */}
             <AliasesList
               aliases={textEnrichment?.aliases || []}
-              onUpdate={(aliases) => handleUpdateAliases(entity.id, aliases)}
+              onUpdate={(aliases) => void handleUpdateAliases(entity.id, aliases)}
             />
 
             {/* Chronicle Images */}
@@ -638,7 +648,7 @@ export default function EntityDetailView({ entity, entities, onBack }: EntityDet
                 <BackrefImageEditor
                   entity={entity}
                   entities={entities}
-                  onUpdateBackrefs={handleUpdateBackrefs}
+                  onUpdateBackrefs={(...args) => void handleUpdateBackrefs(...args)}
                   alwaysExpanded
                 />
               </>

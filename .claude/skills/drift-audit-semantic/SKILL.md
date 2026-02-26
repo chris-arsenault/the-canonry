@@ -23,41 +23,150 @@ You are performing a **semantic drift audit** — discovering places where the s
 concept is implemented independently in different parts of the codebase, potentially with
 completely different names, APIs, and implementations.
 
-This is the hardest form of drift to detect because it requires understanding what code DOES,
-not what it's NAMED. A file called `ButtonHeader` and a file called `GridComponent` might
-both be "a horizontal bar of contextual action buttons" — but no naming analysis, import scan,
-or structural pattern match will find this equivalence. You have to read the code and understand
-its purpose.
-
-**This skill leverages your unique capability as an LLM: semantic understanding of code.**
-
-Your job is discovery and analysis — NOT making architecture decisions. Present findings
-and let the user decide what should be consolidated.
+This skill combines a **deterministic CLI tool** for structural analysis with **your semantic
+understanding** for verification and interpretation. The tool parses ASTs, computes structural
+fingerprints, and clusters similar code units. You verify whether those clusters represent
+genuine semantic duplication.
 
 ## Prerequisites
 
-1. Read the project's package.json and directory structure to understand app/package boundaries
+1. Check if `tools/drift-semantic/` exists in the project root
 2. Check if `.drift-audit/drift-manifest.json` exists — append semantic findings to it
 3. Identify the shared component/utility library — this is where consolidated implementations
    would eventually live
-4. Get a rough sense of codebase size per app to calibrate sampling depth
 
-## Core Methodology: Role-Based Clustering
+## Method A: Tool-Assisted (Preferred)
 
-You will discover semantic duplication by **clustering code by functional role, not by name.**
+Use this method when `tools/drift-semantic/` exists. It provides deterministic structural
+analysis that you then verify semantically.
+
+### Phase 1: Run the CLI Tool
+
+```bash
+bash tools/drift-semantic/cli.sh run --project .
+```
+
+This runs the full pipeline:
+1. **Extract** — ts-morph parses all exported code units (types, JSX, hooks, imports, call
+   graph, consumer graph, behavior markers)
+2. **ast-grep** — structural pattern matching for common code shapes
+3. **Fingerprint** — JSX hash, hook profile, import constellation, behavior flags
+4. **Type signatures** — normalized type hashes with identifiers stripped
+5. **Call graph vectors** — callee sets, call sequences, chain patterns
+6. **Dependency context** — consumer profiles, co-occurrence, neighborhood hashes
+7. **Score** — pairwise similarity across all units using 12+ signals
+8. **Cluster** — graph-based community detection over similarity matrix
+9. **Report** — preliminary report with structural clusters
+
+Output goes to `.drift-audit/semantic/`. Key artifacts:
+- `code-units.json` — all extracted units with full metadata
+- `clusters.json` — ranked clusters of structurally similar code
+- `semantic-drift-report.md` — preliminary report (pending your verification)
+
+### Phase 2: Verify Clusters
+
+Read `clusters.json`. For each top-ranked cluster (start with top 10-20):
+
+1. **Read the source code** of each cluster member (file paths in code-units.json)
+2. **Assess semantic equivalence**: Do these units serve the same PURPOSE?
+   - DUPLICATE: Same purpose, should be one implementation
+   - OVERLAPPING: Significant shared purpose with some genuine differences
+   - RELATED: Same category but different needs
+   - FALSE_POSITIVE: Structural similarity is coincidental
+3. **Note the dominant signal** — what made the tool think these are similar?
+   If it's `jsxStructure`, the components render similar layouts.
+   If it's `calleeSet`, they call the same functions.
+   If it's `typeSignature`, they have the same interface shape.
+
+Write your verdicts to a findings file:
+
+```json
+[
+  {
+    "clusterId": "cluster-001",
+    "verdict": "DUPLICATE",
+    "confidence": 0.9,
+    "role": "action toolbar — horizontal bar of contextual action buttons",
+    "sharedBehavior": ["renders button row", "uses icon imports", "triggers modal actions"],
+    "meaningfulDifferences": [],
+    "accidentalDifferences": ["different prop names", "different icon library"],
+    "featureGaps": ["ButtonHeader has tooltip, ToolBar doesn't"],
+    "consolidationComplexity": "LOW",
+    "consolidationReasoning": "Shared ActionBar({ items }) would replace all three",
+    "consumerImpact": "12 components import these across 3 apps"
+  }
+]
+```
+
+Save to `.drift-audit/semantic/findings.json`, then re-generate the report:
+
+```bash
+bash tools/drift-semantic/cli.sh ingest-findings --file .drift-audit/semantic/findings.json
+bash tools/drift-semantic/cli.sh report
+```
+
+### Phase 3: Optional Enrichment
+
+For higher precision on ambiguous clusters, generate purpose statements:
+
+1. For each unit in uncertain clusters, read the source and write a one-sentence
+   description of what it does
+2. Save as `purpose-statements.json`:
+   ```json
+   [{ "unitId": "path/file.tsx::ComponentName", "purpose": "Renders a..." }]
+   ```
+3. If Ollama is available:
+   ```bash
+   bash tools/drift-semantic/cli.sh ingest-purposes --file .drift-audit/semantic/purpose-statements.json
+   bash tools/drift-semantic/cli.sh embed --ollama-url http://localhost:11434
+   bash tools/drift-semantic/cli.sh score
+   bash tools/drift-semantic/cli.sh cluster
+   ```
+   This re-scores with semantic embeddings as an additional signal.
+
+### Phase 4: Targeted Exploration
+
+Use inspection commands to explore specific units or clusters:
+
+```bash
+# What's similar to a specific component?
+bash tools/drift-semantic/cli.sh inspect similar "apps/illuminator/.../ButtonHeader.jsx::ButtonHeader" --top 10
+
+# Who imports this unit?
+bash tools/drift-semantic/cli.sh inspect consumers "apps/archivist/.../EntityList.tsx::EntityList"
+
+# What does this unit call?
+bash tools/drift-semantic/cli.sh inspect callers "apps/chronicler/.../useWorldDataLoader.ts::useWorldDataLoader"
+
+# Show cluster details
+bash tools/drift-semantic/cli.sh inspect cluster cluster-003
+```
+
+### Phase 5: Present and Output
+
+Read `semantic-drift-report.md` and present findings to the user:
+1. Highest consolidation-potential clusters (DUPLICATE verdict, easy wins)
+2. Clusters with the most implementations (widest duplication)
+3. Infrastructure-level duplication (data loading, worker patterns)
+4. Cases where you're unsure
+
+Write findings to `.drift-audit/drift-manifest.json` as entries with `"type": "semantic"`.
+The report command handles this automatically.
+
+---
+
+## Method B: Agent-Driven (Fallback)
+
+Use this method when the CLI tool is not available or for quick targeted investigations.
 
 ### Phase 1: Role Discovery (Sampling)
 
 Read a diverse sample of 30-50 files across the codebase. For each file, identify its
 **functional role** — what purpose does it serve? What problem does it solve?
 
-Aim for diversity: sample from multiple apps, multiple layers (components, hooks, utilities,
-stores, workers), and multiple levels of the component tree.
+Build a **role taxonomy** — a list of functional roles you observe organically.
 
-As you read, build a **role taxonomy** — a list of functional roles you observe. Don't start
-with a predetermined list. Discover what roles exist in THIS codebase.
-
-Common role categories you might find (but discover them organically):
+Common role categories you might find:
 
 **UI Roles:**
 - Action toolbar / button bar
@@ -74,134 +183,47 @@ Common role categories you might find (but discover them organically):
 - Schema/config consumer (reads configuration and applies it)
 - Worker dispatcher (sends tasks to background workers)
 - Queue/batch manager (processes items in order)
-- Cache/memoization layer (stores computed results)
 - Persistence writer (saves data to IndexedDB/storage)
 
 **Behavioral Roles:**
 - Async operation lifecycle (loading → success/error pattern)
 - Configuration provider (supplies settings to downstream code)
 - Event coordinator (connects triggers to handlers)
-- Validation pipeline (validates data before processing)
 
 ### Phase 2: Systematic Search
 
-For each role with 2+ implementations discovered in Phase 1, systematically search for
-ALL implementations across the codebase. This is where semantic understanding matters most.
+For each role with 2+ implementations, systematically search for ALL implementations.
 
 **Do NOT rely on naming patterns.** Instead:
-
-1. For each role, formulate what the implementation DOES functionally:
-   - "renders a horizontal row of buttons that trigger actions on the current context"
-   - "loads a list of entities from IndexedDB and provides them to child components"
-   - "wraps an async operation with loading/error/success state management"
-
-2. Search for files that might serve this function using BROAD heuristics:
-   - For UI roles: grep for JSX structural markers (button groups, list renderers, panels)
-   - For data roles: grep for data access patterns (Dexie calls, fetch, store access)
-   - For behavioral roles: grep for lifecycle markers (loading states, error handling, retries)
-
-3. Read candidate files and determine if they serve the same role, even if named differently.
-
-4. Group implementations by role.
-
-**Example:** Searching for "action toolbar" role:
-- Don't just grep for "toolbar" or "actionbar"
-- Also look for: components that render `<button>` elements in a flex row, components with
-  multiple onClick handlers in a header/bar area, components that import icon sets and render
-  them as clickable actions
-- Read candidates and assess: is this functionally "a bar of action buttons"?
+1. Formulate what the implementation DOES functionally
+2. Search for files using BROAD structural heuristics (JSX patterns, data access, lifecycle)
+3. Read candidates and determine if they serve the same role
+4. Group implementations by role
 
 ### Phase 3: Divergence Analysis
 
-For each role with multiple implementations, compare them across these dimensions:
-
-**1. Interface divergence (props/parameters):**
-- What inputs does each implementation accept?
-- Do they accept the same kind of data in different shapes?
-- Could they share a common interface with parameterization?
-
-**2. Behavior divergence:**
-- Do they handle the same edge cases? (empty data, errors, loading)
-- Do they follow the same interaction patterns? (click, hover, keyboard)
-- Do they access data through the same paths?
-
-**3. Scope divergence:**
-- Is one a superset of another? (one handles 5 cases, another handles 3 of the same 5)
-- Are the differences serving genuinely different needs, or are they accidental?
-
-**4. Consolidation potential:**
-Rate each cluster:
-- **HIGH:** Same purpose, similar complexity, accidental differences. Should be one component.
-- **MEDIUM:** Same purpose, different complexity levels. Could be one component with options,
-  but some parameterization work needed.
-- **LOW:** Same general category but genuinely different needs. Shared base with variants
-  might help, but forced consolidation would be over-engineering.
+For each role cluster, compare across: interface divergence, behavior divergence,
+scope divergence, consolidation potential (HIGH/MEDIUM/LOW).
 
 ### Phase 4: Generate Output
 
-Write findings to `.drift-audit/drift-manifest.json` as entries with `"type": "semantic"`.
+Write findings to `.drift-audit/drift-manifest.json` with `"type": "semantic"`.
+Include `semantic_role`, `consolidation_assessment`, and `shared_interface_sketch` fields.
 
-Each entry should include the standard manifest fields plus:
-
-```json
-{
-  "id": "action-toolbar-pattern",
-  "name": "Action Toolbar Implementations",
-  "type": "semantic",
-  "description": "Horizontal bar of contextual action buttons...",
-  "impact": "MEDIUM",
-  "total_files": 4,
-  "semantic_role": "action-toolbar",
-  "variants": [
-    {
-      "name": "ButtonHeader (illuminator)",
-      "description": "Icon-only buttons, 6 actions, uses modalStore",
-      "file_count": 1,
-      "files": ["apps/illuminator/webui/src/components/ButtonHeader.jsx"],
-      "sample_file": "apps/illuminator/webui/src/components/ButtonHeader.jsx"
-    }
-  ],
-  "consolidation_assessment": "High potential. All variants render action buttons in a row. A shared ActionBar({ items: Array<{ icon, label, onClick, disabled }> }) would replace all three. The modalStore coupling in ButtonHeader should be lifted to the caller.",
-  "shared_interface_sketch": "ActionBar({ items, orientation?, size?, variant? })",
-  "analysis": "...",
-  "recommendation": "...",
-  "status": "pending"
-}
-```
-
-Also write human-readable findings to the drift report (append "Semantic Findings" section
-to `drift-report.md`, or create `semantic-drift-report.md` if running standalone).
-
-### Phase 5: Present
-
-Walk the user through findings, focusing on:
-1. Highest consolidation-potential clusters (the easy wins)
-2. Clusters with the most implementations (widest duplication)
-3. Infrastructure-level duplication (data loading, worker patterns) — these affect correctness
-4. Cases where you're unsure if the role equivalence is real or superficial
+---
 
 ## Scope Layers
 
-Audit across three layers to achieve full-stack semantic DRY:
+Audit across three layers for full-stack semantic DRY:
 
 ### Layer 1: UI Components
 Components that render the same kind of UI element or solve the same UX problem.
-Look beyond names — read what they render and how they behave.
 
 ### Layer 2: Data & Infrastructure
 Functions, hooks, and modules that perform the same data operation or infrastructure task.
-This includes:
-- Data loading patterns (regardless of what the function is named)
-- Persistence patterns (save/update/delete operations)
-- Worker communication patterns (message formats, protocols)
-- Cache and memoization approaches
 
 ### Layer 3: Behavioral Contracts
-Cross-cutting concerns implemented differently across features:
-- Configuration sourcing (where do settings come from?)
-- Persistence timing (when is data saved? auto vs explicit vs ephemeral)
-- Progress reporting (how do long operations communicate status?)
-- Error recovery (retry, resume, abort — which is available where?)
+Cross-cutting concerns implemented differently across features.
 
 ## What IS semantic drift
 
@@ -214,40 +236,18 @@ Cross-cutting concerns implemented differently across features:
 
 ## What is NOT semantic drift
 
-- A search filter component and a settings form both use text inputs — they serve different
-  purposes. Shared inputs (via a component library) are good, but the containers aren't
-  semantically equivalent.
-- A simple confirmation dialog and a multi-step wizard both use modals — they serve different
-  complexity levels of the same general concept. This might be "same role, different scope"
-  which is worth noting but isn't always worth consolidating.
-- App-specific business logic that happens to use similar patterns — if the logic itself
-  is domain-specific, the similarity is coincidental, not duplication.
-
-## Investigation Heuristics
-
-Since you can't rely on naming, use these structural heuristics to find candidates:
-
-**For UI component roles:**
-- Grep for JSX patterns: `<button` clusters, `<li` in maps, `flex` + `gap` + multiple children
-- Look at component prop interfaces — similar prop shapes suggest similar purposes
-- Check CSS class names — even if component names differ, CSS may reveal intent
-
-**For data roles:**
-- Grep for data source access: `db.table`, `useStore`, `fetch(`, `getState()`
-- Grep for data transformation: `.map(`, `.filter(`, `.reduce(` on collections
-- Look at return types — functions returning `{ data, loading, error }` serve the same role
-
-**For behavioral roles:**
-- Grep for lifecycle patterns: `try/catch`, `finally`, `.then(`, `async/await`
-- Grep for state machines: status variables with values like 'idle', 'loading', 'error'
-- Look at effect dependencies — similar dependency arrays suggest similar triggers
+- A search filter component and a settings form both use text inputs — different purposes
+- A simple confirmation dialog and a multi-step wizard both use modals — different complexity
+- App-specific business logic that happens to use similar patterns — coincidental similarity
 
 ## Re-Audits
 
 If semantic entries already exist in the manifest, compare to previous findings.
-Note which clusters have been consolidated and which are new.
+Note which clusters have been consolidated and which are new. The CLI tool handles
+incremental re-runs automatically.
 
 ## Scope Control
 
 If the user wants to focus on a specific layer (just UI components, just data patterns),
-respect that. A targeted audit is perfectly valid.
+respect that. A targeted audit is perfectly valid. Use `inspect` and `search` commands
+for focused exploration.

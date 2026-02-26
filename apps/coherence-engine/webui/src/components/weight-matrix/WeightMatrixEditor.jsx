@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
 import { NumberInput } from "../shared";
 import "./WeightMatrixEditor.css";
 
@@ -41,7 +42,7 @@ export default function WeightMatrixEditor({
 }) {
   const [viewMode, setViewMode] = useState("generators"); // 'generators' | 'systems'
   const [searchQuery, setSearchQuery] = useState("");
-  const [editingCell, setEditingCell] = useState(null); // { rowId, eraId }
+  const [editingCell, setEditingCell] = useState(null); // shape: rowId + eraId
   const [editValue, setEditValue] = useState("");
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [copiedRow, setCopiedRow] = useState(null); // { id, weights: { eraId: value } }
@@ -486,6 +487,7 @@ export default function WeightMatrixEditor({
                               onChange={(e) => setEditValue(e.target.value)}
                               onBlur={handleCellBlur}
                               onKeyDown={handleKeyDown}
+                              // eslint-disable-next-line jsx-a11y/no-autofocus
                               autoFocus
                             />
                           ) : (
@@ -558,8 +560,15 @@ export default function WeightMatrixEditor({
             10
           </span>
         </div>
-        <span className="legend-note">Click cell to edit. "-" = not assigned.</span>
+        <span className="legend-note">Click cell to edit. &quot;-&quot; = not assigned.</span>
       </div>
     </div>
   );
 }
+
+WeightMatrixEditor.propTypes = {
+  generators: PropTypes.array,
+  systems: PropTypes.array,
+  eras: PropTypes.array,
+  onErasChange: PropTypes.func.isRequired,
+};

@@ -18,14 +18,10 @@ import type { RuleContext } from '../context';
 import type {
   Mutation,
   MutationResult,
-  EntityModification,
-  RelationshipToCreate,
-  RelationshipToArchive,
   SetTagMutation,
   RemoveTagMutation,
   CreateRelationshipMutation,
   ArchiveRelationshipMutation,
-  ArchiveAllRelationshipsMutation,
   AdjustRelationshipStrengthMutation,
   TransferRelationshipMutation,
   ChangeStatusMutation,
@@ -238,7 +234,7 @@ export function applyMutationResult(result: MutationResult, ctx: RuleContext): v
     }
 
     if (mod.changes.prominence !== undefined) {
-      ctx.graph.updateEntity(mod.id, { prominence: mod.changes.prominence as HardState['prominence'] });
+      ctx.graph.updateEntity(mod.id, { prominence: mod.changes.prominence });
     }
 
     if (mod.changes.tags !== undefined) {

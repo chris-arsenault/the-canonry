@@ -5,13 +5,14 @@
  * Edits entity kinds, relationship kinds, and culture identity.
  */
 
-import React from "react";
+import React, { useCallback, useMemo } from "react";
+import PropTypes from "prop-types";
 import EntityKindEditor from "./EntityKindEditor";
 import RelationshipKindEditor from "./RelationshipKindEditor";
 import CultureEditor from "./CultureEditor";
 import TagRegistryEditor from "./TagRegistryEditor";
 import RelationshipKindMatrix from "./RelationshipKindMatrix";
-import { colors, typography, spacing, radius, getAccentGradient, getHoverBg } from "../../theme";
+import { colors, typography, spacing, radius, getAccentGradient } from "../../theme";
 
 const styles = {
   container: {
@@ -87,6 +88,10 @@ export default function SchemaEditor({
 }) {
   // Use passed-in activeSection, fallback to entityKinds
   const currentSection = activeSection || "entityKinds";
+  const handleNavigateToRelationship = useCallback(() => {
+    onSectionChange("relationshipKinds");
+  }, [onSectionChange]);
+  const tagRegistryOrEmpty = useMemo(() => project.tagRegistry || [], [project.tagRegistry]);
 
   const counts = {
     entityKinds: project.entityKinds.length,
@@ -122,9 +127,7 @@ export default function SchemaEditor({
           <RelationshipKindMatrix
             relationshipKinds={project.relationshipKinds}
             entityKinds={project.entityKinds}
-            onNavigateToRelationship={(relKind) => {
-              onSectionChange("relationshipKinds");
-            }}
+            onNavigateToRelationship={handleNavigateToRelationship}
           />
         );
 
@@ -134,7 +137,7 @@ export default function SchemaEditor({
       case "tags":
         return (
           <TagRegistryEditor
-            tagRegistry={project.tagRegistry || []}
+            tagRegistry={tagRegistryOrEmpty}
             entityKinds={project.entityKinds}
             onChange={onUpdateTagRegistry}
             tagUsage={tagUsage}
@@ -160,6 +163,9 @@ export default function SchemaEditor({
                 : styles.sidebarItemInactive),
             }}
             onClick={() => onSectionChange(section.id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           >
             {section.label}
             {section.countKey && (
@@ -172,3 +178,16 @@ export default function SchemaEditor({
     </div>
   );
 }
+
+SchemaEditor.propTypes = {
+  project: PropTypes.object.isRequired,
+  activeSection: PropTypes.string,
+  onSectionChange: PropTypes.func.isRequired,
+  onUpdateEntityKinds: PropTypes.func.isRequired,
+  onUpdateRelationshipKinds: PropTypes.func.isRequired,
+  onUpdateCultures: PropTypes.func.isRequired,
+  onUpdateTagRegistry: PropTypes.func,
+  tagUsage: PropTypes.object,
+  schemaUsage: PropTypes.object,
+  namingData: PropTypes.object,
+};

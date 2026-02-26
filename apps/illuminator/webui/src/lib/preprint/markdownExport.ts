@@ -19,7 +19,6 @@ import { resolveAnchorPhrase } from "../fuzzyAnchor";
 import { resolveActiveContent } from "../db/eraNarrativeRepository";
 import type {
   ContentTreeState,
-  ContentTreeNode,
   ExportManifest,
   ExportImageEntry,
   S3ExportConfig,
@@ -352,7 +351,7 @@ function formatChronicleMarkdown(
         .sort((a, b) => b.insertAt - a.insertAt);
 
       for (const { ref, insertAt } of promptInsertions) {
-        const imgId = ref.generatedImageId!;
+        const imgId = ref.generatedImageId;
         registerImage(
           referencedImages,
           imgId,

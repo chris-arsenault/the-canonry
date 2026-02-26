@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { ApplicabilityRuleCard } from "./ApplicabilityRuleCard";
 import { AddRuleButton } from "./AddRuleButton";
 import { createNewRule } from "./createNewRule";
@@ -65,5 +66,13 @@ export function ApplicabilityTab({ generator, onChange, schema, pressures, eras 
     </div>
   );
 }
+
+ApplicabilityTab.propTypes = {
+  generator: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+  eras: PropTypes.array,
+};
 
 export default ApplicabilityTab;

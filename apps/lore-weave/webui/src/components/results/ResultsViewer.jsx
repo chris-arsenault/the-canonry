@@ -9,8 +9,9 @@
  */
 
 import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 
-export default function ResultsViewer({ results, schema, onNewRun }) {
+export default function ResultsViewer({ results, schema: _schema, onNewRun }) {
   const [activeTab, setActiveTab] = useState("overview");
 
   // Process results for display
@@ -240,8 +241,10 @@ function PressureBar({ name, value }) {
   const percent = Math.max(0, Math.min(100, numValue));
 
   // Color based on value
-  const color =
-    percent > 70 ? "var(--lw-danger)" : percent > 30 ? "var(--lw-warning)" : "var(--lw-success)";
+  let color;
+  if (percent > 70) color = "var(--lw-danger)";
+  else if (percent > 30) color = "var(--lw-warning)";
+  else color = "var(--lw-success)";
 
   return (
     <div className="lw-pressure-gauge">
@@ -256,3 +259,19 @@ function PressureBar({ name, value }) {
     </div>
   );
 }
+
+ResultsViewer.propTypes = {
+  results: PropTypes.object,
+  schema: PropTypes.object,
+  onNewRun: PropTypes.func,
+};
+
+StatCard.propTypes = {
+  label: PropTypes.string,
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+};
+
+PressureBar.propTypes = {
+  name: PropTypes.string,
+  value: PropTypes.number,
+};

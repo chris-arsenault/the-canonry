@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { NumberInput } from "../../shared";
 
 /**
@@ -42,7 +43,7 @@ export function FrameworkSystemTab({ system, onChange }) {
         {system.systemType === "universalCatalyst" && (
           <div className="form-grid">
             <div className="form-group">
-              <label className="label">Action Attempt Rate</label>
+              <label className="label">Action Attempt Rate
               <NumberInput
                 value={config.actionAttemptRate}
                 onChange={(v) => updateConfig("actionAttemptRate", v)}
@@ -52,9 +53,10 @@ export function FrameworkSystemTab({ system, onChange }) {
                 max={1}
                 allowEmpty
               />
+              </label>
             </div>
             <div className="form-group">
-              <label className="label">Pressure Multiplier</label>
+              <label className="label">Pressure Multiplier
               <NumberInput
                 value={config.pressureMultiplier}
                 onChange={(v) => updateConfig("pressureMultiplier", v)}
@@ -63,9 +65,10 @@ export function FrameworkSystemTab({ system, onChange }) {
                 min={0}
                 allowEmpty
               />
+              </label>
             </div>
             <div className="form-group">
-              <label className="label">Prominence Up % on Success</label>
+              <label className="label">Prominence Up % on Success
               <NumberInput
                 value={config.prominenceUpChanceOnSuccess}
                 onChange={(v) => updateConfig("prominenceUpChanceOnSuccess", v)}
@@ -75,9 +78,10 @@ export function FrameworkSystemTab({ system, onChange }) {
                 max={1}
                 allowEmpty
               />
+              </label>
             </div>
             <div className="form-group">
-              <label className="label">Prominence Down % on Failure</label>
+              <label className="label">Prominence Down % on Failure
               <NumberInput
                 value={config.prominenceDownChanceOnFailure}
                 onChange={(v) => updateConfig("prominenceDownChanceOnFailure", v)}
@@ -87,6 +91,7 @@ export function FrameworkSystemTab({ system, onChange }) {
                 max={1}
                 allowEmpty
               />
+              </label>
             </div>
           </div>
         )}
@@ -94,7 +99,7 @@ export function FrameworkSystemTab({ system, onChange }) {
         {system.systemType === "relationshipMaintenance" && (
           <div className="form-grid">
             <div className="form-group">
-              <label className="label">Maintenance Frequency</label>
+              <label className="label">Maintenance Frequency
               <NumberInput
                 value={config.maintenanceFrequency}
                 onChange={(v) => updateConfig("maintenanceFrequency", v)}
@@ -103,9 +108,10 @@ export function FrameworkSystemTab({ system, onChange }) {
                 allowEmpty
                 integer
               />
+              </label>
             </div>
             <div className="form-group">
-              <label className="label">Cull Threshold</label>
+              <label className="label">Cull Threshold
               <NumberInput
                 value={config.cullThreshold}
                 onChange={(v) => updateConfig("cullThreshold", v)}
@@ -115,9 +121,10 @@ export function FrameworkSystemTab({ system, onChange }) {
                 max={1}
                 allowEmpty
               />
+              </label>
             </div>
             <div className="form-group">
-              <label className="label">Grace Period</label>
+              <label className="label">Grace Period
               <NumberInput
                 value={config.gracePeriod}
                 onChange={(v) => updateConfig("gracePeriod", v)}
@@ -126,9 +133,10 @@ export function FrameworkSystemTab({ system, onChange }) {
                 allowEmpty
                 integer
               />
+              </label>
             </div>
             <div className="form-group">
-              <label className="label">Reinforcement Bonus</label>
+              <label className="label">Reinforcement Bonus
               <NumberInput
                 value={config.reinforcementBonus}
                 onChange={(v) => updateConfig("reinforcementBonus", v)}
@@ -137,6 +145,7 @@ export function FrameworkSystemTab({ system, onChange }) {
                 min={0}
                 allowEmpty
               />
+              </label>
             </div>
           </div>
         )}
@@ -144,3 +153,8 @@ export function FrameworkSystemTab({ system, onChange }) {
     </div>
   );
 }
+
+FrameworkSystemTab.propTypes = {
+  system: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+};

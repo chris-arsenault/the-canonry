@@ -85,7 +85,6 @@ export default function ProgressPanel({
             <span className="pp-progress-percent">{progressPercent}%</span>
           </div>
           <div className="illuminator-progress">
-            {/* eslint-disable-next-line local/no-inline-styles -- dynamic progress width */}
             <div className="illuminator-progress-bar" style={{ width: `${progressPercent}%` }} />
           </div>
         </div>

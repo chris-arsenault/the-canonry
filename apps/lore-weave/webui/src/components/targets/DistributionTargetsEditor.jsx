@@ -5,6 +5,7 @@
  */
 
 import React, { useCallback } from "react";
+import PropTypes from "prop-types";
 import EntityTargets from "./EntityTargets";
 
 export default function DistributionTargetsEditor({
@@ -104,3 +105,9 @@ export default function DistributionTargetsEditor({
     </div>
   );
 }
+
+DistributionTargetsEditor.propTypes = {
+  distributionTargets: PropTypes.object,
+  schema: PropTypes.object,
+  onDistributionTargetsChange: PropTypes.func,
+};

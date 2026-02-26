@@ -368,3 +368,48 @@ export default function ChroniclePlanEditor({
     </div>
   );
 }
+
+PlanHeader.propTypes = {
+  plan: PropTypes.object.isRequired,
+};
+
+FocusSummary.propTypes = {
+  plan: PropTypes.object.isRequired,
+  entityMap: PropTypes.object,
+};
+
+OutlineSummary.propTypes = {
+  plan: PropTypes.object.isRequired,
+};
+
+PlotSummary.propTypes = {
+  plan: PropTypes.object.isRequired,
+};
+
+EntityRoleList.propTypes = {
+  plan: PropTypes.object.isRequired,
+  entityMap: PropTypes.object,
+};
+
+SectionCard.propTypes = {
+  section: PropTypes.object.isRequired,
+  index: PropTypes.number.isRequired,
+  format: PropTypes.string,
+  entityMap: PropTypes.object,
+  eventMap: PropTypes.object,
+};
+
+SectionsList.propTypes = {
+  plan: PropTypes.object.isRequired,
+  entityMap: PropTypes.object,
+  eventMap: PropTypes.object,
+};
+
+ChroniclePlanEditor.propTypes = {
+  plan: PropTypes.object.isRequired,
+  entityMap: PropTypes.object,
+  eventMap: PropTypes.object,
+  onRegenerate: PropTypes.func.isRequired,
+  onApprove: PropTypes.func.isRequired,
+  isGenerating: PropTypes.bool,
+};

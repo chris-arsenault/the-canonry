@@ -15,7 +15,6 @@ import {
 import { useIlluminatorConfigStore } from "./illuminatorConfigStore";
 import { assignCorpusTones, countDistribution } from "../../hooks/useToneRanking";
 import type { ChronicleNavItem } from "./chronicleNav";
-import type { HistorianTone } from "../historianTypes";
 import type {
   ToneRankingProgress,
   ToneRankingChronicleSummary,
@@ -61,6 +60,174 @@ function sleep(ms: number): Promise<void> {
 let activeFlag = false;
 let cancelledFlag = false;
 let scanData: { chronicles: ToneRankingChronicleSummary[] } | null = null;
+
+// ============================================================================
+// Tone ranking runner (extracted for cognitive-complexity)
+// ============================================================================
+
+type ToneSetFn = (fn: (s: ToneRankingStoreState) => Partial<ToneRankingStoreState>) => void;
+
+interface BulkEntry {
+  chronicleId: string;
+  title: string;
+  format: string;
+  narrativeStyleName?: string;
+  summary: string;
+  brief?: string;
+}
+
+async function loadBulkEntries(
+  chronicles: ToneRankingChronicleSummary[]
+): Promise<{ entries: BulkEntry[]; prevTimestamps: Map<string, number> }> {
+  const entries: BulkEntry[] = [];
+  const prevTimestamps = new Map<string, number>();
+
+  for (const chron of chronicles) {
+    const record = await getChronicle(chron.chronicleId);
+    if (!record?.summary) continue;
+
+    prevTimestamps.set(chron.chronicleId, record.toneRanking?.generatedAt ?? 0);
+
+    entries.push({
+      chronicleId: chron.chronicleId,
+      title: chron.title,
+      summary: record.summary,
+      format: record.format || "story",
+      narrativeStyleName: record.narrativeStyle?.name,
+      brief: record.perspectiveSynthesis?.brief,
+    });
+  }
+
+  return { entries, prevTimestamps };
+}
+
+async function pollRankingProgress(
+  bulkEntries: BulkEntry[],
+  prevTimestamps: Map<string, number>,
+  batchSize: number,
+  batchCount: number,
+  set: ToneSetFn
+): Promise<void> {
+  let lastUpdatedCount = 0;
+
+  while (!cancelledFlag) {
+    await sleep(2000);
+    if (cancelledFlag) break;
+
+    let updatedCount = 0;
+    let totalCost = 0;
+    for (const entry of bulkEntries) {
+      const record = await getChronicle(entry.chronicleId);
+      const prev = prevTimestamps.get(entry.chronicleId) ?? 0;
+      if (record?.toneRanking?.generatedAt && record.toneRanking.generatedAt > prev) {
+        updatedCount++;
+        totalCost += record.toneRanking.actualCost ?? 0;
+      }
+    }
+
+    if (updatedCount > lastUpdatedCount) {
+      lastUpdatedCount = updatedCount;
+      const currentBatch = Math.min(Math.ceil(updatedCount / batchSize), batchCount);
+      set((s) => ({
+        progress: {
+          ...s.progress,
+          processedChronicles: updatedCount,
+          totalCost,
+          currentTitle:
+            updatedCount >= bulkEntries.length
+              ? ""
+              : `Batch ${currentBatch + 1}/${batchCount} — ${updatedCount}/${bulkEntries.length} ranked`,
+        },
+      }));
+    }
+
+    if (updatedCount >= bulkEntries.length) {
+      set((s) => ({
+        progress: {
+          ...s.progress,
+          status: "complete",
+          currentTitle: "",
+          processedChronicles: updatedCount,
+          totalCost,
+        },
+      }));
+      return;
+    }
+  }
+}
+
+async function runToneRanking(
+  chronicles: ToneRankingChronicleSummary[],
+  set: ToneSetFn
+): Promise<void> {
+  try {
+    const { entries: bulkEntries, prevTimestamps } = await loadBulkEntries(chronicles);
+
+    if (bulkEntries.length === 0) {
+      set((s) => ({
+        progress: {
+          ...s.progress,
+          status: "failed",
+          error: "No chronicles with summaries found",
+          currentTitle: "",
+        },
+      }));
+      return;
+    }
+
+    const batchN = Math.max(1, Math.round(bulkEntries.length / 40));
+    const batchSize = Math.ceil(bulkEntries.length / batchN);
+    const batchCount = batchN;
+
+    set((s) => ({
+      progress: {
+        ...s.progress,
+        currentTitle: `Ranking ${bulkEntries.length} chronicles in ${batchCount} batch${batchCount > 1 ? "es" : ""}...`,
+        totalChronicles: bulkEntries.length,
+      },
+    }));
+
+    const syntheticEntity = {
+      id: "bulk-tone-ranking",
+      name: "Bulk Tone Ranking",
+      kind: "chronicle",
+      subtype: "",
+      prominence: "recognized",
+      culture: "",
+      status: "active",
+      description: "",
+      tags: {},
+    };
+
+    getEnqueue()([
+      {
+        entity: syntheticEntity as never,
+        type: "bulkToneRanking" as const,
+        prompt: JSON.stringify(bulkEntries),
+      },
+    ]);
+
+    await pollRankingProgress(bulkEntries, prevTimestamps, batchSize, batchCount, set);
+
+    if (cancelledFlag) {
+      set((s) => ({ progress: { ...s.progress, status: "cancelled", currentTitle: "" } }));
+    }
+  } catch (err) {
+    console.error("[Tone Ranking] Fatal error:", err);
+    set((s) => ({
+      progress: {
+        ...s.progress,
+        status: "failed",
+        currentTitle: "",
+        error: err instanceof Error ? err.message : String(err),
+      },
+    }));
+  }
+}
+
+// ============================================================================
+// Store
+// ============================================================================
 
 export const useToneRankingStore = create<ToneRankingStoreState>((set, get) => ({
   progress: IDLE_PROGRESS,
@@ -116,146 +283,8 @@ export const useToneRankingStore = create<ToneRankingStoreState>((set, get) => (
       progress: { ...s.progress, status: "running", currentTitle: "Loading chronicles..." },
     }));
 
-    (async () => {
-      try {
-        const { chronicles } = scan;
-
-        const bulkEntries: Array<{
-          chronicleId: string;
-          title: string;
-          format: string;
-          narrativeStyleName?: string;
-          summary: string;
-          brief?: string;
-        }> = [];
-        const prevTimestamps = new Map<string, number>();
-
-        for (const chron of chronicles) {
-          const record = await getChronicle(chron.chronicleId);
-          if (!record?.summary) continue;
-
-          prevTimestamps.set(chron.chronicleId, record.toneRanking?.generatedAt ?? 0);
-
-          bulkEntries.push({
-            chronicleId: chron.chronicleId,
-            title: chron.title,
-            summary: record.summary,
-            format: record.format || "story",
-            narrativeStyleName: record.narrativeStyle?.name,
-            brief: record.perspectiveSynthesis?.brief,
-          });
-        }
-
-        if (bulkEntries.length === 0) {
-          set((s) => ({
-            progress: {
-              ...s.progress,
-              status: "failed",
-              error: "No chronicles with summaries found",
-              currentTitle: "",
-            },
-          }));
-          return;
-        }
-
-        const batchN = Math.max(1, Math.round(bulkEntries.length / 40));
-        const batchSize = Math.ceil(bulkEntries.length / batchN);
-        const batchCount = batchN;
-
-        set((s) => ({
-          progress: {
-            ...s.progress,
-            currentTitle: `Ranking ${bulkEntries.length} chronicles in ${batchCount} batch${batchCount > 1 ? "es" : ""}...`,
-            totalChronicles: bulkEntries.length,
-          },
-        }));
-
-        const syntheticEntity = {
-          id: "bulk-tone-ranking",
-          name: "Bulk Tone Ranking",
-          kind: "chronicle",
-          subtype: "",
-          prominence: "recognized",
-          culture: "",
-          status: "active",
-          description: "",
-          tags: {},
-        };
-
-        getEnqueue()([
-          {
-            entity: syntheticEntity as never,
-            type: "bulkToneRanking" as const,
-            prompt: JSON.stringify(bulkEntries),
-          },
-        ]);
-
-        // Poll for incremental progress
-        let lastUpdatedCount = 0;
-
-        while (!cancelledFlag) {
-          await sleep(2000);
-          if (cancelledFlag) break;
-
-          let updatedCount = 0;
-          let totalCost = 0;
-          for (const entry of bulkEntries) {
-            const record = await getChronicle(entry.chronicleId);
-            const prev = prevTimestamps.get(entry.chronicleId) ?? 0;
-            if (record?.toneRanking?.generatedAt && record.toneRanking.generatedAt > prev) {
-              updatedCount++;
-              totalCost += record.toneRanking.actualCost ?? 0;
-            }
-          }
-
-          if (updatedCount > lastUpdatedCount) {
-            lastUpdatedCount = updatedCount;
-            const currentBatch = Math.min(Math.ceil(updatedCount / batchSize), batchCount);
-            set((s) => ({
-              progress: {
-                ...s.progress,
-                processedChronicles: updatedCount,
-                totalCost,
-                currentTitle:
-                  updatedCount >= bulkEntries.length
-                    ? ""
-                    : `Batch ${currentBatch + 1}/${batchCount} — ${updatedCount}/${bulkEntries.length} ranked`,
-              },
-            }));
-          }
-
-          if (updatedCount >= bulkEntries.length) {
-            set((s) => ({
-              progress: {
-                ...s.progress,
-                status: "complete",
-                currentTitle: "",
-                processedChronicles: updatedCount,
-                totalCost,
-              },
-            }));
-            break;
-          }
-        }
-
-        if (cancelledFlag) {
-          set((s) => ({ progress: { ...s.progress, status: "cancelled", currentTitle: "" } }));
-        }
-      } catch (err) {
-        console.error("[Tone Ranking] Fatal error:", err);
-        set((s) => ({
-          progress: {
-            ...s.progress,
-            status: "failed",
-            currentTitle: "",
-            error: err instanceof Error ? err.message : String(err),
-          },
-        }));
-      } finally {
-        activeFlag = false;
-        scanData = null;
-      }
-    })();
+    void runToneRanking(scan.chronicles, set)
+      .finally(() => { activeFlag = false; scanData = null; });
   },
 
   cancelToneRanking: () => {
@@ -285,7 +314,7 @@ export const useToneRankingStore = create<ToneRankingStoreState>((set, get) => (
       .map((c) => ({
         chronicleId: c.chronicleId,
         title: c.title || c.chronicleId,
-        ranking: c.toneRanking!.ranking,
+        ranking: c.toneRanking.ranking,
       }));
 
     if (withRanking.length === 0) return;

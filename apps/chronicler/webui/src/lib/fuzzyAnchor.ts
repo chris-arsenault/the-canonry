@@ -1,4 +1,3 @@
-import React from "react";
 /**
  * Fuzzy Anchor Matching
  *
@@ -87,6 +86,7 @@ const STOP_WORDS = new Set([
 
 /** Normalize a word for comparison: lowercase, strip leading/trailing punctuation */
 function normalize(word: string): string {
+  // eslint-disable-next-line sonarjs/slow-regex -- single word, no ReDoS risk
   return word.toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, "");
 }
 

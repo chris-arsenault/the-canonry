@@ -40,7 +40,7 @@ export default function HistorianEditionComparison({
   descriptionHistory,
   historianNotes,
   onRestoreVersion,
-}: HistorianEditionComparisonProps) {
+}: Readonly<HistorianEditionComparisonProps>) {
   const [expanded, setExpanded] = useState(false);
 
   const versions = useMemo(() => {
@@ -141,6 +141,9 @@ export default function HistorianEditionComparison({
           fontSize: "11px",
           color: "var(--text-muted)",
         }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         <span>{expanded ? "\u25BC" : "\u25B6"}</span>
         <span style={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -187,7 +190,7 @@ export default function HistorianEditionComparison({
               <option value={-1}>Compare to...</option>
               {versions
                 .filter((_, i) => i !== selectedIdx)
-                .map((v, i) => {
+                .map((v) => {
                   const realIdx = versions.indexOf(v);
                   return (
                     <option key={realIdx} value={realIdx}>
@@ -314,7 +317,7 @@ export default function HistorianEditionComparison({
   );
 }
 
-function DiffView({ older, newer }: { older: string; newer: string }) {
+function DiffView({ older, newer }: Readonly<{ older: string; newer: string }>) {
   const changes = diffWords(older, newer);
   return (
     <div

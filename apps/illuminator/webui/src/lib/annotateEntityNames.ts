@@ -30,26 +30,46 @@ function buildAnnotation(item: EntityNavItem): string {
  * - Tracks character ranges in the mutated string to prevent overlapping annotations
  * - Idempotent: skips names already followed by ` (`
  */
-export function annotateEntityNames(text: string, navItems: Map<string, EntityNavItem>): string {
-  // Build candidates
+function buildCandidates(navItems: Map<string, EntityNavItem>): Candidate[] {
   const candidates: Candidate[] = [];
   for (const item of navItems.values()) {
     if (item.name.length < 4) continue;
     if (item.kind === "era") continue;
-    candidates.push({
-      name: item.name,
-      annotation: buildAnnotation(item),
-    });
+    candidates.push({ name: item.name, annotation: buildAnnotation(item) });
   }
-
-  // Longest first — prevents partial matches (e.g. "The Pinnacle" before "Pinnacle")
+  // Longest first -- prevents partial matches (e.g. "The Pinnacle" before "Pinnacle")
   candidates.sort((a, b) => b.name.length - a.name.length);
+  return candidates;
+}
+
+function isAlreadyAnnotated(text: string, afterName: number): boolean {
+  return (
+    text.length > afterName + 1 &&
+    text[afterName] === " " &&
+    text[afterName + 1] === "("
+  );
+}
+
+function shiftRanges(
+  ranges: Array<[number, number]>,
+  afterName: number,
+  delta: number
+): void {
+  for (let i = 0; i < ranges.length; i++) {
+    const [rs, re] = ranges[i];
+    if (rs >= afterName) {
+      ranges[i] = [rs + delta, re + delta];
+    }
+  }
+}
+
+export function annotateEntityNames(text: string, navItems: Map<string, EntityNavItem>): string {
+  const candidates = buildCandidates(navItems);
 
   // Track annotated regions in the mutated string's coordinates.
-  // After each replacement the ranges shift — we adjust all existing ranges
+  // After each replacement the ranges shift -- we adjust all existing ranges
   // so overlap checks always work against current positions.
   const annotatedRanges: Array<[number, number]> = [];
-
   const overlaps = (start: number, end: number): boolean =>
     annotatedRanges.some(([rs, re]) => start < re && end > rs);
 
@@ -59,32 +79,13 @@ export function annotateEntityNames(text: string, navItems: Map<string, EntityNa
     const idx = result.indexOf(name);
     if (idx === -1) continue;
 
-    // Already annotated? Check if followed by ` (`
     const afterName = idx + name.length;
-    if (
-      result.length > afterName + 1 &&
-      result[afterName] === " " &&
-      result[afterName + 1] === "("
-    ) {
-      continue;
-    }
-
-    // Check overlap with already-annotated regions (all in mutated-string coords)
+    if (isAlreadyAnnotated(result, afterName)) continue;
     if (overlaps(idx, afterName)) continue;
 
-    // Replace
     result = result.slice(0, idx) + annotation + result.slice(afterName);
-
-    // Shift all existing ranges that start after the replacement point
     const delta = annotation.length - name.length;
-    for (let i = 0; i < annotatedRanges.length; i++) {
-      const [rs, re] = annotatedRanges[i];
-      if (rs >= afterName) {
-        annotatedRanges[i] = [rs + delta, re + delta];
-      }
-    }
-
-    // Track the new annotated region (in current mutated-string coords)
+    shiftRanges(annotatedRanges, afterName, delta);
     annotatedRanges.push([idx, idx + annotation.length]);
   }
 

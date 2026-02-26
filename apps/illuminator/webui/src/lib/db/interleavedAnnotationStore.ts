@@ -24,6 +24,7 @@ import {
   buildHistorianReviewContext,
 } from "../historianContextBuilders";
 import type { CorpusVoiceDigestCache, ReinforcementCache } from "../historianContextBuilders";
+import type { HistorianReviewConfig } from "../../hooks/useHistorianReview";
 import {
   dispatchReviewTask,
   pollReviewCompletion,
@@ -205,6 +206,123 @@ interface InterleavedAnnotationStore {
   closeInterleaved: () => void;
 }
 
+type InterleavedSetFn = (fn: (s: InterleavedAnnotationStore) => Partial<InterleavedAnnotationStore>) => void;
+
+interface InterleavedCaches {
+  corpusStrength: { runId: string | null; strength: Map<string, number> | null };
+  voiceDigest: CorpusVoiceDigestCache;
+  reinforcement: ReinforcementCache;
+}
+
+async function createAndRunReview(config: HistorianReviewConfig): Promise<{ notes: any[]; prompts?: any; cost: number } | null> {
+  const runId = generateHistorianRunId();
+  const now = Date.now();
+  await createHistorianRun({
+    runId, projectId: config.projectId, simulationRunId: config.simulationRunId,
+    status: "pending", tone: config.tone, targetType: config.targetType,
+    targetId: config.targetId, targetName: config.targetName, sourceText: config.sourceText,
+    notes: [], noteDecisions: {}, contextJson: config.contextJson,
+    previousNotesJson: config.previousNotesJson,
+    historianConfigJson: JSON.stringify(config.historianConfig),
+    inputTokens: 0, outputTokens: 0, actualCost: 0, createdAt: now, updatedAt: now,
+  });
+  dispatchReviewTask(runId);
+  return pollReviewCompletion(runId, isCancelled);
+}
+
+async function processChronicleItem(
+  item: InterleavedWorkItem & { type: "chronicle" },
+  caches: InterleavedCaches,
+  maxNotesOverride: number | undefined
+): Promise<number> {
+  const config = await buildChronicleReviewContext(item.chronicleId, item.tone, caches.corpusStrength, caches.voiceDigest, caches.reinforcement, maxNotesOverride);
+  if (!config) return 0;
+
+  const result = await createAndRunReview(config);
+  if (cancelledFlag || !result) return -1; // signal break
+
+  if (result.notes.length > 0) {
+    const reinforcedFacts = extractReinforcedFactIds(config.contextJson);
+    await updateChronicleHistorianNotes(item.chronicleId, result.notes, result.prompts, reinforcedFacts);
+    caches.reinforcement.runId = null;
+    caches.reinforcement.data = null;
+  }
+  caches.voiceDigest.runId = null;
+  caches.voiceDigest.digest = null;
+  return result.cost;
+}
+
+async function processEntityItem(
+  item: InterleavedWorkItem & { type: "entity" },
+  caches: InterleavedCaches,
+  maxNotesOverride: number | undefined
+): Promise<number> {
+  const config = await buildHistorianReviewContext(item.entityId, item.tone, caches.voiceDigest, maxNotesOverride);
+  if (!config) return 0;
+
+  const result = await createAndRunReview(config);
+  if (cancelledFlag || !result) return -1;
+
+  if (result.notes.length > 0) await setHistorianNotes(item.entityId, result.notes);
+  await reloadEntities([item.entityId]);
+  caches.voiceDigest.runId = null;
+  caches.voiceDigest.digest = null;
+  return result.cost;
+}
+
+async function runInterleavedAnnotation(
+  workItems: InterleavedWorkItem[],
+  set: InterleavedSetFn
+): Promise<void> {
+  try {
+    let globalProcessed = 0, globalCost = 0, processedChronicles = 0, processedEntities = 0;
+    const failedItems: Array<{ item: InterleavedWorkItem; error: string }> = [];
+    const caches: InterleavedCaches = {
+      corpusStrength: { runId: null, strength: null },
+      voiceDigest: { runId: null, digest: null },
+      reinforcement: { runId: null, data: null },
+    };
+
+    for (let itemIndex = 0; itemIndex < workItems.length; itemIndex++) {
+      const item = workItems[itemIndex];
+      if (cancelledFlag) break;
+      set((s) => ({ progress: { ...s.progress, currentItem: item } }));
+
+      try {
+        const maxNotes = computeNotesMaxOverride(itemIndex);
+        let cost: number;
+        if (item.type === "chronicle") {
+          cost = await processChronicleItem(item as InterleavedWorkItem & { type: "chronicle" }, caches, maxNotes);
+          if (cost < 0) break;
+          processedChronicles++;
+        } else {
+          cost = await processEntityItem(item as InterleavedWorkItem & { type: "entity" }, caches, maxNotes);
+          if (cost < 0) break;
+          processedEntities++;
+        }
+        globalCost += cost;
+        globalProcessed++;
+        set((s) => ({ progress: { ...s.progress, processedItems: globalProcessed, processedChronicles, processedEntities, totalCost: globalCost, failedItems: [...failedItems] } }));
+      } catch (err) {
+        const label = item.type === "chronicle" ? `Chronicle "${(item as any).title}"` : `Entity "${(item as any).entityName}"`;
+        console.error(`[Interleaved Annotation] ${label} failed:`, err);
+        globalProcessed++;
+        if (item.type === "chronicle") processedChronicles++; else processedEntities++;
+        failedItems.push({ item, error: err instanceof Error ? err.message : String(err) });
+        set((s) => ({ progress: { ...s.progress, processedItems: globalProcessed, processedChronicles, processedEntities, totalCost: globalCost, failedItems: [...failedItems] } }));
+      }
+    }
+
+    await useChronicleStore.getState().refreshAll();
+    await reloadEntities();
+    const finalStatus = cancelledFlag ? "cancelled" : "complete";
+    set((s) => ({ progress: { ...s.progress, status: finalStatus, currentItem: undefined } }));
+  } catch (err) {
+    console.error("[Interleaved Annotation] Fatal error:", err);
+    set((s) => ({ progress: { ...s.progress, status: "failed", currentItem: undefined, error: err instanceof Error ? err.message : String(err) } }));
+  }
+}
+
 export const useInterleavedAnnotationStore = create<InterleavedAnnotationStore>((set) => ({
   progress: IDLE_PROGRESS,
 
@@ -244,221 +362,8 @@ export const useInterleavedAnnotationStore = create<InterleavedAnnotationStore>(
 
     set((s) => ({ progress: { ...s.progress, status: "running" } }));
 
-    (async () => {
-      try {
-        let globalProcessed = 0;
-        let globalCost = 0;
-        let processedChronicles = 0;
-        let processedEntities = 0;
-        const failedItems: Array<{ item: InterleavedWorkItem; error: string }> = [];
-
-        // Shared caches across the entire interleaved run
-        const corpusStrengthCache = {
-          runId: null as string | null,
-          strength: null as Map<string, number> | null,
-        };
-        const voiceDigestCache: CorpusVoiceDigestCache = { runId: null, digest: null };
-        const reinforcementCache: ReinforcementCache = { runId: null, data: null };
-
-        for (let itemIndex = 0; itemIndex < workItems.length; itemIndex++) {
-          const item = workItems[itemIndex];
-          if (cancelledFlag) break;
-
-          set((s) => ({ progress: { ...s.progress, currentItem: item } }));
-
-          const maxNotesOverride = computeNotesMaxOverride(itemIndex);
-
-          try {
-            if (item.type === "chronicle") {
-              const config = await buildChronicleReviewContext(
-                item.chronicleId,
-                item.tone,
-                corpusStrengthCache,
-                voiceDigestCache,
-                reinforcementCache,
-                maxNotesOverride
-              );
-              if (!config) {
-                globalProcessed++;
-                processedChronicles++;
-                set((s) => ({
-                  progress: { ...s.progress, processedItems: globalProcessed, processedChronicles },
-                }));
-                continue;
-              }
-
-              const runId = generateHistorianRunId();
-              const now = Date.now();
-
-              await createHistorianRun({
-                runId,
-                projectId: config.projectId,
-                simulationRunId: config.simulationRunId,
-                status: "pending",
-                tone: config.tone as HistorianTone,
-                targetType: "chronicle",
-                targetId: config.targetId,
-                targetName: config.targetName,
-                sourceText: config.sourceText,
-                notes: [],
-                noteDecisions: {},
-                contextJson: config.contextJson,
-                previousNotesJson: config.previousNotesJson,
-                historianConfigJson: JSON.stringify(config.historianConfig),
-                inputTokens: 0,
-                outputTokens: 0,
-                actualCost: 0,
-                createdAt: now,
-                updatedAt: now,
-              });
-
-              dispatchReviewTask(runId);
-
-              const result = await pollReviewCompletion(runId, isCancelled);
-              if (cancelledFlag || !result) break;
-
-              if (result.notes.length > 0) {
-                const reinforcedFacts = extractReinforcedFactIds(config.contextJson);
-                await updateChronicleHistorianNotes(
-                  item.chronicleId,
-                  result.notes,
-                  result.prompts,
-                  reinforcedFacts
-                );
-                // Invalidate reinforcement cache so next item sees updated counts
-                reinforcementCache.runId = null;
-                reinforcementCache.data = null;
-              }
-              globalCost += result.cost;
-              processedChronicles++;
-
-              // Invalidate voice digest cache so next item sees the new notes
-              voiceDigestCache.runId = null;
-              voiceDigestCache.digest = null;
-            } else {
-              // Entity
-              const config = await buildHistorianReviewContext(
-                item.entityId,
-                item.tone,
-                voiceDigestCache,
-                maxNotesOverride
-              );
-              if (!config) {
-                globalProcessed++;
-                processedEntities++;
-                set((s) => ({
-                  progress: { ...s.progress, processedItems: globalProcessed, processedEntities },
-                }));
-                continue;
-              }
-
-              const runId = generateHistorianRunId();
-              const now = Date.now();
-
-              await createHistorianRun({
-                runId,
-                projectId: config.projectId,
-                simulationRunId: config.simulationRunId,
-                status: "pending",
-                tone: config.tone as HistorianTone,
-                targetType: config.targetType,
-                targetId: config.targetId,
-                targetName: config.targetName,
-                sourceText: config.sourceText,
-                notes: [],
-                noteDecisions: {},
-                contextJson: config.contextJson,
-                previousNotesJson: config.previousNotesJson,
-                historianConfigJson: JSON.stringify(config.historianConfig),
-                inputTokens: 0,
-                outputTokens: 0,
-                actualCost: 0,
-                createdAt: now,
-                updatedAt: now,
-              });
-
-              dispatchReviewTask(runId);
-
-              const result = await pollReviewCompletion(runId, isCancelled);
-              if (cancelledFlag || !result) break;
-
-              if (result.notes.length > 0) {
-                await setHistorianNotes(item.entityId, result.notes);
-              }
-              await reloadEntities([item.entityId]);
-              globalCost += result.cost;
-              processedEntities++;
-
-              // Invalidate voice digest cache
-              voiceDigestCache.runId = null;
-              voiceDigestCache.digest = null;
-            }
-
-            globalProcessed++;
-            set((s) => ({
-              progress: {
-                ...s.progress,
-                processedItems: globalProcessed,
-                processedChronicles,
-                processedEntities,
-                totalCost: globalCost,
-                failedItems: [...failedItems],
-              },
-            }));
-          } catch (err) {
-            const label =
-              item.type === "chronicle"
-                ? `Chronicle "${item.title}"`
-                : `Entity "${item.entityName}"`;
-            console.error(`[Interleaved Annotation] ${label} failed:`, err);
-
-            globalProcessed++;
-            if (item.type === "chronicle") processedChronicles++;
-            else processedEntities++;
-
-            failedItems.push({
-              item,
-              error: err instanceof Error ? err.message : String(err),
-            });
-            set((s) => ({
-              progress: {
-                ...s.progress,
-                processedItems: globalProcessed,
-                processedChronicles,
-                processedEntities,
-                totalCost: globalCost,
-                failedItems: [...failedItems],
-              },
-            }));
-          }
-        }
-
-        // Refresh both stores to pick up changes
-        await useChronicleStore.getState().refreshAll();
-        await reloadEntities();
-
-        if (cancelledFlag) {
-          set((s) => ({
-            progress: { ...s.progress, status: "cancelled", currentItem: undefined },
-          }));
-        } else {
-          set((s) => ({ progress: { ...s.progress, status: "complete", currentItem: undefined } }));
-        }
-      } catch (err) {
-        console.error("[Interleaved Annotation] Fatal error:", err);
-        set((s) => ({
-          progress: {
-            ...s.progress,
-            status: "failed",
-            currentItem: undefined,
-            error: err instanceof Error ? err.message : String(err),
-          },
-        }));
-      } finally {
-        activeFlag = false;
-        scanData = null;
-      }
-    })();
+    void runInterleavedAnnotation(workItems, set)
+      .finally(() => { activeFlag = false; scanData = null; });
   },
 
   cancelInterleaved() {

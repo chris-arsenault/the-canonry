@@ -10,10 +10,7 @@ import { useProjectStorage } from "./storage/useProjectStorage";
 import { loadUiState, saveUiState } from "./storage/uiState";
 import {
   loadWorldStore,
-  loadSimulationData,
-  loadWorldData,
   saveWorldData,
-  loadWorldContext,
   saveWorldContext,
   saveEntityGuidance,
   saveCultureIdentities,
@@ -22,7 +19,6 @@ import {
   saveHistorianConfig,
   getSlots,
   getSlot,
-  getActiveSlotIndex,
   setActiveSlotIndex as persistActiveSlotIndex,
   saveSlot,
   saveToSlot,
@@ -93,6 +89,9 @@ import {
 import { exportIndexedDbToS3, importIndexedDbFromS3 } from "./aws/indexedDbSnapshot";
 import { pullImagesFromS3 } from "./aws/s3ImagePull";
 
+/** Stable empty array to avoid creating new references in JSX props */
+const EMPTY_ARRAY = [];
+
 /**
  * Extract loreData from enriched entities
  * Converts entity.enrichment into LoreRecord format for Chronicler
@@ -149,7 +148,7 @@ async function extractLoreDataWithCurrentImageRefs(worldData) {
 
 function stripSimulationRunId(record) {
   if (!record || typeof record !== "object") return record;
-  const { simulationRunId: _omit, ...rest } = record;
+  const { simulationRunId: _omit, ...rest } = record; // eslint-disable-line sonarjs/no-unused-vars
   return rest;
 }
 
@@ -272,68 +271,114 @@ function mimeTypeToExtension(mimeType) {
 
 function sanitizeFileName(value, fallback) {
   if (typeof value !== "string") return fallback;
+  // eslint-disable-next-line sonarjs/slow-regex -- short filename string, no ReDoS risk
   const sanitized = value.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
   return sanitized || fallback;
+}
+
+function collectEntityImageIds(worldData, ids, entityById) {
+  if (!worldData?.hardState) return;
+  for (const entity of worldData.hardState) {
+    if (entity?.id) entityById.set(entity.id, entity);
+    const imageId = entity?.enrichment?.image?.imageId;
+    if (imageId) ids.add(imageId);
+  }
+}
+
+function collectChronicleImageIds(chronicles, ids, entityById) {
+  if (!Array.isArray(chronicles)) return;
+  for (const chronicle of chronicles) {
+    const coverImageId = chronicle?.coverImage?.generatedImageId;
+    if (coverImageId) ids.add(coverImageId);
+    const refs = chronicle?.imageRefs?.refs || [];
+    for (const ref of refs) {
+      const imageId = ref?.generatedImageId;
+      if (imageId) ids.add(imageId);
+      if (ref?.type === "entity_ref" && ref?.entityId) {
+        const entity = entityById.get(ref.entityId);
+        const entityImageId = entity?.enrichment?.image?.imageId;
+        if (entityImageId) ids.add(entityImageId);
+      }
+    }
+  }
+}
+
+function collectEraNarrativeImageIds(eraNarratives, ids) {
+  if (!Array.isArray(eraNarratives)) return;
+  for (const narrative of eraNarratives) {
+    const coverImageId = narrative?.coverImage?.generatedImageId;
+    if (coverImageId) ids.add(coverImageId);
+    const refs = narrative?.imageRefs?.refs || [];
+    for (const ref of refs) {
+      if (ref?.type === "chronicle_ref" && ref?.imageId) ids.add(ref.imageId);
+      if (ref?.type === "prompt_request" && ref?.generatedImageId) ids.add(ref.generatedImageId);
+    }
+  }
+}
+
+function collectStaticPageImageIds(staticPages, ids) {
+  if (!Array.isArray(staticPages)) return;
+  for (const page of staticPages) {
+    const content = page?.content;
+    if (typeof content !== "string") continue;
+    const matcher = /image:([A-Za-z0-9_-]+)/g;
+    let match = matcher.exec(content);
+    while (match) {
+      if (match[1]) ids.add(match[1]);
+      match = matcher.exec(content);
+    }
+  }
 }
 
 function collectReferencedImageIds(worldData, chronicles, staticPages, eraNarratives) {
   const ids = new Set();
   const entityById = new Map();
-  if (worldData?.hardState) {
-    for (const entity of worldData.hardState) {
-      if (entity?.id) {
-        entityById.set(entity.id, entity);
-      }
-      const imageId = entity?.enrichment?.image?.imageId;
-      if (imageId) ids.add(imageId);
-    }
-  }
-  if (Array.isArray(chronicles)) {
-    for (const chronicle of chronicles) {
-      // Cover image
-      const coverImageId = chronicle?.coverImage?.generatedImageId;
-      if (coverImageId) ids.add(coverImageId);
-      // Inline scene images
-      const refs = chronicle?.imageRefs?.refs || [];
-      for (const ref of refs) {
-        const imageId = ref?.generatedImageId;
-        if (imageId) ids.add(imageId);
-        if (ref?.type === "entity_ref" && ref?.entityId) {
-          const entity = entityById.get(ref.entityId);
-          const entityImageId = entity?.enrichment?.image?.imageId;
-          if (entityImageId) ids.add(entityImageId);
-        }
-      }
-    }
-  }
-  if (Array.isArray(eraNarratives)) {
-    for (const narrative of eraNarratives) {
-      const coverImageId = narrative?.coverImage?.generatedImageId;
-      if (coverImageId) ids.add(coverImageId);
-      const refs = narrative?.imageRefs?.refs || [];
-      for (const ref of refs) {
-        if (ref?.type === "chronicle_ref" && ref?.imageId) {
-          ids.add(ref.imageId);
-        }
-        if (ref?.type === "prompt_request" && ref?.generatedImageId) {
-          ids.add(ref.generatedImageId);
-        }
-      }
-    }
-  }
-  if (Array.isArray(staticPages)) {
-    for (const page of staticPages) {
-      const content = page?.content;
-      if (typeof content !== "string") continue;
-      const matcher = /image:([A-Za-z0-9_-]+)/g;
-      let match = matcher.exec(content);
-      while (match) {
-        if (match[1]) ids.add(match[1]);
-        match = matcher.exec(content);
-      }
-    }
-  }
+  collectEntityImageIds(worldData, ids, entityById);
+  collectChronicleImageIds(chronicles, ids, entityById);
+  collectEraNarrativeImageIds(eraNarratives, ids);
+  collectStaticPageImageIds(staticPages, ids);
   return ids;
+}
+
+function buildImageEntry(imageId, record, localPath, entityByImageId, entityById) {
+  const entity =
+    entityByImageId.get(imageId) || (record?.entityId ? entityById.get(record.entityId) : null);
+  const prompt = record?.originalPrompt || record?.finalPrompt || record?.revisedPrompt || "";
+  const entry = {
+    entityId: entity?.id || record?.entityId || "chronicle",
+    entityName: entity?.name || record?.entityName || "Unknown",
+    entityKind: entity?.kind || record?.entityKind || "unknown",
+    prompt,
+    localPath,
+    imageId,
+  };
+  if (record?.imageType === "chronicle") {
+    entry.imageType = "chronicle";
+    entry.chronicleId = record.chronicleId;
+    entry.imageRefId = record.imageRefId;
+  }
+  return entry;
+}
+
+function processS3Image(imageId, record, storage, entityByImageId, entityById, images, imageResults) {
+  const remotePath = buildStorageImageUrl(storage, "raw", imageId);
+  if (!remotePath) return false;
+  images[imageId] = remotePath;
+  imageResults.push(buildImageEntry(imageId, record, remotePath, entityByImageId, entityById));
+  return true;
+}
+
+function processLocalImage(imageId, record, blob, entityByImageId, entityById, images, imageFiles, imageResults, usedNames) {
+  const ext = mimeTypeToExtension(record?.mimeType || blob.type);
+  const baseName = sanitizeFileName(imageId, `image-${imageResults.length + 1}`);
+  const currentCount = (usedNames.get(baseName) || 0) + 1;
+  usedNames.set(baseName, currentCount);
+  const suffix = currentCount > 1 ? `-${currentCount}` : "";
+  const filename = `${baseName}${suffix}.${ext}`;
+  const path = `images/${filename}`;
+  images[imageId] = path;
+  imageFiles.push({ path, blob });
+  imageResults.push(buildImageEntry(imageId, record, path, entityByImageId, entityById));
 }
 
 async function buildBundleImageAssets({
@@ -374,90 +419,22 @@ async function buildBundleImageAssets({
   for (const imageId of imageIds) {
     throwIfExportCanceled(shouldCancel);
     let record = imageById.get(imageId);
-    if (!record) {
-      record = await getImageMetadata(imageId);
-    }
+    if (!record) record = await getImageMetadata(imageId);
 
     if (mode === "s3" && storage) {
       processed += 1;
-      const remotePath = buildStorageImageUrl(storage, "raw", imageId);
-      if (!remotePath) {
-        if (onProgress) {
-          onProgress({ phase: "images", processed, total: totalImages });
-        }
-        continue;
-      }
-
-      images[imageId] = remotePath;
-
-      const entity =
-        entityByImageId.get(imageId) || (record?.entityId ? entityById.get(record.entityId) : null);
-      const prompt = record?.originalPrompt || record?.finalPrompt || record?.revisedPrompt || "";
-      const imageEntry = {
-        entityId: entity?.id || record?.entityId || "chronicle",
-        entityName: entity?.name || record?.entityName || "Unknown",
-        entityKind: entity?.kind || record?.entityKind || "unknown",
-        prompt,
-        localPath: remotePath,
-        imageId,
-      };
-
-      if (record?.imageType === "chronicle") {
-        imageEntry.imageType = "chronicle";
-        imageEntry.chronicleId = record.chronicleId;
-        imageEntry.imageRefId = record.imageRefId;
-      }
-
-      imageResults.push(imageEntry);
-      if (onProgress) {
-        onProgress({ phase: "images", processed, total: totalImages });
-      }
+      processS3Image(imageId, record, storage, entityByImageId, entityById, images, imageResults);
+      if (onProgress) onProgress({ phase: "images", processed, total: totalImages });
       continue;
     }
 
     const blob = await getImageBlob(imageId);
     throwIfExportCanceled(shouldCancel);
     processed += 1;
-    if (!blob) {
-      if (onProgress) {
-        onProgress({ phase: "images", processed, total: totalImages });
-      }
-      continue;
+    if (blob) {
+      processLocalImage(imageId, record, blob, entityByImageId, entityById, images, imageFiles, imageResults, usedNames);
     }
-
-    const ext = mimeTypeToExtension(record?.mimeType || blob.type);
-    const baseName = sanitizeFileName(imageId, `image-${imageResults.length + 1}`);
-    const currentCount = (usedNames.get(baseName) || 0) + 1;
-    usedNames.set(baseName, currentCount);
-    const suffix = currentCount > 1 ? `-${currentCount}` : "";
-    const filename = `${baseName}${suffix}.${ext}`;
-    const path = `images/${filename}`;
-
-    images[imageId] = path;
-    imageFiles.push({ path, blob });
-
-    const entity =
-      entityByImageId.get(imageId) || (record?.entityId ? entityById.get(record.entityId) : null);
-    const prompt = record?.originalPrompt || record?.finalPrompt || record?.revisedPrompt || "";
-    const imageEntry = {
-      entityId: entity?.id || record?.entityId || "chronicle",
-      entityName: entity?.name || record?.entityName || "Unknown",
-      entityKind: entity?.kind || record?.entityKind || "unknown",
-      prompt,
-      localPath: path,
-      imageId,
-    };
-
-    if (record?.imageType === "chronicle") {
-      imageEntry.imageType = "chronicle";
-      imageEntry.chronicleId = record.chronicleId;
-      imageEntry.imageRefId = record.imageRefId;
-    }
-
-    imageResults.push(imageEntry);
-    if (onProgress) {
-      onProgress({ phase: "images", processed, total: totalImages });
-    }
+    if (onProgress) onProgress({ phase: "images", processed, total: totalImages });
   }
 
   if (imageResults.length === 0) {
@@ -738,6 +715,10 @@ export default function App() {
 
   // Requested page for Chronicler (set by cross-MFE navigation, cleared after use)
   const [chroniclerRequestedPage, setChroniclerRequestedPage] = useState(null);
+  const clearChroniclerRequestedPage = useCallback(() => setChroniclerRequestedPage(null), []);
+  const openAwsModal = useCallback(() => setAwsModalOpen(true), []);
+  const openHelpModal = useCallback(() => setHelpModalOpen(true), []);
+  const closeHelpModal = useCallback(() => setHelpModalOpen(false), []);
 
   // Listen for cross-MFE navigation events (e.g., Archivist -> Chronicler)
   useEffect(() => {
@@ -770,7 +751,7 @@ export default function App() {
           import("illuminator/eventRepository"),
         ]);
 
-        const [entities, events] = await Promise.all([
+        await Promise.all([
           getEntitiesForRun(simulationRunId),
           getNarrativeEventsForRun(simulationRunId),
         ]);
@@ -778,8 +759,6 @@ export default function App() {
         // DISABLED: Automatic hardState updates removed due to data loss bug.
         // The enrichment data lives in Dexie and is loaded by IlluminatorRemote.
         // Do NOT modify worldData.hardState from this event handler.
-        void entities;
-        void events;
       } catch (err) {
         console.warn("[Canonry] Failed to load Illuminator world data from Dexie:", err);
       }
@@ -1942,8 +1921,9 @@ export default function App() {
         cultureIdentities: cultureIdentities ?? null,
       };
 
-      const safeBase = buildExportBase(exportPayload.slot.title, `slot-${slotIndex}`);
-      const filename = `${safeBase || `slot-${slotIndex}`}.canonry-slot.json`;
+      const slotFallback = `slot-${slotIndex}`;
+      const safeBase = buildExportBase(exportPayload.slot.title, slotFallback);
+      const filename = `${safeBase || slotFallback}.canonry-slot.json`;
 
       const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -2097,7 +2077,8 @@ export default function App() {
           const url = URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = url;
-          link.download = `${safeBase || `slot-${slotIndex}`}.bundle.${timestamp}.json`;
+          const bundleBase = safeBase || `slot-${slotIndex}`;
+          link.download = `${bundleBase}.bundle.${timestamp}.json`;
           link.click();
           URL.revokeObjectURL(url);
         } else {
@@ -2114,7 +2095,8 @@ export default function App() {
           const url = URL.createObjectURL(zipBlob);
           const link = document.createElement("a");
           link.href = url;
-          link.download = `${safeBase || `slot-${slotIndex}`}.canonry-bundle.zip`;
+          const zipBase = safeBase || `slot-${slotIndex}`;
+          link.download = `${zipBase}.canonry-bundle.zip`;
           link.click();
           URL.revokeObjectURL(url);
         }
@@ -2203,9 +2185,9 @@ export default function App() {
   // Check if scratch has data
   const hasDataInScratch = Boolean(slots[0]?.simulationResults);
   const exportModalSlot = exportModalSlotIndex !== null ? slots[exportModalSlotIndex] : null;
+  const exportModalFallbackTitle = exportModalSlotIndex === 0 ? "Scratch" : `Slot ${exportModalSlotIndex}`;
   const exportModalTitle = exportModalSlot
-    ? exportModalSlot.title ||
-      (exportModalSlotIndex === 0 ? "Scratch" : `Slot ${exportModalSlotIndex}`)
+    ? exportModalSlot.title || exportModalFallbackTitle
     : "Slot";
   const isExportingBundle = exportBundleStatus.state === "working";
   const hasAwsToken = isTokenValid(awsTokens);
@@ -2443,7 +2425,7 @@ export default function App() {
             onAddTag={addTag}
             activeSection={activeSection}
             onSectionChange={setActiveSection}
-            generators={currentProject?.generators || []}
+            generators={currentProject?.generators || EMPTY_ARRAY}
           />
         );
 
@@ -2451,7 +2433,7 @@ export default function App() {
         return (
           <CosmographerHost
             schema={schema}
-            axisDefinitions={currentProject.axisDefinitions || []}
+            axisDefinitions={currentProject.axisDefinitions || EMPTY_ARRAY}
             seedEntities={currentProject.seedEntities}
             seedRelationships={currentProject.seedRelationships}
             onEntityKindsChange={updateEntityKinds}
@@ -2472,15 +2454,15 @@ export default function App() {
           <CoherenceEngineHost
             projectId={currentProject?.id}
             schema={schema}
-            eras={currentProject?.eras || []}
+            eras={currentProject?.eras || EMPTY_ARRAY}
             onErasChange={updateEras}
-            pressures={currentProject?.pressures || []}
+            pressures={currentProject?.pressures || EMPTY_ARRAY}
             onPressuresChange={updatePressures}
-            generators={currentProject?.generators || []}
+            generators={currentProject?.generators || EMPTY_ARRAY}
             onGeneratorsChange={updateGenerators}
-            actions={currentProject?.actions || []}
+            actions={currentProject?.actions || EMPTY_ARRAY}
             onActionsChange={updateActions}
-            systems={currentProject?.systems || []}
+            systems={currentProject?.systems || EMPTY_ARRAY}
             onSystemsChange={updateSystems}
             activeSection={activeSection}
             onSectionChange={setActiveSection}
@@ -2499,13 +2481,13 @@ export default function App() {
               <LoreWeaveHost
                 projectId={currentProject?.id}
                 schema={schema}
-                eras={currentProject?.eras || []}
-                pressures={currentProject?.pressures || []}
-                generators={currentProject?.generators || []}
-                systems={currentProject?.systems || []}
-                actions={currentProject?.actions || []}
-                seedEntities={currentProject?.seedEntities || []}
-                seedRelationships={currentProject?.seedRelationships || []}
+                eras={currentProject?.eras || EMPTY_ARRAY}
+                pressures={currentProject?.pressures || EMPTY_ARRAY}
+                generators={currentProject?.generators || EMPTY_ARRAY}
+                systems={currentProject?.systems || EMPTY_ARRAY}
+                actions={currentProject?.actions || EMPTY_ARRAY}
+                seedEntities={currentProject?.seedEntities || EMPTY_ARRAY}
+                seedRelationships={currentProject?.seedRelationships || EMPTY_ARRAY}
                 distributionTargets={currentProject?.distributionTargets || null}
                 onDistributionTargetsChange={updateDistributionTargets}
                 activeSection={activeSection}
@@ -2547,7 +2529,7 @@ export default function App() {
                 projectId={currentProject?.id}
                 activeSlotIndex={activeSlotIndex}
                 requestedPageId={chroniclerRequestedPage}
-                onRequestedPageConsumed={() => setChroniclerRequestedPage(null)}
+                onRequestedPageConsumed={clearChroniclerRequestedPage}
               />
             </div>
           </>
@@ -2585,7 +2567,7 @@ export default function App() {
         onNavigateToValidation={handleNavigateToValidation}
         onRemoveProperty={handleRemoveProperty}
         simulationState={simulationState}
-        systems={currentProject?.systems || []}
+        systems={currentProject?.systems || EMPTY_ARRAY}
         slots={slots}
         activeSlotIndex={activeSlotIndex}
         onLoadSlot={handleLoadSlot}
@@ -2601,10 +2583,8 @@ export default function App() {
         <Navigation
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          onAwsClick={() => {
-            setAwsModalOpen(true);
-          }}
-          onHelpClick={() => setHelpModalOpen(true)}
+          onAwsClick={openAwsModal}
+          onHelpClick={openHelpModal}
         />
       )}
       <div style={styles.content}>{renderContent()}</div>
@@ -2635,9 +2615,12 @@ export default function App() {
           className="modal-overlay"
           onMouseDown={handleExportModalMouseDown}
           onClick={handleExportModalClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleExportModalClick(e); }}
         >
           <div className="modal modal-simple">
-            <div className="modal-header">
+            <div className="modal-header" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
               <div className="modal-title">Export {exportModalTitle}</div>
               {!isExportingBundle && (
                 <button className="btn-close" onClick={closeExportModal}>
@@ -2718,9 +2701,12 @@ export default function App() {
           className="modal-overlay"
           onMouseDown={handleAwsModalMouseDown}
           onClick={handleAwsModalClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleAwsModalClick(e); }}
         >
           <div className="modal modal-simple" style={{ maxWidth: "900px" }}>
-            <div className="modal-header">
+            <div className="modal-header" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
               <div className="modal-title">AWS Sync</div>
               <button className="btn-close" onClick={() => setAwsModalOpen(false)}>
                 ×
@@ -2730,11 +2716,14 @@ export default function App() {
               <div style={{ marginBottom: spacing.lg }}>
                 <div style={styles.awsLabel}>Session</div>
                 <div style={{ color: colors.textSecondary, marginTop: spacing.xs }}>
-                  {awsLoginConfigured
-                    ? hasAwsToken
-                      ? `Signed in as ${awsUserLabel || "Cognito user"}.`
-                      : "Not authenticated. Login required."
-                    : "No user pool configured. Identity pool must allow unauthenticated access."}
+                  {(() => {
+                    if (awsLoginConfigured) {
+                      return hasAwsToken
+                        ? `Signed in as ${awsUserLabel || "Cognito user"}.`
+                        : "Not authenticated. Login required.";
+                    }
+                    return "No user pool configured. Identity pool must allow unauthenticated access.";
+                  })()}
                 </div>
               </div>
 
@@ -2777,8 +2766,8 @@ export default function App() {
                 </div>
                 <div style={styles.awsGrid}>
                   <div style={styles.awsField}>
-                    <label style={styles.awsLabel}>Region</label>
-                    <input
+                    <label htmlFor="region" style={styles.awsLabel}>Region</label>
+                    <input id="region"
                       style={styles.awsInput}
                       value={awsConfig.region}
                       onChange={(e) => updateAwsConfig({ region: e.target.value })}
@@ -2786,8 +2775,8 @@ export default function App() {
                     />
                   </div>
                   <div style={styles.awsField}>
-                    <label style={styles.awsLabel}>Identity Pool ID</label>
-                    <input
+                    <label htmlFor="identity-pool-id" style={styles.awsLabel}>Identity Pool ID</label>
+                    <input id="identity-pool-id"
                       style={styles.awsInput}
                       value={awsConfig.identityPoolId}
                       onChange={(e) => updateAwsConfig({ identityPoolId: e.target.value })}
@@ -2795,8 +2784,8 @@ export default function App() {
                     />
                   </div>
                   <div style={styles.awsField}>
-                    <label style={styles.awsLabel}>User Pool ID</label>
-                    <input
+                    <label htmlFor="user-pool-id" style={styles.awsLabel}>User Pool ID</label>
+                    <input id="user-pool-id"
                       style={styles.awsInput}
                       value={awsConfig.cognitoUserPoolId}
                       onChange={(e) => updateAwsConfig({ cognitoUserPoolId: e.target.value })}
@@ -2804,8 +2793,8 @@ export default function App() {
                     />
                   </div>
                   <div style={styles.awsField}>
-                    <label style={styles.awsLabel}>App Client ID</label>
-                    <input
+                    <label htmlFor="app-client-id" style={styles.awsLabel}>App Client ID</label>
+                    <input id="app-client-id"
                       style={styles.awsInput}
                       value={awsConfig.cognitoClientId}
                       onChange={(e) => updateAwsConfig({ cognitoClientId: e.target.value })}
@@ -2833,8 +2822,8 @@ export default function App() {
                       }}
                     >
                       <div style={styles.awsField}>
-                        <label style={styles.awsLabel}>Username</label>
-                        <input
+                        <label htmlFor="username" style={styles.awsLabel}>Username</label>
+                        <input id="username"
                           style={styles.awsInput}
                           value={awsUsername}
                           onChange={(e) => setAwsUsername(e.target.value)}
@@ -2842,8 +2831,8 @@ export default function App() {
                         />
                       </div>
                       <div style={styles.awsField}>
-                        <label style={styles.awsLabel}>Password</label>
-                        <input
+                        <label htmlFor="password" style={styles.awsLabel}>Password</label>
+                        <input id="password"
                           style={styles.awsInput}
                           type="password"
                           value={awsPassword}
@@ -2867,8 +2856,8 @@ export default function App() {
                 </div>
                 <div style={styles.awsGrid}>
                   <div style={styles.awsField}>
-                    <label style={styles.awsLabel}>Bucket</label>
-                    <input
+                    <label htmlFor="image-bucket" style={styles.awsLabel}>Bucket</label>
+                    <input id="image-bucket"
                       style={styles.awsInput}
                       value={awsConfig.imageBucket}
                       onChange={(e) => updateAwsConfig({ imageBucket: e.target.value })}
@@ -2876,8 +2865,8 @@ export default function App() {
                     />
                   </div>
                   <div style={styles.awsField}>
-                    <label style={styles.awsLabel}>Base Prefix</label>
-                    <input
+                    <label htmlFor="image-prefix" style={styles.awsLabel}>Base Prefix</label>
+                    <input id="image-prefix"
                       style={styles.awsInput}
                       value={awsConfig.imagePrefix}
                       onChange={(e) => updateAwsConfig({ imagePrefix: e.target.value })}
@@ -3000,11 +2989,11 @@ export default function App() {
                   Upload Plan
                 </div>
                 <div style={{ color: colors.textSecondary, marginTop: spacing.xs }}>
-                  {awsUploadPlan.loading
-                    ? "Calculating upload plan..."
-                    : awsUploadPlan.summary
-                      ? `Would upload ${awsUploadPlan.summary.uploadCount} of ${awsUploadPlan.summary.total} images.`
-                      : 'Click "Preview Uploads" to see which images would be uploaded.'}
+                  {(() => {
+                    if (awsUploadPlan.loading) return "Calculating upload plan...";
+                    if (awsUploadPlan.summary) return `Would upload ${awsUploadPlan.summary.uploadCount} of ${awsUploadPlan.summary.total} images.`;
+                    return 'Click "Preview Uploads" to see which images would be uploaded.';
+                  })()}
                 </div>
                 {awsUploadPlan.summary && (
                   <div style={{ color: colors.textMuted, marginTop: spacing.xs }}>
@@ -3064,7 +3053,7 @@ export default function App() {
       )}
       <HelpModal
         isOpen={helpModalOpen}
-        onClose={() => setHelpModalOpen(false)}
+        onClose={closeHelpModal}
         activeTab={activeTab}
       />
     </div>

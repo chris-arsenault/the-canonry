@@ -43,7 +43,7 @@ export default function WikiNav({
   isRefreshing,
   isDrawer,
   onCloseDrawer,
-}: WikiNavProps) {
+}: Readonly<WikiNavProps>) {
   // Collapsible section state
   const [loreExpanded, setLoreExpanded] = useState(false);
   const [expandedEras, setExpandedEras] = useState<Set<string>>(new Set());
@@ -92,6 +92,7 @@ export default function WikiNav({
   const handleRandomPage = () => {
     const entityPages = pages.filter((p) => p.type === "entity" || p.type === "era");
     if (entityPages.length > 0) {
+      // eslint-disable-next-line sonarjs/pseudo-random -- non-security random page selection
       const randomIndex = Math.floor(Math.random() * entityPages.length);
       onNavigate(entityPages[randomIndex].id);
     }

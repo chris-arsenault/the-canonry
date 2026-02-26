@@ -73,11 +73,11 @@ function PaletteItemRow({
   item,
   disabled,
   onClick,
-}: {
+}: Readonly<{
   item: PaletteItem;
   disabled: boolean;
   onClick: () => void;
-}) {
+}>) {
   const [{ isDragging }, dragRef] = useDrag<PaletteItemDragPayload, void, { isDragging: boolean }>({
     type: PALETTE_ITEM_TYPE,
     item: { type: item.type, contentId: item.contentId, name: item.name },
@@ -91,6 +91,9 @@ function PaletteItemRow({
       className={`preprint-palette-item${disabled ? " disabled" : ""}${isDragging ? " dragging" : ""}`}
       onClick={onClick}
       title={disabled ? "Select a folder first" : "Drag to tree or click to add"}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(e); }}
     >
       <span className="preprint-palette-item-icon">{TYPE_ICONS[item.type] || "?"}</span>
       <span className="preprint-palette-item-name">{item.name}</span>
@@ -110,7 +113,7 @@ export default function ContentPalette({
   usedIds,
   selectedFolderId,
   onAddContent,
-}: ContentPaletteProps) {
+}: Readonly<ContentPaletteProps>) {
   const [filter, setFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [sortBy, setSortBy] = useState<SortBy>("type");

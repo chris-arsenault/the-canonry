@@ -50,6 +50,9 @@ export default function EntityLinkPicker({ onSelect, onClose }) {
       className="static-page-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="static-page-modal">
         <div className="static-page-modal-header">
@@ -66,6 +69,7 @@ export default function EntityLinkPicker({ onSelect, onClose }) {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search entities..."
             className="static-page-search-input"
+            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
           />
 

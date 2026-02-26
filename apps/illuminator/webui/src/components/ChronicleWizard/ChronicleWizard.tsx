@@ -110,7 +110,7 @@ function InnerWizard({
   relationships,
   events,
   initialSeed,
-}: InnerWizardProps) {
+}: Readonly<InnerWizardProps>) {
   const {
     state,
     nextStep,
@@ -219,12 +219,11 @@ function InnerWizard({
 
   // Handle next with auto-skip for accept defaults
   const handleNext = useCallback(() => {
-    if (state.step === 2 && state.acceptDefaults && state.roleAssignments.length > 0) {
-      // Skip step 3 (roles) and step 4 (events) when accepting defaults
-      autoFillEventsAndRelationships();
-      goToStep(5);
-    } else if (state.step === 3 && state.acceptDefaults) {
-      // Skip step 4 when accepting defaults
+    if (
+      (state.step === 2 && state.acceptDefaults && state.roleAssignments.length > 0) ||
+      (state.step === 3 && state.acceptDefaults)
+    ) {
+      // Skip remaining steps when accepting defaults
       autoFillEventsAndRelationships();
       goToStep(5);
     } else {
@@ -264,6 +263,9 @@ function InnerWizard({
       className="illuminator-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div
         className="illuminator-modal"
@@ -306,15 +308,18 @@ function InnerWizard({
                   fontSize: "12px",
                   fontWeight: isActive ? 600 : 400,
                   cursor: isClickable ? "pointer" : "default",
-                  background: isActive
-                    ? "var(--accent-color)"
-                    : isCompleted
-                      ? "var(--success)"
-                      : "var(--bg-secondary)",
+                  background: (() => {
+                    if (isActive) return "var(--accent-color)";
+                    if (isCompleted) return "var(--success)";
+                    return "var(--bg-secondary)";
+                  })(),
                   color: isActive || isCompleted ? "white" : "var(--text-muted)",
                   opacity: isClickable ? 1 : 0.5,
                   transition: "all 0.2s ease",
                 }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
               >
                 <span
                   style={{
@@ -397,7 +402,7 @@ function InnerWizard({
 // Main Component (wraps with provider)
 // =============================================================================
 
-export default function ChronicleWizard(props: ChronicleWizardProps) {
+export default function ChronicleWizard(props: Readonly<ChronicleWizardProps>) {
   if (!props.isOpen) return null;
 
   return (

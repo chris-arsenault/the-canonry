@@ -16,13 +16,8 @@ export function findMatchingProfile(namingConfig, entityKind, subtype, prominenc
 
       // Check subtype
       if (cond.subtypes?.length > 0) {
-        if (cond.subtypeMatchAll) {
-          // All subtypes must match - not applicable for single entity
-          if (!subtype || !cond.subtypes.includes(subtype)) continue;
-        } else {
-          // Any subtype matches
-          if (!subtype || !cond.subtypes.includes(subtype)) continue;
-        }
+        // Check if subtype matches (same logic for matchAll or matchAny on single entity)
+        if (!subtype || !cond.subtypes.includes(subtype)) continue;
       }
 
       // Check prominence

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import type { DiscoveryEventLore } from "../types/world.ts";
 import "./DiscoveryStory.css";
 
@@ -14,7 +14,7 @@ export default function DiscoveryStory({
   onExplorerClick,
   onClose,
   isModal = false,
-}: DiscoveryStoryProps) {
+}: Readonly<DiscoveryStoryProps>) {
   const [expandedSection, setExpandedSection] = useState<"discovery" | "significance" | null>(
     "discovery"
   );
@@ -122,6 +122,9 @@ export default function DiscoveryStory({
         className="discovery-story-overlay"
         onMouseDown={handleOverlayMouseDown}
         onClick={handleOverlayClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
       >
         <div>{content}</div>
       </div>

@@ -48,7 +48,7 @@ export type {
  * Generate a unique chronicle ID
  */
 export function generateChronicleId(): string {
-  return `chronicle_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  return `chronicle_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 }
 
 /**
@@ -181,7 +181,7 @@ function dedupeVersions(versions: ChronicleGenerationVersion[]): {
   return { versions: deduped, changed };
 }
 
-function buildGenerationVersion(record: ChronicleRecord): ChronicleGenerationVersion | null {
+function _buildGenerationVersion(record: ChronicleRecord): ChronicleGenerationVersion | null {
   const content = record.finalContent || record.assembledContent || "";
   if (!content) return null;
 
@@ -204,128 +204,125 @@ function buildGenerationVersion(record: ChronicleRecord): ChronicleGenerationVer
   };
 }
 
+function resolveVersionIdFields(
+  versions: ChronicleGenerationVersion[],
+  record: ChronicleRecord
+): boolean {
+  let changed = false;
+  const fields: Array<keyof Pick<ChronicleRecord, "activeVersionId" | "acceptedVersionId" | "summaryTargetVersionId" | "imageRefsTargetVersionId">> = [
+    "activeVersionId", "acceptedVersionId", "summaryTargetVersionId", "imageRefsTargetVersionId",
+  ];
+  for (const field of fields) {
+    const resolved = resolveVersionId(versions, record[field]);
+    if (resolved !== record[field]) {
+      (record as any)[field] = resolved;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+const PROMPT_NOT_STORED = "(prompt not stored - chronicle generated before prompt storage was implemented)";
+
+function syncAssembledToVersions(
+  record: ChronicleRecord,
+  versions: ChronicleGenerationVersion[]
+): boolean {
+  const generatedAt = record.assembledAt ?? record.createdAt;
+  const existingId = getVersionIdForTimestamp(versions, generatedAt);
+  const currentVersionId =
+    existingId || createUniqueVersionId(new Set(versions.map((v) => v.versionId)), generatedAt);
+  const existingIndex = versions.findIndex((v) => v.versionId === currentVersionId);
+  const systemPrompt = record.generationSystemPrompt || PROMPT_NOT_STORED;
+  const userPrompt = record.generationUserPrompt || PROMPT_NOT_STORED;
+
+  if (existingIndex === -1) {
+    versions.push({
+      versionId: currentVersionId, generatedAt,
+      content: record.assembledContent || "",
+      wordCount: countWords(record.assembledContent),
+      model: record.model || "unknown",
+      sampling: record.generationSampling, systemPrompt, userPrompt,
+      step: record.generationStep,
+    });
+    return true;
+  }
+
+  const existing = versions[existingIndex];
+  const next = {
+    ...existing, generatedAt,
+    content: record.assembledContent || "",
+    wordCount: countWords(record.assembledContent),
+    model: record.model || existing.model,
+    sampling: record.generationSampling ?? existing.sampling,
+    systemPrompt: record.generationSystemPrompt || existing.systemPrompt || systemPrompt,
+    userPrompt: record.generationUserPrompt || existing.userPrompt || userPrompt,
+    step: record.generationStep ?? existing.step,
+  };
+
+  const versionChanged = Object.keys(next).some(
+    (k) => (next as any)[k] !== (existing as any)[k]
+  );
+  if (versionChanged) {
+    versions[existingIndex] = next;
+    return true;
+  }
+  return false;
+}
+
+function syncVersionsToAssembled(record: ChronicleRecord, versions: ChronicleGenerationVersion[]): boolean {
+  const latest = getLatestVersion(versions);
+  if (!latest) return false;
+  record.assembledContent = latest.content;
+  record.assembledAt = latest.generatedAt;
+  record.generationSampling = latest.sampling;
+  record.generationStep = latest.step;
+  record.model = latest.model || record.model;
+  record.generationSystemPrompt = latest.systemPrompt;
+  record.generationUserPrompt = latest.userPrompt;
+  return true;
+}
+
+function fixOrphanedVersionRefs(
+  record: ChronicleRecord,
+  versions: ChronicleGenerationVersion[]
+): boolean {
+  if (versions.length === 0) return false;
+  let changed = false;
+  const latest = getLatestVersion(versions);
+  const versionIds = new Set(versions.map((v) => v.versionId));
+
+  if (!record.activeVersionId || !versionIds.has(record.activeVersionId)) {
+    record.activeVersionId = latest?.versionId;
+    changed = true;
+  }
+  const refFields: Array<keyof Pick<ChronicleRecord, "acceptedVersionId" | "summaryTargetVersionId" | "imageRefsTargetVersionId">> = [
+    "acceptedVersionId", "summaryTargetVersionId", "imageRefsTargetVersionId",
+  ];
+  for (const field of refFields) {
+    if (record[field] && !versionIds.has(record[field])) {
+      (record as any)[field] = record.activeVersionId;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 function ensureChronicleVersions(record: ChronicleRecord): boolean {
   let changed = false;
   const deduped = dedupeVersions(record.generationHistory || []);
   let versions = deduped.versions;
   if (deduped.changed) changed = true;
 
-  const resolvedActive = resolveVersionId(versions, record.activeVersionId);
-  if (resolvedActive !== record.activeVersionId) {
-    record.activeVersionId = resolvedActive;
-    changed = true;
-  }
-  const resolvedAccepted = resolveVersionId(versions, record.acceptedVersionId);
-  if (resolvedAccepted !== record.acceptedVersionId) {
-    record.acceptedVersionId = resolvedAccepted;
-    changed = true;
-  }
-  const resolvedSummaryTarget = resolveVersionId(versions, record.summaryTargetVersionId);
-  if (resolvedSummaryTarget !== record.summaryTargetVersionId) {
-    record.summaryTargetVersionId = resolvedSummaryTarget;
-    changed = true;
-  }
-  const resolvedImageRefsTarget = resolveVersionId(versions, record.imageRefsTargetVersionId);
-  if (resolvedImageRefsTarget !== record.imageRefsTargetVersionId) {
-    record.imageRefsTargetVersionId = resolvedImageRefsTarget;
-    changed = true;
-  }
+  if (resolveVersionIdFields(versions, record)) changed = true;
 
-  const hasAssembled = Boolean(record.assembledContent);
-  if (hasAssembled) {
-    const generatedAt = record.assembledAt ?? record.createdAt;
-    const existingId = getVersionIdForTimestamp(versions, generatedAt);
-    const currentVersionId =
-      existingId || createUniqueVersionId(new Set(versions.map((v) => v.versionId)), generatedAt);
-    const existingIndex = versions.findIndex((v) => v.versionId === currentVersionId);
-    const systemPrompt =
-      record.generationSystemPrompt ||
-      "(prompt not stored - chronicle generated before prompt storage was implemented)";
-    const userPrompt =
-      record.generationUserPrompt ||
-      "(prompt not stored - chronicle generated before prompt storage was implemented)";
-    if (existingIndex === -1) {
-      versions.push({
-        versionId: currentVersionId,
-        generatedAt,
-        content: record.assembledContent || "",
-        wordCount: countWords(record.assembledContent),
-        model: record.model || "unknown",
-        sampling: record.generationSampling,
-        systemPrompt,
-        userPrompt,
-        step: record.generationStep,
-      });
-      changed = true;
-    } else {
-      const existing = versions[existingIndex];
-      const next = {
-        ...existing,
-        generatedAt,
-        content: record.assembledContent || "",
-        wordCount: countWords(record.assembledContent),
-        model: record.model || existing.model,
-        sampling: record.generationSampling ?? existing.sampling,
-        systemPrompt: record.generationSystemPrompt || existing.systemPrompt || systemPrompt,
-        userPrompt: record.generationUserPrompt || existing.userPrompt || userPrompt,
-        step: record.generationStep ?? existing.step,
-      };
-      const changedEntry =
-        next.generatedAt !== existing.generatedAt ||
-        next.content !== existing.content ||
-        next.wordCount !== existing.wordCount ||
-        next.model !== existing.model ||
-        next.sampling !== existing.sampling ||
-        next.systemPrompt !== existing.systemPrompt ||
-        next.userPrompt !== existing.userPrompt ||
-        next.step !== existing.step;
-      if (changedEntry) {
-        versions[existingIndex] = next;
-        changed = true;
-      }
-    }
+  if (record.assembledContent) {
+    if (syncAssembledToVersions(record, versions)) changed = true;
   } else if (versions.length > 0) {
-    const latest = getLatestVersion(versions);
-    if (latest) {
-      record.assembledContent = latest.content;
-      record.assembledAt = latest.generatedAt;
-      record.generationSampling = latest.sampling;
-      record.generationStep = latest.step;
-      record.model = latest.model || record.model;
-      record.generationSystemPrompt = latest.systemPrompt;
-      record.generationUserPrompt = latest.userPrompt;
-      changed = true;
-    }
+    if (syncVersionsToAssembled(record, versions)) changed = true;
   }
 
-  if (versions.length > 0) {
-    const latest = getLatestVersion(versions);
-    if (!record.activeVersionId || !versions.some((v) => v.versionId === record.activeVersionId)) {
-      record.activeVersionId = latest?.versionId;
-      changed = true;
-    }
-    if (
-      record.acceptedVersionId &&
-      !versions.some((v) => v.versionId === record.acceptedVersionId)
-    ) {
-      record.acceptedVersionId = record.activeVersionId;
-      changed = true;
-    }
-    if (
-      record.summaryTargetVersionId &&
-      !versions.some((v) => v.versionId === record.summaryTargetVersionId)
-    ) {
-      record.summaryTargetVersionId = record.activeVersionId;
-      changed = true;
-    }
-    if (
-      record.imageRefsTargetVersionId &&
-      !versions.some((v) => v.versionId === record.imageRefsTargetVersionId)
-    ) {
-      record.imageRefsTargetVersionId = record.activeVersionId;
-      changed = true;
-    }
-  }
+  if (fixOrphanedVersionRefs(record, versions)) changed = true;
 
   const finalDeduped = dedupeVersions(versions);
   versions = finalDeduped.versions;
@@ -336,9 +333,7 @@ function ensureChronicleVersions(record: ChronicleRecord): boolean {
     changed = true;
   }
 
-  // Migration: loreBackported boolean → entityBackportStatus map
-  // We can't check entity backrefs from the chronicle read path, so just clear
-  // the old flag. handleBackportLore detects actual backrefs live from entities.
+  // Migration: loreBackported boolean -> entityBackportStatus map
   if ((record as any).loreBackported && !record.entityBackportStatus) {
     record.entityBackportStatus = {};
     delete (record as any).loreBackported;
@@ -1041,6 +1036,42 @@ export async function updateChronicleImageRefs(
 /**
  * Update a single image ref within a chronicle (e.g., after generating an image for a prompt request)
  */
+function applyBaseImageRefUpdates(ref: any, updates: Record<string, unknown>): void {
+  if (updates.anchorText !== undefined) {
+    ref.anchorText = updates.anchorText;
+    if (updates.anchorIndex === undefined) ref.anchorIndex = undefined;
+  }
+  if (updates.anchorIndex !== undefined) ref.anchorIndex = updates.anchorIndex;
+  if (updates.caption !== undefined) ref.caption = updates.caption;
+  if (updates.size !== undefined) ref.size = updates.size;
+  if (updates.justification !== undefined) {
+    if (updates.justification) {
+      ref.justification = updates.justification;
+    } else {
+      delete ref.justification;
+    }
+  }
+}
+
+function applyPromptRequestUpdates(ref: any, updates: Record<string, unknown>): void {
+  if (updates.sceneDescription !== undefined) ref.sceneDescription = updates.sceneDescription;
+  if (updates.status !== undefined) ref.status = updates.status;
+  if (updates.generatedImageId !== undefined) {
+    if (updates.generatedImageId) {
+      ref.generatedImageId = updates.generatedImageId;
+    } else {
+      delete ref.generatedImageId;
+    }
+  }
+  if (updates.error !== undefined) {
+    if (updates.error) {
+      ref.error = updates.error;
+    } else {
+      delete ref.error;
+    }
+  }
+}
+
 export async function updateChronicleImageRef(
   chronicleId: string,
   refId: string,
@@ -1076,42 +1107,9 @@ export async function updateChronicleImageRef(
     throw new Error(`Image ref ${refId} is not a prompt request`);
   }
 
-  // Apply base updates
-  if (updates.anchorText !== undefined) {
-    ref.anchorText = updates.anchorText;
-    if (updates.anchorIndex === undefined) {
-      ref.anchorIndex = undefined;
-    }
-  }
-  if (updates.anchorIndex !== undefined) ref.anchorIndex = updates.anchorIndex;
-  if (updates.caption !== undefined) ref.caption = updates.caption;
-  if (updates.size !== undefined) ref.size = updates.size;
-  if (updates.justification !== undefined) {
-    if (updates.justification) {
-      ref.justification = updates.justification;
-    } else {
-      delete ref.justification;
-    }
-  }
-
-  // Apply prompt request updates
+  applyBaseImageRefUpdates(ref, updates);
   if (ref.type === "prompt_request") {
-    if (updates.sceneDescription !== undefined) ref.sceneDescription = updates.sceneDescription;
-    if (updates.status !== undefined) ref.status = updates.status;
-    if (updates.generatedImageId !== undefined) {
-      if (updates.generatedImageId) {
-        ref.generatedImageId = updates.generatedImageId;
-      } else {
-        delete ref.generatedImageId;
-      }
-    }
-    if (updates.error !== undefined) {
-      if (updates.error) {
-        ref.error = updates.error;
-      } else {
-        delete ref.error;
-      }
-    }
+    applyPromptRequestUpdates(ref, updates);
   }
 
   record.updatedAt = Date.now();
@@ -1247,73 +1245,67 @@ export async function updateChronicleTemporalContext(
  *   3. perspectiveSynthesis.focalEra.description
  * Returns count of chronicles that were actually updated.
  */
+function patchTemporalContext(
+  record: ChronicleRecord,
+  summaryMap: Map<string, string>
+): boolean {
+  if (!record.temporalContext) return false;
+  let changed = false;
+
+  const patchedAllEras = record.temporalContext.allEras.map((era) => {
+    const newSummary = summaryMap.get(era.id);
+    if (newSummary !== undefined && newSummary !== era.summary) {
+      changed = true;
+      return { ...era, summary: newSummary };
+    }
+    return era;
+  });
+
+  let patchedFocalEra = record.temporalContext.focalEra;
+  const focalSummary = summaryMap.get(patchedFocalEra.id);
+  if (focalSummary !== undefined && focalSummary !== patchedFocalEra.summary) {
+    changed = true;
+    patchedFocalEra = { ...patchedFocalEra, summary: focalSummary };
+  }
+
+  if (changed) {
+    record.temporalContext = { ...record.temporalContext, allEras: patchedAllEras, focalEra: patchedFocalEra };
+  }
+  return changed;
+}
+
+function patchPerspectiveSynthesisFocalEra(
+  record: ChronicleRecord,
+  summaryMap: Map<string, string>
+): boolean {
+  const focalEra = record.perspectiveSynthesis?.focalEra;
+  if (!focalEra?.id) return false;
+  const newSummary = summaryMap.get(focalEra.id);
+  if (newSummary === undefined || newSummary === focalEra.description) return false;
+  record.perspectiveSynthesis = {
+    ...record.perspectiveSynthesis,
+    focalEra: { ...focalEra, description: newSummary },
+  };
+  return true;
+}
+
 export async function refreshEraSummariesInChronicles(
   simulationRunId: string,
   currentEras: EraTemporalInfo[]
 ): Promise<number> {
   const summaryMap = new Map(currentEras.map((e) => [e.id, e.summary || ""]));
   const records = await db.chronicles.where("simulationRunId").equals(simulationRunId).toArray();
-
   const toUpdate: ChronicleRecord[] = [];
 
   for (const record of records) {
-    let changed = false;
-
-    // Patch temporalContext.allEras + focalEra
-    if (record.temporalContext) {
-      const patchedAllEras = record.temporalContext.allEras.map((era) => {
-        const newSummary = summaryMap.get(era.id);
-        if (newSummary !== undefined && newSummary !== era.summary) {
-          changed = true;
-          return { ...era, summary: newSummary };
-        }
-        return era;
-      });
-
-      let patchedFocalEra = record.temporalContext.focalEra;
-      const focalSummary = summaryMap.get(patchedFocalEra.id);
-      if (focalSummary !== undefined && focalSummary !== patchedFocalEra.summary) {
-        changed = true;
-        patchedFocalEra = { ...patchedFocalEra, summary: focalSummary };
-      }
-
-      if (changed) {
-        record.temporalContext = {
-          ...record.temporalContext,
-          allEras: patchedAllEras,
-          focalEra: patchedFocalEra,
-        };
-      }
-    }
-
-    // Patch perspectiveSynthesis.focalEra.description
-    if (record.perspectiveSynthesis?.focalEra?.id) {
-      const newSummary = summaryMap.get(record.perspectiveSynthesis.focalEra.id);
-      if (
-        newSummary !== undefined &&
-        newSummary !== record.perspectiveSynthesis.focalEra.description
-      ) {
-        changed = true;
-        record.perspectiveSynthesis = {
-          ...record.perspectiveSynthesis,
-          focalEra: {
-            ...record.perspectiveSynthesis.focalEra,
-            description: newSummary,
-          },
-        };
-      }
-    }
-
+    const changed = patchTemporalContext(record, summaryMap) || patchPerspectiveSynthesisFocalEra(record, summaryMap);
     if (changed) {
       record.updatedAt = Date.now();
       toUpdate.push(record);
     }
   }
 
-  if (toUpdate.length > 0) {
-    await db.chronicles.bulkPut(toUpdate);
-  }
-
+  if (toUpdate.length > 0) await db.chronicles.bulkPut(toUpdate);
   return toUpdate.length;
 }
 
@@ -1690,6 +1682,39 @@ export async function getNarrativeStyleUsageStats(
  * exists; removes all other entries (including stale 'backported' or 'not_needed').
  * Returns the count of chronicles that were updated.
  */
+function buildEntityBackrefIndex(
+  entities: Array<{ id: string; enrichment?: { chronicleBackrefs?: Array<{ chronicleId: string }> } }>
+): Map<string, Set<string>> {
+  const index = new Map<string, Set<string>>();
+  for (const entity of entities) {
+    const refs = entity.enrichment?.chronicleBackrefs;
+    if (refs && refs.length > 0) {
+      index.set(entity.id, new Set(refs.map((r) => r.chronicleId)));
+    }
+  }
+  return index;
+}
+
+function getEligibleEntityIds(chronicle: ChronicleRecord): Set<string> {
+  const eligible = new Set<string>();
+  for (const r of chronicle.roleAssignments || []) eligible.add(r.entityId);
+  if (chronicle.lens) eligible.add(chronicle.lens.entityId);
+  for (const t of chronicle.tertiaryCast || []) {
+    if (t.accepted) eligible.add(t.entityId);
+  }
+  return eligible;
+}
+
+function hasBackportStatusChanged(
+  oldStatus: Record<string, { status: string }>,
+  newStatus: Record<string, { status: string }>
+): boolean {
+  const oldKeys = Object.keys(oldStatus).sort((a, b) => a.localeCompare(b));
+  const newKeys = Object.keys(newStatus).sort((a, b) => a.localeCompare(b));
+  if (oldKeys.length !== newKeys.length) return true;
+  return oldKeys.some((k, i) => k !== newKeys[i] || oldStatus[k].status !== newStatus[k]?.status);
+}
+
 export async function reconcileBackportStatusFromEntities(
   simulationRunId: string,
   entities: Array<{
@@ -1698,29 +1723,12 @@ export async function reconcileBackportStatusFromEntities(
   }>
 ): Promise<number> {
   const chronicles = await getChroniclesForSimulation(simulationRunId);
-
-  // Build entity → set of chronicleIds with backrefs
-  const entityBackrefs = new Map<string, Set<string>>();
-  for (const entity of entities) {
-    const refs = entity.enrichment?.chronicleBackrefs;
-    if (refs && refs.length > 0) {
-      entityBackrefs.set(entity.id, new Set(refs.map((r) => r.chronicleId)));
-    }
-  }
-
+  const entityBackrefs = buildEntityBackrefIndex(entities);
   const now = Date.now();
   const toUpdate: ChronicleRecord[] = [];
 
   for (const chronicle of chronicles) {
-    // Determine eligible entity IDs for this chronicle
-    const eligibleIds = new Set<string>();
-    for (const r of chronicle.roleAssignments || []) eligibleIds.add(r.entityId);
-    if (chronicle.lens) eligibleIds.add(chronicle.lens.entityId);
-    for (const t of chronicle.tertiaryCast || []) {
-      if (t.accepted) eligibleIds.add(t.entityId);
-    }
-
-    // Build new status map from actual backrefs only
+    const eligibleIds = getEligibleEntityIds(chronicle);
     const newStatus: Record<string, import("../chronicleTypes").EntityBackportEntry> = {};
     for (const entityId of eligibleIds) {
       const backrefSet = entityBackrefs.get(entityId);
@@ -1729,26 +1737,14 @@ export async function reconcileBackportStatusFromEntities(
       }
     }
 
-    // Check if changed
-    const oldStatus = chronicle.entityBackportStatus || {};
-    const oldKeys = Object.keys(oldStatus).sort();
-    const newKeys = Object.keys(newStatus).sort();
-    const changed =
-      oldKeys.length !== newKeys.length ||
-      oldKeys.some((k, i) => k !== newKeys[i]) ||
-      oldKeys.some((k) => oldStatus[k].status !== newStatus[k]?.status);
-
-    if (changed) {
+    if (hasBackportStatusChanged(chronicle.entityBackportStatus || {}, newStatus)) {
       chronicle.entityBackportStatus = newStatus;
       chronicle.updatedAt = now;
       toUpdate.push(chronicle);
     }
   }
 
-  if (toUpdate.length > 0) {
-    await db.chronicles.bulkPut(toUpdate);
-  }
-
+  if (toUpdate.length > 0) await db.chronicles.bulkPut(toUpdate);
   return toUpdate.length;
 }
 

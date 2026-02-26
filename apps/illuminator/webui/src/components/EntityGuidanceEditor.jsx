@@ -546,7 +546,7 @@ export default function EntityGuidanceEditor({
 
             {/* Info about world tone */}
             <div className="illuminator-template-info-box">
-              <strong>Note:</strong> The world's tone and style guidance from the Context tab is
+              <strong>Note:</strong> The world&apos;s tone and style guidance from the Context tab is
               automatically included in all description prompts. The Focus field above should
               contain only entity-specific instructions.
             </div>

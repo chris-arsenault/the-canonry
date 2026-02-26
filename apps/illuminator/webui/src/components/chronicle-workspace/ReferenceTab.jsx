@@ -36,6 +36,9 @@ function PerspectiveSynthesisViewer({ synthesis }) {
       <div
         className={`ref-tab-synth-header ${isExpanded ? "ref-tab-synth-header-expanded" : ""}`}
         onClick={() => setIsExpanded(!isExpanded)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         <span className="ref-tab-synth-toggle">{isExpanded ? "\u25BC" : "\u25B6"}</span>
         <span className="ref-tab-synth-title">Perspective Synthesis</span>
@@ -187,13 +190,16 @@ function PerspectiveSynthesisViewer({ synthesis }) {
                   <div className="ref-tab-section">
                     <div className="ref-tab-section-heading">FACT SELECTION RANGE</div>
                     <div className="ref-tab-text">
-                      {synthesis.factSelectionRange.min && synthesis.factSelectionRange.max
-                        ? synthesis.factSelectionRange.min === synthesis.factSelectionRange.max
-                          ? `Exactly ${synthesis.factSelectionRange.min} facts`
-                          : `${synthesis.factSelectionRange.min}–${synthesis.factSelectionRange.max} facts`
-                        : synthesis.factSelectionRange.min
-                          ? `At least ${synthesis.factSelectionRange.min} facts`
-                          : `Up to ${synthesis.factSelectionRange.max} facts`}
+                      {(() => {
+                        const { min, max } = synthesis.factSelectionRange;
+                        if (min && max) {
+                          return min === max
+                            ? `Exactly ${min} facts`
+                            : `${min}\u2013${max} facts`;
+                        }
+                        if (min) return `At least ${min} facts`;
+                        return `Up to ${max} facts`;
+                      })()}
                     </div>
                   </div>
                 )}
@@ -389,7 +395,6 @@ function FactCoverageGrid({ report }) {
         <span className="ref-tab-fcg-legend">
           {RATING_ORDER.map((r) => (
             <span key={r}>
-              {/* eslint-disable-next-line local/no-inline-styles */}
               <span style={{ color: RATING_STYLE[r].color, fontWeight: 600 }}>
                 {RATING_STYLE[r].symbol}
               </span>{" "}
@@ -397,9 +402,7 @@ function FactCoverageGrid({ report }) {
             </span>
           ))}
           <span>
-            {/* eslint-disable-next-line local/no-inline-styles */}
             <span style={{ color: "#10b981" }}>yes</span>/
-            {/* eslint-disable-next-line local/no-inline-styles */}
             <span style={{ color: "var(--text-muted)" }}>no</span> = included
           </span>
         </span>
@@ -410,15 +413,16 @@ function FactCoverageGrid({ report }) {
             {col.map((entry) => {
               const rs = RATING_STYLE[entry.rating] || RATING_STYLE.missing;
               // Mismatch highlights
-              const bg =
-                entry.wasFaceted && entry.rating === "missing"
-                  ? "rgba(239, 68, 68, 0.12)"
-                  : entry.wasFaceted && entry.rating === "mentioned"
-                    ? "rgba(245, 158, 11, 0.12)"
-                    : !entry.wasFaceted &&
-                        (entry.rating === "integral" || entry.rating === "prevalent")
-                      ? "rgba(16, 185, 129, 0.12)"
-                      : undefined;
+              let bg;
+              if (entry.wasFaceted && entry.rating === "missing") {
+                bg = "rgba(239, 68, 68, 0.12)";
+              } else if (entry.wasFaceted && entry.rating === "mentioned") {
+                bg = "rgba(245, 158, 11, 0.12)";
+              } else if (!entry.wasFaceted && (entry.rating === "integral" || entry.rating === "prevalent")) {
+                bg = "rgba(16, 185, 129, 0.12)";
+              } else {
+                bg = undefined;
+              }
               return (
                 <div
                   key={entry.factId}
@@ -427,12 +431,11 @@ function FactCoverageGrid({ report }) {
                   style={{ background: bg, borderRadius: bg ? "3px" : undefined }}
                   title={entry.factText}
                 >
-                  {/* eslint-disable-next-line local/no-inline-styles */}
                   <span className="ref-tab-fcg-symbol" style={{ color: rs.color }}>
                     {rs.symbol}
                   </span>
                   <span className="ref-tab-fcg-fact-id">{entry.factId}</span>
-                  {/* eslint-disable-next-line local/no-inline-styles */}
+                  { }
                   <span
                     className="ref-tab-fcg-included"
                     style={{ color: entry.wasFaceted ? "#10b981" : "var(--text-muted)" }}
@@ -472,6 +475,9 @@ function FactCoverageViewer({ report, generatedAt }) {
       <div
         className={`ref-tab-fcv-header ${isExpanded ? "ref-tab-fcv-header-expanded" : ""}`}
         onClick={() => setIsExpanded(!isExpanded)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         <span className="ref-tab-synth-toggle">{isExpanded ? "\u25BC" : "\u25B6"}</span>
         <span className="ref-tab-synth-title">Fact Coverage</span>
@@ -491,7 +497,6 @@ function FactCoverageViewer({ report, generatedAt }) {
             return (
               <div key={entry.factId} className="ref-tab-fcv-entry">
                 <div className="ref-tab-fcv-entry-row">
-                  {/* eslint-disable-next-line local/no-inline-styles */}
                   <span className="ref-tab-fcv-symbol" style={{ color: rs.color }} title={rs.label}>
                     {rs.symbol}
                   </span>

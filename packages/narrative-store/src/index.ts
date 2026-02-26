@@ -7,6 +7,32 @@ const DEFAULT_DB_NAME = 'illuminator';
 const EVENTS_STORE = 'narrativeEvents';
 const SIMULATION_INDEX = 'simulationRunId';
 
+const EMPTY_EVENTS: NarrativeEvent[] = [];
+
+/** Index a single event's participants into the touched map. */
+function indexEventParticipants(
+  event: NarrativeEvent,
+  eventsByEntity: Map<string, NarrativeEvent[]>,
+  touched: Map<string, NarrativeEvent[]>
+): void {
+  const participants = Array.isArray(event.participantEffects)
+    ? event.participantEffects
+    : [];
+
+  for (const participant of participants) {
+    const entityId = (participant as { entity?: { id?: string } })?.entity?.id;
+    if (!entityId) continue;
+
+    let list = touched.get(entityId);
+    if (!list) {
+      const existing = eventsByEntity.get(entityId) ?? EMPTY_EVENTS;
+      list = existing.length > 0 ? existing.slice() : [];
+      touched.set(entityId, list);
+    }
+    list.push(event);
+  }
+}
+
 export interface NarrativeBackend {
   getEventsForEntity: (simulationRunId: string, entityId: string) => Promise<NarrativeEvent[]>;
   getAllEvents: (simulationRunId: string) => Promise<NarrativeEvent[]>;
@@ -40,8 +66,6 @@ export interface NarrativeStoreState {
   reset: () => void;
   getAllEvents: () => NarrativeEvent[];
 }
-
-const EMPTY_EVENTS: NarrativeEvent[] = [];
 
 const DEFAULT_STATUS: NarrativeStatus = {
   loading: false,
@@ -184,22 +208,7 @@ export const useNarrativeStore = create<NarrativeStoreState>()(
           nextEventsById.set(event.id, event);
           didChange = true;
 
-          const participants = Array.isArray(event.participantEffects)
-            ? event.participantEffects
-            : [];
-
-          for (const participant of participants) {
-            const entityId = participant?.entity?.id;
-            if (!entityId) continue;
-
-            let list = touched.get(entityId);
-            if (!list) {
-              const existing = nextEventsByEntity.get(entityId) ?? EMPTY_EVENTS;
-              list = existing.length > 0 ? existing.slice() : [];
-              touched.set(entityId, list);
-            }
-            list.push(event);
-          }
+          indexEventParticipants(event, nextEventsByEntity, touched);
         }
 
         if (!didChange && touched.size === 0) return {};
@@ -305,6 +314,7 @@ function openDb(dbName: string, onVersionChange?: () => void): Promise<IDBDataba
 }
 
 function stripSimulationRunId<T extends { simulationRunId?: string }>(record: T): Omit<T, 'simulationRunId'> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { simulationRunId: _omit, ...rest } = record;
   return rest;
 }
@@ -333,12 +343,12 @@ export class FetchBackend implements NarrativeBackend {
     const url = new URL(file.path, this.baseUrl).toString();
     const response = await fetch(url);
     if (!response.ok) return [];
-    return response.json();
+    return response.json() as Promise<NarrativeEvent[]>;
   }
 
-  async getAllEvents(): Promise<NarrativeEvent[]> {
+  getAllEvents(): Promise<NarrativeEvent[]> {
     // Not supported in fetch backend — per-entity loading only
-    return [];
+    return Promise.resolve([]);
   }
 }
 
@@ -393,7 +403,7 @@ export class IndexedDBBackend implements NarrativeBackend {
 
       request.onerror = () => {
         db.close();
-        reject(request.error);
+        reject(new Error(request.error?.message ?? 'IDB cursor failed'));
       };
     });
   }
@@ -437,7 +447,7 @@ export class IndexedDBBackend implements NarrativeBackend {
 
       request.onerror = () => {
         db.close();
-        reject(request.error);
+        reject(new Error(request.error?.message ?? 'IDB cursor failed'));
       };
     });
   }

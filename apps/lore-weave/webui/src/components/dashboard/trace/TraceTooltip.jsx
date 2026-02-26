@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
 
 const TOOLTIP_STYLE = Object.freeze({
@@ -55,3 +56,10 @@ export default function TraceTooltip({ tooltipData, tooltipLeft, tooltipTop, too
     </TooltipWithBounds>
   );
 }
+
+TraceTooltip.propTypes = {
+  tooltipData: PropTypes.object,
+  tooltipLeft: PropTypes.number,
+  tooltipTop: PropTypes.number,
+  tooltipOpen: PropTypes.bool,
+};

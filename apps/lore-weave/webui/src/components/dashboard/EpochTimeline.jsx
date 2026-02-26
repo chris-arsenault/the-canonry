@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 
 function formatEpochEra(era) {
   if (!era) return "Unknown era";
@@ -176,12 +177,11 @@ function PressureGauge({ name, value, detail, discreteModifications, tickCount }
           className="lw-pressure-fill"
           style={{
             width: `${Math.min(100, value)}%`,
-            backgroundColor:
-              value > 70
-                ? "var(--lw-danger)"
-                : value > 40
-                  ? "var(--lw-warning)"
-                  : "var(--lw-success)",
+            backgroundColor: (() => {
+              if (value > 70) return "var(--lw-danger)";
+              if (value > 40) return "var(--lw-warning)";
+              return "var(--lw-success)";
+            })(),
           }}
         />
       </div>
@@ -225,11 +225,10 @@ export default function EpochTimeline({
   const fullyConnectedTick = reachability?.fullyConnectedTick ?? null;
   const disconnectedClustersValue =
     typeof connectedComponents === "number" ? connectedComponents.toLocaleString() : "--";
-  const fullyConnectedValue = reachability
-    ? fullyConnectedTick === null
-      ? "never"
-      : fullyConnectedTick.toLocaleString()
-    : "--";
+  let fullyConnectedValue = "--";
+  if (reachability) {
+    fullyConnectedValue = fullyConnectedTick === null ? "never" : fullyConnectedTick.toLocaleString();
+  }
   const metricRowStyle = {
     display: "flex",
     justifyContent: "space-between",
@@ -337,3 +336,25 @@ export default function EpochTimeline({
     </div>
   );
 }
+
+PressureTooltip.propTypes = {
+  detail: PropTypes.object,
+  discreteModifications: PropTypes.array,
+  tickCount: PropTypes.number,
+};
+
+PressureGauge.propTypes = {
+  name: PropTypes.string,
+  value: PropTypes.number,
+  detail: PropTypes.object,
+  discreteModifications: PropTypes.array,
+  tickCount: PropTypes.number,
+};
+
+EpochTimeline.propTypes = {
+  epochStats: PropTypes.array,
+  currentEpoch: PropTypes.object,
+  pressures: PropTypes.object,
+  pressureDetails: PropTypes.object,
+  reachability: PropTypes.object,
+};

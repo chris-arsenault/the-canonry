@@ -57,9 +57,17 @@ const CONTEXT_RADIUS = 150;
 const BATCH_SIZE = 25;
 const TARGET_PHRASE = "the ice remembers";
 
-// Targets the ice-as-archive concept, not incidental ice mentions
-const ICE_MEMORY_CONCEPTS =
-  /ice[\s-]memor(?:y|ies)|the ice preserve[sd]|preserved in the ice|impressions? (?:in|frozen into) the ice|ice[\s-]testimon|ice[\s-]record|the substrate(?:'s)? (?:record|testimon|memor)/gi;
+// Targets the ice-as-archive concept, not incidental ice mentions.
+// Split into two patterns to reduce regex complexity.
+const ICE_MEMORY_PRIMARY =
+  /ice[\s-]memor(?:y|ies)|the ice preserve[sd]|preserved in the ice|impressions? (?:in|frozen into) the ice/gi;
+const ICE_MEMORY_SECONDARY =
+  /ice[\s-]testimon|ice[\s-]record|the substrate(?:'s)? (?:record|testimon|memor)/gi;
+function _matchesIceMemoryConcept(text: string): RegExpMatchArray | null {
+  ICE_MEMORY_PRIMARY.lastIndex = 0;
+  ICE_MEMORY_SECONDARY.lastIndex = 0;
+  return ICE_MEMORY_PRIMARY.exec(text) || ICE_MEMORY_SECONDARY.exec(text);
+}
 const ALREADY_HAS_PHRASE = /the ice remembers/i;
 
 // ============================================================================
@@ -118,9 +126,17 @@ function scanDescriptionForConcepts(
   const seenSentences = new Set<string>(); // dedupe overlapping matches in same sentence
   let idx = startIndex;
 
-  ICE_MEMORY_CONCEPTS.lastIndex = 0;
-  let regexMatch: RegExpExecArray | null;
-  while ((regexMatch = ICE_MEMORY_CONCEPTS.exec(description)) !== null) {
+  // Collect all matches from both patterns, sorted by index
+  const allMatches: RegExpExecArray[] = [];
+  for (const pattern of [ICE_MEMORY_PRIMARY, ICE_MEMORY_SECONDARY]) {
+    pattern.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = pattern.exec(description)) !== null) {
+      allMatches.push(m);
+    }
+  }
+  allMatches.sort((a, b) => a.index - b.index);
+  for (const regexMatch of allMatches) {
     const { sentence, start, end } = extractSentence(
       description,
       regexMatch.index,
@@ -162,12 +178,12 @@ function CandidateRow({
   variant,
   accepted,
   onToggle,
-}: {
+}: Readonly<{
   candidate: WeaveCandidate;
   variant?: string;
   accepted: boolean;
   onToggle: () => void;
-}) {
+}>) {
   return (
     <div
       style={{
@@ -247,7 +263,7 @@ function EntityGroup({
   onRejectAll,
   expanded,
   onToggleExpand,
-}: {
+}: Readonly<{
   entityName: string;
   candidates: WeaveCandidate[];
   variants: Map<string, string>;
@@ -257,7 +273,7 @@ function EntityGroup({
   onRejectAll: () => void;
   expanded: boolean;
   onToggleExpand: () => void;
-}) {
+}>) {
   const acceptCount = candidates.filter((c) => decisions[c.id]).length;
 
   return (
@@ -280,6 +296,9 @@ function EntityGroup({
           gap: "8px",
           userSelect: "none",
         }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggleExpand(e); }}
       >
         <span
           style={{ fontSize: "10px", color: "var(--text-muted)", width: "10px", flexShrink: 0 }}
@@ -360,7 +379,7 @@ function EntityGroup({
 // Modal
 // ============================================================================
 
-export default function DescriptionMotifWeaver({ onClose }: { onClose: () => void }) {
+export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: () => void }>) {
   const navEntities = useEntityNavList();
   const queue = useEnrichmentQueueStore((s) => s.queue);
 
@@ -542,7 +561,7 @@ export default function DescriptionMotifWeaver({ onClose }: { onClose: () => voi
       if (!changesByEntity.has(c.entityId)) {
         changesByEntity.set(c.entityId, []);
       }
-      changesByEntity.get(c.entityId)!.push({
+      changesByEntity.get(c.entityId).push({
         sentenceStart: c.sentenceStart,
         sentenceEnd: c.sentenceEnd,
         original: c.sentence,
@@ -655,7 +674,7 @@ export default function DescriptionMotifWeaver({ onClose }: { onClose: () => voi
       if (!map.has(c.entityId)) {
         map.set(c.entityId, { entityId: c.entityId, entityName: c.entityName, candidates: [] });
       }
-      map.get(c.entityId)!.candidates.push(c);
+      map.get(c.entityId).candidates.push(c);
     }
     return Array.from(map.values());
   }, [candidates]);
@@ -675,6 +694,9 @@ export default function DescriptionMotifWeaver({ onClose }: { onClose: () => voi
         if (e.target === e.currentTarget && phase !== "applying" && phase !== "generating")
           onClose();
       }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
     >
       <div
         style={{
@@ -968,7 +990,7 @@ export default function DescriptionMotifWeaver({ onClose }: { onClose: () => voi
         >
           {phase === "scan" && (
             <button
-              onClick={handleScan}
+              onClick={() => void handleScan()}
               className="illuminator-button"
               style={{ padding: "6px 20px", fontSize: "12px" }}
             >
@@ -1012,7 +1034,7 @@ export default function DescriptionMotifWeaver({ onClose }: { onClose: () => voi
                 Cancel
               </button>
               <button
-                onClick={handleApply}
+                onClick={() => void handleApply()}
                 disabled={acceptCount === 0}
                 className="illuminator-button"
                 style={{

@@ -11,7 +11,7 @@
  * - "None" - no style/composition constraint, let the prompt decide
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useId } from "react";
 import PropTypes from "prop-types";
 import { DEFAULT_RANDOM_EXCLUSIONS } from "@canonry/world-schema";
 import "./StyleSelector.css";
@@ -103,6 +103,7 @@ export default function StyleSelector({
   entityKind,
   compact = false,
 }) {
+  const compositionId = useId();
   const artisticStyles = styleLibrary?.artisticStyles || [];
   const compositionStyles = styleLibrary?.compositionStyles || [];
   const colorPalettes = styleLibrary?.colorPalettes || [];
@@ -189,8 +190,8 @@ export default function StyleSelector({
     <div className="stsel-grid">
       {/* Artistic Style */}
       <div>
-        <label className="stsel-label">Artistic Style</label>
-        <select
+        <label htmlFor="artistic-style" className="stsel-label">Artistic Style</label>
+        <select id="artistic-style"
           value={selectedArtisticStyleId || RANDOM_ID}
           onChange={(e) => onArtisticStyleChange(e.target.value || RANDOM_ID)}
           className="illuminator-select"
@@ -210,10 +211,10 @@ export default function StyleSelector({
 
       {/* Composition Style */}
       <div>
-        <label className="stsel-label">
+        <label htmlFor={compositionId} className="stsel-label">
           Composition Style{entityKind && ` (for ${entityKind})`}
         </label>
-        <select
+        <select id={compositionId}
           value={selectedCompositionStyleId || RANDOM_ID}
           onChange={(e) => onCompositionStyleChange(e.target.value || RANDOM_ID)}
           className="illuminator-select"
@@ -237,8 +238,8 @@ export default function StyleSelector({
 
       {/* Color Palette */}
       <div>
-        <label className="stsel-label">Color Palette</label>
-        <select
+        <label htmlFor="color-palette" className="stsel-label">Color Palette</label>
+        <select id="color-palette"
           value={selectedColorPaletteId || RANDOM_ID}
           onChange={(e) => onColorPaletteChange(e.target.value || RANDOM_ID)}
           className="illuminator-select"

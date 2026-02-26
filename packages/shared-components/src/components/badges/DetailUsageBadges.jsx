@@ -10,6 +10,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 // Badge configurations for detail types
 const BADGE_CONFIG = {
@@ -80,3 +81,8 @@ export function DetailUsageBadges({ usage = {}, showOrphan = true }) {
 }
 
 export default DetailUsageBadges;
+
+DetailUsageBadges.propTypes = {
+  usage: PropTypes.object,
+  showOrphan: PropTypes.bool,
+};

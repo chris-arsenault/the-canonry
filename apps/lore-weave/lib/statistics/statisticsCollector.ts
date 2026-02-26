@@ -1,6 +1,5 @@
 import { mean, standardDeviation } from 'simple-statistics';
 import { Graph, EngineConfig, EpochEraSummary } from '../engine/types';
-import { HardState } from '../core/worldTypes';
 import {
   SimulationStatistics,
   EpochStats,
@@ -17,7 +16,6 @@ import {
   calculateProminenceDistribution,
   calculateRelationshipDistribution,
   calculateConnectivityMetrics,
-  calculateSubtypeDistribution
 } from './distributionCalculations';
 
 /**
@@ -156,11 +154,10 @@ export class StatisticsCollector {
     const entityKindRatios = calculateRatios(entityKindCounts, totalEntities);
 
     // Prominence distribution
-    const { counts: prominenceCounts, ratios: prominenceRatios } = calculateProminenceDistribution(entities);
+    const { ratios: prominenceRatios } = calculateProminenceDistribution(entities);
 
     // Relationship distribution
     const {
-      counts: relationshipTypeCounts,
       ratios: relationshipTypeRatios,
       diversity: relationshipDiversity
     } = calculateRelationshipDistribution(graph);
@@ -206,11 +203,11 @@ export class StatisticsCollector {
     const avgDegree = totalEntities > 0 ? (totalRelationships * 2) / totalEntities : 0;
 
     // Deviations are not calculated without explicit targets
-    let entityKindDeviation = 0;
-    let prominenceDeviation = 0;
-    let relationshipDeviation = 0;
-    let connectivityDeviation = 0;
-    let overallDeviation = 0;
+    const entityKindDeviation = 0;
+    const prominenceDeviation = 0;
+    const relationshipDeviation = 0;
+    const connectivityDeviation = 0;
+    const overallDeviation = 0;
 
     return {
       entityKindRatios,

@@ -6,8 +6,141 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import PropTypes from "prop-types";
 
 const MAX_SAVE_SLOTS = 4;
+
+function SlotItemActions({ isScratch, isEmpty, slot, slotIndex, isActive, canImport, canExport, hasDataInScratch, activeSlotIndex, onLoadSlot, onSaveToSlot, onClearSlot, onExportSlot, handleImportRequest, setShowDropdown }) {
+  if (isScratch) {
+    return (
+      <>
+        {canImport && (
+          <button className="btn-xs" onClick={() => handleImportRequest(slotIndex)}>Import</button>
+        )}
+        {canExport && (
+          <button className="btn-xs" onClick={() => { onExportSlot(slotIndex); setShowDropdown(false); }}>Export</button>
+        )}
+        {isActive ? (
+          <span className="slot-status">Active</span>
+        ) : (
+          <button className="btn-xs" onClick={() => { onLoadSlot(0); setShowDropdown(false); }}>Load</button>
+        )}
+        {slot && (
+          <button className="btn-xs btn-xs-danger" onClick={() => { if (window.confirm("Clear scratch data? This cannot be undone.")) { onClearSlot(0); setShowDropdown(false); } }} title="Clear scratch data">×</button>
+        )}
+      </>
+    );
+  }
+
+  if (isEmpty) {
+    return (
+      <>
+        {canImport && (
+          <button className="btn-xs" onClick={() => handleImportRequest(slotIndex)}>Import</button>
+        )}
+        {hasDataInScratch && activeSlotIndex === 0 && (
+          <button className="btn-xs btn-xs-primary" onClick={() => { onSaveToSlot(slotIndex); setShowDropdown(false); }}>Save</button>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {canImport && (
+        <button className="btn-xs" onClick={() => handleImportRequest(slotIndex)}>Import</button>
+      )}
+      {canExport && (
+        <button className="btn-xs" onClick={() => { onExportSlot(slotIndex); setShowDropdown(false); }}>Export</button>
+      )}
+      {hasDataInScratch && activeSlotIndex === 0 && (
+        <button className="btn-xs" onClick={() => { if (window.confirm(`Overwrite "${slot.title}" with current scratch data?`)) { onSaveToSlot(slotIndex); setShowDropdown(false); } }} title="Overwrite with scratch data">Save</button>
+      )}
+      {isActive ? (
+        <span className="slot-status">Active</span>
+      ) : (
+        <button className="btn-xs" onClick={() => { onLoadSlot(slotIndex); setShowDropdown(false); }}>Load</button>
+      )}
+      <button className="btn-xs btn-xs-danger" onClick={() => { if (window.confirm(`Delete "${slot.title}"? This cannot be undone.`)) { onClearSlot(slotIndex); setShowDropdown(false); } }} title="Delete this slot">×</button>
+    </>
+  );
+}
+
+function SlotItem({ slotIndex, slot, isActive, editingSlot, editValue, setEditValue, inputRef, handleKeyDown, handleSaveEdit, handleStartEdit, canExport, canImport, hasDataInScratch, activeSlotIndex, onLoadSlot, onSaveToSlot, onClearSlot, onExportSlot, handleImportRequest, setShowDropdown }) {
+  const isEmpty = !slot;
+  const isScratch = slotIndex === 0;
+  const isEditing = editingSlot === slotIndex;
+
+  let title;
+  if (isScratch) {
+    title = slot?.title || "Scratch";
+  } else if (isEmpty) {
+    title = `Slot ${slotIndex} (empty)`;
+  } else {
+    title = slot.title;
+  }
+
+  return (
+    <div className={`slot-item ${isActive ? "slot-item-active" : ""} ${isEmpty ? "slot-item-empty" : ""}`}>
+      <div className="slot-item-content">
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            className="slot-title-input"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleSaveEdit}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <div
+            className="slot-item-name"
+            onClick={() => !isEmpty && !isScratch && handleStartEdit(slotIndex, slot?.title, { stopPropagation: () => {} })}
+            title={!isEmpty && !isScratch ? "Click to edit title" : undefined}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
+          >
+            {isActive && <span className="slot-active-indicator">*</span>}
+            {title}
+          </div>
+        )}
+        {slot?.createdAt && !isEditing && (
+          <div className="slot-item-meta">
+            {new Date(slot.createdAt).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="slot-item-actions" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}>
+        <SlotItemActions
+          isScratch={isScratch}
+          isEmpty={isEmpty}
+          slot={slot}
+          slotIndex={slotIndex}
+          isActive={isActive}
+          canImport={canImport}
+          canExport={canExport}
+          hasDataInScratch={hasDataInScratch}
+          activeSlotIndex={activeSlotIndex}
+          onLoadSlot={onLoadSlot}
+          onSaveToSlot={onSaveToSlot}
+          onClearSlot={onClearSlot}
+          onExportSlot={onExportSlot}
+          handleImportRequest={handleImportRequest}
+          setShowDropdown={setShowDropdown}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function SlotSelector({
   slots,
@@ -149,200 +282,31 @@ export default function SlotSelector({
           </div>
 
           <div className="slot-list">
-            {visibleSlots.map((slotIndex) => {
-              const slot = slots[slotIndex];
-              const isActive = slotIndex === activeSlotIndex;
-              const isEmpty = !slot;
-              const isScratch = slotIndex === 0;
-              const isEditing = editingSlot === slotIndex;
-              const canExport = Boolean(onExportSlot && slot);
-              const canImport = Boolean(onImportSlot);
-
-              const title = isScratch
-                ? slot?.title || "Scratch"
-                : isEmpty
-                  ? `Slot ${slotIndex} (empty)`
-                  : slot.title;
-
-              return (
-                <div
-                  key={slotIndex}
-                  className={`slot-item ${isActive ? "slot-item-active" : ""} ${isEmpty ? "slot-item-empty" : ""}`}
-                >
-                  <div className="slot-item-content">
-                    {isEditing ? (
-                      <input
-                        ref={inputRef}
-                        type="text"
-                        className="slot-title-input"
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        onBlur={handleSaveEdit}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    ) : (
-                      <div
-                        className="slot-item-name"
-                        onClick={() =>
-                          !isEmpty &&
-                          !isScratch &&
-                          handleStartEdit(slotIndex, slot?.title, { stopPropagation: () => {} })
-                        }
-                        title={!isEmpty && !isScratch ? "Click to edit title" : undefined}
-                      >
-                        {isActive && <span className="slot-active-indicator">*</span>}
-                        {title}
-                      </div>
-                    )}
-                    {slot?.createdAt && !isEditing && (
-                      <div className="slot-item-meta">
-                        {new Date(slot.createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="slot-item-actions" onClick={(e) => e.stopPropagation()}>
-                    {isScratch ? (
-                      // Scratch slot - Load if not active, Clear if has data
-                      <>
-                        {canImport && (
-                          <button className="btn-xs" onClick={() => handleImportRequest(slotIndex)}>
-                            Import
-                          </button>
-                        )}
-                        {canExport && (
-                          <button
-                            className="btn-xs"
-                            onClick={() => {
-                              onExportSlot(slotIndex);
-                              setShowDropdown(false);
-                            }}
-                          >
-                            Export
-                          </button>
-                        )}
-                        {isActive ? (
-                          <span className="slot-status">Active</span>
-                        ) : (
-                          <button
-                            className="btn-xs"
-                            onClick={() => {
-                              onLoadSlot(0);
-                              setShowDropdown(false);
-                            }}
-                          >
-                            Load
-                          </button>
-                        )}
-                        {slot && (
-                          <button
-                            className="btn-xs btn-xs-danger"
-                            onClick={() => {
-                              if (window.confirm("Clear scratch data? This cannot be undone.")) {
-                                onClearSlot(0);
-                                setShowDropdown(false);
-                              }
-                            }}
-                            title="Clear scratch data"
-                          >
-                            ×
-                          </button>
-                        )}
-                      </>
-                    ) : isEmpty ? (
-                      // Empty save slot - only show Save if scratch has data
-                      <>
-                        {canImport && (
-                          <button className="btn-xs" onClick={() => handleImportRequest(slotIndex)}>
-                            Import
-                          </button>
-                        )}
-                        {hasDataInScratch && activeSlotIndex === 0 && (
-                          <button
-                            className="btn-xs btn-xs-primary"
-                            onClick={() => {
-                              onSaveToSlot(slotIndex);
-                              setShowDropdown(false);
-                            }}
-                          >
-                            Save
-                          </button>
-                        )}
-                      </>
-                    ) : (
-                      // Filled save slot - show Save (if on scratch), Load, and Clear
-                      <>
-                        {canImport && (
-                          <button className="btn-xs" onClick={() => handleImportRequest(slotIndex)}>
-                            Import
-                          </button>
-                        )}
-                        {canExport && (
-                          <button
-                            className="btn-xs"
-                            onClick={() => {
-                              onExportSlot(slotIndex);
-                              setShowDropdown(false);
-                            }}
-                          >
-                            Export
-                          </button>
-                        )}
-                        {hasDataInScratch && activeSlotIndex === 0 && (
-                          <button
-                            className="btn-xs"
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  `Overwrite "${slot.title}" with current scratch data?`
-                                )
-                              ) {
-                                onSaveToSlot(slotIndex);
-                                setShowDropdown(false);
-                              }
-                            }}
-                            title="Overwrite with scratch data"
-                          >
-                            Save
-                          </button>
-                        )}
-                        {isActive ? (
-                          <span className="slot-status">Active</span>
-                        ) : (
-                          <button
-                            className="btn-xs"
-                            onClick={() => {
-                              onLoadSlot(slotIndex);
-                              setShowDropdown(false);
-                            }}
-                          >
-                            Load
-                          </button>
-                        )}
-                        <button
-                          className="btn-xs btn-xs-danger"
-                          onClick={() => {
-                            if (window.confirm(`Delete "${slot.title}"? This cannot be undone.`)) {
-                              onClearSlot(slotIndex);
-                              setShowDropdown(false);
-                            }
-                          }}
-                          title="Delete this slot"
-                        >
-                          ×
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {visibleSlots.map((slotIndex) => (
+              <SlotItem
+                key={slotIndex}
+                slotIndex={slotIndex}
+                slot={slots[slotIndex]}
+                isActive={slotIndex === activeSlotIndex}
+                editingSlot={editingSlot}
+                editValue={editValue}
+                setEditValue={setEditValue}
+                inputRef={inputRef}
+                handleKeyDown={handleKeyDown}
+                handleSaveEdit={handleSaveEdit}
+                handleStartEdit={handleStartEdit}
+                canExport={Boolean(onExportSlot && slots[slotIndex])}
+                canImport={Boolean(onImportSlot)}
+                hasDataInScratch={hasDataInScratch}
+                activeSlotIndex={activeSlotIndex}
+                onLoadSlot={onLoadSlot}
+                onSaveToSlot={onSaveToSlot}
+                onClearSlot={onClearSlot}
+                onExportSlot={onExportSlot}
+                handleImportRequest={handleImportRequest}
+                setShowDropdown={setShowDropdown}
+              />
+            ))}
 
             {visibleSlots.length === 1 && !hasDataInScratch && (
               <div className="slot-empty-hint">
@@ -389,3 +353,16 @@ export default function SlotSelector({
     </div>
   );
 }
+
+SlotSelector.propTypes = {
+  slots: PropTypes.object.isRequired,
+  activeSlotIndex: PropTypes.number.isRequired,
+  onLoadSlot: PropTypes.func.isRequired,
+  onSaveToSlot: PropTypes.func.isRequired,
+  onClearSlot: PropTypes.func.isRequired,
+  onUpdateTitle: PropTypes.func.isRequired,
+  onExportSlot: PropTypes.func,
+  onImportSlot: PropTypes.func,
+  onLoadExampleOutput: PropTypes.func,
+  hasDataInScratch: PropTypes.bool,
+};

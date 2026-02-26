@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { LinePath } from "@visx/shape";
 import { AxisLeft, AxisBottom } from "@visx/axis";
 import { GridRows, GridColumns } from "@visx/grid";
@@ -64,7 +65,7 @@ export default function PressureChart({
       )}
 
       {/* Pressure lines */}
-      {visiblePressures.map((pressureId, i) => {
+      {visiblePressures.map((pressureId) => {
         const colorIndex = pressureIds.indexOf(pressureId);
         const color = PRESSURE_COLORS[colorIndex % PRESSURE_COLORS.length];
 
@@ -118,3 +119,14 @@ export default function PressureChart({
     </g>
   );
 }
+
+PressureChart.propTypes = {
+  data: PropTypes.array,
+  pressureIds: PropTypes.array,
+  hiddenPressures: PropTypes.instanceOf(Set),
+  xScale: PropTypes.func,
+  yScale: PropTypes.func,
+  margin: PropTypes.object,
+  height: PropTypes.number,
+  width: PropTypes.number,
+};

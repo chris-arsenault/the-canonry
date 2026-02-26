@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import PropTypes from "prop-types";
 
 function CultureSidebar({
   cultures,
@@ -93,8 +94,8 @@ function CultureSidebar({
         {creatingCulture && (
           <div className="culture-form">
             <div className="form-group">
-              <label>Culture ID</label>
-              <input
+              <label htmlFor="culture-id">Culture ID</label>
+              <input id="culture-id"
                 type="text"
                 value={newCultureId}
                 onChange={(e) => setNewCultureId(e.target.value)}
@@ -102,8 +103,8 @@ function CultureSidebar({
               />
             </div>
             <div className="form-group">
-              <label>Display Name</label>
-              <input
+              <label htmlFor="display-name">Display Name</label>
+              <input id="display-name"
                 type="text"
                 value={newCultureName}
                 onChange={(e) => setNewCultureName(e.target.value)}
@@ -147,6 +148,9 @@ function CultureSidebar({
                 key={culture.id}
                 onClick={() => onSelectCulture(culture.id)}
                 className={`culture-card ${isSelected ? "selected" : ""}`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
               >
                 <div className="culture-card-content">
                   <div className="culture-card-name">{culture.name || culture.id}</div>
@@ -191,5 +195,13 @@ function CultureSidebar({
     </div>
   );
 }
+
+CultureSidebar.propTypes = {
+  cultures: PropTypes.object,
+  selectedCulture: PropTypes.string,
+  onSelectCulture: PropTypes.func,
+  onCulturesChange: PropTypes.func,
+  readOnly: PropTypes.bool,
+};
 
 export default CultureSidebar;

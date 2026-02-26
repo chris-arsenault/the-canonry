@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import { SYSTEM_TYPES, SYSTEM_CATEGORIES, getSystemCategory } from "./constants";
 import { CategorySection } from "../shared";
 import { SystemListCard } from "./cards/SystemListCard";
@@ -254,6 +255,9 @@ export default function SystemsEditor({
           className="add-card"
           style={{ maxWidth: "320px" }}
           onClick={() => setShowTypePicker(true)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           <span style={{ fontSize: "24px" }}>+</span>
           <span>Add System</span>
@@ -265,6 +269,9 @@ export default function SystemsEditor({
           className="modal-overlay"
           onMouseDown={handleOverlayMouseDown}
           onClick={handleOverlayClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
         >
           <div className="modal" style={{ maxWidth: "600px", height: "auto", maxHeight: "80vh" }}>
             <div className="modal-header">
@@ -280,6 +287,9 @@ export default function SystemsEditor({
                     key={type}
                     className="se-type-option type-option"
                     onClick={() => handleAddSystem(type)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                   >
                     <div className="type-option-icon">{config.icon}</div>
                     <div className="type-option-label">{config.label}</div>
@@ -305,5 +315,14 @@ export default function SystemsEditor({
     </div>
   );
 }
+
+SystemsEditor.propTypes = {
+  projectId: PropTypes.string,
+  systems: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+  usageMap: PropTypes.object,
+};
 
 export { SystemsEditor };

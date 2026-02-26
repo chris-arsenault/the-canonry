@@ -26,6 +26,8 @@ import { flattenForExport } from "./contentTree";
 // Types
 // =============================================================================
 
+export type ImageSourceType = ImageSourceType;
+
 export interface IcmlRun {
   charStyle: string; // character style name, or '' for default
   text: string;
@@ -544,6 +546,7 @@ export function styledPara(style: string, text: string): IcmlParagraph {
 // =============================================================================
 
 /** Image comment marker pattern from markdown export */
+// eslint-disable-next-line sonarjs/slow-regex -- single line from controlled markdown output
 const IMAGE_MARKER_RE = /^<!--\s*IMAGE:\s*(.+?)\s*-->$/;
 
 /** Parse a single image marker line into content */
@@ -554,7 +557,7 @@ function parseImageMarker(line: string): { path: string; caption: string } | nul
   const path = parts[0] || "";
   let caption = "";
   for (const part of parts) {
-    const cm = /^caption:\s*"?(.*?)"?\s*$/.exec(part);
+    const cm = /^caption:\s*"?(.*?)"?\s*$/.exec(part); // eslint-disable-line sonarjs/slow-regex -- short caption field
     if (cm) caption = cm[1];
   }
   return { path, caption };
@@ -609,11 +612,14 @@ export function markdownToIcmlParagraphs(markdown: string): IcmlParagraph[] {
     }
 
     // Heading
-    const headingMatch = /^(#{1,3})\s+(.+)$/.exec(trimmed);
+    const headingMatch = /^(#{1,3})\s+(.+)$/.exec(trimmed); // eslint-disable-line sonarjs/slow-regex -- single markdown line
     if (headingMatch) {
       flushBlock();
       const level = headingMatch[1].length;
-      const headingStyle = level === 1 ? PS_HEADING1 : level === 2 ? PS_HEADING2 : PS_HEADING3;
+      let headingStyle: string;
+      if (level === 1) headingStyle = PS_HEADING1;
+      else if (level === 2) headingStyle = PS_HEADING2;
+      else headingStyle = PS_HEADING3;
       paras.push(styledPara(headingStyle, headingMatch[2]));
       afterHeading = true;
       continue;
@@ -676,12 +682,12 @@ function resolveInsertPosition(text: string, anchorText: string, anchorIndex?: n
  */
 export function annotateContentWithImages(
   content: string,
-  imageRefs: { refs?: any[] } | undefined,
+  imageRefs?: { refs?: any[] },
   imageMap: Map<string, ImageMetadataRecord>,
   referencedImages: Map<string, ExportImageEntry>,
   registerFn: (
     imgId: string,
-    type: "entity" | "chronicle" | "cover",
+    type: ImageSourceType,
     entityId?: string,
     entityName?: string,
     chronicleId?: string
@@ -754,7 +760,7 @@ export function entityToIcmlParagraphs(
   referencedImages: Map<string, ExportImageEntry>,
   registerFn: (
     imgId: string,
-    type: "entity" | "chronicle" | "cover",
+    type: ImageSourceType,
     entityId?: string,
     entityName?: string,
     chronicleId?: string
@@ -850,7 +856,7 @@ export function chronicleToIcmlParagraphs(
   referencedImages: Map<string, ExportImageEntry>,
   registerFn: (
     imgId: string,
-    type: "entity" | "chronicle" | "cover",
+    type: ImageSourceType,
     entityId?: string,
     entityName?: string,
     chronicleId?: string
@@ -953,7 +959,7 @@ export function eraNarrativeToIcmlParagraphs(
   referencedImages: Map<string, ExportImageEntry>,
   registerFn: (
     imgId: string,
-    type: "entity" | "chronicle" | "cover",
+    type: ImageSourceType,
     entityId?: string,
     entityName?: string,
     chronicleId?: string
@@ -1030,7 +1036,7 @@ export function createImageRegistrar(
 ) {
   return function registerImage(
     imgId: string,
-    type: "entity" | "chronicle" | "cover",
+    type: ImageSourceType,
     entityId?: string,
     entityName?: string,
     chronicleId?: string

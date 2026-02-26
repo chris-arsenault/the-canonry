@@ -2,7 +2,8 @@
  * PressureCard - Expandable card for editing a pressure
  */
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
+import PropTypes from "prop-types";
 import { FactorCard } from "./FactorCard";
 import { FactorEditorModal } from "../modals/FactorEditorModal";
 import { getElementValidation, useLocalInputState, NumberInput } from "../../shared";
@@ -23,7 +24,7 @@ export function PressureCard({
   usageMap,
   projectId,
 }) {
-  const [hovering, setHovering] = useState(false);
+  const [, setHovering] = useState(false);
   const [editingFactor, setEditingFactor] = useState(null);
   const [addingFactorType, setAddingFactorType] = useState(null);
   const factorModalKey = buildStorageKey(projectId, "pressures:factorModal");
@@ -156,8 +157,6 @@ export function PressureCard({
 
   const positiveFeedback = pressure.growth?.positiveFeedback || [];
   const negativeFeedback = pressure.growth?.negativeFeedback || [];
-  const totalFactors = positiveFeedback.length + negativeFeedback.length;
-
   // Compute feedback loop balance status
   const feedbackStatus = useMemo(() => {
     const hasPositive = positiveFeedback.length > 0;
@@ -205,26 +204,26 @@ export function PressureCard({
     };
   }, [positiveFeedback.length, negativeFeedback.length, pressure.homeostasis]);
 
-  useEffect(() => {
-    if (!factorModalKey) return;
-    if (editingFactor || addingFactorType) return;
+  // Restore factor modal state from storage (during render, guarded)
+  const restoredModalKeyRef = useRef(null);
+  if (factorModalKey && !editingFactor && !addingFactorType && restoredModalKeyRef.current !== factorModalKey) {
+    restoredModalKeyRef.current = factorModalKey;
     const stored = loadStoredValue(factorModalKey);
-    if (!stored || stored.pressureId !== pressure.id) return;
-    if (stored.mode === "add") {
-      setAddingFactorType(stored.feedbackType);
-      return;
-    }
-    if (stored.mode === "edit") {
-      const feedbackKey =
-        stored.feedbackType === "positive" ? "positiveFeedback" : "negativeFeedback";
-      const factor = pressure.growth?.[feedbackKey]?.[stored.factorIndex];
-      if (factor) {
-        setEditingFactor({ factor, feedbackType: stored.feedbackType, index: stored.factorIndex });
-      } else {
-        clearStoredValue(factorModalKey);
+    if (stored && stored.pressureId === pressure.id) {
+      if (stored.mode === "add") {
+        setAddingFactorType(stored.feedbackType);
+      } else if (stored.mode === "edit") {
+        const feedbackKey =
+          stored.feedbackType === "positive" ? "positiveFeedback" : "negativeFeedback";
+        const factor = pressure.growth?.[feedbackKey]?.[stored.factorIndex];
+        if (factor) {
+          setEditingFactor({ factor, feedbackType: stored.feedbackType, index: stored.factorIndex });
+        } else {
+          clearStoredValue(factorModalKey);
+        }
       }
     }
-  }, [factorModalKey, pressure.id, pressure.growth, editingFactor, addingFactorType]);
+  }
 
   return (
     <div className="expandable-card">
@@ -233,6 +232,9 @@ export function PressureCard({
         onClick={onToggle}
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggle(e); }}
       >
         <div
           className="expandable-card-title"
@@ -313,8 +315,8 @@ export function PressureCard({
             </div>
             <div className="input-grid">
               <div className="input-group">
-                <label className="label">ID</label>
-                <input
+                <label htmlFor="id" className="label">ID</label>
+                <input id="id"
                   type="text"
                   value={localId}
                   onChange={(e) => setLocalId(e.target.value)}
@@ -323,8 +325,8 @@ export function PressureCard({
                 />
               </div>
               <div className="input-group">
-                <label className="label">Name</label>
-                <input
+                <label htmlFor="pressure-name" className="label">Name</label>
+                <input id="pressure-name"
                   type="text"
                   value={localName}
                   onChange={(e) => setLocalName(e.target.value)}
@@ -333,27 +335,29 @@ export function PressureCard({
                 />
               </div>
               <div className="input-group">
-                <label className="label">Initial Value (-100 to 100)</label>
+                <label className="label">Initial Value (-100 to 100)
                 <NumberInput
                   value={pressure.initialValue}
                   onChange={(v) => handleFieldChange("initialValue", v ?? 0)}
                   min={-100}
                   max={100}
                 />
+                </label>
               </div>
               <div className="input-group">
-                <label className="label">Homeostasis (toward 0)</label>
+                <label className="label">Homeostasis (toward 0)
                 <NumberInput
                   value={pressure.homeostasis}
                   onChange={(v) => handleFieldChange("homeostasis", v ?? 0)}
                   min={0}
                 />
+                </label>
               </div>
             </div>
             <div className="input-grid">
               <div className="input-group" style={{ gridColumn: "1 / -1" }}>
-                <label className="label">Description</label>
-                <textarea
+                <label htmlFor="pressure-description" className="label">Description</label>
+                <textarea id="pressure-description"
                   value={localDescription}
                   onChange={(e) => setLocalDescription(e.target.value)}
                   onBlur={handleDescriptionBlur}
@@ -472,3 +476,14 @@ export function PressureCard({
     </div>
   );
 }
+
+PressureCard.propTypes = {
+  pressure: PropTypes.object.isRequired,
+  expanded: PropTypes.bool.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  usageMap: PropTypes.object,
+  projectId: PropTypes.string,
+};

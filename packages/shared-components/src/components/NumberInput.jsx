@@ -9,7 +9,13 @@
  * re-renders from disrupting user input.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
+import PropTypes from 'prop-types';
+
+function formatValue(val) {
+  if (val === undefined || val === null || val === '') return '';
+  return String(val);
+}
 
 /**
  * @param {Object} props
@@ -30,7 +36,7 @@ export function NumberInput({
   className = 'input',
   min,
   max,
-  step,
+  step: _step,
   placeholder,
   allowEmpty = false,
   integer = false,
@@ -43,25 +49,22 @@ export function NumberInput({
   const isFocusedRef = useRef(false);
 
   // Sync from parent when value changes externally, but NOT while user is editing
-  useEffect(() => {
+  const prevValueRef = useRef(value);
+  if (prevValueRef.current !== value) {
+    prevValueRef.current = value;
     if (!isFocusedRef.current) {
       setLocalValue(formatValue(value));
     }
-  }, [value]);
-
-  function formatValue(val) {
-    if (val === undefined || val === null || val === '') return '';
-    return String(val);
   }
 
-  function parseValue(str) {
+  const parseValue = useCallback((str) => {
     if (str === '' || str === '-' || str === '.' || str === '-.') {
       return null; // Intermediate state, not a valid number yet
     }
     const parsed = integer ? parseInt(str, 10) : parseFloat(str);
     if (isNaN(parsed)) return null;
     return parsed;
-  }
+  }, [integer]);
 
   const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
@@ -93,7 +96,7 @@ export function NumberInput({
     } else if (allowEmpty && newValue === '') {
       onChange(undefined);
     }
-  }, [onChange, min, max, allowEmpty, integer]);
+  }, [onChange, min, max, allowEmpty, integer, parseValue]);
 
   const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
@@ -113,7 +116,7 @@ export function NumberInput({
       // Revert to the parent's value if local is invalid
       setLocalValue(formatValue(value));
     }
-  }, [localValue, value, onChange, min, max, allowEmpty]);
+  }, [localValue, value, onChange, min, max, allowEmpty, parseValue]);
 
   return (
     <input
@@ -132,3 +135,16 @@ export function NumberInput({
 }
 
 export default NumberInput;
+
+NumberInput.propTypes = {
+  value: PropTypes.number,
+  onChange: PropTypes.func.isRequired,
+  className: PropTypes.string,
+  min: PropTypes.number,
+  max: PropTypes.number,
+  step: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  placeholder: PropTypes.string,
+  allowEmpty: PropTypes.bool,
+  integer: PropTypes.bool,
+  disabled: PropTypes.bool,
+};

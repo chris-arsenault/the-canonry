@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import SelectionRuleEditor from "../../shared/SelectionRuleEditor";
 
 export function TargetingTab({ action, onChange, schema }) {
@@ -37,3 +38,9 @@ export function TargetingTab({ action, onChange, schema }) {
     </div>
   );
 }
+
+TargetingTab.propTypes = {
+  action: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+};

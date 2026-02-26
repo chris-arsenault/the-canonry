@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import "./ChroniclePanel.css";
 import { useEntityNavList, useEntityNavItems } from "../lib/db/entitySelectors";
 import { getEntitiesForRun, resetEntitiesToPreBackportState } from "../lib/db/entityRepository";
@@ -275,10 +276,19 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
 
   const status = getStatusLabel();
 
+  const eraRelativeSuffix =
+    item.eraYear != null && item.focalEraStartTick != null
+      ? ` (era-relative: Y${item.eraYear - item.focalEraStartTick + 1})`
+      : "";
+  const eraYearTitle = item.eraYear != null ? `Year ${item.eraYear}${eraRelativeSuffix}` : "";
+
   return (
     <div
       onClick={onClick}
       className={`chron-card ${isSelected ? "chron-card-selected" : "chron-card-default"}`}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(e); }}
     >
       {/* Title row with inline symbols */}
       <div className="chron-card-title-row">
@@ -296,7 +306,6 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
             </span>
           ))}
         </span>
-        {/* eslint-disable-next-line local/no-inline-styles */}
         <span className="chron-card-status" style={{ color: status.color }}>
           {status.label}
         </span>
@@ -308,7 +317,7 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
           {item.eraYear != null && (
             <span
               className="chron-card-era-year"
-              title={`Year ${item.eraYear}${item.focalEraStartTick != null ? ` (era-relative: Y${item.eraYear - item.focalEraStartTick + 1})` : ""}`}
+              title={eraYearTitle}
             >
               {"\u231B"} Y
               {item.focalEraStartTick != null
@@ -329,7 +338,11 @@ function ChronicleItemCard({ item, isSelected, onClick }) {
             )}
             {imageCount > 0 && (
               <span
-                title={`${hasCover ? "Cover + " : ""}${sceneCount} scene image${sceneCount !== 1 ? "s" : ""}`}
+                title={(() => {
+                  const coverPrefix = hasCover ? "Cover + " : "";
+                  const plural = sceneCount !== 1 ? "s" : "";
+                  return `${coverPrefix}${sceneCount} scene image${plural}`;
+                })()}
               >
                 <span className="chron-card-count-icon">{"\u25A3"}</span> {imageCount}
               </span>
@@ -358,6 +371,12 @@ function AssembledContentViewer({ content, wordCount, onCopy }) {
   );
 }
 
+AssembledContentViewer.propTypes = {
+  content: PropTypes.node,
+  wordCount: PropTypes.number,
+  onCopy: PropTypes.func,
+};
+
 function EraNarrativeItemCard({ item, isSelected, onClick }) {
   const statusColors = {
     complete: "#10b981",
@@ -384,6 +403,9 @@ function EraNarrativeItemCard({ item, isSelected, onClick }) {
     <div
       onClick={onClick}
       className={`chron-era-card ${isSelected ? "chron-era-card-selected" : "chron-era-card-default"}`}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(e); }}
     >
       <div className="chron-era-card-title-row">
         <span className="chron-era-card-name">
@@ -427,15 +449,29 @@ function EraNarrativeItemCard({ item, isSelected, onClick }) {
   );
 }
 
+EraNarrativeItemCard.propTypes = {
+  item: PropTypes.shape({
+    hasThesis: PropTypes.bool,
+    threadCount: PropTypes.number,
+    name: PropTypes.string,
+    status: PropTypes.string,
+    tone: PropTypes.string,
+    wordCount: PropTypes.number,
+    movementCount: PropTypes.number,
+  }),
+  isSelected: PropTypes.bool,
+  onClick: PropTypes.func,
+};
+
 export default function ChroniclePanel({
   worldData,
   queue,
   onEnqueue,
-  onCancel,
+  onCancel: _onCancel,
   worldContext,
   projectId,
   simulationRunId,
-  buildPrompt,
+  buildPrompt: _buildPrompt,
   styleLibrary,
   imageGenSettings,
   entityGuidance,
@@ -558,6 +594,7 @@ export default function ChroniclePanel({
     closeFactCoverage,
   } = useFactCoverage();
 
+
   // Tone ranking & assignment
   const {
     progress: toneRankingProgress,
@@ -587,11 +624,11 @@ export default function ChroniclePanel({
   // Derive style/size/quality from global imageGenSettings
   const chronicleImageSize = imageGenSettings.imageSize;
   const chronicleImageQuality = imageGenSettings.imageQuality;
-  const chronicleStyleSelection = {
+  const chronicleStyleSelection = useMemo(() => ({
     artisticStyleId: imageGenSettings.artisticStyleId,
     compositionStyleId: imageGenSettings.compositionStyleId,
     colorPaletteId: imageGenSettings.colorPaletteId,
-  };
+  }), [imageGenSettings.artisticStyleId, imageGenSettings.compositionStyleId, imageGenSettings.colorPaletteId]);
 
   // Name bank for invented characters (culture ID -> array of names)
   const [nameBank, setNameBank] = useState({});
@@ -611,7 +648,6 @@ export default function ChroniclePanel({
     generateV2,
     generateSummary,
     generateTitle,
-    generateImageRefs: _generateImageRefs,
     regenerateWithSampling,
     regenerateFull,
     regenerateCreative,
@@ -1529,12 +1565,6 @@ export default function ChroniclePanel({
     setShowRestartModal(true);
   }, [selectedItem]);
 
-  // Handle restart with confirmation modal (for completed chronicles)
-  const handleRestartClick = useCallback((chronicleId) => {
-    setPendingRestartChronicleId(chronicleId);
-    setShowRestartModal(true);
-  }, []);
-
   const handleRestartConfirm = useCallback(async () => {
     if (pendingRestartChronicleId) {
       // Get the chronicle record to extract seed before deleting
@@ -1597,8 +1627,9 @@ export default function ChroniclePanel({
           return acc;
         }, {});
 
+        const entityLabel = entity.name ? ` (${entity.name})` : "";
         console.log(
-          `[Backport Reset] Entity ${entity.id}${entity.name ? ` (${entity.name})` : ""} history sources:`,
+          `[Backport Reset] Entity ${entity.id}${entityLabel} history sources:`,
           sourceCounts
         );
       }
@@ -1821,8 +1852,7 @@ export default function ChroniclePanel({
     // Map directly from era entity temporal data - no computation
     return sortedEras.map((era, index) => {
       const startTick = era.temporal.startTick;
-      // TODO: Get actual max tick from simulation config or world data
-      // Last era may not have endTick defined yet (ongoing era)
+      // Last era may not have endTick defined yet (ongoing era) - default to 150
       const endTick = era.temporal.endTick ?? 150;
       const eraId = era.eraId || era.id;
       return {
@@ -2018,6 +2048,7 @@ export default function ChroniclePanel({
       entityGuidance,
       cultureIdentities,
       worldData?.schema?.cultures,
+      navEntities,
     ]
   );
 
@@ -2374,6 +2405,7 @@ export default function ChroniclePanel({
               {entitySuggestions.map((entity) => (
                 <div
                   key={entity.id}
+                  role="option"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setEntitySearchQuery(entity.name || "");
@@ -2462,7 +2494,7 @@ export default function ChroniclePanel({
                 Rerun Temporal Checks
               </button>
               <button
-                onClick={handleBulkDetectTertiary}
+                onClick={() => void handleBulkDetectTertiary()}
                 disabled={tertiaryDetectResult?.running}
                 className="illuminator-button"
                 title="Re-detect tertiary cast (entity mentions not in declared cast) on all chronicles"
@@ -2471,7 +2503,7 @@ export default function ChroniclePanel({
               </button>
               {onRefreshEraSummaries && (
                 <button
-                  onClick={async () => {
+                  onClick={() => { void (async () => {
                     try {
                       const count = await onRefreshEraSummaries();
                       setEraSummaryRefreshResult({ success: true, count });
@@ -2480,7 +2512,7 @@ export default function ChroniclePanel({
                       setEraSummaryRefreshResult({ success: false, error: err.message });
                       setTimeout(() => setEraSummaryRefreshResult(null), 6000);
                     }
-                  }}
+                  })(); }}
                   className="illuminator-button"
                   title="Refresh era summaries in all chronicle temporal contexts from current entity data"
                 >
@@ -2568,12 +2600,11 @@ export default function ChroniclePanel({
                   className="chron-bulk-status-text"
                   // eslint-disable-next-line local/no-inline-styles
                   style={{
-                    color:
-                      toneRankingProgress.status === "complete"
-                        ? "#10b981"
-                        : toneRankingProgress.status === "failed"
-                          ? "#ef4444"
-                          : "#f59e0b",
+                    color: (() => {
+                      if (toneRankingProgress.status === "complete") return "#10b981";
+                      if (toneRankingProgress.status === "failed") return "#ef4444";
+                      return "#f59e0b";
+                    })(),
                   }}
                 >
                   {toneRankingProgress.status === "complete" &&
@@ -2611,7 +2642,7 @@ export default function ChroniclePanel({
                 {isBulkBackportActive ? "Bulk Backport Running..." : "Backport All"}
               </button>
               <button
-                onClick={handleReconcileBackports}
+                onClick={() => void handleReconcileBackports()}
                 className="illuminator-button"
                 title="Reconcile backport status from actual entity backrefs — fixes status to match reality"
               >
@@ -2772,7 +2803,7 @@ export default function ChroniclePanel({
                 Annotation Export
               </button>
               <button
-                onClick={async () => {
+                onClick={() => { void (async () => {
                   if (!simulationRunId || entityNavItems.size === 0) return;
                   const chronicles = await getChroniclesForSimulation(simulationRunId);
                   let amended = 0;
@@ -2792,7 +2823,7 @@ export default function ChroniclePanel({
                   if (unchanged.length > 0) {
                     console.log(`[Amend Briefs] Unchanged (${unchanged.length}):`, unchanged);
                   }
-                }}
+                })(); }}
                 className="illuminator-button"
                 title="Annotate entity names in historian prep briefs with type/culture metadata (e.g. faction/company, aurora-stack)"
               >
@@ -2807,14 +2838,15 @@ export default function ChroniclePanel({
       <div className="chron-main">
         {/* Left panel: Item list */}
         <div ref={navListRef} className="chron-nav">
-          {filteredChronicleItems.length === 0 ? (
+          {filteredChronicleItems.length === 0 && (
             <div className="chron-nav-empty">
               <div className="chron-nav-empty-title">No chronicles match your filters</div>
               <div className="chron-nav-empty-hint">
                 Adjust filters or clear search to see more.
               </div>
             </div>
-          ) : groupByType && groupedChronicleItems ? (
+          )}
+          {filteredChronicleItems.length > 0 && groupByType && groupedChronicleItems &&
             groupedChronicleItems.map((group) => (
               <div key={group.label} className="chron-nav-group">
                 <div className="chron-nav-group-header">
@@ -2840,7 +2872,8 @@ export default function ChroniclePanel({
                 )}
               </div>
             ))
-          ) : (
+          }
+          {filteredChronicleItems.length > 0 && !(groupByType && groupedChronicleItems) &&
             visibleChronicleItems.map((item) =>
               item.itemType === "era_narrative" ? (
                 <EraNarrativeItemCard
@@ -2858,7 +2891,7 @@ export default function ChroniclePanel({
                 />
               )
             )
-          )}
+          }
           {navVisibleCount < filteredChronicleItems.length && (
             <div ref={navLoadMoreRef} className="chron-nav-load-more">
               Loading more...
@@ -2868,7 +2901,7 @@ export default function ChroniclePanel({
 
         {/* Right panel: Selected item detail */}
         <div className="chron-detail">
-          {isEraNarrativeSelected && selectedEraNarrativeId ? (
+          {isEraNarrativeSelected && selectedEraNarrativeId && (
             <EraNarrativeViewer
               narrativeId={selectedEraNarrativeId}
               onEnqueue={onEnqueue}
@@ -2883,9 +2916,11 @@ export default function ChroniclePanel({
               cultureIdentities={cultureIdentities}
               worldContext={worldContext}
             />
-          ) : !selectedItem ? (
+          )}
+          {!(isEraNarrativeSelected && selectedEraNarrativeId) && !selectedItem && (
             <div className="chron-detail-empty">Select an item to begin generation</div>
-          ) : (
+          )}
+          {!(isEraNarrativeSelected && selectedEraNarrativeId) && selectedItem && (
             <>
               {/* Pipeline stage content */}
               {/* Not started = generation failed before producing content */}
@@ -2949,12 +2984,12 @@ export default function ChroniclePanel({
                 <ChronicleReviewPanel
                   item={selectedItem}
                   onAddImages={handleGenerateImageRefs}
-                  onAccept={handleAcceptChronicle}
+                  onAccept={() => void handleAcceptChronicle()}
                   onRegenerate={handleRegenerate}
                   onGenerateSummary={handleGenerateSummary}
                   onGenerateTitle={handleGenerateTitle}
                   onAcceptPendingTitle={handleAcceptPendingTitle}
-                  onRejectPendingTitle={handleRejectPendingTitle}
+                  onRejectPendingTitle={() => void handleRejectPendingTitle()}
                   onGenerateImageRefs={handleGenerateImageRefs}
                   onGenerateCoverImageScene={handleGenerateCoverImageScene}
                   onGenerateCoverImage={handleGenerateCoverImage}
@@ -2965,10 +3000,10 @@ export default function ChroniclePanel({
                   imageGenSettings={imageGenSettings}
                   onOpenImageSettings={onOpenImageSettings}
                   onRegenerateWithSampling={handleRegenerateWithSampling}
-                  onRegenerateFull={handleRegenerateFull}
+                  onRegenerateFull={() => void handleRegenerateFull()}
                   onRegenerateCreative={
                     selectedItem?.narrativeStyle?.format === "story"
-                      ? handleRegenerateCreative
+                      ? () => void handleRegenerateCreative()
                       : undefined
                   }
                   onCompareVersions={handleCompareVersions}
@@ -2992,7 +3027,7 @@ export default function ChroniclePanel({
                   onUnpublish={handleUnpublish}
                   onExport={handleExport}
                   onBackportLore={
-                    onBackportLore ? () => onBackportLore(selectedItem.chronicleId) : undefined
+                    onBackportLore ? () => void onBackportLore(selectedItem.chronicleId) : undefined
                   }
                   onHistorianReview={
                     onHistorianReview && historianConfigured && selectedItem.status === "complete"
@@ -3075,19 +3110,19 @@ export default function ChroniclePanel({
 
       {/* Restart confirmation modal */}
       {showRestartModal && (
-        <div className="chron-modal-overlay" onClick={handleRestartCancel}>
-          <div className="chron-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="chron-modal-overlay" onClick={handleRestartCancel} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleRestartCancel(e); }} >
+          <div className="chron-modal" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
             <h3 className="chron-modal-title">Restart Chronicle?</h3>
             <p className="chron-modal-body">
               This will delete the current chronicle and open the wizard with the same settings. You
               can modify the settings before regenerating.
             </p>
-            <div className="chron-modal-actions">
+            <div className="chron-modal-actions" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
               <button onClick={handleRestartCancel} className="chron-modal-cancel-btn">
                 Cancel
               </button>
               <button
-                onClick={handleRestartConfirm}
+                onClick={() => void handleRestartConfirm()}
                 className="chron-modal-danger-btn chron-modal-danger-btn-red"
               >
                 Delete & Restart
@@ -3099,8 +3134,8 @@ export default function ChroniclePanel({
 
       {/* Reset Backport Flags confirmation modal */}
       {showResetBackportModal && (
-        <div className="chron-modal-overlay" onClick={handleResetBackportCancel}>
-          <div className="chron-modal chron-modal-wide" onClick={(e) => e.stopPropagation()}>
+        <div className="chron-modal-overlay" onClick={handleResetBackportCancel} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleResetBackportCancel(e); }} >
+          <div className="chron-modal chron-modal-wide" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
             <h3 className="chron-modal-title">Reset All Backports?</h3>
             <p className="chron-modal-body-mb16">This will:</p>
             <ul className="chron-modal-list">
@@ -3118,7 +3153,7 @@ export default function ChroniclePanel({
                 Cancel
               </button>
               <button
-                onClick={handleResetBackportConfirm}
+                onClick={() => void handleResetBackportConfirm()}
                 className="chron-modal-danger-btn chron-modal-danger-btn-amber"
               >
                 Reset All
@@ -3133,13 +3168,19 @@ export default function ChroniclePanel({
         <div
           className={`chron-toast ${eraSummaryRefreshResult.success ? "chron-toast-success" : "chron-toast-error"}`}
           onClick={() => setEraSummaryRefreshResult(null)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           <span>
-            {eraSummaryRefreshResult.success
-              ? eraSummaryRefreshResult.count > 0
-                ? `Updated era summaries in ${eraSummaryRefreshResult.count} chronicle${eraSummaryRefreshResult.count !== 1 ? "s" : ""}`
-                : "All chronicle era summaries are already up to date"
-              : `Error: ${eraSummaryRefreshResult.error}`}
+            {(() => {
+              if (!eraSummaryRefreshResult.success) return `Error: ${eraSummaryRefreshResult.error}`;
+              if (eraSummaryRefreshResult.count > 0) {
+                const plural = eraSummaryRefreshResult.count !== 1 ? "s" : "";
+                return `Updated era summaries in ${eraSummaryRefreshResult.count} chronicle${plural}`;
+              }
+              return "All chronicle era summaries are already up to date";
+            })()}
           </span>
           <button className="chron-toast-close">&times;</button>
         </div>
@@ -3150,11 +3191,18 @@ export default function ChroniclePanel({
         <div
           className="chron-toast chron-toast-success"
           onClick={() => setTemporalCheckResult(null)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           <span>
-            {temporalCheckResult.count > 0
-              ? `Enqueued temporal checks for ${temporalCheckResult.count} chronicle${temporalCheckResult.count !== 1 ? "s" : ""}`
-              : "No eligible chronicles (need temporal narrative + assembled content)"}
+            {(() => {
+              if (temporalCheckResult.count > 0) {
+                const plural = temporalCheckResult.count !== 1 ? "s" : "";
+                return `Enqueued temporal checks for ${temporalCheckResult.count} chronicle${plural}`;
+              }
+              return "No eligible chronicles (need temporal narrative + assembled content)";
+            })()}
           </span>
           <button className="chron-toast-close">&times;</button>
         </div>
@@ -3162,11 +3210,15 @@ export default function ChroniclePanel({
 
       {/* Bulk Summary Result notification */}
       {bulkSummaryResult && (
-        <div className="chron-toast chron-toast-success" onClick={() => setBulkSummaryResult(null)}>
+        <div className="chron-toast chron-toast-success" onClick={() => setBulkSummaryResult(null)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
           <span>
-            {bulkSummaryResult.count > 0
-              ? `Enqueued summary generation for ${bulkSummaryResult.count} chronicle${bulkSummaryResult.count !== 1 ? "s" : ""}`
-              : "No chronicles with missing summaries"}
+            {(() => {
+              if (bulkSummaryResult.count > 0) {
+                const plural = bulkSummaryResult.count !== 1 ? "s" : "";
+                return `Enqueued summary generation for ${bulkSummaryResult.count} chronicle${plural}`;
+              }
+              return "No chronicles with missing summaries";
+            })()}
           </span>
           <button className="chron-toast-close">&times;</button>
         </div>
@@ -3177,11 +3229,17 @@ export default function ChroniclePanel({
         <div
           className={`chron-toast ${resetBackportResult.success ? "chron-toast-success" : "chron-toast-error"}`}
           onClick={() => setResetBackportResult(null)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           <span>
-            {resetBackportResult.success
-              ? `Reset ${resetBackportResult.chronicleCount} chronicle${resetBackportResult.chronicleCount !== 1 ? "s" : ""}, restored ${resetBackportResult.entityCount} entit${resetBackportResult.entityCount !== 1 ? "ies" : "y"}`
-              : `Error: ${resetBackportResult.error}`}
+            {(() => {
+              if (!resetBackportResult.success) return `Error: ${resetBackportResult.error}`;
+              const cPlural = resetBackportResult.chronicleCount !== 1 ? "s" : "";
+              const ePlural = resetBackportResult.entityCount !== 1 ? "ies" : "y";
+              return `Reset ${resetBackportResult.chronicleCount} chronicle${cPlural}, restored ${resetBackportResult.entityCount} entit${ePlural}`;
+            })()}
           </span>
           <button className="chron-toast-close">&times;</button>
         </div>
@@ -3192,11 +3250,16 @@ export default function ChroniclePanel({
         <div
           className={`chron-toast ${reconcileBackportResult.success ? "chron-toast-success" : "chron-toast-error"}`}
           onClick={() => setReconcileBackportResult(null)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           <span>
-            {reconcileBackportResult.success
-              ? `Reconciled ${reconcileBackportResult.count} chronicle${reconcileBackportResult.count !== 1 ? "s" : ""} from entity backrefs`
-              : `Error: ${reconcileBackportResult.error}`}
+            {(() => {
+              if (!reconcileBackportResult.success) return `Error: ${reconcileBackportResult.error}`;
+              const plural = reconcileBackportResult.count !== 1 ? "s" : "";
+              return `Reconciled ${reconcileBackportResult.count} chronicle${plural} from entity backrefs`;
+            })()}
           </span>
           <button className="chron-toast-close">&times;</button>
         </div>
@@ -3281,3 +3344,37 @@ export default function ChroniclePanel({
     </div>
   );
 }
+
+ChronicleItemCard.propTypes = {
+  item: PropTypes.object.isRequired,
+  isSelected: PropTypes.bool,
+  onClick: PropTypes.func.isRequired,
+};
+
+ChroniclePanel.propTypes = {
+  worldData: PropTypes.object,
+  queue: PropTypes.array,
+  onEnqueue: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  worldContext: PropTypes.object,
+  projectId: PropTypes.string,
+  simulationRunId: PropTypes.string,
+  buildPrompt: PropTypes.func,
+  styleLibrary: PropTypes.object,
+  imageGenSettings: PropTypes.object,
+  entityGuidance: PropTypes.object,
+  cultureIdentities: PropTypes.object,
+  onBackportLore: PropTypes.func,
+  onStartBulkBackport: PropTypes.func,
+  isBulkBackportActive: PropTypes.bool,
+  refreshTrigger: PropTypes.any,
+  imageModel: PropTypes.string,
+  onOpenImageSettings: PropTypes.func,
+  onHistorianReview: PropTypes.func,
+  isHistorianActive: PropTypes.bool,
+  historianConfigured: PropTypes.bool,
+  historianConfig: PropTypes.object,
+  onUpdateHistorianNote: PropTypes.func,
+  onRefreshEraSummaries: PropTypes.func,
+  onNavigateToTab: PropTypes.func,
+};

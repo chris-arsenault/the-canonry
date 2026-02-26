@@ -3,6 +3,7 @@
  */
 
 import React, { useRef } from "react";
+import PropTypes from "prop-types";
 
 // Accent colors for each screen (kept for dynamic theming)
 const SCREEN_COLORS = {
@@ -199,6 +200,9 @@ export default function HelpModal({ isOpen, onClose, activeTab }) {
       className="modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="modal help-modal">
         <div className="modal-header">
@@ -241,3 +245,9 @@ export default function HelpModal({ isOpen, onClose, activeTab }) {
     </div>
   );
 }
+
+HelpModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  activeTab: PropTypes.string,
+};

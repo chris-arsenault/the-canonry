@@ -5,6 +5,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { ItemRow, NumberInput } from "../../shared";
 
 /**
@@ -33,3 +34,11 @@ export function TransitionEffectItem({ pressureId, value, onChange, onRemove, pr
     </ItemRow>
   );
 }
+
+TransitionEffectItem.propTypes = {
+  pressureId: PropTypes.string.isRequired,
+  value: PropTypes.number.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  pressures: PropTypes.array.isRequired,
+};

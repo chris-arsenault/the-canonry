@@ -221,13 +221,13 @@ async function buildEraConfig(
       .filter((r) => r.status === "complete" && r.threadSynthesis?.thesis)
       .sort((a, b) => b.updatedAt - a.updatedAt);
     if (completedPrev.length > 0) {
-      previousEraThesis = completedPrev[0].threadSynthesis!.thesis;
+      previousEraThesis = completedPrev[0].threadSynthesis.thesis;
     }
   }
 
   const worldContext = focalEraInfo
     ? {
-        focalEra: toSummary(focalEraInfo)!,
+        focalEra: toSummary(focalEraInfo),
         previousEra: toSummary(previousEraInfo),
         nextEra: toSummary(nextEraInfo),
         previousEraThesis,
@@ -274,6 +274,86 @@ interface BulkEraNarrativeStore {
   closeBulk: () => void;
 }
 
+type BulkSetFn = (fn: (s: BulkEraNarrativeStore) => Partial<BulkEraNarrativeStore>) => void;
+
+async function processEraSteps(narrativeId: string, set: BulkSetFn): Promise<boolean> {
+  for (let stepIdx = 0; stepIdx < STEP_ORDER.length; stepIdx++) {
+    if (cancelledFlag) return false;
+    const step = STEP_ORDER[stepIdx];
+    set((s) => ({ progress: { ...s.progress, currentStep: step } }));
+    dispatchEraNarrativeTask(narrativeId);
+    const result = await pollEraNarrativeStep(narrativeId);
+    if (cancelledFlag || !result) return false;
+    const nextStep = STEP_ORDER[stepIdx + 1];
+    if (nextStep) {
+      await updateEraNarrative(narrativeId, { status: "pending", currentStep: nextStep });
+    }
+  }
+  return true;
+}
+
+async function processEra(
+  era: { eraId: string; eraName: string; tone: EraNarrativeTone },
+  projectId: string, simulationRunId: string,
+  eraTemporalInfo: EraTemporalEntry[], chronicleItems: ChronicleNavItem[],
+  narrativeWeightMap: Record<string, string>,
+  set: BulkSetFn
+): Promise<{ cost: number; words: number } | null> {
+  set((s) => ({ progress: { ...s.progress, currentEraName: era.eraName, currentStep: "threads", currentNarrativeId: "" } }));
+
+  const config = await buildEraConfig(era.eraId, era.eraName, era.tone, projectId, simulationRunId, eraTemporalInfo, chronicleItems, narrativeWeightMap);
+  if (!config) return { cost: 0, words: 0 };
+
+  const narrativeId = generateEraNarrativeId();
+  const now = Date.now();
+  const newRecord: EraNarrativeRecord = {
+    narrativeId, projectId: config.projectId, simulationRunId: config.simulationRunId,
+    eraId: config.eraId, eraName: config.eraName, status: "pending", tone: config.tone,
+    historianConfigJson: JSON.stringify(config.historianConfig), currentStep: "threads",
+    prepBriefs: config.prepBriefs, worldContext: config.worldContext,
+    totalInputTokens: 0, totalOutputTokens: 0, totalActualCost: 0, createdAt: now, updatedAt: now,
+  };
+  await createEraNarrative(newRecord);
+  set((s) => ({ progress: { ...s.progress, currentNarrativeId: narrativeId } }));
+
+  const completed = await processEraSteps(narrativeId, set);
+  if (!completed) return null;
+
+  await updateEraNarrative(narrativeId, { status: "complete" });
+  const finalRecord = await getEraNarrative(narrativeId);
+  const cost = finalRecord?.totalActualCost || 0;
+  const words = finalRecord?.narrative?.editedWordCount || finalRecord?.narrative?.wordCount || 0;
+  return { cost, words };
+}
+
+async function runBulkEraNarratives(
+  eras: Array<{ eraId: string; eraName: string; tone: EraNarrativeTone }>,
+  projectId: string, simulationRunId: string,
+  eraTemporalInfo: EraTemporalEntry[], chronicleItems: ChronicleNavItem[],
+  narrativeWeightMap: Record<string, string>,
+  set: BulkSetFn
+): Promise<void> {
+  try {
+    let globalProcessed = 0, globalCost = 0, globalWords = 0;
+    for (const era of eras) {
+      if (cancelledFlag) break;
+      const result = await processEra(era, projectId, simulationRunId, eraTemporalInfo, chronicleItems, narrativeWeightMap, set);
+      if (!result) break;
+      globalCost += result.cost;
+      globalWords += result.words;
+      globalProcessed++;
+      set((s) => ({ progress: { ...s.progress, processedEras: globalProcessed, totalCost: globalCost, totalWords: globalWords } }));
+    }
+    const finalStatus = cancelledFlag ? "cancelled" : "complete";
+    set((s) => ({ progress: { ...s.progress, status: finalStatus, currentEraName: "", currentStep: "", currentNarrativeId: "" } }));
+  } catch (err) {
+    console.error("[Bulk Era Narrative] Failed:", err);
+    set((s) => ({
+      progress: { ...s.progress, status: "failed", currentEraName: "", currentStep: "", currentNarrativeId: "", error: err instanceof Error ? err.message : String(err) },
+    }));
+  }
+}
+
 export const useBulkEraNarrativeStore = create<BulkEraNarrativeStore>((set) => ({
   progress: IDLE_PROGRESS,
 
@@ -309,7 +389,7 @@ export const useBulkEraNarrativeStore = create<BulkEraNarrativeStore>((set) => (
     if (eligible.length === 0) return;
 
     // Check for existing narratives async (fire-and-forget, updates store)
-    (async () => {
+    void (async () => {
       const updated = [...eligible];
       for (const era of updated) {
         const existing = await getEraNarrativesForEra(simulationRunId, era.eraId);
@@ -381,157 +461,8 @@ export const useBulkEraNarrativeStore = create<BulkEraNarrativeStore>((set) => (
 
     set((s) => ({ progress: { ...s.progress, status: "running" } }));
 
-    (async () => {
-      try {
-        let globalProcessed = 0;
-        let globalCost = 0;
-        let globalWords = 0;
-
-        for (const era of eras) {
-          if (cancelledFlag) break;
-
-          set((s) => ({
-            progress: {
-              ...s.progress,
-              currentEraName: era.eraName,
-              currentStep: "threads",
-              currentNarrativeId: "",
-            },
-          }));
-
-          // Build config for this era (each era has its own tone)
-          const config = await buildEraConfig(
-            era.eraId,
-            era.eraName,
-            era.tone,
-            projectId,
-            simulationRunId,
-            eraTemporalInfo,
-            chronicleItems,
-            narrativeWeightMap
-          );
-
-          if (!config) {
-            globalProcessed++;
-            set((s) => ({ progress: { ...s.progress, processedEras: globalProcessed } }));
-            continue;
-          }
-
-          // Create narrative record
-          const narrativeId = generateEraNarrativeId();
-          const now = Date.now();
-
-          const newRecord: EraNarrativeRecord = {
-            narrativeId,
-            projectId: config.projectId,
-            simulationRunId: config.simulationRunId,
-            eraId: config.eraId,
-            eraName: config.eraName,
-            status: "pending",
-            tone: config.tone,
-            historianConfigJson: JSON.stringify(config.historianConfig),
-            currentStep: "threads",
-            prepBriefs: config.prepBriefs,
-            worldContext: config.worldContext,
-            totalInputTokens: 0,
-            totalOutputTokens: 0,
-            totalActualCost: 0,
-            createdAt: now,
-            updatedAt: now,
-          };
-
-          await createEraNarrative(newRecord);
-
-          set((s) => ({
-            progress: { ...s.progress, currentNarrativeId: narrativeId },
-          }));
-
-          // Run all 3 steps sequentially
-          for (let stepIdx = 0; stepIdx < STEP_ORDER.length; stepIdx++) {
-            if (cancelledFlag) break;
-
-            const step = STEP_ORDER[stepIdx];
-            set((s) => ({ progress: { ...s.progress, currentStep: step } }));
-
-            // Dispatch the task
-            dispatchEraNarrativeTask(narrativeId);
-
-            // Poll until step completes
-            const result = await pollEraNarrativeStep(narrativeId);
-            if (cancelledFlag || !result) break;
-
-            // If there's a next step, advance the record
-            const nextStep = STEP_ORDER[stepIdx + 1];
-            if (nextStep) {
-              await updateEraNarrative(narrativeId, {
-                status: "pending",
-                currentStep: nextStep,
-              });
-            }
-          }
-
-          if (cancelledFlag) break;
-
-          // Mark complete and collect stats
-          await updateEraNarrative(narrativeId, { status: "complete" });
-
-          const finalRecord = await getEraNarrative(narrativeId);
-          if (finalRecord) {
-            globalCost += finalRecord.totalActualCost || 0;
-            const wc =
-              finalRecord.narrative?.editedWordCount || finalRecord.narrative?.wordCount || 0;
-            globalWords += wc;
-          }
-
-          globalProcessed++;
-          set((s) => ({
-            progress: {
-              ...s.progress,
-              processedEras: globalProcessed,
-              totalCost: globalCost,
-              totalWords: globalWords,
-            },
-          }));
-        }
-
-        if (cancelledFlag) {
-          set((s) => ({
-            progress: {
-              ...s.progress,
-              status: "cancelled",
-              currentEraName: "",
-              currentStep: "",
-              currentNarrativeId: "",
-            },
-          }));
-        } else {
-          set((s) => ({
-            progress: {
-              ...s.progress,
-              status: "complete",
-              currentEraName: "",
-              currentStep: "",
-              currentNarrativeId: "",
-            },
-          }));
-        }
-      } catch (err) {
-        console.error("[Bulk Era Narrative] Failed:", err);
-        set((s) => ({
-          progress: {
-            ...s.progress,
-            status: "failed",
-            currentEraName: "",
-            currentStep: "",
-            currentNarrativeId: "",
-            error: err instanceof Error ? err.message : String(err),
-          },
-        }));
-      } finally {
-        activeFlag = false;
-        scanData = null;
-      }
-    })();
+    void runBulkEraNarratives(eras, projectId, simulationRunId, eraTemporalInfo, chronicleItems, narrativeWeightMap, set)
+      .finally(() => { activeFlag = false; scanData = null; });
   },
 
   cancelBulk() {

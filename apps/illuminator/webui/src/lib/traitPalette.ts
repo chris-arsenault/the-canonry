@@ -193,7 +193,7 @@ function parseExpansionResponse(text: string): ExpansionResponse {
         keepId: m.keepId as string,
         mergeFromIds: (m.mergeFromIds as unknown[]).filter(
           (id) => typeof id === "string"
-        ) as string[],
+        ),
         newDescription: typeof m.newDescription === "string" ? m.newDescription : "",
       }));
   }
@@ -211,7 +211,7 @@ function parseExpansionResponse(text: string): ExpansionResponse {
         category: c.category as string,
         description: c.description as string,
         examples: Array.isArray(c.examples)
-          ? ((c.examples as unknown[]).filter((e) => typeof e === "string") as string[])
+          ? ((c.examples as unknown[]).filter((e) => typeof e === "string"))
           : [],
       }));
   }

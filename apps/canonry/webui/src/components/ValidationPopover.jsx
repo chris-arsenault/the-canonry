@@ -6,7 +6,8 @@
  * while working in other tabs.
  */
 
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useMemo } from "react";
+import PropTypes from "prop-types";
 import { colors } from "../theme";
 
 const styles = {
@@ -210,7 +211,7 @@ function ErrorCard({ error, isWarning, onRemoveProperty }) {
             style={styles.removeButton}
             onClick={() => onRemoveProperty(error.path, additionalProp)}
           >
-            Remove "{additionalProp}"
+            Remove &quot;{additionalProp}&quot;
           </button>
         )}
       </div>
@@ -309,7 +310,7 @@ export default function ValidationPopover({
           {remainingCount > 0 && (
             <div style={styles.moreCount}>
               +{remainingCount} more issue{remainingCount !== 1 ? "s" : ""}.{" "}
-              <span style={styles.navLink} onClick={handleNavigate}>
+              <span style={styles.navLink} onClick={handleNavigate} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleNavigate(); }} >
                 View all in Validation tab
               </span>
             </div>
@@ -317,7 +318,7 @@ export default function ValidationPopover({
 
           {totalIssues > 0 && remainingCount === 0 && onNavigateToValidation && (
             <div style={styles.moreCount}>
-              <span style={styles.navLink} onClick={handleNavigate}>
+              <span style={styles.navLink} onClick={handleNavigate} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleNavigate(); }} >
                 View full details in Validation tab
               </span>
             </div>
@@ -327,3 +328,15 @@ export default function ValidationPopover({
     </div>
   );
 }
+
+ErrorCard.propTypes = {
+  error: PropTypes.object.isRequired,
+  isWarning: PropTypes.bool,
+  onRemoveProperty: PropTypes.func,
+};
+
+ValidationPopover.propTypes = {
+  validationResult: PropTypes.object,
+  onNavigateToValidation: PropTypes.func,
+  onRemoveProperty: PropTypes.func,
+};

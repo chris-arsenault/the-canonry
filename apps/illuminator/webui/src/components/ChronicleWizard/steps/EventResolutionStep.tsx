@@ -8,17 +8,15 @@
  * - Compact relationship list with visual strength indicators
  */
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import { useWizard } from "../WizardContext";
 import {
   getRelevantRelationships,
   getRelevantEvents,
   filterChronicleEvents,
   collapseBidirectionalRelationships,
-  makeRelationshipId,
   MAX_CHRONICLE_EVENTS,
   type EventSelectionMetrics,
-  type CollapsedRelationship,
 } from "../../../lib/chronicle/selectionWizard";
 import {
   getEraRanges,
@@ -48,15 +46,17 @@ export default function EventResolutionStep() {
     autoFillEvents,
   } = useWizard();
 
-  const [eventMetrics, setEventMetrics] = useState<Map<string, EventSelectionMetrics>>(new Map());
+  const [, setEventMetrics] = useState<Map<string, EventSelectionMetrics>>(new Map());
   const [brushSelection, setBrushSelection] = useState<[number, number] | null>(null);
   const [minEventSignificance, setMinEventSignificance] = useState<number>(0);
 
-  // Compute event metrics when data changes
-  useEffect(() => {
+  // Render-phase sync: recompute event metrics when the computation function changes
+  const prevComputeRef = useRef(computeEventMetricsForSelection);
+  if (prevComputeRef.current !== computeEventMetricsForSelection) {
+    prevComputeRef.current = computeEventMetricsForSelection;
     const metrics = computeEventMetricsForSelection();
     setEventMetrics(metrics);
-  }, [computeEventMetricsForSelection]);
+  }
 
   // Get relevant relationships (between assigned entities + lens)
   const lensEntityIds = useMemo(() => (state.lens ? [state.lens.entityId] : []), [state.lens]);
@@ -73,10 +73,9 @@ export default function EventResolutionStep() {
   const allRelevantEvents = useMemo(() => {
     return getRelevantEvents(
       state.roleAssignments,
-      state.candidateEvents,
-      state.narrativeStyle?.eventRules
+      state.candidateEvents
     );
-  }, [state.roleAssignments, state.candidateEvents, state.narrativeStyle]);
+  }, [state.roleAssignments, state.candidateEvents]);
 
   // Filter events by significance and exclude prominence-only events
   const relevantEvents = useMemo(() => {
@@ -179,9 +178,9 @@ export default function EventResolutionStep() {
         const newSelectedIds = new Set(idsInRange);
         // Update selection
         for (const id of relevantEventIds) {
-          if (newSelectedIds.has(id) && !state.selectedEventIds.has(id)) {
-            toggleEvent(id);
-          } else if (!newSelectedIds.has(id) && state.selectedEventIds.has(id)) {
+          const inNew = newSelectedIds.has(id);
+          const inCurrent = state.selectedEventIds.has(id);
+          if (inNew !== inCurrent) {
             toggleEvent(id);
           }
         }
@@ -430,6 +429,9 @@ export default function EventResolutionStep() {
                     cursor: "pointer",
                     fontSize: "11px",
                   }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
                   <input
                     type="checkbox"
@@ -589,6 +591,9 @@ export default function EventResolutionStep() {
                     fontSize: "11px",
                     transition: "all 0.15s ease",
                   }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleToggle(); }}
                 >
                   {/* Strength indicator bar */}
                   <div

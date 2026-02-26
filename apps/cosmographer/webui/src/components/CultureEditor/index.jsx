@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useRef, useMemo } from "react";
+import PropTypes from "prop-types";
 
 const styles = {
   container: {
@@ -159,15 +160,101 @@ const styles = {
   },
 };
 
+function KindBiasCard({ culture, kind, axisById, isFramework, handleSliderStart, handleSliderChange, handleSliderEnd, getDisplayValue, draggingRef }) {
+  const axes = kind.semanticPlane?.axes || {};
+  const biases = culture.axisBiases?.[kind.kind] || { x: 50, y: 50, z: 50 };
+
+  return (
+    <div style={styles.kindCard}>
+      <div style={styles.kindHeader}>
+        <span style={styles.kindName}>{kind.description || kind.kind}</span>
+        <span style={styles.kindSummary}>
+          {biases.x}/{biases.y}/{biases.z}
+        </span>
+      </div>
+      {["x", "y", "z"].map((axis) => {
+        const axisRef = axes[axis];
+        const axisConfig = axisRef?.axisId
+          ? axisById.get(axisRef.axisId)
+          : undefined;
+        const axisPlaceholder =
+          axisRef?.axisId && !axisConfig
+            ? `Missing axis (${axisRef.axisId})`
+            : "Unassigned";
+        const storedValue = biases[axis] ?? 50;
+        const displayValue = getDisplayValue(
+          culture.id,
+          kind.kind,
+          axis,
+          storedValue
+        );
+
+        return (
+          <div key={axis} style={styles.axisRow}>
+            <span style={styles.axisLabel}>{axis.toUpperCase()}</span>
+            <span
+              style={styles.tagLabel}
+              title={axisConfig?.lowTag || axisPlaceholder}
+            >
+              {axisConfig?.lowTag || "—"}
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={displayValue}
+              disabled={isFramework}
+              onMouseDown={(e) =>
+                handleSliderStart(
+                  culture.id,
+                  kind.kind,
+                  axis,
+                  e.target.value
+                )
+              }
+              onTouchStart={(e) =>
+                handleSliderStart(
+                  culture.id,
+                  kind.kind,
+                  axis,
+                  e.target.value
+                )
+              }
+              onChange={(e) => handleSliderChange(e.target.value)}
+              onMouseUp={handleSliderEnd}
+              onTouchEnd={handleSliderEnd}
+              onMouseLeave={() => {
+                if (draggingRef.current) handleSliderEnd();
+              }}
+              style={{
+                ...styles.slider,
+                opacity: isFramework ? 0.5 : 1,
+                pointerEvents: isFramework ? "none" : "auto",
+              }}
+            />
+            <span
+              style={styles.tagLabelRight}
+              title={axisConfig?.highTag || axisPlaceholder}
+            >
+              {axisConfig?.highTag || "—"}
+            </span>
+            <span style={styles.axisValue}>{displayValue}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function CultureEditor({ project, onSave }) {
   const [expandedCultures, setExpandedCultures] = useState({});
   // Track local slider value during drag to avoid expensive state updates
   const [localSliderValue, setLocalSliderValue] = useState(null);
-  const draggingRef = useRef(null); // { cultureId, kindId, axis }
+  const draggingRef = useRef(null); // tracks cultureId, kindId, axis
 
   const cultures = project?.cultures || [];
   const entityKinds = project?.entityKinds || [];
-  const axisDefinitions = project?.axisDefinitions || [];
+  const axisDefinitions = useMemo(() => project?.axisDefinitions || [], [project?.axisDefinitions]);
   const axisById = useMemo(() => {
     return new Map(axisDefinitions.map((axis) => [axis.id, axis]));
   }, [axisDefinitions]);
@@ -246,7 +333,7 @@ export default function CultureEditor({ project, onSave }) {
       <div style={styles.header}>
         <div style={styles.title}>Culture Biases</div>
         <div style={styles.subtitle}>
-          Configure axis biases for each culture on each entity kind's semantic plane.
+          Configure axis biases for each culture on each entity kind&apos;s semantic plane.
         </div>
       </div>
 
@@ -262,7 +349,7 @@ export default function CultureEditor({ project, onSave }) {
 
             return (
               <div key={culture.id} style={styles.cultureCard}>
-                <div style={styles.cultureHeader} onClick={() => toggleCulture(culture.id)}>
+                <div style={styles.cultureHeader} onClick={() => toggleCulture(culture.id)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
                   <div style={styles.cultureHeaderLeft}>
                     <span
                       style={{
@@ -290,91 +377,20 @@ export default function CultureEditor({ project, onSave }) {
                       </div>
                     ) : (
                       <div style={styles.kindsGrid}>
-                        {entityKinds.map((kind) => {
-                          const axes = kind.semanticPlane?.axes || {};
-                          const biases = culture.axisBiases?.[kind.kind] || { x: 50, y: 50, z: 50 };
-
-                          return (
-                            <div key={kind.kind} style={styles.kindCard}>
-                              <div style={styles.kindHeader}>
-                                <span style={styles.kindName}>{kind.description || kind.kind}</span>
-                                <span style={styles.kindSummary}>
-                                  {biases.x}/{biases.y}/{biases.z}
-                                </span>
-                              </div>
-                              {["x", "y", "z"].map((axis) => {
-                                const axisRef = axes[axis];
-                                const axisConfig = axisRef?.axisId
-                                  ? axisById.get(axisRef.axisId)
-                                  : undefined;
-                                const axisPlaceholder =
-                                  axisRef?.axisId && !axisConfig
-                                    ? `Missing axis (${axisRef.axisId})`
-                                    : "Unassigned";
-                                const storedValue = biases[axis] ?? 50;
-                                const displayValue = getDisplayValue(
-                                  culture.id,
-                                  kind.kind,
-                                  axis,
-                                  storedValue
-                                );
-
-                                return (
-                                  <div key={axis} style={styles.axisRow}>
-                                    <span style={styles.axisLabel}>{axis.toUpperCase()}</span>
-                                    <span
-                                      style={styles.tagLabel}
-                                      title={axisConfig?.lowTag || axisPlaceholder}
-                                    >
-                                      {axisConfig?.lowTag || "—"}
-                                    </span>
-                                    <input
-                                      type="range"
-                                      min="0"
-                                      max="100"
-                                      value={displayValue}
-                                      disabled={isFramework}
-                                      onMouseDown={(e) =>
-                                        handleSliderStart(
-                                          culture.id,
-                                          kind.kind,
-                                          axis,
-                                          e.target.value
-                                        )
-                                      }
-                                      onTouchStart={(e) =>
-                                        handleSliderStart(
-                                          culture.id,
-                                          kind.kind,
-                                          axis,
-                                          e.target.value
-                                        )
-                                      }
-                                      onChange={(e) => handleSliderChange(e.target.value)}
-                                      onMouseUp={handleSliderEnd}
-                                      onTouchEnd={handleSliderEnd}
-                                      onMouseLeave={() => {
-                                        if (draggingRef.current) handleSliderEnd();
-                                      }}
-                                      style={{
-                                        ...styles.slider,
-                                        opacity: isFramework ? 0.5 : 1,
-                                        pointerEvents: isFramework ? "none" : "auto",
-                                      }}
-                                    />
-                                    <span
-                                      style={styles.tagLabelRight}
-                                      title={axisConfig?.highTag || axisPlaceholder}
-                                    >
-                                      {axisConfig?.highTag || "—"}
-                                    </span>
-                                    <span style={styles.axisValue}>{displayValue}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })}
+                        {entityKinds.map((kind) => (
+                          <KindBiasCard
+                            key={kind.kind}
+                            culture={culture}
+                            kind={kind}
+                            axisById={axisById}
+                            isFramework={isFramework}
+                            handleSliderStart={handleSliderStart}
+                            handleSliderChange={handleSliderChange}
+                            handleSliderEnd={handleSliderEnd}
+                            getDisplayValue={getDisplayValue}
+                            draggingRef={draggingRef}
+                          />
+                        ))}
                       </div>
                     )}
                   </div>
@@ -387,3 +403,20 @@ export default function CultureEditor({ project, onSave }) {
     </div>
   );
 }
+
+KindBiasCard.propTypes = {
+  culture: PropTypes.object.isRequired,
+  kind: PropTypes.object.isRequired,
+  axisById: PropTypes.object.isRequired,
+  isFramework: PropTypes.bool.isRequired,
+  handleSliderStart: PropTypes.func.isRequired,
+  handleSliderChange: PropTypes.func.isRequired,
+  handleSliderEnd: PropTypes.func.isRequired,
+  getDisplayValue: PropTypes.func.isRequired,
+  draggingRef: PropTypes.object.isRequired,
+};
+
+CultureEditor.propTypes = {
+  project: PropTypes.object,
+  onSave: PropTypes.func.isRequired,
+};

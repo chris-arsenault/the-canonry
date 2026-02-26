@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { PATH_DIRECTIONS } from "../constants";
 import { ReferenceDropdown } from "../../shared";
 
@@ -52,43 +53,47 @@ export function PathStepEditor({ step, onChange, onRemove, schema, stepIndex }) 
       </div>
       <div className="path-step-grid">
         <div>
-          <label className="label label-micro">Via Relationship</label>
+          <label className="label label-micro">Via Relationship
           <ReferenceDropdown
             value={step.via || ""}
             onChange={(v) => updateStep("via", v)}
             options={relationshipKindOptions}
             placeholder="Select..."
           />
+          </label>
         </div>
         <div>
-          <label className="label label-micro">Direction</label>
+          <label className="label label-micro">Direction
           <ReferenceDropdown
             value={step.direction || "any"}
             onChange={(v) => updateStep("direction", v)}
             options={PATH_DIRECTIONS}
           />
+          </label>
         </div>
         <div>
-          <label className="label label-micro">Target Kind</label>
+          <label className="label label-micro">Target Kind
           <ReferenceDropdown
             value={step.targetKind}
             onChange={(v) => updateStep("targetKind", v)}
             options={entityKindOptions}
             placeholder="Select..."
           />
+          </label>
         </div>
         <div>
-          <label className="label label-micro">Target Subtype</label>
+          <label className="label label-micro">Target Subtype
           <ReferenceDropdown
             value={step.targetSubtype}
             onChange={(v) => updateStep("targetSubtype", v)}
             options={getSubtypeOptions(step.targetKind)}
             placeholder="Select..."
           />
+          </label>
         </div>
         <div className="path-step-full-width">
-          <label className="label label-micro">Store As Variable (optional)</label>
-          <input
+          <label htmlFor="store-as-variable-optional" className="label label-micro">Store As Variable (optional)</label>
+          <input id="store-as-variable-optional"
             type="text"
             value={step.as || ""}
             onChange={(e) => updateStep("as", e.target.value)}
@@ -100,5 +105,13 @@ export function PathStepEditor({ step, onChange, onRemove, schema, stepIndex }) 
     </div>
   );
 }
+
+PathStepEditor.propTypes = {
+  step: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  stepIndex: PropTypes.number.isRequired,
+};
 
 export default PathStepEditor;

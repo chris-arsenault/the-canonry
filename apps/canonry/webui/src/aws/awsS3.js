@@ -57,6 +57,7 @@ function updateImageSize(db, imageId, size) {
 function toS3Key(...parts) {
   return parts
     .filter(Boolean)
+    // eslint-disable-next-line sonarjs/slow-regex -- short path segment, no ReDoS risk
     .map((part) => part.replace(/^\/+|\/+$/g, ""))
     .filter(Boolean)
     .join("/");
@@ -199,6 +200,76 @@ export async function listS3Prefixes(s3, { bucket, prefix }) {
   return (response.CommonPrefixes || []).map((item) => item.Prefix).filter(Boolean);
 }
 
+function resolveEffectiveSize(image, entry, updatedAt, normalizedSize, repairSizes) {
+  let effectiveSize = normalizedSize;
+  let sizeSource = normalizedSize != null ? "metadata" : "unknown";
+  let needsBlob = false;
+
+  const needsBlobForPlan =
+    entry &&
+    entry.updatedAt >= updatedAt &&
+    (normalizedSize == null || entry.size !== normalizedSize);
+  const needsBlobForRepair = repairSizes && normalizedSize == null;
+  if (needsBlobForPlan || needsBlobForRepair) {
+    needsBlob = true;
+  }
+
+  return { effectiveSize, sizeSource, needsBlob };
+}
+
+function applyBlobSize(blob, effectiveSize, _sizeSource) {
+  if (blob) {
+    return { effectiveSize: blob.size, sizeSource: "blob" };
+  }
+  return { effectiveSize, sizeSource: "missing_blob" };
+}
+
+function repairManifestEntry(entry, updatedAt, effectiveSize, manifestRepairs) {
+  const normalizedEntrySize = normalizeManifestSize(entry.size);
+  if (normalizedEntrySize == null) {
+    if (effectiveSize != null) {
+      entry.size = effectiveSize;
+      manifestRepairs.updated += 1;
+      return true;
+    }
+    manifestRepairs.skipped += 1;
+    return false;
+  }
+  if (normalizedEntrySize !== entry.size) {
+    entry.size = normalizedEntrySize;
+    manifestRepairs.updated += 1;
+    return true;
+  }
+  return false;
+}
+
+async function repairImageSize(db, imageId, effectiveSize, repairs) {
+  repairs.attempted += 1;
+  try {
+    const updated = await updateImageSize(db, imageId, effectiveSize);
+    if (updated) {
+      repairs.updated += 1;
+    } else {
+      repairs.skipped += 1;
+    }
+  } catch (err) {
+    console.warn('[awsS3] Repair failed for entry:', err);
+    repairs.failed += 1;
+  }
+}
+
+function collectUploadReasons(entry, updatedAt, effectiveSize) {
+  const reasons = [];
+  if (!entry) {
+    reasons.push("missing_manifest");
+  } else {
+    if (entry.updatedAt < updatedAt) reasons.push("updated_at");
+    if (effectiveSize != null && entry.size !== effectiveSize) reasons.push("size_mismatch");
+    if (effectiveSize == null) reasons.push("size_unknown");
+  }
+  return reasons;
+}
+
 export async function getS3ImageUploadPlan({ projectId, s3, config, repairSizes = false }) {
   if (!projectId) throw new Error("Missing projectId for image sync");
   if (!s3) throw new Error("Missing S3 client");
@@ -238,66 +309,28 @@ export async function getS3ImageUploadPlan({ projectId, s3, config, repairSizes 
       const entry = existing[image.imageId];
       const rawSize = image.size;
       const normalizedSize = normalizeImageSize(rawSize);
-      let effectiveSize = normalizedSize;
-      let sizeSource = normalizedSize != null ? "metadata" : "unknown";
-      const reasons = [];
 
-      const needsBlobForPlan =
-        entry &&
-        entry.updatedAt >= updatedAt &&
-        (normalizedSize == null || entry.size !== normalizedSize);
-      const needsBlobForRepair = repairSizes && normalizedSize == null;
+      let { effectiveSize, sizeSource, needsBlob } = resolveEffectiveSize(
+        image, entry, updatedAt, normalizedSize, repairSizes
+      );
       let blob = null;
 
-      if (needsBlobForPlan || needsBlobForRepair) {
+      if (needsBlob) {
         blob = await getImageBlob(image.imageId);
-        if (blob) {
-          effectiveSize = blob.size;
-          sizeSource = "blob";
-        } else {
-          sizeSource = "missing_blob";
-        }
+        ({ effectiveSize, sizeSource } = applyBlobSize(blob, effectiveSize, sizeSource));
       }
 
       if (canRepairManifest && entry && entry.updatedAt >= updatedAt) {
-        const normalizedEntrySize = normalizeManifestSize(entry.size);
-        if (normalizedEntrySize == null) {
-          if (effectiveSize != null) {
-            entry.size = effectiveSize;
-            manifestRepairs.updated += 1;
-            manifestChanged = true;
-          } else {
-            manifestRepairs.skipped += 1;
-          }
-        } else if (normalizedEntrySize !== entry.size) {
-          entry.size = normalizedEntrySize;
-          manifestRepairs.updated += 1;
+        if (repairManifestEntry(entry, updatedAt, effectiveSize, manifestRepairs)) {
           manifestChanged = true;
         }
       }
 
       if (repairSizes && blob && effectiveSize != null && effectiveSize !== normalizedSize) {
-        repairs.attempted += 1;
-        try {
-          const updated = await updateImageSize(db, image.imageId, effectiveSize);
-          if (updated) {
-            repairs.updated += 1;
-          } else {
-            repairs.skipped += 1;
-          }
-        } catch (err) {
-          repairs.failed += 1;
-        }
+        await repairImageSize(db, image.imageId, effectiveSize, repairs);
       }
 
-      if (!entry) {
-        reasons.push("missing_manifest");
-      } else {
-        if (entry.updatedAt < updatedAt) reasons.push("updated_at");
-        if (effectiveSize != null && entry.size !== effectiveSize) reasons.push("size_mismatch");
-        if (effectiveSize == null) reasons.push("size_unknown");
-      }
-
+      const reasons = collectUploadReasons(entry, updatedAt, effectiveSize);
       if (!reasons.length) continue;
 
       candidates.push({
@@ -333,6 +366,32 @@ export async function getS3ImageUploadPlan({ projectId, s3, config, repairSizes 
     basePrefix,
     repairs: repairSizes ? repairs : null,
     manifestRepairs: canRepairManifest ? manifestRepairs : null,
+  };
+}
+
+function shouldSkipSyncImage(entry, updatedAt, normalizedSize, blob) {
+  if (!entry || entry.updatedAt < updatedAt) return false;
+  if (normalizedSize != null) return entry.size === normalizedSize;
+  if (!blob) return true;
+  return entry.size === blob.size;
+}
+
+function buildManifestEntry(image, projectId, rawKey, blob, normalizedSize, contentLength, updatedAt) {
+  return {
+    imageId: image.imageId,
+    projectId,
+    rawKey,
+    mimeType: image.mimeType || blob.type || "application/octet-stream",
+    size: normalizedSize ?? contentLength ?? null,
+    updatedAt,
+    entityId: image.entityId || null,
+    entityKind: image.entityKind || null,
+    entityName: image.entityName || null,
+    imageType: image.imageType || "entity",
+    chronicleId: image.chronicleId || null,
+    imageRefId: image.imageRefId || null,
+    generatedAt: image.generatedAt || null,
+    model: image.model || null,
   };
 }
 
@@ -373,33 +432,20 @@ export async function syncProjectImagesToS3({ projectId, s3, config, onProgress 
     const normalizedSize = normalizeImageSize(image.size);
 
     let blob = null;
-    let contentLength = null;
-
-    if (entry && entry.updatedAt >= updatedAt) {
-      if (normalizedSize != null) {
-        if (entry.size === normalizedSize) {
-          continue;
-        }
-      } else {
-        blob = await getImageBlob(image.imageId);
-        if (!blob) continue;
-        contentLength = blob.size;
-        if (entry.size === contentLength) {
-          continue;
-        }
-      }
+    if (entry && entry.updatedAt >= updatedAt && normalizedSize == null) {
+      blob = await getImageBlob(image.imageId);
     }
+
+    if (shouldSkipSyncImage(entry, updatedAt, normalizedSize, blob)) continue;
 
     if (!blob) {
       blob = await getImageBlob(image.imageId);
       if (!blob) continue;
-      contentLength = blob.size;
     }
 
     const buffer = await blob.arrayBuffer();
     const body = new Uint8Array(buffer);
-    const bodyLength = body.byteLength;
-    contentLength = bodyLength;
+    const contentLength = body.byteLength;
 
     const rawKey = toS3Key(basePrefix, rawPrefix, projectId, image.imageId);
     const tagging = buildTagging({ ...image, projectId, savedAt: updatedAt });
@@ -416,22 +462,9 @@ export async function syncProjectImagesToS3({ projectId, s3, config, onProgress 
       })
     );
 
-    existing[image.imageId] = {
-      imageId: image.imageId,
-      projectId,
-      rawKey,
-      mimeType: image.mimeType || blob.type || "application/octet-stream",
-      size: normalizedSize ?? contentLength ?? null,
-      updatedAt,
-      entityId: image.entityId || null,
-      entityKind: image.entityKind || null,
-      entityName: image.entityName || null,
-      imageType: image.imageType || "entity",
-      chronicleId: image.chronicleId || null,
-      imageRefId: image.imageRefId || null,
-      generatedAt: image.generatedAt || null,
-      model: image.model || null,
-    };
+    existing[image.imageId] = buildManifestEntry(
+      image, projectId, rawKey, blob, normalizedSize, contentLength, updatedAt
+    );
 
     uploaded += 1;
     if (onProgress) {
@@ -451,12 +484,14 @@ export function buildStorageImageUrl(storage, variant, imageId) {
   if (!storage || !imageId) return null;
   const basePrefix = storage.basePrefix || "";
   const projectId = storage.projectId || "";
-  const prefix =
-    variant === "raw"
-      ? storage.rawPrefix
-      : variant === "thumb"
-        ? storage.thumbPrefix
-        : storage.webpPrefix;
+  let prefix;
+  if (variant === "raw") {
+    prefix = storage.rawPrefix;
+  } else if (variant === "thumb") {
+    prefix = storage.thumbPrefix;
+  } else {
+    prefix = storage.webpPrefix;
+  }
   const filename = variant === "raw" ? imageId : `${imageId}.webp`;
   const path = toS3Key(basePrefix, prefix, projectId, filename);
   return `/${path}`;

@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { ReferenceDropdown, NumberInput } from "./index";
 import TagSelector from "@penguin-tales/shared-components/TagSelector";
 import { MUTATION_TYPE_META, MUTATION_TYPE_ORDER } from "../actions/constants";
@@ -177,8 +178,9 @@ export function MutationCard({
                   placeholder="Select pressure..."
                 />
                 <div className="form-group">
-                  <label className="label">Delta</label>
+                  <label className="label">Delta
                   <NumberInput value={mutation.delta} onChange={(v) => update("delta", v ?? 0)} />
+                  </label>
                 </div>
               </>
             )}
@@ -193,7 +195,7 @@ export function MutationCard({
                   placeholder="Select entity..."
                 />
                 <div className="form-group">
-                  <label className="label">Tag</label>
+                  <label className="label">Tag
                   <TagSelector
                     value={mutation.tag ? [mutation.tag] : []}
                     onChange={(tags) => update("tag", tags[0] || "")}
@@ -201,6 +203,7 @@ export function MutationCard({
                     placeholder="Select tag..."
                     singleSelect
                   />
+                  </label>
                 </div>
               </>
             )}
@@ -208,8 +211,8 @@ export function MutationCard({
             {mutation.type === "set_tag" && (
               <>
                 <div className="form-group">
-                  <label className="label">Value (optional)</label>
-                  <input
+                  <label htmlFor="value-optional" className="label">Value (optional)</label>
+                  <input id="value-optional"
                     type="text"
                     value={mutation.value !== undefined ? String(mutation.value) : ""}
                     onChange={(e) => update("value", parseTagValue(e.target.value))}
@@ -219,8 +222,8 @@ export function MutationCard({
                   />
                 </div>
                 <div className="form-group">
-                  <label className="label">Value Source (optional)</label>
-                  <input
+                  <label htmlFor="value-source-optional" className="label">Value Source (optional)</label>
+                  <input id="value-source-optional"
                     type="text"
                     value={mutation.valueFrom || ""}
                     onChange={(e) => update("valueFrom", e.target.value || undefined)}
@@ -241,8 +244,8 @@ export function MutationCard({
                   placeholder="Select entity..."
                 />
                 <div className="form-group">
-                  <label className="label">New Status</label>
-                  <input
+                  <label htmlFor="new-status" className="label">New Status</label>
+                  <input id="new-status"
                     type="text"
                     value={mutation.newStatus || ""}
                     onChange={(e) => update("newStatus", e.target.value || undefined)}
@@ -263,12 +266,13 @@ export function MutationCard({
                   placeholder="Select entity..."
                 />
                 <div className="form-group">
-                  <label className="label">Delta</label>
+                  <label className="label">Delta
                   <NumberInput
                     value={mutation.delta}
                     onChange={(v) => update("delta", v ?? 0)}
                     placeholder="e.g., 0.25 or -0.15"
                   />
+                  </label>
                 </div>
               </>
             )}
@@ -297,7 +301,7 @@ export function MutationCard({
                   placeholder="Select destination..."
                 />
                 <div className="form-group">
-                  <label className="label">Strength</label>
+                  <label className="label">Strength
                   <NumberInput
                     value={mutation.strength}
                     onChange={(v) => update("strength", v)}
@@ -305,10 +309,11 @@ export function MutationCard({
                     max={1}
                     allowEmpty
                   />
+                  </label>
                 </div>
                 <div className="form-group">
-                  <label className="label">Category (optional)</label>
-                  <input
+                  <label htmlFor="category-optional" className="label">Category (optional)</label>
+                  <input id="category-optional"
                     type="text"
                     value={mutation.category || ""}
                     onChange={(e) => update("category", e.target.value || undefined)}
@@ -354,8 +359,9 @@ export function MutationCard({
                   placeholder="Select destination..."
                 />
                 <div className="form-group">
-                  <label className="label">Delta</label>
+                  <label className="label">Delta
                   <NumberInput value={mutation.delta} onChange={(v) => update("delta", v ?? 0)} />
+                  </label>
                 </div>
                 <div className="form-group">
                   <label className="checkbox-label">
@@ -483,8 +489,8 @@ export function MutationCard({
                   options={DIRECTION_OPTIONS}
                 />
                 <div className="form-group">
-                  <label className="label">Target Kind (optional)</label>
-                  <input
+                  <label htmlFor="target-kind-optional" className="label">Target Kind (optional)</label>
+                  <input id="target-kind-optional"
                     type="text"
                     value={mutation.targetKind || ""}
                     onChange={(e) => update("targetKind", e.target.value || undefined)}
@@ -493,8 +499,8 @@ export function MutationCard({
                   />
                 </div>
                 <div className="form-group">
-                  <label className="label">Target Subtype (optional)</label>
-                  <input
+                  <label htmlFor="target-subtype-optional" className="label">Target Subtype (optional)</label>
+                  <input id="target-subtype-optional"
                     type="text"
                     value={mutation.targetSubtype || ""}
                     onChange={(e) => update("targetSubtype", e.target.value || undefined)}
@@ -672,5 +678,17 @@ export function MutationCard({
     </div>
   );
 }
+
+MutationCard.propTypes = {
+  mutation: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+  entityOptions: PropTypes.array,
+  typeOptions: PropTypes.array,
+  createMutation: PropTypes.func,
+  titlePrefix: PropTypes.string,
+};
 
 export default MutationCard;

@@ -37,7 +37,7 @@ export default function ChronicleIndex({
   eraNarrativePages = [],
   filter,
   onNavigate,
-}: ChronicleIndexProps) {
+}: Readonly<ChronicleIndexProps>) {
   const [sortMode, setSortMode] = useState("era_asc");
 
   const filtered = useMemo(() => {
@@ -165,31 +165,39 @@ export default function ChronicleIndex({
     return chronicle?.chronicle?.temporalContext?.focalEra?.name || "Unknown Era";
   }, [chronicles, filter]);
 
-  const heading =
-    filter.kind === "format"
-      ? filter.format === "story"
-        ? "Stories"
-        : "Documents"
-      : filter.kind === "type"
-        ? `${formatChronicleSubtype(filter.typeId)} Chronicles`
-        : filter.kind === "era"
-          ? filter.format === "story"
-            ? `Stories: ${eraName}`
-            : filter.format === "document"
-              ? `Documents: ${eraName}`
-              : `Chronicles: ${eraName}`
-          : "Chronicles";
+  let heading: string;
+  if (filter.kind === "format") {
+    heading = filter.format === "story" ? "Stories" : "Documents";
+  } else if (filter.kind === "type") {
+    heading = `${formatChronicleSubtype(filter.typeId)} Chronicles`;
+  } else if (filter.kind === "era") {
+    if (filter.format === "story") {
+      heading = `Stories: ${eraName}`;
+    } else if (filter.format === "document") {
+      heading = `Documents: ${eraName}`;
+    } else {
+      heading = `Chronicles: ${eraName}`;
+    }
+  } else {
+    heading = "Chronicles";
+  }
 
-  const description =
-    filter.kind === "all"
-      ? "Accepted chronicles from Illuminator."
-      : filter.kind === "format"
-        ? `Accepted ${filter.format === "story" ? "stories" : "documents"} from Illuminator.`
-        : filter.kind === "era"
-          ? filter.format
-            ? `${filter.format === "story" ? "Stories" : "Documents"} set during the ${eraName}.`
-            : `Chronicles set during the ${eraName}.`
-          : `Accepted chronicles of type ${formatChronicleSubtype(filter.typeId)}.`;
+  let description: string;
+  if (filter.kind === "all") {
+    description = "Accepted chronicles from Illuminator.";
+  } else if (filter.kind === "format") {
+    const formatLabel = filter.format === "story" ? "stories" : "documents";
+    description = `Accepted ${formatLabel} from Illuminator.`;
+  } else if (filter.kind === "era") {
+    if (filter.format) {
+      const eraFormatLabel = filter.format === "story" ? "Stories" : "Documents";
+      description = `${eraFormatLabel} set during the ${eraName}.`;
+    } else {
+      description = `Chronicles set during the ${eraName}.`;
+    }
+  } else {
+    description = `Accepted chronicles of type ${formatChronicleSubtype(filter.typeId)}.`;
+  }
 
   if (sorted.length === 0) {
     return (

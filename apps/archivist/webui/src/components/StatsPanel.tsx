@@ -1,5 +1,6 @@
 import type { WorldState } from "../types/world.ts";
 import "./StatsPanel.css";
+import React from "react";
 
 interface StatsPanelProps {
   worldData: WorldState;
@@ -7,7 +8,7 @@ interface StatsPanelProps {
   onToggle: () => void;
 }
 
-export default function StatsPanel({ worldData, isOpen, onToggle }: StatsPanelProps) {
+export default function StatsPanel({ worldData, isOpen, onToggle }: Readonly<StatsPanelProps>) {
   const { pressures, validation } = worldData;
 
   // Get pressure entries and sort by value
@@ -74,14 +75,16 @@ export default function StatsPanel({ worldData, isOpen, onToggle }: StatsPanelPr
                   const clamped = Math.max(-100, Math.min(100, value));
                   const percentage = (clamped + 100) / 2; // -100..100 → 0..100
                   const magnitude = Math.abs(clamped);
-                  const intensity =
-                    magnitude >= 75
-                      ? "high"
-                      : magnitude >= 50
-                        ? "medium"
-                        : magnitude >= 25
-                          ? "low"
-                          : "minimal";
+                  let intensity: string;
+                  if (magnitude >= 75) {
+                    intensity = "high";
+                  } else if (magnitude >= 50) {
+                    intensity = "medium";
+                  } else if (magnitude >= 25) {
+                    intensity = "low";
+                  } else {
+                    intensity = "minimal";
+                  }
                   return (
                     <div key={name} className="pressure-item">
                       <div className="pressure-header">

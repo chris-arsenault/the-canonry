@@ -297,7 +297,7 @@ export function useBulkBackport(deps: {
     setProgress((p) => ({ ...p, status: "running", entitySummary: undefined }));
 
     // Run the async processing loop
-    (async () => {
+    void (async () => {
       try {
         const { simulationRunId, projectId, chronicleContexts } = scan;
 

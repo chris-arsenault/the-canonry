@@ -85,7 +85,7 @@ function getRecord<T>(db: IDBDatabase, storeName: string, key: IDBValidKey): Pro
     const tx = db.transaction(storeName, 'readonly');
     const request = tx.objectStore(storeName).get(key);
     request.onsuccess = () => resolve((request.result as T) ?? null);
-    request.onerror = () => reject(request.error);
+    request.onerror = () => reject(new Error(request.error?.message ?? 'IDB get failed'));
   });
 }
 
@@ -118,12 +118,12 @@ function getAllByIndex<T>(
         resolve(results);
       }
     };
-    request.onerror = () => reject(request.error);
+    request.onerror = () => reject(new Error(request.error?.message ?? 'IDB cursor failed'));
   });
 }
 
 function stripSimulationRunId<T extends { simulationRunId?: string }>(record: T): Omit<T, 'simulationRunId'> {
-  const { simulationRunId: _omit, ...rest } = record;
+  const { simulationRunId: _omit, ...rest } = record; // eslint-disable-line sonarjs/no-unused-vars
   return rest;
 }
 
@@ -246,7 +246,7 @@ export async function buildWorldStateForSlot(
       entityCount: entities.length,
       relationshipCount: relationships.length,
     },
-    hardState: entities as WorldEntity[],
+    hardState: entities,
     relationships,
     pressures: {},
     narrativeHistory: narrativeHistory.length > 0 ? narrativeHistory : undefined,

@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -17,6 +18,10 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
  * @param {boolean} [props.searchable] - Whether to show search input (default true)
  * @param {string} [props.className] - Additional class names
  */
+const styles = {
+  disabled: { opacity: 0.5, cursor: 'not-allowed' },
+};
+
 export function SearchableDropdown({
   items,
   onSelect,
@@ -57,7 +62,7 @@ export function SearchableDropdown({
 
   if (items.length === 0) {
     return (
-      <div className={`dropdown-trigger ${className}`.trim()} style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+      <div className={`dropdown-trigger ${className}`.trim()} style={styles.disabled}>
         <span>{emptyMessage}</span>
       </div>
     );
@@ -65,7 +70,7 @@ export function SearchableDropdown({
 
   return (
     <div ref={containerRef} className={`dropdown ${className}`.trim()}>
-      <div className="dropdown-trigger" onClick={() => setIsOpen(!isOpen)}>
+      <div className="dropdown-trigger" onClick={() => setIsOpen(!isOpen)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
         <span>{placeholder}</span>
         <span className="dropdown-arrow">▼</span>
       </div>
@@ -80,6 +85,7 @@ export function SearchableDropdown({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
+                // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
               />
             </div>
@@ -93,6 +99,9 @@ export function SearchableDropdown({
                   key={item.id}
                   className="dropdown-option"
                   onClick={() => handleSelect(item)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
                   {item.name || item.id}
                 </div>
@@ -104,3 +113,13 @@ export function SearchableDropdown({
     </div>
   );
 }
+
+SearchableDropdown.propTypes = {
+  items: PropTypes.array.isRequired,
+  onSelect: PropTypes.func.isRequired,
+  placeholder: PropTypes.string,
+  emptyMessage: PropTypes.string,
+  noMatchMessage: PropTypes.string,
+  searchable: PropTypes.bool,
+  className: PropTypes.string,
+};

@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 
 export default function LogStream({ logs, onClear }) {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -25,7 +26,7 @@ export default function LogStream({ logs, onClear }) {
 
   return (
     <div className="lw-log-panel">
-      <div className="lw-log-header" onClick={() => setIsExpanded(!isExpanded)}>
+      <div className="lw-log-header" onClick={() => setIsExpanded(!isExpanded)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--lw-text-primary)" }}>
             {isExpanded ? "▼" : "▶"} Log Stream
@@ -79,3 +80,8 @@ export default function LogStream({ logs, onClear }) {
     </div>
   );
 }
+
+LogStream.propTypes = {
+  logs: PropTypes.array,
+  onClear: PropTypes.func,
+};

@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/cognitive-complexity */
 const INDENT = '  ';
 const KEYWORDS = new Set(['do', 'end', 'true', 'false', 'null']);
 const IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_-]*$/;
@@ -271,7 +272,7 @@ function formatNamingResourceBlocks(resources: NamingResourceBuckets): string[] 
   const blocks: string[] = [];
 
   const sortById = (items: Record<string, unknown>[]) =>
-    items.sort((a, b) => {
+    [...items].sort((a, b) => {
       const aId = typeof a.id === 'string' ? a.id : '';
       const bId = typeof b.id === 'string' ? b.id : '';
       return aId.localeCompare(bId);
@@ -389,7 +390,7 @@ export function serializeCanonProject(
     }
 
     if (def.block === 'seed_relationship') {
-      const blocks = formatSeedRelationshipGroups(items.filter(isRecord) as Record<string, unknown>[]);
+      const blocks = formatSeedRelationshipGroups(items.filter(isRecord));
       files.push({
         path: def.file,
         content: blocks.join('\n\n')
@@ -410,7 +411,7 @@ export function serializeCanonProject(
     const blocks: string[] = [];
     const namingBlocks =
       def.block === 'culture'
-        ? formatNamingResourceBlocks(collectNamingResourcesFromCultures(items.filter(isRecord) as Record<string, unknown>[]))
+        ? formatNamingResourceBlocks(collectNamingResourcesFromCultures(items.filter(isRecord)))
         : null;
     for (const item of items) {
       if (!isRecord(item)) continue;
@@ -527,9 +528,9 @@ export function serializeCanonStaticPages(
     if (page.seedId !== undefined) {
       pushAttributeLine(blockLines, 'seedId', page.seedId, 1);
       delete remaining.seedId;
-    } else if ((remaining as Record<string, unknown>).seed_id !== undefined) {
-      pushAttributeLine(blockLines, 'seedId', (remaining as Record<string, unknown>).seed_id, 1);
-      delete (remaining as Record<string, unknown>).seed_id;
+    } else if ((remaining).seed_id !== undefined) {
+      pushAttributeLine(blockLines, 'seedId', (remaining).seed_id, 1);
+      delete (remaining).seed_id;
     }
 
     if (page.summary !== undefined) {
@@ -916,7 +917,7 @@ function formatMetricBlock(value: unknown, indentLevel: number): string[] | null
       delete remaining.viaRelationship;
     }
     if (isRecord(remaining.via)) {
-      const via = remaining.via as Record<string, unknown>;
+      const via = remaining.via;
       const relationshipKind = via.relationshipKind;
       const direction = via.direction;
       const intermediateKind = via.intermediateKind;
@@ -1485,7 +1486,7 @@ function formatConnectionEvolutionSystem(config: Record<string, unknown>, indent
     lines.push(`${indent(indentLevel)}pair_component_limit ${remaining.pairComponentSizeLimit}`);
     delete remaining.pairComponentSizeLimit;
   } else if (isRecord(remaining.pairComponentSizeLimit)) {
-    const limit = remaining.pairComponentSizeLimit as Record<string, unknown>;
+    const limit = remaining.pairComponentSizeLimit;
     const kinds = Array.isArray(limit.relationshipKinds) ? limit.relationshipKinds : null;
     const max = limit.max;
     if (kinds && typeof max === 'number') {
@@ -1620,7 +1621,7 @@ function formatGraphContagionSystem(config: Record<string, unknown>, indentLevel
   }
 
   if (isRecord(remaining.contagion)) {
-    const contagion = remaining.contagion as Record<string, unknown>;
+    const contagion = remaining.contagion;
     if (contagion.type === 'tag' && typeof contagion.tag === 'string') {
       lines.push(`${indent(indentLevel)}contagion tag ${formatLabel(contagion.tag)}`);
       delete remaining.contagion;
@@ -1646,7 +1647,7 @@ function formatGraphContagionSystem(config: Record<string, unknown>, indentLevel
   }
 
   if (isRecord(remaining.transmission)) {
-    const transmission = remaining.transmission as Record<string, unknown>;
+    const transmission = remaining.transmission;
     if (typeof transmission.baseRate === 'number'
       && typeof transmission.contactMultiplier === 'number'
       && typeof transmission.maxProbability === 'number'
@@ -1666,7 +1667,7 @@ function formatGraphContagionSystem(config: Record<string, unknown>, indentLevel
   }
 
   if (isRecord(remaining.recovery)) {
-    const recovery = remaining.recovery as Record<string, unknown>;
+    const recovery = remaining.recovery;
     const recoveryLines: string[] = [`${indent(indentLevel)}recovery do`];
     const innerIndent = indentLevel + 1;
     if (recovery.baseRate !== undefined) {
@@ -1777,14 +1778,14 @@ function formatPlaneDiffusionSystem(config: Record<string, unknown>, indentLevel
   }
 
   if (isRecord(remaining.sources)) {
-    const sources = remaining.sources as Record<string, unknown>;
+    const sources = remaining.sources;
     if (typeof sources.tagFilter === 'string' && typeof sources.defaultStrength === 'number') {
       lines.push(`${indent(indentLevel)}sources ${formatLabel(sources.tagFilter)} ${sources.defaultStrength}`);
       delete remaining.sources;
     }
   }
   if (isRecord(remaining.sinks)) {
-    const sinks = remaining.sinks as Record<string, unknown>;
+    const sinks = remaining.sinks;
     if (typeof sinks.tagFilter === 'string' && typeof sinks.defaultStrength === 'number') {
       lines.push(`${indent(indentLevel)}sinks ${formatLabel(sinks.tagFilter)} ${sinks.defaultStrength}`);
       delete remaining.sinks;
@@ -1792,7 +1793,7 @@ function formatPlaneDiffusionSystem(config: Record<string, unknown>, indentLevel
   }
 
   if (isRecord(remaining.diffusion)) {
-    const diffusion = remaining.diffusion as Record<string, unknown>;
+    const diffusion = remaining.diffusion;
     if (typeof diffusion.rate === 'number'
       && typeof diffusion.decayRate === 'number'
       && typeof diffusion.sourceRadius === 'number'
@@ -1887,7 +1888,7 @@ function formatTagDiffusionSystem(config: Record<string, unknown>, indentLevel: 
   }
 
   if (isRecord(remaining.divergencePressure)) {
-    const pressure = remaining.divergencePressure as Record<string, unknown>;
+    const pressure = remaining.divergencePressure;
     if (typeof pressure.pressureName === 'string'
       && typeof pressure.minDivergent === 'number'
       && typeof pressure.delta === 'number'
@@ -2072,7 +2073,7 @@ function formatVariantOptionBlock(option: Record<string, unknown>, indentLevel: 
 
   if (remaining.when !== undefined) {
     if (isRecord(remaining.when)) {
-      const blockLines = formatBlockBody('when', remaining.when as Record<string, unknown>, innerIndent);
+      const blockLines = formatBlockBody('when', remaining.when, innerIndent);
       if (blockLines) {
         lines.push(...blockLines);
       }
@@ -2991,7 +2992,7 @@ function formatBlock(name: string, labels: string[], body: Record<string, unknow
   return lines.join('\n');
 }
 
-function formatInlineItemBlock(
+function _formatInlineItemBlock(
   name: string,
   item: Record<string, unknown>,
   idKey: string,
@@ -3024,12 +3025,12 @@ function formatAxisLine(item: Record<string, unknown>): string | null {
   if (typeof id !== 'string') return null;
 
   const name = typeof item.name === 'string' ? item.name : null;
-  const lowTag = typeof item.lowTag === 'string'
-    ? item.lowTag
-    : (typeof item.low === 'string' ? item.low : null);
-  const highTag = typeof item.highTag === 'string'
-    ? item.highTag
-    : (typeof item.high === 'string' ? item.high : null);
+  let lowTag: string | null = null;
+  if (typeof item.lowTag === 'string') lowTag = item.lowTag;
+  else if (typeof item.low === 'string') lowTag = item.low;
+  let highTag: string | null = null;
+  if (typeof item.highTag === 'string') highTag = item.highTag;
+  else if (typeof item.high === 'string') highTag = item.high;
   const description = typeof item.description === 'string' ? item.description : null;
 
   const remaining = { ...item };
@@ -3462,7 +3463,7 @@ function formatPressureContractBlock(
   }
 
   if (isRecord(contract.equilibrium)) {
-    const equilibrium = contract.equilibrium as Record<string, unknown>;
+    const equilibrium = contract.equilibrium;
     lines.push(`${indent(indentLevel + 1)}equilibrium do`);
     const expectedRange = equilibrium.expectedRange;
     if (Array.isArray(expectedRange) && expectedRange.length === 2
@@ -3620,7 +3621,7 @@ function extractSetFieldItems(value: unknown): { items: string[]; none: boolean 
     return { items: [value], none: false };
   }
   if (Array.isArray(value)) {
-    const items = value.filter((entry) => typeof entry === 'string') as string[];
+    const items = value.filter((entry) => typeof entry === 'string');
     if (items.length !== value.length) return null;
     return { items, none: items.length === 0 };
   }
@@ -4113,7 +4114,14 @@ function formatSemanticPlaneBlock(plane: Record<string, unknown>, indentLevel: n
   const axes = plane.axes;
   const regions = plane.regions;
   const axesLine = isRecord(axes) ? formatAxesLine(axes, indentLevel + 1) : null;
-  const axesLines = axesLine ? [axesLine] : (isRecord(axes) ? formatAxesBlock(axes, indentLevel + 1) : null);
+  let axesLines: string[] | null;
+  if (axesLine) {
+    axesLines = [axesLine];
+  } else if (isRecord(axes)) {
+    axesLines = formatAxesBlock(axes, indentLevel + 1);
+  } else {
+    axesLines = null;
+  }
   const regionLines = Array.isArray(regions) ? formatRegionBlocks(regions, indentLevel + 1) : null;
   if (!axesLines && !regionLines) return null;
 
@@ -4169,7 +4177,7 @@ function formatRegionBlocks(regions: Record<string, unknown>[], indentLevel: num
   return lines;
 }
 
-function formatRegionsBlock(regions: Record<string, unknown>[], indentLevel: number): string[] | null {
+function _formatRegionsBlock(regions: Record<string, unknown>[], indentLevel: number): string[] | null {
   if (regions.length === 0) return null;
   const lines: string[] = [];
   for (const region of regions) {
@@ -4240,7 +4248,7 @@ function formatBoundsLine(bounds: Record<string, unknown>, indentLevel: number):
   }
 
   if (shape === 'rect') {
-    const { x1, y1, x2, y2 } = bounds as Record<string, unknown>;
+    const { x1, y1, x2, y2 } = bounds;
     if ([x1, y1, x2, y2].every((value) => typeof value === 'number')) {
       return `${indent(indentLevel)}bounds ${formatLabel(shape)} ${x1} ${y1} ${x2} ${y2}`;
     }
@@ -4284,7 +4292,7 @@ function formatBoundsBlock(bounds: Record<string, unknown>, indentLevel: number)
       return null;
     }
   } else if (shape === 'rect') {
-    const { x1, y1, x2, y2 } = bounds as Record<string, unknown>;
+    const { x1, y1, x2, y2 } = bounds;
     if ([x1, y1, x2, y2].every((value) => typeof value === 'number')) {
       lines.push(`${indent(indentLevel + 1)}x1 ${x1}`);
       lines.push(`${indent(indentLevel + 1)}y1 ${y1}`);
@@ -4462,7 +4470,7 @@ function formatEraBlock(item: Record<string, unknown>): string | null {
   return lines.join('\n');
 }
 
-function formatNamingBlock(naming: Record<string, unknown>, indentLevel: number): string[] {
+function _formatNamingBlock(naming: Record<string, unknown>, indentLevel: number): string[] {
   const lines = [`${indent(indentLevel)}naming do`];
   const remaining = { ...naming };
 
@@ -5015,7 +5023,7 @@ function formatGrammarBlock(grammar: Record<string, unknown>, indentLevel: numbe
   }
 
   const rulesValue = remaining.rules;
-  const rules = isRecord(rulesValue) ? (rulesValue as Record<string, unknown>) : null;
+  const rules = isRecord(rulesValue) ? (rulesValue) : null;
   delete remaining.rules;
 
   if (remaining.start !== undefined) {
@@ -5745,9 +5753,14 @@ function formatWhereStatement(value: unknown, indentLevel: number): string[] | n
   }
 
   if (type === 'component_size') {
-    const kindsRaw = Array.isArray(cleaned.relationshipKinds)
-      ? cleaned.relationshipKinds
-      : (cleaned.relationshipKind !== undefined ? [cleaned.relationshipKind] : null);
+    let kindsRaw: unknown[] | null;
+    if (Array.isArray(cleaned.relationshipKinds)) {
+      kindsRaw = cleaned.relationshipKinds;
+    } else if (cleaned.relationshipKind !== undefined) {
+      kindsRaw = [cleaned.relationshipKind];
+    } else {
+      kindsRaw = null;
+    }
     if (!kindsRaw || kindsRaw.length === 0) return null;
     const kinds = kindsRaw.map((entry) => formatLabel(String(entry)));
     const parts = [`${indent(indentLevel)}component_size`, ...kinds];
@@ -5889,8 +5902,7 @@ function formatSaturationLines(items: unknown[], indentLevel: number): string[] 
     let keyword = 'both';
     if (direction === 'in') keyword = 'inbound';
     else if (direction === 'out') keyword = 'outbound';
-    else if (direction === 'both' || direction === undefined) keyword = 'both';
-    else return null;
+    else if (direction !== 'both' && direction !== undefined) return null;
     if (typeof fromKind === 'string') {
       lines.push(`${indent(indentLevel)}${keyword} ${kind} ${fromKind} <= ${Math.floor(maxCount)}`);
     } else {
@@ -6133,7 +6145,7 @@ function formatBlockBody(name: string, body: Record<string, unknown>, indentLeve
   return lines;
 }
 
-function formatValueLines(value: unknown, indentLevel: number): string[] {
+function _formatValueLines(value: unknown, indentLevel: number): string[] {
   const inline = formatInlineValue(value);
   if (inline) {
     return [indent(indentLevel) + inline];
@@ -6141,7 +6153,7 @@ function formatValueLines(value: unknown, indentLevel: number): string[] {
   return [];
 }
 
-function formatArrayLines(items: unknown[], indentLevel: number): string[] {
+function _formatArrayLines(items: unknown[], indentLevel: number): string[] {
   const lines: string[] = [];
   for (const item of items) {
     const inline = formatInlineValue(item);
@@ -6152,7 +6164,7 @@ function formatArrayLines(items: unknown[], indentLevel: number): string[] {
   return lines;
 }
 
-function formatObjectLines(obj: Record<string, unknown>, indentLevel: number): string[] {
+function _formatObjectLines(obj: Record<string, unknown>, indentLevel: number): string[] {
   const lines: string[] = [];
   for (const [key, value] of Object.entries(obj)) {
     if (value === undefined) continue;
@@ -6187,7 +6199,7 @@ function formatAttributeKey(key: string): string {
   return quoteString(key);
 }
 
-function formatObjectKey(key: string): string {
+function _formatObjectKey(key: string): string {
   if (isIdentifier(key)) return key;
   return quoteString(key);
 }
@@ -6426,8 +6438,7 @@ function isInlineFriendlyValue(value: unknown): boolean {
   if (value === undefined) return true;
   if (value === null) return true;
   if (typeof value === 'string') {
-    if (value.includes('\n') || value.includes('\r')) return false;
-    return true;
+    return !value.includes('\n') && !value.includes('\r');
   }
   if (typeof value === 'number' || typeof value === 'boolean') return true;
   if (isCallValue(value)) return true;

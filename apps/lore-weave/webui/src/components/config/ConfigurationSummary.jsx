@@ -5,14 +5,15 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 
 export default function ConfigurationSummary({
   schema,
   eras,
   pressures,
   generators,
-  seedEntities,
-  seedRelationships,
+  seedEntities: _seedEntities,
+  seedRelationships: _seedRelationships,
   validation,
   onNavigateToRun,
 }) {
@@ -184,3 +185,24 @@ function StatCard({ label, value }) {
     </div>
   );
 }
+
+StatCard.propTypes = {
+  label: PropTypes.string,
+  value: PropTypes.number,
+};
+
+ConfigurationSummary.propTypes = {
+  schema: PropTypes.object,
+  eras: PropTypes.array,
+  pressures: PropTypes.array,
+  generators: PropTypes.array,
+  seedEntities: PropTypes.array,
+  seedRelationships: PropTypes.array,
+  validation: PropTypes.shape({
+    isValid: PropTypes.bool,
+    issues: PropTypes.array,
+    warnings: PropTypes.array,
+    stats: PropTypes.object,
+  }),
+  onNavigateToRun: PropTypes.func,
+};

@@ -15,29 +15,29 @@ const PILL_ID = "interleaved-annotation";
 
 export default function InterleavedAnnotationModal({ progress, onConfirm, onCancel, onClose }) {
   const isMinimized = useFloatingPillStore((s) => s.isMinimized(PILL_ID));
+  const progressStatus = progress?.status;
+  const processedItems = progress?.processedItems;
+  const totalItems = progress?.totalItems;
 
   useEffect(() => {
     if (!isMinimized || !progress) return;
-    const statusColor =
-      progress.status === "running"
-        ? "#f59e0b"
-        : progress.status === "complete"
-          ? "#10b981"
-          : progress.status === "failed"
-            ? "#ef4444"
-            : "#6b7280";
+    let statusColor;
+    if (progressStatus === "running") statusColor = "#f59e0b";
+    else if (progressStatus === "complete") statusColor = "#10b981";
+    else if (progressStatus === "failed") statusColor = "#ef4444";
+    else statusColor = "#6b7280";
     const statusText =
-      progress.status === "running"
-        ? `${progress.processedItems}/${progress.totalItems}`
-        : progress.status;
+      progressStatus === "running"
+        ? `${processedItems}/${totalItems}`
+        : progressStatus;
     useFloatingPillStore.getState().updatePill(PILL_ID, { statusText, statusColor });
-  }, [isMinimized, progress?.status, progress?.processedItems]);
+  }, [isMinimized, progress, progressStatus, processedItems, totalItems]);
 
   useEffect(() => {
-    if (!progress || progress.status === "idle") {
+    if (!progress || progressStatus === "idle") {
       useFloatingPillStore.getState().remove(PILL_ID);
     }
-  }, [progress?.status]);
+  }, [progress, progressStatus]);
 
   if (!progress || progress.status === "idle") return null;
   if (isMinimized) return null;
@@ -73,12 +73,11 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
                         progress.status === "running"
                           ? `${progress.processedItems}/${progress.totalItems}`
                           : progress.status,
-                      statusColor:
-                        progress.status === "running"
-                          ? "#f59e0b"
-                          : progress.status === "complete"
-                            ? "#10b981"
-                            : "#ef4444",
+                      statusColor: (() => {
+                        if (progress.status === "running") return "#f59e0b";
+                        if (progress.status === "complete") return "#10b981";
+                        return "#ef4444";
+                      })(),
                     })
                   }
                   className="illuminator-button iam-minimize-btn"
@@ -91,14 +90,12 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
                 className="iam-status-text"
                 // eslint-disable-next-line local/no-inline-styles -- dynamic status color based on progress.status
                 style={{
-                  "--iam-status-color":
-                    progress.status === "complete"
-                      ? "#10b981"
-                      : progress.status === "failed"
-                        ? "#ef4444"
-                        : progress.status === "cancelled"
-                          ? "#f59e0b"
-                          : "var(--text-muted)",
+                  "--iam-status-color": (() => {
+                    if (progress.status === "complete") return "#10b981";
+                    if (progress.status === "failed") return "#ef4444";
+                    if (progress.status === "cancelled") return "#f59e0b";
+                    return "var(--text-muted)";
+                  })(),
                 }}
               >
                 {isConfirming && `${progress.totalItems} items`}
@@ -183,12 +180,11 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
                     className="iam-progress-fill"
                     // eslint-disable-next-line local/no-inline-styles -- dynamic progress width and color from JS variables
                     style={{
-                      "--iam-progress-bg":
-                        progress.status === "failed"
-                          ? "#ef4444"
-                          : progress.status === "cancelled"
-                            ? "#f59e0b"
-                            : "#10b981",
+                      "--iam-progress-bg": (() => {
+                        if (progress.status === "failed") return "#ef4444";
+                        if (progress.status === "cancelled") return "#f59e0b";
+                        return "#10b981";
+                      })(),
                       "--iam-progress-width": `${globalPercent}%`,
                     }}
                   />
@@ -309,3 +305,10 @@ export default function InterleavedAnnotationModal({ progress, onConfirm, onCanc
     </div>
   );
 }
+
+InterleavedAnnotationModal.propTypes = {
+  progress: PropTypes.object,
+  onConfirm: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+};

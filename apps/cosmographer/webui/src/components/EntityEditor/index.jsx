@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { generateEntityName } from "../../lib/name-generator.js";
 import {
   TagSelector,
@@ -422,6 +423,9 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
                   ...(selectedEntityId === entity.id ? styles.entityItemSelected : {}),
                 }}
                 onClick={() => setSelectedEntityId(entity.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
               >
                 <div
                   style={{
@@ -469,13 +473,11 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
                   }}
                   onClick={handleGenerateName}
                   disabled={!canGenerateName() || generating}
-                  title={
-                    !selectedEntity.culture
-                      ? "Select a culture first"
-                      : !canGenerateName()
-                        ? "Configure naming in Name Forge first"
-                        : "Generate a culturally-appropriate name"
-                  }
+                  title={(() => {
+                    if (!selectedEntity.culture) return "Select a culture first";
+                    if (!canGenerateName()) return "Configure naming in Name Forge first";
+                    return "Generate a culturally-appropriate name";
+                  })()}
                 >
                   {generating ? "Generating..." : "Generate"}
                 </button>
@@ -489,8 +491,8 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
 
             <div style={styles.row}>
               <div style={{ ...styles.formGroup, flex: 1 }}>
-                <label style={styles.label}>Kind</label>
-                <select
+                <label htmlFor="kind" style={styles.label}>Kind</label>
+                <select id="kind"
                   style={styles.select}
                   value={selectedEntity.kind}
                   onChange={(e) => updateEntity({ kind: e.target.value })}
@@ -504,8 +506,8 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
               </div>
 
               <div style={{ ...styles.formGroup, flex: 1 }}>
-                <label style={styles.label}>Subtype</label>
-                <select
+                <label htmlFor="subtype" style={styles.label}>Subtype</label>
+                <select id="subtype"
                   style={styles.select}
                   value={selectedEntity.subtype || ""}
                   onChange={(e) => updateEntity({ subtype: e.target.value })}
@@ -522,8 +524,8 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
 
             <div style={styles.row}>
               <div style={{ ...styles.formGroup, flex: 1 }}>
-                <label style={styles.label}>Status</label>
-                <select
+                <label htmlFor="status" style={styles.label}>Status</label>
+                <select id="status"
                   style={styles.select}
                   value={selectedEntity.status}
                   onChange={(e) => updateEntity({ status: e.target.value })}
@@ -537,8 +539,8 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
               </div>
 
               <div style={{ ...styles.formGroup, flex: 1 }}>
-                <label style={styles.label}>Culture</label>
-                <select
+                <label htmlFor="culture" style={styles.label}>Culture</label>
+                <select id="culture"
                   style={styles.select}
                   value={selectedEntity.culture || ""}
                   onChange={(e) => updateEntity({ culture: e.target.value })}
@@ -554,8 +556,8 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Prominence</label>
-              <select
+              <label htmlFor="prominence" style={styles.label}>Prominence</label>
+              <select id="prominence"
                 style={styles.select}
                 value={selectedEntity.prominence ?? 2.0}
                 onChange={(e) => updateEntity({ prominence: parseFloat(e.target.value) })}
@@ -569,7 +571,7 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Tags</label>
+              <label style={styles.label}>Tags
               <TagSelector
                 value={getTagsAsArray()}
                 onChange={handleTagsChange}
@@ -577,11 +579,12 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
                 placeholder="Select tags..."
                 onAddToRegistry={onAddTag}
               />
+              </label>
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Summary</label>
-              <textarea
+              <label htmlFor="summary" style={styles.label}>Summary</label>
+              <textarea id="summary"
                 style={styles.textarea}
                 value={
                   selectedEntity.summary ??
@@ -622,3 +625,10 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
     </div>
   );
 }
+
+EntityEditor.propTypes = {
+  project: PropTypes.object,
+  onSave: PropTypes.func.isRequired,
+  onAddTag: PropTypes.func,
+  schemaUsage: PropTypes.object,
+};

@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
+import PropTypes from "prop-types";
 
 /**
  * Generate a unique ID with culture prefix, avoiding conflicts
@@ -93,6 +94,9 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
       className="modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div className="modal-content copy-modal">
         <div className="tab-header mb-md">
@@ -104,8 +108,8 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
 
         <div className="copy-modal-body">
           <div className="form-group">
-            <label>Source Culture</label>
-            <select
+            <label htmlFor="source-culture">Source Culture</label>
+            <select id="source-culture"
               value={selectedCulture || ""}
               onChange={(e) => {
                 setSelectedCulture(e.target.value || null);
@@ -136,6 +140,7 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
               </div>
               <div className="copy-list-grid">
                 {selectedCultureLists.map(([listId, list]) => (
+                  // eslint-disable-next-line jsx-a11y/label-has-associated-control
                   <label key={listId} className="copy-list-item">
                     <input
                       type="checkbox"
@@ -166,7 +171,7 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
                 Will Copy {selectedLists.size} List{selectedLists.size > 1 ? "s" : ""}
               </h4>
               <p className="text-small text-muted">
-                Lists will be renamed with "{cultureId}_" prefix.
+                Lists will be renamed with &quot;{cultureId}_&quot; prefix.
               </p>
             </div>
           )}
@@ -178,12 +183,22 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
           </button>
           <button className="primary" onClick={handleCopy} disabled={selectedLists.size === 0}>
             Copy{" "}
-            {selectedLists.size > 0
-              ? `${selectedLists.size} List${selectedLists.size > 1 ? "s" : ""}`
-              : "Lists"}
+            {(() => {
+              if (selectedLists.size === 0) return "Lists";
+              const plural = selectedLists.size > 1 ? "s" : "";
+              return `${selectedLists.size} List${plural}`;
+            })()}
           </button>
         </div>
       </div>
     </div>
   );
 }
+
+CopyLexemeModal.propTypes = {
+  cultureId: PropTypes.string,
+  allCultures: PropTypes.object,
+  existingListIds: PropTypes.array,
+  onCopy: PropTypes.func,
+  onClose: PropTypes.func,
+};

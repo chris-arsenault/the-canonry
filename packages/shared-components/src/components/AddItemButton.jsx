@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -20,3 +21,9 @@ export function AddItemButton({ onClick, label = 'Add Item', className = '' }) {
     </button>
   );
 }
+
+AddItemButton.propTypes = {
+  onClick: PropTypes.func.isRequired,
+  label: PropTypes.string,
+  className: PropTypes.string,
+};

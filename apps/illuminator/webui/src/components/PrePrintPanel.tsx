@@ -23,6 +23,8 @@ import StatsView from "./preprint/StatsView";
 import ContentTreeView from "./preprint/ContentTreeView";
 import ExportView from "./preprint/ExportView";
 
+const emptyStateStyle = { padding: "var(--space-lg)", color: "var(--text-secondary)" } as const;
+
 type SubTab = "stats" | "tree" | "export";
 
 interface PrePrintPanelProps {
@@ -30,7 +32,7 @@ interface PrePrintPanelProps {
   simulationRunId: string;
 }
 
-export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPanelProps) {
+export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<PrePrintPanelProps>) {
   const navEntities = useEntityNavList();
   const [activeSubTab, setActiveSubTab] = useState<SubTab>("stats");
   const [fullEntities, setFullEntities] = useState<PersistedEntity[]>([]);
@@ -49,7 +51,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
 
     let cancelled = false;
 
-    Promise.all([
+    void Promise.all([
       getChroniclesForSimulation(simulationRunId),
       getAllImages(),
       getStaticPagesForProject(projectId),
@@ -75,7 +77,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
 
   const handleTreeChange = useCallback((newTree: ContentTreeState) => {
     setTreeState(newTree);
-    saveTree(newTree);
+    void saveTree(newTree);
   }, []);
 
   // Era order map: eraId → sort index (by startTick)
@@ -146,7 +148,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
 
   if (loading) {
     return (
-      <div style={{ padding: "var(--space-lg)", color: "var(--text-secondary)" }}>
+      <div style={emptyStateStyle}>
         Loading pre-print data...
       </div>
     );
@@ -154,7 +156,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
 
   if (!projectId || !simulationRunId) {
     return (
-      <div style={{ padding: "var(--space-lg)", color: "var(--text-secondary)" }}>
+      <div style={emptyStateStyle}>
         No active project. Load a simulation run to use pre-print features.
       </div>
     );

@@ -3,6 +3,7 @@
  */
 
 import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import { SYSTEM_TYPES } from "../constants";
 import { ErrorBadge, OrphanBadge, EraBadges, EnableToggle } from "../../shared";
 import { getElementValidation } from "../../shared";
@@ -48,7 +49,7 @@ export function SystemListCard({ system, onClick, onToggle, usageMap }) {
     .join(" ");
 
   return (
-    <div className={cardClassName} onClick={onClick}>
+    <div className={cardClassName} onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(e); }} >
       <div className="card-header">
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -86,3 +87,10 @@ export function SystemListCard({ system, onClick, onToggle, usageMap }) {
     </div>
   );
 }
+
+SystemListCard.propTypes = {
+  system: PropTypes.object.isRequired,
+  onClick: PropTypes.func.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  usageMap: PropTypes.object,
+};

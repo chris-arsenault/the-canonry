@@ -12,7 +12,6 @@
  */
 
 import type { PageLayoutOverride } from "../types/world";
-import React from "react";
 
 const DB_NAME = "illuminator";
 const PAGE_LAYOUTS_STORE = "pageLayouts";

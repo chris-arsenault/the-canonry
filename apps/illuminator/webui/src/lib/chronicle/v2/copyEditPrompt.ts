@@ -10,8 +10,6 @@
 
 import type {
   NarrativeStyle,
-  StoryNarrativeStyle,
-  DocumentNarrativeStyle,
 } from "@canonry/world-schema";
 
 // =============================================================================
@@ -20,9 +18,9 @@ import type {
 
 function getWordCountRange(style: NarrativeStyle): { min: number; max: number } {
   if (style.format === "story") {
-    return (style as StoryNarrativeStyle).pacing.totalWordCount;
+    return (style).pacing.totalWordCount;
   }
-  const docStyle = style as DocumentNarrativeStyle;
+  const docStyle = style;
   if (docStyle.pacing?.wordCount) {
     return docStyle.pacing.wordCount;
   }
@@ -118,7 +116,7 @@ export function buildCopyEditUserPrompt(
   const currentWords = countWords(text);
   const styleName = style.name;
   const craftPosture =
-    "craftPosture" in style ? (style.craftPosture as string | undefined) : undefined;
+    "craftPosture" in style ? (style.craftPosture) : undefined;
 
   const parts: string[] = [];
 

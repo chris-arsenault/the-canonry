@@ -60,7 +60,7 @@ interface ContentTreeViewProps {
 
 interface TreePaneProps {
   enrichedData: TreeNodeData[];
-  treeRef: React.MutableRefObject<any>;
+  treeRef: React.RefObject<any>;
   isSelectedFolder: boolean;
   selectedNodeId: string | null;
   treeState: ContentTreeState;
@@ -82,7 +82,7 @@ function TreePane({
   onRename,
   onDelete,
   onSelect,
-}: TreePaneProps) {
+}: Readonly<TreePaneProps>) {
   const manager = useDragDropManager();
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const [treeHeight, setTreeHeight] = useState(400);
@@ -152,6 +152,24 @@ function TreePane({
   );
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────
+
+/** Count completed prompt_request image refs */
+function countCompletedPromptImages(refs: any[] | undefined): number {
+  return refs?.filter(
+    (r: any) => r.type === "prompt_request" && r.status === "complete"
+  ).length || 0;
+}
+
+/** Count image refs that are chronicle refs or completed prompt requests */
+function countNarrativeImageRefs(refs: any[] | undefined): number {
+  return refs?.filter(
+    (r: any) =>
+      r.type === "chronicle_ref" ||
+      (r.type === "prompt_request" && r.status === "complete")
+  ).length || 0;
+}
+
 // ── Main component ───────────────────────────────────────────────────
 
 export default function ContentTreeView({
@@ -164,7 +182,7 @@ export default function ContentTreeView({
   projectId,
   simulationRunId,
   onTreeChange,
-}: ContentTreeViewProps) {
+}: Readonly<ContentTreeViewProps>) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [newFolderParent, setNewFolderParent] = useState<string | null>(null);
   const [newFolderName, setNewFolderName] = useState("");
@@ -203,10 +221,7 @@ export default function ContentTreeView({
           const chr = chronicleMap.get(node.contentId);
           if (chr) {
             const content = chr.finalContent || chr.assembledContent || "";
-            const imgCount =
-              chr.imageRefs?.refs?.filter(
-                (r) => r.type === "prompt_request" && r.status === "complete"
-              ).length || 0;
+            const imgCount = countCompletedPromptImages(chr.imageRefs?.refs);
             enriched.meta = {
               wordCount: countWords(content),
               imageCount: imgCount + (chr.coverImage?.generatedImageId ? 1 : 0),
@@ -230,11 +245,7 @@ export default function ContentTreeView({
             const { content } = resolveActiveContent(narr);
             const imgCount =
               (narr.coverImage?.generatedImageId ? 1 : 0) +
-              (narr.imageRefs?.refs?.filter(
-                (r) =>
-                  r.type === "chronicle_ref" ||
-                  (r.type === "prompt_request" && r.status === "complete")
-              ).length || 0);
+              countNarrativeImageRefs(narr.imageRefs?.refs);
             enriched.meta = {
               wordCount: countWords(content || ""),
               imageCount: imgCount,
@@ -497,14 +508,15 @@ export default function ContentTreeView({
 
       {/* Add Folder Dialog */}
       {newFolderParent && (
-        <div className="preprint-modal-overlay" onClick={() => setNewFolderParent(null)}>
-          <div className="preprint-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="preprint-modal-overlay" onClick={() => setNewFolderParent(null)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+          <div className="preprint-modal" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
             <h3>New Folder</h3>
             <input
               type="text"
               className="preprint-input"
               placeholder="Folder name"
               value={newFolderName}
+              // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
               onChange={(e) => setNewFolderName(e.target.value)}
               onKeyDown={(e) => {

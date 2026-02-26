@@ -35,9 +35,7 @@ const TONE_COLORS = {
 };
 
 export default function ToneAssignmentPreviewModal({ preview, onApply, onClose }) {
-  if (!preview) return null;
-
-  const [entries, setEntries] = useState(preview.entries);
+  const [entries, setEntries] = useState(preview?.entries ?? []);
 
   const distribution = useMemo(() => {
     const counts = Object.fromEntries(ANNOTATION_TONES.map((t) => [t, 0]));
@@ -46,6 +44,8 @@ export default function ToneAssignmentPreviewModal({ preview, onApply, onClose }
     }
     return counts;
   }, [entries]);
+
+  if (!preview) return null;
 
   const maxCount = Math.max(1, ...Object.values(distribution));
   const shiftedCount = entries.filter((e) => e.wasShifted).length;
@@ -141,6 +141,9 @@ export default function ToneAssignmentPreviewModal({ preview, onApply, onClose }
                           opacity: rank === 0 ? 1 : rank === 1 ? 0.7 : 0.4,
                         }}
                         onClick={() => handleToneChange(entry.chronicleId, tone)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                       >
                         {meta?.symbol || "?"}
                       </span>

@@ -213,6 +213,135 @@ function resolveWorldDynamics(
     });
 }
 
+function resolveProminenceLabel(
+  value: EntityContext["prominence"] | number | undefined,
+  scale: ProminenceScale
+): string {
+  if (value == null) return "unknown";
+  if (typeof value === "number") {
+    return prominenceLabelFromScale(value, scale);
+  }
+  const trimmed = String(value).trim();
+  if (!trimmed) return "unknown";
+  if (scale.labels.includes(trimmed)) return trimmed;
+  const numeric = Number(trimmed);
+  if (Number.isFinite(numeric)) {
+    return prominenceLabelFromScale(numeric, scale);
+  }
+  return trimmed;
+}
+
+function buildEntitySummaries(
+  entities: EntityContext[],
+  prominenceScale: ProminenceScale,
+  roleByEntityId: Map<string, { role: string; isPrimary: boolean }>
+): string {
+  return entities
+    .slice(0, 10)
+    .map((e) => {
+      const tags =
+        e.tags && Object.keys(e.tags).length > 0
+          ? ` [${Object.entries(e.tags)
+              .map(([k, v]) => `${k}=${v}`)
+              .join(", ")}]`
+          : "";
+      const prominenceLabel = resolveProminenceLabel(e.prominence, prominenceScale);
+      const assignment = roleByEntityId.get(e.id);
+      let roleLabel = "";
+      if (assignment) {
+        const primarySuffix = assignment.isPrimary ? " (primary)" : "";
+        roleLabel = `, role: ${assignment.role}${primarySuffix}`;
+      }
+      return `- ${e.name} (${e.kind}, ${e.culture || "unknown"}, ${prominenceLabel}${roleLabel})${tags}: ${e.summary || "(no summary)"}`;
+    })
+    .join("\n");
+}
+
+function buildCulturalIdentitiesDisplay(
+  culturalIdentities: Record<string, Record<string, string>> | undefined,
+  presentCultureIds: string[]
+): string {
+  if (!culturalIdentities || presentCultureIds.length === 0) {
+    return "No cultural identities provided.";
+  }
+  const presentIdentities = presentCultureIds
+    .filter((id) => culturalIdentities[id])
+    .map((cultureId) => {
+      const traits = culturalIdentities[cultureId];
+      const traitLines = Object.entries(traits)
+        .map(([key, value]) => `  ${key}: ${value}`)
+        .join("\n");
+      return `## ${cultureId}\n${traitLines}`;
+    });
+  return presentIdentities.length > 0
+    ? presentIdentities.join("\n\n")
+    : "No cultural identities provided.";
+}
+
+function buildNarrativeStyleDisplay(narrativeStyle: NarrativeStyle | undefined): string {
+  if (!narrativeStyle) return "No specific narrative style.";
+  const styleParts = [
+    `Name: ${narrativeStyle.name}`,
+    `Format: ${narrativeStyle.format}`,
+    narrativeStyle.description ? `Description: ${narrativeStyle.description}` : null,
+    narrativeStyle.tags?.length ? `Tags: ${narrativeStyle.tags.join(", ")}` : null,
+    narrativeStyle.proseInstructions
+      ? `\nProse guidance:\n${narrativeStyle.proseInstructions}`
+      : null,
+    narrativeStyle.craftPosture
+      ? `\nCraft posture (density and restraint):\n${narrativeStyle.craftPosture}`
+      : null,
+  ].filter(Boolean);
+  return styleParts.join("\n");
+}
+
+function buildProseHintsDisplay(
+  proseHints: Record<string, string> | undefined,
+  entityKinds: Set<string>
+): string {
+  if (!proseHints || Object.keys(proseHints).length === 0) {
+    return "No entity portrayal guidelines provided.";
+  }
+  const relevantHints = Object.entries(proseHints)
+    .filter(([kind]) => entityKinds.has(kind))
+    .map(([kind, hint]) => `  ${kind}: ${hint}`);
+  return relevantHints.length > 0
+    ? relevantHints.join("\n")
+    : "No entity portrayal guidelines provided.";
+}
+
+function computeFactSelectionDisplay(
+  factSelection: FactSelectionConfig | undefined,
+  requiredFactCount: number
+): { factSelectionLine: string; facetSelectionInstruction: string } {
+  const requestedMin = factSelection?.minCount;
+  const requestedMax = factSelection?.maxCount;
+  const hasCustomRange =
+    (typeof requestedMin === "number" && requestedMin > 0) ||
+    (typeof requestedMax === "number" && requestedMax > 0);
+
+  if (!hasCustomRange) {
+    return {
+      factSelectionLine: "Fact selection target: default (4-6). Required facts must still be included.",
+      facetSelectionInstruction: "Select 4-6",
+    };
+  }
+
+  const effectiveMin = Math.max(requestedMin ?? 4, requiredFactCount);
+  const effectiveMax = Math.max(requestedMax ?? effectiveMin ?? 6, effectiveMin ?? requiredFactCount);
+
+  if (effectiveMin === effectiveMax) {
+    return {
+      factSelectionLine: `Fact selection target: exactly ${effectiveMin} (required facts count toward this).`,
+      facetSelectionInstruction: `Select exactly ${effectiveMin}`,
+    };
+  }
+  return {
+    factSelectionLine: `Fact selection target: ${effectiveMin}-${effectiveMax} (required facts count toward this).`,
+    facetSelectionInstruction: `Select ${effectiveMin}-${effectiveMax}`,
+  };
+}
+
 function buildUserPrompt(input: PerspectiveSynthesisInput): {
   prompt: string;
   resolvedWorldDynamics: Array<{ id: string; text: string }>;
@@ -234,23 +363,6 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
     entities.map((e) => Number(e.prominence)).filter((value) => Number.isFinite(value)),
     { distribution: DEFAULT_PROMINENCE_DISTRIBUTION }
   );
-  const resolveProminenceLabel = (
-    value: EntityContext["prominence"] | number | undefined,
-    scale: ProminenceScale
-  ) => {
-    if (value == null) return "unknown";
-    if (typeof value === "number") {
-      return prominenceLabelFromScale(value, scale);
-    }
-    const trimmed = String(value).trim();
-    if (!trimmed) return "unknown";
-    if (scale.labels.includes(trimmed)) return trimmed;
-    const numeric = Number(trimmed);
-    if (Number.isFinite(numeric)) {
-      return prominenceLabelFromScale(numeric, scale);
-    }
-    return trimmed;
-  };
 
   // Build role lookup from assignments
   const roleByEntityId = new Map<string, { role: string; isPrimary: boolean }>();
@@ -260,24 +372,7 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
     }
   }
 
-  // Entity summaries
-  const entitySummaries = entities
-    .slice(0, 10)
-    .map((e) => {
-      const tags =
-        e.tags && Object.keys(e.tags).length > 0
-          ? ` [${Object.entries(e.tags)
-              .map(([k, v]) => `${k}=${v}`)
-              .join(", ")}]`
-          : "";
-      const prominenceLabel = resolveProminenceLabel(e.prominence, prominenceScale);
-      const assignment = roleByEntityId.get(e.id);
-      const roleLabel = assignment
-        ? `, role: ${assignment.role}${assignment.isPrimary ? " (primary)" : ""}`
-        : "";
-      return `- ${e.name} (${e.kind}, ${e.culture || "unknown"}, ${prominenceLabel}${roleLabel})${tags}: ${e.summary || "(no summary)"}`;
-    })
-    .join("\n");
+  const entitySummaries = buildEntitySummaries(entities, prominenceScale, roleByEntityId);
 
   // All world truth facts (not generation constraints, not disabled)
   const worldTruthFacts = (factsWithMetadata || []).filter(
@@ -288,53 +383,11 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
     .map((f) => `- [${f.id}]${f.required ? " (REQUIRED)" : ""}: ${f.text}`)
     .join("\n");
 
-  // Cultural identities for ALL present cultures (full, untruncated)
   const presentCultureIds = Object.keys(constellation.cultures);
-  let culturalIdentitiesDisplay = "No cultural identities provided.";
-  if (culturalIdentities && presentCultureIds.length > 0) {
-    const presentIdentities = presentCultureIds
-      .filter((id) => culturalIdentities[id])
-      .map((cultureId) => {
-        const traits = culturalIdentities[cultureId];
-        const traitLines = Object.entries(traits)
-          .map(([key, value]) => `  ${key}: ${value}`)
-          .join("\n");
-        return `## ${cultureId}\n${traitLines}`;
-      });
-    if (presentIdentities.length > 0) {
-      culturalIdentitiesDisplay = presentIdentities.join("\n\n");
-    }
-  }
-
-  // Narrative style context - include prose instructions so synthesis matches style tone
-  let narrativeStyleDisplay = "No specific narrative style.";
-  if (narrativeStyle) {
-    const styleParts = [
-      `Name: ${narrativeStyle.name}`,
-      `Format: ${narrativeStyle.format}`,
-      narrativeStyle.description ? `Description: ${narrativeStyle.description}` : null,
-      narrativeStyle.tags?.length ? `Tags: ${narrativeStyle.tags.join(", ")}` : null,
-      narrativeStyle.proseInstructions
-        ? `\nProse guidance:\n${narrativeStyle.proseInstructions}`
-        : null,
-      narrativeStyle.craftPosture
-        ? `\nCraft posture (density and restraint):\n${narrativeStyle.craftPosture}`
-        : null,
-    ].filter(Boolean);
-    narrativeStyleDisplay = styleParts.join("\n");
-  }
-
-  // Prose hints for entity kinds
-  let proseHintsDisplay = "No entity portrayal guidelines provided.";
-  if (proseHints && Object.keys(proseHints).length > 0) {
-    const entityKinds = new Set(entities.map((e) => e.kind));
-    const relevantHints = Object.entries(proseHints)
-      .filter(([kind]) => entityKinds.has(kind))
-      .map(([kind, hint]) => `  ${kind}: ${hint}`);
-    if (relevantHints.length > 0) {
-      proseHintsDisplay = relevantHints.join("\n");
-    }
-  }
+  const culturalIdentitiesDisplay = buildCulturalIdentitiesDisplay(culturalIdentities, presentCultureIds);
+  const narrativeStyleDisplay = buildNarrativeStyleDisplay(narrativeStyle);
+  const entityKinds = new Set(entities.map((e) => e.kind));
+  const proseHintsDisplay = buildProseHintsDisplay(proseHints, entityKinds);
 
   // World dynamics — filter to relevant cultures/kinds, apply era overrides
   const resolvedWorldDynamics = resolveWorldDynamics(input);
@@ -343,35 +396,10 @@ function buildUserPrompt(input: PerspectiveSynthesisInput): {
       ? resolvedWorldDynamics.map((d) => `- ${d.text}`).join("\n")
       : "No world dynamics declared.";
 
-  const requestedMin = factSelection?.minCount;
-  const requestedMax = factSelection?.maxCount;
-  const hasCustomRange =
-    (typeof requestedMin === "number" && requestedMin > 0) ||
-    (typeof requestedMax === "number" && requestedMax > 0);
-
-  // Compute effective min/max, respecting required facts floor
-  const effectiveMin = hasCustomRange
-    ? Math.max(requestedMin ?? 4, requiredFacts.length)
-    : undefined;
-  const effectiveMax = hasCustomRange
-    ? Math.max(requestedMax ?? effectiveMin ?? 6, effectiveMin ?? requiredFacts.length)
-    : undefined;
-
-  let factSelectionLine: string;
-  let facetSelectionInstruction: string;
-  if (effectiveMin !== undefined && effectiveMax !== undefined) {
-    if (effectiveMin === effectiveMax) {
-      factSelectionLine = `Fact selection target: exactly ${effectiveMin} (required facts count toward this).`;
-      facetSelectionInstruction = `Select exactly ${effectiveMin}`;
-    } else {
-      factSelectionLine = `Fact selection target: ${effectiveMin}-${effectiveMax} (required facts count toward this).`;
-      facetSelectionInstruction = `Select ${effectiveMin}-${effectiveMax}`;
-    }
-  } else {
-    factSelectionLine =
-      "Fact selection target: default (4-6). Required facts must still be included.";
-    facetSelectionInstruction = "Select 4-6";
-  }
+  const { factSelectionLine, facetSelectionInstruction } = computeFactSelectionDisplay(
+    factSelection,
+    requiredFacts.length
+  );
 
   // Narrative direction block (only when provided)
   const narrativeDirectionBlock = narrativeDirection
@@ -497,9 +525,54 @@ export async function synthesizePerspective(
   });
 
   // Parse response
-  let synthesis: PerspectiveSynthesis;
+  const synthesis = parseSynthesisResponse(callResult.result.text);
+
+  // Enforce required facts and finalize
+  const enforcedSynthesis = enforceFacetRequirements(synthesis, input);
+
+  // Build faceted facts for generation
+  const facetedFacts = buildFacetedFacts(enforcedSynthesis, factsWithMetadata, generationConstraints);
+
+  return {
+    synthesis: enforcedSynthesis,
+    assembledTone,
+    facetedFacts,
+    resolvedWorldDynamics,
+    usage: callResult.usage,
+  };
+}
+
+// =============================================================================
+// Response parsing helpers
+// =============================================================================
+
+function normalizeNarrativeVoice(raw: unknown): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (raw && typeof raw === "object") {
+    for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+      if (typeof value === "string") {
+        result[key] = value;
+      }
+    }
+  }
+  return result;
+}
+
+function normalizeEntityDirectives(raw: unknown): EntityDirective[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((d: { entityId?: string; directive?: string }) => d.entityId && d.directive)
+    .map((d: { entityId?: string; entityName?: string; directive?: string }) => ({
+      entityId: d.entityId || "",
+      entityName: d.entityName || "",
+      directive: d.directive || "",
+    }));
+}
+
+function parseSynthesisResponse(rawText: string): PerspectiveSynthesis {
   try {
-    const text = callResult.result.text.trim();
+    const text = rawText.trim();
+    // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error("No JSON object found in response");
@@ -510,7 +583,6 @@ export async function synthesizePerspective(
       throw new Error("Missing brief in synthesis");
     }
 
-    // Normalize facets
     const facets: FactFacet[] = Array.isArray(parsed.facets)
       ? parsed.facets.map((f: { factId?: string; interpretation?: string }) => ({
           factId: f.factId || "",
@@ -518,63 +590,45 @@ export async function synthesizePerspective(
         }))
       : [];
 
-    // Normalize suggestedMotifs
     const suggestedMotifs: string[] = Array.isArray(parsed.suggestedMotifs)
       ? parsed.suggestedMotifs.filter((m: unknown): m is string => typeof m === "string")
       : [];
 
-    // Normalize narrativeVoice
-    const narrativeVoice: Record<string, string> = {};
-    if (parsed.narrativeVoice && typeof parsed.narrativeVoice === "object") {
-      for (const [key, value] of Object.entries(parsed.narrativeVoice as Record<string, unknown>)) {
-        if (typeof value === "string") {
-          narrativeVoice[key] = value;
-        }
-      }
-    }
-
-    // Normalize entityDirectives
-    const entityDirectives: EntityDirective[] = Array.isArray(parsed.entityDirectives)
-      ? parsed.entityDirectives
-          .filter((d: { entityId?: string; directive?: string }) => d.entityId && d.directive)
-          .map((d: { entityId?: string; entityName?: string; directive?: string }) => ({
-            entityId: d.entityId || "",
-            entityName: d.entityName || "",
-            directive: d.directive || "",
-          }))
-      : [];
-
-    const temporalNarrative =
-      typeof parsed.temporalNarrative === "string" ? parsed.temporalNarrative : undefined;
-
-    synthesis = {
+    return {
       brief: parsed.brief,
       facets,
       suggestedMotifs,
-      narrativeVoice,
-      entityDirectives,
-      temporalNarrative,
+      narrativeVoice: normalizeNarrativeVoice(parsed.narrativeVoice),
+      entityDirectives: normalizeEntityDirectives(parsed.entityDirectives),
+      temporalNarrative:
+        typeof parsed.temporalNarrative === "string" ? parsed.temporalNarrative : undefined,
     };
   } catch (err) {
     throw new Error(
       `Perspective synthesis failed to produce valid output: ${err instanceof Error ? err.message : String(err)}`
     );
   }
+}
 
-  // Enforce required facts and max count (if configured)
-  const worldTruthFacts = (factsWithMetadata || []).filter(
+function enforceFacetRequirements(
+  synthesis: PerspectiveSynthesis,
+  input: PerspectiveSynthesisInput
+): PerspectiveSynthesis {
+  const worldTruthFacts = (input.factsWithMetadata || []).filter(
     (f) => f.type !== "generation_constraint" && !f.disabled
   );
-  const requiredFacts = worldTruthFacts.filter((f) => f.required);
-  const requiredIds = requiredFacts.map((f) => f.id).filter(Boolean);
+  const requiredIds = worldTruthFacts
+    .filter((f) => f.required)
+    .map((f) => f.id)
+    .filter(Boolean);
+
   const requestedMax = input.factSelection?.maxCount;
-  const enforcedMax =
-    typeof requestedMax === "number" && requestedMax > 0
-      ? Math.max(requestedMax, requiredIds.length)
-      : requiredIds.length > 6
-        ? requiredIds.length
-        : undefined;
-  const factMap = new Map(factsWithMetadata.map((f) => [f.id, f]));
+  let enforcedMax: number | undefined;
+  if (typeof requestedMax === "number" && requestedMax > 0) {
+    enforcedMax = Math.max(requestedMax, requiredIds.length);
+  } else if (requiredIds.length > 6) {
+    enforcedMax = requiredIds.length;
+  }
 
   const facetsById = new Map<string, string>();
   const orderedFacetIds: string[] = [];
@@ -586,7 +640,7 @@ export async function synthesizePerspective(
     }
   }
 
-  const buildFallbackInterpretation = (factId: string): string => {
+  const buildFallback = (): string => {
     const focus = input.constellation?.focusSummary
       ? `In this ${input.constellation.focusSummary} chronicle, `
       : "In this chronicle, ";
@@ -598,7 +652,7 @@ export async function synthesizePerspective(
   const addedIds = new Set<string>();
 
   for (const requiredId of requiredIds) {
-    const interpretation = facetsById.get(requiredId) || buildFallbackInterpretation(requiredId);
+    const interpretation = facetsById.get(requiredId) || buildFallback();
     finalFacets.push({ factId: requiredId, interpretation });
     addedIds.add(requiredId);
   }
@@ -615,13 +669,16 @@ export async function synthesizePerspective(
     finalFacets.length = enforcedMax;
   }
 
-  synthesis = {
-    ...synthesis,
-    facets: finalFacets,
-  };
+  return { ...synthesis, facets: finalFacets };
+}
 
-  // Build faceted facts for generation
-  // Original fact + faceted interpretation for this context
+function buildFacetedFacts(
+  synthesis: PerspectiveSynthesis,
+  factsWithMetadata: CanonFactWithMetadata[],
+  generationConstraints: CanonFactWithMetadata[]
+): string[] {
+  const factMap = new Map(factsWithMetadata.map((f) => [f.id, f]));
+
   const facetedWorldTruths: string[] = synthesis.facets
     .filter((f) => f.factId && f.interpretation)
     .map((f) => {
@@ -632,18 +689,6 @@ export async function synthesizePerspective(
       return f.interpretation;
     });
 
-  // Generation constraints are always included verbatim (not faceted)
-  // These are meta-instructions to the LLM, not in-universe facts
   const constraintTexts: string[] = generationConstraints.map((c) => c.text);
-
-  // Combine: faceted world truths first, then verbatim constraints
-  const facetedFacts: string[] = [...facetedWorldTruths, ...constraintTexts];
-
-  return {
-    synthesis,
-    assembledTone,
-    facetedFacts,
-    resolvedWorldDynamics,
-    usage: callResult.usage,
-  };
+  return [...facetedWorldTruths, ...constraintTexts];
 }

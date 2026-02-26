@@ -124,12 +124,12 @@ const SENTINEL_ENTITY = {
 };
 
 // Thumbnail for chronicle_ref images
-function ChronicleRefThumbnail({ imageId }: { imageId: string }) {
+function ChronicleRefThumbnail({ imageId }: Readonly<{ imageId: string }>) {
   const { url, loading } = useImageUrl(imageId);
   if (loading) return <span className="era-narrative-ref-thumb-loading">...</span>;
   if (!url) return <span className="era-narrative-ref-thumb-empty">&mdash;</span>;
   return (
-    <img src={url} alt="Chronicle image" loading="lazy" className="era-narrative-ref-thumb-img" />
+    <img src={url} alt="Chronicle" loading="lazy" className="era-narrative-ref-thumb-img" />
   );
 }
 
@@ -146,7 +146,7 @@ export default function EraNarrativeViewer({
   cultures,
   cultureIdentities,
   worldContext,
-}: EraNarrativeViewerProps) {
+}: Readonly<EraNarrativeViewerProps>) {
   const [record, setRecord] = useState<EraNarrativeRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [showThreads, setShowThreads] = useState(false);
@@ -168,7 +168,7 @@ export default function EraNarrativeViewer({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    getEraNarrative(narrativeId).then((r) => {
+    void getEraNarrative(narrativeId).then((r) => {
       if (cancelled) return;
       setRecord(r ?? null);
       setLoading(false);
@@ -204,49 +204,50 @@ export default function EraNarrativeViewer({
       const snapshotCoverImage = record?.coverImage;
       const snapshotImageRefs = record?.imageRefs;
 
-      pollRef.current = setInterval(async () => {
-        const updated = await getEraNarrative(narrativeId);
-        if (!updated) return;
-        setRecord(updated);
+      pollRef.current = setInterval(() => {
+        void (async () => {
+          const updated = await getEraNarrative(narrativeId);
+          if (!updated) return;
+          setRecord(updated);
 
-        const r = pollReasonRef.current;
+          const r = pollReasonRef.current;
 
-        // Edit polling: stop on terminal states or step_complete
-        if (r === "edit") {
-          if (
-            updated.status === "complete" ||
-            updated.status === "failed" ||
-            updated.status === "step_complete"
-          ) {
-            if (updated.status === "step_complete" && updated.currentStep === "edit") {
-              await updateEraNarrative(updated.narrativeId, { status: "complete" });
-              const final = await getEraNarrative(narrativeId);
-              if (final) setRecord(final);
+          // Edit polling: stop on terminal states or step_complete
+          if (r === "edit") {
+            if (
+              updated.status === "complete" ||
+              updated.status === "failed" ||
+              updated.status === "step_complete"
+            ) {
+              if (updated.status === "step_complete" && updated.currentStep === "edit") {
+                await updateEraNarrative(updated.narrativeId, { status: "complete" });
+                const final = await getEraNarrative(narrativeId);
+                if (final) setRecord(final);
+              }
+              stopPolling();
             }
-            stopPolling();
+            return;
           }
-          return;
-        }
 
-        // Cover image polling: stop when coverImage appears or changes
-        if (r === "cover_image") {
-          const hasCover = updated.coverImage?.sceneDescription;
-          const hadCover = snapshotCoverImage?.sceneDescription;
-          if (hasCover && hasCover !== hadCover) {
-            stopPolling();
+          // Cover image polling: stop when coverImage appears or changes
+          if (r === "cover_image") {
+            const hasCover = updated.coverImage?.sceneDescription;
+            const hadCover = snapshotCoverImage?.sceneDescription;
+            if (hasCover && hasCover !== hadCover) {
+              stopPolling();
+            }
+            return;
           }
-          return;
-        }
 
-        // Image refs polling: stop when imageRefs appears or changes
-        if (r === "image_refs") {
-          const hasRefs = updated.imageRefs?.generatedAt;
-          const hadRefs = snapshotImageRefs?.generatedAt;
-          if (hasRefs && hasRefs !== hadRefs) {
-            stopPolling();
+          // Image refs polling: stop when imageRefs appears or changes
+          if (r === "image_refs") {
+            const hasRefs = updated.imageRefs?.generatedAt;
+            const hadRefs = snapshotImageRefs?.generatedAt;
+            if (hasRefs && hasRefs !== hadRefs) {
+              stopPolling();
+            }
           }
-          return;
-        }
+        })();
       }, POLL_INTERVAL_MS);
     },
     [narrativeId, stopPolling, record?.coverImage, record?.imageRefs]
@@ -380,7 +381,7 @@ export default function EraNarrativeViewer({
     if (!record?.coverImage?.sceneDescription) return;
 
     // Mark as generating
-    updateEraNarrativeCoverImageStatus(record.narrativeId, "generating")
+    void updateEraNarrativeCoverImageStatus(record.narrativeId, "generating")
       .then(() => getEraNarrative(record.narrativeId))
       .then((updated) => {
         if (updated) setRecord(updated);
@@ -479,31 +480,13 @@ export default function EraNarrativeViewer({
     startPolling("image_refs");
   }, [record, dispatchEraNarrativeStep, startPolling]);
 
-  // Build style info for scene image generation
-  const buildStyleInfo = useCallback((): StyleInfo => {
-    const resolved = resolveStyleSelection({
-      selection: styleSelection,
-      entityKind: "scene",
-      styleLibrary: styleLibrary || {
-        artisticStyles: [],
-        compositionStyles: [],
-        colorPalettes: [],
-      },
-    });
-    return {
-      artisticPromptFragment: resolved.artisticStyle?.promptFragment,
-      compositionPromptFragment: resolved.compositionStyle?.promptFragment,
-      colorPalettePromptFragment: resolved.colorPalette?.promptFragment,
-    };
-  }, [styleSelection, styleLibrary]);
-
   // Generate a single scene image (called by ChronicleImagePanel)
   const handleGenerateSceneImage = useCallback(
     (ref: PromptRequestRef, prompt: string, _styleInfo: StyleInfo) => {
       if (!record) return;
 
       // Mark as generating
-      updateEraNarrativeImageRefStatus(record.narrativeId, ref.refId, "generating")
+      void updateEraNarrativeImageRefStatus(record.narrativeId, ref.refId, "generating")
         .then(() => getEraNarrative(record.narrativeId))
         .then((updated) => {
           if (updated) setRecord(updated);
@@ -530,7 +513,7 @@ export default function EraNarrativeViewer({
   const handleResetImage = useCallback(
     (ref: PromptRequestRef) => {
       if (!record) return;
-      updateEraNarrativeImageRefStatus(record.narrativeId, ref.refId, "pending")
+      void updateEraNarrativeImageRefStatus(record.narrativeId, ref.refId, "pending")
         .then(() => getEraNarrative(record.narrativeId))
         .then((updated) => {
           if (updated) setRecord(updated);
@@ -543,7 +526,7 @@ export default function EraNarrativeViewer({
   const handleUpdateAnchorText = useCallback(
     (ref: PromptRequestRef, anchorText: string) => {
       if (!record) return;
-      updateEraNarrativeImageRefField(record.narrativeId, ref.refId, { anchorText })
+      void updateEraNarrativeImageRefField(record.narrativeId, ref.refId, { anchorText })
         .then(() => getEraNarrative(record.narrativeId))
         .then((updated) => {
           if (updated) setRecord(updated);
@@ -558,7 +541,7 @@ export default function EraNarrativeViewer({
       if (!record) return;
       const updates: { size: string; justification?: null } = { size };
       if (size === "full-width") updates.justification = null;
-      updateEraNarrativeImageRefField(record.narrativeId, ref.refId, updates)
+      void updateEraNarrativeImageRefField(record.narrativeId, ref.refId, updates)
         .then(() => getEraNarrative(record.narrativeId))
         .then((updated) => {
           if (updated) setRecord(updated);
@@ -571,7 +554,7 @@ export default function EraNarrativeViewer({
   const handleUpdateJustification = useCallback(
     (ref: PromptRequestRef, justification: "left" | "right") => {
       if (!record) return;
-      updateEraNarrativeImageRefField(record.narrativeId, ref.refId, { justification })
+      void updateEraNarrativeImageRefField(record.narrativeId, ref.refId, { justification })
         .then(() => getEraNarrative(record.narrativeId))
         .then((updated) => {
           if (updated) setRecord(updated);
@@ -686,19 +669,20 @@ export default function EraNarrativeViewer({
           </select>
 
           {/* Active badge or Make Active button */}
-          {viewedVersion && viewedVersion.versionId === resolved.activeVersionId ? (
+          {viewedVersion && viewedVersion.versionId === resolved.activeVersionId && (
             <span className="era-narrative-active-badge">Active</span>
-          ) : viewedVersion ? (
+          )}
+          {viewedVersion && viewedVersion.versionId !== resolved.activeVersionId && (
             <button
               onClick={() => {
-                handleSetActiveVersion(viewedVersion.versionId);
+                void handleSetActiveVersion(viewedVersion.versionId);
                 setConfirmingDeleteId(null);
               }}
               className="illuminator-button era-narrative-make-active-btn"
             >
               Make Active
             </button>
-          ) : null}
+          )}
 
           {/* Delete version button (cannot delete generate versions) */}
           {viewedVersion &&
@@ -709,7 +693,7 @@ export default function EraNarrativeViewer({
                 <button
                   onClick={() => {
                     if (isConfirming) {
-                      handleDeleteVersion(viewedVersion.versionId);
+                      void handleDeleteVersion(viewedVersion.versionId);
                     } else {
                       setConfirmingDeleteId(viewedVersion.versionId);
                     }
@@ -732,7 +716,7 @@ export default function EraNarrativeViewer({
               {showInsertion ? "\u25BE Scene Insertion" : "\u25B8 Scene Insertion"}
             </button>
             <button
-              onClick={handleRerunCopyEdit}
+              onClick={() => void handleRerunCopyEdit()}
               className="illuminator-button era-narrative-rerun-btn"
               title="Re-run copy edit on the latest version"
             >
@@ -763,7 +747,7 @@ export default function EraNarrativeViewer({
               : `Running ${record.currentStep} step...`}
           </span>
           <button
-            onClick={handleForceComplete}
+            onClick={() => void handleForceComplete()}
             title="Force status to complete (use if stuck)"
             className="era-narrative-force-complete-btn"
           >
@@ -803,7 +787,7 @@ export default function EraNarrativeViewer({
                   Place image references throughout the narrative (from chronicle images).
                 </div>
               </div>
-              <button onClick={handleGenerateImageRefs} className="era-narrative-generate-btn">
+              <button onClick={() => void handleGenerateImageRefs()} className="era-narrative-generate-btn">
                 Generate
               </button>
             </div>
@@ -886,7 +870,7 @@ export default function EraNarrativeViewer({
           {/* Regenerate image refs button when already present */}
           {record.imageRefs && (
             <div className="era-narrative-regen-row">
-              <button onClick={handleGenerateImageRefs} className="era-narrative-regen-btn">
+              <button onClick={() => void handleGenerateImageRefs()} className="era-narrative-regen-btn">
                 Regenerate Image Refs
               </button>
             </div>
@@ -900,6 +884,9 @@ export default function EraNarrativeViewer({
           <div
             onClick={() => setShowThreads(!showThreads)}
             className={`era-narrative-collapsible-header ${showThreads ? "era-narrative-collapsible-header-open" : ""}`}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           >
             <span className="era-narrative-collapsible-title">
               Thread Synthesis ({synthesis.threads.length} threads
@@ -1064,6 +1051,9 @@ export default function EraNarrativeViewer({
           <div
             onClick={() => setShowBriefs(!showBriefs)}
             className={`era-narrative-collapsible-header ${showBriefs ? "era-narrative-collapsible-header-open" : ""}`}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           >
             <span className="era-narrative-collapsible-title">
               Source Briefs ({record.prepBriefs.length} chronicles)

@@ -3,6 +3,7 @@
  */
 
 import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import ProgressOverview from "./ProgressOverview";
 import EpochTimeline from "./EpochTimeline";
 import PopulationMetrics from "./PopulationMetrics";
@@ -162,9 +163,7 @@ export default function SimulationDashboard({ simState, onClearLogs }) {
     progress,
     currentEpoch,
     epochStats,
-    templateApplications,
     pressureUpdates,
-    systemActions,
     populationReport,
     templateUsage,
     systemHealth,
@@ -237,3 +236,8 @@ export default function SimulationDashboard({ simState, onClearLogs }) {
     </div>
   );
 }
+
+SimulationDashboard.propTypes = {
+  simState: PropTypes.object,
+  onClearLogs: PropTypes.func,
+};

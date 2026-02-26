@@ -5,6 +5,7 @@
  */
 
 import React, { Suspense, lazy } from "react";
+import PropTypes from "prop-types";
 import RemotePlaceholder from "./RemotePlaceholder";
 import { colors, typography } from "../theme";
 
@@ -62,3 +63,10 @@ export default function ChroniclerHost({
     </div>
   );
 }
+
+ChroniclerHost.propTypes = {
+  projectId: PropTypes.string,
+  activeSlotIndex: PropTypes.number,
+  requestedPageId: PropTypes.string,
+  onRequestedPageConsumed: PropTypes.func,
+};

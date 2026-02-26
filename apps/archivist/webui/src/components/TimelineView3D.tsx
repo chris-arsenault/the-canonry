@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState, useMemo } from "react";
+import React, { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import ForceGraph3D from "react-force-graph-3d";
 import type { WorldState } from "../types/world.ts";
 import type { ProminenceScale } from "@canonry/world-schema";
@@ -6,6 +6,31 @@ import { getKindColor, prominenceToNumber } from "../utils/dataTransform.ts";
 import * as THREE from "three";
 
 export type EdgeMetric = "strength" | "distance" | "none";
+
+/** Minimal typing for the d3 link force returned by ForceGraph */
+interface D3LinkForce {
+  distance(fn: (link: GraphLink) => number): D3LinkForce;
+  strength(fn: (link: GraphLink) => number): D3LinkForce;
+  stop?: () => void;
+}
+
+/** Minimal typing for the imperative handle exposed by react-force-graph-3d */
+interface ForceGraphInstance {
+  camera(): THREE.Camera;
+  pauseAnimation?: () => void;
+  d3Force(name: string): D3LinkForce | undefined;
+  d3Force(name: string, force: ((alpha: number) => void) | null): void;
+  d3ReheatSimulation(): void;
+}
+
+/** Extended graph node with simulation-mutated fields */
+interface SimulationNode extends GraphNode {
+  x?: number;
+  y?: number;
+  vx?: number;
+  vy?: number;
+  _targetX?: number;
+}
 
 interface TimelineView3DProps {
   data: WorldState;
@@ -40,6 +65,62 @@ interface GraphLink {
   isCreatedDuring?: boolean;
 }
 
+/** Create the main mesh for a node and add it to the group. */
+function addNodeMesh(group: THREE.Group, node: GraphNode, isEra: boolean, isSelected: boolean): void {
+  const geometry = isEra
+    ? new THREE.BoxGeometry(node.val * 3, node.val * 3, node.val * 3)
+    : new THREE.SphereGeometry(node.val * 2, 16, 16);
+  const material = new THREE.MeshLambertMaterial({
+    color: node.color,
+    transparent: true,
+    opacity: isSelected ? 1 : 0.9,
+  });
+  group.add(new THREE.Mesh(geometry, material));
+}
+
+/** Add a golden glow mesh around a selected node. */
+function addSelectionGlow(group: THREE.Group, node: GraphNode, isEra: boolean): void {
+  const glowGeometry = isEra
+    ? new THREE.BoxGeometry(node.val * 4, node.val * 4, node.val * 4)
+    : new THREE.SphereGeometry(node.val * 2.5, 16, 16);
+  const glowMaterial = new THREE.MeshBasicMaterial({
+    color: "#FFD700",
+    transparent: true,
+    opacity: 0.3,
+  });
+  group.add(new THREE.Mesh(glowGeometry, glowMaterial));
+}
+
+/** Create a text label sprite and add it to the group. */
+function addTextSprite(group: THREE.Group, node: GraphNode, isEra: boolean): void {
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) return;
+
+  canvas.width = 256;
+  canvas.height = 64;
+
+  context.fillStyle = isEra ? "rgba(50, 40, 0, 0.8)" : "rgba(0, 0, 0, 0.7)";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  context.font = isEra ? "Bold 24px Arial" : "Bold 20px Arial";
+  context.fillStyle = isEra ? "#FFD700" : "white";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(node.name, canvas.width / 2, canvas.height / 2);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  const spriteMaterial = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    opacity: 0.9,
+  });
+  const sprite = new THREE.Sprite(spriteMaterial);
+  sprite.scale.set(isEra ? 30 : 20, isEra ? 7.5 : 5, 1);
+  sprite.position.set(0, node.val * (isEra ? 3 : 2) + 5, 0);
+  group.add(sprite);
+}
+
 // Era spacing along X-axis
 const ERA_SPACING = 200;
 const ERA_Y_POSITION = 0;
@@ -66,8 +147,8 @@ export default function TimelineView3D({
   showCatalyzedBy = false,
   edgeMetric = "strength",
   prominenceScale,
-}: TimelineView3DProps) {
-  const fgRef = useRef<any>(null);
+}: Readonly<TimelineView3DProps>) {
+  const fgRef = useRef<ForceGraphInstance>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   // Delay render by one frame to let any stale animation callbacks clear
@@ -75,34 +156,8 @@ export default function TimelineView3D({
   // Unique ID per mount to ensure ForceGraph gets a fresh instance
   const [mountId] = useState(() => Date.now());
 
-  if (!webglAvailable) {
-    return (
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#0a1929",
-          color: "#93c5fd",
-        }}
-      >
-        <div style={{ textAlign: "center", maxWidth: 400 }}>
-          <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>&#x1F4A0;</div>
-          <div style={{ fontSize: 16, fontWeight: 500, color: "#fff", marginBottom: 8 }}>
-            WebGL not available
-          </div>
-          <div style={{ fontSize: 13 }}>
-            3D timeline view requires WebGL. Switch to the <strong>2D Graph</strong> or{" "}
-            <strong>Map</strong> view instead.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
+    if (!webglAvailable) return;
     const frameId = requestAnimationFrame(() => {
       setIsReady(true);
     });
@@ -111,6 +166,7 @@ export default function TimelineView3D({
 
   // Get container dimensions
   useEffect(() => {
+    if (!webglAvailable) return;
     if (containerRef.current) {
       const updateDimensions = () => {
         if (containerRef.current) {
@@ -147,8 +203,8 @@ export default function TimelineView3D({
 
     // First pass: use eraId field directly
     data.hardState.forEach((entity) => {
-      if (entity.kind !== "era" && (entity as any).eraId) {
-        entityToEra.set(entity.id, (entity as any).eraId);
+      if (entity.kind !== "era" && entity.eraId) {
+        entityToEra.set(entity.id, entity.eraId);
       }
     });
 
@@ -216,11 +272,11 @@ export default function TimelineView3D({
         fz: isEra ? ERA_Z_POSITION : undefined,
         // Store the target X position for non-era entities (used by force simulation)
         _targetX: isEra ? undefined : eraX,
-      } as GraphNode & { _targetX?: number };
+      } as SimulationNode;
     });
 
     const links: GraphLink[] = data.relationships.map((rel) => {
-      const catalyzedBy = (rel as any).catalyzedBy;
+      const catalyzedBy = rel.catalyzedBy;
       // Both active_during and created_during link entities to eras
       const isEraLink = ERA_RELATIONSHIP_KINDS.includes(rel.kind);
 
@@ -246,7 +302,7 @@ export default function TimelineView3D({
 
   // Calculate link distance based on selected metric and relationship type
   const linkDistance = useCallback(
-    (link: any) => {
+    (link: GraphLink) => {
       // created_during links should be shorter to pull entities toward their era
       if (link.isCreatedDuring) {
         return 50; // Short distance to cluster near era
@@ -267,7 +323,7 @@ export default function TimelineView3D({
 
   // Handle node click
   const handleNodeClick = useCallback(
-    (node: any) => {
+    (node: GraphNode) => {
       onNodeSelect(node.id);
     },
     [onNodeSelect]
@@ -280,64 +336,16 @@ export default function TimelineView3D({
 
   // Custom node appearance with text label
   const nodeThreeObject = useCallback(
-    (node: any) => {
+    (node: GraphNode) => {
       const group = new THREE.Group();
       const isEra = node.kind === "era";
+      const isSelected = node.id === selectedNodeId;
 
-      // Node geometry - eras are special
-      const geometry = isEra
-        ? new THREE.BoxGeometry(node.val * 3, node.val * 3, node.val * 3)
-        : new THREE.SphereGeometry(node.val * 2, 16, 16);
-
-      const material = new THREE.MeshLambertMaterial({
-        color: node.color,
-        transparent: true,
-        opacity: node.id === selectedNodeId ? 1 : 0.9,
-      });
-      const mesh = new THREE.Mesh(geometry, material);
-      group.add(mesh);
-
-      // Add glow for selected node
-      if (node.id === selectedNodeId) {
-        const glowGeometry = isEra
-          ? new THREE.BoxGeometry(node.val * 4, node.val * 4, node.val * 4)
-          : new THREE.SphereGeometry(node.val * 2.5, 16, 16);
-        const glowMaterial = new THREE.MeshBasicMaterial({
-          color: "#FFD700",
-          transparent: true,
-          opacity: 0.3,
-        });
-        const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-        group.add(glow);
+      addNodeMesh(group, node, isEra, isSelected);
+      if (isSelected) {
+        addSelectionGlow(group, node, isEra);
       }
-
-      // Create text sprite
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
-      if (context) {
-        canvas.width = 256;
-        canvas.height = 64;
-
-        context.fillStyle = isEra ? "rgba(50, 40, 0, 0.8)" : "rgba(0, 0, 0, 0.7)";
-        context.fillRect(0, 0, canvas.width, canvas.height);
-
-        context.font = isEra ? "Bold 24px Arial" : "Bold 20px Arial";
-        context.fillStyle = isEra ? "#FFD700" : "white";
-        context.textAlign = "center";
-        context.textBaseline = "middle";
-        context.fillText(node.name, canvas.width / 2, canvas.height / 2);
-
-        const texture = new THREE.CanvasTexture(canvas);
-        const spriteMaterial = new THREE.SpriteMaterial({
-          map: texture,
-          transparent: true,
-          opacity: 0.9,
-        });
-        const sprite = new THREE.Sprite(spriteMaterial);
-        sprite.scale.set(isEra ? 30 : 20, isEra ? 7.5 : 5, 1);
-        sprite.position.set(0, node.val * (isEra ? 3 : 2) + 5, 0);
-        group.add(sprite);
-      }
+      addTextSprite(group, node, isEra);
 
       return group;
     },
@@ -345,7 +353,7 @@ export default function TimelineView3D({
   );
 
   // Custom link appearance
-  const linkColor = useCallback((link: any) => {
+  const linkColor = useCallback((link: GraphLink) => {
     if (link.isCreatedDuring) {
       return "#FFD70088"; // Golden for created_during links
     }
@@ -358,7 +366,7 @@ export default function TimelineView3D({
     return `#ffffff${opacity}`;
   }, []);
 
-  const linkWidth = useCallback((link: any) => {
+  const linkWidth = useCallback((link: GraphLink) => {
     if (link.isCreatedDuring) {
       return 1; // Thinner for created_during to reduce visual clutter
     }
@@ -371,18 +379,17 @@ export default function TimelineView3D({
       return;
     }
 
-    const camera = fgRef.current.camera();
+    const fg = fgRef.current;
+    const camera = fg.camera();
     // Position camera to see timeline from the side
     camera.position.set(0, 200, 500);
 
     // Cleanup: pause animation when component unmounts to prevent stale tick errors
     return () => {
-      if (fgRef.current) {
-        fgRef.current.pauseAnimation?.();
-        // Also stop the d3 simulation
-        const simulation = fgRef.current.d3Force?.("simulation");
-        simulation?.stop?.();
-      }
+      fg.pauseAnimation?.();
+      // Also stop the d3 simulation
+      const simulation = fg.d3Force("simulation");
+      simulation?.stop?.();
     };
   }, [isReady]);
 
@@ -398,7 +405,7 @@ export default function TimelineView3D({
     const linkForce = fg.d3Force("link");
     if (linkForce) {
       linkForce
-        .distance((link: any) => {
+        .distance((link: GraphLink) => {
           // Era links (active_during, created_during) are shorter to cluster near era
           if (link.isCreatedDuring) {
             return 50;
@@ -413,7 +420,7 @@ export default function TimelineView3D({
             return 30 + (1 - strength) * 170;
           }
         })
-        .strength((link: any) => {
+        .strength((link: GraphLink) => {
           // Era links have higher strength to pull entities toward eras
           if (link.isCreatedDuring) {
             return 1.5;
@@ -427,7 +434,7 @@ export default function TimelineView3D({
     // Add custom force to pull entities toward their era's X position
     // This works even for entities without direct era relationships
     fg.d3Force("eraX", (alpha: number) => {
-      graphData.nodes.forEach((node: any) => {
+      (graphData.nodes as SimulationNode[]).forEach((node) => {
         if (node.kind !== "era" && node._targetX !== undefined && node.fx === undefined) {
           // Pull toward era's X position
           const dx = node._targetX - (node.x ?? 0);
@@ -439,7 +446,7 @@ export default function TimelineView3D({
     // Add a weak force pushing non-era nodes away from Y=0 axis
     // This spreads entities vertically while keeping them near their era
     fg.d3Force("spreadY", (alpha: number) => {
-      graphData.nodes.forEach((node: any) => {
+      (graphData.nodes as SimulationNode[]).forEach((node) => {
         if (node.kind !== "era" && node.fy === undefined) {
           // Weak force pushing away from y=0
           const sign = (node.y ?? 0) >= 0 ? 1 : -1;
@@ -448,6 +455,33 @@ export default function TimelineView3D({
       });
     });
   }, [edgeMetric, graphData.nodes, isReady]);
+
+  if (!webglAvailable) {
+    return (
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#0a1929",
+          color: "#93c5fd",
+        }}
+      >
+        <div style={{ textAlign: "center", maxWidth: 400 }}>
+          <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>&#x1F4A0;</div>
+          <div style={{ fontSize: 16, fontWeight: 500, color: "#fff", marginBottom: 8 }}>
+            WebGL not available
+          </div>
+          <div style={{ fontSize: 13 }}>
+            3D timeline view requires WebGL. Switch to the <strong>2D Graph</strong> or{" "}
+            <strong>Map</strong> view instead.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} style={{ position: "absolute", inset: 0, overflow: "hidden" }}>

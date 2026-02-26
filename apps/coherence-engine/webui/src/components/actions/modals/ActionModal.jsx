@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { TABS } from "../constants";
 import { ModalShell } from "../../shared";
 import {
@@ -58,3 +59,12 @@ export function ActionModal({ action, onChange, onClose, onDelete, schema, press
     </ModalShell>
   );
 }
+
+ActionModal.propTypes = {
+  action: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+};

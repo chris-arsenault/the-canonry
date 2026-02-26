@@ -41,8 +41,8 @@ function buildAdjacency(relationships: RelationshipContext[]): Map<string, Relat
   for (const rel of relationships) {
     if (!adjacency.has(rel.src)) adjacency.set(rel.src, []);
     if (!adjacency.has(rel.dst)) adjacency.set(rel.dst, []);
-    adjacency.get(rel.src)!.push(rel);
-    adjacency.get(rel.dst)!.push(rel);
+    adjacency.get(rel.src).push(rel);
+    adjacency.get(rel.dst).push(rel);
   }
 
   return adjacency;
@@ -59,7 +59,7 @@ function collectNeighborLinks(
     const neighborId = rel.src === entityId ? rel.dst : rel.src;
     if (!neighborId || neighborId === entityId) continue;
     if (!neighbors.has(neighborId)) neighbors.set(neighborId, []);
-    neighbors.get(neighborId)!.push(rel);
+    neighbors.get(neighborId).push(rel);
   }
 
   return neighbors;

@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -74,6 +75,9 @@ export function ChipSelect({
             setIsOpen(true);
             inputRef.current?.focus();
           }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           {value.map(v => (
             <span key={v} className="chip">
@@ -107,6 +111,9 @@ export function ChipSelect({
                 key={opt.value}
                 onClick={() => handleSelect(opt.value)}
                 className="dropdown-item"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
               >
                 {opt.label || opt.value}
               </div>
@@ -119,3 +126,11 @@ export function ChipSelect({
 }
 
 export default ChipSelect;
+
+ChipSelect.propTypes = {
+  value: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  options: PropTypes.array.isRequired,
+  placeholder: PropTypes.string,
+  label: PropTypes.string,
+};

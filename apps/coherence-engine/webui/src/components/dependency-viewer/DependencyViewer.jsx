@@ -10,6 +10,7 @@
  */
 
 import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import "./dependency-viewer.css";
 import { DependencySection, UsageBadges } from "./components";
 
@@ -198,5 +199,9 @@ export default function DependencyViewer({ usageMap }) {
     </div>
   );
 }
+
+DependencyViewer.propTypes = {
+  usageMap: PropTypes.object,
+};
 
 export { DependencyViewer };

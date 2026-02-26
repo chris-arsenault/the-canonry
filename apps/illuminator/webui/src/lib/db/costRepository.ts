@@ -14,7 +14,7 @@ export type { CostRecord, CostType, CostRecordInput, CostSummary };
 const LOG_PREFIX = "[CostStorage]";
 
 export function generateCostId(): string {
-  return `cost_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  return `cost_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;
 }
 
 export function createCostRecord(input: CostRecordInput): CostRecord {

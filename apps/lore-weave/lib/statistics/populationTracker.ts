@@ -6,7 +6,6 @@
  */
 
 import { Graph } from '../engine/types';
-import { HardState } from '../core/worldTypes';
 import { DistributionTargets } from '../statistics/types';
 import type { CanonrySchemaSlice } from '@canonry/world-schema';
 
@@ -246,7 +245,7 @@ export class PopulationTracker {
     return this.distributionTargets.entities[kind]?.[subtype]?.target || 0;
   }
 
-  private getRelationshipTarget(kind: string): number {
+  private getRelationshipTarget(_kind: string): number {
     // Could be extended to have relationship targets in distribution config
     return 0;
   }

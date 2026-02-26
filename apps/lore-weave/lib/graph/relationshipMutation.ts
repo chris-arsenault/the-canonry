@@ -5,7 +5,6 @@
  */
 
 import { Graph } from '../engine/types';
-import { Relationship } from '../core/worldTypes';
 
 // ===========================
 // RELATIONSHIP MUTATION

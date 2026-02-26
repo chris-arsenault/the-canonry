@@ -25,7 +25,7 @@ export function useImageUrl(
     let cancelled = false;
     setLoading(true);
 
-    loadUrl(imageId, size).then((result) => {
+    void loadUrl(imageId, size).then((result) => {
       if (!cancelled) {
         setUrl(result);
         setLoading(false);
@@ -69,7 +69,7 @@ export function useImageUrls(
     let cancelled = false;
     setLoading(true);
 
-    loadUrls(validIds, size).then((result) => {
+    void loadUrls(validIds, size).then((result) => {
       if (!cancelled) {
         setUrls(result);
         setLoading(false);
@@ -118,7 +118,7 @@ export function useImageMetadata(
 
     let cancelled = false;
 
-    loadMetadata(validIds).then((result) => {
+    void loadMetadata(validIds).then((result) => {
       if (!cancelled) {
         setMetadata(result);
       }

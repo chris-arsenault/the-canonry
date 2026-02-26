@@ -9,6 +9,70 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useThinkingStore } from "../lib/db/thinkingStore";
 
+const styles = {
+  overlay: {
+    position: "fixed" as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: "rgba(0, 0, 0, 0.5)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10001,
+  },
+  dialog: {
+    background: "var(--bg-primary)",
+    borderRadius: "12px",
+    border: "1px solid var(--border-color)",
+    width: "900px",
+    maxWidth: "95vw",
+    maxHeight: "85vh",
+    display: "flex",
+    flexDirection: "column" as const,
+    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+  },
+  header: {
+    padding: "12px 20px",
+    borderBottom: "1px solid var(--border-color)",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexShrink: 0,
+  },
+  headerLeft: { display: "flex", alignItems: "center", gap: "8px" },
+  headerTitle: { margin: 0, fontSize: "14px" },
+  streamingLabel: { fontSize: "11px", color: "#f59e0b", fontWeight: 500 },
+  headerActions: { display: "flex", alignItems: "center", gap: "8px" },
+  copyButton: { padding: "4px 12px", fontSize: "11px" },
+  closeButton: { padding: "4px 8px", fontSize: "14px", lineHeight: 1 },
+  subtitleBar: {
+    padding: "8px 20px",
+    borderBottom: "1px solid var(--border-color)",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexShrink: 0,
+  },
+  subtitleLabel: { fontSize: "11px", color: "var(--text-muted)" },
+  tabGroup: { display: "flex", gap: "4px" },
+  sizeLabel: { opacity: 0.6 },
+  body: {
+    flex: 1,
+    minHeight: 0,
+    margin: 0,
+    padding: "16px 20px",
+    whiteSpace: "pre-wrap" as const,
+    wordBreak: "break-word" as const,
+    fontFamily: "var(--font-mono, monospace)",
+    fontSize: "12px",
+    lineHeight: 1.6,
+    overflowY: "auto" as const,
+    color: "var(--text-secondary)",
+  },
+} as const;
+
 type ViewerTab = "thinking" | "response";
 
 export function ThinkingViewer() {
@@ -37,7 +101,7 @@ export function ThinkingViewer() {
 
   const handleCopy = useCallback(() => {
     if (content) {
-      navigator.clipboard.writeText(content);
+      void navigator.clipboard.writeText(content);
     }
   }, [content]);
 
@@ -61,64 +125,35 @@ export function ThinkingViewer() {
 
   return (
     <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 10001,
-      }}
+      style={styles.overlay}
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div
-        style={{
-          background: "var(--bg-primary)",
-          borderRadius: "12px",
-          border: "1px solid var(--border-color)",
-          width: "900px",
-          maxWidth: "95vw",
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-        }}
+        style={styles.dialog}
       >
         {/* Header */}
         <div
-          style={{
-            padding: "12px 20px",
-            borderBottom: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexShrink: 0,
-          }}
+          style={styles.header}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <h3 style={{ margin: 0, fontSize: "14px" }}>LLM Stream</h3>
+          <div style={styles.headerLeft}>
+            <h3 style={styles.headerTitle}>LLM Stream</h3>
             {entry.isActive && (
               <span
-                style={{
-                  fontSize: "11px",
-                  color: "#f59e0b",
-                  fontWeight: 500,
-                }}
+                style={styles.streamingLabel}
               >
                 streaming...
               </span>
             )}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={styles.headerActions}>
             <button
               onClick={handleCopy}
               className="illuminator-button"
-              style={{ padding: "4px 12px", fontSize: "11px" }}
+              style={styles.copyButton}
               disabled={!content}
             >
               Copy
@@ -126,7 +161,7 @@ export function ThinkingViewer() {
             <button
               onClick={closeViewer}
               className="illuminator-button"
-              style={{ padding: "4px 8px", fontSize: "14px", lineHeight: 1 }}
+              style={styles.closeButton}
             >
               &times;
             </button>
@@ -135,19 +170,12 @@ export function ThinkingViewer() {
 
         {/* Subtitle + tabs */}
         <div
-          style={{
-            padding: "8px 20px",
-            borderBottom: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexShrink: 0,
-          }}
+          style={styles.subtitleBar}
         >
-          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+          <span style={styles.subtitleLabel}>
             {entry.entityName} &middot; {entry.taskType}
           </span>
-          <div style={{ display: "flex", gap: "4px" }}>
+          <div style={styles.tabGroup}>
             <button
               onClick={() => setActiveTab("thinking")}
               style={{
@@ -162,7 +190,7 @@ export function ThinkingViewer() {
               }}
             >
               Thinking{" "}
-              {thinkingLen > 0 && <span style={{ opacity: 0.6 }}>({formatSize(thinkingLen)})</span>}
+              {thinkingLen > 0 && <span style={styles.sizeLabel}>({formatSize(thinkingLen)})</span>}
             </button>
             <button
               onClick={() => setActiveTab("response")}
@@ -178,7 +206,7 @@ export function ThinkingViewer() {
               }}
             >
               Response{" "}
-              {textLen > 0 && <span style={{ opacity: 0.6 }}>({formatSize(textLen)})</span>}
+              {textLen > 0 && <span style={styles.sizeLabel}>({formatSize(textLen)})</span>}
             </button>
           </div>
         </div>
@@ -186,28 +214,18 @@ export function ThinkingViewer() {
         {/* Body */}
         <pre
           ref={preRef}
-          style={{
-            flex: 1,
-            minHeight: 0,
-            margin: 0,
-            padding: "16px 20px",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            fontFamily: "var(--font-mono, monospace)",
-            fontSize: "12px",
-            lineHeight: 1.6,
-            overflowY: "auto",
-            color: "var(--text-secondary)",
-          }}
+          style={styles.body}
         >
-          {content ||
-            (entry.isActive
-              ? activeTab === "thinking"
+          {content || (() => {
+            if (entry.isActive) {
+              return activeTab === "thinking"
                 ? "Waiting for thinking content..."
-                : "Waiting for response text..."
-              : activeTab === "thinking"
-                ? "No thinking content (thinking may be disabled for this call type)."
-                : "No response text received.")}
+                : "Waiting for response text...";
+            }
+            return activeTab === "thinking"
+              ? "No thinking content (thinking may be disabled for this call type)."
+              : "No response text received.";
+          })()}
         </pre>
       </div>
     </div>

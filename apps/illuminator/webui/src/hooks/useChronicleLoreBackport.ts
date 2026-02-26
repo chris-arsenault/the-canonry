@@ -52,11 +52,11 @@ export interface UseChronicleLoreBackportReturn {
   /** The chronicle ID being backported */
   chronicleId: string | null;
   /** Start a new backport session */
-  startBackport: (config: ChronicleLoreBackportConfig) => void;
+  startBackport: (config: ChronicleLoreBackportConfig) => Promise<void>;
   /** Toggle accept/reject for a specific entity patch */
-  togglePatchDecision: (entityId: string, accepted: boolean) => void;
+  togglePatchDecision: (entityId: string, accepted: boolean) => Promise<void>;
   /** Update the anchor phrase for a specific entity patch */
-  updateAnchorPhrase: (entityId: string, anchorPhrase: string) => void;
+  updateAnchorPhrase: (entityId: string, anchorPhrase: string) => Promise<void>;
   /** Apply all accepted patches and close the session */
   applyAccepted: () => SummaryRevisionPatch[];
   /** Cancel the current session */
@@ -123,22 +123,24 @@ export function useChronicleLoreBackport(
   const startPolling = useCallback(
     (runId: string) => {
       stopPolling();
-      pollRef.current = setInterval(async () => {
-        const updated = await getRevisionRun(runId);
-        if (!updated) return;
+      pollRef.current = setInterval(() => {
+        void (async () => {
+          const updated = await getRevisionRun(runId);
+          if (!updated) return;
 
-        setRun(updated);
+          setRun(updated);
 
-        // Stop polling on review/terminal states
-        if (
-          updated.status === "batch_reviewing" ||
-          updated.status === "run_reviewing" ||
-          updated.status === "complete" ||
-          updated.status === "failed" ||
-          updated.status === "cancelled"
-        ) {
-          stopPolling();
-        }
+          // Stop polling on review/terminal states
+          if (
+            updated.status === "batch_reviewing" ||
+            updated.status === "run_reviewing" ||
+            updated.status === "complete" ||
+            updated.status === "failed" ||
+            updated.status === "cancelled"
+          ) {
+            stopPolling();
+          }
+        })();
       }, POLL_INTERVAL_MS);
     },
     [stopPolling]

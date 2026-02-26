@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 
 export default function PopulationMetrics({ populationReport, epochStats }) {
   // Get latest epoch stats for entity breakdown
@@ -38,12 +39,11 @@ export default function PopulationMetrics({ populationReport, epochStats }) {
           <span
             style={{
               fontSize: "12px",
-              color:
-                populationReport.avgDeviation < 0.2
-                  ? "var(--lw-success)"
-                  : populationReport.avgDeviation < 0.4
-                    ? "var(--lw-warning)"
-                    : "var(--lw-danger)",
+              color: (() => {
+                if (populationReport.avgDeviation < 0.2) return "var(--lw-success)";
+                if (populationReport.avgDeviation < 0.4) return "var(--lw-warning)";
+                return "var(--lw-danger)";
+              })(),
             }}
           >
             {(populationReport.avgDeviation * 100).toFixed(1)}% avg deviation
@@ -74,12 +74,10 @@ export default function PopulationMetrics({ populationReport, epochStats }) {
             <div className="lw-flex-col lw-gap-sm">
               {populationReport.entityMetrics.slice(0, 6).map((metric) => {
                 const deviationPercent = Math.abs(metric.deviation * 100);
-                const color =
-                  deviationPercent < 20
-                    ? "var(--lw-success)"
-                    : deviationPercent < 40
-                      ? "var(--lw-warning)"
-                      : "var(--lw-danger)";
+                let color;
+                if (deviationPercent < 20) color = "var(--lw-success)";
+                else if (deviationPercent < 40) color = "var(--lw-warning)";
+                else color = "var(--lw-danger)";
                 return (
                   <div key={`${metric.kind}:${metric.subtype}`} className="lw-pressure-gauge">
                     <span className="lw-pressure-name">
@@ -107,3 +105,8 @@ export default function PopulationMetrics({ populationReport, epochStats }) {
     </div>
   );
 }
+
+PopulationMetrics.propTypes = {
+  populationReport: PropTypes.object,
+  epochStats: PropTypes.array,
+};

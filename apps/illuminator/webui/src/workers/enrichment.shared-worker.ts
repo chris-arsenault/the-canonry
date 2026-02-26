@@ -41,13 +41,14 @@ let imageClient: ImageClient | null = null;
 // Track active tasks and their originating ports
 const activeTasks = new Map<string, { port: MessagePort; aborted: boolean }>();
 
-// Track all connected ports
-const connectedPorts = new Set<MessagePort>();
+// Track all connected ports (maintained for future broadcast and dead-port cleanup)
+const connectedPorts = new Set<MessagePort>(); // eslint-disable-line sonarjs/no-unused-collection
 
 function safePostMessage(port: MessagePort, message: WorkerOutbound): void {
   try {
     port.postMessage(message);
   } catch (err) {
+    console.warn('[shared-worker] Failed to post message, removing port:', err);
     connectedPorts.delete(port);
   }
 }
@@ -115,8 +116,8 @@ async function executeTask(task: WorkerTask, port: MessagePort): Promise<void> {
   const taskState = activeTasks.get(task.id);
   const checkAborted = () => taskState?.aborted ?? false;
   const taskConfig = task.llmCallSettings
-    ? { ...config!, llmCallSettings: task.llmCallSettings }
-    : config!;
+    ? { ...config, llmCallSettings: task.llmCallSettings }
+    : config;
 
   safePostMessage(port, { type: "started", taskId: task.id });
 
@@ -128,12 +129,10 @@ async function executeTask(task: WorkerTask, port: MessagePort): Promise<void> {
   };
 
   try {
-    let result;
-
-    result = await executeEnrichmentTask(task, {
+    const result = await executeEnrichmentTask(task, {
       config: taskConfig,
-      llmClient: llmClient!,
-      imageClient: imageClient!,
+      llmClient: llmClient,
+      imageClient: imageClient,
       isAborted: checkAborted,
       onThinkingDelta,
       onTextDelta,
@@ -181,7 +180,7 @@ ctx.onconnect = (event: MessageEvent) => {
   const port = event.ports[0];
   connectedPorts.add(port);
 
-  port.onmessage = async (e: MessageEvent<WorkerInbound>) => {
+  port.onmessage = (e: MessageEvent<WorkerInbound>) => {
     const message = e.data;
 
     switch (message.type) {
@@ -206,7 +205,7 @@ ctx.onconnect = (event: MessageEvent) => {
         }
 
         activeTasks.set(message.task.id, { port, aborted: false });
-        executeTask(message.task, port);
+        void executeTask(message.task, port);
         break;
       }
 

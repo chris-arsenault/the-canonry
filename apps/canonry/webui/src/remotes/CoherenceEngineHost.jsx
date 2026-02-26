@@ -3,6 +3,7 @@
  */
 
 import React, { Suspense, lazy } from "react";
+import PropTypes from "prop-types";
 import RemotePlaceholder from "./RemotePlaceholder";
 import { colors, typography } from "../theme";
 
@@ -80,3 +81,20 @@ export default function CoherenceEngineHost({
     </div>
   );
 }
+
+CoherenceEngineHost.propTypes = {
+  projectId: PropTypes.string,
+  schema: PropTypes.object,
+  eras: PropTypes.array,
+  onErasChange: PropTypes.func,
+  pressures: PropTypes.array,
+  onPressuresChange: PropTypes.func,
+  generators: PropTypes.array,
+  onGeneratorsChange: PropTypes.func,
+  actions: PropTypes.array,
+  onActionsChange: PropTypes.func,
+  systems: PropTypes.array,
+  onSystemsChange: PropTypes.func,
+  activeSection: PropTypes.string,
+  onSectionChange: PropTypes.func,
+};

@@ -208,14 +208,14 @@ function MatchRow({
   variant,
   accepted,
   onToggle,
-}: {
+}: Readonly<{
   match: CorpusMatch;
   replace: string;
   variant?: string;
   accepted: boolean;
   onToggle: () => void;
-}) {
-  const diff = variant ? extractDiff(match.noteText!, variant) : null;
+}>) {
+  const diff = variant ? extractDiff(match.noteText, variant) : null;
 
   return (
     <div
@@ -272,7 +272,7 @@ function SourceGroup({
   onRejectAll,
   expanded,
   onToggleExpand,
-}: {
+}: Readonly<{
   label: string;
   matches: CorpusMatch[];
   replace: string;
@@ -283,12 +283,12 @@ function SourceGroup({
   onRejectAll: () => void;
   expanded: boolean;
   onToggleExpand: () => void;
-}) {
+}>) {
   const acceptCount = matches.filter((m) => decisions[m.id]).length;
 
   return (
     <div className="cfr-source-group">
-      <div onClick={onToggleExpand} className="cfr-source-header">
+      <div onClick={onToggleExpand} className="cfr-source-header" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggleExpand(e); }} >
         <span className="cfr-source-arrow">{expanded ? "\u25BC" : "\u25B6"}</span>
         <span className="cfr-source-label">{label}</span>
         <span className="cfr-source-count">
@@ -360,7 +360,7 @@ function ContextSection({
   onRejectGroup,
   expandedGroups,
   onToggleExpand,
-}: {
+}: Readonly<{
   contextLabel: string;
   sourceGroups: Array<{ key: string; label: string; matches: CorpusMatch[] }>;
   replace: string;
@@ -371,7 +371,7 @@ function ContextSection({
   onRejectGroup: (matches: CorpusMatch[]) => void;
   expandedGroups: Set<string>;
   onToggleExpand: (key: string) => void;
-}) {
+}>) {
   const totalMatches = sourceGroups.reduce((sum, g) => sum + g.matches.length, 0);
   return (
     <div className="cfr-context-section">
@@ -724,7 +724,7 @@ export default function CorpusFindReplace() {
       const payload: MotifVariationPayload = {
         motifLabel: find,
         instances: batch.map((m) => ({
-          index: m.batchIndex!,
+          index: m.batchIndex,
           entityName: m.sourceName,
           noteId: m.noteId || "",
           annotationText: m.noteText || "",
@@ -788,7 +788,7 @@ export default function CorpusFindReplace() {
       for (const item of completed) {
         if (!item.result?.description) continue;
         try {
-          const results: MotifVariationResult[] = JSON.parse(item.result.description);
+          const results = JSON.parse(item.result.description) as MotifVariationResult[];
           for (const r of results) {
             const match = currentMatches.find((m) => m.batchIndex === r.index);
             if (match) {
@@ -835,9 +835,9 @@ export default function CorpusFindReplace() {
     for (const m of matches) {
       if (m.context !== "chronicleContent" || !decisions[m.id]) continue;
       if (!contentByChronicle.has(m.sourceId)) contentByChronicle.set(m.sourceId, new Map());
-      const fields = contentByChronicle.get(m.sourceId)!;
-      if (!fields.has(m.contentField!)) fields.set(m.contentField!, []);
-      fields.get(m.contentField!)!.push(m.position);
+      const fields = contentByChronicle.get(m.sourceId);
+      if (!fields.has(m.contentField)) fields.set(m.contentField, []);
+      fields.get(m.contentField).push(m.position);
     }
 
     for (const [chronicleId, fields] of contentByChronicle) {
@@ -873,7 +873,7 @@ export default function CorpusFindReplace() {
     for (const m of matches) {
       if (m.context !== "chronicleTitles" || !decisions[m.id]) continue;
       if (!titleByChronicle.has(m.sourceId)) titleByChronicle.set(m.sourceId, []);
-      titleByChronicle.get(m.sourceId)!.push(m.position);
+      titleByChronicle.get(m.sourceId).push(m.position);
     }
 
     for (const [chronicleId, positions] of titleByChronicle) {
@@ -894,12 +894,12 @@ export default function CorpusFindReplace() {
     for (const m of matches) {
       if (m.context !== "chronicleAnnotations" || !decisions[m.id] || !m.noteId) continue;
       if (!chronAnnotChanges.has(m.sourceId)) chronAnnotChanges.set(m.sourceId, new Map());
-      const notes = chronAnnotChanges.get(m.sourceId)!;
+      const notes = chronAnnotChanges.get(m.sourceId);
       if (!notes.has(m.noteId))
-        notes.set(m.noteId, { noteText: m.noteText!, positions: [], variant: variants.get(m.id) });
-      else notes.get(m.noteId)!.positions.push(m.position);
-      if (!notes.get(m.noteId)!.positions.includes(m.position))
-        notes.get(m.noteId)!.positions.push(m.position);
+        notes.set(m.noteId, { noteText: m.noteText, positions: [], variant: variants.get(m.id) });
+      else notes.get(m.noteId).positions.push(m.position);
+      if (!notes.get(m.noteId).positions.includes(m.position))
+        notes.get(m.noteId).positions.push(m.position);
     }
 
     for (const [chronicleId, noteChanges] of chronAnnotChanges) {
@@ -929,7 +929,7 @@ export default function CorpusFindReplace() {
             if (updatedNotes[noteIdx].anchorPhrase) {
               updatedNotes[noteIdx] = {
                 ...updatedNotes[noteIdx],
-                anchorPhrase: updatedNotes[noteIdx].anchorPhrase!.split(find).join(replace),
+                anchorPhrase: updatedNotes[noteIdx].anchorPhrase.split(find).join(replace),
               };
             }
             total += change.positions.length;
@@ -948,11 +948,11 @@ export default function CorpusFindReplace() {
     for (const m of matches) {
       if (m.context !== "entityAnnotations" || !decisions[m.id] || !m.noteId) continue;
       if (!entityAnnotChanges.has(m.sourceId)) entityAnnotChanges.set(m.sourceId, new Map());
-      const notes = entityAnnotChanges.get(m.sourceId)!;
+      const notes = entityAnnotChanges.get(m.sourceId);
       if (!notes.has(m.noteId))
-        notes.set(m.noteId, { noteText: m.noteText!, positions: [], variant: variants.get(m.id) });
-      if (!notes.get(m.noteId)!.positions.includes(m.position))
-        notes.get(m.noteId)!.positions.push(m.position);
+        notes.set(m.noteId, { noteText: m.noteText, positions: [], variant: variants.get(m.id) });
+      if (!notes.get(m.noteId).positions.includes(m.position))
+        notes.get(m.noteId).positions.push(m.position);
     }
 
     const updatedEntityIds: string[] = [];
@@ -982,7 +982,7 @@ export default function CorpusFindReplace() {
             if (updatedNotes[noteIdx].anchorPhrase) {
               updatedNotes[noteIdx] = {
                 ...updatedNotes[noteIdx],
-                anchorPhrase: updatedNotes[noteIdx].anchorPhrase!.split(find).join(replace),
+                anchorPhrase: updatedNotes[noteIdx].anchorPhrase.split(find).join(replace),
               };
             }
             total += change.positions.length;
@@ -999,7 +999,7 @@ export default function CorpusFindReplace() {
     for (const m of matches) {
       if (m.context !== "eraNarrativeContent" || !decisions[m.id]) continue;
       if (!eraNarrativeChanges.has(m.sourceId)) eraNarrativeChanges.set(m.sourceId, []);
-      eraNarrativeChanges.get(m.sourceId)!.push(m.position);
+      eraNarrativeChanges.get(m.sourceId).push(m.position);
     }
 
     for (const [narrativeId, positions] of eraNarrativeChanges) {
@@ -1136,7 +1136,7 @@ export default function CorpusFindReplace() {
             : m.sourceName;
           sourceMap.set(key, { key, label, matches: [] });
         }
-        sourceMap.get(key)!.matches.push(m);
+        sourceMap.get(key).matches.push(m);
       }
 
       result.push({
@@ -1186,22 +1186,22 @@ export default function CorpusFindReplace() {
 
           {/* Find / Replace inputs */}
           <div>
-            <label className="cfr-field-label cfr-field-label-tight">Find</label>
-            <input
+            <label htmlFor="find" className="cfr-field-label cfr-field-label-tight">Find</label>
+            <input id="find"
               ref={inputRef}
               value={find}
               onChange={(e) => setFind(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && find && contexts.size > 0 && handleScan()}
+              onKeyDown={(e) => { if (e.key === "Enter" && find && contexts.size > 0) void handleScan(); }}
               placeholder="Text to find..."
               className="cfr-text-input"
             />
           </div>
           <div>
-            <label className="cfr-field-label cfr-field-label-tight">Replace with</label>
-            <input
+            <label htmlFor="replace-with" className="cfr-field-label cfr-field-label-tight">Replace with</label>
+            <input id="replace-with"
               value={replace}
               onChange={(e) => setReplace(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && find && contexts.size > 0 && handleScan()}
+              onKeyDown={(e) => { if (e.key === "Enter" && find && contexts.size > 0) void handleScan(); }}
               placeholder="Replacement text..."
               className="cfr-text-input"
             />
@@ -1239,7 +1239,7 @@ export default function CorpusFindReplace() {
 
           <div className="cfr-actions-row">
             <button
-              onClick={handleScan}
+              onClick={() => void handleScan()}
               disabled={!find || contexts.size === 0}
               className={`illuminator-button cfr-btn-find ${find && contexts.size > 0 ? "" : "cfr-btn-half-opacity"}`}
             >
@@ -1342,7 +1342,7 @@ export default function CorpusFindReplace() {
               </button>
             )}
             <button
-              onClick={handleApply}
+              onClick={() => void handleApply()}
               disabled={acceptCount === 0}
               className={`illuminator-button cfr-btn-apply ${acceptCount > 0 ? "" : "cfr-btn-half-opacity"}`}
             >

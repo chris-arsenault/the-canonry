@@ -3,6 +3,8 @@
  */
 
 import StrategyGroupEditor from "../StrategyGroupEditor";
+import React from "react";
+import PropTypes from "prop-types";
 
 export default function GroupsTab({
   profile,
@@ -99,7 +101,7 @@ export default function GroupsTab({
   return (
     <div className="profile-groups-tab">
       <p className="text-muted text-small mt-0">
-        Strategy groups are evaluated by priority (highest first). The first matching group's
+        Strategy groups are evaluated by priority (highest first). The first matching group&apos;s
         strategies are used for name generation.
       </p>
 
@@ -144,3 +146,13 @@ export default function GroupsTab({
     </div>
   );
 }
+
+GroupsTab.propTypes = {
+  profile: PropTypes.object,
+  onChange: PropTypes.func,
+  domains: PropTypes.array,
+  grammars: PropTypes.array,
+  entityKinds: PropTypes.array,
+  tagRegistry: PropTypes.array,
+  onAddTag: PropTypes.func,
+};

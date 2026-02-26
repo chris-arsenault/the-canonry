@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
 import { getElementValidation } from "@penguin-tales/shared-components";
 import { TABS } from "./constants";
 import { ModalShell, TabValidationBadge, OrphanBadge } from "../shared";
@@ -143,5 +144,18 @@ export function GeneratorModal({
     </ModalShell>
   );
 }
+
+GeneratorModal.propTypes = {
+  generator: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  onDuplicate: PropTypes.func,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+  eras: PropTypes.array,
+  usageMap: PropTypes.object,
+  tagRegistry: PropTypes.array,
+};
 
 export default GeneratorModal;

@@ -221,7 +221,7 @@ export const descriptionTask = {
     // Strip output format instructions from task.prompt - each step has its own format
     const baseEntityContext = task.prompt
       .replace(/OUTPUT FORMAT.*$/s, "")
-      .replace(/FORMAT:\s*\n.*$/s, "")
+      .replace(/FORMAT:\s*\n.*$/s, "") // eslint-disable-line sonarjs/slow-regex -- bounded prompt text
       .trim();
 
     // Build historical context (era timeline) if era info is available
@@ -320,8 +320,9 @@ export const descriptionTask = {
     );
     const visualIdentityContext = visualIdentityMatch ? visualIdentityMatch[0].trim() : "";
 
+    const identitySuffix = visualIdentityContext ? "\n\n" + visualIdentityContext : "";
     const visualContext = `Entity: ${task.entityName} (${task.entityKind})
-Culture: ${task.entityCulture || "unaffiliated"}${visualIdentityContext ? `\n\n${visualIdentityContext}` : ""}`;
+Culture: ${task.entityCulture || "unaffiliated"}${identitySuffix}`;
 
     // Validate instructions are provided (from defaults or per-kind override)
     if (!task.visualThesisInstructions) {

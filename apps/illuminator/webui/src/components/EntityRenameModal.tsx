@@ -23,7 +23,6 @@ import {
   type RenameMatch,
   type MatchDecision,
   type RenameScanResult,
-  type ScanNarrativeEvent,
   type EntityPatch,
   type EventPatch,
 } from "../lib/entityRename";
@@ -31,7 +30,6 @@ import {
   getChroniclesForSimulation,
   getChronicle,
   putChronicle,
-  type ChronicleRecord,
 } from "../lib/db/chronicleRepository";
 import type { CultureDefinition } from "@canonry/world-schema";
 
@@ -132,13 +130,13 @@ function MatchRow({
   newName,
   onChangeAction,
   onChangeEditText,
-}: {
+}: Readonly<{
   match: RenameMatch;
   decision: DecisionState;
   newName: string;
   onChangeAction: (action: DecisionAction) => void;
   onChangeEditText: (text: string) => void;
-}) {
+}>) {
   const rawReplacementText = decision.action === "edit" ? decision.editText : newName;
 
   // Compute grammar-adjusted replacement for preview (text matches only)
@@ -272,18 +270,18 @@ function MatchRow({
             key={action}
             onClick={() => onChangeAction(action)}
             style={{
-              background:
-                decision.action === action
-                  ? action === "accept"
-                    ? "rgba(34, 197, 94, 0.3)"
-                    : action === "reject"
-                      ? "rgba(239, 68, 68, 0.3)"
-                      : "rgba(99, 102, 241, 0.3)"
-                  : "var(--bg-secondary)",
-              border:
-                decision.action === action
-                  ? `1px solid ${action === "accept" ? "#22c55e" : action === "reject" ? "#ef4444" : "#6366f1"}`
-                  : "1px solid var(--border-color)",
+              background: (() => {
+                if (decision.action !== action) return "var(--bg-secondary)";
+                if (action === "accept") return "rgba(34, 197, 94, 0.3)";
+                if (action === "reject") return "rgba(239, 68, 68, 0.3)";
+                return "rgba(99, 102, 241, 0.3)";
+              })(),
+              border: (() => {
+                if (decision.action !== action) return "1px solid var(--border-color)";
+                if (action === "accept") return "1px solid #22c55e";
+                if (action === "reject") return "1px solid #ef4444";
+                return "1px solid #6366f1";
+              })(),
               color: "var(--text-primary)",
               fontSize: "10px",
               padding: "2px 8px",
@@ -332,7 +330,7 @@ function SourceSection({
   onChangeEditText,
   onAcceptAll,
   onRejectAll,
-}: {
+}: Readonly<{
   group: SourceGroup;
   expanded: boolean;
   onToggle: () => void;
@@ -342,7 +340,7 @@ function SourceSection({
   onChangeEditText: (matchId: string, text: string) => void;
   onAcceptAll: () => void;
   onRejectAll: () => void;
-}) {
+}>) {
   // Per-source stats
   let accepts = 0,
     rejects = 0,
@@ -377,6 +375,9 @@ function SourceSection({
           gap: "8px",
           userSelect: "none",
         }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggle(e); }}
       >
         {/* Expand indicator */}
         <span
@@ -548,7 +549,7 @@ export default function EntityRenameModal({
   mode = "rename",
   onApply,
   onClose,
-}: EntityRenameModalProps) {
+}: Readonly<EntityRenameModalProps>) {
   const navEntities = useEntityNavList();
   const relationships = useRelationships();
   const narrativeEvents = useNarrativeEvents();
@@ -578,11 +579,9 @@ export default function EntityRenameModal({
     }
   }, [phase]);
 
-  if (!entity) return null;
-
   // --- Name rolling ---
   const handleRollName = useCallback(async () => {
-    if (!entity.culture) return;
+    if (!entity?.culture) return;
     const cultureDef = cultures.find((c) => c.id === entity.culture);
     if (!cultureDef) return;
     const culture = toCulture(cultureDef);
@@ -625,7 +624,7 @@ export default function EntityRenameModal({
       console.log("[EntityRenameModal] Sample narrative event", {
         id: sample.id,
         description: sample.description?.substring(0, 200),
-        action: (sample as any).action?.substring(0, 200),
+        action: sample.action?.substring(0, 200),
         hasSimulationRunId: "simulationRunId" in sample,
       });
     }
@@ -635,7 +634,7 @@ export default function EntityRenameModal({
         getChroniclesForSimulation(simulationRunId),
         entityRepo.getEntitiesForRun(simulationRunId),
       ]);
-      const result = await scanForReferences(
+      const result = scanForReferences(
         entityId,
         scanOldName,
         fullEntities,
@@ -651,7 +650,7 @@ export default function EntityRenameModal({
 
       console.log("[EntityRenameModal] Scan result", {
         totalMatches: result.matches.length,
-        eventMatches: result.matches.filter((m: any) => m.sourceType === "event").length,
+        eventMatches: result.matches.filter((m) => m.sourceType === "event").length,
       });
       setScanResult(result);
 
@@ -679,6 +678,7 @@ export default function EntityRenameModal({
     oldNameInput,
     isPatch,
     scanOldName,
+    entity,
     entityId,
     simulationRunId,
     relationships,
@@ -800,8 +800,8 @@ export default function EntityRenameModal({
         entityPatchCount: patches.entityPatches.length,
         eventPatchCount: patches.eventPatches.length,
         chroniclePatchCount: patches.chroniclePatches.length,
-        eventPatchIds: patches.eventPatches.map((p: any) => p.eventId),
-        eventPatchKeys: patches.eventPatches.map((p: any) => Object.keys(p.changes)),
+        eventPatchIds: patches.eventPatches.map((p) => p.eventId),
+        eventPatchKeys: patches.eventPatches.map((p) => Object.keys(p.changes)),
       });
 
       // Apply chronicle patches directly (chronicles have their own IDB store)
@@ -836,7 +836,7 @@ export default function EntityRenameModal({
       console.error("[EntityRename] Apply failed:", err);
       setApplyProgress(`Error: ${err}`);
     }
-  }, [scanResult, decisions, newName, entityId, onApply, isPatch]);
+  }, [scanResult, decisions, newName, entityId, onApply, isPatch, addOldNameAsAlias]);
 
   // --- Stats ---
   const stats = useMemo(() => {
@@ -957,6 +957,8 @@ export default function EntityRenameModal({
   // Render
   // ---------------------------------------------------------------------------
 
+  if (!entity) return null;
+
   return (
     <div
       style={{
@@ -971,6 +973,9 @@ export default function EntityRenameModal({
       onClick={(e) => {
         if (e.target === e.currentTarget && phase !== "applying") onClose();
       }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
     >
       <div
         style={{
@@ -1083,7 +1088,7 @@ export default function EntityRenameModal({
                       value={oldNameInput}
                       onChange={(e) => setOldNameInput(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && oldNameInput.trim()) handleScan();
+                        if (e.key === "Enter" && oldNameInput.trim()) void handleScan();
                       }}
                       placeholder="Enter old/stale name to find..."
                       style={{
@@ -1126,7 +1131,7 @@ export default function EntityRenameModal({
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && newName.trim()) handleScan();
+                        if (e.key === "Enter" && newName.trim()) void handleScan();
                       }}
                       placeholder="Enter new name..."
                       style={{
@@ -1142,7 +1147,7 @@ export default function EntityRenameModal({
                     />
                     {entity.culture && (
                       <button
-                        onClick={handleRollName}
+                        onClick={() => void handleRollName()}
                         disabled={isRolling}
                         className="illuminator-button illuminator-button-secondary"
                         style={{
@@ -1361,11 +1366,11 @@ export default function EntityRenameModal({
                   marginBottom: "8px",
                 }}
               >
-                {phase === "applying"
-                  ? applyProgress
-                  : isPatch
-                    ? "Patch Complete"
-                    : "Rename Complete"}
+                {(() => {
+                  if (phase === "applying") return applyProgress;
+                  if (isPatch) return "Patch Complete";
+                  return "Rename Complete";
+                })()}
               </div>
               {phase === "done" && applyResult && (
                 <div
@@ -1395,13 +1400,16 @@ export default function EntityRenameModal({
         >
           {phase === "input" && (
             <button
-              onClick={handleScan}
+              onClick={() => void handleScan()}
               disabled={isPatch ? !oldNameInput.trim() : !newName.trim()}
               className="illuminator-button"
               style={{
                 padding: "6px 20px",
                 fontSize: "12px",
-                opacity: (isPatch ? oldNameInput.trim() : newName.trim()) ? 1 : 0.5,
+                opacity: (() => {
+                  const hasInput = isPatch ? oldNameInput.trim() : newName.trim();
+                  return hasInput ? 1 : 0.5;
+                })(),
               }}
             >
               Scan References
@@ -1417,7 +1425,7 @@ export default function EntityRenameModal({
                 Back
               </button>
               <button
-                onClick={handleApply}
+                onClick={() => void handleApply()}
                 disabled={stats.accepts === 0 && stats.edits === 0}
                 className="illuminator-button"
                 style={{

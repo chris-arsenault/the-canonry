@@ -24,7 +24,6 @@ import type {
   LoreRecord,
   DisambiguationEntry,
   Region,
-  NarrativeEvent,
   ImageAspect,
 } from "../types/world.ts";
 import type { ChronicleRecord } from "./chronicleStorage.ts";
@@ -39,7 +38,6 @@ import {
   type ProminenceScale,
 } from "@canonry/world-schema";
 import { resolveAnchorPhrase } from "./fuzzyAnchor.ts";
-import React from "react";
 
 // Re-export for backwards compatibility
 export { applyWikiLinks };
@@ -237,52 +235,32 @@ function findRegionById(
  * @param chronicles - Completed ChronicleRecords from IndexedDB (preferred source for chronicles)
  * @param staticPages - Published StaticPages from IndexedDB
  */
-export function buildPageIndex(
+interface PageIndexState {
+  entries: PageIndexEntry[];
+  byId: Map<string, PageIndexEntry>;
+  byName: Map<string, string>;
+  byAlias: Map<string, string>;
+  bySlug: Map<string, string>;
+}
+
+function getEntityAliases(entity: HardState): string[] {
+  return Array.isArray(entity.enrichment?.text?.aliases)
+    ? entity.enrichment.text.aliases
+        .filter((alias): alias is string => typeof alias === "string")
+        .map((alias) => alias.trim())
+        .filter(Boolean)
+    : [];
+}
+
+function indexEntityEntries(
   worldData: WorldState,
-  _loreData: LoreData | null, // Not used here - kept for API compatibility
-  chronicles: ChronicleRecord[] = [],
-  staticPages: StaticPage[] = [],
-  prominenceScale?: ProminenceScale,
-  eraNarratives: EraNarrativeViewRecord[] = []
-): WikiPageIndex {
-  const resolvedProminenceScale = resolveProminenceScale(worldData, prominenceScale);
-  const entries: PageIndexEntry[] = [];
-  const byId = new Map<string, PageIndexEntry>();
-  const byName = new Map<string, string>();
-  const byAlias = new Map<string, string>();
-  const bySlug = new Map<string, string>();
-
-  // Build entity name lookup for resolving linked entity names to IDs
-  const entityByName = new Map(worldData.hardState.map((e) => [e.name.toLowerCase(), e.id]));
-
-  // Note: loreIndex is not built here - it's only needed for full page builds (buildPageById)
-  // Summary/description/aliases are now read directly from entity fields
-
-  // Build era narrative lookup: eraId -> narrative record
-  // Era entities that have completed narratives will be suppressed from the page index
-  // (their name/slug lookups will redirect to the era narrative page instead)
-  const eraNarrativeByEraId = new Map<string, EraNarrativeViewRecord>();
-  for (const narrative of eraNarratives) {
-    if (narrative.status === "complete" && narrative.content) {
-      eraNarrativeByEraId.set(narrative.eraId, narrative);
-    }
-  }
-
-  // Build entity index entries
+  resolvedProminenceScale: ProminenceScale,
+  eraNarrativeByEraId: Map<string, EraNarrativeViewRecord>,
+  state: PageIndexState
+): void {
   for (const entity of worldData.hardState) {
-    // Summary and description are now directly on entity
     const summary = entity.summary || "";
-    // Aliases are in enrichment.text (the old lore record format is dead code)
-    const aliases = Array.isArray(entity.enrichment?.text?.aliases)
-      ? entity.enrichment.text.aliases
-          .filter((alias): alias is string => typeof alias === "string")
-          .map((alias) => alias.trim())
-          .filter(Boolean)
-      : [];
-
-    // When an era has a completed narrative, suppress the era entity page:
-    // keep it in byId (for direct ID lookups) but exclude from entries/byName/bySlug
-    // so it doesn't appear in lists, search, or name-based link resolution.
+    const aliases = getEntityAliases(entity);
     const hasEraNarrative = entity.kind === "era" && eraNarrativeByEraId.has(entity.id);
 
     const entry: PageIndexEntry = {
@@ -297,40 +275,41 @@ export function buildPageIndex(
       entitySubtype: entity.subtype,
       prominence: entity.prominence,
       culture: entity.culture,
-      linkedEntities: [], // Computed on full page build
+      linkedEntities: [],
       lastUpdated: entity.updatedAt || entity.createdAt,
     };
 
-    byId.set(entry.id, entry);
+    state.byId.set(entry.id, entry);
 
     if (!hasEraNarrative) {
-      entries.push(entry);
-      byName.set(entity.name.toLowerCase(), entity.id);
-
-      // Index by slug for URL resolution (name slug + slug aliases from renames)
+      state.entries.push(entry);
+      state.byName.set(entity.name.toLowerCase(), entity.id);
       const nameSlug = slugify(entity.name);
-      if (nameSlug && !bySlug.has(nameSlug)) {
-        bySlug.set(nameSlug, entity.id);
+      if (nameSlug && !state.bySlug.has(nameSlug)) {
+        state.bySlug.set(nameSlug, entity.id);
       }
     }
 
-    const slugAliases: string[] = (entity.enrichment as any)?.slugAliases || [];
+    const slugAliases: string[] = entity.enrichment?.slugAliases ?? [];
     for (const sa of slugAliases) {
-      if (sa && !bySlug.has(sa)) {
-        bySlug.set(sa, entity.id);
+      if (sa && !state.bySlug.has(sa)) {
+        state.bySlug.set(sa, entity.id);
       }
     }
 
     for (const alias of aliases) {
       const normalized = alias.toLowerCase();
-      if (!byName.has(normalized) && !byAlias.has(normalized)) {
-        byAlias.set(normalized, entity.id);
+      if (!state.byName.has(normalized) && !state.byAlias.has(normalized)) {
+        state.byAlias.set(normalized, entity.id);
       }
     }
   }
+}
 
-  // Build era narrative index entries
-  // These replace era entity pages: name/slug lookups resolve here instead
+function indexEraNarrativeEntries(
+  eraNarrativeByEraId: Map<string, EraNarrativeViewRecord>,
+  state: PageIndexState
+): void {
   for (const narrative of eraNarrativeByEraId.values()) {
     const narrativeSlug = `era-narrative/${slugify(narrative.eraName)}`;
 
@@ -351,26 +330,27 @@ export function buildPageIndex(
         narrative.coverImage?.status === "complete" && narrative.coverImage?.generatedImageId
           ? narrative.coverImage.generatedImageId
           : undefined,
-      linkedEntities: [], // Computed on full page build
+      linkedEntities: [],
       lastUpdated: narrative.updatedAt,
     };
 
-    entries.push(entry);
-    byId.set(entry.id, entry);
-
-    // Override name/slug to point to era narrative instead of era entity
-    byName.set(narrative.eraName.toLowerCase(), narrative.narrativeId);
+    state.entries.push(entry);
+    state.byId.set(entry.id, entry);
+    state.byName.set(narrative.eraName.toLowerCase(), narrative.narrativeId);
     if (narrativeSlug) {
-      bySlug.set(narrativeSlug, narrative.narrativeId);
+      state.bySlug.set(narrativeSlug, narrative.narrativeId);
     }
-    // Also claim the bare era name slug so [[Era Name]] links work
     const bareSlug = slugify(narrative.eraName);
     if (bareSlug) {
-      bySlug.set(bareSlug, narrative.narrativeId);
+      state.bySlug.set(bareSlug, narrative.narrativeId);
     }
   }
+}
 
-  // Build chronicle index entries from ChronicleRecords (IndexedDB)
+function indexChronicleEntries(
+  chronicles: ChronicleRecord[],
+  state: PageIndexState
+): void {
   for (const chronicle of chronicles) {
     const content = getChronicleContent(chronicle);
     if (!content) continue;
@@ -403,28 +383,18 @@ export function buildPageIndex(
       lastUpdated: chronicle.acceptedAt || chronicle.updatedAt,
     };
 
-    entries.push(entry);
-    byId.set(entry.id, entry);
-    if (chronicleSlug && !bySlug.has(chronicleSlug)) {
-      bySlug.set(chronicleSlug, entry.id);
+    state.entries.push(entry);
+    state.byId.set(entry.id, entry);
+    if (chronicleSlug && !state.bySlug.has(chronicleSlug)) {
+      state.bySlug.set(chronicleSlug, entry.id);
     }
   }
+}
 
-  // Build static page index entries (two-pass for proper cross-page link resolution)
-  // Pass 1: Add all static page titles to byName first (including base names)
-  // This ensures page-to-page links can be resolved regardless of processing order
-  for (const staticPage of staticPages) {
-    byName.set(staticPage.title.toLowerCase(), staticPage.pageId);
-    // Also index by base name (without namespace prefix) for link resolution
-    // e.g., "World:The Berg" should be findable via [[The Berg]]
-    const { baseName } = parseNamespace(staticPage.title);
-    const baseNameLower = baseName.toLowerCase();
-    if (baseNameLower !== staticPage.title.toLowerCase() && !byName.has(baseNameLower)) {
-      byName.set(baseNameLower, staticPage.pageId);
-    }
-  }
-
-  // Build list of all linkable names (entities + static page base names + regions)
+function buildLinkableNames(
+  worldData: WorldState,
+  staticPages: StaticPage[]
+): Array<{ name: string; id: string }> {
   const linkableNames: Array<{ name: string; id: string }> = [];
   for (const entity of worldData.hardState) {
     linkableNames.push({ name: entity.name, id: entity.id });
@@ -432,74 +402,91 @@ export function buildPageIndex(
   for (const staticPage of staticPages) {
     const { baseName } = parseNamespace(staticPage.title);
     linkableNames.push({ name: baseName, id: staticPage.pageId });
-    // Also add full title if different
     if (baseName !== staticPage.title) {
       linkableNames.push({ name: staticPage.title, id: staticPage.pageId });
     }
   }
-  // Add region labels as linkable names
   for (const { region } of getAllRegionsFlat(worldData)) {
     linkableNames.push({ name: region.label, id: `region:${region.id}` });
   }
+  return linkableNames;
+}
 
-  // Backlink extraction for chronicle index entries (match auto-linking behavior)
-  if (chronicles.length > 0) {
-    const chronicleById = new Map(
-      chronicles.map((chronicle) => [chronicle.chronicleId, chronicle])
-    );
-    for (const entry of entries) {
-      if (entry.type !== "chronicle") continue;
-      const chronicle = chronicleById.get(entry.id);
-      if (!chronicle) continue;
-      const linked = new Set(entry.linkedEntities);
-      if (chronicle.entrypointId) {
-        linked.add(chronicle.entrypointId);
-      }
+function extractChronicleBacklinks(
+  chronicles: ChronicleRecord[],
+  entries: PageIndexEntry[],
+  linkableNames: Array<{ name: string; id: string }>,
+  worldData: WorldState,
+  byAlias: Map<string, string>,
+  byName: Map<string, string>
+): void {
+  if (chronicles.length === 0) return;
+  const chronicleById = new Map(
+    chronicles.map((chronicle) => [chronicle.chronicleId, chronicle])
+  );
+  for (const entry of entries) {
+    if (entry.type !== "chronicle") continue;
+    const chronicle = chronicleById.get(entry.id);
+    if (!chronicle) continue;
+    const linked = new Set(entry.linkedEntities);
+    if (chronicle.entrypointId) linked.add(chronicle.entrypointId);
 
-      const content = getChronicleContent(chronicle);
-      if (content) {
-        const linkedContent = applyWikiLinks(content, linkableNames);
-        const extracted = extractLinkedEntities(
-          [{ id: "temp", heading: "", level: 2, content: linkedContent }],
-          worldData,
-          byAlias,
-          byName
-        );
-        extracted.forEach((id) => linked.add(id));
-      }
+    const content = getChronicleContent(chronicle);
+    if (content) {
+      const linkedContent = applyWikiLinks(content, linkableNames);
+      const extracted = extractLinkedEntities(
+        [{ id: "temp", heading: "", level: 2, content: linkedContent }],
+        worldData, byAlias, byName
+      );
+      extracted.forEach((id) => linked.add(id));
+    }
+    entry.linkedEntities = Array.from(linked);
+  }
+}
 
-      entry.linkedEntities = Array.from(linked);
+function resolveStaticPageLinks(
+  content: string,
+  entityByName: Map<string, string>,
+  byAlias: Map<string, string>,
+  byName: Map<string, string>
+): string[] {
+  const resolvedLinkedIds: Set<string> = new Set();
+  // eslint-disable-next-line sonarjs/slow-regex -- character-class bounded, no backtracking
+  const linkMatches = content.matchAll(/\[\[([^\]]+)\]\]/g);
+  for (const match of linkMatches) {
+    const nameLower = match[1].toLowerCase().trim();
+    const entityId = entityByName.get(nameLower);
+    if (entityId) { resolvedLinkedIds.add(entityId); continue; }
+    const aliasId = byAlias.get(nameLower);
+    if (aliasId) { resolvedLinkedIds.add(aliasId); continue; }
+    const pageId = byName.get(nameLower);
+    if (pageId) resolvedLinkedIds.add(pageId);
+  }
+  return Array.from(resolvedLinkedIds);
+}
+
+function indexStaticPageEntries(
+  staticPages: StaticPage[],
+  linkableNames: Array<{ name: string; id: string }>,
+  entityByName: Map<string, string>,
+  state: PageIndexState
+): void {
+  // Pass 1: register titles in byName
+  for (const staticPage of staticPages) {
+    state.byName.set(staticPage.title.toLowerCase(), staticPage.pageId);
+    const { baseName } = parseNamespace(staticPage.title);
+    const baseNameLower = baseName.toLowerCase();
+    if (baseNameLower !== staticPage.title.toLowerCase() && !state.byName.has(baseNameLower)) {
+      state.byName.set(baseNameLower, staticPage.pageId);
     }
   }
 
-  // Pass 2: Build entries with resolved linked IDs
+  // Pass 2: build entries with resolved links
   for (const staticPage of staticPages) {
-    // Apply wikilinks to content (auto-wrap entity/page names with [[...]])
     const linkedContent = applyWikiLinks(staticPage.content, linkableNames);
-
-    // Extract [[...]] links from the linked content
-    const resolvedLinkedIds: Set<string> = new Set();
-    const linkMatches = linkedContent.matchAll(/\[\[([^\]]+)\]\]/g);
-    for (const match of linkMatches) {
-      const nameLower = match[1].toLowerCase().trim();
-      // Check if it's an entity name
-      const entityId = entityByName.get(nameLower);
-      if (entityId) {
-        resolvedLinkedIds.add(entityId);
-        continue;
-      }
-      // Check entity aliases
-      const aliasId = byAlias.get(nameLower);
-      if (aliasId) {
-        resolvedLinkedIds.add(aliasId);
-        continue;
-      }
-      // Check static page titles (including base names)
-      const pageId = byName.get(nameLower);
-      if (pageId) {
-        resolvedLinkedIds.add(pageId);
-      }
-    }
+    const linkedEntities = resolveStaticPageLinks(
+      linkedContent, entityByName, state.byAlias, state.byName
+    );
 
     const entry: PageIndexEntry = {
       id: staticPage.pageId,
@@ -508,36 +495,29 @@ export function buildPageIndex(
       slug: buildStaticPageSlug(staticPage),
       summary: staticPage.summary || undefined,
       categories: [],
-      static: {
-        pageId: staticPage.pageId,
-        status: staticPage.status,
-      },
-      linkedEntities: Array.from(resolvedLinkedIds),
+      static: { pageId: staticPage.pageId, status: staticPage.status },
+      linkedEntities,
       lastUpdated: staticPage.updatedAt,
     };
 
-    entries.push(entry);
-    byId.set(entry.id, entry);
-    if (entry.slug && !bySlug.has(entry.slug)) {
-      bySlug.set(entry.slug, entry.id);
+    state.entries.push(entry);
+    state.byId.set(entry.id, entry);
+    if (entry.slug && !state.bySlug.has(entry.slug)) {
+      state.bySlug.set(entry.slug, entry.id);
     }
-    // Legacy URL support: previous static page hashes used "page/{slug}"
     const legacySlug = staticPage.slug ? `page/${staticPage.slug}` : "";
-    if (legacySlug && !bySlug.has(legacySlug)) {
-      bySlug.set(legacySlug, entry.id);
+    if (legacySlug && !state.bySlug.has(legacySlug)) {
+      state.bySlug.set(legacySlug, entry.id);
     }
   }
+}
 
-  // Build category entries (based on entity categories)
+function indexCategoryEntries(entries: PageIndexEntry[], state: PageIndexState): WikiCategory[] {
   const categoryMap = new Map<string, { id: string; name: string; pageCount: number }>();
   for (const entry of entries) {
     for (const catId of entry.categories) {
       if (!categoryMap.has(catId)) {
-        categoryMap.set(catId, {
-          id: catId,
-          name: formatCategoryName(catId),
-          pageCount: 0,
-        });
+        categoryMap.set(catId, { id: catId, name: formatCategoryName(catId), pageCount: 0 });
       }
       categoryMap.get(catId)!.pageCount++;
     }
@@ -547,7 +527,6 @@ export function buildPageIndex(
     .map((cat) => ({ ...cat, type: "auto" as const }))
     .sort((a, b) => b.pageCount - a.pageCount);
 
-  // Add category entries to index
   for (const category of categories) {
     const entry: PageIndexEntry = {
       id: `category-${category.id}`,
@@ -559,14 +538,15 @@ export function buildPageIndex(
       lastUpdated: Date.now(),
     };
     entries.push(entry);
-    byId.set(entry.id, entry);
+    state.byId.set(entry.id, entry);
   }
 
-  // Add region entries to index
-  const allRegions = getAllRegionsFlat(worldData);
-  for (const { region, entityKind } of allRegions) {
+  return categories;
+}
+
+function indexRegionEntries(worldData: WorldState, state: PageIndexState): void {
+  for (const { region, entityKind } of getAllRegionsFlat(worldData)) {
     const regionPageId = `region:${region.id}`;
-    // Find entities in this region
     const entitiesInRegion = worldData.hardState.filter(
       (e) => e.regionId === region.id || e.allRegionIds?.includes(region.id)
     );
@@ -582,28 +562,24 @@ export function buildPageIndex(
       lastUpdated: region.createdAt ?? Date.now(),
     };
 
-    entries.push(entry);
-    byId.set(entry.id, entry);
-    // Also index by region label for link resolution
+    state.entries.push(entry);
+    state.byId.set(entry.id, entry);
     const labelLower = region.label.toLowerCase();
-    if (!byName.has(labelLower)) {
-      byName.set(labelLower, regionPageId);
+    if (!state.byName.has(labelLower)) {
+      state.byName.set(labelLower, regionPageId);
     }
   }
+}
 
-  // Build disambiguation index: group pages by base name (after namespace prefix)
+function buildDisambiguationIndex(entries: PageIndexEntry[]): Map<string, DisambiguationEntry[]> {
   const byBaseName = new Map<string, DisambiguationEntry[]>();
   for (const entry of entries) {
-    // Skip category entries from disambiguation
     if (entry.type === "category") continue;
-
     const { namespace, baseName } = parseNamespace(entry.title);
     const baseNameLower = baseName.toLowerCase();
-
     if (!byBaseName.has(baseNameLower)) {
       byBaseName.set(baseNameLower, []);
     }
-
     byBaseName.get(baseNameLower)!.push({
       pageId: entry.id,
       title: entry.title,
@@ -613,14 +589,53 @@ export function buildPageIndex(
     });
   }
 
-  // Remove entries with only one page (no disambiguation needed)
   for (const [baseName, pages] of byBaseName) {
-    if (pages.length <= 1) {
-      byBaseName.delete(baseName);
+    if (pages.length <= 1) byBaseName.delete(baseName);
+  }
+
+  return byBaseName;
+}
+
+export function buildPageIndex(
+  worldData: WorldState,
+  _loreData: LoreData | null,
+  chronicles: ChronicleRecord[] = [],
+  staticPages: StaticPage[] = [],
+  prominenceScale?: ProminenceScale,
+  eraNarratives: EraNarrativeViewRecord[] = []
+): WikiPageIndex {
+  const resolvedProminenceScale = resolveProminenceScale(worldData, prominenceScale);
+  const state: PageIndexState = {
+    entries: [],
+    byId: new Map(),
+    byName: new Map(),
+    byAlias: new Map(),
+    bySlug: new Map(),
+  };
+
+  const entityByName = new Map(worldData.hardState.map((e) => [e.name.toLowerCase(), e.id]));
+
+  const eraNarrativeByEraId = new Map<string, EraNarrativeViewRecord>();
+  for (const narrative of eraNarratives) {
+    if (narrative.status === "complete" && narrative.content) {
+      eraNarrativeByEraId.set(narrative.eraId, narrative);
     }
   }
 
-  return { entries, byId, byName, byAlias, bySlug, categories, byBaseName };
+  indexEntityEntries(worldData, resolvedProminenceScale, eraNarrativeByEraId, state);
+  indexEraNarrativeEntries(eraNarrativeByEraId, state);
+  indexChronicleEntries(chronicles, state);
+
+  const linkableNames = buildLinkableNames(worldData, staticPages);
+  extractChronicleBacklinks(chronicles, state.entries, linkableNames, worldData, state.byAlias, state.byName);
+  indexStaticPageEntries(staticPages, linkableNames, entityByName, state);
+
+  const categories = indexCategoryEntries(state.entries, state);
+  indexRegionEntries(worldData, state);
+
+  const byBaseName = buildDisambiguationIndex(state.entries);
+
+  return { entries: state.entries, byId: state.byId, byName: state.byName, byAlias: state.byAlias, bySlug: state.bySlug, categories, byBaseName };
 }
 
 /**
@@ -982,7 +997,8 @@ interface TemplateContext {
 function processTemplateVariables(content: string, ctx: TemplateContext): string {
   const { worldData } = ctx;
 
-  return content.replace(/\{\{([^}]+)\}\}/g, (match, variable) => {
+  // eslint-disable-next-line sonarjs/slow-regex -- character-class bounded, no backtracking
+  return content.replace(/\{\{([^}]+)\}\}/g, (match: string, variable: string) => {
     const trimmed = variable.trim();
 
     // {{world.context}} - World metadata summary
@@ -990,7 +1006,9 @@ function processTemplateVariables(content: string, ctx: TemplateContext): string
       // WorldMetadata doesn't have description, return era info instead
       const era = worldData.metadata?.era;
       const tick = worldData.metadata?.tick;
-      return era ? `Era: ${era}${tick ? ` (Tick ${tick})` : ""}` : "";
+      if (!era) return "";
+      const tickSuffix = tick ? ` (Tick ${tick})` : "";
+      return `Era: ${era}${tickSuffix}`;
     }
 
     // {{cultures}} - List of cultures
@@ -1024,7 +1042,8 @@ function processTemplateVariables(content: string, ctx: TemplateContext): string
         (e) => e.name.toLowerCase() === entityName.toLowerCase()
       );
       if (!entity) return `_Entity "${entityName}" not found_`;
-      return `**[[${entity.name}]]** (${entity.kind}${entity.subtype ? ` - ${entity.subtype}` : ""})`;
+      const kindLabel = entity.subtype ? `${entity.kind} - ${entity.subtype}` : entity.kind;
+      return `**[[${entity.name}]]** (${kindLabel})`;
     }
 
     // {{kinds}} - List of entity kinds with counts
@@ -1384,7 +1403,7 @@ function buildEntityPage(
   imageIndex: Map<string, ImageInfo>,
   aliasIndex: Map<string, string>,
   prominenceScale: ProminenceScale,
-  chronicles: ChronicleRecord[] = []
+  _chronicles: ChronicleRecord[] = []
 ): WikiPage {
   const entityLore = loreIndex.get(entity.id) || [];
   // Summary and description are now directly on entity
@@ -1629,7 +1648,7 @@ function formatRelationships(
   for (const [pairKey, rows] of byPair) {
     const [kind, direction] = pairKey.split(":");
     // Sort entities alphabetically
-    const entities = rows
+    const entities = [...rows]
       .sort((a, b) => a.entityName.localeCompare(b.entityName))
       .map((r) => r.entity);
     pairRows.push({ kind, direction, entities });
@@ -1780,7 +1799,7 @@ function buildEntityCategories(
  * Build all categories from pages
  */
 export function buildCategories(_worldData: WorldState, pages: WikiPage[]): WikiCategory[] {
-  void _worldData; // Reserved for future category enrichment
+  // _worldData reserved for future category enrichment
   const categoryMap = new Map<string, WikiCategory>();
 
   // Collect all category IDs from pages
@@ -1878,7 +1897,7 @@ function buildRegionPage(
 
   // Entities section with table per kind
   for (const [kind, entities] of byKind) {
-    const rows = entities
+    const rows = [...entities]
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((e) => `| [[${e.name}]] | ${e.subtype} | ${e.status} |`)
       .join("\n");
@@ -1939,6 +1958,7 @@ function extractLinkedEntities(
 
   for (const section of sections) {
     // Find [[Entity Name]] patterns
+    // eslint-disable-next-line sonarjs/slow-regex -- character-class bounded, no backtracking
     const matches = section.content.matchAll(/\[\[([^\]]+)\]\]/g);
     for (const match of matches) {
       const name = match[1].toLowerCase().trim();

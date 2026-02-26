@@ -134,7 +134,6 @@ function buildRelationshipContext(
     sourceKind: src?.kind || "unknown",
     targetName: dst?.name || rel.dst,
     targetKind: dst?.kind || "unknown",
-    // TODO: Add backstory from enrichment when available
     backstory: undefined,
   };
 }

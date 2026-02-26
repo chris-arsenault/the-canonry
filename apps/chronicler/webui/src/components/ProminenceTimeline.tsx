@@ -106,7 +106,7 @@ export default function ProminenceTimeline({
   entityId,
   initialProminence = 2.5,
   prominenceScale,
-}: ProminenceTimelineProps) {
+}: Readonly<ProminenceTimelineProps>) {
   const [hoveredPoint, setHoveredPoint] = useState<{
     point: ProminenceDataPoint;
     x: number;
@@ -319,7 +319,7 @@ export default function ProminenceTimeline({
             }
           >
             <div className={styles.tooltipValue}>
-              {/* eslint-disable-next-line local/no-inline-styles -- dynamic color from prominence value */}
+              { }
               <span
                 style={
                   {
@@ -330,14 +330,14 @@ export default function ProminenceTimeline({
               >
                 {resolveLabel(hoveredPoint.point.previousValue)}
               </span>
-              {/* eslint-disable-next-line local/no-inline-styles -- dynamic color from prominence value */}
+              { }
               <span
                 style={{ "--prominence-color": graphColors.textMuted } as React.CSSProperties}
                 className={styles.transitionColor}
               >
                 &rarr;
               </span>
-              {/* eslint-disable-next-line local/no-inline-styles -- dynamic color from prominence value */}
+              { }
               <span
                 style={
                   {

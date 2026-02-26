@@ -207,5 +207,5 @@ export function getCoverImageConfig(narrativeStyleId: string): CoverImageConfig 
 }
 
 export function getScenePromptTemplate(id: string): ScenePromptTemplate {
-  return templateMap.get(id) || templateMap.get("montage")!;
+  return templateMap.get(id) || templateMap.get("montage");
 }

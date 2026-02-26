@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * @param {Object} props
@@ -24,3 +25,11 @@ export function EmptyState({ icon, title, description, children, className = '' 
 }
 
 export default EmptyState;
+
+EmptyState.propTypes = {
+  icon: PropTypes.string,
+  title: PropTypes.string.isRequired,
+  description: PropTypes.string,
+  children: PropTypes.node,
+  className: PropTypes.string,
+};

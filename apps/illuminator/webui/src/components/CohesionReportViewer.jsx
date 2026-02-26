@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import ChronicleImagePanel from "./ChronicleImagePanel";
 import { ExpandableSeedSection } from "./ChronicleSeedViewer";
 import "./CohesionReportViewer.css";
@@ -54,7 +55,7 @@ function ScoreGauge({ score }) {
         />
       </svg>
       <div className="crv-gauge-label">
-        {/* eslint-disable-next-line local/no-inline-styles */}
+        { }
         <div
           className="crv-gauge-score"
           style={{ "--crv-gauge-color": getColor(), color: "var(--crv-gauge-color)" }}
@@ -75,6 +76,9 @@ function CheckItem({ label, check, isSection = false }) {
       <div
         className={`crv-check-header ${check.notes ? "crv-check-header-clickable" : ""}`}
         onClick={() => check.notes && setExpanded(!expanded)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         <div className="crv-check-left">
           <span
@@ -188,8 +192,7 @@ export default function CohesionReportViewer({
 
   const statusStyle = STATUS_STYLES[assessment?.status || "needs_revision"];
 
-  const sectionIdToName = new Map();
-  const resolveSectionLabel = (sectionId) => sectionIdToName.get(sectionId) || sectionId;
+  const resolveSectionLabel = (sectionId) => sectionId;
   const hasIssues = report.issues.length > 0;
   const formatTimestamp = (timestamp) => new Date(timestamp).toLocaleString();
   const summaryState = refinements?.summary || {};
@@ -204,7 +207,7 @@ export default function CohesionReportViewer({
         <div className="crv-header-left">
           <ScoreGauge score={report.overallScore} />
           <div>
-            {/* eslint-disable-next-line local/no-inline-styles */}
+            { }
             <div
               className="crv-status-badge"
               style={{
@@ -398,7 +401,7 @@ export default function CohesionReportViewer({
 
           <div className="crv-summary-grid">
             <div className="crv-summary-card">
-              {/* eslint-disable-next-line local/no-inline-styles */}
+              { }
               <div
                 className="crv-summary-card-icon"
                 style={{
@@ -411,7 +414,7 @@ export default function CohesionReportViewer({
               <div className="crv-summary-card-label">Structure</div>
             </div>
             <div className="crv-summary-card">
-              {/* eslint-disable-next-line local/no-inline-styles */}
+              { }
               <div
                 className="crv-summary-card-icon"
                 style={{
@@ -424,7 +427,7 @@ export default function CohesionReportViewer({
               <div className="crv-summary-card-label">Entity Consistency</div>
             </div>
             <div className="crv-summary-card">
-              {/* eslint-disable-next-line local/no-inline-styles */}
+              { }
               <div
                 className="crv-summary-card-icon"
                 style={{
@@ -533,3 +536,48 @@ export default function CohesionReportViewer({
     </div>
   );
 }
+
+ScoreGauge.propTypes = {
+  score: PropTypes.number.isRequired,
+};
+
+CheckItem.propTypes = {
+  label: PropTypes.string.isRequired,
+  check: PropTypes.object.isRequired,
+  isSection: PropTypes.bool,
+};
+
+IssueCard.propTypes = {
+  issue: PropTypes.object.isRequired,
+  sectionTitle: PropTypes.string,
+};
+
+CohesionReportViewer.propTypes = {
+  report: PropTypes.object,
+  seedData: PropTypes.object,
+  onAccept: PropTypes.func.isRequired,
+  onRegenerate: PropTypes.func.isRequired,
+  onCorrectSuggestions: PropTypes.func,
+  onGenerateSummary: PropTypes.func,
+  onGenerateImageRefs: PropTypes.func,
+  onRevalidate: PropTypes.func,
+  refinements: PropTypes.object,
+  isValidationStale: PropTypes.bool,
+  editVersion: PropTypes.number,
+  isGenerating: PropTypes.bool,
+  imageRefs: PropTypes.object,
+  entityMap: PropTypes.object,
+  onGenerateChronicleImage: PropTypes.func,
+  onResetChronicleImage: PropTypes.func,
+  onUpdateChronicleAnchorText: PropTypes.func,
+  onUpdateChronicleImageSize: PropTypes.func,
+  onUpdateChronicleImageJustification: PropTypes.func,
+  chronicleText: PropTypes.string,
+  summaryIndicator: PropTypes.node,
+  imageRefsIndicator: PropTypes.node,
+  styleLibrary: PropTypes.object,
+  cultures: PropTypes.array,
+  cultureIdentities: PropTypes.object,
+  worldContext: PropTypes.object,
+  chronicleTitle: PropTypes.string,
+};

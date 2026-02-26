@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { DomainTab, LexemesTab, GrammarsTab, ProfileTab } from "./tabs";
 
 function EntityWorkspace({
@@ -188,5 +189,18 @@ function EntityWorkspace({
     </div>
   );
 }
+
+EntityWorkspace.propTypes = {
+  worldSchema: PropTypes.object,
+  cultureId: PropTypes.string,
+  cultureConfig: PropTypes.object,
+  allCultures: PropTypes.object,
+  activeTab: PropTypes.string,
+  onTabChange: PropTypes.func,
+  onCultureChange: PropTypes.func,
+  onAddTag: PropTypes.func,
+  apiKey: PropTypes.string,
+  generators: PropTypes.array,
+};
 
 export default EntityWorkspace;

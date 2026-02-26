@@ -22,7 +22,6 @@ export function analyzeNamingMappings(generators, schema) {
       const entityKind = creation.kind;
       // Subtype can be a string or object - ensure we get a string
       const subtype = typeof creation.subtype === "string" ? creation.subtype : null;
-      const status = creation.status;
       const prominence = creation.prominence;
       const tags = creation.tags ? Object.keys(creation.tags) : [];
 

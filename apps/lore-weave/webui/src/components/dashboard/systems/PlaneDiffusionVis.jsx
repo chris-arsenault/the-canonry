@@ -12,6 +12,7 @@
  */
 
 import React, { useMemo, useState, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
 import { Group } from "@visx/group";
 import { scaleLinear } from "@visx/scale";
 import { ParentSize } from "@visx/responsive";
@@ -332,9 +333,11 @@ function DiffusionFieldChart({
               cx={xScale(entity.x)}
               cy={dataYToSvgY(entity.y)}
               r={4}
-              fill={
-                entity.fieldValue > 0 ? "#ef4444" : entity.fieldValue < 0 ? "#3b82f6" : "#94a3b8"
-              }
+              fill={(() => {
+                if (entity.fieldValue > 0) return "#ef4444";
+                if (entity.fieldValue < 0) return "#3b82f6";
+                return "#94a3b8";
+              })()}
               fillOpacity={0.7}
               stroke="rgba(255,255,255,0.3)"
               strokeWidth={1}
@@ -553,5 +556,31 @@ export function PlaneDiffusionVis({
     </div>
   );
 }
+
+GradientLegend.propTypes = {
+  title: PropTypes.string,
+  minLabel: PropTypes.string,
+  maxLabel: PropTypes.string,
+  centerLabel: PropTypes.string,
+};
+
+DiffusionFieldChart.propTypes = {
+  width: PropTypes.number,
+  height: PropTypes.number,
+  gridData: PropTypes.array,
+  gridSize: PropTypes.number,
+  valueRange: PropTypes.object,
+  sources: PropTypes.array,
+  sinks: PropTypes.array,
+  entities: PropTypes.array,
+  useLogScale: PropTypes.bool,
+};
+
+PlaneDiffusionVis.propTypes = {
+  config: PropTypes.object,
+  systemActions: PropTypes.array,
+  selectedTick: PropTypes.number,
+  autoScaleColors: PropTypes.bool,
+};
 
 export default PlaneDiffusionVis;

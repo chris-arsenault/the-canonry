@@ -5,7 +5,7 @@
  */
 
 import { Graph } from '../engine/types';
-import { HardState, Relationship } from '../core/worldTypes';
+import { HardState } from '../core/worldTypes';
 
 /**
  * Find entities matching criteria

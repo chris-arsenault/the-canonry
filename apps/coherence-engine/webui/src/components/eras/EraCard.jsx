@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react";
+import PropTypes from "prop-types";
 import { createNewRule } from "../generators/applicability/createNewRule";
 import { BasicInfoSection, TransitionsGrid } from "./sections";
 
@@ -27,7 +28,7 @@ export function EraCard({
   schema,
   allEras,
 }) {
-  const [hovering, setHovering] = useState(false);
+  const [, setHovering] = useState(false);
 
   // Field change handler
   const handleFieldChange = useCallback(
@@ -226,6 +227,9 @@ export function EraCard({
         onClick={onToggle}
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggle(e); }}
       >
         <div className="expandable-card-left">
           <div className="expandable-card-title">
@@ -288,3 +292,14 @@ export function EraCard({
     </div>
   );
 }
+
+EraCard.propTypes = {
+  era: PropTypes.object.isRequired,
+  expanded: PropTypes.bool.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  pressures: PropTypes.array,
+  schema: PropTypes.object,
+  allEras: PropTypes.array,
+};

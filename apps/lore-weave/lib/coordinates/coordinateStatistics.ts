@@ -210,17 +210,32 @@ class CoordinateStatisticsCollector {
 
     console.log(`\nTotal placements: ${summary.totalPlacements}`);
 
+    this.printMethodStats(summary);
+    this.printKindStats(summary);
+    this.printCultureContextStats(summary);
+    this.printRegionStats(summary);
+    this.printClusteringStats(summary);
+    this.printWarnings(summary);
+
+    console.log('\n' + '='.repeat(60) + '\n');
+  }
+
+  private printMethodStats(summary: CoordinateStatsSummary): void {
     console.log('\n--- Placements by Method ---');
     for (const [method, count] of Object.entries(summary.placementsByMethod)) {
       const pct = ((count / summary.totalPlacements) * 100).toFixed(1);
       console.log(`  ${method}: ${count} (${pct}%)`);
     }
+  }
 
+  private printKindStats(summary: CoordinateStatsSummary): void {
     console.log('\n--- Placements by Entity Kind ---');
     for (const [kind, count] of Object.entries(summary.placementsByKind)) {
       console.log(`  ${kind}: ${count}`);
     }
+  }
 
+  private printCultureContextStats(summary: CoordinateStatsSummary): void {
     console.log('\n--- Culture Context ---');
     console.log(`  With culture: ${summary.placementsWithCulture}`);
     console.log(`  Without culture: ${summary.placementsWithoutCulture}`);
@@ -228,44 +243,49 @@ class CoordinateStatisticsCollector {
       const pct = ((summary.placementsWithoutCulture / summary.totalPlacements) * 100).toFixed(1);
       console.log(`  ⚠️  ${pct}% of placements have no culture context!`);
     }
+  }
 
+  private printRegionStats(summary: CoordinateStatsSummary): void {
     console.log('\n--- Regions Created per Kind ---');
-    const hasNonLocationRegions = Object.keys(summary.regionsCreatedPerKind).some(k => k !== 'location');
-    if (Object.keys(summary.regionsCreatedPerKind).length === 0) {
+    const regionKinds = Object.keys(summary.regionsCreatedPerKind);
+    if (regionKinds.length === 0) {
       console.log('  No emergent regions created');
-    } else {
-      for (const [kind, count] of Object.entries(summary.regionsCreatedPerKind)) {
-        console.log(`  ${kind}: ${count}`);
-      }
+      return;
     }
-    if (!hasNonLocationRegions && Object.keys(summary.regionsCreatedPerKind).length > 0) {
+    for (const [kind, count] of Object.entries(summary.regionsCreatedPerKind)) {
+      console.log(`  ${kind}: ${count}`);
+    }
+    const hasNonLocationRegions = regionKinds.some(k => k !== 'location');
+    if (!hasNonLocationRegions) {
       console.log('  ⚠️  Regions only created for "location" kind - other kinds have no regions!');
     }
+  }
 
+  private printClusteringStats(summary: CoordinateStatsSummary): void {
     console.log('\n--- Culture Clustering ---');
     if (summary.cultureClusterStats.length === 0) {
       console.log('  No culture clustering data (no culture context used)');
-    } else {
-      for (const cs of summary.cultureClusterStats) {
-        console.log(`  ${cs.cultureId}:`);
-        console.log(`    Entities: ${cs.entityCount}`);
-        console.log(`    Centroid: (${cs.centroid.x.toFixed(1)}, ${cs.centroid.y.toFixed(1)}, ${cs.centroid.z.toFixed(1)})`);
-        console.log(`    Spread: ${cs.spread.toFixed(1)}`);
-        console.log(`    Kinds: ${Object.entries(cs.kinds).map(([k, v]) => `${k}:${v}`).join(', ')}`);
-      }
+      return;
     }
-
-    if (summary.warnings.length > 0) {
-      console.log('\n--- Warnings ---');
-      for (const w of summary.warnings.slice(0, 20)) {
-        console.log(`  ⚠️  ${w}`);
-      }
-      if (summary.warnings.length > 20) {
-        console.log(`  ... and ${summary.warnings.length - 20} more warnings`);
-      }
+    for (const cs of summary.cultureClusterStats) {
+      console.log(`  ${cs.cultureId}:`);
+      console.log(`    Entities: ${cs.entityCount}`);
+      console.log(`    Centroid: (${cs.centroid.x.toFixed(1)}, ${cs.centroid.y.toFixed(1)}, ${cs.centroid.z.toFixed(1)})`);
+      console.log(`    Spread: ${cs.spread.toFixed(1)}`);
+      const kindsDisplay = Object.entries(cs.kinds).map(([k, v]) => `${k}:${v}`).join(', ');
+      console.log(`    Kinds: ${kindsDisplay}`);
     }
+  }
 
-    console.log('\n' + '='.repeat(60) + '\n');
+  private printWarnings(summary: CoordinateStatsSummary): void {
+    if (summary.warnings.length === 0) return;
+    console.log('\n--- Warnings ---');
+    for (const w of summary.warnings.slice(0, 20)) {
+      console.log(`  ⚠️  ${w}`);
+    }
+    if (summary.warnings.length > 20) {
+      console.log(`  ... and ${summary.warnings.length - 20} more warnings`);
+    }
   }
 }
 

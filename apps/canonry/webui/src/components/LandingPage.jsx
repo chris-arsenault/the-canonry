@@ -6,6 +6,7 @@
  */
 
 import React from "react";
+import PropTypes from "prop-types";
 import { colors, typography, spacing, radius } from "../theme";
 
 const styles = {
@@ -355,6 +356,17 @@ const APP_CARDS = [
   },
 ];
 
+const appShape = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  icon: PropTypes.string.isRequired,
+  title: PropTypes.string.isRequired,
+  tagline: PropTypes.string,
+  color: PropTypes.string,
+  bgColor: PropTypes.string,
+  description: PropTypes.string,
+  features: PropTypes.array,
+});
+
 function AppCard({ app, onNavigate, hasProject }) {
   return (
     <div
@@ -375,6 +387,9 @@ function AppCard({ app, onNavigate, hasProject }) {
         e.currentTarget.style.boxShadow = "none";
       }}
       title={hasProject ? `Open ${app.title}` : "Select a project first"}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
     >
       {/* Header */}
       <div
@@ -424,6 +439,12 @@ function AppCard({ app, onNavigate, hasProject }) {
   );
 }
 
+AppCard.propTypes = {
+  app: appShape.isRequired,
+  onNavigate: PropTypes.func.isRequired,
+  hasProject: PropTypes.bool,
+};
+
 export default function LandingPage({ onNavigate, hasProject }) {
   return (
     <div style={styles.container}>
@@ -434,7 +455,7 @@ export default function LandingPage({ onNavigate, hasProject }) {
           A unified suite for procedural world-building. Define your schema, configure naming
           systems, place entities on semantic planes, and generate interconnected histories.
         </p>
-        <p style={styles.tagline}>Yes, this is probably overkill. No, we're not sorry.</p>
+        <p style={styles.tagline}>Yes, this is probably overkill. No, we&apos;re not sorry.</p>
       </div>
 
       {/* App Cards */}
@@ -459,3 +480,8 @@ export default function LandingPage({ onNavigate, hasProject }) {
     </div>
   );
 }
+
+LandingPage.propTypes = {
+  onNavigate: PropTypes.func.isRequired,
+  hasProject: PropTypes.bool,
+};

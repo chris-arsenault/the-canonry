@@ -70,7 +70,10 @@ function buildPaletteExpansionPrompt(
   let erasSection = "";
   if (eras.length > 0) {
     const eraLines = eras
-      .map((e) => `- ${e.id}: "${e.name}"${e.description ? ` - ${e.description}` : ""}`)
+      .map((e) => {
+        const eraDescSuffix = e.description ? ` - ${e.description}` : "";
+        return `- ${e.id}: "${e.name}"${eraDescSuffix}`;
+      })
       .join("\n");
     erasSection = `\nERAS in this world (use exact IDs):\n${eraLines}\n`;
   }

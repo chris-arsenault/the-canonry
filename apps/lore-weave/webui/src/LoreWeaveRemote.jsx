@@ -16,6 +16,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import "./App.css";
 import ConfigurationSummary from "./components/config";
 import { DistributionTargetsEditor } from "./components/targets";
@@ -233,3 +234,24 @@ export default function LoreWeaveRemote({
     </div>
   );
 }
+
+LoreWeaveRemote.propTypes = {
+  projectId: PropTypes.string,
+  schema: PropTypes.object,
+  eras: PropTypes.array,
+  pressures: PropTypes.array,
+  generators: PropTypes.array,
+  systems: PropTypes.array,
+  actions: PropTypes.array,
+  seedEntities: PropTypes.array,
+  seedRelationships: PropTypes.array,
+  distributionTargets: PropTypes.object,
+  onDistributionTargetsChange: PropTypes.func,
+  activeSection: PropTypes.string,
+  onSectionChange: PropTypes.func,
+  simulationResults: PropTypes.object,
+  onSimulationResultsChange: PropTypes.func,
+  simulationState: PropTypes.object,
+  onSimulationStateChange: PropTypes.func,
+  onSearchRunScored: PropTypes.func,
+};

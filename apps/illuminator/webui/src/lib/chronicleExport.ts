@@ -383,27 +383,24 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
     cost: version.cost,
   }));
 
-  // Add generation context if stored (new chronicles have this)
+  attachOptionalExportFields(exportData, chronicle);
+
+  return exportData;
+}
+
+function attachOptionalExportFields(exportData: ChronicleExport, chronicle: ChronicleRecord): void {
   if (chronicle.generationContext) {
     exportData.generationContext = chronicle.generationContext;
   }
-
-  // Add image refs if present
   if (chronicle.imageRefs) {
     exportData.imageRefs = exportImageRefs(chronicle.imageRefs);
   }
-
-  // Add summary if present
   if (chronicle.summary) {
     exportData.summary = chronicle.summary;
   }
-
-  // Add perspective synthesis if present
   if (chronicle.perspectiveSynthesis) {
     exportData.perspectiveSynthesis = exportPerspectiveSynthesis(chronicle.perspectiveSynthesis);
   }
-
-  // Add cover image if present
   if (chronicle.coverImage) {
     exportData.coverImage = {
       sceneDescription: chronicle.coverImage.sceneDescription,
@@ -412,34 +409,20 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
       generatedImageId: chronicle.coverImage.generatedImageId,
     };
   }
-
-  // Add comparison analysis if present
-  if (chronicle.comparisonReport) {
-    exportData.comparisonReport = chronicle.comparisonReport;
-  }
-  if (chronicle.combineInstructions) {
-    exportData.combineInstructions = chronicle.combineInstructions;
-  }
-  if (chronicle.temporalCheckReport) {
-    exportData.temporalCheckReport = chronicle.temporalCheckReport;
-  }
+  if (chronicle.comparisonReport) exportData.comparisonReport = chronicle.comparisonReport;
+  if (chronicle.combineInstructions) exportData.combineInstructions = chronicle.combineInstructions;
+  if (chronicle.temporalCheckReport) exportData.temporalCheckReport = chronicle.temporalCheckReport;
 
   if (chronicle.eraYear != null) {
     exportData.eraYear = chronicle.eraYear;
-    if (chronicle.eraYearReasoning) {
-      exportData.eraYearReasoning = chronicle.eraYearReasoning;
-    }
+    if (chronicle.eraYearReasoning) exportData.eraYearReasoning = chronicle.eraYearReasoning;
   }
 
-  if (chronicle.historianPrep) {
-    exportData.historianPrep = chronicle.historianPrep;
-  }
+  if (chronicle.historianPrep) exportData.historianPrep = chronicle.historianPrep;
 
   if (chronicle.historianNotes && chronicle.historianNotes.length > 0) {
     const enabledNotes = chronicle.historianNotes.filter(isNoteActive);
-    if (enabledNotes.length > 0) {
-      exportData.historianNotes = enabledNotes;
-    }
+    if (enabledNotes.length > 0) exportData.historianNotes = enabledNotes;
   }
 
   if (chronicle.historianReviewSystemPrompt && chronicle.historianReviewUserPrompt) {
@@ -450,11 +433,7 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
     };
   }
 
-  if (chronicle.factCoverageReport) {
-    exportData.factCoverageReport = chronicle.factCoverageReport;
-  }
-
-  return exportData;
+  if (chronicle.factCoverageReport) exportData.factCoverageReport = chronicle.factCoverageReport;
 }
 
 /**
@@ -750,139 +729,102 @@ export function buildEraNarrativeExport(record: EraNarrativeRecord): EraNarrativ
   };
 
   if (record.threadSynthesis) {
-    const ts = record.threadSynthesis;
-    exportData.threadSynthesis = {
-      thesis: ts.thesis || "",
-      ...(ts.counterweight ? { counterweight: ts.counterweight } : {}),
-      ...(ts.motifs?.length ? { motifs: ts.motifs } : {}),
-      ...(ts.openingImage ? { openingImage: ts.openingImage } : {}),
-      ...(ts.closingImage ? { closingImage: ts.closingImage } : {}),
-      threads: (ts.threads || []).map((t) => ({
-        threadId: t.threadId,
-        name: t.name,
-        description: t.description,
-        arc: t.arc,
-        ...(t.register ? { register: t.register } : {}),
-        ...(t.material ? { material: t.material } : {}),
-        culturalActors: t.culturalActors || [],
-        chronicleIds: t.chronicleIds || [],
-      })),
-      ...(ts.quotes?.length
-        ? { quotes: ts.quotes.map((q) => ({ text: q.text, origin: q.origin, context: q.context })) }
-        : {}),
-      ...(ts.strategicDynamics?.length
-        ? {
-            strategicDynamics: ts.strategicDynamics.map((sd) => ({
-              interaction: sd.interaction,
-              actors: sd.actors,
-              dynamic: sd.dynamic,
-            })),
-          }
-        : {}),
-      ...(ts.movements?.length
-        ? {
-            movements: ts.movements.map((m) => ({
-              movementIndex: m.movementIndex,
-              yearRange: m.yearRange,
-              worldState: m.worldState,
-              threadFocus: m.threadFocus || [],
-              beats: m.beats,
-            })),
-          }
-        : {}),
-      llmCall: {
-        systemPrompt: ts.systemPrompt || "",
-        userPrompt: ts.userPrompt || "",
-        model: ts.model || "",
-      },
-      tokens: { input: ts.inputTokens || 0, output: ts.outputTokens || 0 },
-      cost: ts.actualCost || 0,
-    };
+    exportData.threadSynthesis = exportThreadSynthesis(record.threadSynthesis);
   }
 
-  // Export contentVersions if available, otherwise fall back to legacy narrative field
+  exportNarrativeContent(exportData, record);
+
+  return exportData;
+}
+
+function exportThreadSynthesis(ts: EraNarrativeRecord["threadSynthesis"]): EraNarrativeExport["threadSynthesis"] {
+  return {
+    thesis: ts.thesis || "",
+    ...(ts.counterweight ? { counterweight: ts.counterweight } : {}),
+    ...(ts.motifs?.length ? { motifs: ts.motifs } : {}),
+    ...(ts.openingImage ? { openingImage: ts.openingImage } : {}),
+    ...(ts.closingImage ? { closingImage: ts.closingImage } : {}),
+    threads: (ts.threads || []).map((t) => ({
+      threadId: t.threadId, name: t.name, description: t.description, arc: t.arc,
+      ...(t.register ? { register: t.register } : {}),
+      ...(t.material ? { material: t.material } : {}),
+      culturalActors: t.culturalActors || [],
+      chronicleIds: t.chronicleIds || [],
+    })),
+    ...(ts.quotes?.length
+      ? { quotes: ts.quotes.map((q) => ({ text: q.text, origin: q.origin, context: q.context })) }
+      : {}),
+    ...(ts.strategicDynamics?.length
+      ? { strategicDynamics: ts.strategicDynamics.map((sd) => ({ interaction: sd.interaction, actors: sd.actors, dynamic: sd.dynamic })) }
+      : {}),
+    ...(ts.movements?.length
+      ? { movements: ts.movements.map((m) => ({ movementIndex: m.movementIndex, yearRange: m.yearRange, worldState: m.worldState, threadFocus: m.threadFocus || [], beats: m.beats })) }
+      : {}),
+    llmCall: { systemPrompt: ts.systemPrompt || "", userPrompt: ts.userPrompt || "", model: ts.model || "" },
+    tokens: { input: ts.inputTokens || 0, output: ts.outputTokens || 0 },
+    cost: ts.actualCost || 0,
+  };
+}
+
+function exportContentVersion(v: EraNarrativeRecord["contentVersions"][number]) {
+  return {
+    versionId: v.versionId, step: v.step, content: v.content, wordCount: v.wordCount,
+    generatedAt: new Date(v.generatedAt).toISOString(),
+    llmCall: { systemPrompt: v.systemPrompt, userPrompt: v.userPrompt, model: v.model },
+    tokens: { input: v.inputTokens, output: v.outputTokens },
+    cost: v.actualCost,
+  };
+}
+
+function exportNarrativeContent(exportData: EraNarrativeExport, record: EraNarrativeRecord): void {
   if (record.contentVersions && record.contentVersions.length > 0) {
-    const versions = record.contentVersions;
-    exportData.contentVersions = versions.map((v) => ({
-      versionId: v.versionId,
-      step: v.step,
-      content: v.content,
-      wordCount: v.wordCount,
-      generatedAt: new Date(v.generatedAt).toISOString(),
-      llmCall: {
-        systemPrompt: v.systemPrompt,
-        userPrompt: v.userPrompt,
-        model: v.model,
-      },
-      tokens: { input: v.inputTokens, output: v.outputTokens },
-      cost: v.actualCost,
-    }));
+    exportData.contentVersions = record.contentVersions.map(exportContentVersion);
     exportData.activeVersionId = record.activeVersionId;
 
-    // Backwards-compat: draft = first generate, edited = latest edit
-    const generate = versions.find((v) => v.step === "generate");
+    const generate = record.contentVersions.find((v) => v.step === "generate");
     if (generate) {
       exportData.draft = {
-        content: generate.content,
-        wordCount: generate.wordCount,
+        content: generate.content, wordCount: generate.wordCount,
         generatedAt: new Date(generate.generatedAt).toISOString(),
-        llmCall: {
-          systemPrompt: generate.systemPrompt,
-          userPrompt: generate.userPrompt,
-          model: generate.model,
-        },
+        llmCall: { systemPrompt: generate.systemPrompt, userPrompt: generate.userPrompt, model: generate.model },
         tokens: { input: generate.inputTokens, output: generate.outputTokens },
         cost: generate.actualCost,
       };
     }
-    const edits = versions.filter((v) => v.step === "edit");
+    const edits = record.contentVersions.filter((v) => v.step === "edit");
     if (edits.length > 0) {
       const latest = edits[edits.length - 1];
       exportData.edited = {
-        content: latest.content,
-        wordCount: latest.wordCount,
+        content: latest.content, wordCount: latest.wordCount,
         editedAt: new Date(latest.generatedAt).toISOString(),
-        llmCall: {
-          systemPrompt: latest.systemPrompt,
-          userPrompt: latest.userPrompt,
-          model: latest.model,
-        },
+        llmCall: { systemPrompt: latest.systemPrompt, userPrompt: latest.userPrompt, model: latest.model },
         tokens: { input: latest.inputTokens, output: latest.outputTokens },
         cost: latest.actualCost,
       };
     }
-  } else if (record.narrative) {
-    const n = record.narrative;
-    exportData.draft = {
-      content: n.content,
-      wordCount: n.wordCount,
-      generatedAt: new Date(n.generatedAt).toISOString(),
-      llmCall: {
-        systemPrompt: n.systemPrompt,
-        userPrompt: n.userPrompt,
-        model: n.model,
-      },
-      tokens: { input: n.inputTokens, output: n.outputTokens },
-      cost: n.actualCost,
-    };
-
-    if (n.editedContent && n.editedAt) {
-      exportData.edited = {
-        content: n.editedContent,
-        wordCount: n.editedWordCount || n.editedContent.split(/\s+/).filter(Boolean).length,
-        editedAt: new Date(n.editedAt).toISOString(),
-        llmCall: {
-          systemPrompt: n.editSystemPrompt || "",
-          userPrompt: n.editUserPrompt || "",
-          model: n.model,
-        },
-        tokens: { input: n.editInputTokens || 0, output: n.editOutputTokens || 0 },
-        cost: n.editActualCost || 0,
-      };
-    }
+    return;
   }
 
-  return exportData;
+  if (!record.narrative) return;
+  const n = record.narrative;
+  exportData.draft = {
+    content: n.content, wordCount: n.wordCount,
+    generatedAt: new Date(n.generatedAt).toISOString(),
+    llmCall: { systemPrompt: n.systemPrompt, userPrompt: n.userPrompt, model: n.model },
+    tokens: { input: n.inputTokens, output: n.outputTokens },
+    cost: n.actualCost,
+  };
+
+  if (n.editedContent && n.editedAt) {
+    exportData.edited = {
+      content: n.editedContent,
+      wordCount: n.editedWordCount || n.editedContent.split(/\s+/).filter(Boolean).length,
+      editedAt: new Date(n.editedAt).toISOString(),
+      llmCall: { systemPrompt: n.editSystemPrompt || "", userPrompt: n.editUserPrompt || "", model: n.model },
+      tokens: { input: n.editInputTokens || 0, output: n.editOutputTokens || 0 },
+      cost: n.editActualCost || 0,
+    };
+  }
 }
 
 export function downloadEraNarrativeExport(record: EraNarrativeRecord): void {

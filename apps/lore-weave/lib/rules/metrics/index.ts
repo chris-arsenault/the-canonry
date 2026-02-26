@@ -14,7 +14,7 @@
 
 import type { HardState, Relationship } from '../../core/worldTypes';
 import { hasTag } from '../../utils';
-import { normalizeDirection, Direction, prominenceLabel } from '../types';
+import { normalizeDirection, prominenceLabel } from '../types';
 import type {
   Metric,
   MetricResult,
@@ -103,13 +103,15 @@ export function describeMetric(metric: Metric): string {
     case 'cross_culture_ratio':
       return `cross-culture ${metric.relationshipKinds.join('/')} ratio`;
     case 'shared_relationship':
-      return `shared ${metric.sharedRelationshipKind} relationships`;
+      return `shared ${Array.isArray(metric.sharedRelationshipKind) ? metric.sharedRelationshipKind.join('/') : metric.sharedRelationshipKind} relationships`;
     case 'prominence_multiplier':
       return `prominence multiplier (${metric.mode ?? 'success_chance'})`;
     case 'neighbor_prominence':
       return `neighbor prominence (${metric.relationshipKinds?.join('/') ?? 'all'} connections)`;
-    case 'neighbor_kind_count':
-      return `neighbor ${metric.kind}${metric.subtype ? `:${metric.subtype}` : ''} count via ${metric.via}`;
+    case 'neighbor_kind_count': {
+      const neighborKindSpec = metric.subtype ? `${metric.kind}:${metric.subtype}` : metric.kind;
+      return `neighbor ${neighborKindSpec} count via ${Array.isArray(metric.via) ? metric.via.join('/') : metric.via}`;
+    }
     case 'component_size':
       return `component size via ${metric.relationshipKinds.join('/')}`;
     case 'decay_rate':
@@ -334,7 +336,7 @@ function evaluateEntityCount(
   const desc = `${metric.kind}${metric.subtype ? ':' + metric.subtype : ''}`;
   return {
     value,
-    diagnostic: `${desc} count=${rawCount}${metric.coefficient ? ` * ${metric.coefficient}` : ''}`,
+    diagnostic: `${desc} count=${rawCount}${metric.coefficient ? ' * ' + metric.coefficient : ''}`,
     details: {
       kind: metric.kind,
       subtype: metric.subtype,
@@ -551,7 +553,7 @@ function evaluateStatusRatio(
   }
 
   const alive = entities.filter((e) => e.status === metric.aliveStatus).length;
-  let ratio = alive / total;
+  const ratio = alive / total;
 
   let value = ratio * (metric.coefficient ?? 1);
   if (metric.cap !== undefined) {
@@ -600,7 +602,7 @@ function evaluateCrossCultureRatio(
     }
   }
 
-  let ratio = crossCulture / total;
+  const ratio = crossCulture / total;
 
   let value = ratio * (metric.coefficient ?? 1);
   if (metric.cap !== undefined) {
@@ -1049,7 +1051,7 @@ function evaluateNeighborKindCount(
 
   return {
     value,
-    diagnostic: `neighbor ${metric.kind} count=${count} via ${metric.via}${metric.then ? `->${metric.then}` : ''}`,
+    diagnostic: `neighbor ${metric.kind} count=${count} via ${Array.isArray(metric.via) ? metric.via.join('/') : metric.via}${metric.then ? '->' + metric.then : ''}`,
     details: {
       entityId: entity.id,
       via: metric.via,

@@ -34,7 +34,7 @@ export class ContractEnforcer {
   constructor(private config: EngineConfig) {
     // TagDefinition from schema is looser than TagMetadata; filter to valid entries
     this.registry = (config.schema.tagRegistry || [])
-      .filter((t): t is TagMetadata => t.category !== undefined) as TagMetadata[];
+      .filter((t): t is TagMetadata => t.category !== undefined);
     this.tagAnalyzer = new TagHealthAnalyzer(this.registry);
   }
 
@@ -118,7 +118,7 @@ export class ContractEnforcer {
    */
   public enforceTagCoverage(
     entity: HardState,
-    graph: WorldRuntime
+    _graph: WorldRuntime
   ): { needsAdjustment: boolean; suggestion: string; tagsToAdd?: string[]; tagsToRemove?: string[] } {
     const currentCount = getTagKeyCount(entity.tags);
 

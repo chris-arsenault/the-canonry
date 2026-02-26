@@ -2,7 +2,8 @@
  * SingleGroupTab - Edit a single strategy group
  */
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import { TagSelector, NumberInput } from "@penguin-tales/shared-components";
 import MultiSelectPills from "../MultiSelectPills";
 
@@ -10,7 +11,7 @@ const PROMINENCE_LEVELS = ["forgotten", "marginal", "recognized", "renowned", "m
 
 export default function SingleGroupTab({
   group,
-  groupIdx,
+  groupIdx: _groupIdx,
   onChange,
   onDelete,
   domains,
@@ -109,24 +110,25 @@ export default function SingleGroupTab({
       <div className="group-header-section">
         <div className="group-name-row">
           <div className="form-group">
-            <label>Group Name</label>
-            <input
+            <label htmlFor="group-name">Group Name</label>
+            <input id="group-name"
               value={group.name || ""}
               onChange={(e) => updateGroup({ name: e.target.value })}
               placeholder="e.g., Noble Names"
             />
           </div>
           <div className="form-group priority-field">
-            <label>Priority</label>
+            <label>Priority
             <NumberInput
               value={group.priority || 0}
               onChange={(v) => updateGroup({ priority: v ?? 0 })}
               integer
             />
+            </label>
           </div>
         </div>
         <p className="text-muted text-small mt-0">
-          Higher priority groups are evaluated first. The first matching group's strategies are
+          Higher priority groups are evaluated first. The first matching group&apos;s strategies are
           used.
         </p>
       </div>
@@ -194,7 +196,7 @@ export default function SingleGroupTab({
             </div>
 
             <div className="condition-field">
-              <label>Tags</label>
+              <label>Tags
               <TagSelector
                 value={group.conditions?.tags || []}
                 onChange={(val) => handleConditionChange("tags", val)}
@@ -205,11 +207,12 @@ export default function SingleGroupTab({
                 onMatchAllChange={(val) => handleConditionChange("tagMatchAll", val)}
                 onAddToRegistry={onAddTag}
               />
+              </label>
             </div>
           </div>
         ) : (
           <p className="text-muted text-small">
-            This group will always be considered. Click "Always Match" to add conditions.
+            This group will always be considered. Click &quot;Always Match&quot; to add conditions.
           </p>
         )}
       </div>
@@ -254,8 +257,8 @@ export default function SingleGroupTab({
 
                 <div className="strategy-body">
                   <div className="weight-slider">
-                    <label>Weight</label>
-                    <input
+                    <label htmlFor="weight">Weight</label>
+                    <input id="weight"
                       type="range"
                       min="0"
                       max="1"
@@ -267,8 +270,8 @@ export default function SingleGroupTab({
 
                   {strategy.type === "phonotactic" && (
                     <div className="strategy-config">
-                      <label>Domain</label>
-                      <select
+                      <label htmlFor="domain">Domain</label>
+                      <select id="domain"
                         value={strategy.domainId || ""}
                         onChange={(e) =>
                           handleStrategyConfigChange(stratIdx, "domainId", e.target.value)
@@ -286,8 +289,8 @@ export default function SingleGroupTab({
 
                   {strategy.type === "grammar" && (
                     <div className="strategy-config">
-                      <label>Grammar</label>
-                      <select
+                      <label htmlFor="grammar">Grammar</label>
+                      <select id="grammar"
                         value={strategy.grammarId || ""}
                         onChange={(e) =>
                           handleStrategyConfigChange(stratIdx, "grammarId", e.target.value)
@@ -318,3 +321,16 @@ export default function SingleGroupTab({
     </div>
   );
 }
+
+SingleGroupTab.propTypes = {
+  group: PropTypes.object,
+  groupIdx: PropTypes.number,
+  onChange: PropTypes.func,
+  onDelete: PropTypes.func,
+  domains: PropTypes.array,
+  grammars: PropTypes.array,
+  entityKinds: PropTypes.array,
+  worldSchema: PropTypes.object,
+  tagRegistry: PropTypes.array,
+  onAddTag: PropTypes.func,
+};

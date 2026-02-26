@@ -13,11 +13,11 @@ import type {
 export type { EraNarrativeRecord };
 
 export function generateEraNarrativeId(): string {
-  return `eranarr_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  return `eranarr_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 }
 
 export function generateVersionId(): string {
-  return `enver_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  return `enver_${Date.now()}_${crypto.randomUUID().slice(0, 6)}`;
 }
 
 export async function createEraNarrative(record: EraNarrativeRecord): Promise<EraNarrativeRecord> {
