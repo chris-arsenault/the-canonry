@@ -1306,7 +1306,7 @@ function collectSystemTags(systems, addTagUsage, collectTagsFromFilters, collect
   });
 }
 
-function scanFeedbackFactors(factors, ensureTag, usage) {
+function scanFeedbackFactorTags(factors, ensureTag, usage) {
   (factors || []).forEach(factor => {
     if (factor.tag) {
       ensureTag(factor.tag);
@@ -1323,8 +1323,8 @@ function scanFeedbackFactors(factors, ensureTag, usage) {
 
 function collectPressureTags(pressures, ensureTag, usage) {
   (pressures || []).forEach(pressure => {
-    scanFeedbackFactors(pressure.growth?.positiveFeedback, ensureTag, usage);
-    scanFeedbackFactors(pressure.growth?.negativeFeedback, ensureTag, usage);
+    scanFeedbackFactorTags(pressure.growth?.positiveFeedback, ensureTag, usage);
+    scanFeedbackFactorTags(pressure.growth?.negativeFeedback, ensureTag, usage);
   });
 }
 
