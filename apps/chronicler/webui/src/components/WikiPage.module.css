@@ -820,13 +820,13 @@
 }
 
 .preview-badge-kind {
-  composes: previewbadge;
+  composes: preview-badge;
   background-color: var(--color-accent-hover);
   color: var(--color-accent-light);
 }
 
 .preview-badge-status {
-  composes: previewbadge;
+  composes: preview-badge;
   background-color: rgb(196 164 112 / 15%);
   color: var(--color-text-muted);
 }

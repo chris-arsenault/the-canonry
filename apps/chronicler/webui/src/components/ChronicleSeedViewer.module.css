@@ -65,13 +65,13 @@
 }
 
 .primary-badge {
-  composes: rolebadge;
+  composes: role-badge;
   background: var(--color-accent);
   color: var(--color-bg-primary);
 }
 
 .supporting-badge {
-  composes: rolebadge;
+  composes: role-badge;
   background: var(--color-bg-secondary);
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
@@ -185,6 +185,6 @@
 }
 
 .field-label-spaced {
-  composes: fieldlabel;
+  composes: field-label;
   margin-bottom: var(--spacing-xs);
 }

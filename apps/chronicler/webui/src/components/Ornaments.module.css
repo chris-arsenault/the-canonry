@@ -28,27 +28,27 @@
 }
 
 .corner-top-left {
-  composes: cornerbase;
+  composes: corner-base;
   top: 0;
   left: 0;
 }
 
 .corner-top-right {
-  composes: cornerbase;
+  composes: corner-base;
   top: 0;
   right: 0;
   transform: scaleX(-1);
 }
 
 .corner-bottom-left {
-  composes: cornerbase;
+  composes: corner-base;
   bottom: 0;
   left: 0;
   transform: scaleY(-1);
 }
 
 .corner-bottom-right {
-  composes: cornerbase;
+  composes: corner-base;
   bottom: 0;
   right: 0;
   transform: scale(-1);

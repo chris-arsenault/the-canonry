@@ -111,7 +111,7 @@
 }
 
 .nav-item-active {
-  composes: navitem;
+  composes: nav-item;
   background-color: var(--color-accent);
   color: var(--color-bg-primary);
   font-weight: var(--font-weight-medium);
@@ -261,35 +261,35 @@
 }
 
 .item-meta-highlight {
-  composes: itemmeta;
+  composes: item-meta;
   color: var(--color-accent-light);
 }
 
 /* Era sub-section title: smaller, less padding than top-level */
 .era-section-title {
-  composes: sectiontitlecollapsible;
+  composes: section-title-collapsible;
   padding-left: 4px;
   font-size: var(--font-size-sm);
 }
 
 /* Indented sub-items under an era section */
 .nav-item-indented {
-  composes: navitem;
+  composes: nav-item;
   padding-left: 24px;
 }
 
 .nav-item-indented-active {
-  composes: navitemactive;
+  composes: nav-item-active;
   padding-left: 24px;
 }
 
 /* Era narrative item: indented + italic */
 .nav-item-era-narrative {
-  composes: navitemindented;
+  composes: nav-item-indented;
   font-style: italic;
 }
 
 .nav-item-era-narrative-active {
-  composes: navitemindentedactive;
+  composes: nav-item-indented-active;
   font-style: italic;
 }

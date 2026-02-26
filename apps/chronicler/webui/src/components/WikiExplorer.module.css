@@ -367,7 +367,7 @@
 }
 
 .entity-link-bold {
-  composes: entitylink;
+  composes: entity-link;
   font-weight: var(--font-weight-medium);
 }
 
@@ -509,12 +509,12 @@
 }
 
 .era-dot-current {
-  composes: eradot;
+  composes: era-dot;
   background-color: var(--color-accent);
 }
 
 .era-dot-historical {
-  composes: eradot;
+  composes: era-dot;
   background-color: var(--color-text-muted);
 }
 
