@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
-import { useImageUrls } from "../hooks/useImageUrl";
+import { useImageUrls } from "@penguin-tales/image-store";
 import { getChronicle } from "../lib/db/chronicleRepository";
 import "./BackrefImageEditor.css";
 
@@ -99,8 +99,7 @@ function resolveImageId(imageSource, chronicle, entities) {
 }
 
 function ImageThumbnail({ imageId, imageUrls, selected, onClick, label }) {
-  const result = imageUrls.get(imageId);
-  const url = result?.url;
+  const url = imageUrls.get(imageId) ?? null;
 
   return (
     <button
@@ -354,7 +353,7 @@ export default function BackrefImageEditor({
   }, [chronicles, entities]);
 
   // Only load blobs when the editor is visible (expanded or alwaysExpanded)
-  const imageUrls = useImageUrls(expanded ? allImageIds : []);
+  const { urls: imageUrls } = useImageUrls(expanded ? allImageIds : []);
 
   const handleBackrefChange = useCallback(
     (updatedBackref) => {

@@ -34,7 +34,8 @@ import { importBundleImageReferences, getImageCountForProject } from "./storage/
 import { importEntities, getEntityCountForRun } from "./storage/entityStorage";
 import { importNarrativeEvents, getNarrativeEventCountForRun } from "./storage/eventStorage";
 import { colors, typography, spacing } from "./theme";
-import { loadAwsConfig, saveAwsConfig, loadAwsTokens, saveAwsTokens, clearAwsTokens, isTokenValid } from "./aws/awsConfigStorage";
+import { isTokenValid } from "./aws/awsConfigStorage";
+import { useCanonryAwsStore } from "./stores/useCanonryAwsStore";
 import { extractCognitoTokensFromUrl, clearCognitoHash } from "./aws/cognitoAuth";
 import { signInWithUserPool, getUserPoolSession, signOutUserPool, sessionToTokens } from "./aws/cognitoUserAuth";
 import { createS3Client, buildImageStorageConfig, syncProjectImagesToS3, getS3ImageUploadPlan, listS3Prefixes, buildStorageImageUrl } from "./aws/awsS3";
@@ -441,15 +442,6 @@ const SLOT_EXPORT_FORMAT = "canonry-slot-export";
 const SLOT_EXPORT_VERSION = 1;
 const VIEWER_BUNDLE_FORMAT = "canonry-viewer-bundle";
 const VIEWER_BUNDLE_VERSION = 1;
-const DEFAULT_AWS_CONFIG = {
-  region: "",
-  identityPoolId: "",
-  cognitoUserPoolId: "",
-  cognitoClientId: "",
-  imageBucket: "",
-  imagePrefix: "",
-  useS3Images: false
-};
 function isWorldOutput(candidate) {
   if (!candidate || typeof candidate !== "object") return false;
   return Boolean(candidate.schema && candidate.metadata && Array.isArray(candidate.hardState) && Array.isArray(candidate.relationships) && candidate.pressures && typeof candidate.pressures === "object");
@@ -494,39 +486,31 @@ export default function App() {
     state: "idle",
     detail: ""
   });
-  const [awsModalOpen, setAwsModalOpen] = useState(false);
-  const [awsConfig, setAwsConfig] = useState(() => loadAwsConfig() || {
-    ...DEFAULT_AWS_CONFIG
-  });
-  const [awsTokens, setAwsTokens] = useState(() => loadAwsTokens());
-  const [awsStatus, setAwsStatus] = useState({
-    state: "idle",
-    detail: ""
-  });
-  const [awsBrowseState, setAwsBrowseState] = useState({
-    loading: false,
-    prefixes: [],
-    error: null
-  });
-  const [awsUsername, setAwsUsername] = useState("");
-  const [awsPassword, setAwsPassword] = useState("");
-  const [awsUserLabel, setAwsUserLabel] = useState("");
-  const [awsSyncProgress, setAwsSyncProgress] = useState({
-    phase: "idle",
-    processed: 0,
-    total: 0,
-    uploaded: 0
-  });
-  const [awsUploadPlan, setAwsUploadPlan] = useState({
-    loading: false,
-    error: null,
-    summary: null,
-    json: ""
-  });
-  const [snapshotStatus, setSnapshotStatus] = useState({
-    state: "idle",
-    detail: ""
-  });
+  // AWS state from zustand store
+  const awsModalOpen = useCanonryAwsStore(s => s.modalOpen);
+  const awsConfig = useCanonryAwsStore(s => s.config);
+  const awsTokens = useCanonryAwsStore(s => s.tokens);
+  const awsStatus = useCanonryAwsStore(s => s.status);
+  const awsBrowseState = useCanonryAwsStore(s => s.browseState);
+  const awsUsername = useCanonryAwsStore(s => s.username);
+  const awsPassword = useCanonryAwsStore(s => s.password);
+  const awsUserLabel = useCanonryAwsStore(s => s.userLabel);
+  const awsSyncProgress = useCanonryAwsStore(s => s.syncProgress);
+  const awsUploadPlan = useCanonryAwsStore(s => s.uploadPlan);
+  const snapshotStatus = useCanonryAwsStore(s => s.snapshotStatus);
+  // AWS actions from zustand store (stable references, no useCallback needed)
+  const updateAwsConfig = useCanonryAwsStore(s => s.updateConfig);
+  const setAwsTokens = useCanonryAwsStore(s => s.setTokens);
+  const setAwsStatus = useCanonryAwsStore(s => s.setStatus);
+  const setAwsBrowseState = useCanonryAwsStore(s => s.setBrowseState);
+  const setAwsUsername = useCanonryAwsStore(s => s.setUsername);
+  const setAwsPassword = useCanonryAwsStore(s => s.setPassword);
+  const setAwsUserLabel = useCanonryAwsStore(s => s.setUserLabel);
+  const setAwsSyncProgress = useCanonryAwsStore(s => s.setSyncProgress);
+  const setAwsUploadPlan = useCanonryAwsStore(s => s.setUploadPlan);
+  const setSnapshotStatus = useCanonryAwsStore(s => s.setSnapshotStatus);
+  const openAwsModal = useCanonryAwsStore(s => s.openModal);
+  const closeAwsModal = useCanonryAwsStore(s => s.closeModal);
   const exportCancelRef = useRef(false);
   const exportModalMouseDown = useRef(false);
   const awsModalMouseDown = useRef(false);
@@ -543,11 +527,10 @@ export default function App() {
   useEffect(() => {
     const tokens = extractCognitoTokensFromUrl();
     if (tokens) {
-      saveAwsTokens(tokens);
       setAwsTokens(tokens);
       clearCognitoHash();
     }
-  }, []);
+  }, [setAwsTokens]);
   useEffect(() => {
     let canceled = false;
     const userPoolConfigured = Boolean(awsConfig?.cognitoUserPoolId && awsConfig?.cognitoClientId);
@@ -556,7 +539,6 @@ export default function App() {
       if (canceled || !session) return;
       const nextTokens = sessionToTokens(session);
       if (nextTokens) {
-        saveAwsTokens(nextTokens);
         setAwsTokens(nextTokens);
       }
       const username = session.getIdToken().payload?.["cognito:username"] || "";
@@ -565,18 +547,7 @@ export default function App() {
     return () => {
       canceled = true;
     };
-  }, [awsConfig, awsTokens]);
-  const updateAwsConfig = useCallback(patch => {
-    setAwsConfig(prev => {
-      const next = {
-        ...prev,
-        ...patch
-      };
-      saveAwsConfig(next);
-      return next;
-    });
-  }, []);
-
+  }, [awsConfig, awsTokens, setAwsTokens, setAwsUserLabel]);
   // UI actions from zustand store (stable references, no useCallback needed)
   const setActiveSection = useCanonryUiStore(s => s.setActiveSection);
   const setActiveSectionForTab = useCanonryUiStore(s => s.setActiveSectionForTab);
@@ -586,8 +557,6 @@ export default function App() {
   const clearChroniclerRequestedPage = useCanonryUiStore(s => s.clearChroniclerRequestedPage);
   const openHelpModal = useCanonryUiStore(s => s.openHelpModal);
   const closeHelpModal = useCanonryUiStore(s => s.closeHelpModal);
-  const openAwsModal = useCallback(() => setAwsModalOpen(true), []);
-
   // Listen for cross-MFE navigation events (e.g., Archivist -> Chronicler)
   useEffect(() => {
     const navigateTo = useCanonryUiStore.getState().navigateTo;
@@ -673,9 +642,9 @@ export default function App() {
   }, []);
   const handleAwsModalClick = useCallback(e => {
     if (awsModalMouseDown.current && e.target === e.currentTarget) {
-      setAwsModalOpen(false);
+      closeAwsModal();
     }
-  }, []);
+  }, [closeAwsModal]);
   const handleAwsLogin = useCallback(async () => {
     if (!awsUsername || !awsPassword) {
       alert("Enter username and password.");
@@ -693,7 +662,6 @@ export default function App() {
       });
       const nextTokens = sessionToTokens(session);
       if (nextTokens) {
-        saveAwsTokens(nextTokens);
         setAwsTokens(nextTokens);
       }
       setAwsUserLabel(awsUsername);
@@ -709,17 +677,16 @@ export default function App() {
         detail: err.message || "Sign in failed."
       });
     }
-  }, [awsUsername, awsPassword, awsConfig]);
+  }, [awsUsername, awsPassword, awsConfig, setAwsStatus, setAwsTokens, setAwsUserLabel, setAwsPassword]);
   const handleAwsLogout = useCallback(() => {
     signOutUserPool(awsConfig);
-    clearAwsTokens();
     setAwsTokens(null);
     setAwsUserLabel("");
     setAwsStatus({
       state: "idle",
       detail: "Signed out."
     });
-  }, [awsConfig]);
+  }, [awsConfig, setAwsTokens, setAwsUserLabel, setAwsStatus]);
   const handleAwsBrowsePrefixes = useCallback(async () => {
     if (!s3Client || !awsConfig?.imageBucket) {
       setAwsBrowseState({
@@ -751,7 +718,7 @@ export default function App() {
         error: err.message || "Failed to list prefixes."
       });
     }
-  }, [s3Client, awsConfig]);
+  }, [s3Client, awsConfig, setAwsBrowseState]);
   const handleAwsTestSetup = useCallback(async () => {
     if (!s3Client) {
       setAwsStatus({
@@ -794,7 +761,7 @@ export default function App() {
         detail: err.message || "S3 test failed."
       });
     }
-  }, [s3Client, awsConfig]);
+  }, [s3Client, awsConfig, setAwsStatus, setAwsSyncProgress]);
   const handleAwsSyncImages = useCallback(async () => {
     const projectId = currentProjectRef.current?.id;
     if (!projectId) return;
@@ -847,7 +814,7 @@ export default function App() {
         detail: err.message || "Image sync failed."
       });
     }
-  }, [s3Client, awsConfig]);
+  }, [s3Client, awsConfig, setAwsStatus, setAwsSyncProgress]);
   const handleExportSnapshot = useCallback(async () => {
     if (!s3Client) return;
     setSnapshotStatus({
@@ -874,7 +841,7 @@ export default function App() {
         detail: err.message || "Export failed."
       });
     }
-  }, [s3Client, awsConfig]);
+  }, [s3Client, awsConfig, setSnapshotStatus]);
   const handleImportSnapshot = useCallback(async () => {
     if (!s3Client) return;
     if (!window.confirm('This will REPLACE all local data (projects, runs, entities, chronicles, costs, etc.) with the snapshot from S3.\n\nImages are not included — use "Sync Images to S3" separately.\n\nThe page will reload after import. Continue?')) return;
@@ -904,7 +871,7 @@ export default function App() {
         detail: err.message || "Import failed."
       });
     }
-  }, [s3Client, awsConfig]);
+  }, [s3Client, awsConfig, setSnapshotStatus]);
   const handlePullImages = useCallback(async () => {
     const projectId = currentProjectRef.current?.id;
     if (!s3Client) {
@@ -954,7 +921,7 @@ export default function App() {
       total: 0,
       uploaded: 0
     });
-  }, [s3Client, awsConfig]);
+  }, [s3Client, awsConfig, setAwsStatus, setAwsSyncProgress]);
   const handleAwsPreviewUploads = useCallback(async () => {
     const projectId = currentProjectRef.current?.id;
     if (!projectId) return;
@@ -1024,7 +991,7 @@ export default function App() {
         detail: err.message || "Failed to build upload plan."
       });
     }
-  }, [s3Client, awsConfig]);
+  }, [s3Client, awsConfig, setAwsUploadPlan, setAwsStatus]);
   const handleCancelExportBundle = useCallback(() => {
     exportCancelRef.current = true;
     setExportBundleStatus({
@@ -2284,7 +2251,7 @@ export default function App() {
           if (e.key === "Enter" || e.key === " ") e.currentTarget.click();
         }}>
               <div className="modal-title">AWS Sync</div>
-              <button className="btn-close" onClick={() => setAwsModalOpen(false)}>
+              <button className="btn-close" onClick={() => closeAwsModal()}>
                 ×
               </button>
             </div>
@@ -2483,7 +2450,7 @@ export default function App() {
               </div>
             </div>
             <div className="modal-actions">
-              <button className="btn-sm" onClick={() => setAwsModalOpen(false)}>
+              <button className="btn-sm" onClick={() => closeAwsModal()}>
                 Close
               </button>
             </div>

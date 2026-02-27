@@ -56,6 +56,9 @@ export { FormGroup, FormRow } from './components/FormGroup';
 export { ErrorBadge, OrphanBadge, TabValidationBadge } from './components/ValidationBadge';
 export { EraBadges } from './components/EraBadges';
 
+// Chronicle seed viewer
+export { default as ChronicleSeedViewer, SeedModal, ExpandableSeedSection } from './components/ChronicleSeedViewer';
+
 // Hooks
 export { useLocalInputState } from './components/hooks/useLocalInputState';
 export { useEditorState } from './components/hooks/useEditorState';

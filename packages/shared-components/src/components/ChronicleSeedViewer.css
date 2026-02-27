@@ -31,6 +31,12 @@
   color: var(--text-primary);
 }
 
+.csv-field-label-spaced {
+  color: var(--text-muted);
+  min-width: 80px;
+  margin-bottom: 4px;
+}
+
 .csv-role-list {
   display: flex;
   flex-direction: column;
@@ -47,20 +53,22 @@
   font-size: 12px;
 }
 
-.csv-role-badge {
+.csv-primary-role-badge {
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-}
-
-.csv-primary-badge {
   background: var(--accent-color);
   color: white;
 }
 
-.csv-supporting-badge {
+.csv-supporting-role-badge {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
   background: var(--bg-secondary);
   color: var(--text-muted);
   border: 1px solid var(--border-color);
@@ -114,27 +122,6 @@
   border-left: 3px solid var(--accent-color);
   white-space: pre-wrap;
   cursor: pointer;
-}
-
-.csv-primary-role-badge {
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  background: var(--accent-color);
-  color: white;
-}
-
-.csv-supporting-role-badge {
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  background: var(--bg-secondary);
-  color: var(--text-muted);
-  border: 1px solid var(--border-color);
 }
 
 .csv-expandable-container {

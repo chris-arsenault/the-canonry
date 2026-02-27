@@ -30,7 +30,7 @@ import { buildChronicleScenePrompt } from "../lib/promptBuilders";
 import { resolveStyleSelection } from "./StyleSelector";
 import { CoverImageControls } from "./CoverImageControls";
 import ChronicleImagePanel from "./ChronicleImagePanel";
-import { useImageUrl } from "../hooks/useImageUrl";
+import { useImageUrl } from "@penguin-tales/image-store";
 import type {
   EraNarrativeRecord,
   ChronicleImageRef as NarrativeChronicleRef,

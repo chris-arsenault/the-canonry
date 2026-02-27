@@ -4,7 +4,7 @@
  * Used by both chronicle PipelineTab and EraNarrativeViewer.
  */
 
-import { useImageUrl } from "../hooks/useImageUrl";
+import { useImageUrl } from "@penguin-tales/image-store";
 import PropTypes from "prop-types";
 import "./CoverImageControls.css";
 import React from "react";

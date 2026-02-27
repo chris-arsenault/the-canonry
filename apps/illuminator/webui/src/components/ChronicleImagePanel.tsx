@@ -14,7 +14,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { resolveAnchorPhrase } from "../lib/fuzzyAnchor";
-import { useImageUrl } from "../hooks/useImageUrl";
+import { useImageUrl } from "@penguin-tales/image-store";
 import ImageModal from "./ImageModal";
 import ChronicleImagePicker from "./ChronicleImagePicker";
 import { resolveStyleSelection } from "./StyleSelector";

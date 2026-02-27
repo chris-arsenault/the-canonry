@@ -30,6 +30,9 @@ export { PressureChangesEditor } from './PressureChangesEditor';
 export { ErrorBadge, OrphanBadge, TabValidationBadge } from './ValidationBadge';
 export { EraBadges } from './EraBadges';
 
+// Chronicle seed viewer
+export { default as ChronicleSeedViewer, SeedModal, ExpandableSeedSection } from './ChronicleSeedViewer';
+
 // Hooks
 export { useLocalInputState } from './hooks/useLocalInputState';
 export { useEditorState } from './hooks/useEditorState';

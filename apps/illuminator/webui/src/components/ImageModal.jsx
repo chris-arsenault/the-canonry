@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
-import { useImageUrl } from "../hooks/useImageUrl";
+import { useImageUrl } from "@penguin-tales/image-store";
 import "./ImageModal.css";
 
 /**

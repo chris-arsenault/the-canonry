@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
-import { ExpandableSeedSection } from "../ChronicleSeedViewer";
+import { ExpandableSeedSection } from "@penguin-tales/shared-components";
 import NarrativeTimeline from "../ChronicleWizard/visualizations/NarrativeTimeline";
 import {
   getEraRanges,

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
 import ChronicleImagePanel from "../ChronicleImagePanel";
 import ChronicleImagePicker from "../ChronicleImagePicker";
-import { useImageUrl } from "../../hooks/useImageUrl";
+import { useImageUrl } from "@penguin-tales/image-store";
 import { analyzeImageRefCompatibility, createDefaultSelections } from "../../lib/imageRefCompatibility";
 import "./ImagesTab.css";
 

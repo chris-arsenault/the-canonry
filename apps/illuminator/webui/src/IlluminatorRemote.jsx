@@ -34,7 +34,7 @@ import { upsertRunIndexes } from "./lib/db/indexRepository";
 import { useIndexStore } from "./lib/db/indexStore";
 import * as entityRepo from "./lib/db/entityRepository";
 import IlluminatorTabContent from "./components/IlluminatorTabContent";
-import IlluminatorEmptyState from "./components/IlluminatorEmptyState";
+import { EmptyState } from "@penguin-tales/shared-components";
 import IlluminatorSidebar from "./components/IlluminatorSidebar";
 import IlluminatorModals from "./components/IlluminatorModals";
 
@@ -271,12 +271,49 @@ export default function IlluminatorRemote({
   });
   if (!setup.hasWorldData) {
     return (
-      <IlluminatorEmptyState
-        canImport={setup.canImport}
-        isDataSyncing={dataSync.isDataSyncing}
-        handleDataSync={dataSync.handleDataSync}
-        dataSyncStatus={dataSync.dataSyncStatus}
-      />
+      <EmptyState
+        icon="✨"
+        title={setup.canImport ? "No Local Data Loaded" : "No World Data"}
+        className="illuminator-empty-state"
+      >
+        <div className="empty-state-desc">
+          {setup.canImport ? (
+            "Dexie is empty for this slot. Import from hard state to begin."
+          ) : (
+            <>
+              Run a simulation in <strong>Lore Weave</strong> first, then return here to enrich your
+              world with LLM-generated descriptions and images.
+            </>
+          )}
+        </div>
+        {setup.canImport && (
+          <div className="ies-import-actions">
+            <button
+              type="button"
+              className="illuminator-btn illuminator-btn-primary"
+              disabled={dataSync.isDataSyncing}
+              onClick={() => dataSync.handleDataSync("patch")}
+            >
+              {dataSync.isDataSyncing ? "Importing..." : "Patch from Hard State"}
+            </button>
+            <button
+              type="button"
+              className="illuminator-btn illuminator-btn-danger"
+              disabled={dataSync.isDataSyncing}
+              onClick={() => dataSync.handleDataSync("overwrite")}
+            >
+              Overwrite from Hard State
+            </button>
+          </div>
+        )}
+        {dataSync.dataSyncStatus && (
+          <div
+            className={`ies-sync-status ${dataSync.dataSyncStatus.type === "error" ? "ies-sync-status-error" : "ies-sync-status-success"}`}
+          >
+            {dataSync.dataSyncStatus.message}
+          </div>
+        )}
+      </EmptyState>
     );
   }
   const sharedProps = buildSharedProps({

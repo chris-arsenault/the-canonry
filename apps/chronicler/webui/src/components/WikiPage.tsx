@@ -19,6 +19,8 @@ import type {
   DisambiguationEntry,
   ImageAspect,
   PageLayoutOverride,
+  ChronicleRoleAssignment,
+  ChronicleTemporalContext,
 } from "../types/world.ts";
 import {
   useImageUrl,
@@ -30,7 +32,19 @@ import {
   useEntityNarrativeEvents,
   useEntityNarrativeLoading,
 } from "@penguin-tales/narrative-store";
-import { SeedModal, type ChronicleSeedData } from "./ChronicleSeedViewer.tsx";
+import { SeedModal } from "@penguin-tales/shared-components";
+
+/** Seed data shape for the generation context modal */
+interface ChronicleSeedData {
+  narrativeStyleId: string;
+  narrativeStyleName?: string;
+  entrypointId?: string;
+  entrypointName?: string;
+  roleAssignments: ChronicleRoleAssignment[];
+  selectedEventIds: string[];
+  selectedRelationshipIds: string[];
+  temporalContext?: ChronicleTemporalContext;
+}
 import { applyWikiLinks } from "../lib/wikiBuilder.ts";
 import { resolveAnchorPhrase } from "../lib/fuzzyAnchor.ts";
 import EntityTimeline from "./EntityTimeline.tsx";

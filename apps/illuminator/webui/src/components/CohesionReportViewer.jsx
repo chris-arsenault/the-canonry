@@ -13,7 +13,7 @@
 import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import ChronicleImagePanel from "./ChronicleImagePanel";
-import { ExpandableSeedSection } from "./ChronicleSeedViewer";
+import { ExpandableSeedSection } from "@penguin-tales/shared-components";
 import "./CohesionReportViewer.css";
 const STATUS_STYLES = {
   excellent: {

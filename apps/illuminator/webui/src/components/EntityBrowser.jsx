@@ -22,7 +22,7 @@ import ImageModal from "./ImageModal";
 import ImagePickerModal from "./ImagePickerModal";
 import EntityDetailView from "./EntityDetailView";
 import { ImageSettingsSummary } from "./ImageSettingsDrawer";
-import { useImageUrl } from "../hooks/useImageUrl";
+import { useImageUrl } from "@penguin-tales/image-store";
 import { formatCost } from "../lib/costEstimation";
 import { prominenceLabelFromScale, prominenceThresholdFromScale } from "@canonry/world-schema";
 import "./EntityBrowser.css";

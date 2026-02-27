@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@canonry/world-schema": "workspace:*",
+    "@penguin-tales/image-store": "workspace:*",
     "@penguin-tales/shared-components": "workspace:*",
     "@uiw/react-md-editor": "^4.0.11",
     "dexie": "^4.3.0",
