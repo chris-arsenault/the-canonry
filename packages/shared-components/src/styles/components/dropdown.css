@@ -25,6 +25,11 @@
   border-color: var(--color-border);
 }
 
+.dropdown-trigger-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .dropdown-trigger-placeholder {
   color: var(--color-text-muted);
 }

@@ -8,6 +8,7 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import PropTypes from "prop-types";
 import ForceGraph2D from "react-force-graph-2d";
+import "./CausalLoopEditor.css";
 
 // Node type configurations
 const NODE_TYPES = {
@@ -570,25 +571,17 @@ export default function CausalLoopEditor({
         <p className="subtitle">
           Visualize feedback loops between pressures, generators, systems, and entity kinds.
           {loops.length > 0 && (
-            <span style={{ marginLeft: "8px" }}>
-              <span style={{ color: "#ef4444" }}>{reinforcingLoops.length} reinforcing</span>
+            <span className="cl-loop-count">
+              <span className="cl-loop-reinforcing">{reinforcingLoops.length} reinforcing</span>
               {" / "}
-              <span style={{ color: "#3b82f6" }}>{balancingLoops.length} balancing</span>
+              <span className="cl-loop-balancing">{balancingLoops.length} balancing</span>
               {" loops detected"}
             </span>
           )}
         </p>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "16px",
-          marginBottom: "16px",
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
+      <div className="cl-toolbar">
         <button className="button-secondary" onClick={() => setShowLegend(!showLegend)}>
           {showLegend ? "Hide" : "Show"} Legend
         </button>
@@ -596,6 +589,7 @@ export default function CausalLoopEditor({
           <button
             className="button-secondary"
             onClick={() => setShowDisabled(!showDisabled)}
+            // eslint-disable-next-line local/no-inline-styles -- dynamic opacity toggle
             style={{ opacity: showDisabled ? 1 : 0.7 }}
           >
             {showDisabled ? "Hide" : "Show"} Disabled ({disabledCount})
@@ -604,45 +598,28 @@ export default function CausalLoopEditor({
         <button className="button-secondary" onClick={() => graphRef.current?.zoomToFit(400, 60)}>
           Fit to View
         </button>
-        <div
-          style={{
-            color: "#93c5fd",
-            fontSize: "13px",
-            display: "flex",
-            alignItems: "center",
-            gap: "16px",
-          }}
-        >
+        <div className="cl-stats">
           <span>{graphData.nodes.length} nodes</span>
           <span>{graphData.links.length} edges</span>
           {warnings.length > 0 && (
-            <span style={{ color: "#f59e0b" }}>{warnings.length} warnings</span>
+            <span className="cl-stats-warning">{warnings.length} warnings</span>
           )}
-          <span style={{ color: "#6b7280" }}>Scroll to zoom, drag to pan</span>
+          <span className="cl-stats-hint">Scroll to zoom, drag to pan</span>
         </div>
       </div>
 
       {/* Warnings */}
       {warnings.length > 0 && (
-        <div
-          style={{
-            padding: "8px 12px",
-            backgroundColor: "rgba(245, 158, 11, 0.1)",
-            border: "1px solid #f59e0b",
-            borderRadius: "6px",
-            marginBottom: "16px",
-            fontSize: "12px",
-          }}
-        >
-          <div style={{ color: "#f59e0b", fontWeight: 600, marginBottom: "4px" }}>
+        <div className="cl-warnings-box">
+          <div className="cl-warnings-title">
             Referential Integrity Warnings
           </div>
-          <div style={{ color: "#fcd34d", maxHeight: "80px", overflowY: "auto" }}>
+          <div className="cl-warnings-list">
             {warnings.slice(0, 5).map((w, i) => (
               <div key={i}>{w.message}</div>
             ))}
             {warnings.length > 5 && (
-              <div style={{ color: "#f59e0b", marginTop: "4px" }}>
+              <div className="cl-warnings-more">
                 ...and {warnings.length - 5} more warnings
               </div>
             )}
@@ -652,83 +629,44 @@ export default function CausalLoopEditor({
 
       {/* Legend */}
       {showLegend && (
-        <div
-          style={{
-            display: "flex",
-            gap: "24px",
-            padding: "12px 16px",
-            backgroundColor: "rgba(15, 23, 42, 0.6)",
-            borderRadius: "8px",
-            marginBottom: "16px",
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            <span style={{ color: "#93c5fd", fontSize: "12px", fontWeight: 500 }}>Nodes:</span>
+        <div className="cl-legend">
+          <div className="cl-legend-group">
+            <span className="cl-legend-label">Nodes:</span>
             {Object.entries(NODE_TYPES).map(([type, config]) => (
-              <span
-                key={type}
-                style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "11px" }}
-              >
+              <span key={type} className="cl-legend-item">
                 <span
-                  style={{
-                    width: "16px",
-                    height: "16px",
-                    backgroundColor: config.color,
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "9px",
-                    fontWeight: 700,
-                    color: "#0a1929",
-                  }}
+                  className="cl-legend-node"
+                  // eslint-disable-next-line local/no-inline-styles -- dynamic color per node type
+                  style={{ '--cl-node-color': config.color, backgroundColor: 'var(--cl-node-color)' }}
                 >
                   {config.abbrev}
                 </span>
-                <span style={{ color: "#e2e8f0" }}>{config.label}</span>
+                <span className="cl-legend-node-label">{config.label}</span>
               </span>
             ))}
           </div>
-          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            <span style={{ color: "#93c5fd", fontSize: "12px", fontWeight: 500 }}>Edges:</span>
-            <span style={{ color: EDGE_COLORS.positive, fontSize: "11px" }}>+ Positive</span>
-            <span style={{ color: EDGE_COLORS.negative, fontSize: "11px" }}>- Negative</span>
+          <div className="cl-legend-group">
+            <span className="cl-legend-label">Edges:</span>
+            <span className="cl-legend-item cl-edge-positive">+ Positive</span>
+            <span className="cl-legend-item cl-edge-negative">- Negative</span>
           </div>
-          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            <span style={{ color: "#93c5fd", fontSize: "12px", fontWeight: 500 }}>Loops:</span>
-            <span style={{ color: "#ef4444", fontSize: "11px" }}>Reinforcing (unstable)</span>
-            <span style={{ color: "#3b82f6", fontSize: "11px" }}>Balancing (stable)</span>
+          <div className="cl-legend-group">
+            <span className="cl-legend-label">Loops:</span>
+            <span className="cl-legend-item cl-loop-reinforcing">Reinforcing (unstable)</span>
+            <span className="cl-legend-item cl-loop-balancing">Balancing (stable)</span>
           </div>
         </div>
       )}
 
       {/* Graph container */}
-      <div
-        ref={containerRef}
-        style={{
-          backgroundColor: "#0f172a",
-          borderRadius: "8px",
-          border: "1px solid rgba(59, 130, 246, 0.3)",
-          overflow: "hidden",
-        }}
-      >
+      <div ref={containerRef} className="cl-graph-container">
         {graphData.nodes.length === 0 ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "400px",
-              color: "#93c5fd",
-            }}
-          >
-            <div style={{ fontSize: "48px", marginBottom: "16px", opacity: 0.5 }}>&#128260;</div>
-            <div style={{ fontSize: "16px", fontWeight: 500, color: "#fff", marginBottom: "8px" }}>
+          <div className="cl-empty-state">
+            <div className="cl-empty-icon">&#128260;</div>
+            <div className="cl-empty-title">
               No causal relationships found
             </div>
-            <div style={{ fontSize: "13px", maxWidth: "400px", textAlign: "center" }}>
+            <div className="cl-empty-desc">
               Add pressures with feedback factors, generators with state updates, or systems with
               pressure changes to see the causal loop diagram.
             </div>
@@ -781,66 +719,40 @@ export default function CausalLoopEditor({
       {/* Selected node details */}
       {selectedNodeData && (
         <div
-          style={{
-            marginTop: "16px",
-            padding: "16px",
-            backgroundColor: "rgba(15, 23, 42, 0.8)",
-            borderRadius: "8px",
-            border: `2px solid ${selectedNodeData.color}`,
-          }}
+          className="cl-details"
+          // eslint-disable-next-line local/no-inline-styles -- dynamic border color from selected node
+          style={{ '--cl-detail-color': selectedNodeData.color, borderColor: 'var(--cl-detail-color)' }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+          <div className="cl-details-header">
             <span
-              style={{
-                padding: "2px 8px",
-                backgroundColor: selectedNodeData.color,
-                borderRadius: "4px",
-                fontSize: "11px",
-                fontWeight: 600,
-                color: "#0a1929",
-              }}
+              className="cl-details-type-badge"
+              // eslint-disable-next-line local/no-inline-styles -- dynamic bg color from node type
+              style={{ '--cl-badge-bg': selectedNodeData.color, backgroundColor: 'var(--cl-badge-bg)' }}
             >
               {NODE_TYPES[selectedNodeData.type]?.label}
             </span>
-            <span style={{ color: "#fff", fontWeight: 500 }}>{selectedNodeData.label}</span>
+            <span className="cl-details-name">{selectedNodeData.label}</span>
             <button
               onClick={() => setSelectedNode(null)}
-              style={{
-                marginLeft: "auto",
-                background: "none",
-                border: "none",
-                color: "#93c5fd",
-                cursor: "pointer",
-                fontSize: "16px",
-              }}
+              className="cl-details-close"
             >
               ×
             </button>
           </div>
 
-          <div style={{ display: "flex", gap: "24px" }}>
+          <div className="cl-details-edges">
             {/* Incoming edges */}
-            <div style={{ flex: 1 }}>
-              <span style={{ color: "#93c5fd", fontSize: "12px", fontWeight: 500 }}>
+            <div className="cl-edge-section">
+              <span className="cl-edge-label">
                 Incoming ({selectedNodeEdges.incoming.length})
               </span>
-              <div
-                style={{ paddingLeft: "8px", fontSize: "12px", color: "#e2e8f0", marginTop: "4px" }}
-              >
+              <div className="cl-edge-list">
                 {selectedNodeEdges.incoming.map((e, i) => {
                   const sourceId = typeof e.source === "object" ? e.source.id : e.source;
                   const sourceNode = graphData.nodes.find((n) => n.id === sourceId);
                   return (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        marginBottom: "2px",
-                      }}
-                    >
-                      <span style={{ color: EDGE_COLORS[e.polarity] }}>
+                    <div key={i} className="cl-edge-item">
+                      <span className={e.polarity === "positive" ? "cl-edge-positive" : "cl-edge-negative"}>
                         {e.polarity === "positive" ? "+" : "-"}
                       </span>
                       <span>{sourceNode?.label || sourceId}</span>
@@ -848,33 +760,23 @@ export default function CausalLoopEditor({
                   );
                 })}
                 {selectedNodeEdges.incoming.length === 0 && (
-                  <span style={{ color: "#6b7280" }}>none</span>
+                  <span className="cl-edge-none">none</span>
                 )}
               </div>
             </div>
 
             {/* Outgoing edges */}
-            <div style={{ flex: 1 }}>
-              <span style={{ color: "#93c5fd", fontSize: "12px", fontWeight: 500 }}>
+            <div className="cl-edge-section">
+              <span className="cl-edge-label">
                 Outgoing ({selectedNodeEdges.outgoing.length})
               </span>
-              <div
-                style={{ paddingLeft: "8px", fontSize: "12px", color: "#e2e8f0", marginTop: "4px" }}
-              >
+              <div className="cl-edge-list">
                 {selectedNodeEdges.outgoing.map((e, i) => {
                   const targetId = typeof e.target === "object" ? e.target.id : e.target;
                   const targetNode = graphData.nodes.find((n) => n.id === targetId);
                   return (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        marginBottom: "2px",
-                      }}
-                    >
-                      <span style={{ color: EDGE_COLORS[e.polarity] }}>
+                    <div key={i} className="cl-edge-item">
+                      <span className={e.polarity === "positive" ? "cl-edge-positive" : "cl-edge-negative"}>
                         {e.polarity === "positive" ? "+" : "-"}
                       </span>
                       <span>{targetNode?.label || targetId}</span>
@@ -882,7 +784,7 @@ export default function CausalLoopEditor({
                   );
                 })}
                 {selectedNodeEdges.outgoing.length === 0 && (
-                  <span style={{ color: "#6b7280" }}>none</span>
+                  <span className="cl-edge-none">none</span>
                 )}
               </div>
             </div>
@@ -892,33 +794,20 @@ export default function CausalLoopEditor({
 
       {/* Loop summary */}
       {loops.length > 0 && (
-        <div style={{ marginTop: "16px" }}>
-          <h3 style={{ color: "#fff", fontSize: "14px", marginBottom: "8px" }}>Detected Loops</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div className="cl-loops-section">
+          <h3 className="cl-loops-title">Detected Loops</h3>
+          <div className="cl-loops-list">
             {loops.slice(0, 5).map((loop, i) => (
               <div
                 key={i}
-                style={{
-                  padding: "8px 12px",
-                  backgroundColor:
-                    loop.type === "reinforcing"
-                      ? "rgba(239, 68, 68, 0.1)"
-                      : "rgba(59, 130, 246, 0.1)",
-                  border: `1px solid ${loop.type === "reinforcing" ? "#ef4444" : "#3b82f6"}`,
-                  borderRadius: "6px",
-                  fontSize: "12px",
-                }}
+                className={`cl-loop-item ${loop.type === "reinforcing" ? "cl-loop-item-reinforcing" : "cl-loop-item-balancing"}`}
               >
                 <span
-                  style={{
-                    color: loop.type === "reinforcing" ? "#ef4444" : "#3b82f6",
-                    fontWeight: 600,
-                    marginRight: "8px",
-                  }}
+                  className={`cl-loop-type ${loop.type === "reinforcing" ? "cl-loop-type-reinforcing" : "cl-loop-type-balancing"}`}
                 >
                   {loop.type === "reinforcing" ? "++ Reinforcing" : "+- Balancing"}
                 </span>
-                <span style={{ color: "#e2e8f0" }}>
+                <span className="cl-loop-path">
                   {loop.nodes
                     .slice(0, -1)
                     .map((id) => {
@@ -930,7 +819,7 @@ export default function CausalLoopEditor({
               </div>
             ))}
             {loops.length > 5 && (
-              <div style={{ color: "#93c5fd", fontSize: "12px" }}>
+              <div className="cl-loops-more">
                 ...and {loops.length - 5} more loops
               </div>
             )}

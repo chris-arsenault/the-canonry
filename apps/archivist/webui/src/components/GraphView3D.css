@@ -1,0 +1,69 @@
+/* GraphView3D Component Styles */
+
+/* WebGL fallback container */
+.gv3d-no-webgl {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #0a1929;
+  color: #93c5fd;
+}
+
+.gv3d-no-webgl-inner {
+  text-align: center;
+  max-width: 400px;
+}
+
+.gv3d-no-webgl-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.gv3d-no-webgl-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.gv3d-no-webgl-message {
+  font-size: 13px;
+}
+
+/* Main container */
+.gv3d-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Legend panel */
+.gv3d-legend {
+  background: linear-gradient(135deg, rgba(30, 58, 95, 0.95) 0%, rgba(10, 25, 41, 0.95) 100%);
+}
+
+.gv3d-legend-header {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* Legend swatch - dynamic color */
+.gv3d-legend-swatch {
+  background-color: var(--gv3d-swatch-color);
+}
+
+/* Controls hint panel */
+.gv3d-controls {
+  background: linear-gradient(135deg, rgba(30, 58, 95, 0.95) 0%, rgba(10, 25, 41, 0.95) 100%);
+}
+
+.gv3d-controls-header {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* Footer */
+.gv3d-legend-footer {
+  background: rgba(59, 130, 246, 0.05);
+}

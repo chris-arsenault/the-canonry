@@ -57,6 +57,11 @@
   /* Buttons */
   --button-primary: #58e;
   --button-primary-hover: #69f;
+
+  /* Canonical overrides for shared-components (accent differs from default theme) */
+  --color-accent: #fbbf24;
+  --color-accent-light: #fcd34d;
+  --gradient-accent: linear-gradient(135deg, #fbbf24 0%, #fcd34d 100%);
 }
 
 /* Reset & Base */

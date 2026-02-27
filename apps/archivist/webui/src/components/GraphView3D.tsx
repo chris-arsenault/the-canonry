@@ -4,6 +4,7 @@ import type { WorldState } from "../types/world.ts";
 import type { ProminenceScale } from "@canonry/world-schema";
 import { getKindColor, prominenceToNumber } from "../utils/dataTransform.ts";
 import * as THREE from "three";
+import "./GraphView3D.css";
 
 export type EdgeMetric = "strength" | "distance" | "none";
 
@@ -305,23 +306,13 @@ export default function GraphView3D({
 
   if (!webglAvailable) {
     return (
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#0a1929",
-          color: "#93c5fd",
-        }}
-      >
-        <div style={{ textAlign: "center", maxWidth: 400 }}>
-          <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>&#x1F4A0;</div>
-          <div style={{ fontSize: 16, fontWeight: 500, color: "#fff", marginBottom: 8 }}>
+      <div className="gv3d-no-webgl">
+        <div className="gv3d-no-webgl-inner">
+          <div className="gv3d-no-webgl-icon">&#x1F4A0;</div>
+          <div className="gv3d-no-webgl-title">
             WebGL not available
           </div>
-          <div style={{ fontSize: 13 }}>
+          <div className="gv3d-no-webgl-message">
             3D graph view requires WebGL. Switch to the <strong>2D Graph</strong> or{" "}
             <strong>Map</strong> view instead.
           </div>
@@ -331,7 +322,7 @@ export default function GraphView3D({
   }
 
   return (
-    <div ref={containerRef} style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+    <div ref={containerRef} className="gv3d-container">
       {isReady && (
         <ForceGraph3D
           key={graphKey}
@@ -370,15 +361,10 @@ export default function GraphView3D({
 
       {/* Legend */}
       <div
-        className="absolute bottom-6 left-6 rounded-xl text-white text-sm shadow-2xl border border-blue-500-30 overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(30, 58, 95, 0.95) 0%, rgba(10, 25, 41, 0.95) 100%)",
-        }}
+        className="absolute bottom-6 left-6 rounded-xl text-white text-sm shadow-2xl border border-blue-500-30 overflow-hidden gv3d-legend"
       >
         <div
-          className="px-5 py-3 border-b border-blue-500-20"
-          style={{ background: "rgba(59, 130, 246, 0.1)" }}
+          className="px-5 py-3 border-b border-blue-500-20 gv3d-legend-header"
         >
           <div className="font-bold text-blue-200 uppercase tracking-wider text-xs">Legend</div>
         </div>
@@ -386,16 +372,15 @@ export default function GraphView3D({
           {legendItems.map((item) => (
             <div key={item.kind} className="flex items-center gap-3">
               <div
-                className="w-5 h-5 rounded-full shadow-lg flex-shrink-0"
-                style={{ backgroundColor: item.color }}
+                className="w-5 h-5 rounded-full shadow-lg flex-shrink-0 gv3d-legend-swatch"
+                style={{ '--gv3d-swatch-color': item.color } as React.CSSProperties}
               ></div>
               <span className="font-medium">{item.label}</span>
             </div>
           ))}
         </div>
         <div
-          className="px-5 py-3 border-t border-blue-500-20"
-          style={{ background: "rgba(59, 130, 246, 0.05)" }}
+          className="px-5 py-3 border-t border-blue-500-20 gv3d-legend-footer"
         >
           <div className="text-xs text-blue-300 italic">Size indicates prominence</div>
         </div>
@@ -403,15 +388,10 @@ export default function GraphView3D({
 
       {/* Controls hint */}
       <div
-        className="absolute top-6 left-6 rounded-xl text-white text-xs shadow-2xl border border-blue-500-30 overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(30, 58, 95, 0.95) 0%, rgba(10, 25, 41, 0.95) 100%)",
-        }}
+        className="absolute top-6 left-6 rounded-xl text-white text-xs shadow-2xl border border-blue-500-30 overflow-hidden gv3d-controls"
       >
         <div
-          className="px-5 py-3 border-b border-blue-500-20"
-          style={{ background: "rgba(59, 130, 246, 0.1)" }}
+          className="px-5 py-3 border-b border-blue-500-20 gv3d-controls-header"
         >
           <div className="font-bold text-blue-200 uppercase tracking-wider">3D Controls</div>
         </div>

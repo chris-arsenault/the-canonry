@@ -6,7 +6,7 @@
  * - Tabbed mode: Renders a sidebar with tabs when `tabs` prop is provided
  */
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 
 /**
@@ -22,6 +22,8 @@ import PropTypes from 'prop-types';
  * @param {React.ReactNode} [props.sidebarFooter] - Optional content to render at bottom of sidebar
  * @param {React.ReactNode} props.children - Modal content (tab content if tabs provided, otherwise full body)
  * @param {string} [props.className] - Additional class for modal container
+ * @param {boolean} [props.preventOverlayClose] - Disable overlay click and Escape key close
+ * @param {React.ReactNode} [props.footer] - Optional footer content
  */
 export function ModalShell({
   onClose,
@@ -35,16 +37,37 @@ export function ModalShell({
   sidebarFooter,
   children,
   className = '',
+  preventOverlayClose = false,
+  footer,
 }) {
   const hasTabs = tabs && tabs.length > 0;
   const mouseDownOnOverlay = useRef(false);
+
+  // Escape key handler
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Escape' && !preventOverlayClose) {
+      onClose();
+    }
+  }, [onClose, preventOverlayClose]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  // Body scroll lock
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
 
   const handleOverlayMouseDown = (e) => {
     mouseDownOnOverlay.current = e.target === e.currentTarget;
   };
 
   const handleOverlayClick = (e) => {
-    if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
+    if (!preventOverlayClose && mouseDownOnOverlay.current && e.target === e.currentTarget) {
       onClose();
     }
   };
@@ -83,6 +106,7 @@ export function ModalShell({
             children
           )}
         </div>
+        {footer && <div className="modal-footer">{footer}</div>}
       </div>
     </div>
   );
@@ -106,4 +130,6 @@ ModalShell.propTypes = {
   sidebarFooter: PropTypes.node,
   children: PropTypes.node,
   className: PropTypes.string,
+  preventOverlayClose: PropTypes.bool,
+  footer: PropTypes.node,
 };

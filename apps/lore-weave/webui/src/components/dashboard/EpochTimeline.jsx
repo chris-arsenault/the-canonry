@@ -4,6 +4,7 @@
 
 import React, { useState } from "react";
 import PropTypes from "prop-types";
+import "./EpochTimeline.css";
 
 function formatEpochEra(era) {
   if (!era) return "Unknown era";
@@ -166,18 +167,17 @@ function PressureGauge({ name, value, detail, discreteModifications, tickCount }
 
   return (
     <div
-      className="lw-pressure-gauge"
+      className="lw-pressure-gauge et-gauge-interactive"
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
-      style={{ position: "relative", cursor: "pointer" }}
     >
       <span className="lw-pressure-name">{name}</span>
       <div className="lw-pressure-bar">
         <div
-          className="lw-pressure-fill"
+          className="lw-pressure-fill et-pressure-fill"
           style={{
-            width: `${Math.min(100, value)}%`,
-            backgroundColor: (() => {
+            '--et-pressure-fill-width': `${Math.min(100, value)}%`,
+            '--et-pressure-fill-color': (() => {
               if (value > 70) return "var(--lw-danger)";
               if (value > 40) return "var(--lw-warning)";
               return "var(--lw-success)";
@@ -229,20 +229,10 @@ export default function EpochTimeline({
   if (reachability) {
     fullyConnectedValue = fullyConnectedTick === null ? "never" : fullyConnectedTick.toLocaleString();
   }
-  const metricRowStyle = {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    fontSize: "13px",
-    color: "var(--lw-text-primary)",
-  };
-  const clusterValueStyle = {
-    fontWeight: 600,
-    color:
-      typeof connectedComponents === "number" && connectedComponents > 1
-        ? "var(--lw-danger)"
-        : "var(--lw-text-primary)",
-  };
+  const clusterValueColor =
+    typeof connectedComponents === "number" && connectedComponents > 1
+      ? "var(--lw-danger)"
+      : undefined;
 
   return (
     <div className="lw-panel">
@@ -252,7 +242,7 @@ export default function EpochTimeline({
           Epoch Timeline
         </div>
         {currentEpoch && (
-          <span style={{ fontSize: "12px", color: "var(--lw-text-muted)" }}>
+          <span className="et-era-label">
             Era: {currentEpoch.era.name}
           </span>
         )}
@@ -269,8 +259,8 @@ export default function EpochTimeline({
               {recentEpochs.map((epoch, i) => (
                 <div
                   key={epoch.epoch}
-                  className={`lw-timeline-item ${i === 0 ? "active" : ""}`}
-                  style={{ opacity: i === 0 ? 1 : 0.7 }}
+                  className={`lw-timeline-item ${i === 0 ? "active" : ""} et-timeline-opacity`}
+                  style={{ '--et-timeline-opacity': i === 0 ? 1 : 0.7 }}
                 >
                   <div className={`lw-timeline-icon ${i === 0 ? "active" : ""}`}>{epoch.epoch}</div>
                   <div className="lw-timeline-content">
@@ -285,13 +275,11 @@ export default function EpochTimeline({
 
             {/* Pressure Gauges with hover details */}
             {pressures && Object.keys(pressures).length > 0 && (
-              <div style={{ marginTop: "16px" }}>
-                <div
-                  style={{ fontSize: "12px", color: "var(--lw-text-muted)", marginBottom: "8px" }}
-                >
+              <div className="et-section-spacer">
+                <div className="et-section-label">
                   Current Pressures
                   {pressureDetails && (
-                    <span style={{ marginLeft: "8px", opacity: 0.6 }}>
+                    <span className="et-section-label-hint">
                       (hover for epoch details
                       {pressureDetails.ticksAggregated
                         ? `, ${pressureDetails.ticksAggregated} ticks`
@@ -315,18 +303,18 @@ export default function EpochTimeline({
               </div>
             )}
 
-            <div style={{ marginTop: "16px" }}>
-              <div style={{ fontSize: "12px", color: "var(--lw-text-muted)", marginBottom: "8px" }}>
+            <div className="et-section-spacer">
+              <div className="et-section-label">
                 Graph Connectivity
               </div>
               <div className="lw-flex-col lw-gap-sm">
-                <div style={metricRowStyle}>
+                <div className="et-metric-row">
                   <span>Disconnected clusters</span>
-                  <span style={clusterValueStyle}>{disconnectedClustersValue}</span>
+                  <span className="et-cluster-value" style={{ '--et-cluster-value-color': clusterValueColor }}>{disconnectedClustersValue}</span>
                 </div>
-                <div style={metricRowStyle}>
+                <div className="et-metric-row">
                   <span>Fully connected tick</span>
-                  <span style={{ fontWeight: 600 }}>{fullyConnectedValue}</span>
+                  <span className="et-connected-value">{fullyConnectedValue}</span>
                 </div>
               </div>
             </div>

@@ -6,8 +6,7 @@ import React from "react";
 import PropTypes from "prop-types";
 import { SYSTEM_TYPES } from "../constants";
 import { EnableToggle, useLocalInputState, LocalTextArea } from "../../shared";
-
-const DESCRIPTION_TEXTAREA_STYLE = Object.freeze({ minHeight: "60px" });
+import "./OverviewTab.css";
 
 /**
  * @param {Object} props
@@ -57,35 +56,36 @@ export function OverviewTab({ system, onChange, onDelete }) {
           </div>
         </div>
 
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <div className="form-group">
             <label className="label">Description
             <LocalTextArea
               value={config.description || ""}
               onChange={(value) => updateConfig("description", value)}
-              style={DESCRIPTION_TEXTAREA_STYLE}
+              className="ot-description-textarea"
               placeholder="Describe what this system does..."
             />
             </label>
           </div>
         </div>
 
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <span className="label">System Type</span>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div className="flex items-center gap-lg">
+            {/* eslint-disable-next-line local/no-inline-styles -- dynamic type color from config */}
             <span
               className="type-badge"
-              style={{ backgroundColor: `${typeConfig.color}30`, color: typeConfig.color }}
+              style={{ '--ot-type-bg': `${typeConfig.color}30`, '--ot-type-color': typeConfig.color, backgroundColor: 'var(--ot-type-bg)', color: 'var(--ot-type-color)' }}
             >
               {typeConfig.icon} {typeConfig.label}
             </span>
-            <span className="text-muted" style={{ fontSize: "13px" }}>
+            <span className="text-muted ot-type-desc">
               {typeConfig.desc}
             </span>
           </div>
         </div>
 
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <label className="label">Enabled
           <EnableToggle
             enabled={system.enabled !== false}

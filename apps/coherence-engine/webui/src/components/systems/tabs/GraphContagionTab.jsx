@@ -104,7 +104,7 @@ export function GraphContagionTab({ system, onChange, schema }) {
 
         {vectors.map((vector, index) => (
           <div key={index} className="item-card">
-            <div style={{ padding: "16px" }}>
+            <div className="p-xl">
               <div className="form-row-with-delete">
                 <div className="form-row-fields">
                   <ReferenceDropdown
@@ -300,9 +300,9 @@ export function GraphContagionTab({ system, onChange, schema }) {
           )}
         </div>
 
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <span className="label">Narration Template</span>
-          <div className="section-desc" style={{ marginBottom: "4px", fontSize: "11px" }}>
+          <div className="section-desc mb-xs text-xs">
             Syntax: {"{$self.field}"}, {"{$source.field}"}, {"{$contagion_source.field}"},{" "}
             {"{field|fallback}"}.
           </div>

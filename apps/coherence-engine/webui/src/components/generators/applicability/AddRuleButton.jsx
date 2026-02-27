@@ -5,6 +5,7 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { APPLICABILITY_TYPES } from "../constants";
+import "./AddRuleButton.css";
 
 /**
  * @param {Object} props
@@ -21,7 +22,7 @@ export function AddRuleButton({ onAdd, depth = 0 }) {
       </button>
 
       {showPicker && (
-        <div className="dropdown-menu" style={{ minWidth: "280px" }}>
+        <div className="dropdown-menu arb-dropdown">
           <div className="dropdown-options">
             {Object.entries(APPLICABILITY_TYPES)
               .filter(([type]) => depth < 2 || (type !== "or" && type !== "and"))
@@ -39,15 +40,14 @@ export function AddRuleButton({ onAdd, depth = 0 }) {
                 >
                   <div
                     className="dropdown-menu-icon"
-                    style={{ backgroundColor: `${config.color}20` }}
+                    // eslint-disable-next-line local/no-inline-styles -- dynamic color per rule type
+                    style={{ '--arb-icon-bg': `${config.color}20`, backgroundColor: 'var(--arb-icon-bg)' }}
                   >
                     {config.icon}
                   </div>
                   <div>
                     <div className="dropdown-menu-label">{config.label}</div>
-                    <div
-                      style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}
-                    >
+                    <div className="arb-desc">
                       {config.desc}
                     </div>
                   </div>

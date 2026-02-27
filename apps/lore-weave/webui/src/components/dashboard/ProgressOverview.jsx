@@ -4,6 +4,7 @@
 
 import React from "react";
 import PropTypes from "prop-types";
+import "./ProgressOverview.css";
 import StatusBadge from "./StatusBadge";
 
 export default function ProgressOverview({ progress, status }) {
@@ -13,7 +14,7 @@ export default function ProgressOverview({ progress, status }) {
         <StatusBadge status={status} />
         <div className="lw-progress-section">
           <div className="lw-progress-bar">
-            <div className="lw-progress-fill" style={{ width: "0%" }} />
+            <div className="lw-progress-fill po-progress-fill" style={{ '--po-progress-width': '0%' }} />
           </div>
           <div className="lw-progress-text">
             <span>Waiting to start...</span>
@@ -49,7 +50,7 @@ export default function ProgressOverview({ progress, status }) {
       <StatusBadge status={status} />
       <div className="lw-progress-section">
         <div className="lw-progress-bar">
-          <div className="lw-progress-fill" style={{ width: `${percent}%` }} />
+          <div className="lw-progress-fill po-progress-fill" style={{ '--po-progress-width': `${percent}%` }} />
         </div>
         <div className="lw-progress-text">
           <span>

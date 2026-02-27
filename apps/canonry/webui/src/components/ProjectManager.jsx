@@ -7,6 +7,7 @@ import ValidationPopover from "./ValidationPopover";
 import PropTypes from "prop-types";
 import TracePopover from "./TracePopover";
 import SlotSelector from "./SlotSelector";
+import "./ProjectManager.css";
 
 const EMPTY_SLOTS = Object.freeze({});
 const EMPTY_SYSTEMS = [];
@@ -255,7 +256,7 @@ export default function ProjectManager({
           ref={fileInputRef}
           type="file"
           accept=".zip"
-          style={{ display: "none" }}
+          className="pm-hidden-input"
           onChange={handleImport}
         />
       </div>

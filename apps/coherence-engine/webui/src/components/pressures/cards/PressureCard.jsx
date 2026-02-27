@@ -13,6 +13,7 @@ import {
   loadStoredValue,
   saveStoredValue,
 } from "../../../utils/persistence";
+import "./PressureCard.css";
 
 export function PressureCard({
   pressure,
@@ -248,10 +249,9 @@ export function PressureCard({
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggle(e); }}
       >
         <div
-          className="expandable-card-title"
-          style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1 }}
+          className="expandable-card-title pc-title-layout"
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div className="pc-title-row">
             <span className="expandable-card-name">{pressure.name}</span>
             <span className="expandable-card-id">{pressure.id}</span>
             {hasErrors && (
@@ -267,17 +267,18 @@ export function PressureCard({
             <div className="expandable-card-subtitle">{pressure.description}</div>
           )}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+        <div className="pc-header-right">
           <div className="expandable-card-stats">
             <div className="stat">
               <span className="stat-label">Initial</span>
               <span className="stat-value">{pressure.initialValue}</span>
               <div className="stat-bar">
                 <div
-                  className="stat-bar-fill"
+                  className="stat-bar-fill pc-stat-bar-fill"
+                  // eslint-disable-next-line local/no-inline-styles -- dynamic width from pressure value
                   style={{
-                    width: `${Math.min(100, Math.max(0, ((pressure.initialValue || 0) + 100) / 2))}%`,
-                    backgroundColor: "#3b82f6",
+                    '--pc-bar-width': `${Math.min(100, Math.max(0, ((pressure.initialValue || 0) + 100) / 2))}%`,
+                    width: 'var(--pc-bar-width)',
                   }}
                 />
               </div>
@@ -289,24 +290,20 @@ export function PressureCard({
             <div className="stat">
               <span className="stat-label">Factors</span>
               <span className="stat-value">
-                <span style={{ color: "#86efac" }}>+{positiveFeedback.length}</span>
+                <span className="pc-factor-positive">+{positiveFeedback.length}</span>
                 {" / "}
-                <span style={{ color: "#fca5a5" }}>−{negativeFeedback.length}</span>
+                <span className="pc-factor-negative">-{negativeFeedback.length}</span>
               </span>
             </div>
             <div className="stat" title={feedbackStatus.description}>
               <span className="stat-label">Balance</span>
+              {/* eslint-disable-next-line local/no-inline-styles -- dynamic feedback color */}
               <span
-                className="stat-value"
-                style={{
-                  color: feedbackStatus.color,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                }}
+                className="stat-value pc-balance-value"
+                style={{ '--pc-balance-color': feedbackStatus.color, color: 'var(--pc-balance-color)' }}
               >
                 <span>{feedbackStatus.icon}</span>
-                <span style={{ fontSize: "11px" }}>{feedbackStatus.label}</span>
+                <span className="pc-balance-label">{feedbackStatus.label}</span>
               </span>
             </div>
           </div>
@@ -366,7 +363,7 @@ export function PressureCard({
               </div>
             </div>
             <div className="input-grid">
-              <div className="input-group" style={{ gridColumn: "1 / -1" }}>
+              <div className="input-group grid-col-full">
                 <label htmlFor="pressure-description" className="label">Description</label>
                 <textarea id="pressure-description"
                   value={localDescription}
@@ -445,13 +442,7 @@ export function PressureCard({
           </div>
 
           {/* Delete pressure button */}
-          <div
-            style={{
-              marginTop: "24px",
-              paddingTop: "16px",
-              borderTop: "1px solid rgba(59, 130, 246, 0.2)",
-            }}
-          >
+          <div className="pc-danger-zone">
             <button className="btn btn-danger" onClick={onDelete}>
               Delete Pressure
             </button>

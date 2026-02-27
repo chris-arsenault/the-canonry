@@ -18,6 +18,7 @@
 @import url('./components/toggle.css');
 @import url('./components/section.css');
 @import url('./components/empty-state.css');
+@import url('./components/error-boundary.css');
 @import url('./components/item-row.css');
 @import url('./components/dropdown.css');
 @import url('./components/level-selector.css');

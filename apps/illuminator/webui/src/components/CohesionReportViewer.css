@@ -27,6 +27,22 @@
   font-weight: 700;
 }
 
+.crv-gauge-score-excellent {
+  color: #10b981;
+}
+
+.crv-gauge-score-good {
+  color: #3b82f6;
+}
+
+.crv-gauge-score-acceptable {
+  color: #f59e0b;
+}
+
+.crv-gauge-score-needs-revision {
+  color: #ef4444;
+}
+
 .crv-gauge-max {
   font-size: 11px;
   color: var(--text-muted);
@@ -205,6 +221,26 @@
   margin-bottom: 8px;
 }
 
+.crv-status-badge-excellent {
+  background: #10b98120;
+  color: #10b981;
+}
+
+.crv-status-badge-good {
+  background: #3b82f620;
+  color: #3b82f6;
+}
+
+.crv-status-badge-acceptable {
+  background: #f59e0b20;
+  color: #f59e0b;
+}
+
+.crv-status-badge-needs_revision {
+  background: #ef444420;
+  color: #ef4444;
+}
+
 .crv-issue-count {
   font-size: 13px;
   color: var(--text-secondary);
@@ -246,6 +282,14 @@
   border: none;
   color: white;
   font-weight: 500;
+}
+
+.crv-btn-accept-ready {
+  background: var(--accent-primary);
+}
+
+.crv-btn-accept-warning {
+  background: #f59e0b;
 }
 
 .crv-btn-disabled {
@@ -419,6 +463,14 @@
 .crv-summary-card-icon {
   font-size: 24px;
   font-weight: 700;
+}
+
+.crv-summary-card-icon-pass {
+  color: #10b981;
+}
+
+.crv-summary-card-icon-fail {
+  color: #ef4444;
 }
 
 .crv-summary-card-label {

@@ -93,7 +93,7 @@ export default function ValidationEditor({
   return (
     <div className="validation-container">
       <div className="validation-header">
-        <div className="flex-between" style={{ alignItems: "flex-start" }}>
+        <div className="flex-between items-start">
           <div>
             <h1 className="validation-title">
               Validation
@@ -132,7 +132,7 @@ export default function ValidationEditor({
       </div>
 
       {/* Summary Cards */}
-      <div className="validation-summary-cards" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+      <div className="validation-summary-cards validation-summary-cards-4">
         <div className="validation-summary-card">
           <div className="validation-summary-value text-danger">
             {validationResults.errors.length}
@@ -147,15 +147,14 @@ export default function ValidationEditor({
         </div>
         <div className="validation-summary-card">
           <div
-            className="validation-summary-value"
-            style={{ color: orphanCounts.total > 0 ? "#9ca3af" : "#60a5fa" }}
+            className={`validation-summary-value ${orphanCounts.total > 0 ? "text-muted" : "text-info"}`}
           >
             {orphanCounts.total}
           </div>
           <div className="validation-summary-label">Unused</div>
         </div>
         <div className="validation-summary-card">
-          <div className="validation-summary-value" style={{ color: "#60a5fa" }}>
+          <div className="validation-summary-value text-info">
             {totalAffectedItems}
           </div>
           <div className="validation-summary-label">Affected Items</div>

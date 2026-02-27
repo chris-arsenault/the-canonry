@@ -28,6 +28,7 @@ import {
 } from "../../../lib/chronicle/timelineUtils";
 import type { EntityContext } from "../../../lib/chronicleTypes";
 import { IntensitySparkline, TimelineBrush, NarrativeTimeline } from "../visualizations";
+import "./EventResolutionStep.css";
 
 export default function EventResolutionStep() {
   const {
@@ -194,47 +195,29 @@ export default function EventResolutionStep() {
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: "16px" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            marginBottom: "8px",
-          }}
-        >
+      <div className="ers-header">
+        <div className="ers-header-row">
           <div>
-            <h4 style={{ margin: "0 0 8px 0" }}>Compose Narrative Arc</h4>
-            <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "13px" }}>
+            <h4 className="ers-title">Compose Narrative Arc</h4>
+            <p className="ers-subtitle">
               Select events from the timeline to build your narrative. Use the brush to select time
               ranges.
             </p>
           </div>
           <button
             onClick={() => autoFillEvents(true)}
-            className="illuminator-btn"
-            style={{ fontSize: "12px" }}
+            className="illuminator-btn ers-btn-sm"
           >
             Auto-fill Events
           </button>
         </div>
 
         {/* Filters */}
-        <div
-          style={{
-            padding: "10px 12px",
-            background: "var(--bg-tertiary)",
-            borderRadius: "6px",
-            fontSize: "11px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-          }}
-        >
+        <div className="ers-filters">
           {/* Row 1: Focal Era selector */}
           {temporalContext && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontWeight: 500, minWidth: "100px" }}>Focal Era:</span>
+            <div className="ers-filter-row">
+              <span className="ers-filter-label">Focal Era:</span>
               <select
                 value={state.focalEraOverride || temporalContext.focalEra.id}
                 onChange={(e) => {
@@ -245,8 +228,7 @@ export default function EventResolutionStep() {
                     setFocalEraOverride(selectedId);
                   }
                 }}
-                className="illuminator-select"
-                style={{ padding: "4px 8px", fontSize: "11px", flex: 1, maxWidth: "200px" }}
+                className="illuminator-select ers-filter-select"
               >
                 {eras.map((era) => (
                   <option key={era.id} value={era.id}>
@@ -258,8 +240,7 @@ export default function EventResolutionStep() {
               {state.focalEraOverride && (
                 <button
                   onClick={() => setFocalEraOverride(null)}
-                  className="illuminator-btn"
-                  style={{ padding: "3px 8px", fontSize: "10px" }}
+                  className="illuminator-btn ers-reset-btn"
                 >
                   Reset
                 </button>
@@ -268,20 +249,19 @@ export default function EventResolutionStep() {
           )}
 
           {/* Row 2: Min Significance selector */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontWeight: 500, minWidth: "100px" }}>Min Significance:</span>
+          <div className="ers-filter-row">
+            <span className="ers-filter-label">Min Significance:</span>
             <select
               value={minEventSignificance}
               onChange={(e) => setMinEventSignificance(parseFloat(e.target.value))}
-              className="illuminator-select"
-              style={{ padding: "4px 8px", fontSize: "11px", flex: 1, maxWidth: "200px" }}
+              className="illuminator-select ers-filter-select"
             >
               <option value={0}>All (&gt;0%)</option>
               <option value={0.25}>Low (&gt;25%)</option>
               <option value={0.5}>Medium (&gt;50%)</option>
               <option value={0.75}>High (&gt;75%)</option>
             </select>
-            <span style={{ color: "var(--text-muted)", fontSize: "10px" }}>
+            <span className="ers-filter-count">
               {relevantEvents.length} events match filter
             </span>
           </div>
@@ -289,7 +269,7 @@ export default function EventResolutionStep() {
       </div>
 
       {/* Timeline Visualization */}
-      <div style={{ marginBottom: "20px" }}>
+      <div className="ers-timeline-section">
         {/* Intensity Sparkline */}
         <IntensitySparkline
           points={intensityCurve}
@@ -300,7 +280,7 @@ export default function EventResolutionStep() {
         />
 
         {/* Narrative Timeline with Era Lanes - compact overview */}
-        <div style={{ marginTop: "8px" }}>
+        <div className="ers-timeline-gap">
           <NarrativeTimeline
             events={timelineEvents}
             eraRanges={eraRanges}
@@ -314,7 +294,7 @@ export default function EventResolutionStep() {
         </div>
 
         {/* Timeline Brush */}
-        <div style={{ marginTop: "8px" }}>
+        <div className="ers-timeline-gap">
           <TimelineBrush
             width={700}
             height={36}
@@ -325,18 +305,10 @@ export default function EventResolutionStep() {
         </div>
 
         {/* Quick actions */}
-        <div
-          style={{
-            marginTop: "12px",
-            display: "flex",
-            gap: "8px",
-            alignItems: "center",
-          }}
-        >
+        <div className="ers-quick-actions">
           <button
             onClick={() => selectAllEvents(relevantEventIds)}
-            className="illuminator-btn"
-            style={{ padding: "4px 10px", fontSize: "11px" }}
+            className="illuminator-btn ers-action-btn"
           >
             Select All Events
           </button>
@@ -345,24 +317,21 @@ export default function EventResolutionStep() {
               deselectAllEvents();
               setBrushSelection(null);
             }}
-            className="illuminator-btn"
-            style={{ padding: "4px 10px", fontSize: "11px" }}
+            className="illuminator-btn ers-action-btn"
           >
             Clear Selection
           </button>
           <span
+            className="ers-selection-count"
             style={{
-              marginLeft: "auto",
-              fontSize: "12px",
-              color:
-                state.selectedEventIds.size > MAX_CHRONICLE_EVENTS
-                  ? "var(--error)"
-                  : "var(--text-muted)",
-            }}
+              '--ers-count-color': state.selectedEventIds.size > MAX_CHRONICLE_EVENTS
+                ? "var(--error)"
+                : "var(--text-muted)",
+            } as React.CSSProperties}
           >
             {visibleSelectedCount} of {relevantEvents.length} visible selected
             {state.selectedEventIds.size !== visibleSelectedCount && (
-              <span style={{ color: "var(--text-muted)", marginLeft: "4px" }}>
+              <span className="ers-total-hint">
                 ({state.selectedEventIds.size} total)
               </span>
             )}
@@ -372,40 +341,18 @@ export default function EventResolutionStep() {
       </div>
 
       {/* Event List - scrollable for many events */}
-      <div
-        style={{
-          marginBottom: "16px",
-          border: "1px solid var(--border-color)",
-          borderRadius: "8px",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            padding: "8px 12px",
-            background: "var(--bg-tertiary)",
-            borderBottom: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <span style={{ fontSize: "11px", fontWeight: 500 }}>
+      <div className="ers-event-list-wrap">
+        <div className="ers-event-list-header">
+          <span className="ers-event-list-title">
             Events {brushSelection ? "(filtered by brush)" : ""}
           </span>
-          <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+          <span className="ers-event-list-count">
             {brushSelection
               ? `${getEventsInRange(timelineEvents, brushSelection[0], brushSelection[1]).length} in range`
               : `${relevantEvents.length} total`}
           </span>
         </div>
-        <div
-          style={{
-            maxHeight: "200px",
-            overflowY: "auto",
-            padding: "4px",
-          }}
-        >
+        <div className="ers-event-list-scroll">
           {(brushSelection
             ? getEventsInRange(timelineEvents, brushSelection[0], brushSelection[1])
             : timelineEvents
@@ -417,17 +364,7 @@ export default function EventResolutionStep() {
                 <div
                   key={event.id}
                   onClick={() => toggleEvent(event.id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "6px 8px",
-                    marginBottom: "2px",
-                    background: isSelected ? "rgba(99, 102, 241, 0.1)" : "transparent",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontSize: "11px",
-                  }}
+                  className={`ers-event-row ${isSelected ? "ers-event-row-selected" : ""}`}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
@@ -436,49 +373,19 @@ export default function EventResolutionStep() {
                     type="checkbox"
                     checked={isSelected}
                     onChange={() => {}}
-                    style={{ margin: 0, cursor: "pointer" }}
+                    className="ers-event-checkbox"
                   />
-                  <span
-                    style={{
-                      width: "40px",
-                      flexShrink: 0,
-                      color: "var(--text-muted)",
-                      fontSize: "10px",
-                    }}
-                  >
+                  <span className="ers-event-tick">
                     t:{event.tick}
                   </span>
-                  <span
-                    style={{
-                      flex: 1,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
+                  <span className="ers-event-headline">
                     {event.headline}
                   </span>
-                  <span
-                    style={{
-                      padding: "1px 4px",
-                      background: "var(--bg-tertiary)",
-                      borderRadius: "3px",
-                      fontSize: "9px",
-                      color: "var(--text-muted)",
-                    }}
-                  >
+                  <span className="ers-event-kind-badge">
                     {event.eventKind}
                   </span>
                   {event.involvesEntryPoint && (
-                    <span
-                      style={{
-                        padding: "1px 4px",
-                        background: "var(--accent-color)",
-                        color: "white",
-                        borderRadius: "3px",
-                        fontSize: "9px",
-                      }}
-                    >
+                    <span className="ers-event-entry-badge">
                       Entry
                     </span>
                   )}
@@ -486,14 +393,7 @@ export default function EventResolutionStep() {
               );
             })}
           {relevantEvents.length === 0 && (
-            <div
-              style={{
-                padding: "20px",
-                textAlign: "center",
-                color: "var(--text-muted)",
-                fontSize: "12px",
-              }}
-            >
+            <div className="ers-empty-events">
               No events involve assigned entities
             </div>
           )}
@@ -501,35 +401,21 @@ export default function EventResolutionStep() {
       </div>
 
       {/* Relationships Section - Compact */}
-      <div
-        style={{
-          borderTop: "1px solid var(--border-color)",
-          paddingTop: "16px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "12px",
-          }}
-        >
-          <span style={{ fontSize: "12px", fontWeight: 500 }}>
+      <div className="ers-rel-section">
+        <div className="ers-rel-header">
+          <span className="ers-rel-title">
             Relationships ({collapsedRelationships.length})
           </span>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="ers-rel-actions">
             <button
               onClick={() => selectAllRelationships(relevantRelationshipIds)}
-              className="illuminator-btn"
-              style={{ padding: "3px 8px", fontSize: "10px" }}
+              className="illuminator-btn ers-rel-action-btn"
             >
               All
             </button>
             <button
               onClick={deselectAllRelationships}
-              className="illuminator-btn"
-              style={{ padding: "3px 8px", fontSize: "10px" }}
+              className="illuminator-btn ers-rel-action-btn"
             >
               None
             </button>
@@ -537,18 +423,9 @@ export default function EventResolutionStep() {
         </div>
 
         {/* Relationship visual list */}
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "8px",
-            maxHeight: "120px",
-            overflowY: "auto",
-            padding: "4px",
-          }}
-        >
+        <div className="ers-rel-list">
           {collapsedRelationships.length === 0 ? (
-            <div style={{ color: "var(--text-muted)", fontSize: "12px" }}>
+            <div className="ers-rel-empty">
               No relationships between assigned entities.
             </div>
           ) : (
@@ -578,65 +455,41 @@ export default function EventResolutionStep() {
                       ? `${rel.sourceName} ↔ ${rel.targetName} (mutual)`
                       : `${rel.sourceName} → ${rel.targetName}`)
                   }
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    padding: "6px 10px",
-                    background: isSelected ? "rgba(99, 102, 241, 0.15)" : "var(--bg-tertiary)",
-                    border: isSelected ? "1px solid var(--accent-color)" : "1px solid transparent",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "11px",
-                    transition: "all 0.15s ease",
-                  }}
+                  className={`ers-rel-card ${isSelected ? "ers-rel-card-selected" : "ers-rel-card-unselected"}`}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleToggle(); }}
                 >
                   {/* Strength indicator bar */}
-                  <div
-                    style={{
-                      width: "4px",
-                      height: "20px",
-                      background: "var(--bg-secondary)",
-                      borderRadius: "2px",
-                      overflow: "hidden",
-                      position: "relative",
-                    }}
-                  >
+                  <div className="ers-strength-track">
                     <div
+                      className="ers-strength-fill"
                       style={{
-                        position: "absolute",
-                        bottom: 0,
-                        width: "100%",
-                        height: `${strengthPct}%`,
-                        background: isSelected ? "var(--accent-color)" : "var(--text-muted)",
-                        borderRadius: "2px",
-                      }}
+                        '--ers-fill-height': `${strengthPct}%`,
+                        '--ers-fill-bg': isSelected ? "var(--accent-color)" : "var(--text-muted)",
+                      } as React.CSSProperties}
                     />
                   </div>
 
                   {/* Names with directional indicator */}
-                  <span style={{ fontWeight: 500 }}>{rel.sourceName}</span>
+                  <span className="ers-rel-name">{rel.sourceName}</span>
                   <span
                     style={{
-                      color: collapsed.isBidirectional ? "var(--success)" : "var(--text-muted)",
-                    }}
+                      '--ers-dir-color': collapsed.isBidirectional ? "var(--success)" : "var(--text-muted)",
+                    } as React.CSSProperties}
+                    className="ers-rel-direction"
                   >
                     {collapsed.isBidirectional ? "↔" : "→"}
                   </span>
-                  <span style={{ fontWeight: 500 }}>{rel.targetName}</span>
+                  <span className="ers-rel-name">{rel.targetName}</span>
 
                   {/* Kind badge */}
                   <span
+                    className="ers-rel-kind-badge"
                     style={{
-                      padding: "1px 4px",
-                      background: isSelected ? "var(--accent-color)" : "var(--bg-secondary)",
-                      color: isSelected ? "white" : "var(--text-muted)",
-                      borderRadius: "3px",
-                      fontSize: "9px",
-                    }}
+                      '--ers-badge-bg': isSelected ? "var(--accent-color)" : "var(--bg-secondary)",
+                      '--ers-badge-color': isSelected ? "white" : "var(--text-muted)",
+                    } as React.CSSProperties}
                   >
                     {rel.kind}
                   </span>
@@ -648,25 +501,11 @@ export default function EventResolutionStep() {
       </div>
 
       {/* Summary */}
-      <div
-        style={{
-          marginTop: "16px",
-          padding: "12px",
-          background: "var(--bg-tertiary)",
-          borderRadius: "8px",
-          fontSize: "12px",
-          color: "var(--text-muted)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "8px",
-        }}
-      >
+      <div className="ers-summary">
         <span>
-          <strong style={{ color: "var(--text-primary)" }}>{state.selectedEventIds.size}</strong>{" "}
+          <strong className="ers-summary-count">{state.selectedEventIds.size}</strong>{" "}
           events,{" "}
-          <strong style={{ color: "var(--text-primary)" }}>
+          <strong className="ers-summary-count">
             {state.selectedRelationshipIds.size}
           </strong>{" "}
           relationships
@@ -675,7 +514,7 @@ export default function EventResolutionStep() {
           <span>
             Ticks {temporalContext.chronicleTickRange[0]}–{temporalContext.chronicleTickRange[1]}
             {temporalContext.isMultiEra && (
-              <span style={{ marginLeft: "8px", color: "var(--warning)" }}>
+              <span className="ers-multi-era-warning">
                 (spans {temporalContext.touchedEraIds.length} eras)
               </span>
             )}

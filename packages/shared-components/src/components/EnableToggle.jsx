@@ -13,10 +13,6 @@ import PropTypes from 'prop-types';
  * @param {string} [props.label] - Optional label beside the toggle
  * @param {string} [props.className] - Optional additional class names
  */
-const styles = {
-  container: { alignItems: 'center' },
-};
-
 export function EnableToggle({ enabled, onChange, onClick, label, className = '' }) {
   const handleClick = (e) => {
     if (onClick) {
@@ -27,7 +23,7 @@ export function EnableToggle({ enabled, onChange, onClick, label, className = ''
   };
 
   return (
-    <div className={`flex gap-lg ${className}`.trim()} style={styles.container}>
+    <div className={`flex items-center gap-lg ${className}`.trim()}>
       <div
         onClick={handleClick}
         className={`toggle ${enabled ? 'toggle-on' : ''}`}

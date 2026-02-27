@@ -12,6 +12,7 @@ import type { ChronicleRecord } from "../../lib/chronicleTypes";
 import type { StaticPage } from "../../lib/staticPageTypes";
 import type { EraNarrativeRecord } from "../../lib/eraNarrativeTypes";
 import { computePrePrintStats, type ImageMetadataRecord } from "../../lib/preprint/prePrintStats";
+import "./StatsView.css";
 
 interface StatsViewProps {
   entities: PersistedEntity[];
@@ -55,7 +56,7 @@ export default function StatsView({
   if (!stats) {
     return (
       <div className="preprint-stats-empty">
-        <p style={{ color: "var(--text-secondary)", marginBottom: "var(--space-md)" }}>
+        <p className="sv-empty-msg">
           Calculate statistics for print preparation. This scans all entities, chronicles, era
           narratives, images, and static pages to produce word counts, image inventory, and
           completeness checks.
@@ -76,7 +77,7 @@ export default function StatsView({
   return (
     <div className="preprint-stats">
       <div className="preprint-stats-header">
-        <span style={{ color: "var(--text-secondary)", fontSize: "var(--text-sm)" }}>
+        <span className="sv-calc-meta">
           Calculated {new Date(stats.calculatedAt).toLocaleString()}
         </span>
         <button
@@ -389,13 +390,13 @@ function CompletenessRow({ label, count, total }: Readonly<{ label: string; coun
         <span
           className="preprint-completeness-dot"
           style={{
-            color: (() => {
+            '--completeness-color': (() => {
               if (complete) return "#22c55e";
               if (partial) return "#f59e0b";
               if (missing) return "#ef4444";
               return "var(--text-secondary)";
             })(),
-          }}
+          } as React.CSSProperties}
           title={(() => {
             if (complete) return "Complete";
             if (partial) return "Partial";

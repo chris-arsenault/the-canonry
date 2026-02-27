@@ -1,0 +1,163 @@
+{
+  "created": "2026-02-26T14:45:00Z",
+  "updated": "2026-02-26T16:30:00Z",
+  "merges": [
+    {
+      "primary": "modal-implementation-drift",
+      "absorbed": "modal-close-behavior-drift",
+      "reason": "Same drift from structural vs behavioral perspective. Behavioral matrix merged into structural entry."
+    }
+  ],
+  "plan": [
+    {
+      "area_id": "shared-hook-divergence",
+      "rank": 1,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": "shared-useEditorState-with-persistence",
+      "unify_summary": "Backported persistKey/selectedId persistence to shared useEditorState. Deleted dead local copies from coherence-engine (useEditorState.js, useLocalInputState.js). Barrel file already re-exported from shared-components, so no import changes needed.",
+      "guard_artifacts": ["docs/adr/006-shared-hook-and-image-store-api.md"],
+      "notes": "Quick win. Delete dead useLocalInputState copy, backport persistence to shared useEditorState."
+    },
+    {
+      "area_id": "duplicate-components",
+      "rank": 2,
+      "depends_on": [],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [],
+      "notes": "NOT a quick win. Chronicler version uses CSS Modules + temporal context (focalEra, tickRange, multi-era, touchedEraIds). Illuminator version uses JS inline styles + narrativeDirection + ExpandableSeedSection. Requires feature merging before consolidation. Deferred."
+    },
+    {
+      "area_id": "dependency-version-two-cohort-split",
+      "rank": 3,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": "newer-cohort",
+      "unify_summary": "Aligned all 7 older cohort apps to newer cohort versions: vite ^7.2.4, @vitejs/plugin-react ^5.1.1, @module-federation/vite ^1.3.1, react/react-dom ^19.2.0, @types/react ^19.2.5, @types/react-dom ^19.2.3. Aligned TypeScript to ~5.9.3 across all apps and shared packages (9 package.json files). Fixed node:path and node:fs imports in 4 vite configs.",
+      "guard_artifacts": ["docs/adr/005-dependency-version-alignment.md"],
+      "notes": "Foundational. Upgrade 7 older apps to vite 7.x, @vitejs/plugin-react 5.x, etc. Unblocks ESLint and MFE fixes."
+    },
+    {
+      "area_id": "eslint-config-fragmentation",
+      "rank": 4,
+      "depends_on": ["dependency-version-two-cohort-split"],
+      "phase": "completed",
+      "canonical_variant": "root-config-only",
+      "unify_summary": "Deleted per-app eslint.config.js from archivist and name-forge. Removed redundant ESLint devDeps (eslint, @eslint/js, eslint-plugin-react, eslint-plugin-react-hooks, eslint-plugin-react-refresh, globals, typescript-eslint) from all 5 apps (canonry, name-forge, archivist, chronicler, viewer). Fixed legacy --ext flags in canonry and viewer lint scripts. Root config now sole authority.",
+      "guard_artifacts": ["docs/adr/005-dependency-version-alignment.md"],
+      "notes": "Delete per-app eslint configs and redundant eslint devDeps. Root config covers all."
+    },
+    {
+      "area_id": "module-federation-shared-deps-mismatch",
+      "rank": 5,
+      "depends_on": ["dependency-version-two-cohort-split"],
+      "phase": "completed",
+      "canonical_variant": "extended-sharing",
+      "unify_summary": "Created config/federation.js with federationOnWarn, sharedDeps(), sharedDepsBase, sharedDepsExtended. Updated all 9 vite configs (8 MFE remotes + host) to use shared utility. Eliminated 8 copies of identical onwarn boilerplate. Shared deps now composable via sharedDeps(...keys) function.",
+      "guard_artifacts": ["config/federation.js", "docs/adr/005-dependency-version-alignment.md"],
+      "notes": "Extract shared federation config utility. All MFE configs import from it."
+    },
+    {
+      "area_id": "modal-implementation-drift",
+      "rank": 6,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": "shared-modal-shell",
+      "unify_summary": "Extended ModalShell with Escape key, scroll lock, preventOverlayClose, and footer prop. Migrated 8 hand-rolled modals to ModalShell: RevisionFilterModal, EntityLinkPicker, ImageRefPicker, HistoryCompressionPreviewModal, ToneAssignmentPreviewModal (illuminator); CopyLexemeModal, CopyGrammarModal (name-forge). Removed ~200 lines of duplicate overlay/header/close boilerplate and corresponding CSS. All migrated modals now get Escape-to-close, overlay click-to-close, and body scroll lock for free. Remaining ~15 modals are either bulk workflow modals (rank 8) or complex multi-phase wizards that need more design work.",
+      "guard_artifacts": ["docs/adr/007-modal-shell-unification.md"],
+      "notes": "Extend ModalShell (Escape, scroll lock, preventOverlayClose prop). Migrate hand-rolled modals. Merged behavioral finding: modal-close-behavior-drift."
+    },
+    {
+      "area_id": "image-store-bypass",
+      "rank": 7,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": "shared-image-store-with-metadata",
+      "unify_summary": "Expanded ImageEntryMetadata with 6 new fields (entityCulture, originalPrompt, finalPrompt, revisedPrompt, generatedAt, model, size). Updated IndexedDB backend to read all fields. Expanded useImageUrl to return {url, loading, error, metadata}. Exported UseImageUrlResult type. Illuminator's local useImageUrl can now be replaced by the shared version. Migration of illuminator consumers is a separate step.",
+      "guard_artifacts": ["docs/adr/006-shared-hook-and-image-store-api.md"],
+      "notes": "Backport illuminator's richer return shape to shared image-store package."
+    },
+    {
+      "area_id": "bulk-workflow-structural-duplication",
+      "rank": 8,
+      "depends_on": ["modal-implementation-drift"],
+      "phase": "completed",
+      "canonical_variant": "shared-bulk-operation-shell",
+      "unify_summary": "Created BulkOperationShell.jsx + BulkOperationShell.css with shared exports: BulkProgressBar, BulkTerminalMessage, BulkFailedList, BulkCost. Handles overlay/dialog, pill lifecycle (minimize via useFloatingPillStore), phase state machine (confirming→running→terminal), footer buttons. Refactored all 5 bulk modals (BulkToneRankingModal, BulkFactCoverageModal, BulkBackportModal, BulkChronicleAnnotationModal, BulkHistorianModal) to use BulkOperationShell. Deleted 2 fully-redundant CSS files (BulkToneRankingModal.css, BulkFactCoverageModal.css). Reduced per-modal CSS to content-specific styles only. Total ~600 lines of duplicated shell code eliminated.",
+      "guard_artifacts": [],
+      "notes": "Extract shared BulkOperationModal. Fix missing tabId values. Subsumes workflow-error-recovery-inconsistency."
+    },
+    {
+      "area_id": "css-theming-drift",
+      "rank": 9,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": "plain-css-shared-vars",
+      "unify_summary": "Added canonical --color-* variable overrides to 4 app :root blocks (illuminator, name-forge, lore-weave, viewer) so shared-components CSS renders correctly in each app's theme context. Reduced coherence-engine theme.css from 85 lines to 12 by eliminating duplication with shared-components theme.css — kept only the 2 CE-specific extensions (--color-bg-elevated, --color-bg-nested). Viewer gets full warm-library overrides for all canonical color variables. Arctic apps override only accent (purple for illuminator/lore-weave, gold for name-forge). Existing app-specific variable names preserved — no retroactive rename.",
+      "guard_artifacts": [],
+      "notes": "Standardize CSS variable naming to shared-components convention. Each app keeps its palette."
+    },
+    {
+      "area_id": "loading-error-empty-state-drift",
+      "rank": 10,
+      "depends_on": ["css-theming-drift"],
+      "phase": "completed",
+      "canonical_variant": "structured-state-screen",
+      "unify_summary": "Created shared ErrorBoundary component in shared-components (ErrorBoundary.jsx + error-boundary.css). Wraps all 7 MFE Host components (IlluminatorHost, CoherenceEngineHost, NameForgeHost, LoreWeaveHost, CosmographerHost, ArchivistHost, ChroniclerHost) with ErrorBoundary around Suspense. Render errors in any remote module now display a recovery UI with retry button instead of crashing the entire host app. Registered in shared-components exports and CSS index.",
+      "guard_artifacts": [],
+      "notes": "Add error boundaries at MFE entry points. Extend shared EmptyState to cover loading/error. Priority: error boundaries first."
+    },
+    {
+      "area_id": "shared-component-adoption-gap",
+      "rank": 11,
+      "depends_on": ["modal-implementation-drift", "shared-hook-divergence"],
+      "phase": "completed",
+      "canonical_variant": "shared-components-package",
+      "unify_summary": "Added @penguin-tales/shared-components dependency to archivist and chronicler package.json (previously missing entirely). Added shared-components to federation sharedDepsExtended in config/federation.js for singleton sharing across all MFE remotes. Audit identified key adoption gaps: IlluminatorEmptyState (local duplicate of EmptyState), MultiSelectPills in name-forge (explicitly marked for ChipSelect replacement), archivist/chronicler empty state patterns (inline CSS class patterns). Infrastructure now ready for incremental component migrations.",
+      "guard_artifacts": [],
+      "notes": "After ModalShell and hooks are unified, audit which shared components benefit illuminator/archivist/chronicler."
+    },
+    {
+      "area_id": "state-management-approach-drift",
+      "rank": 12,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": "zustand-stores",
+      "unify_summary": "Created useCanonryUiStore (activeTab, activeSectionByTab, showHome, helpModalOpen, chroniclerRequestedPage) with auto-persist to localStorage via subscribe. Created useCanonryAwsStore (config, tokens, status, browseState, credentials, syncProgress, uploadPlan, snapshotStatus) with awsConfigStorage persistence. Migrated App.jsx UI state: replaced 5 useState declarations with store selectors, replaced 8 useCallback wrappers with store action references, removed manual persistence useEffect and normalizeUiState function. AWS store created and ready but wiring into App.jsx deferred (11 useState calls, large blast radius).",
+      "guard_artifacts": [],
+      "notes": "Migrate canonry's 30+ useState to zustand stores. Large effort, lower urgency."
+    },
+    {
+      "area_id": "typescript-migration-inconsistency",
+      "rank": 13,
+      "depends_on": ["dependency-version-two-cohort-split"],
+      "phase": "completed",
+      "canonical_variant": "ESNext-bundler",
+      "unify_summary": "Standardized module/moduleResolution to ESNext/bundler in: name-forge (was Node16), cosmographer (was NodeNext), canonry-dsl (was ES2022/Bundler), canonry-dsl-v2 (was ES2022/Bundler). Fixed world-schema target ES2020→ES2022. Removed lore-weave's noImplicitAny:false override (strict:true now fully enforced). Remaining: illuminator/viewer/lore-weave webui still strict:false (separate migration).",
+      "guard_artifacts": ["docs/adr/005-dependency-version-alignment.md"],
+      "notes": "Standardize module/moduleResolution to ESNext/bundler. Fix lore-weave noImplicitAny. Long-term TS migration separate."
+    },
+    {
+      "area_id": "workflow-error-recovery-inconsistency",
+      "rank": 14,
+      "depends_on": ["bulk-workflow-structural-duplication"],
+      "phase": "completed",
+      "canonical_variant": "shared-failed-list",
+      "unify_summary": "Resolved as part of BulkOperationShell extraction (rank 8). All 5 bulk modals now use shared BulkFailedList component with consistent labelKey/errorKey interface. BulkTerminalMessage provides uniform error/cancellation/completion messaging.",
+      "guard_artifacts": [],
+      "notes": "Resolved as part of BulkOperationModal extraction. Standardize skip+failed-list pattern."
+    },
+    {
+      "area_id": "directory-naming-conventions",
+      "rank": 15,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": "kebab-case-dirs-PascalCase-components",
+      "unify_summary": "Documented convention only. No retroactive changes. New code should use kebab-case directories and PascalCase component filenames.",
+      "guard_artifacts": [],
+      "notes": "Not worth retroactive unification. Document convention for new code only."
+    }
+  ]
+}

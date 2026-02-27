@@ -29,6 +29,7 @@ import {
   buildInDesignExportZip,
   buildIdmlImageScript,
 } from "../../lib/preprint/markdownExport";
+import "./ExportView.css";
 
 interface ExportViewProps {
   entities: PersistedEntity[];
@@ -218,7 +219,7 @@ export default function ExportView({
 
   if (!treeState) {
     return (
-      <div style={{ padding: "var(--space-lg)", color: "var(--text-secondary)" }}>
+      <div className="ev-empty-msg">
         Create a content tree first (Content Tree tab) before exporting.
       </div>
     );
@@ -274,14 +275,7 @@ export default function ExportView({
           </label>
         </div>
 
-        <p
-          style={{
-            color: "var(--text-secondary)",
-            marginBottom: "var(--space-md)",
-            lineHeight: 1.5,
-            marginTop: "var(--space-md)",
-          }}
-        >
+        <p className="ev-format-desc">
           {FORMAT_DESCRIPTIONS[exportFormat]}
         </p>
 
@@ -449,19 +443,13 @@ export default function ExportView({
                 <span>Region</span>
                 <span className="preprint-stats-value">{s3Config.region}</span>
               </div>
-              <p
-                style={{
-                  color: "var(--text-secondary)",
-                  fontSize: "var(--text-sm)",
-                  marginTop: "var(--space-xs)",
-                }}
-              >
+              <p className="ev-s3-hint">
                 The download script will use these settings. Configure via the AWS button in the
                 sidebar.
               </p>
             </>
           ) : (
-            <p style={{ color: "#f59e0b", marginBottom: "var(--space-sm)" }}>
+            <p className="ev-s3-warning">
               S3 not configured. Export will still work but{" "}
               {exportFormat === "indesign"
                 ? "the image download script will be unavailable"
@@ -472,20 +460,12 @@ export default function ExportView({
         </div>
 
         {error && (
-          <div
-            style={{
-              color: "#ef4444",
-              marginBottom: "var(--space-md)",
-              padding: "var(--space-sm)",
-              background: "rgba(239,68,68,0.1)",
-              borderRadius: "4px",
-            }}
-          >
+          <div className="ev-error">
             {error}
           </div>
         )}
 
-        <div style={{ display: "flex", gap: "var(--space-sm)", alignItems: "center" }}>
+        <div className="ev-actions">
           <button className="preprint-action-button" onClick={() => void handleExport()} disabled={exporting}>
             {(() => {
               if (exporting) return "Exporting...";
@@ -495,10 +475,9 @@ export default function ExportView({
           </button>
           {exportFormat === "indesign" && s3Config && (
             <button
-              className="preprint-action-button"
+              className="preprint-action-button ev-script-btn"
               onClick={handleDownloadScript}
               disabled={exporting}
-              style={{ background: "var(--bg-tertiary)", color: "var(--text-secondary)" }}
             >
               Download Image Script
             </button>
@@ -510,16 +489,10 @@ export default function ExportView({
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Export Contents</h2>
         </div>
-        <p style={{ color: "var(--text-secondary)", lineHeight: 1.5 }}>
+        <p className="ev-contents-desc">
           {exportFormat === "indesign" ? "The IDML file includes:" : "The ZIP will contain:"}
         </p>
-        <ul
-          style={{
-            color: "var(--text-secondary)",
-            lineHeight: 1.8,
-            paddingLeft: "var(--space-lg)",
-          }}
-        >
+        <ul className="ev-contents-list">
           {FORMAT_CONTENTS[exportFormat].map((item) => (
             <li key={item.label}>
               <strong>{item.label}</strong> — {item.description}

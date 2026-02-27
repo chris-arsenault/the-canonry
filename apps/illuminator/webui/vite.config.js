@@ -1,7 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { federation } from "@module-federation/vite";
-import { resolve } from "path";
+import { resolve } from "node:path";
+import { federationOnWarn, sharedDeps } from "../../../config/federation.js";
 
 // Illuminator is an MFE remote for The Canonry shell.
 // To use Illuminator, run The Canonry (apps/canonry/webui).
@@ -26,12 +27,7 @@ export default defineConfig({
         "./coordinateStateRepository": "./src/lib/db/coordinateStateRepository.ts",
         "./schemaRepository": "./src/lib/db/schemaRepository.ts",
       },
-      shared: {
-        react: { singleton: true, requiredVersion: "^19.0.0" },
-        "react-dom": { singleton: true, requiredVersion: "^19.0.0" },
-        zustand: { singleton: true },
-        "@penguin-tales/image-store": { singleton: true },
-      },
+      shared: sharedDeps("zustand", "@penguin-tales/image-store"),
     }),
   ],
   // Base path - use /illuminator/ in dev (via proxy) and production
@@ -40,16 +36,7 @@ export default defineConfig({
     target: "esnext",
     minify: false,
     rollupOptions: {
-      onwarn(warning, warn) {
-        const isModuleFederationEval =
-          warning.code === "EVAL" &&
-          (warning.id?.includes("@module-federation/sdk") ||
-            warning.message.includes("@module-federation/sdk"));
-        if (isModuleFederationEval) {
-          return;
-        }
-        warn(warning);
-      },
+      onwarn: federationOnWarn,
     },
   },
   worker: {

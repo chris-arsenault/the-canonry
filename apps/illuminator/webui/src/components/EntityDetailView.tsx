@@ -223,8 +223,7 @@ function AliasesList({
                 }}
                 onBlur={handleSaveEdit}
                 className="edv-aliases-edit-input"
-                // eslint-disable-next-line local/no-inline-styles
-                style={{ width: `${Math.max(editValue.length, 4) * 7.5 + 20}px` }}
+                style={{ "--edv-input-width": `${Math.max(editValue.length, 4) * 7.5 + 20}px` } as React.CSSProperties}
               />
             </span>
           ) : (
@@ -276,8 +275,7 @@ function AliasesList({
               }}
               placeholder="New alias"
               className="edv-aliases-edit-input"
-              // eslint-disable-next-line local/no-inline-styles
-              style={{ width: `${Math.max(addValue.length, 8) * 7.5 + 20}px` }}
+              style={{ "--edv-input-width": `${Math.max(addValue.length, 8) * 7.5 + 20}px` } as React.CSSProperties}
             />
           </span>
         )}
@@ -519,8 +517,6 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
                         disabled={isHistorianEditionActive}
                         label="Copy Edit"
                         hasNotes={false}
-                        // eslint-disable-next-line local/no-inline-styles
-                        style={{ display: "inline-block" }}
                       />
                       {enrichment?.descriptionHistory?.some(
                         (h: { source?: string }) => h.source === "historian-edition"
@@ -530,8 +526,6 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
                           disabled={isHistorianEditionActive}
                           label="Re-Edit"
                           hasNotes={false}
-                          // eslint-disable-next-line local/no-inline-styles
-                          style={{ display: "inline-block" }}
                         />
                       )}
                       <HistorianToneSelector
@@ -541,8 +535,6 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
                         hasNotes={
                           enrichment?.historianNotes && enrichment.historianNotes.length > 0
                         }
-                        // eslint-disable-next-line local/no-inline-styles
-                        style={{ display: "inline-block" }}
                       />
                       {handleClearNotes &&
                         enrichment?.historianNotes &&
@@ -620,8 +612,7 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
                       <HistorianMarginNotes
                         notes={enrichment.historianNotes}
                         sourceText={entity.description}
-                        // eslint-disable-next-line local/no-inline-styles
-                        style={{ marginTop: "12px" }}
+                        className="edv-margin-notes-spaced"
                         onUpdateNote={(noteId: string, updates: Record<string, unknown>) =>
                           void handleUpdateHistorianNote("entity", entity.id, noteId, updates)
                         }

@@ -5,6 +5,7 @@
 
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import PropTypes from "prop-types";
+import "./PlaneCanvas.css";
 
 const WORLD_MIN = 0;
 const WORLD_MAX = 100;
@@ -590,23 +591,14 @@ export default function PlaneCanvas({
   return (
     <div
       ref={containerRef}
-      style={{
-        position: "relative",
-        width: "100%",
-        height: "100%",
-        backgroundColor: "#0a0e14",
-        borderRadius: "8px",
-        overflow: "hidden",
-      }}
+      className="pc-container"
     >
       <canvas
         ref={canvasRef}
         width={size.width}
         height={size.height}
-        style={{
-          display: "block",
-          cursor: getCursor(),
-        }}
+        className="pc-canvas"
+        style={{ '--pc-canvas-cursor': getCursor() }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -615,72 +607,20 @@ export default function PlaneCanvas({
       />
 
       {/* Zoom controls */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "12px",
-          right: "12px",
-          display: "flex",
-          gap: "4px",
-        }}
-      >
-        <button
-          onClick={zoomIn}
-          style={{
-            padding: "6px 12px",
-            fontSize: "16px",
-            backgroundColor: "#16213e",
-            color: "#aaa",
-            border: "1px solid #0f3460",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
+      <div className="pc-zoom-controls">
+        <button onClick={zoomIn} className="pc-zoom-btn">
           +
         </button>
-        <button
-          onClick={zoomOut}
-          style={{
-            padding: "6px 12px",
-            fontSize: "16px",
-            backgroundColor: "#16213e",
-            color: "#aaa",
-            border: "1px solid #0f3460",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
+        <button onClick={zoomOut} className="pc-zoom-btn">
           −
         </button>
-        <button
-          onClick={resetView}
-          style={{
-            padding: "6px 12px",
-            fontSize: "14px",
-            backgroundColor: "#16213e",
-            color: "#aaa",
-            border: "1px solid #0f3460",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
+        <button onClick={resetView} className="pc-reset-btn">
           Reset
         </button>
       </div>
 
       {/* Zoom indicator */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "12px",
-          left: "12px",
-          fontSize: "11px",
-          color: "#666",
-          backgroundColor: "#16213e",
-          padding: "4px 8px",
-          borderRadius: "4px",
-        }}
-      >
+      <div className="pc-zoom-indicator">
         {Math.round(camera.zoom * 100)}%
       </div>
     </div>

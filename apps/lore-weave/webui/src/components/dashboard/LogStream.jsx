@@ -4,6 +4,7 @@
 
 import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
+import "./LogStream.css";
 
 export default function LogStream({ logs, onClear }) {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -27,11 +28,11 @@ export default function LogStream({ logs, onClear }) {
   return (
     <div className="lw-log-panel">
       <div className="lw-log-header" onClick={() => setIsExpanded(!isExpanded)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--lw-text-primary)" }}>
+        <div className="ls-header-left">
+          <span className="ls-title">
             {isExpanded ? "▼" : "▶"} Log Stream
           </span>
-          <span style={{ fontSize: "12px", color: "var(--lw-text-muted)" }}>
+          <span className="ls-count">
             {logs.length} entries
           </span>
           {logCounts.error > 0 && (
@@ -55,7 +56,7 @@ export default function LogStream({ logs, onClear }) {
       </div>
       {isExpanded && logs.length > 0 && (
         <>
-          <div style={{ padding: "8px 16px", borderBottom: "1px solid var(--lw-border-color)" }}>
+          <div className="ls-filter-bar">
             <div className="lw-filter-tabs">
               {["all", "info", "warn", "error"].map((f) => (
                 <button

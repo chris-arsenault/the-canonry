@@ -23,6 +23,7 @@ import { buildChronicleScenePrompt } from "../lib/promptBuilders";
 // imageSettings import removed - controls now in ImageSettingsDrawer
 import type { ChronicleImageRefs, EntityImageRef, PromptRequestRef } from "../lib/chronicleTypes";
 import type { StyleInfo } from "../lib/promptBuilders";
+import "./ChronicleImagePanel.css";
 
 interface EntityContext {
   id: string;
@@ -234,43 +235,21 @@ function AnchorContextTooltip({
       ref={triggerRef}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setShowTooltip(false)}
-      style={{ cursor: "help" }}
+      className="cip-tooltip-trigger"
     >
       {children}
       {showTooltip &&
         createPortal(
           <div
+            className="cip-tooltip"
             style={{
-              position: "fixed",
               left: Math.min(tooltipPos.x, window.innerWidth - 420),
               top: tooltipPos.y,
-              width: "400px",
-              maxHeight: "260px",
-              overflowY: "auto",
-              padding: "10px 12px",
-              background: "var(--bg-primary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-              fontSize: "11px",
-              lineHeight: 1.5,
-              color: "var(--text-secondary)",
-              zIndex: 1000,
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              pointerEvents: "none",
             }}
           >
             {snippet.hasPrefix && "..."}
             {snippet.before}
-            <mark
-              style={{
-                background: "rgba(168, 85, 247, 0.3)",
-                color: "var(--text-primary)",
-                borderRadius: "2px",
-                padding: "0 1px",
-              }}
-            >
+            <mark className="cip-tooltip-highlight">
               {snippet.match}
             </mark>
             {snippet.after}
@@ -316,7 +295,7 @@ function AnchorTextEditor({
       anchorIndex={anchorIndex}
       chronicleText={chronicleText}
     >
-      <span style={{ textDecoration: "underline dotted", textUnderlineOffset: "2px" }}>
+      <span className="cip-anchor-underline">
         &quot;{preview}&quot;
       </span>
     </AnchorContextTooltip>
@@ -324,14 +303,7 @@ function AnchorTextEditor({
 
   if (!onSave) {
     return (
-      <div
-        style={{
-          fontSize: "11px",
-          color: "var(--text-muted)",
-          marginTop: "4px",
-          fontStyle: "italic",
-        }}
-      >
+      <div className="cip-anchor-info">
         Anchor: {anchorLabel}
       </div>
     );
@@ -339,16 +311,8 @@ function AnchorTextEditor({
 
   if (!isEditing) {
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          flexWrap: "wrap",
-          marginTop: "4px",
-        }}
-      >
-        <span style={{ fontSize: "11px", color: "var(--text-muted)", fontStyle: "italic" }}>
+      <div className="cip-anchor-row">
+        <span className="cip-anchor-label">
           Anchor: {anchorLabel}
         </span>
         <button
@@ -378,21 +342,12 @@ function AnchorTextEditor({
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "6px",
-        flexWrap: "wrap",
-        marginTop: "4px",
-      }}
-    >
-      <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Anchor:</span>
+    <div className="cip-anchor-row">
+      <span className="cip-anchor-edit-label">Anchor:</span>
       <input
-        className="illuminator-input"
+        className="illuminator-input cip-anchor-input"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        style={{ minWidth: "200px", flex: 1, fontSize: "11px", padding: "4px 6px" }}
         disabled={disabled}
       />
       <button
@@ -444,33 +399,14 @@ function EntityImageRefCard({
   const deferThumbnail = hasImage && !isVisible;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: "12px",
-        padding: "12px",
-        background: "var(--bg-primary)",
-        border: "1px solid var(--border-color)",
-        borderRadius: "6px",
-      }}
-    >
+    <div className="cip-ref-card">
       {/* Thumbnail */}
       <div
         ref={containerRef}
-        style={{
-          width: "60px",
-          height: "60px",
-          borderRadius: "4px",
-          background: "var(--bg-tertiary)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "hidden",
-          flexShrink: 0,
-        }}
+        className="cip-thumbnail"
       >
         {loading && (
-          <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>...</span>
+          <span className="cip-thumbnail-loading">...</span>
         )}
         {!loading && url && (
           <img
@@ -482,10 +418,8 @@ function EntityImageRefCard({
                 ? () => onImageClick(imageId, entity?.name || "Entity image")
                 : undefined
             }
+            className="cip-thumbnail-img"
             style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
               cursor: imageId && onImageClick ? "pointer" : undefined,
             }}
             role="button"
@@ -494,7 +428,7 @@ function EntityImageRefCard({
           />
         )}
         {!loading && !url && (
-          <span style={{ fontSize: "20px", color: "var(--text-muted)" }}>
+          <span className="cip-thumbnail-placeholder">
             {(() => {
               if (deferThumbnail) return "...";
               if (hasImage) return "?";
@@ -505,39 +439,22 @@ function EntityImageRefCard({
       </div>
 
       {/* Info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-          <span
-            style={{
-              fontSize: "10px",
-              padding: "2px 6px",
-              background: "rgba(59, 130, 246, 0.15)",
-              color: "#3b82f6",
-              borderRadius: "4px",
-              fontWeight: 500,
-            }}
-          >
+      <div className="cip-info">
+        <div className="cip-badge-row">
+          <span className="cip-entity-ref-badge">
             Entity Ref
           </span>
-          <span
-            style={{
-              fontSize: "10px",
-              padding: "2px 6px",
-              background: "var(--bg-tertiary)",
-              color: "var(--text-muted)",
-              borderRadius: "4px",
-            }}
-          >
+          <span className="cip-size-badge">
             {SIZE_LABELS[imageRef.size] || imageRef.size}
           </span>
         </div>
 
-        <div style={{ fontSize: "13px", fontWeight: 500, marginBottom: "2px" }}>
+        <div className="cip-entity-name">
           {entity?.name || imageRef.entityId}
         </div>
 
         {entity?.kind && (
-          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+          <div className="cip-entity-meta">
             {entity.kind}
             {entity.culture && entity.culture !== "universal" && ` • ${entity.culture}`}
           </div>
@@ -551,34 +468,19 @@ function EntityImageRefCard({
           chronicleText={chronicleText}
         />
         {anchorMissing && (
-          <div
-            style={{
-              fontSize: "11px",
-              color: "#ef4444",
-              marginTop: "4px",
-            }}
-          >
+          <div className="cip-anchor-missing">
             Anchor text not found in chronicle
           </div>
         )}
 
         {onUpdateSize && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              flexWrap: "wrap",
-              marginTop: "6px",
-            }}
-          >
-            <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Size:</span>
+          <div className="cip-size-controls">
+            <span className="cip-size-label">Size:</span>
             <select
-              className="illuminator-select"
+              className="illuminator-select cip-size-select"
               value={imageRef.size}
               onChange={(e) => onUpdateSize(e.target.value as EntityImageRef["size"])}
               disabled={isGenerating}
-              style={{ width: "auto", minWidth: "120px", fontSize: "11px", padding: "4px 6px" }}
             >
               {Object.entries(SIZE_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -588,13 +490,12 @@ function EntityImageRefCard({
             </select>
             {isJustifiable && onUpdateJustification && (
               <>
-                <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Justify:</span>
+                <span className="cip-size-label">Justify:</span>
                 <select
-                  className="illuminator-select"
+                  className="illuminator-select cip-justify-select"
                   value={imageRef.justification || "left"}
                   onChange={(e) => onUpdateJustification(e.target.value as "left" | "right")}
                   disabled={isGenerating}
-                  style={{ width: "auto", minWidth: "90px", fontSize: "11px", padding: "4px 6px" }}
                 >
                   <option value="left">Left</option>
                   <option value="right">Right</option>
@@ -605,23 +506,13 @@ function EntityImageRefCard({
         )}
 
         {imageRef.caption && (
-          <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "4px" }}>
+          <div className="cip-caption">
             Caption: {imageRef.caption}
           </div>
         )}
 
         {!hasImage && (
-          <div
-            style={{
-              fontSize: "11px",
-              color: "#f59e0b",
-              marginTop: "6px",
-              padding: "4px 8px",
-              background: "rgba(245, 158, 11, 0.1)",
-              borderRadius: "4px",
-              display: "inline-block",
-            }}
-          >
+          <div className="cip-no-image-warning">
             Entity has no image
           </div>
         )}
@@ -674,33 +565,14 @@ function PromptRequestCard({
     .filter((name): name is string => Boolean(name));
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: "12px",
-        padding: "12px",
-        background: "var(--bg-primary)",
-        border: "1px solid var(--border-color)",
-        borderRadius: "6px",
-      }}
-    >
+    <div className="cip-ref-card">
       {/* Thumbnail/Placeholder */}
       <div
         ref={containerRef}
-        style={{
-          width: "60px",
-          height: "60px",
-          borderRadius: "4px",
-          background: "var(--bg-tertiary)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "hidden",
-          flexShrink: 0,
-        }}
+        className="cip-thumbnail"
       >
         {loading && (
-          <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>...</span>
+          <span className="cip-thumbnail-loading">...</span>
         )}
         {!loading && url && (
           <img
@@ -713,10 +585,8 @@ function PromptRequestCard({
                     onImageClick(imageRef.generatedImageId, imageRef.sceneDescription.slice(0, 60))
                 : undefined
             }
+            className="cip-thumbnail-img"
             style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
               cursor: imageRef.generatedImageId && onImageClick ? "pointer" : undefined,
             }}
             role="button"
@@ -725,77 +595,40 @@ function PromptRequestCard({
           />
         )}
         {!loading && !url && (
-          <span style={{ fontSize: "20px", color: "var(--text-muted)" }}>
+          <span className="cip-thumbnail-placeholder">
             {deferThumbnail || imageRef.status === "generating" ? "..." : "\uD83D\uDDBC\uFE0F"}
           </span>
         )}
       </div>
 
       {/* Info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-          <span
-            style={{
-              fontSize: "10px",
-              padding: "2px 6px",
-              background: "rgba(168, 85, 247, 0.15)",
-              color: "#a855f7",
-              borderRadius: "4px",
-              fontWeight: 500,
-            }}
-          >
+      <div className="cip-info">
+        <div className="cip-badge-row">
+          <span className="cip-scene-badge">
             Scene Image
           </span>
           <span
+            className="cip-status-badge"
             style={{
-              fontSize: "10px",
-              padding: "2px 6px",
               background: statusColor.bg,
               color: statusColor.text,
-              borderRadius: "4px",
-              fontWeight: 500,
-              textTransform: "capitalize",
             }}
           >
             {imageRef.status}
           </span>
-          <span
-            style={{
-              fontSize: "10px",
-              padding: "2px 6px",
-              background: "var(--bg-tertiary)",
-              color: "var(--text-muted)",
-              borderRadius: "4px",
-            }}
-          >
+          <span className="cip-size-badge">
             {SIZE_LABELS[imageRef.size] || imageRef.size}
           </span>
         </div>
 
-        <div
-          style={{
-            fontSize: "12px",
-            color: "var(--text-primary)",
-            marginBottom: "4px",
-            lineHeight: 1.4,
-          }}
-        >
+        <div className="cip-scene-description">
           {imageRef.sceneDescription}
         </div>
 
         {onRegenerateDescription && !isGenerating && (
           <button
             onClick={onRegenerateDescription}
-            style={{
-              marginBottom: "4px",
-              padding: "3px 8px",
-              fontSize: "10px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "4px",
-              color: "var(--text-secondary)",
-              cursor: "pointer",
-            }}
+            className="cip-regen-desc-btn"
           >
             Regenerate Description
           </button>
@@ -809,34 +642,19 @@ function PromptRequestCard({
           chronicleText={chronicleText}
         />
         {anchorMissing && (
-          <div
-            style={{
-              fontSize: "11px",
-              color: "#ef4444",
-              marginTop: "4px",
-            }}
-          >
+          <div className="cip-anchor-missing">
             Anchor text not found in chronicle
           </div>
         )}
 
         {onUpdateSize && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              flexWrap: "wrap",
-              marginTop: "6px",
-            }}
-          >
-            <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Size:</span>
+          <div className="cip-size-controls">
+            <span className="cip-size-label">Size:</span>
             <select
-              className="illuminator-select"
+              className="illuminator-select cip-size-select"
               value={imageRef.size}
               onChange={(e) => onUpdateSize(e.target.value as PromptRequestRef["size"])}
               disabled={isGenerating}
-              style={{ width: "auto", minWidth: "120px", fontSize: "11px", padding: "4px 6px" }}
             >
               {Object.entries(SIZE_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -846,13 +664,12 @@ function PromptRequestCard({
             </select>
             {isJustifiable && onUpdateJustification && (
               <>
-                <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Justify:</span>
+                <span className="cip-size-label">Justify:</span>
                 <select
-                  className="illuminator-select"
+                  className="illuminator-select cip-justify-select"
                   value={imageRef.justification || "left"}
                   onChange={(e) => onUpdateJustification(e.target.value as "left" | "right")}
                   disabled={isGenerating}
-                  style={{ width: "auto", minWidth: "90px", fontSize: "11px", padding: "4px 6px" }}
                 >
                   <option value="left">Left</option>
                   <option value="right">Right</option>
@@ -863,29 +680,10 @@ function PromptRequestCard({
         )}
 
         {involvedEntityNames && involvedEntityNames.length > 0 && (
-          <div
-            style={{
-              fontSize: "11px",
-              color: "var(--text-secondary)",
-              marginTop: "4px",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              flexWrap: "wrap",
-            }}
-          >
-            <span style={{ color: "var(--text-muted)" }}>Figures:</span>
+          <div className="cip-involved-entities">
+            <span className="cip-involved-label">Figures:</span>
             {involvedEntityNames.map((name, i) => (
-              <span
-                key={i}
-                style={{
-                  padding: "1px 6px",
-                  background: "rgba(168, 85, 247, 0.1)",
-                  color: "#a855f7",
-                  borderRadius: "3px",
-                  fontSize: "10px",
-                }}
-              >
+              <span key={i} className="cip-involved-name">
                 {name}
               </span>
             ))}
@@ -893,94 +691,36 @@ function PromptRequestCard({
         )}
 
         {imageRef.caption && (
-          <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "4px" }}>
+          <div className="cip-caption">
             Caption: {imageRef.caption}
           </div>
         )}
 
         {imageRef.error && (
-          <div
-            style={{
-              fontSize: "11px",
-              color: "#ef4444",
-              marginTop: "6px",
-              padding: "4px 8px",
-              background: "rgba(239, 68, 68, 0.1)",
-              borderRadius: "4px",
-            }}
-          >
+          <div className="cip-error-message">
             Error: {imageRef.error}
           </div>
         )}
 
-        <div style={{ display: "flex", gap: "8px", marginTop: "8px", flexWrap: "wrap" }}>
+        <div className="cip-action-row">
           {canGenerate && onGenerate && (
-            <button
-              onClick={onGenerate}
-              style={{
-                padding: "6px 12px",
-                fontSize: "11px",
-                background: "var(--accent-primary)",
-                border: "none",
-                borderRadius: "4px",
-                color: "white",
-                cursor: "pointer",
-                fontWeight: 500,
-              }}
-            >
+            <button onClick={onGenerate} className="cip-generate-btn">
               Generate Image
             </button>
           )}
           {canRegenerate && onGenerate && (
-            <button
-              onClick={onGenerate}
-              style={{
-                padding: "6px 12px",
-                fontSize: "11px",
-                background: "var(--accent-primary)",
-                border: "none",
-                borderRadius: "4px",
-                color: "white",
-                cursor: "pointer",
-                fontWeight: 500,
-              }}
-            >
+            <button onClick={onGenerate} className="cip-generate-btn">
               Regenerate Image
             </button>
           )}
           {onSelectExisting && !isGenerating && (
-            <button
-              onClick={onSelectExisting}
-              style={{
-                padding: "6px 12px",
-                fontSize: "11px",
-                background: "var(--bg-tertiary)",
-                border: "1px solid var(--border-color)",
-                borderRadius: "4px",
-                color: "var(--text-secondary)",
-                cursor: "pointer",
-                fontWeight: 500,
-              }}
-            >
+            <button onClick={onSelectExisting} className="cip-secondary-btn">
               Select Existing
             </button>
           )}
         </div>
         {canReset && onReset && (
-          <button
-            onClick={onReset}
-            style={{
-              marginTop: "8px",
-              padding: "6px 12px",
-              fontSize: "11px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "4px",
-              color: "var(--text-secondary)",
-              cursor: "pointer",
-              fontWeight: 500,
-            }}
-          >
+          <button onClick={onReset} className="cip-reset-btn">
             Reset
           </button>
         )}
@@ -1170,16 +910,7 @@ export default function ChronicleImagePanel({
   // No image refs yet
   if (!imageRefs) {
     return (
-      <div
-        style={{
-          padding: "24px",
-          textAlign: "center",
-          color: "var(--text-muted)",
-          background: "var(--bg-secondary)",
-          borderRadius: "8px",
-          border: "1px solid var(--border-color)",
-        }}
-      >
+      <div className="cip-empty-state">
         No image references generated yet. Use the &quot;Generate&quot; button above to create image
         placement suggestions.
       </div>
@@ -1190,16 +921,7 @@ export default function ChronicleImagePanel({
 
   if (totalRefs === 0) {
     return (
-      <div
-        style={{
-          padding: "24px",
-          textAlign: "center",
-          color: "var(--text-muted)",
-          background: "var(--bg-secondary)",
-          borderRadius: "8px",
-          border: "1px solid var(--border-color)",
-        }}
-      >
+      <div className="cip-empty-state">
         No image references in this chronicle.
       </div>
     );
@@ -1210,21 +932,14 @@ export default function ChronicleImagePanel({
   return (
     <div>
       {/* Header with stats */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "16px",
-        }}
-      >
-        <div style={{ fontSize: "14px", fontWeight: 600 }}>Image References ({totalRefs})</div>
-        <div style={{ display: "flex", gap: "12px", fontSize: "11px" }}>
-          <span style={{ color: "var(--text-muted)" }}>Entity refs: {entityRefs.length}</span>
-          <span style={{ color: "var(--text-muted)" }}>Scenes: {promptRequests.length}</span>
-          {stats.pending > 0 && <span style={{ color: "#f59e0b" }}>Pending: {stats.pending}</span>}
+      <div className="cip-header-row">
+        <div className="cip-header-title">Image References ({totalRefs})</div>
+        <div className="cip-header-stats">
+          <span className="cip-stat-muted">Entity refs: {entityRefs.length}</span>
+          <span className="cip-stat-muted">Scenes: {promptRequests.length}</span>
+          {stats.pending > 0 && <span className="cip-stat-pending">Pending: {stats.pending}</span>}
           {stats.complete > 0 && (
-            <span style={{ color: "#10b981" }}>Complete: {stats.complete}</span>
+            <span className="cip-stat-complete">Complete: {stats.complete}</span>
           )}
         </div>
       </div>
@@ -1240,20 +955,11 @@ export default function ChronicleImagePanel({
 
       {/* Entity Refs Section */}
       {entityRefs.length > 0 && (
-        <div style={{ marginBottom: "24px" }}>
-          <div
-            style={{
-              fontSize: "12px",
-              fontWeight: 500,
-              color: "var(--text-muted)",
-              marginBottom: "8px",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
+        <div className="cip-section">
+          <div className="cip-section-title">
             Entity Images ({entityRefs.length})
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div className="cip-card-list">
             {entityRefs.map((ref) => (
               <EntityImageRefCard
                 key={ref.refId}
@@ -1280,19 +986,10 @@ export default function ChronicleImagePanel({
       {/* Prompt Requests Section */}
       {promptRequests.length > 0 && (
         <div>
-          <div
-            style={{
-              fontSize: "12px",
-              fontWeight: 500,
-              color: "var(--text-muted)",
-              marginBottom: "8px",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
+          <div className="cip-section-title">
             Scene Images ({promptRequests.length})
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div className="cip-card-list">
             {promptRequests.map((ref) => (
               <PromptRequestCard
                 key={ref.refId}
@@ -1325,16 +1022,7 @@ export default function ChronicleImagePanel({
       )}
 
       {/* Metadata footer */}
-      <div
-        style={{
-          marginTop: "16px",
-          padding: "8px 12px",
-          background: "var(--bg-tertiary)",
-          borderRadius: "6px",
-          fontSize: "10px",
-          color: "var(--text-muted)",
-        }}
-      >
+      <div className="cip-metadata-footer">
         Generated: {new Date(imageRefs.generatedAt).toLocaleString()} • Model: {imageRefs.model}
       </div>
 

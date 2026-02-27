@@ -82,8 +82,8 @@ function RegionDetail({
           <span className="entity-badge entity-badge-kind">{entityKind}</span>
           {culture && (
             <span
-              className="entity-badge entity-badge-culture"
-              style={{ borderColor: culture.color, color: culture.color }}
+              className="entity-badge entity-badge-culture ed-culture-badge"
+              style={{ '--ed-culture-color': culture.color } as React.CSSProperties}
             >
               {culture.name}
             </span>
@@ -96,8 +96,7 @@ function RegionDetail({
         <div className="detail-card">
           <div className="section-header">Description</div>
           <p
-            className="detail-card-content"
-            style={{ fontSize: "13px", color: "#bfdbfe", margin: 0 }}
+            className="detail-card-content ed-region-description"
           >
             {region.description}
           </p>
@@ -173,8 +172,7 @@ export default function EntityDetail({
       <div className="entity-detail empty">
         <div className="text-center">
           <div
-            className="text-5xl mb-4"
-            style={{ filter: "drop-shadow(0 0 20px rgba(59, 130, 246, 0.4))" }}
+            className="text-5xl mb-4 ed-empty-icon"
           >
             👈
           </div>
@@ -312,8 +310,8 @@ export default function EntityDetail({
           <span className="entity-badge entity-badge-subtype">{entity.subtype}</span>
           {entityCulture && (
             <span
-              className="entity-badge entity-badge-culture"
-              style={{ borderColor: entityCulture.color, color: entityCulture.color }}
+              className="entity-badge entity-badge-culture ed-culture-badge"
+              style={{ '--ed-culture-color': entityCulture.color } as React.CSSProperties}
             >
               {entityCulture.name}
             </span>
@@ -426,12 +424,11 @@ export default function EntityDetail({
                           >
                             <button
                               onClick={() => onRelatedClick(target.id)}
-                              className="accordion-row-button"
-                              style={isHistorical ? { opacity: 0.6 } : undefined}
+                              className={`accordion-row-button ${isHistorical ? "ed-row-historical" : ""}`}
                             >
                               <div className="accordion-row-name">
                                 {isHistorical && (
-                                  <span style={{ color: "#9ca3af", marginRight: "0.5rem" }}>
+                                  <span className="ed-historical-icon">
                                     📜
                                   </span>
                                 )}
@@ -440,22 +437,13 @@ export default function EntityDetail({
                               <div className="accordion-row-kind">
                                 ({target.kind}){" "}
                                 <span
-                                  style={{
-                                    color: isHistorical ? "#9ca3af" : "#93c5fd",
-                                    fontWeight: "bold",
-                                  }}
+                                  className={isHistorical ? "ed-rel-metric-historical" : "ed-rel-metric"}
                                 >
                                   [S:{strength.toFixed(2)}
                                   {distance !== undefined ? ` D:${distance.toFixed(2)}` : ""}]
                                 </span>
                                 {isHistorical && rel.archivedAt && (
-                                  <span
-                                    style={{
-                                      color: "#9ca3af",
-                                      fontSize: "0.75rem",
-                                      marginLeft: "0.5rem",
-                                    }}
-                                  >
+                                  <span className="ed-archived-label">
                                     archived @{rel.archivedAt}
                                   </span>
                                 )}
@@ -516,12 +504,11 @@ export default function EntityDetail({
                           >
                             <button
                               onClick={() => onRelatedClick(source.id)}
-                              className="accordion-row-button"
-                              style={isHistorical ? { opacity: 0.6 } : undefined}
+                              className={`accordion-row-button ${isHistorical ? "ed-row-historical" : ""}`}
                             >
                               <div className="accordion-row-name">
                                 {isHistorical && (
-                                  <span style={{ color: "#9ca3af", marginRight: "0.5rem" }}>
+                                  <span className="ed-historical-icon">
                                     📜
                                   </span>
                                 )}
@@ -530,22 +517,13 @@ export default function EntityDetail({
                               <div className="accordion-row-kind">
                                 ({source.kind}){" "}
                                 <span
-                                  style={{
-                                    color: isHistorical ? "#9ca3af" : "#93c5fd",
-                                    fontWeight: "bold",
-                                  }}
+                                  className={isHistorical ? "ed-rel-metric-historical" : "ed-rel-metric"}
                                 >
                                   [S:{strength.toFixed(2)}
                                   {distance !== undefined ? ` D:${distance.toFixed(2)}` : ""}]
                                 </span>
                                 {isHistorical && rel.archivedAt && (
-                                  <span
-                                    style={{
-                                      color: "#9ca3af",
-                                      fontSize: "0.75rem",
-                                      marginLeft: "0.5rem",
-                                    }}
-                                  >
+                                  <span className="ed-archived-label">
                                     archived @{rel.archivedAt}
                                   </span>
                                 )}

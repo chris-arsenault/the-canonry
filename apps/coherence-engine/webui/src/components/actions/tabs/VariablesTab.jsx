@@ -5,6 +5,7 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
 import VariableSelectionEditor from "../../shared/VariableSelectionEditor";
+import "./VariablesTab.css";
 
 /**
  * Safely display a value that should be a string.
@@ -59,7 +60,7 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
           <div className="item-card-title">
             <span className="variable-ref">{name}</span>
             {isRequired && (
-              <span className="badge badge-warning" style={{ marginLeft: "8px", fontSize: "10px" }}>
+              <span className="badge badge-warning avt-required-badge">
                 Required
               </span>
             )}
@@ -67,7 +68,7 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
           <div className="item-card-subtitle">
             {displayMode} • {displayStrategy}
             {filterCount > 0 && (
-              <span style={{ marginLeft: "4px" }}>
+              <span className="ml-xs">
                 • {filterCount} filter{filterCount > 1 ? "s" : ""}
               </span>
             )}
@@ -90,17 +91,17 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
       {expanded && (
         <div className="item-card-body">
           {/* Required checkbox */}
-          <div style={{ marginBottom: "16px" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+          <div className="mb-xl">
+            <label className="avt-checkbox-label">
               <input
                 type="checkbox"
                 checked={isRequired}
                 onChange={(e) => updateRequired(e.target.checked)}
               />
-              <span className="label" style={{ margin: 0 }}>
+              <span className="label mb-0">
                 Required
               </span>
-              <span className="text-muted" style={{ fontSize: "11px" }}>
+              <span className="text-muted avt-required-hint">
                 (Action won&apos;t execute unless this variable resolves)
               </span>
             </label>
@@ -217,7 +218,7 @@ export function VariablesTab({ action, onChange, schema }) {
         {showAddForm ? (
           <div className="item-card add-form">
             <div className="add-form-fields">
-              <div style={{ flex: 1 }}>
+              <div className="flex-1">
                 <label htmlFor="variable-name" className="label">Variable Name</label>
                 <input id="variable-name"
                   type="text"

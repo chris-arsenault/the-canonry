@@ -14,6 +14,7 @@ import {
   ToolUsageBadges as UsageBadges,
   getRelationshipKindUsageSummary,
 } from "@penguin-tales/shared-components";
+import "./RelationshipKindEditor.css";
 
 export default function RelationshipKindEditor({
   relationshipKinds,
@@ -85,8 +86,6 @@ export default function RelationshipKindEditor({
     return { srcNames, dstNames };
   };
 
-  const flexFormStyle = useMemo(() => ({ flex: 1 }), []);
-
   const renderHeaderActions = () => (
     <button className="btn btn-primary" onClick={addRelationship}>
       + Add Relationship
@@ -98,10 +97,7 @@ export default function RelationshipKindEditor({
       <UsageBadges usage={getRelationshipKindUsageSummary(schemaUsage, rel.kind)} compact />
       {isFramework && <span className="badge badge-info">framework</span>}
       {rel.cullable === false && <span className="badge badge-info">protected</span>}
-      <div
-        className="text-muted text-small"
-        style={{ display: "flex", alignItems: "center", gap: "4px" }}
-      >
+      <div className="text-muted text-small rke-actions-flow">
         {srcNames.map((name, i) => (
           <span key={i} className="badge">
             {name}
@@ -120,7 +116,7 @@ export default function RelationshipKindEditor({
   );
 
   return (
-    <div className="editor-container" style={{ maxWidth: "900px" }}>
+    <div className="editor-container rke-container">
       <SectionHeader
         title="Relationship Kinds"
         description="Define how entities can be connected to each other."
@@ -153,7 +149,7 @@ export default function RelationshipKindEditor({
                 actions={renderRelationshipActions(rel, srcNames, dstNames, isFramework)}
               >
                 {/* Display Name and Kind ID */}
-                <div style={{ display: "flex", gap: "12px", marginBottom: "12px" }}>
+                <div className="rke-name-row">
                   <FormGroup label="Display Name">
                     <input
                       className="input"
@@ -184,7 +180,7 @@ export default function RelationshipKindEditor({
 
                 {/* Entity Kind Constraints */}
                 <div className="nested-section-compact">
-                  <div className="label" style={{ marginBottom: "8px" }}>
+                  <div className="label rke-constraint-label">
                     Entity Kind Constraints
                   </div>
                   {entityKinds.length === 0 ? (
@@ -192,29 +188,20 @@ export default function RelationshipKindEditor({
                       Define entity kinds first to set constraints.
                     </div>
                   ) : (
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <div style={{ flex: 1 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            marginBottom: "4px",
-                          }}
-                        >
+                    <div className="rke-constraint-row">
+                      <div className="rke-constraint-col">
+                        <div className="rke-constraint-header">
                           <span className="text-small text-muted">Source</span>
                           {rel.srcKinds?.length === 0 && (
                             <span className="text-muted text-small">any</span>
                           )}
                         </div>
-                        <div className="chip-list" style={{ marginBottom: 0 }}>
+                        <div className="chip-list rke-chip-list-flush">
                           {entityKinds.map((ek) => (
                             <div
                               key={ek.kind}
-                              className={`chip chip-clickable ${rel.srcKinds?.includes(ek.kind) ? "chip-active" : ""}`}
+                              className={`chip chip-clickable ${rel.srcKinds?.includes(ek.kind) ? "chip-active" : ""} ${isFramework ? "rke-chip-framework" : ""}`}
                               onClick={() => toggleEntityKind(rel.kind, "srcKinds", ek.kind)}
-                              style={
-                                isFramework ? { pointerEvents: "none", opacity: 0.6 } : undefined
-                              }
                               role="button"
                               tabIndex={0}
                               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
@@ -224,31 +211,22 @@ export default function RelationshipKindEditor({
                           ))}
                         </div>
                       </div>
-                      <div className="text-dim" style={{ fontSize: "16px" }}>
+                      <div className="text-dim rke-arrow">
                         →
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            marginBottom: "4px",
-                          }}
-                        >
+                      <div className="rke-constraint-col">
+                        <div className="rke-constraint-header">
                           <span className="text-small text-muted">Destination</span>
                           {rel.dstKinds?.length === 0 && (
                             <span className="text-muted text-small">any</span>
                           )}
                         </div>
-                        <div className="chip-list" style={{ marginBottom: 0 }}>
+                        <div className="chip-list rke-chip-list-flush">
                           {entityKinds.map((ek) => (
                             <div
                               key={ek.kind}
-                              className={`chip chip-clickable ${rel.dstKinds?.includes(ek.kind) ? "chip-active" : ""}`}
+                              className={`chip chip-clickable ${rel.dstKinds?.includes(ek.kind) ? "chip-active" : ""} ${isFramework ? "rke-chip-framework" : ""}`}
                               onClick={() => toggleEntityKind(rel.kind, "dstKinds", ek.kind)}
-                              style={
-                                isFramework ? { pointerEvents: "none", opacity: 0.6 } : undefined
-                              }
                               role="button"
                               tabIndex={0}
                               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
@@ -264,17 +242,14 @@ export default function RelationshipKindEditor({
 
                 {/* Maintenance Settings */}
                 <div className="nested-section-compact">
-                  <div className="label" style={{ marginBottom: "8px" }}>
+                  <div className="label rke-maintenance-label">
                     Maintenance Settings
                   </div>
-                  <div
-                    style={{ display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "center" }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div className="rke-maintenance-row">
+                    <div className="rke-maintenance-field">
                       <span className="text-small text-muted">Decay</span>
                       <select
-                        className="input"
-                        style={{ width: "auto", padding: "6px 10px" }}
+                        className="input rke-select-compact"
                         value={rel.decayRate || "medium"}
                         disabled={isFramework}
                         onChange={(e) => updateRel(rel.kind, { decayRate: e.target.value })}
@@ -285,11 +260,10 @@ export default function RelationshipKindEditor({
                         <option value="fast">Fast</option>
                       </select>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div className="rke-maintenance-field">
                       <span className="text-small text-muted">Polarity</span>
                       <select
-                        className="input"
-                        style={{ width: "auto", padding: "6px 10px" }}
+                        className="input rke-select-compact"
                         value={rel.polarity || "neutral"}
                         disabled={isFramework}
                         onChange={(e) => updateRel(rel.kind, { polarity: e.target.value })}
@@ -300,20 +274,13 @@ export default function RelationshipKindEditor({
                         <option value="negative">Negative</option>
                       </select>
                     </div>
-                    <label
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        cursor: "pointer",
-                      }}
-                    >
+                    <label className="rke-cullable-label">
                       <input
                         type="checkbox"
                         checked={rel.cullable !== false}
                         disabled={isFramework}
                         onChange={(e) => updateRel(rel.kind, { cullable: e.target.checked })}
-                        style={{ width: "14px", height: "14px" }}
+                        className="rke-checkbox"
                       />
                       <span className="text-small">Cullable</span>
                     </label>
@@ -322,15 +289,15 @@ export default function RelationshipKindEditor({
 
                 {/* Narrative Verbs */}
                 <div className="nested-section-compact">
-                  <div className="label" style={{ marginBottom: "8px" }}>
+                  <div className="label rke-verbs-label">
                     Narrative Verbs
                   </div>
-                  <div className="text-muted text-small" style={{ marginBottom: "8px" }}>
+                  <div className="text-muted text-small rke-verbs-hint">
                     Verbs used in narrative event descriptions when this relationship is formed or
                     ended.
                   </div>
-                  <div style={{ display: "flex", gap: "12px" }}>
-                    <FormGroup label="Formed" style={flexFormStyle}>
+                  <div className="rke-verbs-row">
+                    <FormGroup label="Formed" className="rke-verb-form">
                       <input
                         className="input"
                         value={rel.verbs?.formed || ""}
@@ -343,7 +310,7 @@ export default function RelationshipKindEditor({
                         placeholder="e.g., joined, allied with"
                       />
                     </FormGroup>
-                    <FormGroup label="Ended" style={flexFormStyle}>
+                    <FormGroup label="Ended" className="rke-verb-form">
                       <input
                         className="input"
                         value={rel.verbs?.ended || ""}

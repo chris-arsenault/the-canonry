@@ -7,6 +7,7 @@
 
 import React, { useMemo } from "react";
 import type { IntensityPoint } from "../../../lib/chronicle/timelineUtils";
+import "./IntensitySparkline.css";
 
 interface IntensitySparklineProps {
   points: IntensityPoint[];
@@ -112,7 +113,7 @@ export default function IntensitySparkline({
   }
 
   return (
-    <svg width={width} height={height} style={{ display: "block" }}>
+    <svg width={width} height={height} className="is-svg">
       {/* Selected range highlight */}
       {highlightRect && (
         <rect

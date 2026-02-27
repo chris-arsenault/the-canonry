@@ -10,6 +10,7 @@
 
 import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
+import "./ResultsViewer.css";
 
 export default function ResultsViewer({ results, schema: _schema, onNewRun }) {
   const [activeTab, setActiveTab] = useState("overview");
@@ -47,7 +48,7 @@ export default function ResultsViewer({ results, schema: _schema, onNewRun }) {
   if (!results) {
     return (
       <div className="lw-container">
-        <div className="lw-empty-state" style={{ height: "auto", padding: "80px 40px" }}>
+        <div className="lw-empty-state rv-empty-state">
           <div className="lw-empty-icon"></div>
           <div className="lw-empty-title">No Results Yet</div>
           <div className="lw-empty-text">
@@ -95,7 +96,7 @@ export default function ResultsViewer({ results, schema: _schema, onNewRun }) {
       </div>
 
       {/* Action Buttons */}
-      <div className="lw-button-group" style={{ marginBottom: "24px" }}>
+      <div className="lw-button-group rv-button-group">
         <button className="lw-btn lw-btn-secondary" onClick={exportResults}>
           Export Results
         </button>
@@ -251,8 +252,8 @@ function PressureBar({ name, value }) {
       <span className="lw-pressure-name">{name}</span>
       <div className="lw-pressure-bar">
         <div
-          className="lw-pressure-fill"
-          style={{ width: `${percent}%`, backgroundColor: color }}
+          className="lw-pressure-fill rv-pressure-fill"
+          style={{ '--rv-pressure-fill-width': `${percent}%`, '--rv-pressure-fill-color': color }}
         />
       </div>
       <span className="lw-pressure-value">{numValue.toFixed(0)}</span>

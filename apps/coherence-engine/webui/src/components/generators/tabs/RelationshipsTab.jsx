@@ -5,6 +5,7 @@
 import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import { ReferenceDropdown, NumberInput } from "../../shared";
+import "./RelationshipsTab.css";
 
 /**
  * Safely display a value that should be a string.
@@ -212,7 +213,7 @@ function RelationshipCard({ rel, onChange, onRemove, schema, availableRefs }) {
             </div>
           </div>
 
-          <div style={{ marginTop: "16px" }}>
+          <div className="mt-xl">
             <span className="label">Bidirectional</span>
             <div className="toggle-container">
               <div
@@ -233,7 +234,7 @@ function RelationshipCard({ rel, onChange, onRemove, schema, availableRefs }) {
           </div>
 
           {/* Condition */}
-          <div style={{ marginTop: "16px" }}>
+          <div className="mt-xl">
             <span className="label">Condition (optional)</span>
             {rel.condition ? (
               <RelationshipConditionEditor
@@ -283,7 +284,7 @@ function ImpliedRelationshipCard({ saturationLimit, schema, createdEntityRef }) 
 
   // Created entity will have a relationship with the target (bidirectional implied)
   return (
-    <div className="item-card" style={{ opacity: 0.8, borderStyle: "dashed" }}>
+    <div className="item-card rt-implied-card">
       <div className="item-card-header">
         <div className="rel-visual">
           <span className="rel-ref">{createdEntityRef}</span>
@@ -292,15 +293,7 @@ function ImpliedRelationshipCard({ saturationLimit, schema, createdEntityRef }) 
           <span className="rel-arrow">↔</span>
           <span className="rel-ref">$target</span>
         </div>
-        <span
-          style={{
-            fontSize: "10px",
-            padding: "2px 6px",
-            borderRadius: "4px",
-            background: "var(--color-accent-muted, #e0e7ff)",
-            color: "var(--color-accent, #4f46e5)",
-          }}
-        >
+        <span className="rt-implied-badge">
           Implied
         </span>
       </div>
@@ -371,7 +364,7 @@ export function RelationshipsTab({ generator, onChange, schema }) {
 
         {/* Implied relationships from saturation limits */}
         {saturationLimits.length > 0 && (
-          <div style={{ marginBottom: "16px" }}>
+          <div className="mb-xl">
             {saturationLimits.map((limit, index) => (
               <ImpliedRelationshipCard
                 key={`implied-${index}`}

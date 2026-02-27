@@ -20,6 +20,7 @@ import {
   getCastMarkerShape,
   getCastMarkerColor,
 } from "../../../lib/chronicle/timelineUtils";
+import "./NarrativeTimeline.css";
 
 interface NarrativeTimelineProps {
   events: TimelineEvent[];
@@ -158,12 +159,12 @@ export default function NarrativeTimeline({
   }, []);
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="nt-wrap">
       <svg
         ref={svgRef}
         width={width}
         height={height}
-        style={{ display: "block", background: "var(--bg-secondary)", borderRadius: "8px" }}
+        className="nt-svg"
       >
         {/* Era bands */}
         {eraRanges.map((era) => {
@@ -259,7 +260,7 @@ export default function NarrativeTimeline({
           return (
             <g
               key={event.id}
-              style={{ cursor: "pointer" }}
+              className="nt-cursor-pointer"
               onClick={(e) => handleEventClick(e, event.id)}
               onMouseEnter={(e) => handleEventHover(event, e)}
               onMouseLeave={() => handleEventHover(null)}
@@ -285,7 +286,7 @@ export default function NarrativeTimeline({
                   fontSize="12"
                   fill="white"
                   fontWeight="bold"
-                  style={{ pointerEvents: "none" }}
+                  className="nt-no-pointer"
                 >
                   ✓
                 </text>
@@ -329,7 +330,7 @@ export default function NarrativeTimeline({
               return (
                 <g
                   key={marker.entityId}
-                  style={{ cursor: "pointer" }}
+                  className="nt-cursor-pointer"
                   onMouseEnter={(e) => {
                     if (svgRef.current) {
                       const rect = svgRef.current.getBoundingClientRect();
@@ -408,63 +409,38 @@ export default function NarrativeTimeline({
       {/* Tooltip */}
       {hoveredEvent && (
         <div
+          className="nt-tooltip"
           style={{
-            position: "absolute",
-            left: Math.min(hoveredEvent.x + 12, width - 220),
-            top: Math.max(hoveredEvent.y - 60, 8),
-            background: "var(--bg-primary)",
-            border: "1px solid var(--border-color)",
-            borderRadius: "6px",
-            padding: "10px 12px",
-            fontSize: "11px",
-            maxWidth: "200px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            zIndex: 100,
-            pointerEvents: "none",
-          }}
+            '--nt-tooltip-left': `${Math.min(hoveredEvent.x + 12, width - 220)}px`,
+            '--nt-tooltip-top': `${Math.max(hoveredEvent.y - 60, 8)}px`,
+          } as React.CSSProperties}
         >
-          <div style={{ fontWeight: 600, marginBottom: "4px" }}>{hoveredEvent.event.headline}</div>
-          <div style={{ color: "var(--text-muted)", marginBottom: "4px" }}>
+          <div className="nt-tooltip-headline">{hoveredEvent.event.headline}</div>
+          <div className="nt-tooltip-meta">
             Tick {hoveredEvent.event.tick} · {hoveredEvent.event.eventKind}
           </div>
-          <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
-            <span
-              style={{
-                padding: "1px 4px",
-                background: "var(--bg-tertiary)",
-                borderRadius: "3px",
-                fontSize: "9px",
-              }}
-            >
+          <div className="nt-tooltip-badges">
+            <span className="nt-tooltip-badge">
               {(hoveredEvent.event.significance * 100).toFixed(0)}% sig
             </span>
             {hoveredEvent.event.involvesEntryPoint && (
-              <span
-                style={{
-                  padding: "1px 4px",
-                  background: "var(--accent-color)",
-                  color: "white",
-                  borderRadius: "3px",
-                  fontSize: "9px",
-                }}
-              >
+              <span className="nt-tooltip-entry-badge">
                 Entry
               </span>
             )}
           </div>
           {hoveredEvent.event.description && (
-            <div style={{ color: "var(--text-muted)", fontSize: "10px" }}>
+            <div className="nt-tooltip-desc">
               {hoveredEvent.event.description.length > 120
                 ? hoveredEvent.event.description.slice(0, 120) + "..."
                 : hoveredEvent.event.description}
             </div>
           )}
           <div
+            className="nt-tooltip-status"
             style={{
-              marginTop: "6px",
-              fontSize: "9px",
-              color: hoveredEvent.event.selected ? "var(--success)" : "var(--text-muted)",
-            }}
+              '--nt-status-color': hoveredEvent.event.selected ? "var(--success)" : "var(--text-muted)",
+            } as React.CSSProperties}
           >
             {hoveredEvent.event.selected ? "✓ Selected" : "Click to select"}
           </div>
@@ -474,82 +450,47 @@ export default function NarrativeTimeline({
       {/* Cast marker tooltip */}
       {hoveredCastMarker && (
         <div
+          className="nt-cast-tooltip"
           style={{
-            position: "absolute",
-            left: Math.min(hoveredCastMarker.x + 12, width - 200),
-            top: Math.max(hoveredCastMarker.y - 50, 8),
-            background: "var(--bg-primary)",
-            border: "1px solid var(--border-color)",
-            borderRadius: "6px",
-            padding: "8px 10px",
-            fontSize: "11px",
-            maxWidth: "180px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            zIndex: 100,
-            pointerEvents: "none",
-          }}
+            '--nt-tooltip-left': `${Math.min(hoveredCastMarker.x + 12, width - 200)}px`,
+            '--nt-tooltip-top': `${Math.max(hoveredCastMarker.y - 50, 8)}px`,
+          } as React.CSSProperties}
         >
-          <div style={{ fontWeight: 600, marginBottom: "3px" }}>
+          <div className="nt-cast-name">
             {hoveredCastMarker.marker.entityName}
           </div>
-          <div style={{ color: "var(--text-muted)", marginBottom: "3px", fontSize: "10px" }}>
+          <div className="nt-cast-meta">
             {hoveredCastMarker.marker.entityKind}
             {hoveredCastMarker.marker.subtype && ` · ${hoveredCastMarker.marker.subtype}`}
           </div>
-          <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginBottom: "4px" }}>
+          <div className="nt-cast-badges">
             {hoveredCastMarker.marker.role && (
-              <span
-                style={{
-                  padding: "1px 4px",
-                  background: "var(--bg-tertiary)",
-                  borderRadius: "3px",
-                  fontSize: "9px",
-                }}
-              >
+              <span className="nt-cast-badge">
                 {hoveredCastMarker.marker.role}
               </span>
             )}
             {hoveredCastMarker.marker.isEntryPoint && (
-              <span
-                style={{
-                  padding: "1px 4px",
-                  background: "var(--accent-color)",
-                  color: "white",
-                  borderRadius: "3px",
-                  fontSize: "9px",
-                }}
-              >
+              <span className="nt-cast-entry-badge">
                 Entry Point
               </span>
             )}
             {hoveredCastMarker.marker.isLens && (
-              <span
-                style={{
-                  padding: "1px 4px",
-                  background: "#f59e0b",
-                  color: "white",
-                  borderRadius: "3px",
-                  fontSize: "9px",
-                }}
-              >
+              <span className="nt-cast-lens-badge">
                 Lens
               </span>
             )}
             {hoveredCastMarker.marker.isPrimary && !hoveredCastMarker.marker.isEntryPoint && (
               <span
+                className="nt-cast-primary-badge"
                 style={{
-                  padding: "1px 4px",
-                  background: getCastMarkerColor(hoveredCastMarker.marker.entityKind),
-                  color: "white",
-                  borderRadius: "3px",
-                  fontSize: "9px",
-                }}
+                  '--nt-primary-bg': getCastMarkerColor(hoveredCastMarker.marker.entityKind),
+                } as React.CSSProperties}
               >
                 Primary
               </span>
             )}
           </div>
-          <div style={{ color: "var(--text-muted)", fontSize: "10px" }}>
+          <div className="nt-cast-tick">
             Created at tick {hoveredCastMarker.marker.createdAt}
           </div>
         </div>

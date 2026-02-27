@@ -166,9 +166,9 @@ export function VariableSelectionEditor({
         )}
 
         {isPathMode && (
-          <div style={{ gridColumn: "1 / -1" }}>
+          <div className="grid-col-full">
             <span className="label">Path Steps</span>
-            <div className="info-box-text" style={{ marginBottom: "12px", fontSize: "12px" }}>
+            <div className="info-box-text mb-lg text-sm">
               Multi-hop traversal from the starting entity through relationships.
             </div>
           </div>
@@ -201,10 +201,10 @@ export function VariableSelectionEditor({
       </div>
 
       {isPathMode && (
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           {(pathSpec?.path || []).map((step, index) => (
-            <div key={index} className="item-card" style={{ marginBottom: "12px" }}>
-              <div className="item-card-header" style={{ padding: "12px" }}>
+            <div key={index} className="item-card mb-lg">
+              <div className="item-card-header p-lg">
                 <div className="item-card-icon">🔗</div>
                 <div className="item-card-info">
                   <div className="item-card-title">Step {index + 1}</div>
@@ -263,7 +263,7 @@ export function VariableSelectionEditor({
       )}
 
       {(isRelatedMode || isPathMode) && (
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <ReferenceDropdown
             label="Filter by Entity Kind (optional)"
             value={select.kind || ""}
@@ -275,7 +275,7 @@ export function VariableSelectionEditor({
       )}
 
       {select.kind && (
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <ChipSelect
             label="Subtypes (optional)"
             value={select.subtypes || []}
@@ -286,7 +286,7 @@ export function VariableSelectionEditor({
         </div>
       )}
 
-      <div style={{ marginTop: "16px" }}>
+      <div className="mt-xl">
         <label htmlFor="status-filter-optional" className="label">Status Filter (optional)</label>
         <input id="status-filter-optional"
           type="text"
@@ -297,7 +297,7 @@ export function VariableSelectionEditor({
         />
       </div>
 
-      <div style={{ marginTop: "16px" }}>
+      <div className="mt-xl">
         <label htmlFor="not-status-optional" className="label">Not Status (optional)</label>
         <input id="not-status-optional"
           type="text"
@@ -308,9 +308,9 @@ export function VariableSelectionEditor({
         />
       </div>
 
-      <div style={{ marginTop: "24px" }}>
+      <div className="mt-2xl">
         <span className="label">Selection Filters</span>
-        <div className="info-box-text" style={{ marginBottom: "12px", fontSize: "12px" }}>
+        <div className="info-box-text mb-lg text-sm">
           Optional filters to narrow down which entities can be selected. All filters must pass.
         </div>
         <SelectionFiltersEditor
@@ -322,9 +322,9 @@ export function VariableSelectionEditor({
       </div>
 
       {allowPreferFilters && (
-        <div style={{ marginTop: "24px" }}>
+        <div className="mt-2xl">
           <span className="label">Prefer Filters (optional)</span>
-          <div className="info-box-text" style={{ marginBottom: "12px", fontSize: "12px" }}>
+          <div className="info-box-text mb-lg text-sm">
             Preferred matches. If no entities match these filters, selection falls back to all
             matches.
           </div>

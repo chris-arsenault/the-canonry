@@ -10,11 +10,13 @@
 .hrm-note-accepted {
   background: rgb(139 115 85 / 8%);
   opacity: 1;
+  border-left: 3px solid var(--hrm-note-color);
 }
 
 .hrm-note-rejected {
   background: var(--bg-tertiary);
   opacity: 0.5;
+  border-left: 3px solid var(--border-color);
 }
 
 .hrm-note-header {
@@ -33,6 +35,7 @@
 .hrm-note-type-icon {
   font-size: 12px;
   font-weight: 700;
+  color: var(--hrm-note-color);
 }
 
 .hrm-note-type-label {
@@ -40,6 +43,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  color: var(--hrm-note-color);
 }
 
 .hrm-note-toggle {
@@ -131,6 +135,8 @@
   border-radius: 2px;
   padding: 0 1px;
   cursor: help;
+  background: var(--hrm-anchor-bg);
+  border-bottom: 2px solid var(--hrm-anchor-border);
 }
 
 .hrm-anchor-span-accepted {
@@ -149,6 +155,7 @@
   font-size: 9px;
   font-weight: 700;
   margin-left: 1px;
+  color: var(--hrm-anchor-sup-color);
 }
 
 /* Main Modal */

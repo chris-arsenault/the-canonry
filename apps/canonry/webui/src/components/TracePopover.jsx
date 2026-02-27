@@ -8,52 +8,10 @@
 
 import React, { useState, useMemo, useCallback, lazy, Suspense } from "react";
 import PropTypes from "prop-types";
-import { colors } from "../theme";
+import "./TracePopover.css";
 
 // Lazy load the trace visualization from lore-weave remote
 const SimulationTraceVisx = lazy(() => import("loreWeave/SimulationTraceVisx"));
-
-const styles = {
-  button: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "6px 12px",
-    borderRadius: "6px",
-    borderWidth: "1px",
-    borderStyle: "solid",
-    borderColor: colors.border,
-    backgroundColor: colors.bgSecondary,
-    color: colors.textPrimary,
-    cursor: "pointer",
-    fontSize: "13px",
-    fontWeight: 500,
-    transition: "all 0.15s ease",
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-    cursor: "not-allowed",
-  },
-  buttonActive: {
-    borderColor: "rgba(59, 130, 246, 0.4)",
-    backgroundColor: "rgba(59, 130, 246, 0.15)",
-    color: "rgb(147, 197, 253)",
-  },
-  loadingOverlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.85)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 10000,
-    color: colors.textMuted,
-    fontSize: "14px",
-  },
-};
 
 export default function TracePopover({ simulationState }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -73,16 +31,16 @@ export default function TracePopover({ simulationState }) {
     return `${tickCount} ticks`;
   }, [hasData, tickCount]);
 
-  // Button style
-  const buttonStyle = useMemo(() => {
+  // Button class
+  const buttonClassName = useMemo(() => {
     if (!hasData) {
-      return { ...styles.button, ...styles.buttonDisabled };
+      return "tp-button tp-button-disabled";
     }
-    return { ...styles.button, ...styles.buttonActive };
+    return "tp-button tp-button-active";
   }, [hasData]);
 
   const loadingFallback = useMemo(
-    () => <div style={styles.loadingOverlay}>Loading trace visualization...</div>,
+    () => <div className="tp-loading-overlay">Loading trace visualization...</div>,
     []
   );
 
@@ -96,7 +54,7 @@ export default function TracePopover({ simulationState }) {
   return (
     <>
       <button
-        style={buttonStyle}
+        className={buttonClassName}
         onClick={handleOpen}
         disabled={!hasData}
         title={
@@ -105,7 +63,7 @@ export default function TracePopover({ simulationState }) {
             : "Run a simulation to see trace data"
         }
       >
-        <span style={{ fontSize: "11px" }}>~</span>
+        <span className="tp-tilde">~</span>
         <span>{buttonLabel}</span>
       </button>
 

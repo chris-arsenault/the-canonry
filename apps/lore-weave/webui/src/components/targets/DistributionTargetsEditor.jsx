@@ -6,6 +6,7 @@
 
 import React, { useCallback } from "react";
 import PropTypes from "prop-types";
+import "./DistributionTargetsEditor.css";
 import EntityTargets from "./EntityTargets";
 
 export default function DistributionTargetsEditor({
@@ -72,7 +73,7 @@ export default function DistributionTargetsEditor({
             Configure per-subtype targets for homeostatic template weighting
           </p>
         </div>
-        <div className="lw-empty-state" style={{ height: "auto", padding: "40px 20px" }}>
+        <div className="lw-empty-state dte-empty-state">
           <div className="lw-empty-title">No Distribution Targets Configured</div>
           <div className="lw-empty-text">
             Set per-subtype targets used for homeostatic template weighting.

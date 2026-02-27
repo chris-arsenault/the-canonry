@@ -2,6 +2,7 @@ import { defineConfig, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
 import { federation } from "@module-federation/vite";
 import path from "node:path";
+import { federationOnWarn, sharedDeps } from "../../../config/federation.js";
 
 // Chronicler is an MFE remote for The Canonry shell.
 // To use Chronicler, run The Canonry (apps/canonry/webui).
@@ -16,14 +17,7 @@ export default defineConfig({
       exposes: {
         "./ChroniclerRemote": "./src/ChroniclerRemote.tsx",
       },
-      shared: {
-        react: { singleton: true, requiredVersion: "^19.0.0" },
-        "react-dom": { singleton: true, requiredVersion: "^19.0.0" },
-        zustand: { singleton: true },
-        "@penguin-tales/image-store": { singleton: true },
-        "@penguin-tales/narrative-store": { singleton: true },
-        "@penguin-tales/world-store": { singleton: true },
-      },
+      shared: sharedDeps("zustand", "@penguin-tales/image-store", "@penguin-tales/narrative-store", "@penguin-tales/world-store"),
     }) as PluginOption,
   ],
   resolve: {
@@ -46,16 +40,7 @@ export default defineConfig({
     minify: true,
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
-      onwarn(warning, warn) {
-        const isModuleFederationEval =
-          warning.code === "EVAL" &&
-          (warning.id?.includes("@module-federation/sdk") ||
-            warning.message.includes("@module-federation/sdk"));
-        if (isModuleFederationEval) {
-          return;
-        }
-        warn(warning);
-      },
+      onwarn: federationOnWarn,
     },
   },
   server: {

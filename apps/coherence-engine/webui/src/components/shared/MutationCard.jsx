@@ -7,6 +7,7 @@ import PropTypes from "prop-types";
 import { ReferenceDropdown, NumberInput } from "./index";
 import TagSelector from "@penguin-tales/shared-components/TagSelector";
 import { MUTATION_TYPE_META, MUTATION_TYPE_ORDER } from "../actions/constants";
+import "./MutationCard.css";
 
 export const DEFAULT_MUTATION_TYPES = [
   ...MUTATION_TYPE_ORDER.map((key) => ({
@@ -136,9 +137,10 @@ export function MutationCard({
 
   return (
     <div className="condition-card">
-      <div className="condition-card-header" style={{ marginBottom: expanded ? undefined : 0 }}>
+      <div className={`condition-card-header ${expanded ? "" : "mb-0"}`}>
         <div className="condition-card-type">
-          <div className="condition-card-icon" style={{ backgroundColor: `${typeMeta.color}20` }}>
+          {/* eslint-disable-next-line local/no-inline-styles -- dynamic type color */}
+          <div className="condition-card-icon" style={{ '--mc-icon-bg': `${typeMeta.color}20`, backgroundColor: 'var(--mc-icon-bg)' }}>
             {typeMeta.icon}
           </div>
           <div>
@@ -160,7 +162,7 @@ export function MutationCard({
 
       {expanded && (
         <div className="condition-card-fields">
-          <div className="form-grid" style={{ flex: "1 1 100%" }}>
+          <div className="form-grid mc-fields-full">
             <ReferenceDropdown
               label="Type"
               value={mutation.type}
@@ -435,7 +437,7 @@ export function MutationCard({
             )}
 
             {mutation.type === "update_rate_limit" && (
-              <div className="text-muted" style={{ gridColumn: "1 / -1" }}>
+              <div className="text-muted grid-col-full">
                 Tracks generator execution for rate limiting.
               </div>
             )}
@@ -508,23 +510,18 @@ export function MutationCard({
                     placeholder="e.g., weapon"
                   />
                 </div>
-                <div style={{ gridColumn: "1 / -1", marginTop: "16px" }}>
+                <div className="mc-nested-container mt-xl">
                   <label className="label">
                     Nested Actions ({(mutation.actions || []).length})
                   </label>
-                  <div className="info-box-text" style={{ marginBottom: "8px", fontSize: "12px" }}>
+                  <div className="info-box-text mc-nested-info">
                     Actions executed for each related entity. Use <code>$related</code> to reference
                     the current entity.
                   </div>
                   {(mutation.actions || []).map((nestedAction, idx) => (
                     <div
                       key={idx}
-                      style={{
-                        marginBottom: "8px",
-                        marginLeft: "16px",
-                        borderLeft: "2px solid #a855f7",
-                        paddingLeft: "12px",
-                      }}
+                      className="mc-nested-action mc-nested-action-purple"
                     >
                       <MutationCard
                         mutation={nestedAction}
@@ -548,14 +545,13 @@ export function MutationCard({
                     </div>
                   ))}
                   <button
-                    className="btn-add"
+                    className="btn-add mc-nested-add-btn"
                     onClick={() =>
                       update("actions", [
                         ...(mutation.actions || []),
                         { type: "set_tag", entity: "$related", tag: "" },
                       ])
                     }
-                    style={{ marginLeft: "16px" }}
                   >
                     + Add Nested Action
                   </button>
@@ -564,26 +560,21 @@ export function MutationCard({
             )}
 
             {mutation.type === "conditional" && (
-              <div style={{ gridColumn: "1 / -1" }}>
-                <div className="info-box-text" style={{ marginBottom: "12px", fontSize: "12px" }}>
+              <div className="mc-nested-container">
+                <div className="info-box-text mc-nested-info mb-lg">
                   Execute different actions based on a condition.
                 </div>
-                <div style={{ marginBottom: "16px" }}>
+                <div className="mc-conditional-then">
                   <label className="label">
                     Then Actions ({(mutation.thenActions || []).length})
                   </label>
-                  <div className="info-box-text" style={{ marginBottom: "8px", fontSize: "12px" }}>
+                  <div className="info-box-text mc-nested-info">
                     Actions executed when condition passes.
                   </div>
                   {(mutation.thenActions || []).map((nestedAction, idx) => (
                     <div
                       key={idx}
-                      style={{
-                        marginBottom: "8px",
-                        marginLeft: "16px",
-                        borderLeft: "2px solid #10b981",
-                        paddingLeft: "12px",
-                      }}
+                      className="mc-nested-action mc-nested-action-green"
                     >
                       <MutationCard
                         mutation={nestedAction}
@@ -607,14 +598,13 @@ export function MutationCard({
                     </div>
                   ))}
                   <button
-                    className="btn-add"
+                    className="btn-add mc-nested-add-btn"
                     onClick={() =>
                       update("thenActions", [
                         ...(mutation.thenActions || []),
                         { type: "set_tag", entity: "$self", tag: "" },
                       ])
                     }
-                    style={{ marginLeft: "16px" }}
                   >
                     + Add Then Action
                   </button>
@@ -623,18 +613,13 @@ export function MutationCard({
                   <label className="label">
                     Else Actions ({(mutation.elseActions || []).length})
                   </label>
-                  <div className="info-box-text" style={{ marginBottom: "8px", fontSize: "12px" }}>
+                  <div className="info-box-text mc-nested-info">
                     Actions executed when condition fails (optional).
                   </div>
                   {(mutation.elseActions || []).map((nestedAction, idx) => (
                     <div
                       key={idx}
-                      style={{
-                        marginBottom: "8px",
-                        marginLeft: "16px",
-                        borderLeft: "2px solid #ef4444",
-                        paddingLeft: "12px",
-                      }}
+                      className="mc-nested-action mc-nested-action-red"
                     >
                       <MutationCard
                         mutation={nestedAction}
@@ -658,14 +643,13 @@ export function MutationCard({
                     </div>
                   ))}
                   <button
-                    className="btn-add"
+                    className="btn-add mc-nested-add-btn"
                     onClick={() =>
                       update("elseActions", [
                         ...(mutation.elseActions || []),
                         { type: "set_tag", entity: "$self", tag: "" },
                       ])
                     }
-                    style={{ marginLeft: "16px" }}
                   >
                     + Add Else Action
                   </button>

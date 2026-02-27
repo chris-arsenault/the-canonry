@@ -131,9 +131,9 @@
 .lw-trace-view-toggle {
   padding: 4px 10px;
   font-size: 11px;
-  border: 1px solid;
+  border: 1px solid var(--st-toggle-border, var(--lw-border-color));
   border-radius: 4px;
-  background: transparent;
+  background-color: var(--st-toggle-bg, transparent);
   color: var(--lw-text-secondary);
   cursor: pointer;
   transition: all 0.15s;
@@ -278,7 +278,7 @@
   padding: 12px;
   background: rgb(0 0 0 / 20%);
   border-radius: 8px;
-  border-left: 3px solid;
+  border-left: 3px solid var(--st-pressure-border, #64748b);
 }
 
 .lw-trace-view-detail-pressure-header {
@@ -388,6 +388,7 @@
 .lw-trace-view-discrete-badge {
   margin-right: 6px;
   font-size: 10px;
+  color: var(--st-badge-color, #888);
 }
 
 .lw-trace-view-detail-subtotal {
@@ -1015,4 +1016,87 @@
 
 .lw-trace-view-slider:hover::-moz-range-thumb {
   background: var(--lw-accent-hover);
+}
+
+/* Detail marker icon (colored symbol before tick label) */
+.st-detail-marker {
+  color: var(--st-marker-color);
+  margin-right: 6px;
+}
+
+/* Outcome badge (action success/failure) */
+.st-outcome-badge {
+  background-color: var(--st-outcome-bg, #888);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Muted annotation text (parenthetical notes) */
+.st-muted-annotation {
+  color: #64748b;
+  margin-left: 4px;
+}
+
+/* Spaced section (adds top margin for discrete sub-sections) */
+.st-section-spaced {
+  margin-top: 8px;
+}
+
+/* Trace visualization layout */
+.st-trace-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.st-trace-chart-wrap {
+  flex: 1;
+  min-height: 0;
+}
+
+.st-trace-svg {
+  cursor: crosshair;
+}
+
+/* Clickable SVG event markers */
+.st-event-marker {
+  cursor: pointer;
+}
+
+/* Fixed-position tooltip for trace hover */
+.st-tooltip-fixed {
+  position: fixed;
+  left: var(--st-tooltip-left);
+  top: var(--st-tooltip-top);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Pressure color swatch in tooltip */
+.st-pressure-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background-color: var(--st-swatch-color);
+  margin-right: 6px;
+}
+
+/* Tooltip pressure name and value */
+.st-tooltip-name {
+  flex: 1;
+}
+
+.st-tooltip-value {
+  font-weight: 500;
+}
+
+/* Empty data hint text */
+.st-empty-hint {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
 }

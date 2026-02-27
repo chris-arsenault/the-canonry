@@ -94,7 +94,7 @@ export function SelectionRuleEditor({
         )}
       </div>
 
-      <div className="form-grid" style={{ marginTop: "16px" }}>
+      <div className="form-grid mt-xl">
         <ReferenceDropdown
           label="Entity Kind"
           value={selection.kind || ""}
@@ -131,7 +131,7 @@ export function SelectionRuleEditor({
       </div>
 
       {selection.kind && selection.kind !== "any" && (
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <ChipSelect
             label="Subtypes (optional)"
             value={selection.subtypes || []}
@@ -143,7 +143,7 @@ export function SelectionRuleEditor({
       )}
 
       {selection.kind && selection.kind !== "any" && showExcludeSubtypes && (
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <ChipSelect
             label="Exclude Subtypes (optional)"
             value={selection.excludeSubtypes || []}
@@ -155,7 +155,7 @@ export function SelectionRuleEditor({
       )}
 
       {selection.strategy === "by_preference_order" && (
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <label htmlFor="subtype-preferences-comma-separated" className="label">Subtype Preferences (comma-separated)</label>
           <input id="subtype-preferences-comma-separated"
             type="text"
@@ -174,7 +174,7 @@ export function SelectionRuleEditor({
       )}
 
       {selection.strategy === "by_relationship" && (
-        <div className="form-grid" style={{ marginTop: "16px" }}>
+        <div className="form-grid mt-xl">
           <ReferenceDropdown
             label="Relationship Kind"
             value={selection.relationshipKind || ""}
@@ -207,7 +207,7 @@ export function SelectionRuleEditor({
       )}
 
       {selection.strategy === "by_proximity" && (
-        <div className="form-grid" style={{ marginTop: "16px" }}>
+        <div className="form-grid mt-xl">
           <ReferenceDropdown
             label="Reference Entity"
             value={selection.referenceEntity || ""}
@@ -230,7 +230,7 @@ export function SelectionRuleEditor({
       )}
 
       {selection.strategy === "by_prominence" && (
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <ReferenceDropdown
             label="Minimum Prominence"
             value={selection.minProminence || ""}
@@ -242,9 +242,9 @@ export function SelectionRuleEditor({
       )}
 
       {showFilters && (
-        <div style={{ marginTop: "24px" }}>
+        <div className="mt-2xl">
           <span className="label">Selection Filters</span>
-          <div className="info-box-text" style={{ marginBottom: "12px", fontSize: "12px" }}>
+          <div className="info-box-text mb-lg text-sm">
             Optional filters to narrow down which entities can be selected. All filters must pass.
           </div>
           <SelectionFiltersEditor

@@ -6,6 +6,7 @@
 
 import React from "react";
 import PropTypes from "prop-types";
+import "./ConfigurationSummary.css";
 
 export default function ConfigurationSummary({
   schema,
@@ -42,8 +43,7 @@ export default function ConfigurationSummary({
 
         {validation.warnings.length > 0 && (
           <ul
-            className="lw-validation-list"
-            style={{ marginTop: validation.issues.length > 0 ? "8px" : 0 }}
+            className={`lw-validation-list ${validation.issues.length > 0 ? "cs-warning-list-spaced" : ""}`}
           >
             {validation.warnings.map((warning, i) => (
               <li key={i} className="lw-validation-item warning">
@@ -70,7 +70,7 @@ export default function ConfigurationSummary({
       <div className="lw-section">
         <h2 className="lw-section-title">Eras ({eras.length})</h2>
         {eras.length === 0 ? (
-          <div className="lw-empty-state" style={{ height: "auto", padding: "20px" }}>
+          <div className="lw-empty-state cs-empty-state-compact">
             No eras defined. Configure eras in the Coherence Engine tab.
           </div>
         ) : (
@@ -90,7 +90,7 @@ export default function ConfigurationSummary({
       <div className="lw-section">
         <h2 className="lw-section-title">Cultures ({schema.cultures.length})</h2>
         {schema.cultures.length === 0 ? (
-          <div className="lw-empty-state" style={{ height: "auto", padding: "20px" }}>
+          <div className="lw-empty-state cs-empty-state-compact">
             No cultures defined. Configure cultures in the Enumerist tab.
           </div>
         ) : (
@@ -98,10 +98,10 @@ export default function ConfigurationSummary({
             {schema.cultures.map((culture) => (
               <span
                 key={culture.id}
-                className="lw-item-badge"
+                className="lw-item-badge cs-culture-badge"
                 style={{
-                  borderColor: culture.color || "var(--lw-border-color)",
-                  color: culture.color || "var(--lw-text-secondary)",
+                  '--cs-culture-badge-border': culture.color || undefined,
+                  '--cs-culture-badge-color': culture.color || undefined,
                 }}
               >
                 {culture.name}
@@ -115,7 +115,7 @@ export default function ConfigurationSummary({
       <div className="lw-section">
         <h2 className="lw-section-title">Entity Kinds ({schema.entityKinds.length})</h2>
         {schema.entityKinds.length === 0 ? (
-          <div className="lw-empty-state" style={{ height: "auto", padding: "20px" }}>
+          <div className="lw-empty-state cs-empty-state-compact">
             No entity kinds defined. Configure entity kinds in the Enumerist tab.
           </div>
         ) : (
@@ -133,7 +133,7 @@ export default function ConfigurationSummary({
       <div className="lw-section">
         <h2 className="lw-section-title">Generators ({generators.length})</h2>
         {generators.length === 0 ? (
-          <div className="lw-empty-state" style={{ height: "auto", padding: "20px" }}>
+          <div className="lw-empty-state cs-empty-state-compact">
             No generators defined. Configure generators in the Coherence Engine tab.
           </div>
         ) : (
@@ -151,7 +151,7 @@ export default function ConfigurationSummary({
       <div className="lw-section">
         <h2 className="lw-section-title">Pressures ({pressures.length})</h2>
         {pressures.length === 0 ? (
-          <div className="lw-empty-state" style={{ height: "auto", padding: "20px" }}>
+          <div className="lw-empty-state cs-empty-state-compact">
             No pressures defined. Configure pressures in the Coherence Engine tab.
           </div>
         ) : (

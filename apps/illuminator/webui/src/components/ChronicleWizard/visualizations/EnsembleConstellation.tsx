@@ -10,6 +10,7 @@
 import React, { useState, useMemo, useCallback, useRef } from "react";
 import type { EntityContext, RelationshipContext } from "../../../lib/chronicleTypes";
 import type { EntitySelectionMetrics } from "../../../lib/chronicle/selectionWizard";
+import "./EnsembleConstellation.css";
 
 interface ConstellationNode {
   id: string;
@@ -263,11 +264,7 @@ export default function EnsembleConstellation({
       ref={svgRef}
       width={width}
       height={height}
-      style={{
-        display: "block",
-        background: "var(--bg-secondary)",
-        borderRadius: "8px",
-      }}
+      className="ec-svg"
     >
       {/* Orbit guides */}
       <circle
@@ -351,7 +348,7 @@ export default function EnsembleConstellation({
         return (
           <g
             key={node.id}
-            style={{ cursor: "pointer" }}
+            className="ec-cursor-pointer"
             onClick={() => handleNodeClick(node.id)}
             onMouseEnter={() => setHoveredNodeId(node.id)}
             onMouseLeave={() => setHoveredNodeId(null)}
@@ -427,7 +424,7 @@ export default function EnsembleConstellation({
                 fontSize="14"
                 fill="white"
                 fontWeight="bold"
-                style={{ pointerEvents: "none" }}
+                className="ec-no-pointer"
               >
                 ★
               </text>
@@ -443,7 +440,7 @@ export default function EnsembleConstellation({
                 fontSize="9"
                 fill="white"
                 fontWeight="500"
-                style={{ pointerEvents: "none" }}
+                className="ec-no-pointer"
               >
                 {node.kind.charAt(0).toUpperCase()}
               </text>
@@ -489,7 +486,7 @@ export default function EnsembleConstellation({
         }
 
         return (
-          <g style={{ pointerEvents: "none" }}>
+          <g className="ec-no-pointer">
             <rect
               x={tooltipNode.x - 52}
               y={tooltipNode.y + style.radius + 4}

@@ -1,5 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import PropTypes from "prop-types";
+import { ModalShell } from "@penguin-tales/shared-components";
 
 /**
  * Generate a unique ID with culture prefix, avoiding conflicts
@@ -21,17 +22,6 @@ function generateUniqueId(cultureId, sourceId, existingIds) {
 export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCopy, onClose }) {
   const [selectedCulture, setSelectedCulture] = useState(null);
   const [selectedLists, setSelectedLists] = useState(new Set());
-  const mouseDownOnOverlay = useRef(false);
-
-  const handleOverlayMouseDown = (e) => {
-    mouseDownOnOverlay.current = e.target === e.currentTarget;
-  };
-
-  const handleOverlayClick = (e) => {
-    if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
-      onClose();
-    }
-  };
 
   const otherCultures = Object.entries(allCultures || {})
     .filter(([id]) => id !== cultureId)
@@ -89,109 +79,93 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
     onCopy(copiedLists);
   };
 
+  const footer = (
+    <>
+      <button className="secondary" onClick={onClose}>
+        Cancel
+      </button>
+      <button className="primary" onClick={handleCopy} disabled={selectedLists.size === 0}>
+        Copy{" "}
+        {(() => {
+          if (selectedLists.size === 0) return "Lists";
+          const plural = selectedLists.size > 1 ? "s" : "";
+          return `${selectedLists.size} List${plural}`;
+        })()}
+      </button>
+    </>
+  );
+
   return (
-    <div
-      className="modal-overlay"
-      onMouseDown={handleOverlayMouseDown}
-      onClick={handleOverlayClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
-    >
-      <div className="modal-content copy-modal">
-        <div className="tab-header mb-md">
-          <h3 className="mt-0">Copy Lexeme Lists from Another Culture</h3>
-          <button className="secondary" onClick={onClose}>
-            ×
-          </button>
-        </div>
-
-        <div className="copy-modal-body">
-          <div className="form-group">
-            <label htmlFor="source-culture">Source Culture</label>
-            <select id="source-culture"
-              value={selectedCulture || ""}
-              onChange={(e) => {
-                setSelectedCulture(e.target.value || null);
-                setSelectedLists(new Set());
-              }}
-            >
-              <option value="">Select a culture...</option>
-              {otherCultures.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({Object.keys(c.lexemeLists).length} lists)
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {selectedCulture && selectedCultureLists.length > 0 && (
-            <div className="form-group">
-              <div className="flex justify-between align-center mb-sm">
-                <span className="mb-0">Select Lists to Copy</span>
-                <div className="flex gap-sm">
-                  <button className="secondary sm" onClick={selectAll}>
-                    All
-                  </button>
-                  <button className="secondary sm" onClick={selectNone}>
-                    None
-                  </button>
-                </div>
-              </div>
-              <div className="copy-list-grid">
-                {selectedCultureLists.map(([listId, list]) => (
-                  // eslint-disable-next-line jsx-a11y/label-has-associated-control
-                  <label key={listId} className="copy-list-item">
-                    <input
-                      type="checkbox"
-                      checked={selectedLists.has(listId)}
-                      onChange={() => toggleList(listId)}
-                    />
-                    <div className="copy-list-item-info">
-                      <strong>{listId}</strong>
-                      <span className="text-muted text-small">
-                        {list.entries?.length || 0} entries
-                        {list.source === "llm" && " • LLM"}
-                        {list.source === "manual" && " • Manual"}
-                      </span>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {selectedCulture && selectedCultureLists.length === 0 && (
-            <p className="text-muted">No lexeme lists in this culture.</p>
-          )}
-
-          {selectedLists.size > 0 && (
-            <div className="copy-preview">
-              <h4>
-                Will Copy {selectedLists.size} List{selectedLists.size > 1 ? "s" : ""}
-              </h4>
-              <p className="text-small text-muted">
-                Lists will be renamed with &quot;{cultureId}_&quot; prefix.
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="modal-footer">
-          <button className="secondary" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="primary" onClick={handleCopy} disabled={selectedLists.size === 0}>
-            Copy{" "}
-            {(() => {
-              if (selectedLists.size === 0) return "Lists";
-              const plural = selectedLists.size > 1 ? "s" : "";
-              return `${selectedLists.size} List${plural}`;
-            })()}
-          </button>
-        </div>
+    <ModalShell onClose={onClose} title="Copy Lexeme Lists from Another Culture" className="copy-modal" footer={footer}>
+      <div className="form-group">
+        <label htmlFor="source-culture">Source Culture</label>
+        <select id="source-culture"
+          value={selectedCulture || ""}
+          onChange={(e) => {
+            setSelectedCulture(e.target.value || null);
+            setSelectedLists(new Set());
+          }}
+        >
+          <option value="">Select a culture...</option>
+          {otherCultures.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name} ({Object.keys(c.lexemeLists).length} lists)
+            </option>
+          ))}
+        </select>
       </div>
-    </div>
+
+      {selectedCulture && selectedCultureLists.length > 0 && (
+        <div className="form-group">
+          <div className="flex justify-between align-center mb-sm">
+            <span className="mb-0">Select Lists to Copy</span>
+            <div className="flex gap-sm">
+              <button className="secondary sm" onClick={selectAll}>
+                All
+              </button>
+              <button className="secondary sm" onClick={selectNone}>
+                None
+              </button>
+            </div>
+          </div>
+          <div className="copy-list-grid">
+            {selectedCultureLists.map(([listId, list]) => (
+              // eslint-disable-next-line jsx-a11y/label-has-associated-control
+              <label key={listId} className="copy-list-item">
+                <input
+                  type="checkbox"
+                  checked={selectedLists.has(listId)}
+                  onChange={() => toggleList(listId)}
+                />
+                <div className="copy-list-item-info">
+                  <strong>{listId}</strong>
+                  <span className="text-muted text-small">
+                    {list.entries?.length || 0} entries
+                    {list.source === "llm" && " • LLM"}
+                    {list.source === "manual" && " • Manual"}
+                  </span>
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {selectedCulture && selectedCultureLists.length === 0 && (
+        <p className="text-muted">No lexeme lists in this culture.</p>
+      )}
+
+      {selectedLists.size > 0 && (
+        <div className="copy-preview">
+          <h4>
+            Will Copy {selectedLists.size} List{selectedLists.size > 1 ? "s" : ""}
+          </h4>
+          <p className="text-small text-muted">
+            Lists will be renamed with &quot;{cultureId}_&quot; prefix.
+          </p>
+        </div>
+      )}
+    </ModalShell>
   );
 }
 

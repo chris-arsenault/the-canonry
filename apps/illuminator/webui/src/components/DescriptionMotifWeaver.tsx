@@ -19,6 +19,7 @@ import { getEnqueue } from "../lib/db/enrichmentQueueBridge";
 import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
 import { reloadEntities } from "../hooks/useEntityCrud";
 import type { MotifWeavePayload, MotifVariationResult } from "../workers/tasks/motifVariationTask";
+import "./DescriptionMotifWeaver.css";
 
 // ============================================================================
 // Types
@@ -186,62 +187,32 @@ function CandidateRow({
 }>) {
   return (
     <div
-      style={{
-        padding: "6px 10px",
-        background: accepted ? "var(--bg-tertiary)" : "var(--bg-secondary)",
-        borderRadius: "4px",
-        border: "1px solid var(--border-color)",
-        opacity: accepted ? 1 : 0.5,
-        marginBottom: "3px",
-        display: "flex",
-        gap: "8px",
-        alignItems: "flex-start",
-      }}
+      className={`dmw-candidate-row ${accepted ? "dmw-candidate-row-accepted" : "dmw-candidate-row-rejected"}`}
     >
       <input
         type="checkbox"
         checked={accepted}
         onChange={onToggle}
-        style={{ marginTop: "3px", cursor: "pointer", flexShrink: 0 }}
+        className="dmw-candidate-checkbox"
       />
-      <div
-        style={{
-          fontSize: "11px",
-          lineHeight: "1.7",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          flex: 1,
-        }}
-      >
-        <span style={{ color: "var(--text-muted)", fontSize: "10px" }}>
+      <div className="dmw-candidate-body">
+        <span className="dmw-context-text">
           {candidate.contextBefore}
         </span>
         <span
-          style={{
-            background:
-              accepted && variant ? "rgba(239, 68, 68, 0.15)" : "rgba(139, 115, 85, 0.15)",
-            textDecoration: accepted && variant ? "line-through" : "none",
-            padding: "1px 2px",
-            borderRadius: "2px",
-          }}
+          className={`dmw-original-sentence ${accepted && variant ? "dmw-original-strikethrough" : "dmw-original-neutral"}`}
         >
           {candidate.sentence}
         </span>
         {accepted && variant && (
           <>
             {" "}
-            <span
-              style={{
-                background: "rgba(34, 197, 94, 0.2)",
-                padding: "1px 2px",
-                borderRadius: "2px",
-              }}
-            >
+            <span className="dmw-variant-text">
               {variant}
             </span>
           </>
         )}
-        <span style={{ color: "var(--text-muted)", fontSize: "10px" }}>
+        <span className="dmw-context-text">
           {candidate.contextAfter}
         </span>
       </div>
@@ -277,48 +248,31 @@ function EntityGroup({
   const acceptCount = candidates.filter((c) => decisions[c.id]).length;
 
   return (
-    <div
-      style={{
-        marginBottom: "4px",
-        border: "1px solid var(--border-color)",
-        borderRadius: "6px",
-        overflow: "hidden",
-      }}
-    >
+    <div className="dmw-entity-group">
       <div
         onClick={onToggleExpand}
-        style={{
-          padding: "8px 12px",
-          background: "var(--bg-secondary)",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          userSelect: "none",
-        }}
+        className="dmw-entity-group-header"
         role="button"
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggleExpand(e); }}
       >
-        <span
-          style={{ fontSize: "10px", color: "var(--text-muted)", width: "10px", flexShrink: 0 }}
-        >
+        <span className="dmw-expand-icon">
           {expanded ? "\u25BC" : "\u25B6"}
         </span>
-        <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--text-primary)" }}>
+        <span className="dmw-entity-name">
           {entityName}
         </span>
-        <span style={{ fontSize: "10px", color: "var(--text-muted)", marginLeft: "auto" }}>
+        <span className="dmw-candidate-count">
           {candidates.length} {candidates.length === 1 ? "candidate" : "candidates"}
         </span>
         {acceptCount > 0 && (
-          <span style={{ fontSize: "10px", color: "#22c55e" }}>
+          <span className="dmw-accept-count">
             {acceptCount}
             {"\u2713"}
           </span>
         )}
         {candidates.length - acceptCount > 0 && (
-          <span style={{ fontSize: "10px", color: "#ef4444" }}>
+          <span className="dmw-reject-count">
             {candidates.length - acceptCount}
             {"\u2717"}
           </span>
@@ -329,14 +283,7 @@ function EntityGroup({
             onAcceptAll();
           }}
           title="Accept all in this entity"
-          style={{
-            background: "none",
-            border: "none",
-            color: "#22c55e",
-            fontSize: "10px",
-            cursor: "pointer",
-            padding: "0 4px",
-          }}
+          className="dmw-bulk-accept-btn"
         >
           {"all\u2713"}
         </button>
@@ -346,20 +293,13 @@ function EntityGroup({
             onRejectAll();
           }}
           title="Reject all in this entity"
-          style={{
-            background: "none",
-            border: "none",
-            color: "#ef4444",
-            fontSize: "10px",
-            cursor: "pointer",
-            padding: "0 4px",
-          }}
+          className="dmw-bulk-reject-btn"
         >
           {"all\u2717"}
         </button>
       </div>
       {expanded && (
-        <div style={{ padding: "6px 8px" }}>
+        <div className="dmw-entity-group-body">
           {candidates.map((c) => (
             <CandidateRow
               key={c.id}
@@ -681,15 +621,7 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(0, 0, 0, 0.6)",
-      }}
+      className="dmw-backdrop"
       onClick={(e) => {
         if (e.target === e.currentTarget && phase !== "applying" && phase !== "generating")
           onClose();
@@ -698,33 +630,12 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
     >
-      <div
-        style={{
-          background: "var(--bg-primary)",
-          borderRadius: "12px",
-          border: "1px solid var(--border-color)",
-          width: "820px",
-          maxWidth: "95vw",
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-        }}
-      >
+      <div className="dmw-card">
         {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-color)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexShrink: 0,
-          }}
-        >
+        <div className="dmw-header">
           <div>
-            <h2 style={{ margin: 0, fontSize: "16px" }}>Motif Weaver</h2>
-            <p style={{ margin: "4px 0 0", fontSize: "11px", color: "var(--text-muted)" }}>
+            <h2 className="dmw-title">Motif Weaver</h2>
+            <p className="dmw-subtitle">
               Reintroduce &ldquo;{TARGET_PHRASE}&rdquo; into descriptions where the concept exists
               but the phrase was stripped
             </p>
@@ -732,8 +643,7 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
           {phase !== "applying" && phase !== "generating" && (
             <button
               onClick={onClose}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "4px 12px", fontSize: "12px" }}
+              className="illuminator-button illuminator-button-secondary dmw-cancel-btn"
             >
               Cancel
             </button>
@@ -741,42 +651,25 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflow: "auto", padding: "16px 20px", minHeight: 0 }}>
+        <div className="dmw-body">
           {/* Scan phase */}
           {phase === "scan" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <div
-                style={{
-                  padding: "12px 16px",
-                  background: "var(--bg-tertiary)",
-                  borderRadius: "6px",
-                  border: "1px solid var(--border-color)",
-                }}
-              >
-                <div style={{ fontSize: "12px", fontWeight: 500, marginBottom: "6px" }}>
+            <div className="dmw-scan-layout">
+              <div className="dmw-target-phrase-box">
+                <div className="dmw-target-phrase-label">
                   Target phrase
                 </div>
-                <div
-                  style={{
-                    fontSize: "13px",
-                    fontFamily: "monospace",
-                    color: "var(--text-primary)",
-                  }}
-                >
+                <div className="dmw-target-phrase-value">
                   &ldquo;{TARGET_PHRASE}&rdquo;
                 </div>
               </div>
-              <p
-                style={{ margin: 0, fontSize: "11px", color: "var(--text-muted)", lineHeight: 1.6 }}
-              >
+              <p className="dmw-scan-description">
                 Scans entity descriptions for sentences containing ice-memory concepts (ice-memory,
                 ice preserved, impressions in the ice, etc.) where the target phrase is absent.
                 Candidate sentences are sent to the LLM for rewriting. You then review and
                 selectively apply rewrites.
               </p>
-              <p
-                style={{ margin: 0, fontSize: "11px", color: "var(--text-muted)", lineHeight: 1.6 }}
-              >
+              <p className="dmw-scan-description">
                 Light touch recommended — accept 15-25 strong rewrites to recover the motif without
                 oversaturating.
               </p>
@@ -785,10 +678,8 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
 
           {/* Scanning */}
           {phase === "scanning" && (
-            <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <div
-                style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "8px" }}
-              >
+            <div className="dmw-centered-phase">
+              <div className="dmw-phase-title">
                 Scanning descriptions...
               </div>
             </div>
@@ -797,16 +688,7 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
           {/* Confirm detection */}
           {phase === "confirm" && (
             <div>
-              <div
-                style={{
-                  marginBottom: "12px",
-                  padding: "8px 14px",
-                  background: "var(--bg-secondary)",
-                  borderRadius: "6px",
-                  border: "1px solid var(--border-color)",
-                  fontSize: "12px",
-                }}
-              >
+              <div className="dmw-confirm-summary">
                 Found <strong>{candidates.length}</strong> candidate sentences across{" "}
                 <strong>{groups.length}</strong> entities.
                 {" \u00B7 "}
@@ -833,34 +715,25 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
 
           {/* Generating */}
           {phase === "generating" && (
-            <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <div
-                style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "8px" }}
-              >
+            <div className="dmw-centered-phase">
+              <div className="dmw-phase-title">
                 Generating sentence rewrites...
               </div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+              <div className="dmw-phase-subtitle">
                 {candidates.length} candidates across {groups.length} entities
                 {" \u00B7 "}
                 {Math.ceil(candidates.length / BATCH_SIZE)} LLM{" "}
                 {Math.ceil(candidates.length / BATCH_SIZE) === 1 ? "call" : "calls"}
               </div>
               {error && (
-                <div style={{ marginTop: "12px", fontSize: "12px", color: "#ef4444" }}>{error}</div>
+                <div className="dmw-error-text">{error}</div>
               )}
             </div>
           )}
 
           {/* Empty */}
           {phase === "empty" && (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "30px 0",
-                color: "var(--text-muted)",
-                fontSize: "13px",
-              }}
-            >
+            <div className="dmw-empty-state">
               No candidate sentences found. All entities with ice-memory concepts may already
               contain the target phrase.
             </div>
@@ -869,68 +742,31 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
           {/* Review phase */}
           {phase === "review" && (
             <div>
-              <div
-                style={{
-                  marginBottom: "12px",
-                  padding: "8px 14px",
-                  background: "var(--bg-secondary)",
-                  borderRadius: "6px",
-                  border: "1px solid var(--border-color)",
-                  display: "flex",
-                  gap: "12px",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  fontSize: "12px",
-                }}
-              >
+              <div className="dmw-review-bar">
                 <span>weave &ldquo;{TARGET_PHRASE}&rdquo;</span>
-                <span style={{ color: "var(--text-muted)" }}>|</span>
-                <span style={{ color: "#22c55e" }}>{acceptCount} accept</span>
-                <span style={{ color: "#ef4444" }}>{candidates.length - acceptCount} skip</span>
-                <span style={{ color: "var(--text-muted)" }}>
+                <span className="dmw-review-separator">|</span>
+                <span className="dmw-review-accept-count">{acceptCount} accept</span>
+                <span className="dmw-review-skip-count">{candidates.length - acceptCount} skip</span>
+                <span className="dmw-review-generated-count">
                   / {variants.size} rewrites generated
                 </span>
-                <div style={{ flex: 1 }} />
+                <div className="dmw-review-spacer" />
                 <button
                   onClick={acceptAll}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#22c55e",
-                    fontSize: "10px",
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                  }}
+                  className="dmw-accept-all-btn"
                 >
                   Accept All
                 </button>
                 <button
                   onClick={rejectAll}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#ef4444",
-                    fontSize: "10px",
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                  }}
+                  className="dmw-reject-all-btn"
                 >
                   Reject All
                 </button>
               </div>
 
               {error && (
-                <div
-                  style={{
-                    marginBottom: "12px",
-                    padding: "8px 14px",
-                    background: "rgba(239, 68, 68, 0.1)",
-                    borderRadius: "6px",
-                    border: "1px solid rgba(239, 68, 68, 0.3)",
-                    fontSize: "11px",
-                    color: "#ef4444",
-                  }}
-                >
+                <div className="dmw-review-error">
                   {error}
                 </div>
               )}
@@ -954,14 +790,12 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
 
           {/* Applying / Done */}
           {(phase === "applying" || phase === "done") && (
-            <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <div
-                style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "8px" }}
-              >
+            <div className="dmw-centered-phase">
+              <div className="dmw-phase-title">
                 {phase === "applying" ? "Applying rewrites..." : "Motif Weave Complete"}
               </div>
               {phase === "done" && (
-                <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "8px" }}>
+                <div className="dmw-done-subtitle">
                   {resultCount} sentence{resultCount !== 1 ? "s" : ""} rewritten across{" "}
                   {
                     new Set(
@@ -978,21 +812,11 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "8px",
-            flexShrink: 0,
-          }}
-        >
+        <div className="dmw-footer">
           {phase === "scan" && (
             <button
               onClick={() => void handleScan()}
-              className="illuminator-button"
-              style={{ padding: "6px 20px", fontSize: "12px" }}
+              className="illuminator-button dmw-footer-btn"
             >
               Scan
             </button>
@@ -1001,15 +825,13 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
             <>
               <button
                 onClick={onClose}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button illuminator-button-secondary dmw-footer-btn-secondary"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleGenerate(candidates)}
-                className="illuminator-button"
-                style={{ padding: "6px 20px", fontSize: "12px" }}
+                className="illuminator-button dmw-footer-btn"
               >
                 Generate Rewrites ({candidates.length})
               </button>
@@ -1018,8 +840,7 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
           {phase === "empty" && (
             <button
               onClick={onClose}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "6px 16px", fontSize: "12px" }}
+              className="illuminator-button illuminator-button-secondary dmw-footer-btn-secondary"
             >
               Close
             </button>
@@ -1028,20 +849,15 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
             <>
               <button
                 onClick={onClose}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button illuminator-button-secondary dmw-footer-btn-secondary"
               >
                 Cancel
               </button>
               <button
                 onClick={() => void handleApply()}
                 disabled={acceptCount === 0}
-                className="illuminator-button"
-                style={{
-                  padding: "6px 20px",
-                  fontSize: "12px",
-                  opacity: acceptCount > 0 ? 1 : 0.5,
-                }}
+                className="illuminator-button dmw-footer-btn"
+                style={{ opacity: acceptCount > 0 ? 1 : 0.5 }}
               >
                 Apply ({acceptCount} {acceptCount === 1 ? "rewrite" : "rewrites"})
               </button>
@@ -1050,8 +866,7 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
           {phase === "done" && (
             <button
               onClick={onClose}
-              className="illuminator-button"
-              style={{ padding: "6px 20px", fontSize: "12px" }}
+              className="illuminator-button dmw-footer-btn"
             >
               Done
             </button>

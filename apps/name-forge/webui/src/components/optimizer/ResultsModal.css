@@ -1,0 +1,6 @@
+/* ResultsModal Component Styles */
+
+.rm-progress-bar-fill {
+  height: 100%;
+  width: var(--rm-progress-width);
+}

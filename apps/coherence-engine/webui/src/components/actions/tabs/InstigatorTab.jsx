@@ -58,7 +58,7 @@ export function InstigatorTab({ action, onChange, schema }) {
           </div>
         ) : (
           <div>
-            <label className="checkbox-label" style={{ marginBottom: "12px" }}>
+            <label className="checkbox-label mb-lg">
               <input
                 type="checkbox"
                 checked={instigator.required || false}
@@ -78,8 +78,7 @@ export function InstigatorTab({ action, onChange, schema }) {
               availableRefs={["$actor"]}
             />
             <button
-              className="btn btn-danger-outline"
-              style={{ marginTop: "12px" }}
+              className="btn btn-danger-outline mt-lg"
               onClick={removeInstigator}
             >
               Remove Instigator

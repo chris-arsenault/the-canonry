@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { NumberInput } from "@penguin-tales/shared-components";
 import { getAllDomains } from "../../utils";
 import PhonemeWeightGrid from "./PhonemeWeightGrid";
+import "./DomainTab.css";
 
 function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
   const [editing, setEditing] = useState(false);
@@ -325,7 +326,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                 />
               </div>
               <div className="flex-row-responsive">
-                <div className="form-group" style={{ flex: 1 }}>
+                <div className="form-group dt-flex-item">
                   <label>Min Length
                   <NumberInput
                     value={formData.phonology?.lengthRange?.[0] || 2}
@@ -342,7 +343,7 @@ function DomainTab({ cultureId, cultureConfig, allCultures, onDomainsChange }) {
                   />
                   </label>
                 </div>
-                <div className="form-group" style={{ flex: 1 }}>
+                <div className="form-group dt-flex-item">
                   <label>Max Length
                   <NumberInput
                     value={formData.phonology?.lengthRange?.[1] || 4}

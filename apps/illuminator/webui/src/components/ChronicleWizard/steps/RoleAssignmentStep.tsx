@@ -29,6 +29,7 @@ import {
   EnsembleHealthBar,
   FilterChips,
 } from "../visualizations";
+import "./RoleAssignmentStep.css";
 
 /** Get roles from either story or document style */
 function getRoles(style: { format: string } | null | undefined): RoleDefinition[] {
@@ -286,24 +287,16 @@ export default function RoleAssignmentStep() {
   return (
     <div>
       {/* Header */}
-      <div
-        style={{
-          marginBottom: "16px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-        }}
-      >
+      <div className="ras-header">
         <div>
-          <h4 style={{ margin: "0 0 8px 0" }}>Build Your Ensemble</h4>
-          <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "13px" }}>
+          <h4 className="ras-title">Build Your Ensemble</h4>
+          <p className="ras-subtitle">
             Click entities in the constellation to select, then click a role to assign.
           </p>
         </div>
         <button
           onClick={() => autoFillRoles(metricsMap)}
-          className="illuminator-btn"
-          style={{ fontSize: "12px" }}
+          className="illuminator-btn ras-autofill-btn"
         >
           Auto-fill Roles
         </button>
@@ -311,19 +304,9 @@ export default function RoleAssignmentStep() {
 
       {/* Validation Messages */}
       {validation.errors.length > 0 && (
-        <div style={{ marginBottom: "12px" }}>
+        <div className="ras-errors">
           {validation.errors.map((error, i) => (
-            <div
-              key={i}
-              style={{
-                padding: "8px 12px",
-                background: "rgba(239, 68, 68, 0.1)",
-                borderLeft: "3px solid var(--error)",
-                marginBottom: "4px",
-                fontSize: "11px",
-                color: "var(--error)",
-              }}
-            >
+            <div key={i} className="ras-error">
               {error}
             </div>
           ))}
@@ -331,11 +314,11 @@ export default function RoleAssignmentStep() {
       )}
 
       {/* Main layout: Left (constellation + health) | Right (roles + detail) */}
-      <div style={{ display: "flex", gap: "16px" }}>
+      <div className="ras-layout">
         {/* Left: Constellation + Ensemble Health */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="ras-left">
           {/* Kind filter chips */}
-          <div style={{ marginBottom: "6px" }}>
+          <div className="ras-filter-gap">
             <FilterChips
               options={availableKinds}
               selected={selectedKinds}
@@ -345,7 +328,7 @@ export default function RoleAssignmentStep() {
           </div>
           {/* Era filter chips */}
           {availableEras.length > 1 && (
-            <div style={{ marginBottom: "6px" }}>
+            <div className="ras-filter-gap">
               <FilterChips
                 options={availableEras}
                 selected={selectedEras}
@@ -357,16 +340,8 @@ export default function RoleAssignmentStep() {
             </div>
           )}
           {/* Connection filter */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              marginBottom: "8px",
-              fontSize: "10px",
-            }}
-          >
-            <span style={{ color: "var(--text-muted)" }}>Show:</span>
+          <div className="ras-conn-filter">
+            <span className="ras-conn-label">Show:</span>
             {[
               { id: null, label: "All" },
               { id: "linked", label: "Linked to ensemble" },
@@ -376,17 +351,11 @@ export default function RoleAssignmentStep() {
                 key={opt.id ?? "all"}
                 onClick={() => setConnectionFilter(opt.id)}
                 style={{
-                  padding: "3px 8px",
-                  fontSize: "10px",
-                  background:
-                    connectionFilter === opt.id ? "var(--accent-color)" : "var(--bg-tertiary)",
-                  color: connectionFilter === opt.id ? "white" : "var(--text-muted)",
-                  border: "1px solid",
-                  borderColor:
-                    connectionFilter === opt.id ? "var(--accent-color)" : "var(--border-color)",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
+                  '--ras-conn-bg': connectionFilter === opt.id ? "var(--accent-color)" : "var(--bg-tertiary)",
+                  '--ras-conn-color': connectionFilter === opt.id ? "white" : "var(--text-muted)",
+                  '--ras-conn-border': connectionFilter === opt.id ? "var(--accent-color)" : "var(--border-color)",
+                } as React.CSSProperties}
+                className="ras-conn-btn"
               >
                 {opt.label}
               </button>
@@ -405,7 +374,7 @@ export default function RoleAssignmentStep() {
             height={300}
           />
           {/* Ensemble Health Bar */}
-          <div style={{ marginTop: "8px" }}>
+          <div className="ras-health-gap">
             <EnsembleHealthBar
               assignments={state.roleAssignments}
               candidates={state.candidates}
@@ -415,44 +384,19 @@ export default function RoleAssignmentStep() {
         </div>
 
         {/* Right: Roles + Entity Detail */}
-        <div
-          style={{
-            width: "260px",
-            flexShrink: 0,
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-          }}
-        >
+        <div className="ras-right">
           {/* Roles header */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <span
-              style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase" }}
-            >
+          <div className="ras-roles-header">
+            <span className="ras-section-label">
               Roles
             </span>
-            <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+            <span className="ras-roles-count">
               {state.roleAssignments.length}/{maxCastSize}
             </span>
           </div>
 
           {/* Role slots */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "6px",
-              flex: 1,
-              overflowY: "auto",
-              minHeight: 0,
-            }}
-          >
+          <div className="ras-role-list">
             {roles.map((role) => {
               const assignments = state.roleAssignments.filter((a) => a.role === role.role);
               const isUnderMin = assignments.length < role.count.min;
@@ -477,24 +421,11 @@ export default function RoleAssignmentStep() {
           </div>
 
           {/* Narrative Lens */}
-          <div
-            style={{
-              marginTop: "6px",
-              borderTop: "1px solid var(--border-color)",
-              paddingTop: "6px",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "10px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                marginBottom: "4px",
-              }}
-            >
+          <div className="ras-lens-section">
+            <div className="ras-lens-label">
               Narrative Lens
             </div>
-            <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "6px" }}>
+            <div className="ras-lens-desc">
               Optional context: a rule, occurrence, or ability that shapes this story without being
               a cast member.
             </div>
@@ -536,15 +467,8 @@ export default function RoleAssignmentStep() {
           </div>
 
           {/* Entity detail - always visible */}
-          <div style={{ marginTop: "4px" }}>
-            <div
-              style={{
-                fontSize: "10px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                marginBottom: "4px",
-              }}
-            >
+          <div className="ras-detail-gap">
+            <div className="ras-detail-label">
               Selected
             </div>
             <EntityDetailCard

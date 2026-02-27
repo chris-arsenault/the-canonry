@@ -115,8 +115,7 @@ export default function NamingProfileMappingViewer({ generators = [], schema = {
               ))}
               {displayWarnings.length > 10 && (
                 <div
-                  className="text-muted"
-                  style={{ padding: "var(--spacing-md) var(--spacing-lg)" }}
+                  className="text-muted py-md px-lg"
                 >
                   ... and {displayWarnings.length - 10} more
                 </div>
@@ -162,8 +161,7 @@ export default function NamingProfileMappingViewer({ generators = [], schema = {
                       <span className="naming-profile-kind-badge">{m.entityKind}</span>
                       {m.subtype && (
                         <span
-                          className="naming-profile-kind-badge"
-                          style={{ backgroundColor: "transparent" }}
+                          className="naming-profile-kind-badge naming-profile-kind-badge-transparent"
                         >
                           {m.subtype}
                         </span>
@@ -171,9 +169,10 @@ export default function NamingProfileMappingViewer({ generators = [], schema = {
                     </td>
                     <td className="naming-profile-table-cell">
                       <div className="naming-profile-culture-cell">
+                        {/* eslint-disable-next-line local/no-inline-styles -- dynamic culture color */}
                         <span
                           className="naming-profile-culture-dot"
-                          style={{ backgroundColor: m.cultureColor }}
+                          style={{ '--npm-culture-color': m.cultureColor, backgroundColor: 'var(--npm-culture-color)' }}
                         />
                         <span>{m.cultureName}</span>
                         {m.cultureSource === "inherited" && (

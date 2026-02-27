@@ -26,7 +26,6 @@ import "./EntityCoveragePanel.css";
 // ============================================================================
 
 const PROMINENCE_LABELS = ["forgotten", "marginal", "recognized", "renowned", "mythic"];
-
 function prominenceLabel(value) {
   if (value == null || !Number.isFinite(Number(value))) return "unknown";
   const n = Number(value);
@@ -55,18 +54,7 @@ function expectedForProminence(value) {
       return 0;
   }
 }
-
-const SECTION_IDS = [
-  "suggestions",
-  "backrefs",
-  "history",
-  "culture",
-  "events",
-  "potential",
-  "eras",
-  "integration",
-];
-
+const SECTION_IDS = ["suggestions", "backrefs", "history", "culture", "events", "potential", "eras", "integration"];
 const SECTION_LABELS = {
   suggestions: "Chronicle Suggestions",
   backrefs: "Chronicle Backrefs per Entity",
@@ -75,142 +63,116 @@ const SECTION_LABELS = {
   events: "Rare Event Coverage",
   potential: "Untapped Story Potential",
   eras: "Era Coverage Gaps",
-  integration: "Lore Integration Gaps",
+  integration: "Lore Integration Gaps"
 };
-
 const SECTION_DESCRIPTIONS = {
-  suggestions:
-    "Uncovered events by action type — expand to see involved entities, era, and significance",
+  suggestions: "Uncovered events by action type — expand to see involved entities, era, and significance",
   backrefs: "Backref links from entity descriptions to source chronicles, relative to prominence",
-  history:
-    "Description rewrites from lore backport vs. backref mentions — divergence signals shallow integration",
+  history: "Description rewrites from lore backport vs. backref mentions — divergence signals shallow integration",
   culture: "Primary vs supporting role distribution by culture across chronicles",
   events: "High-significance events not yet selected for any chronicle",
   potential: "Story potential score vs actual chronicle usage — find underused narrative anchors",
   eras: "Chronicle distribution across eras — find underexplored time periods",
-  integration: "Pipeline completeness — description, backrefs, history, historian notes, image",
+  integration: "Pipeline completeness — description, backrefs, history, historian notes, image"
 };
 
 // ============================================================================
 // Shared UI helpers
 // ============================================================================
 
-function ProminenceDots({ value }) {
+function ProminenceDots({
+  value
+}) {
   const n = Math.min(5, Math.max(0, Math.round(Number(value) || 0)));
   const dots = [];
   for (let i = 0; i < 5; i++) {
-    dots.push(
-      <span
-        key={i}
-        className={`ecp-prominence-dot ${i < n ? "ecp-prominence-dot-filled" : "ecp-prominence-dot-empty"}`}
-      />
-    );
+    dots.push(<span key={i} className={`ecp-prominence-dot ${i < n ? "ecp-prominence-dot-filled" : "ecp-prominence-dot-empty"}`} />);
   }
-  return (
-    <span
-      title={`Prominence: ${prominenceLabel(value)} (${Number(value).toFixed(1)})`}
-      className="ecp-prominence-wrap"
-    >
+  return <span title={`Prominence: ${prominenceLabel(value)} (${Number(value).toFixed(1)})`} className="ecp-prominence-wrap">
       {dots}
-    </span>
-  );
+    </span>;
 }
-
-function RatioIndicator({ ratio, expected }) {
+function RatioIndicator({
+  ratio,
+  expected
+}) {
   if (expected === 0) {
-    return (
-      <span className="ecp-ratio-muted" title="No backrefs expected at this prominence">
+    return <span className="ecp-ratio-muted" title="No backrefs expected at this prominence">
         —
-      </span>
-    );
+      </span>;
   }
   let color;
-  if (ratio < 0.5) color = "#ef4444";
-  else if (ratio < 1.0) color = "#f59e0b";
-  else color = "#22c55e";
-  return (
-    <span
-      className="ecp-ratio-value"
-      // eslint-disable-next-line local/no-inline-styles
-      style={{ "--ecp-ratio-color": color, color: "var(--ecp-ratio-color)" }}
-      title={`Ratio: ${ratio.toFixed(2)} (${expected} expected)`}
-    >
+  if (ratio < 0.5) color = "#ef4444";else if (ratio < 1.0) color = "#f59e0b";else color = "#22c55e";
+  return <span className="ecp-ratio-value" title={`Ratio: ${ratio.toFixed(2)} (${expected} expected)`} style={{
+    "--ecp-ratio-color": color
+  }}>
       {ratio.toFixed(1)}x
-    </span>
-  );
+    </span>;
 }
-
-function SignificanceStars({ value }) {
+function SignificanceStars({
+  value
+}) {
   const stars = Math.max(1, Math.min(5, Math.round(value * 5)));
-  return (
-    <span title={`Significance: ${(value * 100).toFixed(0)}%`} className="ecp-sig-stars">
+  return <span title={`Significance: ${(value * 100).toFixed(0)}%`} className="ecp-sig-stars">
       {"★".repeat(stars)}
       {"☆".repeat(5 - stars)}
-    </span>
-  );
+    </span>;
 }
-
-function CoverageIndicator({ covered }) {
-  return covered ? (
-    <span className="ecp-coverage-covered" title="Covered in at least one chronicle">
+function CoverageIndicator({
+  covered
+}) {
+  return covered ? <span className="ecp-coverage-covered" title="Covered in at least one chronicle">
       ●
-    </span>
-  ) : (
-    <span className="ecp-coverage-uncovered" title="Not in any chronicle">
+    </span> : <span className="ecp-coverage-uncovered" title="Not in any chronicle">
       ○
-    </span>
-  );
+    </span>;
 }
-
-function StatusDot({ active, label }) {
-  return (
-    <span
-      title={label}
-      className={`ecp-status-dot ${active ? "ecp-status-dot-active" : "ecp-status-dot-inactive"}`}
-    />
-  );
+function StatusDot({
+  active,
+  label
+}) {
+  return <span title={label} className={`ecp-status-dot ${active ? "ecp-status-dot-active" : "ecp-status-dot-inactive"}`} />;
 }
-
-function SectionToolbar({ children }) {
+function SectionToolbar({
+  children
+}) {
   return <div className="ecp-section-toolbar">{children}</div>;
 }
-
-function FilterSelect({ value, onChange, options, label }) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="ecp-filter-select"
-      title={label}
-    >
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>
+function FilterSelect({
+  value,
+  onChange,
+  options,
+  label
+}) {
+  return <select value={value} onChange={e => onChange(e.target.value)} className="ecp-filter-select" title={label}>
+      {options.map(opt => <option key={opt.value} value={opt.value}>
           {opt.label}
-        </option>
-      ))}
-    </select>
-  );
+        </option>)}
+    </select>;
 }
-
-function SectionHeader({ sectionId: _sectionId, expanded, onToggle, label, description, underutilCount }) {
-  return (
-    <div onClick={onToggle} className="ecp-section-header" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggle(e); }} >
+function SectionHeader({
+  sectionId: _sectionId,
+  expanded,
+  onToggle,
+  label,
+  description,
+  underutilCount
+}) {
+  return <div onClick={onToggle} className="ecp-section-header" role="button" tabIndex={0} onKeyDown={e => {
+    if (e.key === "Enter" || e.key === " ") onToggle(e);
+  }}>
       <span className="ecp-section-arrow">{expanded ? "\u25BC" : "\u25B6"}</span>
       <span className="ecp-section-label">{label}</span>
-      {underutilCount > 0 && (
-        <span className="ecp-section-underutil">{underutilCount} underutilized</span>
-      )}
+      {underutilCount > 0 && <span className="ecp-section-underutil">{underutilCount} underutilized</span>}
       {!expanded && description && <span className="ecp-section-desc">{description}</span>}
-    </div>
-  );
+    </div>;
 }
-
-function TableWrap({ children }) {
-  return (
-    <div className="entity-coverage-table">
+function TableWrap({
+  children
+}) {
+  return <div className="entity-coverage-table">
       <table>{children}</table>
-    </div>
-  );
+    </div>;
 }
 
 // ============================================================================
@@ -218,41 +180,49 @@ function TableWrap({ children }) {
 // ============================================================================
 
 function useColumnSort(defaultCol, defaultDesc = false) {
-  const [sort, setSort] = useState({ col: defaultCol, desc: defaultDesc });
-  const onSort = useCallback((col) => {
-    setSort((prev) => ({
+  const [sort, setSort] = useState({
+    col: defaultCol,
+    desc: defaultDesc
+  });
+  const onSort = useCallback(col => {
+    setSort(prev => ({
       col,
-      desc: prev.col === col ? !prev.desc : false,
+      desc: prev.col === col ? !prev.desc : false
     }));
   }, []);
   return [sort, onSort];
 }
-
-function SortableTh({ children, sortKey, sort, onSort, right }) {
+function SortableTh({
+  children,
+  sortKey,
+  sort,
+  onSort,
+  right
+}) {
   const isActive = sort.col === sortKey;
   const cls = [isActive && "ec-active", right && "ec-right"].filter(Boolean).join(" ") || undefined;
-  return (
-    <th className={cls} onClick={() => onSort(sortKey)}>
+  return <th className={cls} onClick={() => onSort(sortKey)}>
       {children}
       {(() => {
-        if (!isActive) return "";
-        return sort.desc ? " \u25BE" : " \u25B4";
-      })()}
-    </th>
-  );
+      if (!isActive) return "";
+      return sort.desc ? " \u25BE" : " \u25B4";
+    })()}
+    </th>;
 }
-
-function StaticTh({ children, right }) {
+function StaticTh({
+  children,
+  right
+}) {
   const cls = ["ec-no-sort", right && "ec-right"].filter(Boolean).join(" ");
   return <th className={cls}>{children}</th>;
 }
-
-function EmptyRow({ colSpan, text }) {
-  return (
-    <tr className="ec-empty">
+function EmptyRow({
+  colSpan,
+  text
+}) {
+  return <tr className="ec-empty">
       <td colSpan={colSpan}>{text}</td>
-    </tr>
-  );
+    </tr>;
 }
 
 // ============================================================================
@@ -264,75 +234,83 @@ function getKindOptions(entities) {
   for (const e of entities) {
     if (e.kind && e.kind !== "era") kinds.add(e.kind);
   }
-  return [
-    { value: "all", label: "All kinds" },
-    ...[...kinds].sort().map((k) => ({ value: k, label: k })),
-  ];
+  return [{
+    value: "all",
+    label: "All kinds"
+  }, ...[...kinds].sort().map(k => ({
+    value: k,
+    label: k
+  }))];
 }
-
 function getCultureOptions(entities) {
   const cultures = new Set();
   for (const e of entities) {
     if (e.culture) cultures.add(e.culture);
   }
-  return [
-    { value: "all", label: "All cultures" },
-    ...[...cultures].sort().map((c) => ({ value: c, label: c })),
-  ];
+  return [{
+    value: "all",
+    label: "All cultures"
+  }, ...[...cultures].sort().map(c => ({
+    value: c,
+    label: c
+  }))];
 }
-
 function getEraOptions(events) {
   const eras = new Set();
   for (const e of events) {
     if (e.era) eras.add(e.era);
   }
-  return [
-    { value: "all", label: "All eras" },
-    ...[...eras].sort().map((e) => ({ value: e, label: e })),
-  ];
+  return [{
+    value: "all",
+    label: "All eras"
+  }, ...[...eras].sort().map(e => ({
+    value: e,
+    label: e
+  }))];
 }
-
 function getEventKindOptions(events) {
   const kinds = new Set();
   for (const e of events) {
     if (e.eventKind) kinds.add(e.eventKind);
   }
-  return [
-    { value: "all", label: "All event kinds" },
-    ...[...kinds].sort().map((k) => ({ value: k, label: k })),
-  ];
+  return [{
+    value: "all",
+    label: "All event kinds"
+  }, ...[...kinds].sort().map(k => ({
+    value: k,
+    label: k
+  }))];
 }
-
-const PROMINENCE_OPTIONS = [
-  { value: "all", label: "All prominence" },
-  ...PROMINENCE_LABELS.map((l) => ({ value: l, label: l })),
-];
+const PROMINENCE_OPTIONS = [{
+  value: "all",
+  label: "All prominence"
+}, ...PROMINENCE_LABELS.map(l => ({
+  value: l,
+  label: l
+}))];
 
 // ============================================================================
 // Core analysis computation
 // ============================================================================
 
 function computeCoreAnalysis(entities, chronicles, events, _relationships) {
-  const nonEraEntities = entities.filter((e) => e.kind !== "era");
-  const activeChronicles = chronicles.filter((c) => c.status !== "generating");
+  const nonEraEntities = entities.filter(e => e.kind !== "era");
+  const activeChronicles = chronicles.filter(c => c.status !== "generating");
 
   // Entity usage map: entityId -> { total, primary, supporting, chronicleIds }
   const entityUsage = new Map();
   for (const chronicle of activeChronicles) {
-    const primaryIds = new Set(
-      (chronicle.roleAssignments || []).filter((r) => r.isPrimary).map((r) => r.entityId)
-    );
+    const primaryIds = new Set((chronicle.roleAssignments || []).filter(r => r.isPrimary).map(r => r.entityId));
     for (const entityId of chronicle.selectedEntityIds || []) {
       const existing = entityUsage.get(entityId) || {
         total: 0,
         primary: 0,
         supporting: 0,
-        chronicleIds: [],
+        chronicleIds: []
       };
       existing.total += 1;
       existing.chronicleIds.push(chronicle.chronicleId);
-      if (primaryIds.has(entityId)) existing.primary += 1;
-      else existing.supporting += 1;
+      if (primaryIds.has(entityId)) existing.primary += 1;else existing.supporting += 1;
       entityUsage.set(entityId, existing);
     }
   }
@@ -350,11 +328,14 @@ function computeCoreAnalysis(entities, chronicles, events, _relationships) {
   for (const chronicle of activeChronicles) {
     const eraId = chronicle.temporalContext?.focalEra?.id;
     if (!eraId) continue;
-    const existing = eraChronicles.get(eraId) || { total: 0, completed: 0, backported: 0 };
+    const existing = eraChronicles.get(eraId) || {
+      total: 0,
+      completed: 0,
+      backported: 0
+    };
     existing.total += 1;
     if (chronicle.status === "complete") existing.completed += 1;
-    if (chronicle.entityBackportStatus && Object.keys(chronicle.entityBackportStatus).length > 0)
-      existing.backported += 1;
+    if (chronicle.entityBackportStatus && Object.keys(chronicle.entityBackportStatus).length > 0) existing.backported += 1;
     eraChronicles.set(eraId, existing);
   }
 
@@ -378,12 +359,15 @@ function computeCoreAnalysis(entities, chronicles, events, _relationships) {
   const cultureRoles = new Map(); // culture -> { primary, supporting, entityIds set }
   for (const chronicle of activeChronicles) {
     for (const role of chronicle.roleAssignments || []) {
-      const entity = nonEraEntities.find((e) => e.id === role.entityId);
+      const entity = nonEraEntities.find(e => e.id === role.entityId);
       if (!entity?.culture) continue;
       const c = entity.culture;
-      const existing = cultureRoles.get(c) || { primary: 0, supporting: 0, entityIds: new Set() };
-      if (role.isPrimary) existing.primary += 1;
-      else existing.supporting += 1;
+      const existing = cultureRoles.get(c) || {
+        primary: 0,
+        supporting: 0,
+        entityIds: new Set()
+      };
+      if (role.isPrimary) existing.primary += 1;else existing.supporting += 1;
       existing.entityIds.add(role.entityId);
       cultureRoles.set(c, existing);
     }
@@ -396,7 +380,7 @@ function computeCoreAnalysis(entities, chronicles, events, _relationships) {
     const existing = cultureEntities.get(entity.culture) || {
       count: 0,
       totalProminence: 0,
-      entityIds: new Set(),
+      entityIds: new Set()
     };
     existing.count += 1;
     existing.totalProminence += Number(entity.prominence) || 0;
@@ -415,7 +399,6 @@ function computeCoreAnalysis(entities, chronicles, events, _relationships) {
       }
     }
   }
-
   return {
     nonEraEntities,
     activeChronicles,
@@ -426,7 +409,7 @@ function computeCoreAnalysis(entities, chronicles, events, _relationships) {
     eraEventCounts,
     cultureRoles,
     cultureEntities,
-    entityBackportedCount,
+    entityBackportedCount
   };
 }
 
@@ -434,17 +417,26 @@ function computeCoreAnalysis(entities, chronicles, events, _relationships) {
 // Section 0: Chronicle Suggestions
 // ============================================================================
 
-const SUGGESTION_MIN_SIG_OPTIONS = [
-  { value: "0", label: "All significance" },
-  { value: "0.3", label: ">= 0.3" },
-  { value: "0.5", label: ">= 0.5" },
-  { value: "0.7", label: ">= 0.7" },
-];
-
-const SUGGESTION_COVERAGE_OPTIONS = [
-  { value: "uncovered", label: "Has uncovered" },
-  { value: "all", label: "All actions" },
-];
+const SUGGESTION_MIN_SIG_OPTIONS = [{
+  value: "0",
+  label: "All significance"
+}, {
+  value: "0.3",
+  label: ">= 0.3"
+}, {
+  value: "0.5",
+  label: ">= 0.5"
+}, {
+  value: "0.7",
+  label: ">= 0.7"
+}];
+const SUGGESTION_COVERAGE_OPTIONS = [{
+  value: "uncovered",
+  label: "Has uncovered"
+}, {
+  value: "all",
+  label: "All actions"
+}];
 
 /** Strip entity-specific suffix from action: "kill_orca:The Sapphire League" -> "kill_orca" */
 function baseAction(raw) {
@@ -490,7 +482,13 @@ function eventGroupKey(event) {
  * entities are involved in each uncovered instance -> pick one as entry point
  * in the wizard.
  */
-function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expanded }) {
+function SuggestionsSection({
+  events,
+  entities,
+  eventCoverage,
+  entityUsage,
+  expanded
+}) {
   const [minSignificance, setMinSignificance] = useState("0");
   const [coverageFilter, setCoverageFilter] = useState("uncovered");
   const [expandedAction, setExpandedAction] = useState(null);
@@ -511,7 +509,6 @@ function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expa
     }
     return m;
   }, [entities]);
-
   const actionGroups = useMemo(() => {
     const minSig = Number(minSignificance);
 
@@ -533,7 +530,7 @@ function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expa
         totalSignificance: 0,
         uncoveredEvents: [],
         coveredEvents: [],
-        eras: new Set(),
+        eras: new Set()
       };
       existing.total += 1;
       existing.totalSignificance += event.significance;
@@ -548,16 +545,13 @@ function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expa
       if (event.era) existing.eras.add(event.era);
       groups.set(key, existing);
     }
-
-    let result = [...groups.values()].map((g) => ({
+    let result = [...groups.values()].map(g => ({
       ...g,
       avgSignificance: g.total > 0 ? g.totalSignificance / g.total : 0,
       coverageRate: g.total > 0 ? g.covered / g.total : 0,
-      eraCount: g.eras.size,
+      eraCount: g.eras.size
     }));
-
-    if (coverageFilter === "uncovered") result = result.filter((g) => g.uncovered > 0);
-
+    if (coverageFilter === "uncovered") result = result.filter(g => g.uncovered > 0);
     result.sort((a, b) => {
       let cmp = 0;
       switch (sort.col) {
@@ -582,32 +576,14 @@ function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expa
       }
       return sort.desc ? -cmp : cmp;
     });
-
     return result;
   }, [events, eventCoverage, minSignificance, coverageFilter, sort]);
-
-  const totalUncoveredActions = useMemo(
-    () => actionGroups.filter((g) => g.uncovered > 0).length,
-    [actionGroups]
-  );
-
+  const totalUncoveredActions = useMemo(() => actionGroups.filter(g => g.uncovered > 0).length, [actionGroups]);
   if (!expanded) return totalUncoveredActions;
-
-  return (
-    <div>
+  return <div>
       <SectionToolbar>
-        <FilterSelect
-          value={coverageFilter}
-          onChange={setCoverageFilter}
-          options={SUGGESTION_COVERAGE_OPTIONS}
-          label="Coverage"
-        />
-        <FilterSelect
-          value={minSignificance}
-          onChange={setMinSignificance}
-          options={SUGGESTION_MIN_SIG_OPTIONS}
-          label="Min significance"
-        />
+        <FilterSelect value={coverageFilter} onChange={setCoverageFilter} options={SUGGESTION_COVERAGE_OPTIONS} label="Coverage" />
+        <FilterSelect value={minSignificance} onChange={setMinSignificance} options={SUGGESTION_MIN_SIG_OPTIONS} label="Min significance" />
         <span className="ecp-auto-count">{actionGroups.length} action types</span>
       </SectionToolbar>
       <TableWrap>
@@ -635,25 +611,11 @@ function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expa
           </tr>
         </thead>
         <tbody>
-          {actionGroups.length === 0 && (
-            <EmptyRow colSpan={7} text="No event kinds match filters" />
-          )}
-          {actionGroups.map((g) => {
-            const isDetailExpanded = expandedAction === g.action;
-            return (
-              <React.Fragment key={g.action}>
-                <tr
-                  // eslint-disable-next-line local/no-inline-styles
-                  style={{ cursor: g.uncovered > 0 ? "pointer" : "default" }}
-                  onClick={() =>
-                    g.uncovered > 0 && setExpandedAction(isDetailExpanded ? null : g.action)
-                  }
-                  title={
-                    g.uncovered > 0
-                      ? "Click to see uncovered events and their entities"
-                      : "All events covered"
-                  }
-                >
+          {actionGroups.length === 0 && <EmptyRow colSpan={7} text="No event kinds match filters" />}
+          {actionGroups.map(g => {
+          const isDetailExpanded = expandedAction === g.action;
+          return <React.Fragment key={g.action}>
+                <tr className={g.uncovered > 0 ? "ecp-row-clickable" : ""} onClick={() => g.uncovered > 0 && setExpandedAction(isDetailExpanded ? null : g.action)} title={g.uncovered > 0 ? "Click to see uncovered events and their entities" : "All events covered"}>
                   <td className="ecp-expand-td">
                     {g.uncovered > 0 && (isDetailExpanded ? "\u25BC" : "\u25B6")}
                   </td>
@@ -661,20 +623,14 @@ function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expa
                   <td className="ec-right">{g.total}</td>
                   <td className="ec-right ecp-color-green">{g.covered}</td>
                   <td className="ec-right">
-                    {g.uncovered > 0 ? (
-                      <span className="ecp-font-bold ecp-color-red">{g.uncovered}</span>
-                    ) : (
-                      <span className="ecp-color-muted">0</span>
-                    )}
+                    {g.uncovered > 0 ? <span className="ecp-font-bold ecp-color-red">{g.uncovered}</span> : <span className="ecp-color-muted">0</span>}
                   </td>
                   <td className="ec-right">
-                    <span
-                      className={(() => {
-                        if (g.coverageRate === 1) return "ecp-color-green";
-                        if (g.coverageRate >= 0.5) return "ecp-color-amber";
-                        return "ecp-color-red";
-                      })()}
-                    >
+                    <span className={(() => {
+                  if (g.coverageRate === 1) return "ecp-color-green";
+                  if (g.coverageRate >= 0.5) return "ecp-color-amber";
+                  return "ecp-color-red";
+                })()}>
                       {(g.coverageRate * 100).toFixed(0)}%
                     </span>
                   </td>
@@ -682,25 +638,16 @@ function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expa
                     <SignificanceStars value={g.avgSignificance} />
                   </td>
                 </tr>
-                {isDetailExpanded && (
-                  <tr>
+                {isDetailExpanded && <tr>
                     <td colSpan={7} className="ecp-expand-detail-td">
-                      <SuggestionActionDetail
-                        group={g}
-                        entityMap={entityMap}
-                        eraNameMap={eraNameMap}
-                        entityUsage={entityUsage}
-                      />
+                      <SuggestionActionDetail group={g} entityMap={entityMap} eraNameMap={eraNameMap} entityUsage={entityUsage} />
                     </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            );
-          })}
+                  </tr>}
+              </React.Fragment>;
+        })}
         </tbody>
       </TableWrap>
-    </div>
-  );
+    </div>;
 }
 
 /**
@@ -708,11 +655,13 @@ function SuggestionsSection({ events, entities, eventCoverage, entityUsage, expa
  * with its full participant list, era, and significance. Entities shown inline
  * with kind, prominence, and existing chronicle count.
  */
-function SuggestionActionDetail({ group, entityMap, eraNameMap, entityUsage }) {
-  const uncoveredEvents = useMemo(
-    () => [...group.uncoveredEvents].sort((a, b) => b.significance - a.significance),
-    [group.uncoveredEvents]
-  );
+function SuggestionActionDetail({
+  group,
+  entityMap,
+  eraNameMap,
+  entityUsage
+}) {
+  const uncoveredEvents = useMemo(() => [...group.uncoveredEvents].sort((a, b) => b.significance - a.significance), [group.uncoveredEvents]);
 
   /** Resolve an entity ref to display info */
   function resolveEntity(id) {
@@ -723,41 +672,39 @@ function SuggestionActionDetail({ group, entityMap, eraNameMap, entityUsage }) {
       kind: ent?.kind || "?",
       culture: ent?.culture || "",
       prominence: Number(ent?.prominence) || 0,
-      chronicleAppearances: entityUsage.get(id)?.total || 0,
+      chronicleAppearances: entityUsage.get(id)?.total || 0
     };
   }
-
-  return (
-    <div className="ecp-detail-wrap">
+  return <div className="ecp-detail-wrap">
       <div className="ecp-detail-inner">
         <div className="ecp-detail-heading">
           {group.uncovered} uncovered event{group.uncovered !== 1 ? "s" : ""}
-          {group.covered > 0 && (
-            <span className="ecp-detail-covered-note"> ({group.covered} already covered)</span>
-          )}
+          {group.covered > 0 && <span className="ecp-detail-covered-note"> ({group.covered} already covered)</span>}
         </div>
-        {uncoveredEvents.map((event) => {
-          const headline =
-            event.description ||
-            `${event.subject?.name || "Unknown"}: ${event.action || event.eventKind}`;
-          const eraName = eraNameMap.get(event.era) || event.era || "?";
+        {uncoveredEvents.map(event => {
+        const headline = event.description || `${event.subject?.name || "Unknown"}: ${event.action || event.eventKind}`;
+        const eraName = eraNameMap.get(event.era) || event.era || "?";
 
-          // Collect all involved entities (subject + participants), deduplicated
-          const seen = new Set();
-          const involved = [];
-          if (event.subject?.id) {
-            seen.add(event.subject.id);
-            involved.push({ ...resolveEntity(event.subject.id), role: "subject" });
+        // Collect all involved entities (subject + participants), deduplicated
+        const seen = new Set();
+        const involved = [];
+        if (event.subject?.id) {
+          seen.add(event.subject.id);
+          involved.push({
+            ...resolveEntity(event.subject.id),
+            role: "subject"
+          });
+        }
+        for (const p of event.participantEffects || []) {
+          if (p.entity?.id && !seen.has(p.entity.id)) {
+            seen.add(p.entity.id);
+            involved.push({
+              ...resolveEntity(p.entity.id),
+              role: "participant"
+            });
           }
-          for (const p of event.participantEffects || []) {
-            if (p.entity?.id && !seen.has(p.entity.id)) {
-              seen.add(p.entity.id);
-              involved.push({ ...resolveEntity(p.entity.id), role: "participant" });
-            }
-          }
-
-          return (
-            <div key={event.id} className="ecp-event-card">
+        }
+        return <div key={event.id} className="ecp-event-card">
               {/* Event headline row */}
               <div className="ecp-event-headline-row">
                 <span className="ecp-event-headline" title={headline}>
@@ -770,76 +717,53 @@ function SuggestionActionDetail({ group, entityMap, eraNameMap, entityUsage }) {
               </div>
               {/* Entity list */}
               <div className="ecp-entity-list">
-                {involved.map((ent) => (
-                  <span
-                    key={ent.id}
-                    className="ecp-entity-chip"
-                    title={[
-                      `${ent.name} (${ent.kind})`,
-                      ent.culture ? `Culture: ${ent.culture}` : null,
-                      `Prominence: ${prominenceLabel(ent.prominence)}`,
-                      `${ent.chronicleAppearances} chronicle appearance${ent.chronicleAppearances !== 1 ? "s" : ""}`,
-                      ent.role === "subject" ? "Subject of event" : "Participant",
-                    ]
-                      .filter(Boolean)
-                      .join("\n")}
-                  >
-                    {ent.role === "subject" ? (
-                      <span className="ecp-entity-icon-subject">◆</span>
-                    ) : (
-                      <span className="ecp-entity-icon-participant">○</span>
-                    )}
+                {involved.map(ent => <span key={ent.id} className="ecp-entity-chip" title={[`${ent.name} (${ent.kind})`, ent.culture ? `Culture: ${ent.culture}` : null, `Prominence: ${prominenceLabel(ent.prominence)}`, `${ent.chronicleAppearances} chronicle appearance${ent.chronicleAppearances !== 1 ? "s" : ""}`, ent.role === "subject" ? "Subject of event" : "Participant"].filter(Boolean).join("\n")}>
+                    {ent.role === "subject" ? <span className="ecp-entity-icon-subject">◆</span> : <span className="ecp-entity-icon-participant">○</span>}
                     <span className="ecp-entity-name">{ent.name}</span>
                     <span className="ecp-entity-kind">{ent.kind}</span>
                     <ProminenceDots value={ent.prominence} />
-                    {ent.chronicleAppearances === 0 ? (
-                      <span className="ecp-entity-new">new</span>
-                    ) : (
-                      <span className="ecp-entity-appearances">☰{ent.chronicleAppearances}</span>
-                    )}
-                  </span>
-                ))}
+                    {ent.chronicleAppearances === 0 ? <span className="ecp-entity-new">new</span> : <span className="ecp-entity-appearances">☰{ent.chronicleAppearances}</span>}
+                  </span>)}
               </div>
-            </div>
-          );
-        })}
+            </div>;
+      })}
       </div>
-    </div>
-  );
+    </div>;
 }
 
 // ============================================================================
 // Section 1: Chronicle Backrefs per Entity
 // ============================================================================
 
-function BackrefsSection({ entities, expanded }) {
+function BackrefsSection({
+  entities,
+  expanded
+}) {
   const [sort, onSort] = useColumnSort("ratio");
   const [kindFilter, setKindFilter] = useState("all");
   const [cultureFilter, setCultureFilter] = useState("all");
   const [prominenceFilter, setProminenceFilter] = useState("all");
   const [descOnly, setDescOnly] = useState(false);
-
   const kindOptions = useMemo(() => getKindOptions(entities), [entities]);
   const cultureOptions = useMemo(() => getCultureOptions(entities), [entities]);
-
   const rows = useMemo(() => {
-    let filtered = entities.filter((e) => e.kind !== "era");
-    if (kindFilter !== "all") filtered = filtered.filter((e) => e.kind === kindFilter);
-    if (cultureFilter !== "all") filtered = filtered.filter((e) => e.culture === cultureFilter);
-    if (prominenceFilter !== "all")
-      filtered = filtered.filter((e) => prominenceLabel(e.prominence) === prominenceFilter);
-    if (descOnly) filtered = filtered.filter((e) => e.description);
-
-    const computed = filtered.map((e) => {
+    let filtered = entities.filter(e => e.kind !== "era");
+    if (kindFilter !== "all") filtered = filtered.filter(e => e.kind === kindFilter);
+    if (cultureFilter !== "all") filtered = filtered.filter(e => e.culture === cultureFilter);
+    if (prominenceFilter !== "all") filtered = filtered.filter(e => prominenceLabel(e.prominence) === prominenceFilter);
+    if (descOnly) filtered = filtered.filter(e => e.description);
+    const computed = filtered.map(e => {
       const backrefCount = e.enrichment?.chronicleBackrefs?.length ?? 0;
       const expected = expectedForProminence(e.prominence);
       let ratio;
-      if (expected > 0) ratio = backrefCount / expected;
-      else if (backrefCount > 0) ratio = Infinity;
-      else ratio = 0;
-      return { entity: e, backrefCount, expected, ratio };
+      if (expected > 0) ratio = backrefCount / expected;else if (backrefCount > 0) ratio = Infinity;else ratio = 0;
+      return {
+        entity: e,
+        backrefCount,
+        expected,
+        ratio
+      };
     });
-
     computed.sort((a, b) => {
       let cmp = 0;
       switch (sort.col) {
@@ -861,44 +785,17 @@ function BackrefsSection({ entities, expanded }) {
       }
       return sort.desc ? -cmp : cmp;
     });
-
     return computed;
   }, [entities, sort, kindFilter, cultureFilter, prominenceFilter, descOnly]);
-
-  const underutilCount = useMemo(
-    () => rows.filter((r) => r.expected > 0 && r.ratio < 1).length,
-    [rows]
-  );
-
+  const underutilCount = useMemo(() => rows.filter(r => r.expected > 0 && r.ratio < 1).length, [rows]);
   if (!expanded) return underutilCount;
-
-  return (
-    <div>
+  return <div>
       <SectionToolbar>
-        <FilterSelect
-          value={kindFilter}
-          onChange={setKindFilter}
-          options={kindOptions}
-          label="Entity kind"
-        />
-        <FilterSelect
-          value={cultureFilter}
-          onChange={setCultureFilter}
-          options={cultureOptions}
-          label="Culture"
-        />
-        <FilterSelect
-          value={prominenceFilter}
-          onChange={setProminenceFilter}
-          options={PROMINENCE_OPTIONS}
-          label="Prominence"
-        />
+        <FilterSelect value={kindFilter} onChange={setKindFilter} options={kindOptions} label="Entity kind" />
+        <FilterSelect value={cultureFilter} onChange={setCultureFilter} options={cultureOptions} label="Culture" />
+        <FilterSelect value={prominenceFilter} onChange={setProminenceFilter} options={PROMINENCE_OPTIONS} label="Prominence" />
         <label className="ecp-checkbox-label">
-          <input
-            type="checkbox"
-            checked={descOnly}
-            onChange={(e) => setDescOnly(e.target.checked)}
-          />
+          <input type="checkbox" checked={descOnly} onChange={e => setDescOnly(e.target.checked)} />
           Has description
         </label>
         <span className="ecp-auto-count">{rows.length} entities</span>
@@ -925,8 +822,7 @@ function BackrefsSection({ entities, expanded }) {
         </thead>
         <tbody>
           {rows.length === 0 && <EmptyRow colSpan={5} text="No entities match filters" />}
-          {rows.map((r) => (
-            <tr key={r.entity.id}>
+          {rows.map(r => <tr key={r.entity.id}>
               <td className="ec-name" title={`${r.entity.name} (${r.entity.id})`}>
                 {r.entity.name}
               </td>
@@ -940,47 +836,40 @@ function BackrefsSection({ entities, expanded }) {
               <td className="ec-right">
                 <RatioIndicator ratio={r.ratio} expected={r.expected} />
               </td>
-            </tr>
-          ))}
+            </tr>)}
         </tbody>
       </TableWrap>
-    </div>
-  );
+    </div>;
 }
 
 // ============================================================================
 // Section 2: Description History per Entity
 // ============================================================================
 
-function HistorySection({ entities, expanded }) {
+function HistorySection({
+  entities,
+  expanded
+}) {
   const [sort, onSort] = useColumnSort("divergence", true);
   const [kindFilter, setKindFilter] = useState("all");
   const [cultureFilter, setCultureFilter] = useState("all");
   const [prominenceFilter, setProminenceFilter] = useState("all");
   const [divergentOnly, setDivergentOnly] = useState(false);
-
   const kindOptions = useMemo(() => getKindOptions(entities), [entities]);
   const cultureOptions = useMemo(() => getCultureOptions(entities), [entities]);
-
   const rows = useMemo(() => {
-    let filtered = entities.filter((e) => e.kind !== "era");
-    if (kindFilter !== "all") filtered = filtered.filter((e) => e.kind === kindFilter);
-    if (cultureFilter !== "all") filtered = filtered.filter((e) => e.culture === cultureFilter);
-    if (prominenceFilter !== "all")
-      filtered = filtered.filter((e) => prominenceLabel(e.prominence) === prominenceFilter);
-
-    const computed = filtered.map((e) => {
+    let filtered = entities.filter(e => e.kind !== "era");
+    if (kindFilter !== "all") filtered = filtered.filter(e => e.kind === kindFilter);
+    if (cultureFilter !== "all") filtered = filtered.filter(e => e.culture === cultureFilter);
+    if (prominenceFilter !== "all") filtered = filtered.filter(e => prominenceLabel(e.prominence) === prominenceFilter);
+    const computed = filtered.map(e => {
       const historyCount = e.enrichment?.descriptionHistory?.length ?? 0;
       const backrefCount = e.enrichment?.chronicleBackrefs?.length ?? 0;
       const divergence = backrefCount - historyCount;
       const expected = expectedForProminence(e.prominence);
       let historyRatio;
-      if (expected > 0) historyRatio = historyCount / expected;
-      else if (historyCount > 0) historyRatio = Infinity;
-      else historyRatio = 0;
-      const latestSource = e.enrichment?.descriptionHistory?.length
-        ? e.enrichment.descriptionHistory[e.enrichment.descriptionHistory.length - 1].source
-        : null;
+      if (expected > 0) historyRatio = historyCount / expected;else if (historyCount > 0) historyRatio = Infinity;else historyRatio = 0;
+      const latestSource = e.enrichment?.descriptionHistory?.length ? e.enrichment.descriptionHistory[e.enrichment.descriptionHistory.length - 1].source : null;
       return {
         entity: e,
         historyCount,
@@ -988,14 +877,12 @@ function HistorySection({ entities, expanded }) {
         divergence,
         expected,
         historyRatio,
-        latestSource,
+        latestSource
       };
     });
-
     if (divergentOnly) {
-      return computed.filter((r) => r.backrefCount > 0 && r.historyCount === 0);
+      return computed.filter(r => r.backrefCount > 0 && r.historyCount === 0);
     }
-
     computed.sort((a, b) => {
       let cmp = 0;
       switch (sort.col) {
@@ -1023,44 +910,17 @@ function HistorySection({ entities, expanded }) {
       }
       return sort.desc ? -cmp : cmp;
     });
-
     return computed;
   }, [entities, sort, kindFilter, cultureFilter, prominenceFilter, divergentOnly]);
-
-  const underutilCount = useMemo(
-    () => rows.filter((r) => r.backrefCount > 0 && r.historyCount === 0).length,
-    [rows]
-  );
-
+  const underutilCount = useMemo(() => rows.filter(r => r.backrefCount > 0 && r.historyCount === 0).length, [rows]);
   if (!expanded) return underutilCount;
-
-  return (
-    <div>
+  return <div>
       <SectionToolbar>
-        <FilterSelect
-          value={kindFilter}
-          onChange={setKindFilter}
-          options={kindOptions}
-          label="Entity kind"
-        />
-        <FilterSelect
-          value={cultureFilter}
-          onChange={setCultureFilter}
-          options={cultureOptions}
-          label="Culture"
-        />
-        <FilterSelect
-          value={prominenceFilter}
-          onChange={setProminenceFilter}
-          options={PROMINENCE_OPTIONS}
-          label="Prominence"
-        />
+        <FilterSelect value={kindFilter} onChange={setKindFilter} options={kindOptions} label="Entity kind" />
+        <FilterSelect value={cultureFilter} onChange={setCultureFilter} options={cultureOptions} label="Culture" />
+        <FilterSelect value={prominenceFilter} onChange={setProminenceFilter} options={PROMINENCE_OPTIONS} label="Prominence" />
         <label className="ecp-checkbox-label">
-          <input
-            type="checkbox"
-            checked={divergentOnly}
-            onChange={(e) => setDivergentOnly(e.target.checked)}
-          />
+          <input type="checkbox" checked={divergentOnly} onChange={e => setDivergentOnly(e.target.checked)} />
           Backrefs but no history
         </label>
         <span className="ecp-auto-count">{rows.length} entities</span>
@@ -1093,8 +953,7 @@ function HistorySection({ entities, expanded }) {
         </thead>
         <tbody>
           {rows.length === 0 && <EmptyRow colSpan={7} text="No entities match filters" />}
-          {rows.map((r) => (
-            <tr key={r.entity.id}>
+          {rows.map(r => <tr key={r.entity.id}>
               <td className="ec-name" title={`${r.entity.name} (${r.entity.id})`}>
                 {r.entity.name}
               </td>
@@ -1109,138 +968,105 @@ function HistorySection({ entities, expanded }) {
                 ⇄ {r.backrefCount}
               </td>
               <td className="ec-right">
-                {r.divergence > 0 ? (
-                  <span
-                    className="ecp-divergence-warning"
-                    title={`${r.divergence} more backrefs than history revisions`}
-                  >
+                {r.divergence > 0 ? <span className="ecp-divergence-warning" title={`${r.divergence} more backrefs than history revisions`}>
                     +{r.divergence}
-                  </span>
-                ) : (
-                  <span className="ecp-color-muted">—</span>
-                )}
+                  </span> : <span className="ecp-color-muted">—</span>}
               </td>
-              <td
-                className="ec-muted"
-                title={r.latestSource ? `Latest source: ${r.latestSource}` : "No revisions"}
-              >
+              <td className="ec-muted" title={r.latestSource ? `Latest source: ${r.latestSource}` : "No revisions"}>
                 {r.latestSource || "—"}
               </td>
-            </tr>
-          ))}
+            </tr>)}
         </tbody>
       </TableWrap>
-    </div>
-  );
+    </div>;
 }
 
 // ============================================================================
 // Section 3: Cultural Representation
 // ============================================================================
 
-function CultureSection({ entities, cultureRoles, cultureEntities, entityUsage, expanded }) {
+function CultureSection({
+  entities,
+  cultureRoles,
+  cultureEntities,
+  entityUsage,
+  expanded
+}) {
   const [sort, onSort] = useColumnSort("primaryRatio");
   const [kindFilter, setKindFilter] = useState("all");
-
   const kindOptions = useMemo(() => getKindOptions(entities), [entities]);
-
   const rows = useMemo(() => {
     // Collect all cultures
     const allCultures = new Set([...cultureRoles.keys(), ...cultureEntities.keys()]);
+    return [...allCultures].map(culture => {
+      const roles = cultureRoles.get(culture) || {
+        primary: 0,
+        supporting: 0,
+        entityIds: new Set()
+      };
+      const entData = cultureEntities.get(culture) || {
+        count: 0,
+        totalProminence: 0,
+        entityIds: new Set()
+      };
 
-    return [...allCultures]
-      .map((culture) => {
-        const roles = cultureRoles.get(culture) || {
-          primary: 0,
-          supporting: 0,
-          entityIds: new Set(),
-        };
-        const entData = cultureEntities.get(culture) || {
-          count: 0,
-          totalProminence: 0,
-          entityIds: new Set(),
-        };
-
-        // If filtering by kind, recount
-        let entityCount = entData.count;
-        let totalProminence = entData.totalProminence;
-        let appearedCount = 0;
-
-        const cultureEnts = entities.filter(
-          (e) =>
-            e.culture === culture &&
-            e.kind !== "era" &&
-            (kindFilter === "all" || e.kind === kindFilter)
-        );
-        if (kindFilter !== "all") {
-          entityCount = cultureEnts.length;
-          totalProminence = cultureEnts.reduce((sum, e) => sum + (Number(e.prominence) || 0), 0);
-        }
-
-        for (const e of cultureEnts) {
-          if (entityUsage.has(e.id)) appearedCount += 1;
-        }
-
-        const totalRoles = roles.primary + roles.supporting;
-        const primaryRatio = totalRoles > 0 ? roles.primary / totalRoles : 0;
-        const appearanceRate = entityCount > 0 ? appearedCount / entityCount : 0;
-        const avgProminence = entityCount > 0 ? totalProminence / entityCount : 0;
-
-        return {
-          culture,
-          entityCount,
-          primaryCount: roles.primary,
-          supportingCount: roles.supporting,
-          totalRoles,
-          primaryRatio,
-          appearedCount,
-          appearanceRate,
-          avgProminence,
-        };
-      })
-      .filter((r) => r.entityCount > 0)
-      .sort((a, b) => {
-        let cmp = 0;
-        switch (sort.col) {
-          case "culture":
-            cmp = a.culture.localeCompare(b.culture);
-            break;
-          case "entityCount":
-            cmp = a.entityCount - b.entityCount;
-            break;
-          case "roles":
-            cmp = a.totalRoles - b.totalRoles;
-            break;
-          case "primaryRatio":
-            cmp = a.primaryRatio - b.primaryRatio;
-            break;
-          case "appearanceRate":
-            cmp = a.appearanceRate - b.appearanceRate;
-            break;
-          case "prominence":
-            cmp = a.avgProminence - b.avgProminence;
-            break;
-        }
-        return sort.desc ? -cmp : cmp;
-      });
+      // If filtering by kind, recount
+      let entityCount = entData.count;
+      let totalProminence = entData.totalProminence;
+      let appearedCount = 0;
+      const cultureEnts = entities.filter(e => e.culture === culture && e.kind !== "era" && (kindFilter === "all" || e.kind === kindFilter));
+      if (kindFilter !== "all") {
+        entityCount = cultureEnts.length;
+        totalProminence = cultureEnts.reduce((sum, e) => sum + (Number(e.prominence) || 0), 0);
+      }
+      for (const e of cultureEnts) {
+        if (entityUsage.has(e.id)) appearedCount += 1;
+      }
+      const totalRoles = roles.primary + roles.supporting;
+      const primaryRatio = totalRoles > 0 ? roles.primary / totalRoles : 0;
+      const appearanceRate = entityCount > 0 ? appearedCount / entityCount : 0;
+      const avgProminence = entityCount > 0 ? totalProminence / entityCount : 0;
+      return {
+        culture,
+        entityCount,
+        primaryCount: roles.primary,
+        supportingCount: roles.supporting,
+        totalRoles,
+        primaryRatio,
+        appearedCount,
+        appearanceRate,
+        avgProminence
+      };
+    }).filter(r => r.entityCount > 0).sort((a, b) => {
+      let cmp = 0;
+      switch (sort.col) {
+        case "culture":
+          cmp = a.culture.localeCompare(b.culture);
+          break;
+        case "entityCount":
+          cmp = a.entityCount - b.entityCount;
+          break;
+        case "roles":
+          cmp = a.totalRoles - b.totalRoles;
+          break;
+        case "primaryRatio":
+          cmp = a.primaryRatio - b.primaryRatio;
+          break;
+        case "appearanceRate":
+          cmp = a.appearanceRate - b.appearanceRate;
+          break;
+        case "prominence":
+          cmp = a.avgProminence - b.avgProminence;
+          break;
+      }
+      return sort.desc ? -cmp : cmp;
+    });
   }, [entities, cultureRoles, cultureEntities, entityUsage, sort, kindFilter]);
-
-  const underutilCount = useMemo(
-    () => rows.filter((r) => r.entityCount >= 3 && r.appearanceRate < 0.3).length,
-    [rows]
-  );
-
+  const underutilCount = useMemo(() => rows.filter(r => r.entityCount >= 3 && r.appearanceRate < 0.3).length, [rows]);
   if (!expanded) return underutilCount;
-
-  return (
-    <div>
+  return <div>
       <SectionToolbar>
-        <FilterSelect
-          value={kindFilter}
-          onChange={setKindFilter}
-          options={kindOptions}
-          label="Entity kind"
-        />
+        <FilterSelect value={kindFilter} onChange={setKindFilter} options={kindOptions} label="Entity kind" />
         <span className="ecp-auto-count">{rows.length} cultures</span>
       </SectionToolbar>
       <TableWrap>
@@ -1268,8 +1094,7 @@ function CultureSection({ entities, cultureRoles, cultureEntities, entityUsage, 
         </thead>
         <tbody>
           {rows.length === 0 && <EmptyRow colSpan={6} text="No culture data available" />}
-          {rows.map((r) => (
-            <tr key={r.culture}>
+          {rows.map(r => <tr key={r.culture}>
               <td className="ec-name">{r.culture}</td>
               <td className="ec-right" title={`${r.entityCount} entities`}>
                 ☰ {r.entityCount}
@@ -1283,75 +1108,84 @@ function CultureSection({ entities, cultureRoles, cultureEntities, entityUsage, 
                 </span>
               </td>
               <td className="ec-right">
-                {r.totalRoles > 0 ? (
-                  <span
-                    className={`ecp-font-bold ${(() => {
-                      if (r.primaryRatio < 0.2) return "ecp-color-red";
-                      if (r.primaryRatio < 0.4) return "ecp-color-amber";
-                      return "ecp-color-green";
-                    })()}`}
-                    title={`Primary ratio: ${(r.primaryRatio * 100).toFixed(0)}%`}
-                  >
+                {r.totalRoles > 0 ? <span className={`ecp-font-bold ${(() => {
+              if (r.primaryRatio < 0.2) return "ecp-color-red";
+              if (r.primaryRatio < 0.4) return "ecp-color-amber";
+              return "ecp-color-green";
+            })()}`} title={`Primary ratio: ${(r.primaryRatio * 100).toFixed(0)}%`}>
                     {(r.primaryRatio * 100).toFixed(0)}%
-                  </span>
-                ) : (
-                  <span className="ecp-color-muted">—</span>
-                )}
+                  </span> : <span className="ecp-color-muted">—</span>}
               </td>
               <td className="ec-right">
-                <span
-                  className={(() => {
-                    if (r.appearanceRate < 0.3) return "ecp-color-red";
-                    if (r.appearanceRate < 0.6) return "ecp-color-amber";
-                    return "ecp-color-green";
-                  })()
-                  }
-                  title={`${r.appearedCount}/${r.entityCount} entities appeared in chronicles`}
-                >
+                <span className={(() => {
+              if (r.appearanceRate < 0.3) return "ecp-color-red";
+              if (r.appearanceRate < 0.6) return "ecp-color-amber";
+              return "ecp-color-green";
+            })()} title={`${r.appearedCount}/${r.entityCount} entities appeared in chronicles`}>
                   {(r.appearanceRate * 100).toFixed(0)}%
                 </span>
               </td>
               <td>
                 <ProminenceDots value={r.avgProminence} />
               </td>
-            </tr>
-          ))}
+            </tr>)}
         </tbody>
       </TableWrap>
-    </div>
-  );
+    </div>;
 }
 
 // ============================================================================
 // Section 4: Rare Event Coverage
 // ============================================================================
 
-const SIGNIFICANCE_OPTIONS = [
-  { value: "0", label: "All significance" },
-  { value: "0.5", label: ">= 0.5" },
-  { value: "0.6", label: ">= 0.6" },
-  { value: "0.7", label: ">= 0.7" },
-  { value: "0.8", label: ">= 0.8" },
-  { value: "0.9", label: ">= 0.9" },
-];
-
-const COVERAGE_STATUS_OPTIONS = [
-  { value: "all", label: "All events" },
-  { value: "uncovered", label: "Uncovered only" },
-  { value: "covered", label: "Covered only" },
-];
-
-const VIEW_MODE_OPTIONS = [
-  { value: "events", label: "Per-event" },
-  { value: "frequency", label: "Kind frequency" },
-];
-
-const GROUP_BY_OPTIONS = [
-  { value: "action", label: "By action" },
-  { value: "eventKind", label: "By event kind" },
-];
-
-function EventsSection({ events, eventCoverage, expanded }) {
+const SIGNIFICANCE_OPTIONS = [{
+  value: "0",
+  label: "All significance"
+}, {
+  value: "0.5",
+  label: ">= 0.5"
+}, {
+  value: "0.6",
+  label: ">= 0.6"
+}, {
+  value: "0.7",
+  label: ">= 0.7"
+}, {
+  value: "0.8",
+  label: ">= 0.8"
+}, {
+  value: "0.9",
+  label: ">= 0.9"
+}];
+const COVERAGE_STATUS_OPTIONS = [{
+  value: "all",
+  label: "All events"
+}, {
+  value: "uncovered",
+  label: "Uncovered only"
+}, {
+  value: "covered",
+  label: "Covered only"
+}];
+const VIEW_MODE_OPTIONS = [{
+  value: "events",
+  label: "Per-event"
+}, {
+  value: "frequency",
+  label: "Kind frequency"
+}];
+const GROUP_BY_OPTIONS = [{
+  value: "action",
+  label: "By action"
+}, {
+  value: "eventKind",
+  label: "By event kind"
+}];
+function EventsSection({
+  events,
+  eventCoverage,
+  expanded
+}) {
   const [sort, onSort] = useColumnSort("importance");
   const [freqSort, onFreqSort] = useColumnSort("count");
   const [coverageFilter, setCoverageFilter] = useState("all");
@@ -1360,44 +1194,46 @@ function EventsSection({ events, eventCoverage, expanded }) {
   const [minSignificance, setMinSignificance] = useState("0.5");
   const [viewMode, setViewMode] = useState("events");
   const [groupBy, setGroupBy] = useState("action");
-
   const eraOptions = useMemo(() => getEraOptions(events), [events]);
   const eventKindOptions = useMemo(() => getEventKindOptions(events), [events]);
 
   // Shared filtered event set for both views
   const filteredEvents = useMemo(() => {
     const minSig = Number(minSignificance);
-    let filtered = events.filter((e) => e.significance >= minSig);
-    if (eraFilter !== "all") filtered = filtered.filter((e) => e.era === eraFilter);
-    if (kindFilter !== "all") filtered = filtered.filter((e) => e.eventKind === kindFilter);
+    let filtered = events.filter(e => e.significance >= minSig);
+    if (eraFilter !== "all") filtered = filtered.filter(e => e.era === eraFilter);
+    if (kindFilter !== "all") filtered = filtered.filter(e => e.eventKind === kindFilter);
     return filtered;
   }, [events, minSignificance, eraFilter, kindFilter]);
 
   // Per-event rows (existing view)
   const rows = useMemo(() => {
-    const computed = filteredEvents.map((event) => {
+    const computed = filteredEvents.map(event => {
       const participantCount = event.participantEffects?.length ?? 0;
       const chronicleCount = eventCoverage.get(event.id) || 0;
       const isCovered = chronicleCount > 0;
-      const compositeImportance =
-        event.significance * (1 + Math.log2(Math.max(participantCount, 1)));
-      const headline =
-        event.description ||
-        `${event.subject?.name || "Unknown"}: ${event.action || event.eventKind}`;
-      return { event, participantCount, chronicleCount, isCovered, compositeImportance, headline };
+      const compositeImportance = event.significance * (1 + Math.log2(Math.max(participantCount, 1)));
+      const headline = event.description || `${event.subject?.name || "Unknown"}: ${event.action || event.eventKind}`;
+      return {
+        event,
+        participantCount,
+        chronicleCount,
+        isCovered,
+        compositeImportance,
+        headline
+      };
     });
-
-    if (coverageFilter === "uncovered") return computed.filter((r) => !r.isCovered);
-    if (coverageFilter === "covered") return computed.filter((r) => r.isCovered);
-
+    if (coverageFilter === "uncovered") return computed.filter(r => !r.isCovered);
+    if (coverageFilter === "covered") return computed.filter(r => r.isCovered);
     computed.sort((a, b) => {
       let cmp = 0;
       switch (sort.col) {
-        case "importance": {
-          if (a.isCovered !== b.isCovered) return a.isCovered ? 1 : -1;
-          cmp = a.compositeImportance - b.compositeImportance;
-          break;
-        }
+        case "importance":
+          {
+            if (a.isCovered !== b.isCovered) return a.isCovered ? 1 : -1;
+            cmp = a.compositeImportance - b.compositeImportance;
+            break;
+          }
         case "headline":
           cmp = a.headline.localeCompare(b.headline);
           break;
@@ -1416,7 +1252,6 @@ function EventsSection({ events, eventCoverage, expanded }) {
       }
       return sort.desc ? -cmp : cmp;
     });
-
     return computed;
   }, [filteredEvents, eventCoverage, sort, coverageFilter]);
 
@@ -1427,8 +1262,7 @@ function EventsSection({ events, eventCoverage, expanded }) {
     for (const event of filteredEvents) {
       const rawAction = event.action || event.eventKind || "unknown";
       // Strip entity-specific suffix: "artifact_attracts_restorer:The Crystalline Lineage" -> "artifact_attracts_restorer"
-      const baseAction =
-        rawAction.indexOf(":") > 0 ? rawAction.slice(0, rawAction.indexOf(":")) : rawAction;
+      const baseAction = rawAction.indexOf(":") > 0 ? rawAction.slice(0, rawAction.indexOf(":")) : rawAction;
       const key = groupBy === "action" ? baseAction : event.eventKind || "unknown";
       const existing = groups.get(key) || {
         key,
@@ -1438,7 +1272,7 @@ function EventsSection({ events, eventCoverage, expanded }) {
         totalParticipants: 0,
         eventKinds: new Set(),
         eras: new Set(),
-        entities: new Map(), // entityId -> { name, kind, count }
+        entities: new Map() // entityId -> { name, kind, count }
       };
       existing.count += 1;
       if (eventCoverage.get(event.id) > 0) existing.coveredCount += 1;
@@ -1451,7 +1285,7 @@ function EventsSection({ events, eventCoverage, expanded }) {
         const ent = existing.entities.get(event.subject.id) || {
           name: event.subject.name || event.subject.id,
           kind: event.subject.kind,
-          count: 0,
+          count: 0
         };
         ent.count += 1;
         existing.entities.set(event.subject.id, ent);
@@ -1461,7 +1295,7 @@ function EventsSection({ events, eventCoverage, expanded }) {
           const ent = existing.entities.get(p.entity.id) || {
             name: p.entity.name || p.entity.id,
             kind: p.entity.kind,
-            count: 0,
+            count: 0
           };
           ent.count += 1;
           existing.entities.set(p.entity.id, ent);
@@ -1469,12 +1303,9 @@ function EventsSection({ events, eventCoverage, expanded }) {
       }
       groups.set(key, existing);
     }
-
-    const computed = [...groups.values()].map((g) => {
+    const computed = [...groups.values()].map(g => {
       // Sort entities by appearance count desc, then name
-      const entityList = [...g.entities.values()].sort(
-        (a, b) => b.count - a.count || a.name.localeCompare(b.name)
-      );
+      const entityList = [...g.entities.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
       return {
         ...g,
         avgSignificance: g.count > 0 ? g.totalSignificance / g.count : 0,
@@ -1483,10 +1314,9 @@ function EventsSection({ events, eventCoverage, expanded }) {
         eraCount: g.eras.size,
         entityCount: g.entities.size,
         entityList,
-        eventKindLabel: [...g.eventKinds].join(", "),
+        eventKindLabel: [...g.eventKinds].join(", ")
       };
     });
-
     computed.sort((a, b) => {
       let cmp = 0;
       switch (freqSort.col) {
@@ -1517,67 +1347,31 @@ function EventsSection({ events, eventCoverage, expanded }) {
       }
       return freqSort.desc ? -cmp : cmp;
     });
-
     return computed;
   }, [filteredEvents, eventCoverage, viewMode, groupBy, freqSort]);
-
   const underutilCount = useMemo(() => {
-    const eventRows = filteredEvents.map((event) => ({
+    const eventRows = filteredEvents.map(event => ({
       isCovered: (eventCoverage.get(event.id) || 0) > 0,
       significance: event.significance,
-      participantCount: event.participantEffects?.length ?? 0,
+      participantCount: event.participantEffects?.length ?? 0
     }));
-    return eventRows.filter((r) => !r.isCovered && r.significance >= 0.7 && r.participantCount >= 3)
-      .length;
+    return eventRows.filter(r => !r.isCovered && r.significance >= 0.7 && r.participantCount >= 3).length;
   }, [filteredEvents, eventCoverage]);
-
   if (!expanded) return underutilCount;
-
-  return (
-    <div>
+  return <div>
       <SectionToolbar>
-        <FilterSelect
-          value={viewMode}
-          onChange={setViewMode}
-          options={VIEW_MODE_OPTIONS}
-          label="View mode"
-        />
-        {viewMode === "frequency" && (
-          <FilterSelect
-            value={groupBy}
-            onChange={setGroupBy}
-            options={GROUP_BY_OPTIONS}
-            label="Group by"
-          />
-        )}
-        {viewMode === "events" && (
-          <FilterSelect
-            value={coverageFilter}
-            onChange={setCoverageFilter}
-            options={COVERAGE_STATUS_OPTIONS}
-            label="Coverage"
-          />
-        )}
+        <FilterSelect value={viewMode} onChange={setViewMode} options={VIEW_MODE_OPTIONS} label="View mode" />
+        {viewMode === "frequency" && <FilterSelect value={groupBy} onChange={setGroupBy} options={GROUP_BY_OPTIONS} label="Group by" />}
+        {viewMode === "events" && <FilterSelect value={coverageFilter} onChange={setCoverageFilter} options={COVERAGE_STATUS_OPTIONS} label="Coverage" />}
         <FilterSelect value={eraFilter} onChange={setEraFilter} options={eraOptions} label="Era" />
-        <FilterSelect
-          value={kindFilter}
-          onChange={setKindFilter}
-          options={eventKindOptions}
-          label="Event kind"
-        />
-        <FilterSelect
-          value={minSignificance}
-          onChange={setMinSignificance}
-          options={SIGNIFICANCE_OPTIONS}
-          label="Min significance"
-        />
+        <FilterSelect value={kindFilter} onChange={setKindFilter} options={eventKindOptions} label="Event kind" />
+        <FilterSelect value={minSignificance} onChange={setMinSignificance} options={SIGNIFICANCE_OPTIONS} label="Min significance" />
         <span className="ecp-auto-count">
           {viewMode === "events" ? `${rows.length} events` : `${freqRows.length} types`}
         </span>
       </SectionToolbar>
 
-      {viewMode === "events" ? (
-        <TableWrap>
+      {viewMode === "events" ? <TableWrap>
           <thead>
             <tr>
               <SortableTh sortKey="importance" sort={sort} onSort={onSort}>
@@ -1602,8 +1396,7 @@ function EventsSection({ events, eventCoverage, expanded }) {
           </thead>
           <tbody>
             {rows.length === 0 && <EmptyRow colSpan={6} text="No events match filters" />}
-            {rows.map((r) => (
-              <tr key={r.event.id}>
+            {rows.map(r => <tr key={r.event.id}>
                 <td className="ec-center">
                   <CoverageIndicator covered={r.isCovered} />
                 </td>
@@ -1622,12 +1415,9 @@ function EventsSection({ events, eventCoverage, expanded }) {
                 <td className="ec-right" title={`In ${r.chronicleCount} chronicles`}>
                   {r.chronicleCount}
                 </td>
-              </tr>
-            ))}
+              </tr>)}
           </tbody>
-        </TableWrap>
-      ) : (
-        <TableWrap>
+        </TableWrap> : <TableWrap>
           <thead>
             <tr>
               <SortableTh sortKey="key" sort={freqSort} onSort={onFreqSort}>
@@ -1658,20 +1448,11 @@ function EventsSection({ events, eventCoverage, expanded }) {
             </tr>
           </thead>
           <tbody>
-            {freqRows.length === 0 && (
-              <EmptyRow colSpan={groupBy === "action" ? 9 : 8} text="No events match filters" />
-            )}
-            {freqRows.map((r) => {
-              const entityTooltip =
-                r.entityList.length > 0
-                  ? r.entityList.map((e) => `${e.name} (${e.kind}) ×${e.count}`).join("\n")
-                  : "No entities";
-              return (
-                <tr key={r.key}>
-                  <td
-                    className="ec-name"
-                    title={`${r.key}\n\nEntities involved:\n${entityTooltip}`}
-                  >
+            {freqRows.length === 0 && <EmptyRow colSpan={groupBy === "action" ? 9 : 8} text="No events match filters" />}
+            {freqRows.map(r => {
+          const entityTooltip = r.entityList.length > 0 ? r.entityList.map(e => `${e.name} (${e.kind}) ×${e.count}`).join("\n") : "No entities";
+          return <tr key={r.key}>
+                  <td className="ec-name" title={`${r.key}\n\nEntities involved:\n${entityTooltip}`}>
                     {r.key}
                   </td>
                   <td className="ec-right">
@@ -1679,13 +1460,11 @@ function EventsSection({ events, eventCoverage, expanded }) {
                   </td>
                   <td className="ec-right">{r.coveredCount}</td>
                   <td className="ec-right">
-                    <span
-                      className={(() => {
-                        if (r.coverageRate === 0) return "ecp-color-red";
-                        if (r.coverageRate < 0.5) return "ecp-color-amber";
-                        return "ecp-color-green";
-                      })()}
-                    >
+                    <span className={(() => {
+                if (r.coverageRate === 0) return "ecp-color-red";
+                if (r.coverageRate < 0.5) return "ecp-color-amber";
+                return "ecp-color-green";
+              })()}>
                       {(r.coverageRate * 100).toFixed(0)}%
                     </span>
                   </td>
@@ -1698,60 +1477,66 @@ function EventsSection({ events, eventCoverage, expanded }) {
                     {r.eraCount}
                   </td>
                   {groupBy === "action" && <td className="ec-muted">{r.eventKindLabel}</td>}
-                </tr>
-              );
-            })}
+                </tr>;
+        })}
           </tbody>
-        </TableWrap>
-      )}
-    </div>
-  );
+        </TableWrap>}
+    </div>;
 }
 
 // ============================================================================
 // Section 5: Untapped Story Potential
 // ============================================================================
 
-const MIN_POTENTIAL_OPTIONS = [
-  { value: "0", label: "All potential" },
-  { value: "0.3", label: ">= 0.3" },
-  { value: "0.5", label: ">= 0.5" },
-  { value: "0.7", label: ">= 0.7" },
-];
-
-function PotentialSection({ entities, narrativeEvents, relationships, entityUsage, expanded }) {
+const MIN_POTENTIAL_OPTIONS = [{
+  value: "0",
+  label: "All potential"
+}, {
+  value: "0.3",
+  label: ">= 0.3"
+}, {
+  value: "0.5",
+  label: ">= 0.5"
+}, {
+  value: "0.7",
+  label: ">= 0.7"
+}];
+function PotentialSection({
+  entities,
+  narrativeEvents,
+  relationships,
+  entityUsage,
+  expanded
+}) {
   const [sort, onSort] = useColumnSort("gap", true);
   const [kindFilter, setKindFilter] = useState("all");
   const [cultureFilter, setCultureFilter] = useState("all");
   const [minPotential, setMinPotential] = useState("0");
   const [zeroOnly, setZeroOnly] = useState(false);
-
   const kindOptions = useMemo(() => getKindOptions(entities), [entities]);
   const cultureOptions = useMemo(() => getCultureOptions(entities), [entities]);
 
   // Convert PersistedEntity to EntityContext shape for storyPotential
   const entityContexts = useMemo(() => {
-    return entities
-      .filter((e) => e.kind !== "era")
-      .map((e) => ({
-        id: e.id,
-        name: e.name,
-        kind: e.kind,
-        subtype: e.subtype,
-        prominence: e.prominence, // numeric, works with normalizeProminence
-        culture: e.culture,
-        status: e.status,
-        tags: e.tags || {},
-        eraId: e.eraId,
-        summary: e.summary,
-        description: e.description,
-        createdAt: e.createdAt,
-        updatedAt: e.updatedAt,
-      }));
+    return entities.filter(e => e.kind !== "era").map(e => ({
+      id: e.id,
+      name: e.name,
+      kind: e.kind,
+      subtype: e.subtype,
+      prominence: e.prominence,
+      // numeric, works with normalizeProminence
+      culture: e.culture,
+      status: e.status,
+      tags: e.tags || {},
+      eraId: e.eraId,
+      summary: e.summary,
+      description: e.description,
+      createdAt: e.createdAt,
+      updatedAt: e.updatedAt
+    }));
   }, [entities]);
-
   const eventContexts = useMemo(() => {
-    return narrativeEvents.map((e) => ({
+    return narrativeEvents.map(e => ({
       id: e.id,
       tick: e.tick,
       era: e.era,
@@ -1761,16 +1546,15 @@ function PotentialSection({ entities, narrativeEvents, relationships, entityUsag
       description: e.description,
       subjectId: e.subject?.id,
       subjectName: e.subject?.name,
-      participants: e.participantEffects?.map((p) => ({
+      participants: e.participantEffects?.map(p => ({
         id: p.entity?.id,
         name: p.entity?.name,
-        kind: p.entity?.kind,
-      })),
+        kind: p.entity?.kind
+      }))
     }));
   }, [narrativeEvents]);
-
   const relationshipContexts = useMemo(() => {
-    return relationships.map((r) => ({
+    return relationships.map(r => ({
       src: r.src,
       dst: r.dst,
       kind: r.kind,
@@ -1778,10 +1562,9 @@ function PotentialSection({ entities, narrativeEvents, relationships, entityUsag
       sourceName: "",
       sourceKind: "",
       targetName: "",
-      targetKind: "",
+      targetKind: ""
     }));
   }, [relationships]);
-
   const potentialMap = useMemo(() => {
     if (!expanded) return new Map();
     return computeAllStoryPotentials(entityContexts, relationshipContexts, eventContexts);
@@ -1795,34 +1578,31 @@ function PotentialSection({ entities, narrativeEvents, relationships, entityUsag
     }
     return max;
   }, [entityUsage]);
-
   const rows = useMemo(() => {
     if (!expanded) return [];
     const minPot = Number(minPotential);
-
-    let filtered = entities.filter((e) => e.kind !== "era");
-    if (kindFilter !== "all") filtered = filtered.filter((e) => e.kind === kindFilter);
-    if (cultureFilter !== "all") filtered = filtered.filter((e) => e.culture === cultureFilter);
-
-    const computed = filtered
-      .map((e) => {
-        const pot = potentialMap.get(e.id);
-        const score = pot?.potential?.overallScore ?? 0;
-        const usage = entityUsage.get(e.id) || { total: 0, primary: 0, supporting: 0 };
-        const normalizedUsage = maxUsage > 0 ? usage.total / maxUsage : 0;
-        const gap = score - normalizedUsage;
-        return {
-          entity: e,
-          score,
-          usage,
-          gap,
-          neverPrimary: usage.total > 0 && usage.primary === 0,
-        };
-      })
-      .filter((r) => r.score >= minPot);
-
-    if (zeroOnly) return computed.filter((r) => r.usage.total === 0);
-
+    let filtered = entities.filter(e => e.kind !== "era");
+    if (kindFilter !== "all") filtered = filtered.filter(e => e.kind === kindFilter);
+    if (cultureFilter !== "all") filtered = filtered.filter(e => e.culture === cultureFilter);
+    const computed = filtered.map(e => {
+      const pot = potentialMap.get(e.id);
+      const score = pot?.potential?.overallScore ?? 0;
+      const usage = entityUsage.get(e.id) || {
+        total: 0,
+        primary: 0,
+        supporting: 0
+      };
+      const normalizedUsage = maxUsage > 0 ? usage.total / maxUsage : 0;
+      const gap = score - normalizedUsage;
+      return {
+        entity: e,
+        score,
+        usage,
+        gap,
+        neverPrimary: usage.total > 0 && usage.primary === 0
+      };
+    }).filter(r => r.score >= minPot);
+    if (zeroOnly) return computed.filter(r => r.usage.total === 0);
     computed.sort((a, b) => {
       let cmp = 0;
       switch (sort.col) {
@@ -1844,55 +1624,17 @@ function PotentialSection({ entities, narrativeEvents, relationships, entityUsag
       }
       return sort.desc ? -cmp : cmp;
     });
-
     return computed;
-  }, [
-    expanded,
-    entities,
-    potentialMap,
-    entityUsage,
-    maxUsage,
-    sort,
-    kindFilter,
-    cultureFilter,
-    minPotential,
-    zeroOnly,
-  ]);
-
-  const underutilCount = useMemo(
-    () => rows.filter((r) => r.score >= 0.5 && r.usage.total === 0).length,
-    [rows]
-  );
-
+  }, [expanded, entities, potentialMap, entityUsage, maxUsage, sort, kindFilter, cultureFilter, minPotential, zeroOnly]);
+  const underutilCount = useMemo(() => rows.filter(r => r.score >= 0.5 && r.usage.total === 0).length, [rows]);
   if (!expanded) return underutilCount;
-
-  return (
-    <div>
+  return <div>
       <SectionToolbar>
-        <FilterSelect
-          value={kindFilter}
-          onChange={setKindFilter}
-          options={kindOptions}
-          label="Entity kind"
-        />
-        <FilterSelect
-          value={cultureFilter}
-          onChange={setCultureFilter}
-          options={cultureOptions}
-          label="Culture"
-        />
-        <FilterSelect
-          value={minPotential}
-          onChange={setMinPotential}
-          options={MIN_POTENTIAL_OPTIONS}
-          label="Min potential"
-        />
+        <FilterSelect value={kindFilter} onChange={setKindFilter} options={kindOptions} label="Entity kind" />
+        <FilterSelect value={cultureFilter} onChange={setCultureFilter} options={cultureOptions} label="Culture" />
+        <FilterSelect value={minPotential} onChange={setMinPotential} options={MIN_POTENTIAL_OPTIONS} label="Min potential" />
         <label className="ecp-checkbox-label">
-          <input
-            type="checkbox"
-            checked={zeroOnly}
-            onChange={(e) => setZeroOnly(e.target.checked)}
-          />
+          <input type="checkbox" checked={zeroOnly} onChange={e => setZeroOnly(e.target.checked)} />
           Zero appearances
         </label>
         <span className="ecp-auto-count">{rows.length} entities</span>
@@ -1920,19 +1662,15 @@ function PotentialSection({ entities, narrativeEvents, relationships, entityUsag
         </thead>
         <tbody>
           {rows.length === 0 && <EmptyRow colSpan={6} text="No entities match filters" />}
-          {rows.map((r) => {
-            const rating = scoreToRating(r.score);
-            return (
-              <tr key={r.entity.id}>
+          {rows.map(r => {
+          const rating = scoreToRating(r.score);
+          return <tr key={r.entity.id}>
                 <td className="ec-name" title={`${r.entity.name} (${r.entity.id})`}>
                   {r.entity.name}
                 </td>
                 <td className="ec-muted">{r.entity.kind}</td>
                 <td>
-                  <span
-                    className="ecp-potential-stars"
-                    title={`Story potential: ${(r.score * 100).toFixed(0)}%`}
-                  >
+                  <span className="ecp-potential-stars" title={`Story potential: ${(r.score * 100).toFixed(0)}%`}>
                     {"●".repeat(rating)}
                     {"○".repeat(5 - rating)}
                   </span>
@@ -1947,31 +1685,20 @@ function PotentialSection({ entities, narrativeEvents, relationships, entityUsag
                   <span className="ecp-color-muted" title={`${r.usage.supporting} as supporting`}>
                     ○{r.usage.supporting}
                   </span>
-                  {r.neverPrimary && (
-                    <span className="ecp-never-primary" title="Never primary">
+                  {r.neverPrimary && <span className="ecp-never-primary" title="Never primary">
                       !
-                    </span>
-                  )}
+                    </span>}
                 </td>
                 <td className="ec-right">
-                  {r.gap > 0.2 ? (
-                    <span
-                      className="ecp-divergence-warning"
-                      title={`Gap: ${(r.gap * 100).toFixed(0)}%`}
-                    >
+                  {r.gap > 0.2 ? <span className="ecp-divergence-warning" title={`Gap: ${(r.gap * 100).toFixed(0)}%`}>
                       ↑{(r.gap * 100).toFixed(0)}%
-                    </span>
-                  ) : (
-                    <span className="ecp-color-muted">—</span>
-                  )}
+                    </span> : <span className="ecp-color-muted">—</span>}
                 </td>
-              </tr>
-            );
-          })}
+              </tr>;
+        })}
         </tbody>
       </TableWrap>
-    </div>
-  );
+    </div>;
 }
 
 // ============================================================================
@@ -1984,25 +1711,23 @@ function ErasSection({
   eraChronicles,
   eraEntityCounts,
   eraEventCounts,
-  expanded,
+  expanded
 }) {
   const [sort, onSort] = useColumnSort("chronicles");
   const [uncoveredOnly, setUncoveredOnly] = useState(false);
-
   const rows = useMemo(() => {
     // Collect all era IDs from entities, events, and chronicles
-    const allEraIds = new Set([
-      ...eraChronicles.keys(),
-      ...eraEntityCounts.keys(),
-      ...eraEventCounts.keys(),
-    ]);
+    const allEraIds = new Set([...eraChronicles.keys(), ...eraEntityCounts.keys(), ...eraEventCounts.keys()]);
 
     // Also get era entities for names
-    const eraEntities = entities.filter((e) => e.kind === "era");
-    const eraNameMap = new Map(eraEntities.map((e) => [e.id, e.name]));
-
-    let computed = [...allEraIds].map((eraId) => {
-      const chronicles = eraChronicles.get(eraId) || { total: 0, completed: 0, backported: 0 };
+    const eraEntities = entities.filter(e => e.kind === "era");
+    const eraNameMap = new Map(eraEntities.map(e => [e.id, e.name]));
+    let computed = [...allEraIds].map(eraId => {
+      const chronicles = eraChronicles.get(eraId) || {
+        total: 0,
+        completed: 0,
+        backported: 0
+      };
       const entityCount = eraEntityCounts.get(eraId) || 0;
       const eventCount = eraEventCounts.get(eraId) || 0;
       const name = eraNameMap.get(eraId) || eraId;
@@ -2013,12 +1738,10 @@ function ErasSection({
         completedCount: chronicles.completed,
         backportedCount: chronicles.backported,
         entityCount,
-        eventCount,
+        eventCount
       };
     });
-
-    if (uncoveredOnly) computed = computed.filter((r) => r.chronicleCount === 0);
-
+    if (uncoveredOnly) computed = computed.filter(r => r.chronicleCount === 0);
     computed.sort((a, b) => {
       let cmp = 0;
       switch (sort.col) {
@@ -2037,27 +1760,14 @@ function ErasSection({
       }
       return sort.desc ? -cmp : cmp;
     });
-
     return computed;
   }, [entities, eraChronicles, eraEntityCounts, eraEventCounts, sort, uncoveredOnly]);
-
-  const underutilCount = useMemo(
-    () =>
-      rows.filter((r) => r.chronicleCount === 0 && (r.entityCount > 0 || r.eventCount > 0)).length,
-    [rows]
-  );
-
+  const underutilCount = useMemo(() => rows.filter(r => r.chronicleCount === 0 && (r.entityCount > 0 || r.eventCount > 0)).length, [rows]);
   if (!expanded) return underutilCount;
-
-  return (
-    <div>
+  return <div>
       <SectionToolbar>
         <label className="ecp-checkbox-label">
-          <input
-            type="checkbox"
-            checked={uncoveredOnly}
-            onChange={(e) => setUncoveredOnly(e.target.checked)}
-          />
+          <input type="checkbox" checked={uncoveredOnly} onChange={e => setUncoveredOnly(e.target.checked)} />
           Uncovered only
         </label>
         <span className="ecp-auto-count">{rows.length} eras</span>
@@ -2081,8 +1791,7 @@ function ErasSection({
         </thead>
         <tbody>
           {rows.length === 0 && <EmptyRow colSpan={4} text="No era data available" />}
-          {rows.map((r) => (
-            <tr key={r.eraId}>
+          {rows.map(r => <tr key={r.eraId}>
               <td className="ec-name" title={r.eraId}>
                 {r.name}
               </td>
@@ -2093,59 +1802,61 @@ function ErasSection({
                 {r.eventCount}
               </td>
               <td>
-                <span
-                  className={r.chronicleCount === 0 ? "ecp-color-red" : "ecp-color-green"}
-                  title={`${r.chronicleCount} chronicles`}
-                >
+                <span className={r.chronicleCount === 0 ? "ecp-color-red" : "ecp-color-green"} title={`${r.chronicleCount} chronicles`}>
                   ◇{r.chronicleCount}
                 </span>
-                {r.completedCount > 0 && (
-                  <span className="ecp-era-completed" title={`${r.completedCount} completed`}>
+                {r.completedCount > 0 && <span className="ecp-era-completed" title={`${r.completedCount} completed`}>
                     ✓{r.completedCount}
-                  </span>
-                )}
-                {r.backportedCount > 0 && (
-                  <span className="ecp-era-completed" title={`${r.backportedCount} backported`}>
+                  </span>}
+                {r.backportedCount > 0 && <span className="ecp-era-completed" title={`${r.backportedCount} backported`}>
                     ⇄{r.backportedCount}
-                  </span>
-                )}
+                  </span>}
               </td>
-            </tr>
-          ))}
+            </tr>)}
         </tbody>
       </TableWrap>
-    </div>
-  );
+    </div>;
 }
 
 // ============================================================================
 // Section 7: Lore Integration Gaps
 // ============================================================================
 
-const GAP_FILTER_OPTIONS = [
-  { value: "all", label: "All gaps" },
-  { value: "no_description", label: "Missing description" },
-  { value: "no_backrefs", label: "Missing backrefs" },
-  { value: "no_history", label: "Missing history" },
-  { value: "no_historian", label: "Missing historian" },
-  { value: "no_image", label: "Missing image" },
-];
-
-function IntegrationSection({ entities, entityBackportedCount, expanded }) {
+const GAP_FILTER_OPTIONS = [{
+  value: "all",
+  label: "All gaps"
+}, {
+  value: "no_description",
+  label: "Missing description"
+}, {
+  value: "no_backrefs",
+  label: "Missing backrefs"
+}, {
+  value: "no_history",
+  label: "Missing history"
+}, {
+  value: "no_historian",
+  label: "Missing historian"
+}, {
+  value: "no_image",
+  label: "Missing image"
+}];
+function IntegrationSection({
+  entities,
+  entityBackportedCount,
+  expanded
+}) {
   const [sort, onSort] = useColumnSort("gaps", true);
   const [kindFilter, setKindFilter] = useState("all");
   const [cultureFilter, setCultureFilter] = useState("all");
   const [gapFilter, setGapFilter] = useState("all");
-
   const kindOptions = useMemo(() => getKindOptions(entities), [entities]);
   const cultureOptions = useMemo(() => getCultureOptions(entities), [entities]);
-
   const rows = useMemo(() => {
-    let filtered = entities.filter((e) => e.kind !== "era");
-    if (kindFilter !== "all") filtered = filtered.filter((e) => e.kind === kindFilter);
-    if (cultureFilter !== "all") filtered = filtered.filter((e) => e.culture === cultureFilter);
-
-    const computed = filtered.map((e) => {
+    let filtered = entities.filter(e => e.kind !== "era");
+    if (kindFilter !== "all") filtered = filtered.filter(e => e.kind === kindFilter);
+    if (cultureFilter !== "all") filtered = filtered.filter(e => e.culture === cultureFilter);
+    const computed = filtered.map(e => {
       const hasDescription = Boolean(e.description);
       const hasBackrefs = (e.enrichment?.chronicleBackrefs?.length ?? 0) > 0;
       const historyCount = e.enrichment?.descriptionHistory?.length ?? 0;
@@ -2153,14 +1864,12 @@ function IntegrationSection({ entities, entityBackportedCount, expanded }) {
       const historianNoteCount = e.enrichment?.historianNotes?.length ?? 0;
       const hasImage = Boolean(e.enrichment?.image?.imageId);
       const backportedCount = entityBackportedCount.get(e.id) || 0;
-
       let gapScore = 0;
       if (!hasDescription) gapScore += 1;
       if (!hasBackrefs) gapScore += 1;
       if (historyCount === 0) gapScore += 1;
       if (!hasHistorianNotes) gapScore += 1;
       if (!hasImage) gapScore += 1;
-
       return {
         entity: e,
         hasDescription,
@@ -2171,29 +1880,27 @@ function IntegrationSection({ entities, entityBackportedCount, expanded }) {
         historianNoteCount,
         hasImage,
         backportedCount,
-        gapScore,
+        gapScore
       };
     });
-
     let result = computed;
     switch (gapFilter) {
       case "no_description":
-        result = result.filter((r) => !r.hasDescription);
+        result = result.filter(r => !r.hasDescription);
         break;
       case "no_backrefs":
-        result = result.filter((r) => !r.hasBackrefs);
+        result = result.filter(r => !r.hasBackrefs);
         break;
       case "no_history":
-        result = result.filter((r) => r.historyCount === 0);
+        result = result.filter(r => r.historyCount === 0);
         break;
       case "no_historian":
-        result = result.filter((r) => !r.hasHistorianNotes);
+        result = result.filter(r => !r.hasHistorianNotes);
         break;
       case "no_image":
-        result = result.filter((r) => !r.hasImage);
+        result = result.filter(r => !r.hasImage);
         break;
     }
-
     result.sort((a, b) => {
       let cmp = 0;
       switch (sort.col) {
@@ -2212,38 +1919,15 @@ function IntegrationSection({ entities, entityBackportedCount, expanded }) {
       }
       return sort.desc ? -cmp : cmp;
     });
-
     return result;
   }, [entities, entityBackportedCount, sort, kindFilter, cultureFilter, gapFilter]);
-
-  const underutilCount = useMemo(
-    () => rows.filter((r) => r.gapScore >= 3 && (Number(r.entity.prominence) || 0) >= 2).length,
-    [rows]
-  );
-
+  const underutilCount = useMemo(() => rows.filter(r => r.gapScore >= 3 && (Number(r.entity.prominence) || 0) >= 2).length, [rows]);
   if (!expanded) return underutilCount;
-
-  return (
-    <div>
+  return <div>
       <SectionToolbar>
-        <FilterSelect
-          value={kindFilter}
-          onChange={setKindFilter}
-          options={kindOptions}
-          label="Entity kind"
-        />
-        <FilterSelect
-          value={cultureFilter}
-          onChange={setCultureFilter}
-          options={cultureOptions}
-          label="Culture"
-        />
-        <FilterSelect
-          value={gapFilter}
-          onChange={setGapFilter}
-          options={GAP_FILTER_OPTIONS}
-          label="Gap type"
-        />
+        <FilterSelect value={kindFilter} onChange={setKindFilter} options={kindOptions} label="Entity kind" />
+        <FilterSelect value={cultureFilter} onChange={setCultureFilter} options={cultureOptions} label="Culture" />
+        <FilterSelect value={gapFilter} onChange={setGapFilter} options={GAP_FILTER_OPTIONS} label="Gap type" />
         <span className="ecp-auto-count">{rows.length} entities</span>
       </SectionToolbar>
       <TableWrap>
@@ -2266,8 +1950,7 @@ function IntegrationSection({ entities, entityBackportedCount, expanded }) {
         </thead>
         <tbody>
           {rows.length === 0 && <EmptyRow colSpan={5} text="No entities match filters" />}
-          {rows.map((r) => (
-            <tr key={r.entity.id}>
+          {rows.map(r => <tr key={r.entity.id}>
               <td className="ec-name" title={`${r.entity.name} (${r.entity.id})`}>
                 {r.entity.name}
               </td>
@@ -2277,47 +1960,24 @@ function IntegrationSection({ entities, entityBackportedCount, expanded }) {
               </td>
               <td>
                 <span className="ecp-status-dot-row">
-                  <StatusDot
-                    active={r.hasDescription}
-                    label={r.hasDescription ? "Has description" : "Missing description"}
-                  />
-                  <StatusDot
-                    active={r.hasBackrefs}
-                    label={r.hasBackrefs ? `${r.backrefCount} backrefs` : "No backrefs"}
-                  />
-                  <StatusDot
-                    active={r.historyCount > 0}
-                    label={
-                      r.historyCount > 0 ? `${r.historyCount} revisions` : "No description history"
-                    }
-                  />
-                  <StatusDot
-                    active={r.hasHistorianNotes}
-                    label={
-                      r.hasHistorianNotes ? `${r.historianNoteCount} notes` : "No historian notes"
-                    }
-                  />
-                  <StatusDot
-                    active={r.hasImage}
-                    label={r.hasImage ? "Has image" : "Missing image"}
-                  />
+                  <StatusDot active={r.hasDescription} label={r.hasDescription ? "Has description" : "Missing description"} />
+                  <StatusDot active={r.hasBackrefs} label={r.hasBackrefs ? `${r.backrefCount} backrefs` : "No backrefs"} />
+                  <StatusDot active={r.historyCount > 0} label={r.historyCount > 0 ? `${r.historyCount} revisions` : "No description history"} />
+                  <StatusDot active={r.hasHistorianNotes} label={r.hasHistorianNotes ? `${r.historianNoteCount} notes` : "No historian notes"} />
+                  <StatusDot active={r.hasImage} label={r.hasImage ? "Has image" : "Missing image"} />
                 </span>
               </td>
-              <td
-                className={`ec-right ${(() => {
-                  if (r.gapScore >= 3) return "ecp-color-red";
-                  if (r.gapScore >= 2) return "ecp-color-amber";
-                  return "ecp-color-muted";
-                })()}`}
-              >
+              <td className={`ec-right ${(() => {
+            if (r.gapScore >= 3) return "ecp-color-red";
+            if (r.gapScore >= 2) return "ecp-color-amber";
+            return "ecp-color-muted";
+          })()}`}>
                 {r.gapScore}/5
               </td>
-            </tr>
-          ))}
+            </tr>)}
         </tbody>
       </TableWrap>
-    </div>
-  );
+    </div>;
 }
 
 // ============================================================================
@@ -2339,135 +1999,116 @@ function IntegrationSection({ entities, entityBackportedCount, expanded }) {
  */
 
 ProminenceDots.propTypes = {
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
 };
-
 RatioIndicator.propTypes = {
   ratio: PropTypes.number,
-  expected: PropTypes.number,
+  expected: PropTypes.number
 };
-
 SignificanceStars.propTypes = {
-  value: PropTypes.number,
+  value: PropTypes.number
 };
-
 CoverageIndicator.propTypes = {
-  covered: PropTypes.bool,
+  covered: PropTypes.bool
 };
-
 StatusDot.propTypes = {
   active: PropTypes.bool,
-  label: PropTypes.string,
+  label: PropTypes.string
 };
-
 SectionToolbar.propTypes = {
-  children: PropTypes.node,
+  children: PropTypes.node
 };
-
 FilterSelect.propTypes = {
   value: PropTypes.string,
   onChange: PropTypes.func,
   options: PropTypes.array,
-  label: PropTypes.string,
+  label: PropTypes.string
 };
-
 SectionHeader.propTypes = {
   sectionId: PropTypes.string,
   expanded: PropTypes.bool,
   onToggle: PropTypes.func,
   label: PropTypes.string,
   description: PropTypes.string,
-  underutilCount: PropTypes.number,
+  underutilCount: PropTypes.number
 };
-
 TableWrap.propTypes = {
-  children: PropTypes.node,
+  children: PropTypes.node
 };
-
 SortableTh.propTypes = {
   children: PropTypes.node,
   sortKey: PropTypes.string,
   sort: PropTypes.shape({
     col: PropTypes.string,
-    desc: PropTypes.bool,
+    desc: PropTypes.bool
   }),
   onSort: PropTypes.func,
-  right: PropTypes.bool,
+  right: PropTypes.bool
 };
-
 StaticTh.propTypes = {
   children: PropTypes.node,
-  right: PropTypes.bool,
+  right: PropTypes.bool
 };
-
 EmptyRow.propTypes = {
   colSpan: PropTypes.number,
-  text: PropTypes.string,
+  text: PropTypes.string
 };
-
 SuggestionsSection.propTypes = {
   events: PropTypes.array,
   entities: PropTypes.array,
   eventCoverage: PropTypes.object,
   entityUsage: PropTypes.object,
-  expanded: PropTypes.bool,
+  expanded: PropTypes.bool
 };
-
 SuggestionActionDetail.propTypes = {
   group: PropTypes.object,
   entityMap: PropTypes.object,
   eraNameMap: PropTypes.object,
-  entityUsage: PropTypes.object,
+  entityUsage: PropTypes.object
 };
-
 BackrefsSection.propTypes = {
   entities: PropTypes.array,
-  expanded: PropTypes.bool,
+  expanded: PropTypes.bool
 };
-
 HistorySection.propTypes = {
   entities: PropTypes.array,
-  expanded: PropTypes.bool,
+  expanded: PropTypes.bool
 };
-
 CultureSection.propTypes = {
   entities: PropTypes.array,
   cultureRoles: PropTypes.object,
   cultureEntities: PropTypes.object,
   entityUsage: PropTypes.object,
-  expanded: PropTypes.bool,
+  expanded: PropTypes.bool
 };
-
 EventsSection.propTypes = {
   events: PropTypes.array,
   eventCoverage: PropTypes.object,
-  expanded: PropTypes.bool,
+  expanded: PropTypes.bool
 };
-
 PotentialSection.propTypes = {
   entities: PropTypes.array,
   narrativeEvents: PropTypes.array,
   relationships: PropTypes.array,
   entityUsage: PropTypes.object,
-  expanded: PropTypes.bool,
+  expanded: PropTypes.bool
 };
-
 ErasSection.propTypes = {
   entities: PropTypes.array,
   events: PropTypes.array,
   eraChronicles: PropTypes.object,
   eraEntityCounts: PropTypes.object,
   eraEventCounts: PropTypes.object,
-  expanded: PropTypes.bool,
+  expanded: PropTypes.bool
 };
-
 IntegrationSection.propTypes = {
   entities: PropTypes.array,
   entityBackportedCount: PropTypes.object,
-  expanded: PropTypes.bool,
+  expanded: PropTypes.bool
 };
-
-export default function EntityCoveragePanel({ simulationRunId }) {
+export default function EntityCoveragePanel({
+  simulationRunId
+}) {
   // Events and relationships are always in memory (simple store pattern, no nav/detail split)
   const narrativeEvents = useNarrativeEvents();
   const relationships = useRelationships();
@@ -2481,15 +2122,11 @@ export default function EntityCoveragePanel({ simulationRunId }) {
   useEffect(() => {
     setAnalysisData(null);
   }, [simulationRunId]);
-
   const handleCalculate = useCallback(async () => {
     if (!simulationRunId) return;
     setCalculating(true);
     try {
-      const [fullEntities, chronicles] = await Promise.all([
-        getEntitiesForRun(simulationRunId),
-        getChroniclesForSimulation(simulationRunId),
-      ]);
+      const [fullEntities, chronicles] = await Promise.all([getEntitiesForRun(simulationRunId), getChroniclesForSimulation(simulationRunId)]);
       const safeEvents = narrativeEvents || [];
       const safeRelationships = relationships || [];
       const analysis = computeCoreAnalysis(fullEntities, chronicles, safeEvents, safeRelationships);
@@ -2498,7 +2135,7 @@ export default function EntityCoveragePanel({ simulationRunId }) {
         chronicles,
         analysis,
         events: safeEvents,
-        relationships: safeRelationships,
+        relationships: safeRelationships
       });
     } catch (err) {
       console.error("[EntityCoverage] Failed to calculate:", err);
@@ -2506,22 +2143,18 @@ export default function EntityCoveragePanel({ simulationRunId }) {
       setCalculating(false);
     }
   }, [simulationRunId, narrativeEvents, relationships]);
-
-  const toggleSection = useCallback((sectionId) => {
-    setExpandedSections((prev) => {
+  const toggleSection = useCallback(sectionId => {
+    setExpandedSections(prev => {
       const next = new Set(prev);
-      if (next.has(sectionId)) next.delete(sectionId);
-      else next.add(sectionId);
+      if (next.has(sectionId)) next.delete(sectionId);else next.add(sectionId);
       return next;
     });
   }, []);
-
   if (!simulationRunId) return null;
 
   // Before calculation — show button
   if (!analysisData) {
-    return (
-      <div className="ecp-pre-calc">
+    return <div className="ecp-pre-calc">
         <div className="illuminator-card">
           <div className="ecp-pre-calc-inner">
             <div className="ecp-pre-calc-header">
@@ -2531,24 +2164,18 @@ export default function EntityCoveragePanel({ simulationRunId }) {
               Analyzes coverage gaps across entities, chronicles, events, and relationships. Loads
               full entity data on demand.
             </p>
-            <button
-              onClick={() => void handleCalculate()}
-              disabled={calculating}
-              className="illuminator-button illuminator-button-secondary ecp-btn-pad-sm"
-            >
+            <button onClick={() => void handleCalculate()} disabled={calculating} className="illuminator-button illuminator-button-secondary ecp-btn-pad-sm">
               {calculating ? "Calculating..." : "Calculate Statistics"}
             </button>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   const {
     fullEntities,
     analysis,
     events: safeEvents,
-    relationships: safeRelationships,
+    relationships: safeRelationships
   } = analysisData;
 
   // Compute underutil counts for collapsed section headers
@@ -2568,7 +2195,7 @@ export default function EntityCoveragePanel({ simulationRunId }) {
           })();
           break;
         case "backrefs":
-          sectionUnderutilCounts[sectionId] = fullEntities.filter((e) => {
+          sectionUnderutilCounts[sectionId] = fullEntities.filter(e => {
             if (e.kind === "era") return false;
             const expected = expectedForProminence(e.prominence);
             if (expected === 0) return false;
@@ -2577,18 +2204,13 @@ export default function EntityCoveragePanel({ simulationRunId }) {
           }).length;
           break;
         case "history":
-          sectionUnderutilCounts[sectionId] = fullEntities.filter((e) => {
+          sectionUnderutilCounts[sectionId] = fullEntities.filter(e => {
             if (e.kind === "era") return false;
-            return (
-              (e.enrichment?.chronicleBackrefs?.length ?? 0) > 0 &&
-              (e.enrichment?.descriptionHistory?.length ?? 0) === 0
-            );
+            return (e.enrichment?.chronicleBackrefs?.length ?? 0) > 0 && (e.enrichment?.descriptionHistory?.length ?? 0) === 0;
           }).length;
           break;
         case "culture":
-          sectionUnderutilCounts[sectionId] = [
-            ...(analysis.cultureEntities?.entries() || []),
-          ].filter(([, data]) => {
+          sectionUnderutilCounts[sectionId] = [...(analysis.cultureEntities?.entries() || [])].filter(([, data]) => {
             if (data.count < 3) return false;
             let appeared = 0;
             for (const id of data.entityIds) {
@@ -2598,34 +2220,23 @@ export default function EntityCoveragePanel({ simulationRunId }) {
           }).length;
           break;
         case "events":
-          sectionUnderutilCounts[sectionId] = safeEvents.filter((e) => {
-            return (
-              e.significance >= 0.7 &&
-              (e.participantEffects?.length ?? 0) >= 3 &&
-              (analysis.eventCoverage.get(e.id) ?? 0) <= 0
-            );
+          sectionUnderutilCounts[sectionId] = safeEvents.filter(e => {
+            return e.significance >= 0.7 && (e.participantEffects?.length ?? 0) >= 3 && (analysis.eventCoverage.get(e.id) ?? 0) <= 0;
           }).length;
           break;
         case "potential":
           sectionUnderutilCounts[sectionId] = null; // expensive, skip for collapsed
           break;
-        case "eras": {
-          const allEraIds = new Set([
-            ...analysis.eraChronicles.keys(),
-            ...analysis.eraEntityCounts.keys(),
-            ...analysis.eraEventCounts.keys(),
-          ]);
-          sectionUnderutilCounts[sectionId] = [...allEraIds].filter((eraId) => {
-            return (
-              (analysis.eraChronicles.get(eraId)?.total ?? 0) <= 0 &&
-              ((analysis.eraEntityCounts.get(eraId) || 0) > 0 ||
-                (analysis.eraEventCounts.get(eraId) || 0) > 0)
-            );
-          }).length;
-          break;
-        }
+        case "eras":
+          {
+            const allEraIds = new Set([...analysis.eraChronicles.keys(), ...analysis.eraEntityCounts.keys(), ...analysis.eraEventCounts.keys()]);
+            sectionUnderutilCounts[sectionId] = [...allEraIds].filter(eraId => {
+              return (analysis.eraChronicles.get(eraId)?.total ?? 0) <= 0 && ((analysis.eraEntityCounts.get(eraId) || 0) > 0 || (analysis.eraEventCounts.get(eraId) || 0) > 0);
+            }).length;
+            break;
+          }
         case "integration":
-          sectionUnderutilCounts[sectionId] = fullEntities.filter((e) => {
+          sectionUnderutilCounts[sectionId] = fullEntities.filter(e => {
             if (e.kind === "era") return false;
             if ((Number(e.prominence) || 0) < 2) return false;
             let gaps = 0;
@@ -2640,7 +2251,6 @@ export default function EntityCoveragePanel({ simulationRunId }) {
       }
     }
   }
-
   const sectionProps = {
     suggestions: {
       Component: SuggestionsSection,
@@ -2648,23 +2258,36 @@ export default function EntityCoveragePanel({ simulationRunId }) {
         events: safeEvents,
         entities: fullEntities,
         eventCoverage: analysis.eventCoverage,
-        entityUsage: analysis.entityUsage,
-      },
+        entityUsage: analysis.entityUsage
+      }
     },
-    backrefs: { Component: BackrefsSection, props: { entities: fullEntities } },
-    history: { Component: HistorySection, props: { entities: fullEntities } },
+    backrefs: {
+      Component: BackrefsSection,
+      props: {
+        entities: fullEntities
+      }
+    },
+    history: {
+      Component: HistorySection,
+      props: {
+        entities: fullEntities
+      }
+    },
     culture: {
       Component: CultureSection,
       props: {
         entities: fullEntities,
         cultureRoles: analysis.cultureRoles,
         cultureEntities: analysis.cultureEntities,
-        entityUsage: analysis.entityUsage,
-      },
+        entityUsage: analysis.entityUsage
+      }
     },
     events: {
       Component: EventsSection,
-      props: { events: safeEvents, eventCoverage: analysis.eventCoverage },
+      props: {
+        events: safeEvents,
+        eventCoverage: analysis.eventCoverage
+      }
     },
     potential: {
       Component: PotentialSection,
@@ -2672,8 +2295,8 @@ export default function EntityCoveragePanel({ simulationRunId }) {
         entities: fullEntities,
         narrativeEvents: safeEvents,
         relationships: safeRelationships,
-        entityUsage: analysis.entityUsage,
-      },
+        entityUsage: analysis.entityUsage
+      }
     },
     eras: {
       Component: ErasSection,
@@ -2682,17 +2305,18 @@ export default function EntityCoveragePanel({ simulationRunId }) {
         events: safeEvents,
         eraChronicles: analysis.eraChronicles,
         eraEntityCounts: analysis.eraEntityCounts,
-        eraEventCounts: analysis.eraEventCounts,
-      },
+        eraEventCounts: analysis.eraEventCounts
+      }
     },
     integration: {
       Component: IntegrationSection,
-      props: { entities: fullEntities, entityBackportedCount: analysis.entityBackportedCount },
-    },
+      props: {
+        entities: fullEntities,
+        entityBackportedCount: analysis.entityBackportedCount
+      }
+    }
   };
-
-  return (
-    <div className="ecp-wrapper">
+  return <div className="ecp-wrapper">
       <div className="illuminator-card ecp-header-card">
         <div className="ecp-header-bar">
           <span className="ecp-header-title">Entity Coverage Analysis</span>
@@ -2700,42 +2324,28 @@ export default function EntityCoveragePanel({ simulationRunId }) {
             {analysis.nonEraEntities.length} entities, {analysis.activeChronicles.length}{" "}
             chronicles, {safeEvents.length} events
           </span>
-          <button
-            onClick={() => void handleCalculate()}
-            disabled={calculating}
-            className="illuminator-button illuminator-button-secondary ecp-recalc-btn"
-            title="Reload data from database and recalculate all statistics"
-          >
+          <button onClick={() => void handleCalculate()} disabled={calculating} className="illuminator-button illuminator-button-secondary ecp-recalc-btn" title="Reload data from database and recalculate all statistics">
             {calculating ? "Recalculating..." : "Recalculate"}
           </button>
         </div>
       </div>
 
       <div className="ec-grid">
-        {SECTION_IDS.map((sectionId) => {
-          const isExpanded = expandedSections.has(sectionId);
-          const underutil = sectionUnderutilCounts[sectionId];
-          const { Component, props } = sectionProps[sectionId];
-
-          return (
-            <div key={sectionId} className="illuminator-card ec-grid-cell">
-              <SectionHeader
-                sectionId={sectionId}
-                expanded={isExpanded}
-                onToggle={() => toggleSection(sectionId)}
-                label={SECTION_LABELS[sectionId]}
-                description={SECTION_DESCRIPTIONS[sectionId]}
-                underutilCount={underutil}
-              />
+        {SECTION_IDS.map(sectionId => {
+        const isExpanded = expandedSections.has(sectionId);
+        const underutil = sectionUnderutilCounts[sectionId];
+        const {
+          Component,
+          props
+        } = sectionProps[sectionId];
+        return <div key={sectionId} className="illuminator-card ec-grid-cell">
+              <SectionHeader sectionId={sectionId} expanded={isExpanded} onToggle={() => toggleSection(sectionId)} label={SECTION_LABELS[sectionId]} description={SECTION_DESCRIPTIONS[sectionId]} underutilCount={underutil} />
               {isExpanded && <Component {...props} expanded={true} />}
-            </div>
-          );
-        })}
+            </div>;
+      })}
       </div>
-    </div>
-  );
+    </div>;
 }
-
 EntityCoveragePanel.propTypes = {
-  simulationRunId: PropTypes.string,
+  simulationRunId: PropTypes.string
 };

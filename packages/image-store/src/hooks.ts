@@ -2,42 +2,70 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import { useImageStore } from './store';
 import type { ImageEntryMetadata, ImageSize } from './types';
 
+export interface UseImageUrlResult {
+  url: string | null;
+  loading: boolean;
+  error: string | null;
+  metadata: ImageEntryMetadata | null;
+}
+
 /**
  * Load a single image URL on demand.
- * Returns { url, loading } — url is null while loading or if image not found.
+ * Returns { url, loading, error, metadata }.
  */
 export function useImageUrl(
   imageId: string | null | undefined,
   size: ImageSize = 'thumb',
-): { url: string | null; loading: boolean } {
+): UseImageUrlResult {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [metadata, setMetadata] = useState<ImageEntryMetadata | null>(null);
   const loadUrl = useImageStore((s) => s.loadUrl);
+  const loadMetadata = useImageStore((s) => s.loadMetadata);
   const initialized = useImageStore((s) => s.initialized);
 
   useEffect(() => {
     if (!imageId || !initialized) {
       setUrl(null);
       setLoading(false);
+      setError(null);
+      setMetadata(null);
       return;
     }
 
     let cancelled = false;
     setLoading(true);
+    setError(null);
 
-    void loadUrl(imageId, size).then((result) => {
-      if (!cancelled) {
-        setUrl(result);
-        setLoading(false);
-      }
-    });
+    Promise.all([
+      loadUrl(imageId, size),
+      loadMetadata([imageId]),
+    ])
+      .then(([result, metaMap]) => {
+        if (cancelled) return;
+        if (result) {
+          setUrl(result);
+          setMetadata(metaMap.get(imageId) ?? null);
+        } else {
+          setError('Image not found');
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load image');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [imageId, size, loadUrl, initialized]);
+  }, [imageId, size, loadUrl, loadMetadata, initialized]);
 
-  return { url, loading };
+  return { url, loading, error, metadata };
 }
 
 /**

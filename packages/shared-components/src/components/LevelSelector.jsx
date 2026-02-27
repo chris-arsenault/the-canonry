@@ -79,25 +79,24 @@ export function LevelSelector({
           return (
             <div
               key={idx}
-              className="level-selector-dot"
+              className={`level-selector-dot ${hoveredLevel === idx ? 'level-selector-dot-active' : ''}`.trim()}
               onClick={() => onChange(level.value)}
               onMouseEnter={() => setHoveredLevel(idx)}
               onMouseLeave={() => setHoveredLevel(null)}
-              style={{
-                transform: hoveredLevel === idx ? 'scale(1.2)' : 'scale(1)',
-              }}
               title={`${level.label}`}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
             >
-              <div
-                className="level-selector-dot-fill"
-                style={{
-                  height: `${fill * 100}%`,
-                  backgroundColor: baseColor,
-                }}
-              />
+              <svg className="level-selector-dot-fill-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                <rect
+                  x="0"
+                  y={100 - (fill * 100)}
+                  width="100"
+                  height={fill * 100}
+                  fill={baseColor}
+                />
+              </svg>
             </div>
           );
         })}

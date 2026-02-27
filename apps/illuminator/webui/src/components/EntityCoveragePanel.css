@@ -31,6 +31,7 @@
 .ecp-ratio-value {
   font-size: 10px;
   font-weight: 600;
+  color: var(--ecp-ratio-color);
 }
 
 /* ── Significance stars ── */
@@ -244,6 +245,10 @@
   text-align: center;
   font-size: 10px;
   color: var(--text-muted);
+}
+
+.ecp-row-clickable {
+  cursor: pointer;
 }
 
 /* ── Table cell expand detail ── */

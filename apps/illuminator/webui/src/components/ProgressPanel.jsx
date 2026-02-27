@@ -11,7 +11,6 @@
 import React, { useMemo } from "react";
 import PropTypes from "prop-types";
 import "./ProgressPanel.css";
-
 export default function ProgressPanel({
   status,
   progress,
@@ -20,61 +19,39 @@ export default function ProgressPanel({
   onResume,
   onAbort,
   onRunAll,
-  hasRequiredKeys,
+  hasRequiredKeys
 }) {
   const isRunning = status === "running";
   const isPaused = status === "paused";
   const isIdle = status === "idle";
   const isComplete = status === "complete";
-
-  const completedTasks = useMemo(() => tasks.filter((t) => t.status === "complete"), [tasks]);
-
-  const errorTasks = useMemo(() => tasks.filter((t) => t.status === "error"), [tasks]);
-
-  const runningTasks = useMemo(() => tasks.filter((t) => t.status === "running"), [tasks]);
-
-  const pendingTasks = useMemo(() => tasks.filter((t) => t.status === "pending"), [tasks]);
-
-  const progressPercent =
-    progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
-
-  return (
-    <div>
+  const completedTasks = useMemo(() => tasks.filter(t => t.status === "complete"), [tasks]);
+  const errorTasks = useMemo(() => tasks.filter(t => t.status === "error"), [tasks]);
+  const runningTasks = useMemo(() => tasks.filter(t => t.status === "running"), [tasks]);
+  const pendingTasks = useMemo(() => tasks.filter(t => t.status === "pending"), [tasks]);
+  const progressPercent = progress.total > 0 ? Math.round(progress.completed / progress.total * 100) : 0;
+  return <div>
       {/* Status card */}
       <div className="illuminator-card">
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Enrichment Progress</h2>
           <div className="pp-button-group">
-            {isIdle && (
-              <button
-                onClick={onRunAll}
-                className="illuminator-button"
-                disabled={!hasRequiredKeys || pendingTasks.length === 0}
-              >
+            {isIdle && <button onClick={onRunAll} className="illuminator-button" disabled={!hasRequiredKeys || pendingTasks.length === 0}>
                 Start Enrichment
-              </button>
-            )}
-            {isRunning && (
-              <button onClick={onPause} className="illuminator-button illuminator-button-secondary">
+              </button>}
+            {isRunning && <button onClick={onPause} className="illuminator-button illuminator-button-secondary">
                 Pause
-              </button>
-            )}
-            {isPaused && (
-              <button onClick={onResume} className="illuminator-button">
+              </button>}
+            {isPaused && <button onClick={onResume} className="illuminator-button">
                 Resume
-              </button>
-            )}
-            {(isRunning || isPaused) && (
-              <button onClick={onAbort} className="pp-abort-btn">
+              </button>}
+            {(isRunning || isPaused) && <button onClick={onAbort} className="pp-abort-btn">
                 Abort
-              </button>
-            )}
+              </button>}
           </div>
         </div>
 
-        {!hasRequiredKeys && isIdle && (
-          <div className="pp-key-warning">Set API keys in the sidebar to start enrichment</div>
-        )}
+        {!hasRequiredKeys && isIdle && <div className="pp-key-warning">Set API keys in the sidebar to start enrichment</div>}
 
         {/* Progress bar */}
         <div className="pp-progress-section">
@@ -85,21 +62,19 @@ export default function ProgressPanel({
             <span className="pp-progress-percent">{progressPercent}%</span>
           </div>
           <div className="illuminator-progress">
-            <div className="illuminator-progress-bar" style={{ width: `${progressPercent}%` }} />
+            <div className="illuminator-progress-bar" style={{
+            "--pp-bar-width": `${progressPercent}%`
+          }} />
           </div>
         </div>
 
         {/* Current task */}
-        {runningTasks.length > 0 && (
-          <div className="pp-current-task">
+        {runningTasks.length > 0 && <div className="pp-current-task">
             <div className="pp-current-task-label">Currently processing:</div>
-            {runningTasks.map((task) => (
-              <div key={task.id} className="pp-current-task-item">
+            {runningTasks.map(task => <div key={task.id} className="pp-current-task-item">
                 {task.entityName} - {task.type}
-              </div>
-            ))}
-          </div>
-        )}
+              </div>)}
+          </div>}
 
         {/* Stats */}
         <div className="pp-stats-grid">
@@ -125,27 +100,22 @@ export default function ProgressPanel({
       </div>
 
       {/* Error log */}
-      {errorTasks.length > 0 && (
-        <div className="illuminator-card">
+      {errorTasks.length > 0 && <div className="illuminator-card">
           <div className="illuminator-card-header">
             <h2 className="illuminator-card-title pp-error-title">Errors ({errorTasks.length})</h2>
           </div>
           <div className="pp-error-list">
-            {errorTasks.map((task) => (
-              <div key={task.id} className="pp-error-item">
+            {errorTasks.map(task => <div key={task.id} className="pp-error-item">
                 <div className="pp-error-item-name">
                   {task.entityName} - {task.type}
                 </div>
                 <div className="pp-error-item-message">{task.error || "Unknown error"}</div>
-              </div>
-            ))}
+              </div>)}
           </div>
-        </div>
-      )}
+        </div>}
 
       {/* Completion message */}
-      {isComplete && (
-        <div className="illuminator-card">
+      {isComplete && <div className="illuminator-card">
           <div className="pp-complete-section">
             <div className="pp-complete-icon">&#x2728;</div>
             <div className="pp-complete-title">Enrichment Complete!</div>
@@ -154,12 +124,9 @@ export default function ProgressPanel({
               {errorTasks.length > 0 && `, ${errorTasks.length} errors`}
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        </div>}
+    </div>;
 }
-
 ProgressPanel.propTypes = {
   status: PropTypes.string,
   progress: PropTypes.object,
@@ -168,5 +135,5 @@ ProgressPanel.propTypes = {
   onResume: PropTypes.func,
   onAbort: PropTypes.func,
   onRunAll: PropTypes.func,
-  hasRequiredKeys: PropTypes.bool,
+  hasRequiredKeys: PropTypes.bool
 };

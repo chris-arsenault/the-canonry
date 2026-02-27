@@ -12,59 +12,8 @@ import RelationshipKindEditor from "./RelationshipKindEditor";
 import CultureEditor from "./CultureEditor";
 import TagRegistryEditor from "./TagRegistryEditor";
 import RelationshipKindMatrix from "./RelationshipKindMatrix";
-import { colors, typography, spacing, radius, getAccentGradient } from "../../theme";
-
-const styles = {
-  container: {
-    display: "flex",
-    height: "100%",
-  },
-  sidebar: {
-    width: "200px",
-    backgroundColor: colors.bgSidebar,
-    borderRight: `1px solid ${colors.border}`,
-    padding: spacing.lg,
-  },
-  sidebarTitle: {
-    fontSize: typography.sizeSm,
-    fontWeight: typography.weightSemibold,
-    fontFamily: typography.fontFamily,
-    color: colors.textMuted,
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-    marginBottom: spacing.md,
-  },
-  sidebarItem: {
-    padding: `${spacing.sm} ${spacing.md}`,
-    fontSize: typography.sizeMd,
-    fontFamily: typography.fontFamily,
-    fontWeight: typography.weightMedium,
-    borderRadius: radius.md,
-    cursor: "pointer",
-    marginBottom: spacing.xs,
-    transition: "all 0.15s",
-  },
-  sidebarItemActive: {
-    background: getAccentGradient("enumerist"),
-    color: colors.bgSidebar,
-    fontWeight: typography.weightSemibold,
-  },
-  sidebarItemInactive: {
-    backgroundColor: "transparent",
-    color: colors.textSecondary,
-  },
-  sidebarCount: {
-    float: "right",
-    fontSize: typography.sizeXs,
-    opacity: 0.8,
-  },
-  main: {
-    flex: 1,
-    padding: spacing.xxl,
-    overflow: "auto",
-    backgroundColor: colors.bgPrimary,
-  },
-};
+import { getAccentGradient } from "../../theme";
+import "./SchemaEditor.css";
 
 const SECTIONS = [
   { id: "entityKinds", label: "Entity Kinds", countKey: "entityKinds" },
@@ -150,18 +99,14 @@ export default function SchemaEditor({
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.sidebar}>
-        <div style={styles.sidebarTitle}>Schema</div>
+    <div className="se-container">
+      <div className="se-sidebar">
+        <div className="se-sidebar-title">Schema</div>
         {SECTIONS.map((section) => (
           <div
             key={section.id}
-            style={{
-              ...styles.sidebarItem,
-              ...(section.id === currentSection
-                ? styles.sidebarItemActive
-                : styles.sidebarItemInactive),
-            }}
+            className={`se-sidebar-item ${section.id === currentSection ? "se-sidebar-item-active" : "se-sidebar-item-inactive"}`}
+            style={section.id === currentSection ? { '--se-sidebar-active-bg': getAccentGradient("enumerist") } : undefined}
             onClick={() => onSectionChange(section.id)}
             role="button"
             tabIndex={0}
@@ -169,12 +114,12 @@ export default function SchemaEditor({
           >
             {section.label}
             {section.countKey && (
-              <span style={styles.sidebarCount}>{counts[section.countKey]}</span>
+              <span className="se-sidebar-count">{counts[section.countKey]}</span>
             )}
           </div>
         ))}
       </div>
-      <div style={styles.main}>{renderEditor()}</div>
+      <div className="se-main">{renderEditor()}</div>
     </div>
   );
 }

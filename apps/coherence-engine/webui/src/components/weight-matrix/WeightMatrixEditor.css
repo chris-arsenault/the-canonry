@@ -277,9 +277,37 @@
   background: transparent !important;
 }
 
+.weight-cell-none {
+  background-color: transparent;
+}
+
+.weight-cell-low {
+  background-color: rgb(245 158 11 / 30%);
+}
+
+.weight-cell-mid {
+  background-color: rgb(245 158 11 / 45%);
+}
+
+.weight-cell-high {
+  background-color: rgb(245 158 11 / 60%);
+}
+
+.weight-cell-max {
+  background-color: rgb(245 158 11 / 75%);
+}
+
 .cell-value {
   font-weight: 600;
   font-size: 13px;
+}
+
+.cell-value-muted {
+  color: #64748b;
+}
+
+.cell-value-active {
+  color: #fbbf24;
 }
 
 .cell-input {

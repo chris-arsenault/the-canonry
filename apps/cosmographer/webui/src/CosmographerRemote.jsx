@@ -21,6 +21,7 @@ import CultureEditor from "./components/CultureEditor/index.jsx";
 import EntityEditor from "./components/EntityEditor/index.jsx";
 import RelationshipEditor from "./components/RelationshipEditor/index.jsx";
 import AxisRegistryEditor from "./components/AxisRegistry/index.jsx";
+import "./CosmographerRemote.css";
 
 const TABS = [
   { id: "axes", label: "Axis Registry" },
@@ -29,81 +30,6 @@ const TABS = [
   { id: "entities", label: "Entities" },
   { id: "relationships", label: "Relationships" },
 ];
-
-// Arctic Blue Theme - Cosmographer uses frost blue accent
-const ACCENT_GRADIENT = "linear-gradient(135deg, #60a5fa 0%, #93c5fd 100%)";
-const HOVER_BG = "rgba(96, 165, 250, 0.15)";
-const ACCENT_COLOR = "#60a5fa";
-
-const styles = {
-  container: {
-    display: "flex",
-    height: "100%",
-    backgroundColor: "#0a1929",
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-  },
-  sidebar: {
-    width: "200px",
-    backgroundColor: "#0c1f2e",
-    borderRight: "1px solid rgba(59, 130, 246, 0.3)",
-    display: "flex",
-    flexDirection: "column",
-    flexShrink: 0,
-  },
-  nav: {
-    padding: "12px",
-  },
-  navButton: {
-    display: "block",
-    width: "100%",
-    padding: "10px 12px",
-    marginBottom: "4px",
-    fontSize: "13px",
-    fontWeight: 500,
-    textAlign: "left",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    transition: "all 0.15s",
-    fontFamily: "inherit",
-  },
-  navButtonInactive: {
-    backgroundColor: "transparent",
-    color: "#93c5fd",
-  },
-  navButtonActive: {
-    background: ACCENT_GRADIENT,
-    color: "#0a1929",
-    fontWeight: 600,
-  },
-  main: {
-    flex: 1,
-    display: "flex",
-    overflow: "hidden",
-  },
-  content: {
-    flex: 1,
-    padding: "24px",
-    overflowY: "auto",
-  },
-  noSchema: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#60a5fa",
-    textAlign: "center",
-    padding: "40px",
-  },
-  noSchemaTitle: {
-    fontSize: "18px",
-    fontWeight: 500,
-    marginBottom: "8px",
-    color: "#ffffff",
-  },
-};
 
 export default function CosmographerRemote({
   schema,
@@ -167,9 +93,9 @@ export default function CosmographerRemote({
 
   if (!hasSchema) {
     return (
-      <div style={styles.container}>
-        <div style={styles.noSchema}>
-          <div style={styles.noSchemaTitle}>No Schema Defined</div>
+      <div className="cosmo-container">
+        <div className="cosmo-no-schema">
+          <div className="cosmo-no-schema-title">No Schema Defined</div>
           <div>
             Define entity kinds and cultures in the <strong>Enumerist</strong> tab first, then
             return here to place entities and manage relationships.
@@ -218,19 +144,15 @@ export default function CosmographerRemote({
   };
 
   return (
-    <div style={styles.container}>
+    <div className="cosmo-container">
       {/* Left sidebar with nav */}
-      <div style={styles.sidebar}>
-        <nav style={styles.nav}>
+      <div className="cosmo-sidebar">
+        <nav className="cosmo-nav">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              // eslint-disable-next-line local/no-inline-styles -- dynamic merge of extracted style objects
-              style={{
-                ...styles.navButton,
-                ...(activeTab === tab.id ? styles.navButtonActive : styles.navButtonInactive),
-              }}
+              className={`cosmo-nav-button ${activeTab === tab.id ? "cosmo-nav-button-active" : "cosmo-nav-button-inactive"}`}
             >
               {tab.label}
             </button>
@@ -239,8 +161,8 @@ export default function CosmographerRemote({
       </div>
 
       {/* Main content area */}
-      <div style={styles.main}>
-        <div style={styles.content}>{renderContent()}</div>
+      <div className="cosmo-main">
+        <div className="cosmo-content">{renderContent()}</div>
       </div>
     </div>
   );

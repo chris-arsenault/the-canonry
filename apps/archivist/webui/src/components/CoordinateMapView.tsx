@@ -2,20 +2,17 @@ import React, { useEffect, useRef, useState, useMemo } from "react";
 import type { WorldState, HardState, Point, Region } from "../types/world.ts";
 import type { EntityKindDefinition } from "@canonry/world-schema";
 import "./CoordinateMapView.css";
-
 interface CoordinateMapViewProps {
   data: WorldState;
   selectedNodeId?: string;
   onNodeSelect: (nodeId: string | undefined) => void;
 }
-
 function getKindDisplayName(kindDef: EntityKindDefinition): string {
   return kindDef.style?.displayName || kindDef.description || kindDef.kind;
 }
-
 function mergeRegions(seed: Region[], emergent: Region[]): Region[] {
   const merged = [...seed];
-  const seen = new Set(seed.map((region) => region.id));
+  const seen = new Set(seed.map(region => region.id));
   for (const region of emergent) {
     if (!seen.has(region.id)) {
       merged.push(region);
@@ -32,42 +29,37 @@ function hexToRgba(hex: string, alpha: number): string {
   }
   throw new Error(`Archivist: invalid color "${hex}".`);
 }
-
-function getRegionColor(region: Region): { fill: string; stroke: string } {
+function getRegionColor(region: Region): {
+  fill: string;
+  stroke: string;
+} {
   if (!region.color) {
     throw new Error(`Archivist: region "${region.id}" is missing color.`);
   }
   return {
     fill: hexToRgba(region.color, 0.15),
-    stroke: hexToRgba(region.color, 0.7),
+    stroke: hexToRgba(region.color, 0.7)
   };
 }
 
 /** Draw a single region shape on the canvas. */
-function drawRegion(
-  ctx: CanvasRenderingContext2D,
-  region: Region,
-  hoveredRegion: Region | null | undefined,
-  selectedRegionId: string | null,
-  worldToCanvas: (x: number, y: number) => { x: number; y: number },
-  worldToCanvasDistance: (d: number) => number
-): void {
+function drawRegion(ctx: CanvasRenderingContext2D, region: Region, hoveredRegion: Region | null | undefined, selectedRegionId: string | null, worldToCanvas: (x: number, y: number) => {
+  x: number;
+  y: number;
+}, worldToCanvasDistance: (d: number) => number): void {
   const colors = getRegionColor(region);
   const isHovered = hoveredRegion?.id === region.id;
   const isSelected = selectedRegionId === region.id;
   const highlighted = isHovered || isSelected;
 
   // Adjust colors for hover/selection state
-  ctx.fillStyle = highlighted
-    ? colors.fill.replace(/[\d.]+\)$/, "0.3)") // eslint-disable-line sonarjs/slow-regex -- short rgba() string
-    : colors.fill;
-  const hoverStroke = isHovered
-    ? colors.stroke.replace(/[\d.]+\)$/, "1)") // eslint-disable-line sonarjs/slow-regex -- short rgba() string
-    : colors.stroke;
+  ctx.fillStyle = highlighted ? colors.fill.replace(/[\d.]+\)$/, "0.3)") // eslint-disable-line sonarjs/slow-regex -- short rgba() string
+  : colors.fill;
+  const hoverStroke = isHovered ? colors.stroke.replace(/[\d.]+\)$/, "1)") // eslint-disable-line sonarjs/slow-regex -- short rgba() string
+  : colors.stroke;
   ctx.strokeStyle = isSelected ? "#ffffff" : hoverStroke;
   const baseWidth = isHovered ? 2.5 : 2;
   ctx.lineWidth = isSelected ? 3 : baseWidth;
-
   if (region.bounds.shape === "circle") {
     drawCircleRegion(ctx, region, highlighted, colors, worldToCanvas, worldToCanvasDistance);
   } else if (region.bounds.shape === "rect") {
@@ -76,44 +68,37 @@ function drawRegion(
     drawPolygonRegion(ctx, region, worldToCanvas);
   }
 }
-
-function drawCircleRegion(
-  ctx: CanvasRenderingContext2D,
-  region: Region,
-  highlighted: boolean,
-  colors: { fill: string; stroke: string },
-  worldToCanvas: (x: number, y: number) => { x: number; y: number },
-  worldToCanvasDistance: (d: number) => number
-): void {
+function drawCircleRegion(ctx: CanvasRenderingContext2D, region: Region, highlighted: boolean, colors: {
+  fill: string;
+  stroke: string;
+}, worldToCanvas: (x: number, y: number) => {
+  x: number;
+  y: number;
+}, worldToCanvasDistance: (d: number) => number): void {
   const center = worldToCanvas(region.bounds.center.x, region.bounds.center.y);
   const radiusPixels = worldToCanvasDistance(region.bounds.radius);
-
   ctx.beginPath();
   ctx.arc(center.x, center.y, radiusPixels, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
-
   ctx.fillStyle = highlighted ? "#ffffff" : colors.stroke;
   ctx.font = highlighted ? "bold 13px sans-serif" : "bold 12px sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(region.label, center.x, center.y);
 }
-
-function drawRectRegion(
-  ctx: CanvasRenderingContext2D,
-  region: Region,
-  highlighted: boolean,
-  colors: { fill: string; stroke: string },
-  worldToCanvas: (x: number, y: number) => { x: number; y: number }
-): void {
+function drawRectRegion(ctx: CanvasRenderingContext2D, region: Region, highlighted: boolean, colors: {
+  fill: string;
+  stroke: string;
+}, worldToCanvas: (x: number, y: number) => {
+  x: number;
+  y: number;
+}): void {
   const topLeft = worldToCanvas(region.bounds.x1, region.bounds.y2);
   const bottomRight = worldToCanvas(region.bounds.x2, region.bounds.y1);
-
   ctx.beginPath();
   ctx.rect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y);
   ctx.fill();
   ctx.stroke();
-
   ctx.fillStyle = highlighted ? "#ffffff" : colors.stroke;
   ctx.font = highlighted ? "bold 13px sans-serif" : "bold 12px sans-serif";
   ctx.textAlign = "center";
@@ -121,16 +106,20 @@ function drawRectRegion(
   const centerY = (topLeft.y + bottomRight.y) / 2;
   ctx.fillText(region.label, centerX, centerY);
 }
-
-function drawPolygonRegion(
-  ctx: CanvasRenderingContext2D,
-  region: Region,
-  worldToCanvas: (x: number, y: number) => { x: number; y: number }
-): void {
-  const points = region.bounds.points.map((p: { x: number; y: number }) => worldToCanvas(p.x, p.y));
+function drawPolygonRegion(ctx: CanvasRenderingContext2D, region: Region, worldToCanvas: (x: number, y: number) => {
+  x: number;
+  y: number;
+}): void {
+  const points = region.bounds.points.map((p: {
+    x: number;
+    y: number;
+  }) => worldToCanvas(p.x, p.y));
   ctx.beginPath();
   ctx.moveTo(points[0].x, points[0].y);
-  points.slice(1).forEach((p: { x: number; y: number }) => ctx.lineTo(p.x, p.y));
+  points.slice(1).forEach((p: {
+    x: number;
+    y: number;
+  }) => ctx.lineTo(p.x, p.y));
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
@@ -139,13 +128,7 @@ function drawPolygonRegion(
 // Get entity coordinates (requires valid x/y/z)
 function getEntityCoords(entity: HardState): Point {
   const coords = entity.coordinates;
-
-  if (
-    !coords ||
-    typeof coords.x !== "number" ||
-    typeof coords.y !== "number" ||
-    typeof coords.z !== "number"
-  ) {
+  if (!coords || typeof coords.x !== "number" || typeof coords.y !== "number" || typeof coords.z !== "number") {
     throw new Error(`Archivist: entity "${entity.id}" is missing valid coordinates.`);
   }
   return coords;
@@ -161,17 +144,15 @@ interface LayoutNode {
   anchored: boolean;
   entity: HardState;
 }
-
-function runForceLayout(
-  nodes: LayoutNode[],
-  relationships: Array<{ src: string; dst: string; strength?: number }>,
-  iterations: number = 50
-): void {
-  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-
+function runForceLayout(nodes: LayoutNode[], relationships: Array<{
+  src: string;
+  dst: string;
+  strength?: number;
+}>, iterations: number = 50): void {
+  const nodeMap = new Map(nodes.map(n => [n.id, n]));
   for (let i = 0; i < iterations; i++) {
     // Reset velocities
-    nodes.forEach((n) => {
+    nodes.forEach(n => {
       if (!n.anchored) {
         n.vx = 0;
         n.vy = 0;
@@ -179,44 +160,42 @@ function runForceLayout(
     });
 
     // Attraction to related anchored nodes
-    relationships.forEach((rel) => {
+    relationships.forEach(rel => {
       const src = nodeMap.get(rel.src);
       const dst = nodeMap.get(rel.dst);
       if (!src || !dst) return;
-
       const dx = dst.x - src.x;
       const dy = dst.y - src.y;
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;
       const strength = (rel.strength ?? 0.5) * 0.1;
-
       if (!src.anchored) {
-        src.vx += (dx / dist) * strength;
-        src.vy += (dy / dist) * strength;
+        src.vx += dx / dist * strength;
+        src.vy += dy / dist * strength;
       }
       if (!dst.anchored) {
-        dst.vx -= (dx / dist) * strength;
-        dst.vy -= (dy / dist) * strength;
+        dst.vx -= dx / dist * strength;
+        dst.vy -= dy / dist * strength;
       }
     });
 
     // Repulsion between floating nodes
-    nodes.forEach((a) => {
+    nodes.forEach(a => {
       if (a.anchored) return;
-      nodes.forEach((b) => {
+      nodes.forEach(b => {
         if (a.id === b.id) return;
         const dx = a.x - b.x;
         const dy = a.y - b.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
         if (dist < 10) {
           const force = 0.5 / dist;
-          a.vx += (dx / dist) * force;
-          a.vy += (dy / dist) * force;
+          a.vx += dx / dist * force;
+          a.vy += dy / dist * force;
         }
       });
     });
 
     // Apply velocities
-    nodes.forEach((n) => {
+    nodes.forEach(n => {
       if (!n.anchored) {
         n.x = Math.max(0, Math.min(100, n.x + n.vx));
         n.y = Math.max(0, Math.min(100, n.y + n.vy));
@@ -224,49 +203,47 @@ function runForceLayout(
     });
   }
 }
-
 export default function CoordinateMapView({
   data,
   selectedNodeId,
-  onNodeSelect,
+  onNodeSelect
 }: Readonly<CoordinateMapViewProps>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const [dimensions, setDimensions] = useState({
+    width: 800,
+    height: 600
+  });
   const [mapKind, setMapKind] = useState<string>(() => {
-    const firstKind = data.schema.entityKinds.find((kind) => kind.semanticPlane)?.kind;
+    const firstKind = data.schema.entityKinds.find(kind => kind.semanticPlane)?.kind;
     return firstKind ?? "";
   }); // Which entity kind's map to show
   const [showRelatedKinds, setShowRelatedKinds] = useState<boolean>(true); // Show related entities from other kinds
-  const [visibleLayers, setVisibleLayers] = useState<Set<string>>(
-    new Set(["regions", "entities", "relationships"])
-  );
+  const [visibleLayers, setVisibleLayers] = useState<Set<string>>(new Set(["regions", "entities", "relationships"]));
   const [hoveredEntity, setHoveredEntity] = useState<HardState | null>(null);
   const [hoveredRegion, setHoveredRegion] = useState<Region | null>(null);
-  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const [mousePos, setMousePos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Get entity kind schemas
   const entityKindSchemas = data.schema.entityKinds;
   const kindDisplayNames = useMemo(() => {
-    return new Map(entityKindSchemas.map((kind) => [kind.kind, getKindDisplayName(kind)]));
+    return new Map(entityKindSchemas.map(kind => [kind.kind, getKindDisplayName(kind)]));
   }, [entityKindSchemas]);
-
   const axisDefinitions = useMemo(() => data.schema.axisDefinitions || [], [data.schema.axisDefinitions]);
   const axisById = useMemo(() => {
-    return new Map(axisDefinitions.map((axis) => [axis.id, axis]));
+    return new Map(axisDefinitions.map(axis => [axis.id, axis]));
   }, [axisDefinitions]);
-
-  const mappableKindSchemas = useMemo(
-    () => entityKindSchemas.filter((kind) => kind.semanticPlane),
-    [entityKindSchemas]
-  );
-  const mappableKinds = mappableKindSchemas.map((kind) => kind.kind);
+  const mappableKindSchemas = useMemo(() => entityKindSchemas.filter(kind => kind.semanticPlane), [entityKindSchemas]);
+  const mappableKinds = mappableKindSchemas.map(kind => kind.kind);
 
   // Derive effective map kind: if current selection is invalid, fall back to first available
-  const effectiveMapKind = mappableKinds.includes(mapKind) ? mapKind : (mappableKinds[0] ?? mapKind);
+  const effectiveMapKind = mappableKinds.includes(mapKind) ? mapKind : mappableKinds[0] ?? mapKind;
 
   // Get per-kind map config and regions (seed + emergent)
-  const activeKindDef = mappableKindSchemas.find((kind) => kind.kind === effectiveMapKind);
+  const activeKindDef = mappableKindSchemas.find(kind => kind.kind === effectiveMapKind);
   if (!activeKindDef || !activeKindDef.semanticPlane) {
     throw new Error("Archivist: map view requires a semantic plane on the selected entity kind.");
   }
@@ -284,36 +261,33 @@ export default function CoordinateMapView({
   const seedRegions = activeKindDef.semanticPlane.regions ?? [];
   const emergentRegions = data.coordinateState?.emergentRegions?.[effectiveMapKind] ?? [];
   const regions = mergeRegions(seedRegions, emergentRegions);
-  const bounds = { min: 0, max: 100 };
+  const bounds = {
+    min: 0,
+    max: 100
+  };
 
   // Filter entities for the current map - primary kind always shown, related kinds optionally
   const mapEntities = useMemo(() => {
-    const primaryEntities = data.hardState.filter((e) => e.kind === effectiveMapKind);
-
+    const primaryEntities = data.hardState.filter(e => e.kind === effectiveMapKind);
     if (!showRelatedKinds) {
       return primaryEntities;
     }
 
     // Find entities related to primary entities
-    const primaryIds = new Set(primaryEntities.map((e) => e.id));
+    const primaryIds = new Set(primaryEntities.map(e => e.id));
     const relatedIds = new Set<string>();
-
-    data.relationships.forEach((rel) => {
+    data.relationships.forEach(rel => {
       if (primaryIds.has(rel.src)) relatedIds.add(rel.dst);
       if (primaryIds.has(rel.dst)) relatedIds.add(rel.src);
     });
-
-    const relatedEntities = data.hardState.filter(
-      (e) => relatedIds.has(e.id) && !primaryIds.has(e.id)
-    );
-
+    const relatedEntities = data.hardState.filter(e => relatedIds.has(e.id) && !primaryIds.has(e.id));
     return [...primaryEntities, ...relatedEntities];
   }, [data.hardState, data.relationships, effectiveMapKind, showRelatedKinds]);
 
   // Build entity color map
   const entityColorMap = useMemo(() => {
     const map = new Map<string, string>();
-    entityKindSchemas.forEach((ek) => {
+    entityKindSchemas.forEach(ek => {
       if (!ek.style?.color) {
         throw new Error(`Archivist: entity kind "${ek.kind}" is missing style.color.`);
       }
@@ -327,9 +301,8 @@ export default function CoordinateMapView({
     const nodes: LayoutNode[] = [];
 
     // All entities get coordinates
-    mapEntities.forEach((entity) => {
+    mapEntities.forEach(entity => {
       const coords = getEntityCoords(entity);
-
       nodes.push({
         id: entity.id,
         x: coords.x,
@@ -338,22 +311,23 @@ export default function CoordinateMapView({
         vy: 0,
         // Only anchor primary kind entities
         anchored: entity.kind === effectiveMapKind,
-        entity,
+        entity
       });
     });
 
     // Run force layout - only include relationships between visible entities
-    const visibleIds = new Set(mapEntities.map((e) => e.id));
-    const relationships = data.relationships
-      .filter((r) => visibleIds.has(r.src) && visibleIds.has(r.dst))
-      .map((r) => ({
-        src: r.src,
-        dst: r.dst,
-        strength: r.strength,
-      }));
+    const visibleIds = new Set(mapEntities.map(e => e.id));
+    const relationships = data.relationships.filter(r => visibleIds.has(r.src) && visibleIds.has(r.dst)).map(r => ({
+      src: r.src,
+      dst: r.dst,
+      strength: r.strength
+    }));
     runForceLayout(nodes, relationships);
-
-    return new Map(nodes.map((n) => [n.id, { x: n.x, y: n.y, anchored: n.anchored }]));
+    return new Map(nodes.map(n => [n.id, {
+      x: n.x,
+      y: n.y,
+      anchored: n.anchored
+    }]));
   }, [mapEntities, data.relationships, effectiveMapKind]);
 
   // Use uniform scale to preserve aspect ratio (circles stay circular)
@@ -368,18 +342,24 @@ export default function CoordinateMapView({
   const offsetY = padding + (availableHeight - worldRange * uniformScale) / 2;
 
   // Convert world coordinates to canvas coordinates
-  const worldToCanvas = (x: number, y: number): { x: number; y: number } => {
+  const worldToCanvas = (x: number, y: number): {
+    x: number;
+    y: number;
+  } => {
     return {
       x: offsetX + (x - bounds.min) * uniformScale,
-      y: dimensions.height - offsetY - (y - bounds.min) * uniformScale, // Flip Y for canvas
+      y: dimensions.height - offsetY - (y - bounds.min) * uniformScale // Flip Y for canvas
     };
   };
 
   // Convert canvas coordinates to world coordinates
-  const canvasToWorld = (canvasX: number, canvasY: number): { x: number; y: number } => {
+  const canvasToWorld = (canvasX: number, canvasY: number): {
+    x: number;
+    y: number;
+  } => {
     return {
       x: bounds.min + (canvasX - offsetX) / uniformScale,
-      y: bounds.min + (dimensions.height - offsetY - canvasY) / uniformScale,
+      y: bounds.min + (dimensions.height - offsetY - canvasY) / uniformScale
     };
   };
 
@@ -394,11 +374,10 @@ export default function CoordinateMapView({
       if (containerRef.current) {
         setDimensions({
           width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight,
+          height: containerRef.current.clientHeight
         });
       }
     };
-
     updateDimensions();
     window.addEventListener("resize", updateDimensions);
     return () => window.removeEventListener("resize", updateDimensions);
@@ -408,7 +387,6 @@ export default function CoordinateMapView({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -420,7 +398,6 @@ export default function CoordinateMapView({
     ctx.strokeStyle = "rgba(59, 130, 246, 0.1)";
     ctx.lineWidth = 1;
     const gridStep = 10;
-
     for (let i = bounds.min; i <= bounds.max; i += gridStep) {
       const start = worldToCanvas(i, bounds.min);
       const end = worldToCanvas(i, bounds.max);
@@ -428,7 +405,6 @@ export default function CoordinateMapView({
       ctx.moveTo(start.x, start.y);
       ctx.lineTo(end.x, end.y);
       ctx.stroke();
-
       const hStart = worldToCanvas(bounds.min, i);
       const hEnd = worldToCanvas(bounds.max, i);
       ctx.beginPath();
@@ -498,7 +474,6 @@ export default function CoordinateMapView({
     for (let i = bounds.min + 20; i < bounds.max; i += 20) {
       const pos = worldToCanvas(i, bounds.min);
       ctx.fillText(i.toString(), pos.x, pos.y + 12);
-
       ctx.textAlign = "right";
       const posY = worldToCanvas(bounds.min, i);
       ctx.fillText(i.toString(), posY.x - 5, posY.y + 3);
@@ -506,13 +481,11 @@ export default function CoordinateMapView({
     }
 
     // Parse selectedNodeId to check if a region is selected
-    const selectedRegionId = selectedNodeId?.startsWith("region:")
-      ? selectedNodeId.split(":")[2]
-      : null;
+    const selectedRegionId = selectedNodeId?.startsWith("region:") ? selectedNodeId.split(":")[2] : null;
 
     // Draw regions if layer is visible
     if (visibleLayers.has("regions")) {
-      regions.forEach((region) => {
+      regions.forEach(region => {
         drawRegion(ctx, region, hoveredRegion, selectedRegionId, worldToCanvas, worldToCanvasDistance);
       });
     }
@@ -521,15 +494,12 @@ export default function CoordinateMapView({
     if (visibleLayers.has("relationships")) {
       ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
       ctx.lineWidth = 1;
-
-      data.relationships.forEach((rel) => {
+      data.relationships.forEach(rel => {
         const srcPos = entityPositions.get(rel.src);
         const dstPos = entityPositions.get(rel.dst);
         if (!srcPos || !dstPos) return;
-
         const start = worldToCanvas(srcPos.x, srcPos.y);
         const end = worldToCanvas(dstPos.x, dstPos.y);
-
         ctx.globalAlpha = (rel.strength ?? 0.5) * 0.5;
         ctx.beginPath();
         ctx.moveTo(start.x, start.y);
@@ -541,10 +511,9 @@ export default function CoordinateMapView({
 
     // Draw entities if layer is visible
     if (visibleLayers.has("entities")) {
-      mapEntities.forEach((entity) => {
+      mapEntities.forEach(entity => {
         const pos = entityPositions.get(entity.id);
         if (!pos) return;
-
         const canvasPos = worldToCanvas(pos.x, pos.y);
         const color = entityColorMap.get(entity.kind);
         if (!color) {
@@ -586,24 +555,7 @@ export default function CoordinateMapView({
         }
       });
     }
-  }, [
-    data,
-    dimensions,
-    effectiveMapKind,
-    visibleLayers,
-    entityPositions,
-    entityColorMap,
-    regions,
-    bounds,
-    selectedNodeId,
-    hoveredEntity,
-    hoveredRegion,
-    mapEntities,
-    xAxis,
-    yAxis,
-    worldToCanvas,
-    worldToCanvasDistance,
-  ]);
+  }, [data, dimensions, effectiveMapKind, visibleLayers, entityPositions, entityColorMap, regions, bounds, selectedNodeId, hoveredEntity, hoveredRegion, mapEntities, xAxis, yAxis, worldToCanvas, worldToCanvasDistance]);
 
   // Check if a point is inside a region
   const isPointInRegion = (region: Region, worldX: number, worldY: number): boolean => {
@@ -612,12 +564,7 @@ export default function CoordinateMapView({
       const dy = worldY - region.bounds.center.y;
       return Math.sqrt(dx * dx + dy * dy) <= region.bounds.radius;
     } else if (region.bounds.shape === "rect") {
-      return (
-        worldX >= region.bounds.x1 &&
-        worldX <= region.bounds.x2 &&
-        worldY >= region.bounds.y1 &&
-        worldY <= region.bounds.y2
-      );
+      return worldX >= region.bounds.x1 && worldX <= region.bounds.x2 && worldY >= region.bounds.y1 && worldY <= region.bounds.y2;
     }
     return false;
   };
@@ -626,7 +573,6 @@ export default function CoordinateMapView({
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const rect = canvas.getBoundingClientRect();
     const canvasX = e.clientX - rect.left;
     const canvasY = e.clientY - rect.top;
@@ -637,20 +583,17 @@ export default function CoordinateMapView({
     let foundEntity: HardState | null = null;
     let minDist = 3; // Threshold in world units - small to allow region selection
 
-    mapEntities.forEach((entity) => {
+    mapEntities.forEach(entity => {
       const pos = entityPositions.get(entity.id);
       if (!pos) return;
-
       const dx = pos.x - worldPos.x;
       const dy = pos.y - worldPos.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-
       if (dist < minDist) {
         minDist = dist;
         foundEntity = entity;
       }
     });
-
     setHoveredEntity(foundEntity);
 
     // Find region under cursor (if no entity found and regions visible)
@@ -666,7 +609,6 @@ export default function CoordinateMapView({
     }
     setHoveredRegion(foundRegion);
   };
-
   const handleClick = () => {
     if (hoveredEntity) {
       onNodeSelect(hoveredEntity.id);
@@ -677,9 +619,8 @@ export default function CoordinateMapView({
       onNodeSelect(undefined);
     }
   };
-
   const toggleLayer = (layer: string) => {
-    setVisibleLayers((prev) => {
+    setVisibleLayers(prev => {
       const next = new Set(prev);
       if (next.has(layer)) {
         next.delete(layer);
@@ -689,43 +630,24 @@ export default function CoordinateMapView({
       return next;
     });
   };
-
-  return (
-    <div className="coordinate-map-container" ref={containerRef}>
-      <canvas
-        ref={canvasRef}
-        width={dimensions.width}
-        height={dimensions.height}
-        onMouseMove={handleMouseMove}
-        onClick={handleClick}
-        style={{ cursor: hoveredEntity || hoveredRegion ? "pointer" : "default" }}
-      />
+  return <div className="coordinate-map-container" ref={containerRef}>
+      <canvas ref={canvasRef} width={dimensions.width} height={dimensions.height} onMouseMove={handleMouseMove} onClick={handleClick} className={hoveredEntity || hoveredRegion ? "coordinate-map-canvas coordinate-map-canvas-clickable" : "coordinate-map-canvas"} />
 
       {/* Controls */}
       <div className="coordinate-map-controls">
         <div className="control-section">
           <div className="control-label">Entity Map</div>
-          <select
-            value={mapKind}
-            onChange={(e) => setMapKind(e.target.value)}
-            className="control-select"
-          >
-            {mappableKinds.map((kind) => (
-              <option key={kind} value={kind}>
+          <select value={mapKind} onChange={e => setMapKind(e.target.value)} className="control-select">
+            {mappableKinds.map(kind => <option key={kind} value={kind}>
                 {kindDisplayNames.get(kind) ?? kind}
-              </option>
-            ))}
+              </option>)}
           </select>
           <div className="control-description">{mapDescription}</div>
         </div>
 
         <div className="control-section">
           <label className="layer-toggle">
-            <input
-              type="checkbox"
-              checked={showRelatedKinds}
-              onChange={() => setShowRelatedKinds(!showRelatedKinds)}
-            />
+            <input type="checkbox" checked={showRelatedKinds} onChange={() => setShowRelatedKinds(!showRelatedKinds)} />
             <span>Show related entities</span>
           </label>
         </div>
@@ -733,16 +655,10 @@ export default function CoordinateMapView({
         <div className="control-section">
           <div className="control-label">Layers</div>
           <div className="layer-toggles">
-            {["regions", "entities", "relationships"].map((layer) => (
-              <label key={layer} className="layer-toggle">
-                <input
-                  type="checkbox"
-                  checked={visibleLayers.has(layer)}
-                  onChange={() => toggleLayer(layer)}
-                />
+            {["regions", "entities", "relationships"].map(layer => <label key={layer} className="layer-toggle">
+                <input type="checkbox" checked={visibleLayers.has(layer)} onChange={() => toggleLayer(layer)} />
                 <span>{layer}</span>
-              </label>
-            ))}
+              </label>)}
           </div>
         </div>
       </div>
@@ -750,56 +666,39 @@ export default function CoordinateMapView({
       {/* Legend */}
       <div className="coordinate-map-legend">
         <div className="legend-title">Entity Types</div>
-        {entityKindSchemas.map((ek) => {
-          if (!ek.style?.color) {
-            throw new Error(`Archivist: entity kind "${ek.kind}" is missing style.color.`);
-          }
-          return (
-            <div key={ek.kind} className="legend-item">
-              <div
-                className="legend-dot"
-                style={{
-                  backgroundColor: ek.style.color,
-                  border: ek.kind === effectiveMapKind ? "2px solid white" : "none",
-                }}
-              />
+        {entityKindSchemas.map(ek => {
+        if (!ek.style?.color) {
+          throw new Error(`Archivist: entity kind "${ek.kind}" is missing style.color.`);
+        }
+        return <div key={ek.kind} className="legend-item">
+              <svg className="legend-dot-svg" viewBox="0 0 12 12" aria-hidden="true">
+                <circle cx="6" cy="6" r="5" fill={ek.style.color} stroke={ek.kind === effectiveMapKind ? "#ffffff" : "none"} strokeWidth="2" />
+              </svg>
               <span>{ek.description || ek.kind}</span>
               {ek.kind === effectiveMapKind && <span className="anchor-badge">primary</span>}
-            </div>
-          );
-        })}
-        {regions.length > 0 && (
-          <>
+            </div>;
+      })}
+        {regions.length > 0 && <>
             <div className="legend-divider" />
             <div className="legend-title">Regions ({regions.length})</div>
-            {regions.map((region) => {
-              if (!region.color) {
-                throw new Error(`Archivist: region "${region.id}" is missing color.`);
-              }
-              return (
-                <div key={region.id} className="legend-item">
-                  <div className="legend-dot" style={{ backgroundColor: region.color }} />
+            {regions.map(region => {
+          if (!region.color) {
+            throw new Error(`Archivist: region "${region.id}" is missing color.`);
+          }
+          return <div key={region.id} className="legend-item">
+                  <svg className="legend-dot-svg" viewBox="0 0 12 12" aria-hidden="true">
+                    <circle cx="6" cy="6" r="5" fill={region.color} />
+                  </svg>
                   <span>{region.label}</span>
-                </div>
-              );
-            })}
-          </>
-        )}
+                </div>;
+        })}
+          </>}
       </div>
 
       {/* Hover tooltip */}
-      {hoveredEntity &&
-        mousePos &&
-        (() => {
-          const coords = getEntityCoords(hoveredEntity);
-          return (
-            <div
-              className="coordinate-map-tooltip"
-              style={{
-                left: worldToCanvas(mousePos.x, mousePos.y).x + 15,
-                top: worldToCanvas(mousePos.x, mousePos.y).y - 15,
-              }}
-            >
+      {hoveredEntity && mousePos && (() => {
+      const coords = getEntityCoords(hoveredEntity);
+      return <div className="coordinate-map-tooltip coordinate-map-tooltip-fixed">
               <div className="tooltip-name">{hoveredEntity.name}</div>
               <div className="tooltip-info">
                 {hoveredEntity.kind} / {hoveredEntity.subtype}
@@ -808,16 +707,12 @@ export default function CoordinateMapView({
               <div className="tooltip-coords">
                 x: {coords.x.toFixed(1)}, y: {coords.y.toFixed(1)}, z: {coords.z.toFixed(1)}
               </div>
-            </div>
-          );
-        })()}
+            </div>;
+    })()}
 
       {/* Coordinate display */}
-      {mousePos && (
-        <div className="coordinate-display">
+      {mousePos && <div className="coordinate-display">
           x: {mousePos.x.toFixed(1)}, y: {mousePos.y.toFixed(1)}
-        </div>
-      )}
-    </div>
-  );
+        </div>}
+    </div>;
 }

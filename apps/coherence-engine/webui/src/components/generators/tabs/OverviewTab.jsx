@@ -63,7 +63,7 @@ export function OverviewTab({ generator, onChange, onDelete, onDuplicate }) {
           </div>
         </div>
 
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <label className="label">Enabled
           <EnableToggle
             enabled={generator.enabled !== false}
@@ -73,9 +73,9 @@ export function OverviewTab({ generator, onChange, onDelete, onDuplicate }) {
           </label>
         </div>
 
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <span className="label">Narration Template</span>
-          <div className="section-desc" style={{ marginBottom: "8px" }}>
+          <div className="section-desc mb-md">
             Syntax: {"{$target.field}"}, {"{$var.field}"}, {"{count:kind}"}, {"{list:created}"},{" "}
             {"{field|fallback}"}.
           </div>

@@ -160,6 +160,7 @@
   font-size: 12px;
   color: var(--text-primary);
   outline: none;
+  width: var(--edv-input-width);
 }
 
 .edv-aliases-tag {
@@ -305,6 +306,10 @@
   cursor: pointer;
   text-transform: none;
   letter-spacing: normal;
+}
+
+.edv-margin-notes-spaced {
+  margin-top: 12px;
 }
 
 /* Version hint */

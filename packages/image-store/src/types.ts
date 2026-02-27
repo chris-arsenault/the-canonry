@@ -2,16 +2,24 @@ export type ImageSize = 'thumb' | 'full';
 
 /**
  * Metadata for a single image — lightweight, no blob data.
- * Used for layout decisions (aspect ratio) and entity identification.
+ * Used for layout decisions (aspect ratio), entity identification,
+ * and generation provenance (prompt, model, etc.).
  */
 export interface ImageEntryMetadata {
   imageId: string;
   entityId?: string;
   entityName?: string;
   entityKind?: string;
+  entityCulture?: string;
   width?: number;
   height?: number;
   aspect?: 'portrait' | 'landscape' | 'square';
+  originalPrompt?: string;
+  finalPrompt?: string;
+  revisedPrompt?: string;
+  generatedAt?: number;
+  model?: string;
+  size?: number;
 }
 
 /**

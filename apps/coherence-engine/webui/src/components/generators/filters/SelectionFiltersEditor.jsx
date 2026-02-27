@@ -6,6 +6,7 @@ import React, { useState, useRef, useLayoutEffect, useEffect } from "react";
 import PropTypes from "prop-types";
 import { FILTER_TYPES } from "../constants";
 import { SelectionFilterCard } from "./SelectionFilterCard";
+import "./SelectionFiltersEditor.css";
 
 /**
  * @param {Object} props
@@ -106,29 +107,23 @@ export function SelectionFiltersEditor({ filters, onChange, schema, availableRef
         </div>
       )}
 
-      <div ref={containerRef} style={{ position: "relative", marginTop: "12px" }}>
+      <div ref={containerRef} className="relative mt-lg">
         <button onClick={() => setShowTypeMenu(!showTypeMenu)} className="btn-add-inline">
           + Add Filter
         </button>
 
         {showTypeMenu && (
           <div
-            className="dropdown-menu"
-            style={{
-              position: "fixed",
-              top: dropdownPos.top,
-              left: dropdownPos.left,
-              width: dropdownPos.width,
-              maxHeight: "300px",
-              overflowY: "auto",
-              zIndex: 10000,
-            }}
+            className="dropdown-menu sfe-dropdown-fixed"
+            // eslint-disable-next-line local/no-inline-styles -- dynamic position from measured DOM rect
+            style={{ '--sfe-dd-top': `${dropdownPos.top}px`, '--sfe-dd-left': `${dropdownPos.left}px`, '--sfe-dd-width': `${dropdownPos.width}px`, top: 'var(--sfe-dd-top)', left: 'var(--sfe-dd-left)', width: 'var(--sfe-dd-width)' }}
           >
             {Object.entries(FILTER_TYPES).map(([type, config]) => (
               <div key={type} onClick={() => handleAddFilter(type)} className="dropdown-menu-item" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
                 <span
                   className="dropdown-menu-icon"
-                  style={{ backgroundColor: `${config.color}20` }}
+                  // eslint-disable-next-line local/no-inline-styles -- dynamic color per filter type
+                  style={{ '--sfe-icon-bg': `${config.color}20`, backgroundColor: 'var(--sfe-icon-bg)' }}
                 >
                   {config.icon}
                 </span>

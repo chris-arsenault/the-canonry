@@ -1,0 +1,8 @@
+/* OverviewTab companion styles */
+.ot-description-textarea {
+  min-height: 60px;
+}
+
+.ot-type-desc {
+  font-size: 13px;
+}

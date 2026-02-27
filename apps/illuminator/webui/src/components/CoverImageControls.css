@@ -48,6 +48,7 @@
 
 .cic-label {
   font-size: 13px;
+  font-weight: var(--cic-label-weight, 500);
 }
 
 .cic-description {

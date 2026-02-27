@@ -132,7 +132,7 @@ export function GraphPathEditor({ assert, onChange, schema, availableRefs }) {
               availableRefs={allRefs}
             />
           ))}
-          <div style={{ position: "relative" }}>
+          <div className="relative">
             <button
               onClick={() => setShowConstraintMenu(!showConstraintMenu)}
               className="button button-add-constraint"

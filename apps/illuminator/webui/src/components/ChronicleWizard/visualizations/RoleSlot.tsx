@@ -8,6 +8,7 @@
 import type { RoleDefinition } from "@canonry/world-schema";
 import type { ChronicleRoleAssignment } from "../../../lib/chronicleTypes";
 import React from "react";
+import "./RoleSlot.css";
 
 interface RoleSlotProps {
   role: RoleDefinition;
@@ -39,63 +40,29 @@ export default function RoleSlot({
   const canAccept = hasSelection && !isAtMax;
   const count = assignments.length;
 
+  const wrapClass = `rs-wrap ${canAccept ? "rs-wrap-accept" : isUnderMin ? "rs-wrap-undermin" : "rs-wrap-default"}`;
+
   return (
     <div
       onClick={canAccept ? onAssign : undefined}
-      style={{
-        padding: "8px 10px",
-        background: canAccept ? "rgba(99, 102, 241, 0.1)" : "var(--bg-secondary)",
-        borderRadius: "6px",
-        borderLeft: (() => {
-          if (isUnderMin) return "3px solid var(--error)";
-          if (canAccept) return "3px solid var(--accent-color)";
-          return "3px solid transparent";
-        })(),
-        cursor: canAccept ? "pointer" : "default",
-        transition: "background 0.15s ease",
-      }}
+      className={wrapClass}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
     >
       {/* Role header - single line */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: assignments.length > 0 || canAccept ? "6px" : 0,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span
-            style={{
-              fontWeight: 600,
-              fontSize: "11px",
-              textTransform: "capitalize",
-              color: isUnderMin ? "var(--error)" : "var(--text-primary)",
-            }}
-          >
+      <div className={`rs-header ${assignments.length > 0 || canAccept ? "rs-header-mb" : ""}`}>
+        <div className="rs-name-row">
+          <span className={`rs-role-name ${isUnderMin ? "rs-role-name-error" : "rs-role-name-default"}`}>
             {role.role}
           </span>
-          <span
-            style={{
-              fontSize: "9px",
-              color: isUnderMin ? "var(--error)" : "var(--text-muted)",
-            }}
-          >
+          <span className={`rs-role-count ${isUnderMin ? "rs-role-count-error" : "rs-role-count-default"}`}>
             {count}/{role.count.max}
           </span>
         </div>
 
         {canAccept && (
-          <span
-            style={{
-              fontSize: "9px",
-              color: "var(--accent-color)",
-              fontWeight: 500,
-            }}
-          >
+          <span className="rs-add-label">
             + Add
           </span>
         )}
@@ -103,44 +70,20 @@ export default function RoleSlot({
 
       {/* Assigned entities - visually distinct from header */}
       {assignments.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "4px",
-            marginLeft: "8px",
-            paddingLeft: "8px",
-            borderLeft: "2px solid var(--border-color)",
-          }}
-        >
+        <div className="rs-assignments">
           {assignments.map((assignment) => (
             <div
               key={assignment.entityId}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "4px 6px",
-                background: "var(--bg-tertiary)",
-                borderRadius: "4px",
-                fontSize: "10px",
-              }}
+              className="rs-assignment-row"
               onClick={(e) => e.stopPropagation()}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
             >
               {/* Entity name */}
-              <span style={{ flex: 1, fontWeight: 500 }}>
+              <span className="rs-entity-name">
                 {assignment.entityName}
-                <span
-                  style={{
-                    color: "var(--text-muted)",
-                    fontWeight: 400,
-                    marginLeft: "4px",
-                    fontSize: "9px",
-                  }}
-                >
+                <span className="rs-entity-kind">
                   {assignment.entityKind}
                 </span>
               </span>
@@ -148,17 +91,7 @@ export default function RoleSlot({
               {/* Primary/Support toggle - full text, more button-like */}
               <button
                 onClick={() => onTogglePrimary(assignment.entityId)}
-                style={{
-                  padding: "2px 6px",
-                  background: assignment.isPrimary ? "var(--accent-color)" : "var(--bg-secondary)",
-                  color: assignment.isPrimary ? "white" : "var(--text-muted)",
-                  border: "1px solid",
-                  borderColor: assignment.isPrimary ? "var(--accent-color)" : "var(--border-color)",
-                  borderRadius: "3px",
-                  fontSize: "9px",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                }}
+                className={`rs-toggle-btn ${assignment.isPrimary ? "rs-toggle-btn-primary" : "rs-toggle-btn-support"}`}
                 title="Click to toggle primary/support"
               >
                 {assignment.isPrimary ? "Primary" : "Support"}
@@ -167,21 +100,7 @@ export default function RoleSlot({
               {/* Remove button */}
               <button
                 onClick={() => onRemove(assignment.entityId)}
-                style={{
-                  width: "16px",
-                  height: "16px",
-                  padding: 0,
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "3px",
-                  color: "var(--text-muted)",
-                  cursor: "pointer",
-                  fontSize: "11px",
-                  lineHeight: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                className="rs-remove-btn"
                 title="Remove from role"
               >
                 ×

@@ -104,14 +104,12 @@ function normalizeValueLog(value) {
  * Gradient legend component with diverging scale
  */
 function GradientLegend({ title, minLabel, maxLabel, centerLabel }) {
-  const gradientStyle = {
-    background: `linear-gradient(to right, ${COLOR_STOPS.map((s) => s.color).join(", ")})`,
-  };
+  const gradientBackground = `linear-gradient(to right, ${COLOR_STOPS.map((s) => s.color).join(", ")})`;
 
   return (
     <div className="vis-legend vis-legend-gradient">
       <div className="vis-legend-title">{title}</div>
-      <div className="vis-legend-gradient-bar" style={gradientStyle} />
+      <div className="vis-legend-gradient-bar vis-legend-gradient-bar-dynamic" style={{ '--vis-gradient-bg': gradientBackground }} />
       <div className="vis-legend-gradient-labels">
         <span>{minLabel}</span>
         <span>{centerLabel}</span>
@@ -370,10 +368,10 @@ function DiffusionFieldChart({
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="vis-tooltip"
+          className="vis-tooltip vis-tooltip-dynamic"
           style={{
-            left: tooltip.x + 15,
-            top: tooltip.y - 10,
+            '--vis-tooltip-left': `${tooltip.x + 15}px`,
+            '--vis-tooltip-top': `${tooltip.y - 10}px`,
           }}
         >
           <div className="vis-tooltip-header">
@@ -501,7 +499,7 @@ export function PlaneDiffusionVis({
       <div className="vis-empty">
         <div className="vis-empty-icon">&#9783;</div>
         <div>No diffusion data</div>
-        <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>
+        <div className="vis-info-hint">
           Run simulation with {config.name} enabled
         </div>
       </div>
@@ -514,13 +512,13 @@ export function PlaneDiffusionVis({
         <div className="vis-container-title">
           {config.name}
           {selectedTick !== undefined && (
-            <span style={{ color: "#64748b", marginLeft: 8 }}>Tick {selectedTick}</span>
+            <span className="vis-subtitle">Tick {selectedTick}</span>
           )}
         </div>
-        <div style={{ fontSize: 11, color: "#64748b" }}>
+        <div className="vis-info-text">
           {sources.length} sources, {sinks.length} sinks, {entityData.length} entities
           {gridStats && (
-            <span style={{ marginLeft: 12 }}>
+            <span className="vis-info-stats">
               | min: {gridStats.min?.toFixed(1)} max: {gridStats.max?.toFixed(1)} avg:{" "}
               {gridStats.avg?.toFixed(2)} ({gridStats.nonZeroCount} non-zero)
             </span>

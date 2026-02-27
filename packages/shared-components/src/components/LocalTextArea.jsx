@@ -12,7 +12,6 @@
  * @param {string} [props.className] - CSS class name
  * @param {string} [props.placeholder] - Placeholder text
  * @param {number} [props.rows] - Number of rows
- * @param {Object} [props.style] - Additional inline styles
  *
  * @example
  * <LocalTextArea
@@ -33,7 +32,6 @@ export function LocalTextArea({
   className = 'textarea',
   placeholder,
   rows,
-  style,
   ...rest
 }) {
   const externalValue = value || '';
@@ -63,7 +61,6 @@ export function LocalTextArea({
       className={className}
       placeholder={placeholder}
       rows={rows}
-      style={style}
       {...rest}
     />
   );
@@ -75,5 +72,4 @@ LocalTextArea.propTypes = {
   className: PropTypes.string,
   placeholder: PropTypes.string,
   rows: PropTypes.number,
-  style: PropTypes.object,
 };

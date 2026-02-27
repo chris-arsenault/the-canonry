@@ -1,0 +1,43 @@
+/* CreationTab companion styles */
+.ct-text-center {
+  text-align: center;
+}
+
+.ct-arrow-icon {
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.ct-tag-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.ct-tag-ref {
+  opacity: 0.7;
+  margin-right: var(--spacing-xs);
+}
+
+.ct-italic {
+  font-style: italic;
+}
+
+.ct-step-pad {
+  padding: var(--spacing-lg);
+}
+
+.ct-bounds-grid {
+  display: grid;
+  grid-template-columns: 60px 1fr 1fr;
+  gap: var(--spacing-md);
+  align-items: end;
+}
+
+.ct-compare-arrow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: var(--spacing-md);
+}

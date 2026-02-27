@@ -97,13 +97,13 @@ export function ClusterFormationTab({ system, onChange, schema }) {
           </div>
         </div>
 
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <label className="label">Clustering Criteria ({criteria.length})</label>
         </div>
 
         {criteria.map((crit, index) => (
           <div key={index} className="item-card">
-            <div style={{ padding: "12px 16px" }}>
+            <div className="py-lg px-xl">
               <div className="form-row-with-delete">
                 <div className="form-row-fields">
                   <ReferenceDropdown
@@ -163,7 +163,7 @@ export function ClusterFormationTab({ system, onChange, schema }) {
             />
           </div>
         </div>
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <div className="form-group">
             <label className="label">Description Template
             <LocalTextArea
@@ -178,7 +178,7 @@ export function ClusterFormationTab({ system, onChange, schema }) {
 
       <div className="section">
         <div className="section-title">Narration Template</div>
-        <div className="section-desc" style={{ marginBottom: "8px", fontSize: "11px" }}>
+        <div className="section-desc mb-md text-xs">
           Syntax: {"{list:members}"}, {"{count}"}, {"{field|fallback}"}.
         </div>
         <LocalTextArea

@@ -411,7 +411,7 @@ function DetailPanel({
             <div
               key={id}
               className="lw-trace-view-detail-pressure"
-              style={{ borderLeftColor: PRESSURE_COLORS[i % PRESSURE_COLORS.length] }}
+              style={{ '--st-pressure-border': PRESSURE_COLORS[i % PRESSURE_COLORS.length] }}
             >
               <div className="lw-trace-view-detail-pressure-header">
                 <span className="lw-trace-view-detail-pressure-name">{name}</span>
@@ -441,7 +441,7 @@ function DetailPanel({
                         <span className="lw-trace-view-detail-label">
                           <span
                             className="lw-trace-view-discrete-badge"
-                            style={{ color: EVENT_COLORS[sourceType] || "#888" }}
+                            style={{ '--st-badge-color': EVENT_COLORS[sourceType] || "#888" }}
                           >
                             {(() => { if (sourceType === "template") return "▲"; if (sourceType === "system") return "◆"; return "●"; })()}
                           </span>
@@ -566,7 +566,7 @@ function TemplateDetailPanel({ template, isLocked, onClear }) {
     <div className="lw-trace-view-detail">
       <div className="lw-trace-view-detail-header">
         <span>
-          <span style={{ color: markerColor, marginRight: 6 }}>▲</span>
+          <span className="st-detail-marker" style={{ '--st-marker-color': markerColor }}>▲</span>
           Tick {app.tick} / Epoch {app.epoch}
         </span>
         {isLocked && (
@@ -820,7 +820,8 @@ function SystemActionDetailPanel({ systemAction, isEraTransition, isLocked, onCl
       <div className="lw-trace-view-detail-header">
         <span>
           <span
-            style={{ color: isEraTransition ? "#f59e0b" : EVENT_COLORS.system, marginRight: 6 }}
+            className="st-detail-marker"
+            style={{ '--st-marker-color': isEraTransition ? "#f59e0b" : EVENT_COLORS.system }}
           >
             {isEraTransition ? "★" : "■"}
           </span>
@@ -983,7 +984,7 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
     <div className="lw-trace-view-detail">
       <div className="lw-trace-view-detail-header">
         <span>
-          <span style={{ color: outcomeColors[app.outcome.status] || "#888", marginRight: 6 }}>
+          <span className="st-detail-marker" style={{ '--st-marker-color': outcomeColors[app.outcome.status] || "#888" }}>
             ●
           </span>
           Tick {app.tick} / Epoch {app.epoch}
@@ -1001,15 +1002,8 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
           <div className="lw-trace-view-template-header">
             <span className="lw-trace-view-template-id">{app.actionName}</span>
             <span
-              className="lw-trace-view-outcome-badge"
-              style={{
-                backgroundColor: outcomeColors[app.outcome.status] || "#888",
-                color: "#fff",
-                padding: "2px 8px",
-                borderRadius: 4,
-                fontSize: 11,
-                fontWeight: 500,
-              }}
+              className="lw-trace-view-outcome-badge st-outcome-badge"
+              style={{ '--st-outcome-bg': outcomeColors[app.outcome.status] || "#888" }}
             >
               {outcomeLabels[app.outcome.status] || app.outcome.status}
             </span>
@@ -1092,7 +1086,7 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
                 <span className="lw-trace-view-entity-placement-value">
                   {app.selectionContext.selectedWeight.toFixed(2)} /{" "}
                   {app.selectionContext.totalWeight.toFixed(2)}
-                  <span style={{ color: "#64748b", marginLeft: 4 }}>
+                  <span className="st-muted-annotation">
                     (
                     {(
                       (app.selectionContext.selectedWeight / app.selectionContext.totalWeight) *
@@ -1108,7 +1102,7 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
                 <span className="lw-trace-view-entity-placement-value">
                   {(app.selectionContext.attemptChance * 100).toFixed(0)}%
                   {app.selectionContext.prominenceBonus > 0 && (
-                    <span className="positive" style={{ marginLeft: 4 }}>
+                    <span className="positive st-muted-annotation">
                       (+{(app.selectionContext.prominenceBonus * 100).toFixed(0)}% pressure bonus)
                     </span>
                   )}
@@ -1118,7 +1112,7 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
 
             {/* Pressure influences breakdown - affects selection weight only, NOT success chance */}
             {app.selectionContext.pressureInfluences?.length > 0 && (
-              <div className="lw-trace-view-detail-discrete" style={{ marginTop: 8 }}>
+              <div className="lw-trace-view-detail-discrete st-section-spaced">
                 <div className="lw-trace-view-detail-section-header">
                   Pressure Influences (on selection weight)
                 </div>
@@ -1126,7 +1120,7 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
                   <div key={i} className="lw-trace-view-detail-row">
                     <span className="lw-trace-view-detail-label">
                       {influence.pressureId}
-                      <span style={{ color: "#64748b", marginLeft: 4 }}>
+                      <span className="st-muted-annotation">
                         ({influence.value.toFixed(0)} × {influence.multiplier.toFixed(1)})
                       </span>
                     </span>
@@ -1148,7 +1142,7 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
                 <span className="lw-trace-view-entity-placement-label">Success Chance</span>
                 <span className="lw-trace-view-entity-placement-value">
                   {(app.outcome.successChance * 100).toFixed(0)}%
-                  <span style={{ color: "#64748b", marginLeft: 4 }}>
+                  <span className="st-muted-annotation">
                     (base × {app.outcome.prominenceMultiplier.toFixed(1)} prominence)
                   </span>
                 </span>
@@ -1157,7 +1151,7 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
 
             {/* Relationships created */}
             {app.outcome.relationshipsCreated?.length > 0 && (
-              <div className="lw-trace-view-detail-discrete" style={{ marginTop: 8 }}>
+              <div className="lw-trace-view-detail-discrete st-section-spaced">
                 <div className="lw-trace-view-detail-section-header">
                   Relationships Created ({app.outcome.relationshipsCreated.length})
                 </div>
@@ -1167,7 +1161,7 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
                     <span className="lw-trace-view-rel-ids">
                       {rel.srcName} → {rel.dstName}
                       {rel.strength !== undefined && (
-                        <span style={{ color: "#64748b", marginLeft: 4 }}>
+                        <span className="st-muted-annotation">
                           (str: {rel.strength.toFixed(2)})
                         </span>
                       )}
@@ -1184,7 +1178,7 @@ function ActionDetailPanel({ actionApplication, isLocked, onClear }) {
 
             {/* Prominence changes */}
             {app.outcome.prominenceChanges?.length > 0 && (
-              <div className="lw-trace-view-detail-discrete" style={{ marginTop: 8 }}>
+              <div className="lw-trace-view-detail-discrete st-section-spaced">
                 <div className="lw-trace-view-detail-section-header">Prominence Changes</div>
                 {app.outcome.prominenceChanges.map((change, i) => (
                   <div key={i} className="lw-trace-view-detail-row">
@@ -1399,9 +1393,9 @@ function TraceVisualization({
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={{ flex: 1, minHeight: 0 }}>
-        <svg width={width} height={height} style={{ cursor: "crosshair" }}>
+    <div className="st-trace-layout">
+      <div className="st-trace-chart-wrap">
+        <svg width={width} height={height} className="st-trace-svg">
           {/* Era timeline at top */}
           <EraTimeline
             eraBoundaries={visibleEraBoundaries}
@@ -1502,7 +1496,7 @@ function TraceVisualization({
             return (
               <g
                 key={event.uniqueId}
-                style={{ cursor: "pointer" }}
+                className="st-event-marker"
                 onMouseEnter={() => onEventHover(event.uniqueId)}
                 onMouseLeave={() => onEventHover(null)}
                 onClick={(e) => {
@@ -1577,7 +1571,7 @@ function TraceVisualization({
               return (
                 <g
                   key={event.uniqueId}
-                  style={{ cursor: "pointer" }}
+                  className="st-event-marker"
                   onMouseEnter={() => onEventHover(event.uniqueId)}
                   onMouseLeave={() => onEventHover(null)}
                   onClick={(e) => {
@@ -1613,7 +1607,7 @@ function TraceVisualization({
               return (
                 <g
                   key={event.uniqueId}
-                  style={{ cursor: "pointer" }}
+                  className="st-event-marker"
                   onMouseEnter={() => onEventHover(event.uniqueId)}
                   onMouseLeave={() => onEventHover(null)}
                   onClick={(e) => {
@@ -1654,7 +1648,7 @@ function TraceVisualization({
             return (
               <g
                 key={event.uniqueId}
-                style={{ cursor: "pointer" }}
+                className="st-event-marker"
                 onMouseEnter={() => onEventHover(event.uniqueId)}
                 onMouseLeave={() => onEventHover(null)}
                 onClick={(e) => {
@@ -1703,7 +1697,7 @@ function TraceVisualization({
 
       {/* Scroll slider */}
       {maxScrollOffset > 0 && (
-        <div className="lw-trace-view-scroll" style={{ marginTop: 8 }}>
+        <div className="lw-trace-view-scroll st-section-spaced">
           <span className="lw-trace-view-scroll-label">
             Ticks {visibleData[0]?.tick ?? 0}-{visibleData[visibleData.length - 1]?.tick ?? 0}
           </span>
@@ -1722,13 +1716,10 @@ function TraceVisualization({
       {/* Hover tooltip */}
       {tooltip && (
         <div
-          className="lw-trace-view-tooltip"
+          className="lw-trace-view-tooltip st-tooltip-fixed"
           style={{
-            position: "fixed",
-            left: tooltip.x + 15,
-            top: tooltip.y - 10,
-            pointerEvents: "none",
-            zIndex: 1000,
+            '--st-tooltip-left': `${tooltip.x + 15}px`,
+            '--st-tooltip-top': `${tooltip.y - 10}px`,
           }}
         >
           <div className="lw-trace-view-tooltip-header">
@@ -1738,17 +1729,11 @@ function TraceVisualization({
           {tooltip.pressures?.map((p, i) => (
             <div key={i} className="lw-trace-view-tooltip-row">
               <span
-                style={{
-                  display: "inline-block",
-                  width: 8,
-                  height: 8,
-                  borderRadius: 2,
-                  backgroundColor: p.color,
-                  marginRight: 6,
-                }}
+                className="st-pressure-swatch"
+                style={{ '--st-swatch-color': p.color }}
               />
-              <span style={{ flex: 1 }}>{p.name}</span>
-              <span style={{ fontWeight: 500 }}>{p.value?.toFixed(1)}</span>
+              <span className="st-tooltip-name">{p.name}</span>
+              <span className="st-tooltip-value">{p.value?.toFixed(1)}</span>
             </div>
           ))}
         </div>
@@ -2042,8 +2027,8 @@ export default function SimulationTraceVisx({
                     key={id}
                     className={`lw-trace-view-toggle ${isHidden ? "hidden" : ""}`}
                     style={{
-                      borderColor: PRESSURE_COLORS[i % PRESSURE_COLORS.length],
-                      backgroundColor: isHidden
+                      '--st-toggle-border': PRESSURE_COLORS[i % PRESSURE_COLORS.length],
+                      '--st-toggle-bg': isHidden
                         ? "transparent"
                         : PRESSURE_COLORS[i % PRESSURE_COLORS.length] + "20",
                     }}
@@ -2094,7 +2079,7 @@ export default function SimulationTraceVisx({
                   <div className="vis-empty">
                     <div className="vis-empty-icon">&#9783;</div>
                     <div>No diffusion data</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>
+                    <div className="st-empty-hint">
                       Enable a planeDiffusion system and run simulation
                     </div>
                   </div>
@@ -2156,7 +2141,7 @@ export default function SimulationTraceVisx({
                   <div className="vis-empty">
                     <div className="vis-empty-icon">&#9673;</div>
                     <div>No contagion data</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>
+                    <div className="st-empty-hint">
                       Enable a graphContagion system and run simulation
                     </div>
                   </div>

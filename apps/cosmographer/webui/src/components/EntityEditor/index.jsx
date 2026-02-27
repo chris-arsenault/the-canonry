@@ -10,242 +10,7 @@ import {
   ToolUsageBadges as UsageBadges,
   getEntityKindUsageSummary,
 } from "@penguin-tales/shared-components";
-
-// Arctic Blue base theme with frost blue accent (Cosmographer)
-const ACCENT_COLOR = "#60a5fa";
-
-const styles = {
-  container: {
-    display: "flex",
-    gap: "24px",
-    height: "100%",
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-  },
-  listPanel: {
-    width: "320px",
-    display: "flex",
-    flexDirection: "column",
-  },
-  header: {
-    marginBottom: "16px",
-  },
-  title: {
-    fontSize: "24px",
-    fontWeight: 600,
-    marginBottom: "8px",
-    color: "#ffffff",
-  },
-  subtitle: {
-    color: "#93c5fd",
-    fontSize: "14px",
-  },
-  toolbar: {
-    display: "flex",
-    gap: "8px",
-    marginBottom: "12px",
-  },
-  addButton: {
-    padding: "8px 16px",
-    fontSize: "13px",
-    backgroundColor: ACCENT_COLOR,
-    color: "#0a1929",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontWeight: 500,
-    fontFamily: "inherit",
-  },
-  filterSelect: {
-    padding: "8px 12px",
-    fontSize: "13px",
-    backgroundColor: "#2d4a6f",
-    border: "1px solid rgba(59, 130, 246, 0.3)",
-    borderRadius: "4px",
-    color: "#ffffff",
-    flex: 1,
-    fontFamily: "inherit",
-  },
-  entityList: {
-    flex: 1,
-    overflowY: "auto",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-  entityItem: {
-    padding: "12px",
-    backgroundColor: "#1e3a5f",
-    borderRadius: "6px",
-    cursor: "pointer",
-    borderWidth: "2px",
-    borderStyle: "solid",
-    borderColor: "transparent",
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-  entityItemSelected: {
-    borderColor: ACCENT_COLOR,
-  },
-  entityColor: {
-    width: "10px",
-    height: "10px",
-    borderRadius: "50%",
-  },
-  entityInfo: {
-    flex: 1,
-  },
-  entityName: {
-    fontSize: "14px",
-    fontWeight: 500,
-    color: "#ffffff",
-  },
-  entityMeta: {
-    fontSize: "11px",
-    color: "#60a5fa",
-  },
-  formPanel: {
-    flex: 1,
-    backgroundColor: "#1e3a5f",
-    borderRadius: "8px",
-    padding: "20px",
-    overflowY: "auto",
-    border: "1px solid rgba(59, 130, 246, 0.3)",
-  },
-  formTitle: {
-    fontSize: "18px",
-    fontWeight: 600,
-    marginBottom: "20px",
-    color: "#ffffff",
-  },
-  formGroup: {
-    marginBottom: "16px",
-  },
-  label: {
-    fontSize: "12px",
-    color: "#93c5fd",
-    marginBottom: "6px",
-    display: "block",
-    fontWeight: 500,
-  },
-  input: {
-    width: "100%",
-    padding: "10px",
-    fontSize: "14px",
-    backgroundColor: "#2d4a6f",
-    border: "1px solid rgba(59, 130, 246, 0.3)",
-    borderRadius: "4px",
-    color: "#ffffff",
-    fontFamily: "inherit",
-    boxSizing: "border-box",
-  },
-  select: {
-    width: "100%",
-    padding: "10px",
-    fontSize: "14px",
-    backgroundColor: "#2d4a6f",
-    border: "1px solid rgba(59, 130, 246, 0.3)",
-    borderRadius: "4px",
-    color: "#ffffff",
-    fontFamily: "inherit",
-  },
-  textarea: {
-    width: "100%",
-    padding: "10px",
-    fontSize: "14px",
-    backgroundColor: "#2d4a6f",
-    border: "1px solid rgba(59, 130, 246, 0.3)",
-    borderRadius: "4px",
-    color: "#ffffff",
-    minHeight: "80px",
-    resize: "vertical",
-    fontFamily: "inherit",
-    boxSizing: "border-box",
-  },
-  row: {
-    display: "flex",
-    gap: "12px",
-  },
-  coordGroup: {
-    flex: 1,
-  },
-  deleteButton: {
-    padding: "10px 20px",
-    fontSize: "13px",
-    backgroundColor: "transparent",
-    color: "#ef4444",
-    border: "1px solid #ef4444",
-    borderRadius: "4px",
-    cursor: "pointer",
-    marginTop: "24px",
-    fontFamily: "inherit",
-  },
-  emptyState: {
-    color: "#60a5fa",
-    fontSize: "14px",
-    textAlign: "center",
-    padding: "40px",
-  },
-  emptyForm: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    height: "100%",
-    color: "#60a5fa",
-  },
-  nameRow: {
-    display: "flex",
-    gap: "8px",
-    alignItems: "flex-end",
-  },
-  nameInput: {
-    flex: 1,
-  },
-  generateButton: {
-    padding: "10px 14px",
-    fontSize: "13px",
-    backgroundColor: ACCENT_COLOR,
-    color: "#0a1929",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontWeight: 500,
-    whiteSpace: "nowrap",
-    fontFamily: "inherit",
-  },
-  generateButtonDisabled: {
-    backgroundColor: "#1e3a5f",
-    color: "#60a5fa",
-    cursor: "not-allowed",
-  },
-  coordsDisplay: {
-    display: "flex",
-    gap: "16px",
-    padding: "10px 12px",
-    backgroundColor: "#2d4a6f",
-    borderRadius: "4px",
-    fontSize: "12px",
-    border: "1px solid rgba(59, 130, 246, 0.3)",
-  },
-  coordItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-  },
-  coordLabel: {
-    fontWeight: 600,
-    color: ACCENT_COLOR,
-  },
-  coordValue: {
-    color: "#ffffff",
-  },
-  coordHint: {
-    fontSize: "11px",
-    color: "#60a5fa",
-    marginTop: "6px",
-  },
-};
+import "./EntityEditor.css";
 
 export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = {} }) {
   const [selectedEntityId, setSelectedEntityId] = useState(null);
@@ -382,16 +147,16 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.listPanel}>
-        <div style={styles.header}>
-          <div style={styles.title}>Entities</div>
-          <div style={styles.subtitle}>Create seed entities to populate your world.</div>
+    <div className="ee-container">
+      <div className="ee-list-panel">
+        <div className="ee-header">
+          <div className="ee-title">Entities</div>
+          <div className="ee-subtitle">Create seed entities to populate your world.</div>
         </div>
 
-        <div style={styles.toolbar}>
+        <div className="ee-toolbar">
           <select
-            style={styles.filterSelect}
+            className="ee-filter-select"
             value={filterKind}
             onChange={(e) => setFilterKind(e.target.value)}
           >
@@ -402,14 +167,14 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
               </option>
             ))}
           </select>
-          <button style={styles.addButton} onClick={addEntity}>
+          <button className="ee-add-button" onClick={addEntity}>
             + Add
           </button>
         </div>
 
-        <div style={styles.entityList}>
+        <div className="ee-entity-list">
           {filteredEntities.length === 0 ? (
-            <div style={styles.emptyState}>
+            <div className="ee-empty-state">
               {entities.length === 0
                 ? "No entities yet. Create one to get started."
                 : "No entities match the filter."}
@@ -418,25 +183,20 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
             filteredEntities.map((entity) => (
               <div
                 key={entity.id}
-                style={{
-                  ...styles.entityItem,
-                  ...(selectedEntityId === entity.id ? styles.entityItemSelected : {}),
-                }}
+                className={`ee-entity-item${selectedEntityId === entity.id ? " ee-entity-item-selected" : ""}`}
                 onClick={() => setSelectedEntityId(entity.id)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
               >
                 <div
-                  style={{
-                    ...styles.entityColor,
-                    backgroundColor: getCultureColor(entity.culture),
-                  }}
+                  className="ee-entity-color"
+                  style={{ '--ee-entity-color-bg': getCultureColor(entity.culture) }}
                 />
-                <div style={styles.entityInfo}>
-                  <div style={styles.entityName}>{entity.name}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={styles.entityMeta}>
+                <div className="ee-entity-info">
+                  <div className="ee-entity-name">{entity.name}</div>
+                  <div className="ee-entity-meta-row">
+                    <span className="ee-entity-meta">
                       {entity.kind} / {entity.subtype || "no subtype"}
                     </span>
                     <UsageBadges
@@ -451,26 +211,23 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
         </div>
       </div>
 
-      <div style={styles.formPanel}>
+      <div className="ee-form-panel">
         {!selectedEntity ? (
-          <div style={styles.emptyForm}>Select an entity to edit, or create a new one.</div>
+          <div className="ee-empty-form">Select an entity to edit, or create a new one.</div>
         ) : (
           <>
-            <div style={styles.formTitle}>Edit Entity</div>
+            <div className="ee-form-title">Edit Entity</div>
 
-            <div style={styles.formGroup}>
-              <span style={styles.label}>Name</span>
-              <div style={styles.nameRow}>
+            <div className="ee-form-group">
+              <span className="ee-label">Name</span>
+              <div className="ee-name-row">
                 <input
-                  style={{ ...styles.input, ...styles.nameInput }}
+                  className="ee-input ee-name-input"
                   value={selectedEntity.name}
                   onChange={(e) => updateEntity({ name: e.target.value })}
                 />
                 <button
-                  style={{
-                    ...styles.generateButton,
-                    ...(!canGenerateName() || generating ? styles.generateButtonDisabled : {}),
-                  }}
+                  className={`ee-generate-button${!canGenerateName() || generating ? " ee-generate-button-disabled" : ""}`}
                   onClick={handleGenerateName}
                   disabled={!canGenerateName() || generating}
                   title={(() => {
@@ -483,17 +240,17 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
                 </button>
               </div>
               {generateError && (
-                <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "6px" }}>
+                <div className="ee-generate-error">
                   {generateError}
                 </div>
               )}
             </div>
 
-            <div style={styles.row}>
-              <div style={{ ...styles.formGroup, flex: 1 }}>
-                <label htmlFor="kind" style={styles.label}>Kind</label>
+            <div className="ee-row">
+              <div className="ee-form-group-flex">
+                <label htmlFor="kind" className="ee-label">Kind</label>
                 <select id="kind"
-                  style={styles.select}
+                  className="ee-select"
                   value={selectedEntity.kind}
                   onChange={(e) => updateEntity({ kind: e.target.value })}
                 >
@@ -505,10 +262,10 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
                 </select>
               </div>
 
-              <div style={{ ...styles.formGroup, flex: 1 }}>
-                <label htmlFor="subtype" style={styles.label}>Subtype</label>
+              <div className="ee-form-group-flex">
+                <label htmlFor="subtype" className="ee-label">Subtype</label>
                 <select id="subtype"
-                  style={styles.select}
+                  className="ee-select"
                   value={selectedEntity.subtype || ""}
                   onChange={(e) => updateEntity({ subtype: e.target.value })}
                 >
@@ -522,11 +279,11 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
               </div>
             </div>
 
-            <div style={styles.row}>
-              <div style={{ ...styles.formGroup, flex: 1 }}>
-                <label htmlFor="status" style={styles.label}>Status</label>
+            <div className="ee-row">
+              <div className="ee-form-group-flex">
+                <label htmlFor="status" className="ee-label">Status</label>
                 <select id="status"
-                  style={styles.select}
+                  className="ee-select"
                   value={selectedEntity.status}
                   onChange={(e) => updateEntity({ status: e.target.value })}
                 >
@@ -538,10 +295,10 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
                 </select>
               </div>
 
-              <div style={{ ...styles.formGroup, flex: 1 }}>
-                <label htmlFor="culture" style={styles.label}>Culture</label>
+              <div className="ee-form-group-flex">
+                <label htmlFor="culture" className="ee-label">Culture</label>
                 <select id="culture"
-                  style={styles.select}
+                  className="ee-select"
                   value={selectedEntity.culture || ""}
                   onChange={(e) => updateEntity({ culture: e.target.value })}
                 >
@@ -555,10 +312,10 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
               </div>
             </div>
 
-            <div style={styles.formGroup}>
-              <label htmlFor="prominence" style={styles.label}>Prominence</label>
+            <div className="ee-form-group">
+              <label htmlFor="prominence" className="ee-label">Prominence</label>
               <select id="prominence"
-                style={styles.select}
+                className="ee-select"
                 value={selectedEntity.prominence ?? 2.0}
                 onChange={(e) => updateEntity({ prominence: parseFloat(e.target.value) })}
               >
@@ -570,8 +327,8 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
               </select>
             </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Tags
+            <div className="ee-form-group">
+              <label className="ee-label">Tags
               <TagSelector
                 value={getTagsAsArray()}
                 onChange={handleTagsChange}
@@ -582,10 +339,10 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
               </label>
             </div>
 
-            <div style={styles.formGroup}>
-              <label htmlFor="summary" style={styles.label}>Summary</label>
+            <div className="ee-form-group">
+              <label htmlFor="summary" className="ee-label">Summary</label>
               <textarea id="summary"
-                style={styles.textarea}
+                className="ee-textarea"
                 value={
                   selectedEntity.summary ??
                   selectedEntity.narrativeHint ??
@@ -599,24 +356,24 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
               />
             </div>
 
-            <div style={styles.formGroup}>
-              <span style={styles.label}>Coordinates</span>
-              <div style={styles.coordsDisplay}>
+            <div className="ee-form-group">
+              <span className="ee-label">Coordinates</span>
+              <div className="ee-coords-display">
                 {["x", "y", "z"].map((axis) => (
-                  <div key={axis} style={styles.coordItem}>
-                    <span style={styles.coordLabel}>{axis.toUpperCase()}:</span>
-                    <span style={styles.coordValue}>
+                  <div key={axis} className="ee-coord-item">
+                    <span className="ee-coord-label">{axis.toUpperCase()}:</span>
+                    <span className="ee-coord-value">
                       {selectedEntity.coordinates?.[axis] ?? 50}
                     </span>
                   </div>
                 ))}
               </div>
-              <div style={styles.coordHint}>
+              <div className="ee-coord-hint">
                 Edit coordinates by dragging entities on the Semantic Planes view
               </div>
             </div>
 
-            <button style={styles.deleteButton} onClick={deleteEntity}>
+            <button className="ee-delete-button" onClick={deleteEntity}>
               Delete Entity
             </button>
           </>

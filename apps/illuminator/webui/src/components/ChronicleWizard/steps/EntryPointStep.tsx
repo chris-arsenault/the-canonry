@@ -29,6 +29,7 @@ import {
   StoryScoreBar,
   MiniConstellation,
 } from "../visualizations";
+import "./EntryPointStep.css";
 
 interface EntryPointStepProps {
   entities: EntityContext[];
@@ -265,20 +266,20 @@ export default function EntryPointStep({ entities, relationships, events }: Read
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: "16px" }}>
-        <h4 style={{ margin: "0 0 8px 0" }}>Select Entry Point</h4>
-        <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "13px" }}>
+      <div className="eps-header">
+        <h4 className="eps-title">Select Entry Point</h4>
+        <p className="eps-subtitle">
           Choose the central entity for your chronicle. Higher story scores indicate richer
           narrative potential.
         </p>
       </div>
 
       {/* Two column layout - fixed height to prevent jumping */}
-      <div style={{ display: "flex", gap: "20px", height: "480px" }}>
+      <div className="eps-layout">
         {/* Left: Entity list */}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <div className="eps-left">
           {/* Filter chips */}
-          <div style={{ marginBottom: "12px" }}>
+          <div className="eps-filter-gap">
             <FilterChips
               options={availableKinds}
               selected={selectedKinds}
@@ -288,51 +289,38 @@ export default function EntryPointStep({ entities, relationships, events }: Read
           </div>
 
           {/* Sort control and options */}
-          <div style={{ marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px" }}>
+          <div className="eps-sort-row">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="illuminator-select"
-              style={{ fontSize: "11px", padding: "4px 8px" }}
+              className="illuminator-select eps-sort-select"
             >
               <option value="story-score">Sort by Story Score</option>
               <option value="connections">Sort by Connections</option>
               <option value="underused">Sort by Underused Score</option>
               <option value="name">Sort by Name</option>
             </select>
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                cursor: "pointer",
-              }}
-            >
+            <label className="eps-checkbox-label eps-checkbox-label-muted">
               <input
                 type="checkbox"
                 checked={state.includeErasInNeighborhood}
                 onChange={(e) => setIncludeErasInNeighborhood(e.target.checked)}
-                style={{ margin: 0 }}
+                className="eps-checkbox"
               />
               Include eras in neighborhood
             </label>
             <label
+              className="eps-checkbox-label"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "11px",
-                color: usageLoading ? "var(--text-muted)" : "var(--text-secondary)",
-                cursor: usageLoading ? "not-allowed" : "pointer",
-              }}
+                '--eps-label-color': usageLoading ? "var(--text-muted)" : "var(--text-secondary)",
+                '--eps-label-cursor': usageLoading ? "not-allowed" : "pointer",
+              } as React.CSSProperties}
             >
               <input
                 type="checkbox"
                 checked={onlyUnused}
                 onChange={(e) => setOnlyUnused(e.target.checked)}
-                style={{ margin: 0 }}
+                className="eps-checkbox"
                 disabled={usageLoading}
               />
               Only unused
@@ -340,17 +328,9 @@ export default function EntryPointStep({ entities, relationships, events }: Read
           </div>
 
           {/* Entity list - fills remaining height */}
-          <div
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              border: "1px solid var(--border-color)",
-              borderRadius: "8px",
-              minHeight: 0,
-            }}
-          >
+          <div className="eps-entity-list">
             {filteredEntities.length === 0 ? (
-              <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+              <div className="eps-empty-list">
                 No entities match the selected filters.
               </div>
             ) : (
@@ -365,70 +345,23 @@ export default function EntryPointStep({ entities, relationships, events }: Read
                     onClick={() => handleSelect(entity)}
                     onMouseEnter={() => setHoveredEntityId(entity.id)}
                     onMouseLeave={() => setHoveredEntityId(null)}
-                    style={{
-                      padding: "10px 14px",
-                      borderBottom: "1px solid var(--border-color)",
-                      cursor: "pointer",
-                      background: (() => {
-                        if (isSelected) return "var(--accent-color)";
-                        if (isHovered) return "var(--bg-tertiary)";
-                        return "transparent";
-                      })(),
-                      color: isSelected ? "white" : "inherit",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                      transition: "background 0.15s ease",
-                    }}
+                    className={`eps-entity-row ${isSelected ? "eps-entity-row-selected" : ""} ${isHovered && !isSelected ? "eps-entity-row-hovered" : ""}`}
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                   >
                     {/* Selection indicator */}
-                    <div
-                      style={{
-                        width: "14px",
-                        height: "14px",
-                        borderRadius: "50%",
-                        border: isSelected ? "2px solid white" : "2px solid var(--border-color)",
-                        background: isSelected ? "white" : "transparent",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
+                    <div className={`eps-radio-dot ${isSelected ? "eps-radio-dot-selected" : "eps-radio-dot-unselected"}`}>
                       {isSelected && (
-                        <div
-                          style={{
-                            width: "6px",
-                            height: "6px",
-                            borderRadius: "50%",
-                            background: "var(--accent-color)",
-                          }}
-                        />
+                        <div className="eps-radio-dot-inner" />
                       )}
                     </div>
 
                     {/* Entity info */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                        }}
-                      >
-                        <span style={{ fontWeight: 500, fontSize: "13px" }}>{entity.name}</span>
-                        <span
-                          style={{
-                            padding: "1px 6px",
-                            background: isSelected ? "rgba(255,255,255,0.2)" : "var(--bg-tertiary)",
-                            borderRadius: "4px",
-                            fontSize: "9px",
-                            color: isSelected ? "rgba(255,255,255,0.9)" : "var(--text-muted)",
-                          }}
-                        >
+                    <div className="eps-entity-info">
+                      <div className="eps-entity-name-row">
+                        <span className="eps-entity-name">{entity.name}</span>
+                        <span className={`eps-kind-badge ${isSelected ? "eps-kind-badge-selected" : "eps-kind-badge-default"}`}>
                           {entity.kind}
                         </span>
                         {entity.eraId &&
@@ -437,32 +370,22 @@ export default function EntryPointStep({ entities, relationships, events }: Read
                             const eraColor = eraColorMap.get(entity.eraId);
                             return (
                               <span
+                                className="eps-era-badge"
                                 style={{
-                                  padding: "1px 6px",
-                                  background: (() => {
-                                    if (isSelected) return "rgba(255,255,255,0.2)";
-                                    if (eraColor) return `${eraColor}26`;
-                                    return "var(--bg-tertiary)";
-                                  })(),
-                                  borderRadius: "4px",
-                                  fontSize: "9px",
-                                  color: isSelected
+                                  '--eps-era-bg': isSelected
+                                    ? "rgba(255,255,255,0.2)"
+                                    : (eraColor ? `${eraColor}26` : undefined),
+                                  '--eps-era-color': isSelected
                                     ? "rgba(255,255,255,0.9)"
-                                    : (eraColor ?? "var(--text-muted)"),
-                                }}
+                                    : (eraColor ?? undefined),
+                                } as React.CSSProperties}
                               >
                                 {eraNameMap.get(entity.eraId)}
                               </span>
                             );
                           })()}
                         <span
-                          style={{
-                            padding: "1px 6px",
-                            background: isSelected ? "rgba(255,255,255,0.2)" : "var(--bg-tertiary)",
-                            borderRadius: "4px",
-                            fontSize: "9px",
-                            color: isSelected ? "rgba(255,255,255,0.9)" : "var(--text-muted)",
-                          }}
+                          className={`eps-underused-badge ${isSelected ? "eps-kind-badge-selected" : "eps-kind-badge-default"}`}
                           title="Prominence-weighted underuse: prominence ÷ (usage + 1)"
                         >
                           {(() => {
@@ -472,16 +395,7 @@ export default function EntryPointStep({ entities, relationships, events }: Read
                           })()}
                         </span>
                       </div>
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          color: isSelected ? "rgba(255,255,255,0.8)" : "var(--text-muted)",
-                          marginTop: "2px",
-                          display: "flex",
-                          gap: "8px",
-                          alignItems: "center",
-                        }}
-                      >
+                      <div className={`eps-entity-stats ${isSelected ? "eps-entity-stats-selected" : "eps-entity-stats-default"}`}>
                         <span>{entity.connectionCount} links</span>
                         <span>·</span>
                         <span>{entity.eventCount} events</span>
@@ -492,13 +406,7 @@ export default function EntryPointStep({ entities, relationships, events }: Read
                           </>
                         )}
                       </div>
-                      <div
-                        style={{
-                          fontSize: "10px",
-                          color: isSelected ? "rgba(255,255,255,0.75)" : "var(--text-muted)",
-                          marginTop: "2px",
-                        }}
-                      >
+                      <div className={`eps-entity-usage ${isSelected ? "eps-entity-usage-selected" : "eps-entity-usage-default"}`}>
                         {(() => {
                           if (usageLoading) return "Unused: ...";
                           const selfStr = usage?.unusedSelf ? "1" : "0";
@@ -508,21 +416,9 @@ export default function EntryPointStep({ entities, relationships, events }: Read
                     </div>
 
                     {/* Story score bar */}
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-end",
-                        gap: "2px",
-                      }}
-                    >
+                    <div className="eps-score-col">
                       <StoryScoreBar score={entity.potential.overallScore} width={50} height={6} />
-                      <span
-                        style={{
-                          fontSize: "9px",
-                          color: isSelected ? "rgba(255,255,255,0.8)" : "var(--text-muted)",
-                        }}
-                      >
+                      <span className={`eps-score-pct ${isSelected ? "eps-score-pct-selected" : "eps-score-pct-default"}`}>
                         {(entity.potential.overallScore * 100).toFixed(0)}%
                       </span>
                     </div>
@@ -534,48 +430,20 @@ export default function EntryPointStep({ entities, relationships, events }: Read
         </div>
 
         {/* Right: Detail panel - fixed height, scrollable */}
-        <div
-          style={{
-            width: "220px",
-            flexShrink: 0,
-            display: "flex",
-            flexDirection: "column",
-            gap: "12px",
-            overflowY: "auto",
-            minHeight: 0,
-          }}
-        >
+        <div className="eps-right">
           {detailEntity ? (
             <>
               {/* Radar chart with score below */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                }}
-              >
+              <div className="eps-radar-wrap">
                 <StoryPotentialRadarWithScore potential={detailEntity.potential} size={160} />
               </div>
 
               {/* Mini constellation */}
               <div>
-                <div
-                  style={{
-                    fontSize: "9px",
-                    color: "var(--text-muted)",
-                    textTransform: "uppercase",
-                    marginBottom: "4px",
-                    textAlign: "center",
-                  }}
-                >
+                <div className="eps-network-label">
                   1-Hop Network
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                  }}
-                >
+                <div className="eps-network-wrap">
                   <MiniConstellation
                     centerName={detailEntity.name}
                     connections={detailConnections}
@@ -583,16 +451,7 @@ export default function EntryPointStep({ entities, relationships, events }: Read
                   />
                 </div>
                 {/* Inline stats */}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    gap: "16px",
-                    marginTop: "4px",
-                    fontSize: "10px",
-                    color: "var(--text-muted)",
-                  }}
-                >
+                <div className="eps-inline-stats">
                   <span>
                     <strong>{detailEntity.connectedKinds.length}</strong> kinds
                   </span>
@@ -600,28 +459,14 @@ export default function EntryPointStep({ entities, relationships, events }: Read
                     <strong>{detailEntity.eraIds.length}</strong> eras
                   </span>
                 </div>
-                <div
-                  style={{
-                    marginTop: "6px",
-                    textAlign: "center",
-                    fontSize: "10px",
-                    color: "var(--text-muted)",
-                  }}
-                >
+                <div className="eps-detail-usage">
                   {(() => {
                     if (usageLoading || !detailUsage) return "Unused: ...";
                     const selfStr = detailUsage.unusedSelf ? "1" : "0";
                     return `Unused: self ${selfStr}/1 · 1-hop ${detailUsage.hop1Unused}/${detailUsage.hop1Total} · 2-hop ${detailUsage.hop2Unused}/${detailUsage.hop2Total}`;
                   })()}
                 </div>
-                <div
-                  style={{
-                    marginTop: "4px",
-                    textAlign: "center",
-                    fontSize: "10px",
-                    color: "var(--text-muted)",
-                  }}
-                >
+                <div className="eps-detail-underused">
                   {usageLoading || !detailUsage
                     ? "Underused score: ..."
                     : `Underused score: ${detailUsage.underusedScore.toFixed(2)}`}
@@ -629,25 +474,10 @@ export default function EntryPointStep({ entities, relationships, events }: Read
               </div>
             </>
           ) : (
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "20px",
-                textAlign: "center",
-                color: "var(--text-muted)",
-                fontSize: "12px",
-                background: "var(--bg-tertiary)",
-                borderRadius: "8px",
-                border: "1px dashed var(--border-color)",
-              }}
-            >
-              <div style={{ marginBottom: "8px", fontSize: "32px", opacity: 0.4 }}>◎</div>
+            <div className="eps-empty-detail">
+              <div className="eps-empty-icon">◎</div>
               <div>Hover or select an entity</div>
-              <div style={{ fontSize: "11px", marginTop: "4px" }}>to see its story potential</div>
+              <div className="eps-empty-sub">to see its story potential</div>
             </div>
           )}
         </div>
@@ -655,28 +485,17 @@ export default function EntryPointStep({ entities, relationships, events }: Read
 
       {/* Selected entry point summary */}
       {state.entryPoint && (
-        <div
-          style={{
-            marginTop: "16px",
-            padding: "12px",
-            background: "var(--bg-tertiary)",
-            borderRadius: "8px",
-            border: "1px solid var(--accent-color)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
+        <div className="eps-selected-summary">
           <div>
-            <span style={{ fontWeight: 500 }}>{state.entryPoint.name}</span>
+            <span className="eps-selected-name">{state.entryPoint.name}</span>
             {state.entryPoint.summary && (
-              <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "var(--text-muted)" }}>
+              <p className="eps-selected-desc">
                 {state.entryPoint.summary}
               </p>
             )}
           </div>
-          <div style={{ textAlign: "right", fontSize: "11px", color: "var(--text-muted)" }}>
-            <div style={{ fontWeight: 500, color: "var(--accent-color)" }}>
+          <div className="eps-selected-right">
+            <div className="eps-candidate-count">
               {state.candidates.length} candidates
             </div>
             <div>in 2-hop neighborhood</div>

@@ -1,0 +1,23 @@
+.tu-used-label {
+  font-size: 12px;
+  color: var(--lw-text-muted);
+}
+
+.tu-health-indicator {
+  margin-bottom: 12px;
+}
+
+.tu-health-dot {
+  background-color: var(--tu-health-dot-bg);
+}
+
+.tu-health-status {
+  font-size: 12px;
+  color: var(--lw-text-muted);
+  margin-left: auto;
+}
+
+.tu-template-fill {
+  width: var(--tu-template-fill-width);
+  background-color: var(--tu-template-fill-color);
+}

@@ -1,0 +1,16 @@
+/* FactorEditorModal companion styles */
+.fem-feedback-badge-positive {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.fem-feedback-badge-negative {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}

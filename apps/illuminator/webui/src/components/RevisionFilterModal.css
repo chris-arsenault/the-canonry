@@ -1,44 +1,17 @@
 /* RevisionFilterModal — rfm- prefix */
+/* Overlay, header, close button, scroll lock, and Escape are provided by ModalShell */
 
-.rfm-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgb(0 0 0 / 60%);
-}
-
-.rfm-dialog {
-  background: var(--bg-primary);
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
+.modal.rfm-dialog {
   width: 440px;
   max-width: 95vw;
-  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
-}
-
-/* Header */
-.rfm-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.rfm-title {
-  margin: 0;
-  font-size: 16px;
+  height: auto;
+  max-height: 90vh;
 }
 
 .rfm-subtitle {
-  margin: 4px 0 0;
+  margin: 0 0 12px;
   font-size: 11px;
   color: var(--text-muted);
-}
-
-/* Body */
-.rfm-body {
-  padding: 16px 20px;
 }
 
 .rfm-counts-grid {
@@ -107,15 +80,7 @@
   color: var(--text-secondary);
 }
 
-/* Footer */
-.rfm-footer {
-  padding: 12px 20px 16px;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
+/* Footer button sizing (layout provided by modal-footer) */
 .rfm-footer-btn {
   padding: 6px 16px;
   font-size: 12px;

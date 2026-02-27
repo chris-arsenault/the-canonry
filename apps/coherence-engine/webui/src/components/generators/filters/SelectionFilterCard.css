@@ -1,0 +1,16 @@
+/* SelectionFilterCard companion styles */
+.sfc-flex-field-wide {
+  flex: 1 1 150px;
+}
+
+.sfc-flex-field-medium {
+  flex: 1 1 140px;
+}
+
+.sfc-flex-field-narrow {
+  flex: 1 1 120px;
+}
+
+.sfc-flex-field-tiny {
+  flex: 1 1 100px;
+}

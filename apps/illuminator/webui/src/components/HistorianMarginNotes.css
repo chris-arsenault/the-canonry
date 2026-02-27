@@ -81,11 +81,13 @@
   border-radius: 0 4px 4px 0;
   margin-bottom: 4px;
   transition: opacity 0.15s;
+  border-left: 3px solid var(--hmn-note-color);
 }
 
 .hmn-note-item-disabled {
   background: rgb(139 115 85 / 3%);
   opacity: 0.5;
+  border-left-color: var(--border-color);
 }
 
 .hmn-display-toggle {
@@ -97,6 +99,11 @@
   line-height: 1;
   flex-shrink: 0;
   margin-top: 2px;
+  color: var(--hmn-note-color);
+}
+
+.hmn-display-toggle-disabled {
+  color: #8b735560;
 }
 
 .hmn-note-content {
@@ -117,6 +124,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   flex-shrink: 0;
+  color: var(--hmn-note-color);
 }
 
 .hmn-type-label-disabled {

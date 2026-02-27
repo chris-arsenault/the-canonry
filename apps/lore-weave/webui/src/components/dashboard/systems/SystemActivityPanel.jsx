@@ -294,7 +294,7 @@ function SystemSummaryCards({ systems }) {
         const execCount = sys.executions.length;
 
         return (
-          <div key={sys.id} className="system-card" style={{ borderLeftColor: color }}>
+          <div key={sys.id} className="system-card" style={{ '--sa-card-border-color': color }}>
             <div className="system-card-header">
               <span className="system-card-name">{sys.name}</span>
               <span className="system-card-count">{execCount}x</span>
@@ -391,11 +391,11 @@ export default function SystemActivityPanel({ systemActions }) {
         {activeView === "timeline" && (
           <>
             <div className="legend-item">
-              <span className="legend-line" style={{ backgroundColor: "#8b5cf6" }} />
+              <span className="legend-line sa-legend-line" style={{ '--sa-legend-line-color': '#8b5cf6' }} />
               <span>Relationships Added</span>
             </div>
             <div className="legend-item">
-              <span className="legend-line dashed" style={{ backgroundColor: "#22c55e" }} />
+              <span className="legend-line dashed sa-legend-line" style={{ '--sa-legend-line-color': '#22c55e' }} />
               <span>Entities Modified</span>
             </div>
           </>

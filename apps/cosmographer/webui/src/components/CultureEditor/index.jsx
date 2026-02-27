@@ -7,168 +7,17 @@
 
 import React, { useState, useRef, useMemo } from "react";
 import PropTypes from "prop-types";
-
-const styles = {
-  container: {
-    maxWidth: "1200px",
-  },
-  header: {
-    marginBottom: "16px",
-  },
-  title: {
-    fontSize: "20px",
-    fontWeight: 600,
-    marginBottom: "4px",
-  },
-  subtitle: {
-    color: "#888",
-    fontSize: "13px",
-  },
-  cultureList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-  cultureCard: {
-    backgroundColor: "#16213e",
-    borderRadius: "6px",
-    border: "1px solid #0f3460",
-    overflow: "hidden",
-  },
-  cultureHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "10px 14px",
-    cursor: "pointer",
-  },
-  cultureHeaderLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-  expandIcon: {
-    fontSize: "10px",
-    color: "#888",
-    transition: "transform 0.2s",
-    width: "14px",
-  },
-  colorDot: {
-    width: "14px",
-    height: "14px",
-    borderRadius: "50%",
-    border: "2px solid #0f3460",
-  },
-  cultureName: {
-    fontWeight: 500,
-    fontSize: "14px",
-  },
-  cultureId: {
-    color: "#666",
-    fontSize: "11px",
-  },
-  cultureSummary: {
-    fontSize: "11px",
-    color: "#666",
-  },
-  cultureBody: {
-    padding: "12px",
-    borderTop: "1px solid #0f3460",
-  },
-  kindsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-    gap: "8px",
-  },
-  kindCard: {
-    backgroundColor: "#1a1a2e",
-    borderRadius: "4px",
-    padding: "10px 12px",
-  },
-  kindHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "8px",
-  },
-  kindName: {
-    fontSize: "12px",
-    fontWeight: 500,
-    color: "#ccc",
-  },
-  kindSummary: {
-    fontSize: "10px",
-    color: "#666",
-  },
-  axisRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    marginBottom: "4px",
-  },
-  axisLabel: {
-    width: "14px",
-    fontSize: "10px",
-    fontWeight: 600,
-    color: "#e94560",
-  },
-  tagLabel: {
-    fontSize: "9px",
-    color: "#666",
-    width: "50px",
-    textAlign: "right",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  tagLabelRight: {
-    fontSize: "9px",
-    color: "#666",
-    width: "50px",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  slider: {
-    flex: 1,
-    height: "4px",
-    WebkitAppearance: "none",
-    background: "linear-gradient(to right, #0f3460, #e94560)",
-    borderRadius: "2px",
-    outline: "none",
-    cursor: "pointer",
-  },
-  axisValue: {
-    width: "24px",
-    textAlign: "right",
-    fontSize: "10px",
-    color: "#888",
-    fontFamily: "monospace",
-  },
-  emptyState: {
-    color: "#666",
-    fontSize: "14px",
-    textAlign: "center",
-    padding: "40px",
-  },
-  noKindsWarning: {
-    color: "#f0a500",
-    fontSize: "12px",
-    padding: "12px",
-    backgroundColor: "rgba(240, 165, 0, 0.1)",
-    borderRadius: "4px",
-  },
-};
+import "./CultureEditor.css";
 
 function KindBiasCard({ culture, kind, axisById, isFramework, handleSliderStart, handleSliderChange, handleSliderEnd, getDisplayValue, draggingRef }) {
   const axes = kind.semanticPlane?.axes || {};
   const biases = culture.axisBiases?.[kind.kind] || { x: 50, y: 50, z: 50 };
 
   return (
-    <div style={styles.kindCard}>
-      <div style={styles.kindHeader}>
-        <span style={styles.kindName}>{kind.description || kind.kind}</span>
-        <span style={styles.kindSummary}>
+    <div className="cued-kind-card">
+      <div className="cued-kind-header">
+        <span className="cued-kind-name">{kind.description || kind.kind}</span>
+        <span className="cued-kind-summary">
           {biases.x}/{biases.y}/{biases.z}
         </span>
       </div>
@@ -190,13 +39,13 @@ function KindBiasCard({ culture, kind, axisById, isFramework, handleSliderStart,
         );
 
         return (
-          <div key={axis} style={styles.axisRow}>
-            <span style={styles.axisLabel}>{axis.toUpperCase()}</span>
+          <div key={axis} className="cued-axis-row">
+            <span className="cued-axis-label">{axis.toUpperCase()}</span>
             <span
-              style={styles.tagLabel}
+              className="cued-tag-label"
               title={axisConfig?.lowTag || axisPlaceholder}
             >
-              {axisConfig?.lowTag || "—"}
+              {axisConfig?.lowTag || "\u2014"}
             </span>
             <input
               type="range"
@@ -226,19 +75,15 @@ function KindBiasCard({ culture, kind, axisById, isFramework, handleSliderStart,
               onMouseLeave={() => {
                 if (draggingRef.current) handleSliderEnd();
               }}
-              style={{
-                ...styles.slider,
-                opacity: isFramework ? 0.5 : 1,
-                pointerEvents: isFramework ? "none" : "auto",
-              }}
+              className={`cued-slider${isFramework ? " cued-slider-disabled" : ""}`}
             />
             <span
-              style={styles.tagLabelRight}
+              className="cued-tag-label-right"
               title={axisConfig?.highTag || axisPlaceholder}
             >
-              {axisConfig?.highTag || "—"}
+              {axisConfig?.highTag || "\u2014"}
             </span>
-            <span style={styles.axisValue}>{displayValue}</span>
+            <span className="cued-axis-value">{displayValue}</span>
           </div>
         );
       })}
@@ -329,54 +174,52 @@ export default function CultureEditor({ project, onSave }) {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <div style={styles.title}>Culture Biases</div>
-        <div style={styles.subtitle}>
+    <div className="cued-container">
+      <div className="cued-header">
+        <div className="cued-title">Culture Biases</div>
+        <div className="cued-subtitle">
           Configure axis biases for each culture on each entity kind&apos;s semantic plane.
         </div>
       </div>
 
       {cultures.length === 0 ? (
-        <div style={styles.emptyState}>
+        <div className="cued-empty-state">
           No cultures defined yet. Add cultures in the Enumerist tab first.
         </div>
       ) : (
-        <div style={styles.cultureList}>
+        <div className="cued-culture-list">
           {cultures.map((culture) => {
             const isExpanded = expandedCultures[culture.id];
             const isFramework = Boolean(culture.isFramework);
 
             return (
-              <div key={culture.id} style={styles.cultureCard}>
-                <div style={styles.cultureHeader} onClick={() => toggleCulture(culture.id)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
-                  <div style={styles.cultureHeaderLeft}>
+              <div key={culture.id} className="cued-culture-card">
+                <div className="cued-culture-header" onClick={() => toggleCulture(culture.id)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+                  <div className="cued-culture-header-left">
                     <span
-                      style={{
-                        ...styles.expandIcon,
-                        transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-                      }}
+                      className="cued-expand-icon"
+                      style={{ '--cued-expand-rotation': isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}
                     >
                       ▶
                     </span>
-                    <div style={{ ...styles.colorDot, backgroundColor: culture.color }} />
-                    <span style={styles.cultureName}>{culture.name}</span>
-                    <span style={styles.cultureId}>({culture.id})</span>
+                    <div className="cued-color-dot" style={{ '--cued-color-dot-bg': culture.color }} />
+                    <span className="cued-culture-name">{culture.name}</span>
+                    <span className="cued-culture-id">({culture.id})</span>
                     {isFramework && (
-                      <span style={{ fontSize: "10px", color: "#94a3b8" }}>framework</span>
+                      <span className="cued-framework-badge">framework</span>
                     )}
                   </div>
-                  <div style={styles.cultureSummary}>{getBiasSummary(culture)}</div>
+                  <div className="cued-culture-summary">{getBiasSummary(culture)}</div>
                 </div>
 
                 {isExpanded && (
-                  <div style={styles.cultureBody}>
+                  <div className="cued-culture-body">
                     {entityKinds.length === 0 ? (
-                      <div style={styles.noKindsWarning}>
+                      <div className="cued-no-kinds-warning">
                         Define entity kinds in the Enumerist tab first to configure axis biases.
                       </div>
                     ) : (
-                      <div style={styles.kindsGrid}>
+                      <div className="cued-kinds-grid">
                         {entityKinds.map((kind) => (
                           <KindBiasCard
                             key={kind.kind}

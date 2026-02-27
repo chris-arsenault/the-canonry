@@ -14,6 +14,7 @@ import {
   loadStoredValue,
   saveStoredValue,
 } from "../../utils/persistence";
+import "./SystemsEditor.css";
 
 export default function SystemsEditor({
   projectId,
@@ -250,16 +251,15 @@ export default function SystemsEditor({
       })}
 
       {/* Add System button */}
-      <div style={{ marginTop: "16px" }}>
+      <div className="mt-xl">
         <div
-          className="add-card"
-          style={{ maxWidth: "320px" }}
+          className="add-card se-add-card-wrap"
           onClick={() => setShowTypePicker(true)}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
-          <span style={{ fontSize: "24px" }}>+</span>
+          <span className="se-add-icon">+</span>
           <span>Add System</span>
         </div>
       </div>
@@ -273,14 +273,14 @@ export default function SystemsEditor({
           tabIndex={0}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
         >
-          <div className="modal" style={{ maxWidth: "600px", height: "auto", maxHeight: "80vh" }}>
+          <div className="modal se-type-picker-modal">
             <div className="modal-header">
               <div className="modal-title">Choose System Type</div>
               <button className="close-btn" onClick={() => setShowTypePicker(false)}>
                 ×
               </button>
             </div>
-            <div style={{ padding: "24px", overflowY: "auto" }}>
+            <div className="se-type-picker-content">
               <div className="type-picker">
                 {Object.entries(SYSTEM_TYPES).map(([type, config]) => (
                   <div

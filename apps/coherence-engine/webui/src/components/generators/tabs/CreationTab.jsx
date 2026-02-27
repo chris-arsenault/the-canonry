@@ -13,6 +13,7 @@ import {
   NumberInput,
   LocalTextArea,
 } from "../../shared";
+import "./CreationTab.css";
 
 /**
  * Get subtype options for an entity kind from schema
@@ -299,7 +300,7 @@ function CreationCard({
           </div>
           {/* Naming profile indicator */}
           {cultureIds.length > 0 && (
-            <div style={{ marginTop: "4px" }}>
+            <div className="mt-xs">
               {profileMatches.length > 0 ? (
                 <span className="badge badge-success">
                   <span>✓</span>
@@ -371,7 +372,7 @@ function CreationCard({
 
           {/* SUBTYPE EDITOR */}
           {item.kind && (
-            <div style={{ marginTop: "16px" }}>
+            <div className="mt-xl">
               <span className="label">Subtype (required)</span>
               <div className="form-grid">
                 <ReferenceDropdown
@@ -419,7 +420,7 @@ function CreationCard({
                 )}
               </div>
               {item.subtype?.fromPressure && (
-                <div className="form-help-text" style={{ marginTop: "8px" }}>
+                <div className="form-help-text mt-md">
                   From pressure mapping requires JSON editing for now.
                 </div>
               )}
@@ -437,7 +438,7 @@ function CreationCard({
           </div>
 
 
-          <div style={{ marginTop: "16px" }}>
+          <div className="mt-xl">
             <span className="label">Culture</span>
             <div className="form-grid">
               <ReferenceDropdown
@@ -480,14 +481,14 @@ function CreationCard({
           </div>
 
           {/* PLACEMENT EDITOR */}
-          <div style={{ marginTop: "16px" }}>
+          <div className="mt-xl">
             <span className="label">Placement</span>
             <div className="form-help-text">
               Configure semantic placement. Semantic planes are per-kind; cross-kind anchors are not
               allowed.
             </div>
 
-            <div className="nested-section" style={{ marginTop: "8px" }}>
+            <div className="nested-section mt-md">
               {/* ANCHOR SECTION */}
               <div className="nested-title">Anchor Strategy</div>
               <div className="form-grid">
@@ -525,7 +526,7 @@ function CreationCard({
 
               {/* Entity Anchor Options */}
               {placement?.anchor?.type === "entity" && (
-                <div className="form-grid" style={{ marginTop: "12px" }}>
+                <div className="form-grid mt-lg">
                   <ReferenceDropdown
                     label="Reference Entity"
                     value={placement.anchor?.ref}
@@ -561,7 +562,7 @@ function CreationCard({
 
               {/* Culture Anchor Options */}
               {placement?.anchor?.type === "culture" && (
-                <div className="form-grid" style={{ marginTop: "12px" }}>
+                <div className="form-grid mt-lg">
                   <ReferenceDropdown
                     label="Culture Source"
                     value={placement.anchor?.id}
@@ -582,7 +583,7 @@ function CreationCard({
 
               {/* Refs Centroid Anchor Options */}
               {placement?.anchor?.type === "refs_centroid" && (
-                <div className="form-grid" style={{ marginTop: "12px" }}>
+                <div className="form-grid mt-lg">
                   <ChipSelect
                     label="Reference Entities"
                     value={placement.anchor?.refs || []}
@@ -612,7 +613,7 @@ function CreationCard({
 
               {/* Sparse Anchor Options */}
               {placement?.anchor?.type === "sparse" && (
-                <div className="form-grid" style={{ marginTop: "12px" }}>
+                <div className="form-grid mt-lg">
                   <div className="form-group">
                     <label className="checkbox-label">
                       <input
@@ -631,20 +632,13 @@ function CreationCard({
 
               {/* Bounds Anchor Options */}
               {placement?.anchor?.type === "bounds" && (
-                <div style={{ marginTop: "12px" }}>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "60px 1fr 1fr",
-                      gap: "8px",
-                      alignItems: "end",
-                    }}
-                  >
+                <div className="mt-lg">
+                  <div className="ct-bounds-grid">
                     <div></div>
-                    <span className="label" style={{ textAlign: "center" }}>
+                    <span className="label text-center">
                       Min
                     </span>
-                    <span className="label" style={{ textAlign: "center" }}>
+                    <span className="label text-center">
                       Max
                     </span>
 
@@ -752,7 +746,7 @@ function CreationCard({
 
 
               {!hasAnchor && (
-                <div className="hint" style={{ marginTop: "12px" }}>
+                <div className="hint mt-lg">
                   Select an anchor strategy to configure spacing, region policy, and placement
                   steps.
                 </div>
@@ -761,7 +755,7 @@ function CreationCard({
               {hasAnchor && (
                 <>
                   {/* SPACING SECTION */}
-                  <div className="nested-title" style={{ marginTop: "20px" }}>
+                  <div className="nested-title mt-2xl">
                     Spacing
                   </div>
                   <div className="form-grid">
@@ -799,7 +793,7 @@ function CreationCard({
                   </div>
 
                   {/* REGION POLICY SECTION */}
-                  <div className="nested-title" style={{ marginTop: "20px" }}>
+                  <div className="nested-title mt-2xl">
                     Region Policy
                   </div>
                   <div className="form-grid">
@@ -871,7 +865,7 @@ function CreationCard({
                   </div>
 
                   {/* STEPS SECTION */}
-                  <div className="nested-title" style={{ marginTop: "20px" }}>
+                  <div className="nested-title mt-2xl">
                     Placement Steps
                   </div>
                   <ChipSelect
@@ -894,7 +888,7 @@ function CreationCard({
           </div>
 
           {/* TAGS EDITOR */}
-          <div style={{ marginTop: "16px" }}>
+          <div className="mt-xl">
             <span className="label">Tags</span>
             <div className="form-help-text">
               Assign tags to this entity for filtering, naming profiles, and system targeting.
@@ -916,7 +910,7 @@ function CreationCard({
           </div>
 
           {/* DESCRIPTION EDITOR */}
-          <div style={{ marginTop: "16px" }}>
+          <div className="mt-xl">
             <span className="label">Description (optional)</span>
             <div className="form-help-text">
               A description for the created entity. Leave empty to auto-generate.
@@ -1049,15 +1043,8 @@ function VariantConditionEditor({
             options={pressureOptions}
             placeholder="Select pressure..."
           />
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "center",
-              paddingBottom: "8px",
-            }}
-          >
-            <span style={{ fontWeight: "bold", fontSize: "18px" }}>&gt;</span>
+          <div className="ct-compare-arrow">
+            <span className="ct-arrow-icon">&gt;</span>
           </div>
           <ReferenceDropdown
             label="Pressure B"
@@ -1238,7 +1225,7 @@ function VariantEffectsEditor({
       {/* Subtype Override section */}
       <div className="nested-section">
         <div className="nested-title">Subtype Overrides</div>
-        <div className="form-help-text" style={{ marginBottom: "8px" }}>
+        <div className="form-help-text mb-md">
           Override the subtype of created entities when this variant applies.
         </div>
 
@@ -1249,7 +1236,7 @@ function VariantEffectsEditor({
             const currentOverride = subtypeOverrides[ref];
 
             return (
-              <div key={ref} className="form-grid" style={{ marginBottom: "8px" }}>
+              <div key={ref} className="form-grid mb-md">
                 <div className="form-group">
                   <span className="label">{ref}</span>
                   <div className="form-help-text">{kind || "Unknown kind"}</div>
@@ -1265,24 +1252,24 @@ function VariantEffectsEditor({
             );
           })
         ) : (
-          <div className="form-help-text" style={{ fontStyle: "italic" }}>
+          <div className="form-help-text ct-italic">
             Define entity creation rules first to override subtypes.
           </div>
         )}
       </div>
 
       {/* Tags section */}
-      <div className="nested-section" style={{ marginTop: "16px" }}>
+      <div className="nested-section mt-xl">
         <div className="nested-title">Additional Tags</div>
-        <div className="form-help-text" style={{ marginBottom: "8px" }}>
+        <div className="form-help-text mb-md">
           Add tags to created entities when this variant applies.
         </div>
 
         {allTags.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
+          <div className="ct-tag-flex">
             {allTags.map(({ ref, tag }, idx) => (
               <div key={idx} className="chip">
-                <span style={{ opacity: 0.7, marginRight: "4px" }}>{ref}:</span>
+                <span className="ct-tag-ref">{ref}:</span>
                 <span>{tag}</span>
                 <button className="chip-remove" onClick={() => removeTag(ref, tag)}>
                   ×
@@ -1318,22 +1305,22 @@ function VariantEffectsEditor({
             </div>
           </div>
         ) : (
-          <div className="form-help-text" style={{ fontStyle: "italic" }}>
+          <div className="form-help-text ct-italic">
             Define entity creation rules first to add variant tags.
           </div>
         )}
       </div>
 
       {/* Pressure Modifications section */}
-      <div className="nested-section" style={{ marginTop: "16px" }}>
+      <div className="nested-section mt-xl">
         <div className="nested-title">Pressure Modifications</div>
-        <div className="form-help-text" style={{ marginBottom: "8px" }}>
+        <div className="form-help-text mb-md">
           Modify pressure values when this variant applies.
         </div>
 
         {(currentEffects.stateUpdates || []).map((update, idx) => (
-          <div key={idx} className="item-card" style={{ marginBottom: "8px" }}>
-            <div style={{ padding: "12px" }}>
+          <div key={idx} className="item-card mb-md">
+            <div className="ct-step-pad">
               <div className="form-row-with-delete">
                 <div className="form-row-fields">
                   <ReferenceDropdown
@@ -1476,7 +1463,7 @@ function VariantCard({
             />
           </div>
 
-          <div style={{ marginTop: "16px" }}>
+          <div className="mt-xl">
             <span className="label">Condition</span>
             <div className="form-help-text">When should this variant apply?</div>
             <VariantConditionEditor
@@ -1489,7 +1476,7 @@ function VariantCard({
             />
           </div>
 
-          <div style={{ marginTop: "16px" }}>
+          <div className="mt-xl">
             <span className="label">Effects</span>
             <div className="form-help-text">
               What modifications to apply when this variant is selected.
@@ -1572,7 +1559,7 @@ function VariantsSection({ generator, onChange, pressures = [], schema, tagRegis
   };
 
   return (
-    <div className="section" style={{ marginTop: "24px" }}>
+    <div className="section mt-2xl">
       <div className="section-title">
         <span>⚡</span> Conditional Variants
       </div>
@@ -1582,7 +1569,7 @@ function VariantsSection({ generator, onChange, pressures = [], schema, tagRegis
       </div>
 
       {variants.options.length > 0 && (
-        <div style={{ marginBottom: "16px" }}>
+        <div className="mb-xl">
           <ReferenceDropdown
             label="Selection Mode"
             value={variants.selection}

@@ -16,6 +16,7 @@ import {
   EmptyState,
   InfoBox,
 } from "@penguin-tales/shared-components";
+import "./CultureEditor.css";
 
 const PRESET_COLORS = [
   "#ff6b7a",
@@ -86,15 +87,10 @@ export default function CultureEditor({ cultures, onChange }) {
   );
 
   const renderCultureTitle = (culture) => (
-    <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+    <span className="ced-title-wrapper">
       <span
-        style={{
-          width: "16px",
-          height: "16px",
-          borderRadius: "50%",
-          backgroundColor: culture.color,
-          border: "2px solid var(--color-border)",
-        }}
+        className="ced-color-swatch"
+        style={{ '--ced-swatch-color': culture.color }}
       />
       {culture.name}
     </span>
@@ -104,7 +100,7 @@ export default function CultureEditor({ cultures, onChange }) {
     <span className="text-muted text-small">
       {getCultureSummary(culture)}
       {isFramework && (
-        <span className="badge badge-info" style={{ marginLeft: "8px" }}>
+        <span className="badge badge-info ced-framework-badge">
           framework
         </span>
       )}
@@ -112,7 +108,7 @@ export default function CultureEditor({ cultures, onChange }) {
   );
 
   return (
-    <div className="editor-container" style={{ maxWidth: "900px" }}>
+    <div className="editor-container ced-container">
       <SectionHeader
         title="Cultures"
         description="Define cultural groups with their own naming conventions and placement biases."
@@ -185,29 +181,21 @@ export default function CultureEditor({ cultures, onChange }) {
                 {/* Color Selection */}
                 <div className="section">
                   <div className="section-title">Color</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div className="ced-color-row">
                     <div
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "50%",
-                        backgroundColor: culture.color,
-                        border: "3px solid var(--color-border)",
-                      }}
+                      className="ced-color-preview"
+                      style={{ '--ced-preview-color': culture.color }}
                     />
                     <div className="chip-list">
                       {PRESET_COLORS.map((color) => (
                         <div
                           key={color}
-                          className={`chip chip-clickable ${culture.color === color ? "chip-active" : ""}`}
+                          className={`chip chip-clickable ced-color-chip ${culture.color === color ? "chip-active" : ""}`}
                           style={{
-                            width: "24px",
-                            height: "24px",
-                            padding: 0,
-                            backgroundColor: color,
-                            borderColor: culture.color === color ? "#fff" : "transparent",
-                            opacity: isFramework ? 0.6 : 1,
-                            pointerEvents: isFramework ? "none" : "auto",
+                            '--ced-chip-bg': color,
+                            '--ced-chip-border': culture.color === color ? '#fff' : 'transparent',
+                            '--ced-chip-opacity': isFramework ? 0.6 : 1,
+                            '--ced-chip-pointer': isFramework ? 'none' : 'auto',
                           }}
                           onClick={() => updateCulture(culture.id, { color })}
                           role="button"
@@ -221,7 +209,7 @@ export default function CultureEditor({ cultures, onChange }) {
 
                 {/* Info about other editors */}
                 <InfoBox title="Additional configuration">
-                  <ul style={{ margin: "8px 0 0 16px", padding: 0 }}>
+                  <ul className="ced-info-list">
                     <li>
                       <strong>Names tab</strong> — Configure naming domains, grammars, and profiles
                     </li>
@@ -233,7 +221,7 @@ export default function CultureEditor({ cultures, onChange }) {
 
                 {/* Actions */}
                 <div className="danger-zone">
-                  <div style={{ display: "flex", gap: "8px" }}>
+                  <div className="ced-action-badges">
                     {culture.naming && <span className="badge">has naming</span>}
                     {culture.axisBiases && <span className="badge">has biases</span>}
                   </div>

@@ -8,6 +8,7 @@
 import React, { useMemo } from "react";
 import type { EntityContext } from "../../../lib/chronicleTypes";
 import type { ChronicleRoleAssignment } from "../../../lib/chronicleTypes";
+import "./EnsembleHealthBar.css";
 
 interface EnsembleHealthBarProps {
   assignments: ChronicleRoleAssignment[];
@@ -86,53 +87,24 @@ export default function EnsembleHealthBar({
   }
 
   return (
-    <div
-      style={{
-        background: "var(--bg-tertiary)",
-        borderRadius: "8px",
-        padding: "12px",
-      }}
-    >
+    <div className="ehb-wrap">
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "8px",
-        }}
-      >
-        <span
-          style={{
-            fontSize: "11px",
-            fontWeight: 500,
-            color: "var(--text-primary)",
-          }}
-        >
+      <div className="ehb-header">
+        <span className="ehb-title">
           Ensemble Diversity
         </span>
         <span
+          className="ehb-count"
           style={{
-            fontSize: "11px",
-            color: stats.coveragePercent === 100 ? "var(--success)" : "var(--text-muted)",
-            fontWeight: 500,
-          }}
+            '--ehb-count-color': stats.coveragePercent === 100 ? "var(--success)" : "var(--text-muted)",
+          } as React.CSSProperties}
         >
           {stats.coveredCount}/{stats.totalCount} categories
         </span>
       </div>
 
       {/* Segmented bar */}
-      <div
-        style={{
-          display: "flex",
-          height: "12px",
-          borderRadius: "6px",
-          overflow: "hidden",
-          background: "var(--bg-secondary)",
-          marginBottom: "8px",
-        }}
-      >
+      <div className="ehb-bar">
         {stats.categories.map((category, i) => {
           const count = stats.assignedCategories.get(category) || 0;
           const isCovered = count > 0;
@@ -143,14 +115,13 @@ export default function EnsembleHealthBar({
             <div
               key={category}
               title={`${category}: ${count} assigned`}
+              className="ehb-bar-segment"
               style={{
-                width,
-                background: isCovered ? color : "transparent",
-                opacity: isCovered ? 1 : 0.3,
-                borderRight:
-                  i < stats.categories.length - 1 ? "1px solid var(--bg-tertiary)" : "none",
-                transition: "background 0.2s ease",
-              }}
+                '--ehb-seg-width': width,
+                '--ehb-seg-bg': isCovered ? color : "transparent",
+                '--ehb-seg-opacity': isCovered ? 1 : 0.3,
+                '--ehb-seg-border': i < stats.categories.length - 1 ? "1px solid var(--bg-tertiary)" : "none",
+              } as React.CSSProperties}
             />
           );
         })}
@@ -158,12 +129,10 @@ export default function EnsembleHealthBar({
 
       {/* Category legend */}
       <div
+        className="ehb-legend"
         style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "6px",
-          marginBottom: stats.missingCategories.length > 0 ? "8px" : 0,
-        }}
+          '--ehb-legend-mb': stats.missingCategories.length > 0 ? "8px" : "0",
+        } as React.CSSProperties}
       >
         {stats.categories.map((category) => {
           const count = stats.assignedCategories.get(category) || 0;
@@ -173,25 +142,20 @@ export default function EnsembleHealthBar({
           return (
             <div
               key={category}
+              className="ehb-legend-item"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "9px",
-                color: isCovered ? "var(--text-primary)" : "var(--text-muted)",
-                opacity: isCovered ? 1 : 0.6,
-              }}
+                '--ehb-item-color': isCovered ? "var(--text-primary)" : "var(--text-muted)",
+                '--ehb-item-opacity': isCovered ? 1 : 0.6,
+              } as React.CSSProperties}
             >
               <span
+                className="ehb-legend-dot"
                 style={{
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "2px",
-                  background: isCovered ? color : "var(--bg-secondary)",
-                  border: isCovered ? "none" : `1px solid ${color}`,
-                }}
+                  '--ehb-dot-bg': isCovered ? color : "var(--bg-secondary)",
+                  '--ehb-dot-border': isCovered ? "none" : `1px solid ${color}`,
+                } as React.CSSProperties}
               />
-              <span style={{ textTransform: "capitalize" }}>
+              <span className="ehb-legend-label">
                 {category}
                 {count > 1 && ` (${count})`}
               </span>
@@ -202,24 +166,13 @@ export default function EnsembleHealthBar({
 
       {/* Missing categories warning */}
       {stats.missingCategories.length > 0 && (
-        <div
-          style={{
-            padding: "8px 10px",
-            background: "rgba(245, 158, 11, 0.1)",
-            borderRadius: "4px",
-            fontSize: "10px",
-            color: "var(--warning)",
-            display: "flex",
-            alignItems: "flex-start",
-            gap: "6px",
-          }}
-        >
-          <span style={{ fontSize: "12px" }}>💡</span>
+        <div className="ehb-warning">
+          <span className="ehb-warning-icon">💡</span>
           <span>
             Consider adding:{" "}
             {stats.missingCategories.map((cat, i) => (
               <span key={cat}>
-                <span style={{ textTransform: "capitalize", fontWeight: 500 }}>{cat}</span>
+                <span className="ehb-missing-cat">{cat}</span>
                 {i < stats.missingCategories.length - 1 && ", "}
               </span>
             ))}
@@ -229,18 +182,7 @@ export default function EnsembleHealthBar({
 
       {/* All covered celebration */}
       {stats.missingCategories.length === 0 && stats.totalCount > 1 && (
-        <div
-          style={{
-            padding: "8px 10px",
-            background: "rgba(34, 197, 94, 0.1)",
-            borderRadius: "4px",
-            fontSize: "10px",
-            color: "var(--success)",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
-        >
+        <div className="ehb-success">
           <span>✓</span>
           <span>All categories represented - diverse ensemble!</span>
         </div>

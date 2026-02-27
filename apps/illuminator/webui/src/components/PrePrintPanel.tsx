@@ -22,8 +22,7 @@ import { getEraNarrativesForSimulation } from "../lib/db/eraNarrativeRepository"
 import StatsView from "./preprint/StatsView";
 import ContentTreeView from "./preprint/ContentTreeView";
 import ExportView from "./preprint/ExportView";
-
-const emptyStateStyle = { padding: "var(--space-lg)", color: "var(--text-secondary)" } as const;
+import "./PrePrintPanel.css";
 
 type SubTab = "stats" | "tree" | "export";
 
@@ -148,7 +147,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
 
   if (loading) {
     return (
-      <div style={emptyStateStyle}>
+      <div className="ppp-empty-state">
         Loading pre-print data...
       </div>
     );
@@ -156,7 +155,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
 
   if (!projectId || !simulationRunId) {
     return (
-      <div style={emptyStateStyle}>
+      <div className="ppp-empty-state">
         No active project. Load a simulation run to use pre-print features.
       </div>
     );

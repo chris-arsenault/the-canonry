@@ -94,7 +94,7 @@ export default function StatsPanel({ worldData, isOpen, onToggle }: Readonly<Sta
                       <div className="pressure-bar">
                         <div
                           className={`pressure-bar-fill ${intensity}`}
-                          style={{ width: `${percentage}%` }}
+                          style={{ '--sp-pressure-width': `${percentage}%` } as React.CSSProperties}
                         />
                       </div>
                     </div>

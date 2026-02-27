@@ -7,6 +7,7 @@ import PropTypes from "prop-types";
 import { RELATIONSHIP_REFS, MUTATION_TYPE_OPTIONS } from "../constants";
 import MutationCard, { DEFAULT_MUTATION_TYPES } from "../../shared/MutationCard";
 import { NumberInput, LocalTextArea } from "../../shared";
+import "./OutcomeTab.css";
 
 const ACTION_MUTATION_TYPES = DEFAULT_MUTATION_TYPES;
 
@@ -147,22 +148,22 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
           />
         ))}
 
-        <div ref={addButtonRef} style={{ position: "relative", marginTop: "12px" }}>
+        <div ref={addButtonRef} className="ot-add-btn-wrap mt-lg">
           <button onClick={() => setShowTypeMenu(!showTypeMenu)} className="btn-add-inline">
             + Add Mutation
           </button>
 
           {showTypeMenu && (
+            {/* eslint-disable-next-line local/no-inline-styles -- dynamic position from JS measurement */}
             <div
-              className="dropdown-menu"
+              className="dropdown-menu ot-dropdown-fixed"
               style={{
-                position: "fixed",
-                top: dropdownPos.top,
-                left: dropdownPos.left,
-                width: dropdownPos.width,
-                maxHeight: "300px",
-                overflowY: "auto",
-                zIndex: 10000,
+                '--ot-dd-top': `${dropdownPos.top}px`,
+                '--ot-dd-left': `${dropdownPos.left}px`,
+                '--ot-dd-width': `${dropdownPos.width}px`,
+                top: 'var(--ot-dd-top)',
+                left: 'var(--ot-dd-left)',
+                width: 'var(--ot-dd-width)',
               }}
             >
               {MUTATION_TYPE_OPTIONS.map((opt) => (
@@ -177,9 +178,10 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
                   tabIndex={0}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
+                  {/* eslint-disable-next-line local/no-inline-styles -- dynamic type color */}
                   <span
                     className="dropdown-menu-icon"
-                    style={{ backgroundColor: `${opt.color}20` }}
+                    style={{ '--ot-menu-icon-bg': `${opt.color}20`, backgroundColor: 'var(--ot-menu-icon-bg)' }}
                   >
                     {opt.icon}
                   </span>
@@ -198,8 +200,8 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
           deltas (e.g., 0.1 or -0.05).
         </div>
 
-        <div style={{ marginBottom: "16px" }}>
-          <div className="label" style={{ marginBottom: "8px" }}>
+        <div className="mb-xl">
+          <div className="label mb-md">
             Actor Prominence Delta
           </div>
           <div className="form-grid">
@@ -243,7 +245,7 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
         </div>
 
         <div>
-          <div className="label" style={{ marginBottom: "8px" }}>
+          <div className="label mb-md">
             Target Prominence Delta
           </div>
           <div className="form-grid">

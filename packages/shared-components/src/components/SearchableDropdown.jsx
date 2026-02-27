@@ -18,10 +18,6 @@ import PropTypes from 'prop-types';
  * @param {boolean} [props.searchable] - Whether to show search input (default true)
  * @param {string} [props.className] - Additional class names
  */
-const styles = {
-  disabled: { opacity: 0.5, cursor: 'not-allowed' },
-};
-
 export function SearchableDropdown({
   items,
   onSelect,
@@ -62,7 +58,7 @@ export function SearchableDropdown({
 
   if (items.length === 0) {
     return (
-      <div className={`dropdown-trigger ${className}`.trim()} style={styles.disabled}>
+      <div className={`dropdown-trigger dropdown-trigger-disabled ${className}`.trim()}>
         <span>{emptyMessage}</span>
       </div>
     );

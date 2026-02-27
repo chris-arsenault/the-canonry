@@ -19,17 +19,22 @@ import "./StyleLibraryEditor.css";
  * Shared hook for modal overlay click-to-dismiss behavior.
  * Returns { mouseDownOnOverlay, handleOverlayMouseDown, handleOverlayClick }.
  */
+
 function useOverlayDismiss(onDismiss) {
   const mouseDownOnOverlay = useRef(false);
-  const handleOverlayMouseDown = useCallback((e) => {
+  const handleOverlayMouseDown = useCallback(e => {
     mouseDownOnOverlay.current = e.target === e.currentTarget;
   }, []);
-  const handleOverlayClick = useCallback((e) => {
+  const handleOverlayClick = useCallback(e => {
     if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
       onDismiss();
     }
   }, [onDismiss]);
-  return { mouseDownOnOverlay, handleOverlayMouseDown, handleOverlayClick };
+  return {
+    mouseDownOnOverlay,
+    handleOverlayMouseDown,
+    handleOverlayClick
+  };
 }
 
 /**
@@ -42,103 +47,88 @@ function generateStyleId(prefix) {
 /**
  * Style card component for displaying a single style
  */
-function StyleCard({ style, type: _type, onEdit, onDelete }) {
-  return (
-    <div className="illuminator-style-card">
+function StyleCard({
+  style,
+  type: _type,
+  onEdit,
+  onDelete
+}) {
+  return <div className="illuminator-style-card">
       <div className="illuminator-style-card-header">
         <div className="illuminator-style-card-title">{style.name}</div>
         <div className="illuminator-style-card-actions">
           <button onClick={() => onEdit(style)} className="illuminator-btn-icon" title="Edit style">
             Edit
           </button>
-          <button
-            onClick={() => onDelete(style.id)}
-            className="illuminator-btn-icon illuminator-btn-danger"
-            title="Delete style"
-          >
+          <button onClick={() => onDelete(style.id)} className="illuminator-btn-icon illuminator-btn-danger" title="Delete style">
             Delete
           </button>
         </div>
       </div>
-      {style.description && (
-        <div className="illuminator-style-card-description">{style.description}</div>
-      )}
+      {style.description && <div className="illuminator-style-card-description">{style.description}</div>}
       <div className="illuminator-style-card-prompt">
         <strong>Prompt:</strong> {style.promptFragment}
       </div>
-      {style.keywords?.length > 0 && (
-        <div className="illuminator-style-card-keywords">
-          {style.keywords.map((kw) => (
-            <span key={kw} className="illuminator-style-keyword">
+      {style.keywords?.length > 0 && <div className="illuminator-style-card-keywords">
+          {style.keywords.map(kw => <span key={kw} className="illuminator-style-keyword">
               {kw}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+            </span>)}
+        </div>}
+    </div>;
 }
-
 StyleCard.propTypes = {
   style: PropTypes.object,
   type: PropTypes.string,
   onEdit: PropTypes.func,
-  onDelete: PropTypes.func,
+  onDelete: PropTypes.func
 };
 
 /**
  * Modal for editing a style
  */
-function StyleEditModal({ style, type, onSave, onCancel }) {
+function StyleEditModal({
+  style,
+  type,
+  onSave,
+  onCancel
+}) {
   const [formData, setFormData] = useState({
     id: style?.id || "",
     name: style?.name || "",
     description: style?.description || "",
     promptFragment: style?.promptFragment || "",
-    keywords: style?.keywords?.join(", ") || "",
+    keywords: style?.keywords?.join(", ") || ""
   });
-  const { handleOverlayMouseDown, handleOverlayClick } = useOverlayDismiss(onCancel);
-
+  const {
+    handleOverlayMouseDown,
+    handleOverlayClick
+  } = useOverlayDismiss(onCancel);
   const isNew = !style?.id;
-
   const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = e => {
     e.preventDefault();
-
     const result = {
       id: isNew ? generateStyleId(type) : formData.id,
       name: formData.name.trim(),
-      promptFragment: formData.promptFragment.trim(),
+      promptFragment: formData.promptFragment.trim()
     };
-
     if (formData.description.trim()) {
       result.description = formData.description.trim();
     }
-
     if (type === "artistic" && formData.keywords.trim()) {
-      result.keywords = formData.keywords
-        .split(",")
-        .map((k) => k.trim())
-        .filter(Boolean);
+      result.keywords = formData.keywords.split(",").map(k => k.trim()).filter(Boolean);
     }
-
     onSave(result, isNew);
   };
-
   const isValid = formData.name.trim() && formData.promptFragment.trim();
-
-  return (
-    <div
-      className="illuminator-modal-overlay"
-      onMouseDown={handleOverlayMouseDown}
-      onClick={handleOverlayClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
-    >
+  return <div className="illuminator-modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick} role="button" tabIndex={0} onKeyDown={e => {
+    if (e.key === "Enter" || e.key === " ") handleOverlayClick(e);
+  }}>
       <div className="illuminator-modal">
         <div className="illuminator-modal-header">
           <h3>
@@ -152,86 +142,59 @@ function StyleEditModal({ style, type, onSave, onCancel }) {
         <form onSubmit={handleSubmit} className="illuminator-modal-body">
           <div className="illuminator-form-group">
             <label htmlFor="name" className="illuminator-label">Name *</label>
-            <input id="name"
-              type="text"
-              value={formData.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              className="illuminator-input"
-              placeholder="e.g., Oil Painting"
-              // eslint-disable-next-line jsx-a11y/no-autofocus
-              autoFocus
-            />
+            <input id="name" type="text" value={formData.name} onChange={e => handleChange("name", e.target.value)} className="illuminator-input" placeholder="e.g., Oil Painting"
+          // eslint-disable-next-line jsx-a11y/no-autofocus
+          autoFocus />
           </div>
 
           <div className="illuminator-form-group">
             <label htmlFor="description" className="illuminator-label">Description</label>
-            <input id="description"
-              type="text"
-              value={formData.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-              className="illuminator-input"
-              placeholder="Brief description of the style"
-            />
+            <input id="description" type="text" value={formData.description} onChange={e => handleChange("description", e.target.value)} className="illuminator-input" placeholder="Brief description of the style" />
           </div>
 
           <div className="illuminator-form-group">
             <label className="illuminator-label">Prompt Fragment *
-            <LocalTextArea
-              value={formData.promptFragment}
-              onChange={(value) => handleChange("promptFragment", value)}
-              className="illuminator-textarea"
-              rows={3}
-              placeholder="e.g., oil painting style, rich textures, visible brushstrokes"
-            />
+            <LocalTextArea value={formData.promptFragment} onChange={value => handleChange("promptFragment", value)} className="illuminator-textarea" rows={3} placeholder="e.g., oil painting style, rich textures, visible brushstrokes" />
             </label>
             <p className="style-editor-hint">
               This text will be injected into the image generation prompt.
             </p>
           </div>
 
-          {type === "artistic" && (
-            <div className="illuminator-form-group">
+          {type === "artistic" && <div className="illuminator-form-group">
               <label htmlFor="keywords" className="illuminator-label">Keywords</label>
-              <input id="keywords"
-                type="text"
-                value={formData.keywords}
-                onChange={(e) => handleChange("keywords", e.target.value)}
-                className="illuminator-input"
-                placeholder="e.g., traditional, classical, painterly"
-              />
+              <input id="keywords" type="text" value={formData.keywords} onChange={e => handleChange("keywords", e.target.value)} className="illuminator-input" placeholder="e.g., traditional, classical, painterly" />
               <p className="style-editor-hint">Comma-separated keywords for categorization.</p>
-            </div>
-          )}
+            </div>}
 
           <div className="illuminator-modal-footer">
             <button type="button" onClick={onCancel} className="illuminator-btn">
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={!isValid}
-              className="illuminator-btn illuminator-btn-primary"
-            >
+            <button type="submit" disabled={!isValid} className="illuminator-btn illuminator-btn-primary">
               {isNew ? "Add Style" : "Save Changes"}
             </button>
           </div>
         </form>
       </div>
-    </div>
-  );
+    </div>;
 }
-
 StyleEditModal.propTypes = {
   style: PropTypes.object,
   type: PropTypes.string,
   onSave: PropTypes.func,
-  onCancel: PropTypes.func,
+  onCancel: PropTypes.func
 };
 
 /**
  * Narrative style card component
  */
-function NarrativeStyleCard({ style, compositionStyles: _compositionStyles, onEdit, onDelete }) {
+function NarrativeStyleCard({
+  style,
+  compositionStyles: _compositionStyles,
+  onEdit,
+  onDelete
+}) {
   const isDocument = style.format === "document";
 
   // Extract a short preview of instructions for display
@@ -243,42 +206,28 @@ function NarrativeStyleCard({ style, compositionStyles: _compositionStyles, onEd
   }
 
   // Get word count from appropriate location
-  const wordCountMin = isDocument
-    ? style.pacing?.wordCount?.min || 300
-    : style.pacing?.totalWordCount?.min || 1000;
-  const wordCountMax = isDocument
-    ? style.pacing?.wordCount?.max || 800
-    : style.pacing?.totalWordCount?.max || 2000;
+  const wordCountMin = isDocument ? style.pacing?.wordCount?.min || 300 : style.pacing?.totalWordCount?.min || 1000;
+  const wordCountMax = isDocument ? style.pacing?.wordCount?.max || 800 : style.pacing?.totalWordCount?.max || 2000;
 
   // Cover image config
   const coverConfig = getCoverImageConfig(style.id);
-  const sceneTemplate = SCENE_PROMPT_TEMPLATES.find((t) => t.id === coverConfig.scenePromptId);
-
-  return (
-    <div className="illuminator-style-card">
+  const sceneTemplate = SCENE_PROMPT_TEMPLATES.find(t => t.id === coverConfig.scenePromptId);
+  return <div className="illuminator-style-card">
       <div className="illuminator-style-card-header">
         <div className="illuminator-style-card-title">{style.name}</div>
         <div className="illuminator-style-card-actions">
           <button onClick={() => onEdit(style)} className="illuminator-btn-icon" title="Edit style">
             Edit
           </button>
-          <button
-            onClick={() => onDelete(style.id)}
-            className="illuminator-btn-icon illuminator-btn-danger"
-            title="Delete style"
-          >
+          <button onClick={() => onDelete(style.id)} className="illuminator-btn-icon illuminator-btn-danger" title="Delete style">
             Delete
           </button>
         </div>
       </div>
-      {style.description && (
-        <div className="illuminator-style-card-description">{style.description}</div>
-      )}
+      {style.description && <div className="illuminator-style-card-description">{style.description}</div>}
       <div className="style-editor-badge-row">
         {/* Type badge */}
-        <span
-          className={`style-editor-badge ${isDocument ? "style-editor-badge-document" : "style-editor-badge-story"}`}
-        >
+        <span className={`style-editor-badge ${isDocument ? "style-editor-badge-document" : "style-editor-badge-story"}`}>
           {isDocument ? "document" : "story"}
         </span>
         {/* Word count badge */}
@@ -286,56 +235,43 @@ function NarrativeStyleCard({ style, compositionStyles: _compositionStyles, onEd
           {wordCountMin}-{wordCountMax} words
         </span>
         {/* Scenes badge for story styles */}
-        {!isDocument && (
-          <span className="style-editor-badge">
+        {!isDocument && <span className="style-editor-badge">
             {style.pacing?.sceneCount?.min || 3}-{style.pacing?.sceneCount?.max || 5} scenes
-          </span>
-        )}
+          </span>}
         {/* Roles badge */}
-        {style.roles?.length > 0 && (
-          <span className="style-editor-badge">{style.roles.length} roles</span>
-        )}
+        {style.roles?.length > 0 && <span className="style-editor-badge">{style.roles.length} roles</span>}
         {/* Cover image scene prompt badge */}
-        {sceneTemplate && (
-          <span className="style-editor-badge" title={`Cover scene: ${sceneTemplate.name}`}>
+        {sceneTemplate && <span className="style-editor-badge" title={`Cover scene: ${sceneTemplate.name}`}>
             cover: {sceneTemplate.name}
-          </span>
-        )}
+          </span>}
       </div>
       {/* Instructions preview */}
-      {instructionsPreview && (
-        <div className="style-editor-instructions-preview">{instructionsPreview}</div>
-      )}
-      {style.tags?.length > 0 && (
-        <div className="illuminator-style-card-keywords style-editor-tags-row">
-          {style.tags.map((tag) => (
-            <span key={tag} className="illuminator-style-keyword">
+      {instructionsPreview && <div className="style-editor-instructions-preview">{instructionsPreview}</div>}
+      {style.tags?.length > 0 && <div className="illuminator-style-card-keywords style-editor-tags-row">
+          {style.tags.map(tag => <span key={tag} className="illuminator-style-keyword">
               {tag}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+            </span>)}
+        </div>}
+    </div>;
 }
-
 NarrativeStyleCard.propTypes = {
   style: PropTypes.object,
   compositionStyles: PropTypes.array,
   onEdit: PropTypes.func,
-  onDelete: PropTypes.func,
+  onDelete: PropTypes.func
 };
 
 /**
  * Shared read-only section showing cover image config for a narrative style
  */
-function CoverImageConfigSection({ styleId, compositionStyles }) {
+function CoverImageConfigSection({
+  styleId,
+  compositionStyles
+}) {
   const coverConfig = getCoverImageConfig(styleId);
-  const sceneTemplate = SCENE_PROMPT_TEMPLATES.find((t) => t.id === coverConfig.scenePromptId);
-  const coverComposition = compositionStyles?.find((c) => c.id === coverConfig.compositionStyleId);
-
-  return (
-    <div className="style-editor-cover-section">
+  const sceneTemplate = SCENE_PROMPT_TEMPLATES.find(t => t.id === coverConfig.scenePromptId);
+  const coverComposition = compositionStyles?.find(c => c.id === coverConfig.compositionStyleId);
+  return <div className="style-editor-cover-section">
       <div className="style-editor-cover-label">Cover Image</div>
       <div className="style-editor-cover-grid">
         <div className="style-editor-cover-card">
@@ -351,30 +287,28 @@ function CoverImageConfigSection({ styleId, compositionStyles }) {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }
-
 CoverImageConfigSection.propTypes = {
   styleId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  compositionStyles: PropTypes.array,
+  compositionStyles: PropTypes.array
 };
 
 /**
  * Modal for viewing/editing a document-format narrative style (read-only for now)
  */
-function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
-  const { handleOverlayMouseDown, handleOverlayClick } = useOverlayDismiss(onCancel);
-
-  return (
-    <div
-      className="illuminator-modal-overlay"
-      onMouseDown={handleOverlayMouseDown}
-      onClick={handleOverlayClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
-    >
+function DocumentStyleViewModal({
+  style,
+  compositionStyles,
+  onCancel
+}) {
+  const {
+    handleOverlayMouseDown,
+    handleOverlayClick
+  } = useOverlayDismiss(onCancel);
+  return <div className="illuminator-modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick} role="button" tabIndex={0} onKeyDown={e => {
+    if (e.key === "Enter" || e.key === " ") handleOverlayClick(e);
+  }}>
       <div className="illuminator-modal style-editor-modal-wide">
         <div className="illuminator-modal-header">
           <h3>Document Style: {style.name}</h3>
@@ -399,63 +333,49 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
           </div>
 
           {/* Document instructions */}
-          {style.documentInstructions && (
-            <div className="style-editor-detail-section">
+          {style.documentInstructions && <div className="style-editor-detail-section">
               <div className="style-editor-detail-label">Document Instructions</div>
               <div className="style-editor-preformatted">{style.documentInstructions}</div>
-            </div>
-          )}
+            </div>}
 
           {/* Event instructions */}
-          {style.eventInstructions && (
-            <div className="style-editor-detail-section">
+          {style.eventInstructions && <div className="style-editor-detail-section">
               <div className="style-editor-detail-label">Event Instructions</div>
               <div className="style-editor-preformatted style-editor-preformatted-compact">
                 {style.eventInstructions}
               </div>
-            </div>
-          )}
+            </div>}
 
           {/* Roles */}
-          {style.roles?.length > 0 && (
-            <div className="style-editor-detail-section">
+          {style.roles?.length > 0 && <div className="style-editor-detail-section">
               <div className="style-editor-detail-label style-editor-detail-label-mb8">
                 Roles ({style.roles.length})
               </div>
               <div className="style-editor-roles-list">
-                {style.roles.map((role, i) => (
-                  <div key={role.role || i} className="style-editor-role-card">
+                {style.roles.map((role, i) => <div key={role.role || i} className="style-editor-role-card">
                     <div className="style-editor-role-header">
                       <div className="style-editor-role-name">{role.role}</div>
                       <div className="style-editor-role-count">
                         {role.count?.min || 0}-{role.count?.max || 1}
                       </div>
                     </div>
-                    {role.description && (
-                      <div className="style-editor-role-desc">{role.description}</div>
-                    )}
-                  </div>
-                ))}
+                    {role.description && <div className="style-editor-role-desc">{role.description}</div>}
+                  </div>)}
               </div>
-            </div>
-          )}
+            </div>}
 
           {/* Cover Image Config */}
           <CoverImageConfigSection styleId={style.id} compositionStyles={compositionStyles} />
 
           {/* Tags */}
-          {style.tags?.length > 0 && (
-            <div>
+          {style.tags?.length > 0 && <div>
               <div className="style-editor-detail-label">Tags</div>
               <div className="style-editor-tags-flex">
-                {style.tags.map((tag) => (
-                  <span key={tag} className="illuminator-style-keyword">
+                {style.tags.map(tag => <span key={tag} className="illuminator-style-keyword">
                     {tag}
-                  </span>
-                ))}
+                  </span>)}
               </div>
-            </div>
-          )}
+            </div>}
 
           <div className="style-editor-readonly-notice">
             Document styles are pre-defined and cannot be edited in the UI. To customize, create a
@@ -469,14 +389,12 @@ function DocumentStyleViewModal({ style, compositionStyles, onCancel }) {
           </button>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }
-
 DocumentStyleViewModal.propTypes = {
   style: PropTypes.object,
   compositionStyles: PropTypes.array,
-  onCancel: PropTypes.func,
+  onCancel: PropTypes.func
 };
 
 /**
@@ -489,24 +407,37 @@ DocumentStyleViewModal.propTypes = {
  * - roles: Cast positions with counts
  * - pacing: Word/scene counts
  */
-function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel }) {
+function NarrativeStyleEditModal({
+  style,
+  compositionStyles,
+  onSave,
+  onCancel
+}) {
   const isNew = !style?.id;
 
   // Default roles for new styles (must be before useState so initializer can reference it)
-  const defaultRoles = [
-    {
-      role: "protagonist",
-      count: { min: 1, max: 1 },
-      description: "Main character driving the story",
+  const defaultRoles = [{
+    role: "protagonist",
+    count: {
+      min: 1,
+      max: 1
     },
-    {
-      role: "antagonist",
-      count: { min: 0, max: 1 },
-      description: "Character opposing the protagonist",
+    description: "Main character driving the story"
+  }, {
+    role: "antagonist",
+    count: {
+      min: 0,
+      max: 1
     },
-    { role: "supporting", count: { min: 1, max: 4 }, description: "Supporting characters" },
-  ];
-
+    description: "Character opposing the protagonist"
+  }, {
+    role: "supporting",
+    count: {
+      min: 1,
+      max: 4
+    },
+    description: "Supporting characters"
+  }];
   const [formData, setFormData] = useState({
     id: style?.id || "",
     name: style?.name || "",
@@ -522,119 +453,116 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
     sceneCountMin: style?.pacing?.sceneCount?.min ?? 3,
     sceneCountMax: style?.pacing?.sceneCount?.max ?? 5,
     // Roles (keep as array)
-    roles: style?.roles || defaultRoles,
+    roles: style?.roles || defaultRoles
   });
-
   const [activeTab, setActiveTab] = useState("basic");
-  const { handleOverlayMouseDown, handleOverlayClick } = useOverlayDismiss(onCancel);
+  const {
+    handleOverlayMouseDown,
+    handleOverlayClick
+  } = useOverlayDismiss(onCancel);
 
   // If this is a document format, show view-only modal
   if (style?.format === "document") {
-    return (
-      <DocumentStyleViewModal
-        // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
-        style={style}
-        compositionStyles={compositionStyles}
-        onCancel={onCancel}
-      />
-    );
+    return <DocumentStyleViewModal
+    // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
+    compositionStyles={compositionStyles} onCancel={onCancel} style={style} />;
   }
-
   const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
-
-  const parseCommaSeparated = (str) =>
-    str
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-  const handleSubmit = (e) => {
+  const parseCommaSeparated = str => str.split(",").map(s => s.trim()).filter(Boolean);
+  const handleSubmit = e => {
     e.preventDefault();
-
     const result = {
       id: isNew ? `narrative-${Date.now().toString(36)}` : formData.id,
       name: formData.name.trim(),
       description: formData.description.trim(),
       tags: parseCommaSeparated(formData.tags),
       format: "story",
-
       // Freeform text blocks
       narrativeInstructions: formData.narrativeInstructions.trim(),
       proseInstructions: formData.proseInstructions.trim(),
       eventInstructions: formData.eventInstructions.trim() || undefined,
-
       // Roles
       roles: formData.roles,
-
       // Pacing
       pacing: {
         totalWordCount: {
           min: parseInt(formData.wordCountMin, 10),
-          max: parseInt(formData.wordCountMax, 10),
+          max: parseInt(formData.wordCountMax, 10)
         },
         sceneCount: {
           min: parseInt(formData.sceneCountMin, 10),
-          max: parseInt(formData.sceneCountMax, 10),
-        },
-      },
+          max: parseInt(formData.sceneCountMax, 10)
+        }
+      }
     };
-
     onSave(result, isNew);
   };
-
-  const isValid =
-    formData.name.trim() &&
-    formData.narrativeInstructions.trim() &&
-    formData.proseInstructions.trim();
-
-  const tabs = [
-    { id: "basic", label: "Basic" },
-    { id: "narrative", label: "Narrative" },
-    { id: "prose", label: "Prose" },
-    { id: "roles", label: "Roles" },
-  ];
+  const isValid = formData.name.trim() && formData.narrativeInstructions.trim() && formData.proseInstructions.trim();
+  const tabs = [{
+    id: "basic",
+    label: "Basic"
+  }, {
+    id: "narrative",
+    label: "Narrative"
+  }, {
+    id: "prose",
+    label: "Prose"
+  }, {
+    id: "roles",
+    label: "Roles"
+  }];
 
   // Role management
   const handleAddRole = () => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      roles: [...prev.roles, { role: "", count: { min: 1, max: 1 }, description: "" }],
+      roles: [...prev.roles, {
+        role: "",
+        count: {
+          min: 1,
+          max: 1
+        },
+        description: ""
+      }]
     }));
   };
-
   const handleUpdateRole = (index, field, value) => {
-    setFormData((prev) => {
+    setFormData(prev => {
       const newRoles = [...prev.roles];
       if (field === "min" || field === "max") {
         newRoles[index] = {
           ...newRoles[index],
-          count: { ...newRoles[index].count, [field]: parseInt(value, 10) || 0 },
+          count: {
+            ...newRoles[index].count,
+            [field]: parseInt(value, 10) || 0
+          }
         };
       } else {
-        newRoles[index] = { ...newRoles[index], [field]: value };
+        newRoles[index] = {
+          ...newRoles[index],
+          [field]: value
+        };
       }
-      return { ...prev, roles: newRoles };
+      return {
+        ...prev,
+        roles: newRoles
+      };
     });
   };
-
-  const handleRemoveRole = (index) => {
-    setFormData((prev) => ({
+  const handleRemoveRole = index => {
+    setFormData(prev => ({
       ...prev,
-      roles: prev.roles.filter((_, i) => i !== index),
+      roles: prev.roles.filter((_, i) => i !== index)
     }));
   };
-
-  return (
-    <div
-      className="illuminator-modal-overlay"
-      onMouseDown={handleOverlayMouseDown}
-      onClick={handleOverlayClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
-    >
+  return <div className="illuminator-modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick} role="button" tabIndex={0} onKeyDown={e => {
+    if (e.key === "Enter" || e.key === " ") handleOverlayClick(e);
+  }}>
       <div className="illuminator-modal style-editor-modal-extra-wide">
         <div className="illuminator-modal-header">
           <h3>{isNew ? "Add" : "Edit"} Narrative Style</h3>
@@ -645,123 +573,58 @@ function NarrativeStyleEditModal({ style, compositionStyles, onSave, onCancel })
 
         {/* Tab bar */}
         <div className="style-editor-tab-bar">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`style-editor-tab ${activeTab === tab.id ? "style-editor-tab-active" : ""}`}
-            >
+          {tabs.map(tab => <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`style-editor-tab ${activeTab === tab.id ? "style-editor-tab-active" : ""}`}>
               {tab.label}
-            </button>
-          ))}
+            </button>)}
         </div>
 
         <form onSubmit={handleSubmit} className="style-editor-form-scroll">
           <div className="illuminator-modal-body style-editor-modal-body-scroll">
             {/* Basic Tab */}
-            {activeTab === "basic" && (
-              <>
+            {activeTab === "basic" && <>
                 <div className="illuminator-form-group">
                   <label htmlFor="name" className="illuminator-label">Name *</label>
-                  <input id="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => handleChange("name", e.target.value)}
-                    className="illuminator-input"
-                    placeholder="e.g., Epic Drama"
-                    // eslint-disable-next-line jsx-a11y/no-autofocus
-                    autoFocus
-                  />
+                  <input id="name" type="text" value={formData.name} onChange={e => handleChange("name", e.target.value)} className="illuminator-input" placeholder="e.g., Epic Drama"
+              // eslint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus />
                 </div>
                 <div className="illuminator-form-group">
                   <label className="illuminator-label">Description
-                  <LocalTextArea
-                    value={formData.description}
-                    onChange={(value) => handleChange("description", value)}
-                    className="illuminator-textarea"
-                    rows={2}
-                    placeholder="Brief description of this narrative style"
-                  />
+                  <LocalTextArea value={formData.description} onChange={value => handleChange("description", value)} className="illuminator-textarea" rows={2} placeholder="Brief description of this narrative style" />
                   </label>
                 </div>
                 <div className="illuminator-form-group">
                   <label htmlFor="tags" className="illuminator-label">Tags</label>
-                  <input id="tags"
-                    type="text"
-                    value={formData.tags}
-                    onChange={(e) => handleChange("tags", e.target.value)}
-                    className="illuminator-input"
-                    placeholder="e.g., dramatic, conflict, emotional"
-                  />
+                  <input id="tags" type="text" value={formData.tags} onChange={e => handleChange("tags", e.target.value)} className="illuminator-input" placeholder="e.g., dramatic, conflict, emotional" />
                   <p className="style-editor-hint">Comma-separated tags for categorization.</p>
                 </div>
                 <div className="style-editor-pacing-grid">
                   <div className="illuminator-form-group">
                     <span className="illuminator-label">Word Count</span>
                     <div className="style-editor-range-row">
-                      <input
-                        type="number"
-                        min="100"
-                        step="100"
-                        value={formData.wordCountMin}
-                        onChange={(e) => handleChange("wordCountMin", e.target.value)}
-                        className="illuminator-input style-editor-input-sm"
-                      />
+                      <input type="number" min="100" step="100" value={formData.wordCountMin} onChange={e => handleChange("wordCountMin", e.target.value)} className="illuminator-input style-editor-input-sm" />
                       <span className="style-editor-range-separator">to</span>
-                      <input
-                        type="number"
-                        min="100"
-                        step="100"
-                        value={formData.wordCountMax}
-                        onChange={(e) => handleChange("wordCountMax", e.target.value)}
-                        className="illuminator-input style-editor-input-sm"
-                      />
+                      <input type="number" min="100" step="100" value={formData.wordCountMax} onChange={e => handleChange("wordCountMax", e.target.value)} className="illuminator-input style-editor-input-sm" />
                     </div>
                   </div>
                   <div className="illuminator-form-group">
                     <span className="illuminator-label">Scene Count</span>
                     <div className="style-editor-range-row">
-                      <input
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={formData.sceneCountMin}
-                        onChange={(e) => handleChange("sceneCountMin", e.target.value)}
-                        className="illuminator-input style-editor-input-xs"
-                      />
+                      <input type="number" min="1" max="20" value={formData.sceneCountMin} onChange={e => handleChange("sceneCountMin", e.target.value)} className="illuminator-input style-editor-input-xs" />
                       <span className="style-editor-range-separator">to</span>
-                      <input
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={formData.sceneCountMax}
-                        onChange={(e) => handleChange("sceneCountMax", e.target.value)}
-                        className="illuminator-input style-editor-input-xs"
-                      />
+                      <input type="number" min="1" max="20" value={formData.sceneCountMax} onChange={e => handleChange("sceneCountMax", e.target.value)} className="illuminator-input style-editor-input-xs" />
                     </div>
                   </div>
                 </div>
                 {/* Cover image config (read-only, derived from style ID) */}
-                {!isNew && (
-                  <CoverImageConfigSection
-                    styleId={formData.id}
-                    compositionStyles={compositionStyles}
-                  />
-                )}
-              </>
-            )}
+                {!isNew && <CoverImageConfigSection styleId={formData.id} compositionStyles={compositionStyles} />}
+              </>}
 
             {/* Narrative Tab */}
-            {activeTab === "narrative" && (
-              <>
+            {activeTab === "narrative" && <>
                 <div className="illuminator-form-group">
                   <label className="illuminator-label">Narrative Instructions *
-                  <LocalTextArea
-                    value={formData.narrativeInstructions}
-                    onChange={(value) => handleChange("narrativeInstructions", value)}
-                    className="illuminator-textarea"
-                    rows={12}
-                    placeholder={`Describe the narrative structure for this style. Include:
+                  <LocalTextArea value={formData.narrativeInstructions} onChange={value => handleChange("narrativeInstructions", value)} className="illuminator-textarea" rows={12} placeholder={`Describe the narrative structure for this style. Include:
 
 - Overall story arc and emotional journey
 - Scene types and their purposes (e.g., "The Opening: Establish world and stakes...")
@@ -777,8 +640,7 @@ Scene Types:
 - The Disruption: Something threatens the established order
 - The Struggle: Characters face mounting challenges
 - The Climax: Peak confrontation where everything comes together
-- The Resolution: Show the changed world and transformed characters"`}
-                  />
+- The Resolution: Show the changed world and transformed characters"`} />
                   </label>
                   <p className="style-editor-hint">
                     Freeform instructions for plot structure, scenes, and dramatic beats.
@@ -786,32 +648,19 @@ Scene Types:
                 </div>
                 <div className="illuminator-form-group">
                   <label className="illuminator-label">Event Instructions
-                  <LocalTextArea
-                    value={formData.eventInstructions}
-                    onChange={(value) => handleChange("eventInstructions", value)}
-                    className="illuminator-textarea"
-                    rows={3}
-                    placeholder="How to incorporate events from the world data into the narrative. E.g., 'Use events as dramatic turning points. Higher significance events should be climactic moments...'"
-                  />
+                  <LocalTextArea value={formData.eventInstructions} onChange={value => handleChange("eventInstructions", value)} className="illuminator-textarea" rows={3} placeholder="How to incorporate events from the world data into the narrative. E.g., 'Use events as dramatic turning points. Higher significance events should be climactic moments...'" />
                   </label>
                   <p className="style-editor-hint">
                     Optional guidance for how world events should be woven into the story.
                   </p>
                 </div>
-              </>
-            )}
+              </>}
 
             {/* Prose Tab */}
-            {activeTab === "prose" && (
-              <>
+            {activeTab === "prose" && <>
                 <div className="illuminator-form-group">
                   <label className="illuminator-label">Prose Instructions *
-                  <LocalTextArea
-                    value={formData.proseInstructions}
-                    onChange={(value) => handleChange("proseInstructions", value)}
-                    className="illuminator-textarea"
-                    rows={12}
-                    placeholder={`Describe the prose style for this narrative. Include:
+                  <LocalTextArea value={formData.proseInstructions} onChange={value => handleChange("proseInstructions", value)} className="illuminator-textarea" rows={12} placeholder={`Describe the prose style for this narrative. Include:
 
 - Tone and mood (e.g., "epic, dramatic, tense, emotionally charged")
 - Dialogue style (e.g., "Formal and weighty, characters speak with purpose")
@@ -826,107 +675,61 @@ Dialogue: Formal and weighty. Characters speak with purpose and meaning.
 Description: Rich sensory detail. Focus on atmosphere and emotion.
 Pacing: Build tension steadily. Allow quiet moments to breathe.
 World Elements: Integrate locations and cultural practices naturally.
-Avoid: modern slang, breaking fourth wall, rushed emotional beats."`}
-                  />
+Avoid: modern slang, breaking fourth wall, rushed emotional beats."`} />
                   </label>
                   <p className="style-editor-hint">
                     Freeform instructions for tone, dialogue, description, and writing style.
                   </p>
                 </div>
-              </>
-            )}
+              </>}
 
             {/* Roles Tab */}
-            {activeTab === "roles" && (
-              <>
+            {activeTab === "roles" && <>
                 <div className="style-editor-roles-info">
                   <p className="style-editor-roles-info-text">
                     Define the narrative roles for this style. The AI will assign characters to
                     these roles.
                   </p>
                 </div>
-                {formData.roles.map((role, index) => (
-                  <div key={index} className="style-editor-role-edit-card">
+                {formData.roles.map((role, index) => <div key={index} className="style-editor-role-edit-card">
                     <div className="style-editor-role-edit-row">
                       <div className="style-editor-role-edit-fields">
-                        <input
-                          type="text"
-                          value={role.role}
-                          onChange={(e) => handleUpdateRole(index, "role", e.target.value)}
-                          className="illuminator-input style-editor-input-role-name"
-                          placeholder="Role name (e.g., protagonist)"
-                        />
-                        <input
-                          type="text"
-                          value={role.description}
-                          onChange={(e) => handleUpdateRole(index, "description", e.target.value)}
-                          className="illuminator-input"
-                          placeholder="Role description"
-                        />
+                        <input type="text" value={role.role} onChange={e => handleUpdateRole(index, "role", e.target.value)} className="illuminator-input style-editor-input-role-name" placeholder="Role name (e.g., protagonist)" />
+                        <input type="text" value={role.description} onChange={e => handleUpdateRole(index, "description", e.target.value)} className="illuminator-input" placeholder="Role description" />
                       </div>
                       <div className="style-editor-role-edit-counts">
-                        <input
-                          type="number"
-                          min="0"
-                          max="10"
-                          value={role.count.min}
-                          onChange={(e) => handleUpdateRole(index, "min", e.target.value)}
-                          className="illuminator-input style-editor-input-count"
-                        />
+                        <input type="number" min="0" max="10" value={role.count.min} onChange={e => handleUpdateRole(index, "min", e.target.value)} className="illuminator-input style-editor-input-count" />
                         <span className="style-editor-range-separator">-</span>
-                        <input
-                          type="number"
-                          min="0"
-                          max="10"
-                          value={role.count.max}
-                          onChange={(e) => handleUpdateRole(index, "max", e.target.value)}
-                          className="illuminator-input style-editor-input-count"
-                        />
+                        <input type="number" min="0" max="10" value={role.count.max} onChange={e => handleUpdateRole(index, "max", e.target.value)} className="illuminator-input style-editor-input-count" />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveRole(index)}
-                        className="illuminator-btn-icon illuminator-btn-danger style-editor-role-remove-btn"
-                      >
+                      <button type="button" onClick={() => handleRemoveRole(index)} className="illuminator-btn-icon illuminator-btn-danger style-editor-role-remove-btn">
                         X
                       </button>
                     </div>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={handleAddRole}
-                  className="illuminator-btn style-editor-add-role-btn"
-                >
+                  </div>)}
+                <button type="button" onClick={handleAddRole} className="illuminator-btn style-editor-add-role-btn">
                   + Add Role
                 </button>
-              </>
-            )}
+              </>}
           </div>
 
           <div className="illuminator-modal-footer">
             <button type="button" onClick={onCancel} className="illuminator-btn">
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={!isValid}
-              className="illuminator-btn illuminator-btn-primary"
-            >
+            <button type="submit" disabled={!isValid} className="illuminator-btn illuminator-btn-primary">
               {isNew ? "Add Style" : "Save Changes"}
             </button>
           </div>
         </form>
       </div>
-    </div>
-  );
+    </div>;
 }
-
 NarrativeStyleEditModal.propTypes = {
   style: PropTypes.object,
   compositionStyles: PropTypes.array,
   onSave: PropTypes.func,
-  onCancel: PropTypes.func,
+  onCancel: PropTypes.func
 };
 
 /**
@@ -945,124 +748,87 @@ export default function StyleLibraryEditor({
   onAddNarrativeStyle,
   onUpdateNarrativeStyle,
   onDeleteNarrativeStyle,
-  onReset,
+  onReset
 }) {
   const [editingStyle, setEditingStyle] = useState(null);
   const [editingType, setEditingType] = useState(null); // 'artistic' | 'composition' | 'narrative'
   const [confirmReset, setConfirmReset] = useState(false);
-
-  const handleEditArtistic = useCallback((style) => {
+  const handleEditArtistic = useCallback(style => {
     setEditingStyle(style);
     setEditingType("artistic");
   }, []);
-
-  const handleEditComposition = useCallback((style) => {
+  const handleEditComposition = useCallback(style => {
     setEditingStyle(style);
     setEditingType("composition");
   }, []);
-
   const handleAddArtistic = useCallback(() => {
     setEditingStyle({});
     setEditingType("artistic");
   }, []);
-
   const handleAddComposition = useCallback(() => {
     setEditingStyle({});
     setEditingType("composition");
   }, []);
-
-  const handleEditNarrative = useCallback((style) => {
+  const handleEditNarrative = useCallback(style => {
     setEditingStyle(style);
     setEditingType("narrative");
   }, []);
-
   const handleAddNarrative = useCallback(() => {
     setEditingStyle({});
     setEditingType("narrative");
   }, []);
-
-  const handleSaveStyle = useCallback(
-    async (styleData, isNew) => {
-      if (editingType === "artistic") {
-        if (isNew) {
-          await onAddArtisticStyle(styleData);
-        } else {
-          await onUpdateArtisticStyle(styleData.id, styleData);
-        }
-      } else if (editingType === "composition") {
-        if (isNew) {
-          await onAddCompositionStyle(styleData);
-        } else {
-          await onUpdateCompositionStyle(styleData.id, styleData);
-        }
-      } else if (editingType === "narrative") {
-        if (isNew) {
-          await onAddNarrativeStyle(styleData);
-        } else {
-          await onUpdateNarrativeStyle(styleData.id, styleData);
-        }
+  const handleSaveStyle = useCallback(async (styleData, isNew) => {
+    if (editingType === "artistic") {
+      if (isNew) {
+        await onAddArtisticStyle(styleData);
+      } else {
+        await onUpdateArtisticStyle(styleData.id, styleData);
       }
-      setEditingStyle(null);
-      setEditingType(null);
-    },
-    [
-      editingType,
-      onAddArtisticStyle,
-      onUpdateArtisticStyle,
-      onAddCompositionStyle,
-      onUpdateCompositionStyle,
-      onAddNarrativeStyle,
-      onUpdateNarrativeStyle,
-    ]
-  );
-
-  const handleDeleteArtistic = useCallback(
-    async (id) => {
-      if (window.confirm("Delete this artistic style?")) {
-        await onDeleteArtisticStyle(id);
+    } else if (editingType === "composition") {
+      if (isNew) {
+        await onAddCompositionStyle(styleData);
+      } else {
+        await onUpdateCompositionStyle(styleData.id, styleData);
       }
-    },
-    [onDeleteArtisticStyle]
-  );
-
-  const handleDeleteComposition = useCallback(
-    async (id) => {
-      if (window.confirm("Delete this composition style?")) {
-        await onDeleteCompositionStyle(id);
+    } else if (editingType === "narrative") {
+      if (isNew) {
+        await onAddNarrativeStyle(styleData);
+      } else {
+        await onUpdateNarrativeStyle(styleData.id, styleData);
       }
-    },
-    [onDeleteCompositionStyle]
-  );
-
-  const handleDeleteNarrative = useCallback(
-    async (id) => {
-      if (window.confirm("Delete this narrative style?")) {
-        await onDeleteNarrativeStyle(id);
-      }
-    },
-    [onDeleteNarrativeStyle]
-  );
-
+    }
+    setEditingStyle(null);
+    setEditingType(null);
+  }, [editingType, onAddArtisticStyle, onUpdateArtisticStyle, onAddCompositionStyle, onUpdateCompositionStyle, onAddNarrativeStyle, onUpdateNarrativeStyle]);
+  const handleDeleteArtistic = useCallback(async id => {
+    if (window.confirm("Delete this artistic style?")) {
+      await onDeleteArtisticStyle(id);
+    }
+  }, [onDeleteArtisticStyle]);
+  const handleDeleteComposition = useCallback(async id => {
+    if (window.confirm("Delete this composition style?")) {
+      await onDeleteCompositionStyle(id);
+    }
+  }, [onDeleteCompositionStyle]);
+  const handleDeleteNarrative = useCallback(async id => {
+    if (window.confirm("Delete this narrative style?")) {
+      await onDeleteNarrativeStyle(id);
+    }
+  }, [onDeleteNarrativeStyle]);
   const handleReset = useCallback(async () => {
     await onReset();
     setConfirmReset(false);
   }, [onReset]);
-
   const handleCloseModal = useCallback(() => {
     setEditingStyle(null);
     setEditingType(null);
   }, []);
-
   if (loading) {
-    return (
-      <div className="illuminator-card">
+    return <div className="illuminator-card">
         <p className="style-editor-loading">Loading style library...</p>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div>
+  return <div>
       {/* Status bar */}
       <div className="illuminator-card">
         <div className="style-editor-status-row">
@@ -1073,38 +839,20 @@ export default function StyleLibraryEditor({
             </span>
           </div>
           <div>
-            {!confirmReset && (
-              <button
-                onClick={() => setConfirmReset(true)}
-                className="illuminator-btn style-editor-btn-sm"
-                title={
-                  isCustom ? "Reload defaults and discard custom styles" : "Reload default styles"
-                }
-              >
+            {!confirmReset && <button onClick={() => setConfirmReset(true)} className="illuminator-btn style-editor-btn-sm" title={isCustom ? "Reload defaults and discard custom styles" : "Reload default styles"}>
                 Reload Default Styles
-              </button>
-            )}
-            {confirmReset && (
-              <span className="style-editor-confirm-row">
+              </button>}
+            {confirmReset && <span className="style-editor-confirm-row">
                 <span className="style-editor-confirm-text">
-                  {isCustom
-                    ? "Reload defaults and discard custom styles?"
-                    : "Reload default styles?"}
+                  {isCustom ? "Reload defaults and discard custom styles?" : "Reload default styles?"}
                 </span>
-                <button
-                  onClick={handleReset}
-                  className="illuminator-btn illuminator-btn-danger style-editor-btn-sm"
-                >
+                <button onClick={handleReset} className="illuminator-btn illuminator-btn-danger style-editor-btn-sm">
                   Yes, Reload
                 </button>
-                <button
-                  onClick={() => setConfirmReset(false)}
-                  className="illuminator-btn style-editor-btn-sm"
-                >
+                <button onClick={() => setConfirmReset(false)} className="illuminator-btn style-editor-btn-sm">
                   Cancel
                 </button>
-              </span>
-            )}
+              </span>}
           </div>
         </div>
       </div>
@@ -1118,10 +866,7 @@ export default function StyleLibraryEditor({
               ({styleLibrary.artisticStyles.length})
             </span>
           </h2>
-          <button
-            onClick={handleAddArtistic}
-            className="illuminator-btn illuminator-btn-primary style-editor-btn-sm"
-          >
+          <button onClick={handleAddArtistic} className="illuminator-btn illuminator-btn-primary style-editor-btn-sm">
             + Add Style
           </button>
         </div>
@@ -1131,21 +876,12 @@ export default function StyleLibraryEditor({
         </p>
 
         <div className="illuminator-style-grid">
-          {styleLibrary.artisticStyles.map((style) => (
-            <StyleCard
-              key={style.id}
-              // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
-              style={style}
-              type="artistic"
-              onEdit={handleEditArtistic}
-              onDelete={handleDeleteArtistic}
-            />
-          ))}
+          {styleLibrary.artisticStyles.map(style => <StyleCard key={style.id}
+        // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
+        type="artistic" onEdit={handleEditArtistic} onDelete={handleDeleteArtistic} style={style} />)}
         </div>
 
-        {styleLibrary.artisticStyles.length === 0 && (
-          <p className="style-editor-empty">No artistic styles defined. Add one to get started.</p>
-        )}
+        {styleLibrary.artisticStyles.length === 0 && <p className="style-editor-empty">No artistic styles defined. Add one to get started.</p>}
       </div>
 
       {/* Composition Styles */}
@@ -1157,10 +893,7 @@ export default function StyleLibraryEditor({
               ({styleLibrary.compositionStyles.length})
             </span>
           </h2>
-          <button
-            onClick={handleAddComposition}
-            className="illuminator-btn illuminator-btn-primary style-editor-btn-sm"
-          >
+          <button onClick={handleAddComposition} className="illuminator-btn illuminator-btn-primary style-editor-btn-sm">
             + Add Style
           </button>
         </div>
@@ -1170,23 +903,14 @@ export default function StyleLibraryEditor({
         </p>
 
         <div className="illuminator-style-grid">
-          {styleLibrary.compositionStyles.map((style) => (
-            <StyleCard
-              key={style.id}
-              // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
-              style={style}
-              type="composition"
-              onEdit={handleEditComposition}
-              onDelete={handleDeleteComposition}
-            />
-          ))}
+          {styleLibrary.compositionStyles.map(style => <StyleCard key={style.id}
+        // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
+        type="composition" onEdit={handleEditComposition} onDelete={handleDeleteComposition} style={style} />)}
         </div>
 
-        {styleLibrary.compositionStyles.length === 0 && (
-          <p className="style-editor-empty">
+        {styleLibrary.compositionStyles.length === 0 && <p className="style-editor-empty">
             No composition styles defined. Add one to get started.
-          </p>
-        )}
+          </p>}
       </div>
 
       {/* Narrative Styles */}
@@ -1198,10 +922,7 @@ export default function StyleLibraryEditor({
               ({styleLibrary.narrativeStyles.length})
             </span>
           </h2>
-          <button
-            onClick={handleAddNarrative}
-            className="illuminator-btn illuminator-btn-primary style-editor-btn-sm"
-          >
+          <button onClick={handleAddNarrative} className="illuminator-btn illuminator-btn-primary style-editor-btn-sm">
             + Add Style
           </button>
         </div>
@@ -1211,21 +932,12 @@ export default function StyleLibraryEditor({
         </p>
 
         <div className="illuminator-style-grid">
-          {styleLibrary.narrativeStyles.map((style) => (
-            <NarrativeStyleCard
-              key={style.id}
-              // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
-              style={style}
-              compositionStyles={styleLibrary.compositionStyles}
-              onEdit={handleEditNarrative}
-              onDelete={handleDeleteNarrative}
-            />
-          ))}
+          {styleLibrary.narrativeStyles.map(style => <NarrativeStyleCard key={style.id}
+        // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
+        compositionStyles={styleLibrary.compositionStyles} onEdit={handleEditNarrative} onDelete={handleDeleteNarrative} style={style} />)}
         </div>
 
-        {styleLibrary.narrativeStyles.length === 0 && (
-          <p className="style-editor-empty">No narrative styles defined. Add one to get started.</p>
-        )}
+        {styleLibrary.narrativeStyles.length === 0 && <p className="style-editor-empty">No narrative styles defined. Add one to get started.</p>}
       </div>
 
       {/* Scene Prompt Templates */}
@@ -1242,8 +954,7 @@ export default function StyleLibraryEditor({
         </p>
 
         <div className="illuminator-style-grid">
-          {SCENE_PROMPT_TEMPLATES.map((template) => (
-            <div key={template.id} className="illuminator-style-card">
+          {SCENE_PROMPT_TEMPLATES.map(template => <div key={template.id} className="illuminator-style-card">
               <div className="illuminator-style-card-header">
                 <div className="illuminator-style-card-title">{template.name}</div>
               </div>
@@ -1253,36 +964,21 @@ export default function StyleLibraryEditor({
               <div className="illuminator-style-card-prompt style-editor-scene-prompt-instructions">
                 <strong>Instructions:</strong> {template.instructions}
               </div>
-            </div>
-          ))}
+            </div>)}
         </div>
       </div>
 
       {/* Edit Modal for Artistic/Composition */}
-      {editingStyle && (editingType === "artistic" || editingType === "composition") && (
-        <StyleEditModal
-          // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
-          style={editingStyle}
-          type={editingType}
-          onSave={handleSaveStyle}
-          onCancel={handleCloseModal}
-        />
-      )}
+      {editingStyle && (editingType === "artistic" || editingType === "composition") && <StyleEditModal
+    // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
+    type={editingType} onSave={handleSaveStyle} onCancel={handleCloseModal} style={editingStyle} />}
 
       {/* Edit Modal for Narrative */}
-      {editingStyle && editingType === "narrative" && (
-        <NarrativeStyleEditModal
-          // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
-          style={editingStyle}
-          compositionStyles={styleLibrary.compositionStyles}
-          onSave={handleSaveStyle}
-          onCancel={handleCloseModal}
-        />
-      )}
-    </div>
-  );
+      {editingStyle && editingType === "narrative" && <NarrativeStyleEditModal
+    // eslint-disable-next-line local/no-inline-styles -- not CSS: data prop
+    compositionStyles={styleLibrary.compositionStyles} onSave={handleSaveStyle} onCancel={handleCloseModal} style={editingStyle} />}
+    </div>;
 }
-
 StyleLibraryEditor.propTypes = {
   styleLibrary: PropTypes.object,
   loading: PropTypes.bool,
@@ -1296,5 +992,5 @@ StyleLibraryEditor.propTypes = {
   onAddNarrativeStyle: PropTypes.func,
   onUpdateNarrativeStyle: PropTypes.func,
   onDeleteNarrativeStyle: PropTypes.func,
-  onReset: PropTypes.func,
+  onReset: PropTypes.func
 };

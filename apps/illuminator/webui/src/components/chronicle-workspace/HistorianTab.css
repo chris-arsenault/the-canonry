@@ -27,6 +27,10 @@
   color: var(--text-muted);
 }
 
+.htab-tone-rank-item {
+  opacity: var(--htab-rank-opacity, 1);
+}
+
 .htab-tone-detect-btn {
   padding: 2px 8px;
   font-size: 10px;

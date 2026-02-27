@@ -7,6 +7,7 @@
 
 import React, { useMemo } from "react";
 import type { ConnectedEntity } from "../../../lib/chronicle/storyPotential";
+import "./MiniConstellation.css";
 
 interface MiniConstellationProps {
   /** Center entity name */
@@ -99,7 +100,7 @@ export default function MiniConstellation({
 
   if (connections.length === 0) {
     return (
-      <svg width={size} height={size} style={{ display: "block" }}>
+      <svg width={size} height={size} className="mc-svg">
         {/* Center node */}
         <circle cx={cx} cy={cy} r={centerRadius} fill="var(--accent-color)" />
         <text x={cx} y={cy} textAnchor="middle" dy={3} fontSize="10" fill="white" fontWeight="500">
@@ -119,7 +120,7 @@ export default function MiniConstellation({
   }
 
   return (
-    <svg width={size} height={size} style={{ display: "block" }}>
+    <svg width={size} height={size} className="mc-svg">
       {/* Connection lines */}
       {nodePositions.map((node, i) => {
         const color = getKindColor(node.kind);

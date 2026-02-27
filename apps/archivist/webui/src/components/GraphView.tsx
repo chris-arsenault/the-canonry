@@ -6,6 +6,7 @@ import coseBilkent from "cytoscape-cose-bilkent";
 import type { WorldState } from "../types/world.ts";
 import type { EntityKindDefinition, ProminenceScale } from "@canonry/world-schema";
 import { transformWorldData } from "../utils/dataTransform.ts";
+import "./GraphView.css";
 
 cytoscape.use(coseBilkent as cytoscape.Ext);
 
@@ -66,30 +67,25 @@ function generateEntityKindStyles(entityKinds: EntityKindDefinition[]): Styleshe
   });
 }
 
-// Map Cytoscape shape to CSS clip-path for legend
-function shapeToLegendStyle(shape: string): React.CSSProperties {
+// Map Cytoscape shape to CSS class for legend
+function shapeToLegendClass(shape: string): string {
   switch (shape) {
     case "ellipse":
-      return { borderRadius: "50%" };
+      return "gv-shape-ellipse";
     case "diamond":
-      return { transform: "rotate(45deg)" };
+      return "gv-shape-diamond";
     case "hexagon":
-      return { clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" };
+      return "gv-shape-hexagon";
     case "rectangle":
-      return {}; // Default square
+      return ""; // Default square
     case "star":
-      return {
-        clipPath:
-          "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)",
-      };
+      return "gv-shape-star";
     case "triangle":
-      return { clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)" };
+      return "gv-shape-triangle";
     case "octagon":
-      return {
-        clipPath: "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
-      };
+      return "gv-shape-octagon";
     default:
-      return {};
+      return "";
   }
 }
 
@@ -466,24 +462,18 @@ export default function GraphView({
   }, [selectedNodeId]);
 
   return (
-    <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+    <div className="gv-wrapper">
       <div
         ref={containerRef}
-        className="cytoscape-container"
-        style={{ width: "100%", height: "100%" }}
+        className="cytoscape-container gv-cytoscape"
       />
 
       {/* Legend - Dynamic from schema */}
       <div
-        className="absolute bottom-6 left-6 rounded-xl text-white text-sm shadow-2xl border border-blue-500-30 overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(30, 58, 95, 0.95) 0%, rgba(10, 25, 41, 0.95) 100%)",
-        }}
+        className="absolute bottom-6 left-6 rounded-xl text-white text-sm shadow-2xl border border-blue-500-30 overflow-hidden gv-legend"
       >
         <div
-          className="px-5 py-3 border-b border-blue-500-20"
-          style={{ background: "rgba(59, 130, 246, 0.1)" }}
+          className="px-5 py-3 border-b border-blue-500-20 gv-legend-header"
         >
           <div className="font-bold text-blue-200 uppercase tracking-wider text-xs">Legend</div>
         </div>
@@ -491,9 +481,9 @@ export default function GraphView({
           {entityKindSchemas.map((ek) => (
             <div key={ek.kind} className="flex items-center gap-3">
               <div
-                className="w-5 h-5 shadow-lg flex-shrink-0"
+                className={`w-5 h-5 shadow-lg flex-shrink-0 gv-legend-swatch ${shapeToLegendClass(ek.style?.shape || "ellipse")}`}
                 style={{
-                  backgroundColor: (() => {
+                  '--gv-swatch-color': (() => {
                     if (!ek.style?.color) {
                       throw new Error(
                         `Archivist: entity kind "${ek.kind}" is missing style.color.`
@@ -501,8 +491,7 @@ export default function GraphView({
                     }
                     return ek.style.color;
                   })(),
-                  ...shapeToLegendStyle(ek.style?.shape || "ellipse"),
-                }}
+                } as React.CSSProperties}
               ></div>
               <span className="font-medium">
                 {ek.style?.displayName || ek.description || ek.kind}
@@ -511,8 +500,7 @@ export default function GraphView({
           ))}
         </div>
         <div
-          className="px-5 py-3 border-t border-blue-500-20"
-          style={{ background: "rgba(59, 130, 246, 0.05)" }}
+          className="px-5 py-3 border-t border-blue-500-20 gv-legend-footer"
         >
           <div className="text-xs text-blue-300 italic">Size indicates prominence</div>
         </div>
@@ -520,15 +508,10 @@ export default function GraphView({
 
       {/* Controls hint */}
       <div
-        className="absolute top-6 left-6 rounded-xl text-white text-xs shadow-2xl border border-blue-500-30 overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(30, 58, 95, 0.95) 0%, rgba(10, 25, 41, 0.95) 100%)",
-        }}
+        className="absolute top-6 left-6 rounded-xl text-white text-xs shadow-2xl border border-blue-500-30 overflow-hidden gv-controls"
       >
         <div
-          className="px-5 py-3 border-b border-blue-500-20"
-          style={{ background: "rgba(59, 130, 246, 0.1)" }}
+          className="px-5 py-3 border-b border-blue-500-20 gv-controls-header"
         >
           <div className="font-bold text-blue-200 uppercase tracking-wider">Controls</div>
         </div>

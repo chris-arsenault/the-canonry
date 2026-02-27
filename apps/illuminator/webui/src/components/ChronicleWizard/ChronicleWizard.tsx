@@ -25,6 +25,7 @@ import EntryPointStep from "./steps/EntryPointStep";
 import RoleAssignmentStep from "./steps/RoleAssignmentStep";
 import EventResolutionStep from "./steps/EventResolutionStep";
 import GenerateStep from "./steps/GenerateStep";
+import "./ChronicleWizard.css";
 
 // =============================================================================
 // Types
@@ -268,8 +269,7 @@ function InnerWizard({
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div
-        className="illuminator-modal"
-        style={{ maxWidth: "800px", maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+        className="illuminator-modal cw-modal"
       >
         {/* Header */}
         <div className="illuminator-modal-header">
@@ -280,16 +280,7 @@ function InnerWizard({
         </div>
 
         {/* Step Indicator */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: "8px",
-            padding: "16px",
-            borderBottom: "1px solid var(--border-color)",
-            background: "var(--bg-tertiary)",
-          }}
-        >
+        <div className="cw-step-indicator">
           {([1, 2, 3, 4, 5] as WizardStep[]).map((step) => {
             const isActive = state.step === step;
             const isCompleted = state.step > step;
@@ -299,40 +290,27 @@ function InnerWizard({
               <div
                 key={step}
                 onClick={() => isClickable && goToStep(step)}
+                className="cw-step-pill"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "6px 12px",
-                  borderRadius: "16px",
-                  fontSize: "12px",
-                  fontWeight: isActive ? 600 : 400,
-                  cursor: isClickable ? "pointer" : "default",
-                  background: (() => {
+                  '--cw-step-bg': (() => {
                     if (isActive) return "var(--accent-color)";
                     if (isCompleted) return "var(--success)";
                     return "var(--bg-secondary)";
                   })(),
-                  color: isActive || isCompleted ? "white" : "var(--text-muted)",
-                  opacity: isClickable ? 1 : 0.5,
-                  transition: "all 0.2s ease",
-                }}
+                  '--cw-step-color': isActive || isCompleted ? "white" : "var(--text-muted)",
+                  '--cw-step-weight': isActive ? 600 : 400,
+                  '--cw-step-cursor': isClickable ? "pointer" : "default",
+                  '--cw-step-opacity': isClickable ? 1 : 0.5,
+                } as React.CSSProperties}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
               >
                 <span
+                  className="cw-step-number"
                   style={{
-                    width: "18px",
-                    height: "18px",
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background:
-                      isActive || isCompleted ? "rgba(255,255,255,0.2)" : "var(--border-color)",
-                    fontSize: "10px",
-                  }}
+                    '--cw-num-bg': isActive || isCompleted ? "rgba(255,255,255,0.2)" : "var(--border-color)",
+                  } as React.CSSProperties}
                 >
                   {isCompleted ? "✓" : step}
                 </span>
@@ -344,31 +322,20 @@ function InnerWizard({
 
         {/* Body */}
         <div
-          className="illuminator-modal-body"
-          style={{
-            flex: 1,
-            overflow: "auto",
-            padding: "20px",
-          }}
+          className="illuminator-modal-body cw-body"
         >
           {renderStep()}
         </div>
 
         {/* Footer */}
         <div
-          className="illuminator-modal-footer"
-          style={{
-            padding: "16px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "space-between",
-          }}
+          className="illuminator-modal-footer cw-footer"
         >
           <button onClick={handleClose} className="illuminator-btn">
             Cancel
           </button>
 
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="cw-footer-right">
             {state.step > 1 && (
               <button onClick={prevStep} className="illuminator-btn">
                 Back

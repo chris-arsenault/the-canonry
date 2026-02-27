@@ -8,47 +8,7 @@
 import { useFloatingPillStore, type FloatingPill } from "../lib/db/floatingPillStore";
 import { useThinkingStore } from "../lib/db/thinkingStore";
 import React from "react";
-
-const styles = {
-  pill: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "6px 12px",
-    background: "var(--bg-primary)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "20px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-    cursor: "pointer",
-    fontSize: "12px",
-    minWidth: "160px",
-    transition: "box-shadow 0.15s",
-  },
-  statusDot: {
-    width: "8px",
-    height: "8px",
-    borderRadius: "50%",
-    flexShrink: 0,
-  } as const,
-  label: { fontWeight: 500, color: "var(--text-primary)" },
-  statusText: { color: "var(--text-muted)", marginLeft: "auto" },
-  thinkingIcon: {
-    cursor: "pointer",
-    fontSize: "13px",
-    opacity: 0.7,
-    marginLeft: "4px",
-  },
-  container: {
-    position: "fixed" as const,
-    bottom: "16px",
-    right: "16px",
-    zIndex: 9999,
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "8px",
-    alignItems: "flex-end",
-  },
-} as const;
+import "./FloatingPills.css";
 
 function Pill({ pill, onNavigate }: Readonly<{ pill: FloatingPill; onNavigate?: (tabId: string) => void }>) {
   const expand = useFloatingPillStore((s) => s.expand);
@@ -60,7 +20,7 @@ function Pill({ pill, onNavigate }: Readonly<{ pill: FloatingPill; onNavigate?: 
 
   return (
     <div
-      style={styles.pill}
+      className="fp-pill"
       onClick={() => {
         if (pill.tabId && onNavigate) onNavigate(pill.tabId);
         expand(pill.id);
@@ -72,12 +32,13 @@ function Pill({ pill, onNavigate }: Readonly<{ pill: FloatingPill; onNavigate?: 
     >
       {/* Status dot */}
       <span
-        style={{ ...styles.statusDot, background: pill.statusColor }}
+        className="fp-status-dot"
+        style={{ "--fp-dot-color": pill.statusColor } as React.CSSProperties}
       />
 
       {/* Label + status */}
-      <span style={styles.label}>{pill.label}</span>
-      <span style={styles.statusText}>{pill.statusText}</span>
+      <span className="fp-label">{pill.label}</span>
+      <span className="fp-status-text">{pill.statusText}</span>
 
       {/* Thinking icon */}
       {hasThinking && (
@@ -87,7 +48,7 @@ function Pill({ pill, onNavigate }: Readonly<{ pill: FloatingPill; onNavigate?: 
             useThinkingStore.getState().openViewer(pill.taskId);
           }}
           title="View thinking"
-          style={styles.thinkingIcon}
+          className="fp-thinking-icon"
           role="button"
           tabIndex={0}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
@@ -105,9 +66,7 @@ export function FloatingPills({ onNavigate }: Readonly<{ onNavigate?: (tabId: st
   if (pills.size === 0) return null;
 
   return (
-    <div
-      style={styles.container}
-    >
+    <div className="fp-container">
       {Array.from(pills.values()).map((pill) => (
         <Pill key={pill.id} pill={pill} onNavigate={onNavigate} />
       ))}

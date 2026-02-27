@@ -8,70 +8,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useThinkingStore } from "../lib/db/thinkingStore";
-
-const styles = {
-  overlay: {
-    position: "fixed" as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: "rgba(0, 0, 0, 0.5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 10001,
-  },
-  dialog: {
-    background: "var(--bg-primary)",
-    borderRadius: "12px",
-    border: "1px solid var(--border-color)",
-    width: "900px",
-    maxWidth: "95vw",
-    maxHeight: "85vh",
-    display: "flex",
-    flexDirection: "column" as const,
-    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-  },
-  header: {
-    padding: "12px 20px",
-    borderBottom: "1px solid var(--border-color)",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexShrink: 0,
-  },
-  headerLeft: { display: "flex", alignItems: "center", gap: "8px" },
-  headerTitle: { margin: 0, fontSize: "14px" },
-  streamingLabel: { fontSize: "11px", color: "#f59e0b", fontWeight: 500 },
-  headerActions: { display: "flex", alignItems: "center", gap: "8px" },
-  copyButton: { padding: "4px 12px", fontSize: "11px" },
-  closeButton: { padding: "4px 8px", fontSize: "14px", lineHeight: 1 },
-  subtitleBar: {
-    padding: "8px 20px",
-    borderBottom: "1px solid var(--border-color)",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexShrink: 0,
-  },
-  subtitleLabel: { fontSize: "11px", color: "var(--text-muted)" },
-  tabGroup: { display: "flex", gap: "4px" },
-  sizeLabel: { opacity: 0.6 },
-  body: {
-    flex: 1,
-    minHeight: 0,
-    margin: 0,
-    padding: "16px 20px",
-    whiteSpace: "pre-wrap" as const,
-    wordBreak: "break-word" as const,
-    fontFamily: "var(--font-mono, monospace)",
-    fontSize: "12px",
-    lineHeight: 1.6,
-    overflowY: "auto" as const,
-    color: "var(--text-secondary)",
-  },
-} as const;
+import "./ThinkingViewer.css";
 
 type ViewerTab = "thinking" | "response";
 
@@ -125,7 +62,7 @@ export function ThinkingViewer() {
 
   return (
     <div
-      style={styles.overlay}
+      className="tv-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
       role="button"
@@ -133,35 +70,33 @@ export function ThinkingViewer() {
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <div
-        style={styles.dialog}
+        className="tv-dialog"
       >
         {/* Header */}
         <div
-          style={styles.header}
+          className="tv-header"
         >
-          <div style={styles.headerLeft}>
-            <h3 style={styles.headerTitle}>LLM Stream</h3>
+          <div className="tv-header-left">
+            <h3 className="tv-header-title">LLM Stream</h3>
             {entry.isActive && (
               <span
-                style={styles.streamingLabel}
+                className="tv-streaming-label"
               >
                 streaming...
               </span>
             )}
           </div>
-          <div style={styles.headerActions}>
+          <div className="tv-header-actions">
             <button
               onClick={handleCopy}
-              className="illuminator-button"
-              style={styles.copyButton}
+              className="illuminator-button tv-copy-button"
               disabled={!content}
             >
               Copy
             </button>
             <button
               onClick={closeViewer}
-              className="illuminator-button"
-              style={styles.closeButton}
+              className="illuminator-button tv-close-button"
             >
               &times;
             </button>
@@ -170,43 +105,25 @@ export function ThinkingViewer() {
 
         {/* Subtitle + tabs */}
         <div
-          style={styles.subtitleBar}
+          className="tv-subtitle-bar"
         >
-          <span style={styles.subtitleLabel}>
+          <span className="tv-subtitle-label">
             {entry.entityName} &middot; {entry.taskType}
           </span>
-          <div style={styles.tabGroup}>
+          <div className="tv-tab-group">
             <button
               onClick={() => setActiveTab("thinking")}
-              style={{
-                padding: "2px 10px",
-                fontSize: "11px",
-                borderRadius: "4px",
-                border: "none",
-                cursor: "pointer",
-                background: activeTab === "thinking" ? "var(--bg-tertiary)" : "transparent",
-                color: activeTab === "thinking" ? "var(--text-primary)" : "var(--text-muted)",
-                fontWeight: activeTab === "thinking" ? 500 : 400,
-              }}
+              className={`tv-tab-button ${activeTab === "thinking" ? "tv-tab-button-active" : "tv-tab-button-inactive"}`}
             >
               Thinking{" "}
-              {thinkingLen > 0 && <span style={styles.sizeLabel}>({formatSize(thinkingLen)})</span>}
+              {thinkingLen > 0 && <span className="tv-size-label">({formatSize(thinkingLen)})</span>}
             </button>
             <button
               onClick={() => setActiveTab("response")}
-              style={{
-                padding: "2px 10px",
-                fontSize: "11px",
-                borderRadius: "4px",
-                border: "none",
-                cursor: "pointer",
-                background: activeTab === "response" ? "var(--bg-tertiary)" : "transparent",
-                color: activeTab === "response" ? "var(--text-primary)" : "var(--text-muted)",
-                fontWeight: activeTab === "response" ? 500 : 400,
-              }}
+              className={`tv-tab-button ${activeTab === "response" ? "tv-tab-button-active" : "tv-tab-button-inactive"}`}
             >
               Response{" "}
-              {textLen > 0 && <span style={styles.sizeLabel}>({formatSize(textLen)})</span>}
+              {textLen > 0 && <span className="tv-size-label">({formatSize(textLen)})</span>}
             </button>
           </div>
         </div>
@@ -214,7 +131,7 @@ export function ThinkingViewer() {
         {/* Body */}
         <pre
           ref={preRef}
-          style={styles.body}
+          className="tv-body"
         >
           {content || (() => {
             if (entry.isActive) {

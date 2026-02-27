@@ -4,6 +4,7 @@
 
 import React from "react";
 import PropTypes from "prop-types";
+import "./RunControls.css";
 
 function ValidityBadge({ runValidity }) {
   if (!runValidity) return null;
@@ -29,29 +30,17 @@ function ValidityBadge({ runValidity }) {
       : `Score ${score}/${maxScore}`;
 
   const scoreRatio = maxScore > 0 ? score / maxScore : 1;
-  let style;
+  let badgeClass;
   if (scoreRatio >= 0.9) {
-    style = {
-      backgroundColor: "rgba(34, 197, 94, 0.15)",
-      color: "#22c55e",
-      border: "1px solid rgba(34, 197, 94, 0.3)",
-    };
+    badgeClass = "rc-badge-good";
   } else if (scoreRatio >= 0.6) {
-    style = {
-      backgroundColor: "rgba(245, 158, 11, 0.15)",
-      color: "#f59e0b",
-      border: "1px solid rgba(245, 158, 11, 0.3)",
-    };
+    badgeClass = "rc-badge-mid";
   } else {
-    style = {
-      backgroundColor: "rgba(239, 68, 68, 0.15)",
-      color: "#ef4444",
-      border: "1px solid rgba(239, 68, 68, 0.3)",
-    };
+    badgeClass = "rc-badge-low";
   }
 
   return (
-    <span className="lw-validity-badge" style={style} title={title}>
+    <span className={`lw-validity-badge ${badgeClass}`} title={title}>
       Score {score}/{maxScore}
     </span>
   );
@@ -87,7 +76,7 @@ export default function RunControls({
           <span>
             Attempt {validityAttempts} / {maxValidityAttempts}
           </span>
-          <span style={{ color: "var(--lw-accent)" }}>SEARCHING FOR BEST RUN</span>
+          <span className="rc-searching-label">SEARCHING FOR BEST RUN</span>
         </div>
         <button className="lw-btn lw-btn-danger" onClick={onCancelRunUntilValid}>
           ◼ Cancel
@@ -113,7 +102,7 @@ export default function RunControls({
           <span>
             Epoch {simState.progress?.epoch || 0} / {simState.progress?.totalEpochs || 0}
           </span>
-          <span style={{ color: "var(--lw-warning)" }}>PAUSED</span>
+          <span className="rc-paused-label">PAUSED</span>
         </div>
         <div className="lw-button-group">
           <button className="lw-btn lw-btn-step" onClick={onStep}>
@@ -145,12 +134,7 @@ export default function RunControls({
       {simState.status === "complete" && <ValidityBadge runValidity={runValidity} />}
       {validitySearchComplete && validityReport && (
         <span
-          className="lw-validity-badge"
-          style={{
-            backgroundColor: "rgba(139, 92, 246, 0.15)",
-            color: "#8b5cf6",
-            border: "1px solid rgba(139, 92, 246, 0.3)",
-          }}
+          className="lw-validity-badge rc-badge-search"
           title={`Best score ${validityReport.summary.bestScore}${validityReport.summary.bestScoreMax ? "/" + validityReport.summary.bestScoreMax : ""} on attempt ${validityReport.summary.bestAttempt}`}
         >
           {validityReport.summary.totalAttempts} runs

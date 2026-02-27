@@ -1,0 +1,55 @@
+.ced-container {
+  max-width: 900px;
+}
+
+.ced-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ced-color-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background-color: var(--ced-swatch-color);
+}
+
+.ced-framework-badge {
+  margin-left: 8px;
+}
+
+.ced-color-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ced-color-preview {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid var(--color-border);
+  background-color: var(--ced-preview-color);
+}
+
+.ced-color-chip {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background-color: var(--ced-chip-bg);
+  border-color: var(--ced-chip-border);
+  opacity: var(--ced-chip-opacity, 1);
+  pointer-events: var(--ced-chip-pointer);
+}
+
+.ced-action-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.ced-info-list {
+  margin: 8px 0 0 16px;
+  padding: 0;
+}

@@ -1,102 +1,12 @@
-/* BulkChronicleAnnotationModal — prefix: bcam- */
-
-.bcam-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgb(0 0 0 / 50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-
-.bcam-dialog {
-  background: var(--bg-primary);
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-  max-width: 95vw;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
-  width: var(--bcam-dialog-width);
-}
-
-.bcam-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-color);
-  flex-shrink: 0;
-}
-
-.bcam-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.bcam-title {
-  margin: 0;
-  font-size: 16px;
-}
-
-.bcam-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.bcam-minimize-btn {
-  padding: 2px 8px;
-  font-size: 11px;
-}
-
-.bcam-status-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--bcam-status-color);
-}
-
-.bcam-body {
-  padding: 20px;
-  overflow-y: var(--bcam-body-overflow, visible);
-  flex: var(--bcam-body-flex, unset);
-  min-height: 0;
-}
-
-.bcam-confirm-info {
-  padding: 10px 12px;
-  margin-bottom: 12px;
-  border-radius: 8px;
-  background: var(--bg-secondary);
-  font-size: 11px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
+/* BulkChronicleAnnotationModal — content-specific styles (prefix: bcam-)
+ * Overlay, dialog, header, footer, progress bar, terminal, failed list, and cost
+ * styles are provided by BulkOperationShell.css. */
 
 .bcam-warning-text {
   color: #f59e0b;
 }
 
-.bcam-chronicle-section {
-  margin-bottom: 12px;
-}
-
-.bcam-chronicle-heading {
-  font-size: 11px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.bcam-chronicle-list {
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  overflow: hidden;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
+/* Chronicle list items — two-column layout with tone */
 .bcam-chronicle-item {
   padding: 6px 12px;
   border-bottom: 1px solid var(--border-color);
@@ -124,46 +34,14 @@
   flex-shrink: 0;
 }
 
-.bcam-progress-section {
-  margin-bottom: 16px;
-}
-
-.bcam-progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 6px;
-}
-
+/* Processing screen — current title and stats */
 .bcam-current-title {
   font-size: 13px;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
-}
-
-.bcam-pct-label {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-left: 8px;
-}
-
-.bcam-progress-track {
-  height: 8px;
-  border-radius: 4px;
-  background: var(--bg-secondary);
-  overflow: hidden;
   margin-bottom: 6px;
-}
-
-.bcam-progress-fill {
-  height: 100%;
-  border-radius: 4px;
-  background: #10b981;
-  width: var(--bcam-pct);
-  transition: width 0.3s ease;
 }
 
 .bcam-progress-stats {
@@ -171,68 +49,4 @@
   color: var(--text-muted);
   display: flex;
   justify-content: space-between;
-}
-
-.bcam-terminal-complete {
-  padding: 12px;
-  border-radius: 8px;
-  background: rgb(16 185 129 / 10%);
-  border: 1px solid rgb(16 185 129 / 20%);
-  margin-bottom: 16px;
-  font-size: 12px;
-}
-
-.bcam-terminal-cancelled {
-  padding: 12px;
-  border-radius: 8px;
-  background: rgb(245 158 11 / 10%);
-  border: 1px solid rgb(245 158 11 / 20%);
-  margin-bottom: 16px;
-  font-size: 12px;
-}
-
-.bcam-terminal-failed {
-  padding: 12px;
-  border-radius: 8px;
-  background: rgb(239 68 68 / 10%);
-  border: 1px solid rgb(239 68 68 / 20%);
-  margin-bottom: 16px;
-  font-size: 12px;
-}
-
-.bcam-failed-section {
-  margin-bottom: 12px;
-}
-
-.bcam-failed-heading {
-  font-size: 11px;
-  color: #ef4444;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.bcam-failed-item {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-bottom: 2px;
-}
-
-.bcam-cost {
-  font-size: 11px;
-  color: var(--text-muted);
-  text-align: right;
-}
-
-.bcam-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.bcam-footer-btn {
-  padding: 6px 16px;
-  font-size: 12px;
 }

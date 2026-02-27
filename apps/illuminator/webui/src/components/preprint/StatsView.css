@@ -1,0 +1,15 @@
+/* StatsView styles */
+
+.sv-empty-msg {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.sv-calc-meta {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.preprint-completeness-dot {
+  color: var(--completeness-color, var(--text-secondary));
+}

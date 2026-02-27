@@ -137,6 +137,10 @@
   margin-right: var(--spacing-xs);
 }
 
+.naming-profile-kind-badge-transparent {
+  background-color: transparent;
+}
+
 .naming-profile-culture-cell {
   display: flex;
   align-items: center;

@@ -6,6 +6,7 @@ import React, { useMemo } from "react";
 import PropTypes from "prop-types";
 import { TagSelector, NumberInput } from "@penguin-tales/shared-components";
 import MultiSelectPills from "../MultiSelectPills";
+import "./SingleGroupTab.css";
 
 const PROMINENCE_LEVELS = ["forgotten", "marginal", "recognized", "renowned", "mythic"];
 
@@ -189,7 +190,7 @@ export default function SingleGroupTab({
                   allLabel="Any"
                 />
               ) : (
-                <p className="text-muted text-small" style={{ margin: "8px 0" }}>
+                <p className="text-muted text-small sgt-no-subtypes">
                   {(group.conditions?.entityKinds?.length || 0) > 0
                     ? "Selected entity types have no subtypes defined"
                     : "Select entity types to see available subtypes"}

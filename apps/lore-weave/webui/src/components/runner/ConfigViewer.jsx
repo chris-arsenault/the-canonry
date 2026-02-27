@@ -4,6 +4,7 @@
 
 import React, { useState, useCallback } from "react";
 import PropTypes from "prop-types";
+import "./ConfigViewer.css";
 
 export default function ConfigViewer({ engineConfig, debugConfig, onShowDebugModal }) {
   const [showConfig, setShowConfig] = useState(false);
@@ -14,10 +15,9 @@ export default function ConfigViewer({ engineConfig, debugConfig, onShowDebugMod
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+      <div className="cv-row">
         <div
-          className="lw-config-toggle"
-          style={{ flex: 1, marginTop: 0 }}
+          className="lw-config-toggle cv-toggle-flush"
           onClick={() => setShowConfig(!showConfig)}
           role="button"
           tabIndex={0}

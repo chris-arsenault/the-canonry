@@ -41,6 +41,7 @@ import {
 } from "../../lib/preprint/contentTree";
 import { resolveActiveContent } from "../../lib/db/eraNarrativeRepository";
 import { countWords } from "../../lib/db/staticPageRepository";
+import "./ContentTreeView.css";
 
 interface ContentTreeViewProps {
   entities: PersistedEntity[];
@@ -409,7 +410,7 @@ export default function ContentTreeView({
   if (!treeState) {
     return (
       <div className="preprint-tree-empty">
-        <p style={{ color: "var(--text-secondary)", marginBottom: "var(--space-md)" }}>
+        <p className="ctv-empty-msg">
           Create a book structure to organize content for print. The scaffold includes standard
           Front Matter, Body, and Back Matter sections.
         </p>
@@ -456,7 +457,7 @@ export default function ContentTreeView({
         >
           Delete
         </button>
-        <div style={{ flex: 1 }} />
+        <div className="ctv-toolbar-spacer" />
         <button
           className="preprint-action-button small"
           onClick={handleCreateScaffold}

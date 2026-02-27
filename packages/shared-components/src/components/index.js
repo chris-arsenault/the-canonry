@@ -22,6 +22,7 @@ export { CategorySection } from './CategorySection';
 export { AddCard } from './AddCard';
 export { AddItemButton } from './AddItemButton';
 export { ModalShell } from './ModalShell';
+export { ErrorBoundary } from './ErrorBoundary';
 export { ItemRow } from './ItemRow';
 export { PressureChangesEditor } from './PressureChangesEditor';
 

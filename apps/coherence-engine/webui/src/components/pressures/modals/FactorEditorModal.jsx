@@ -7,6 +7,7 @@ import PropTypes from "prop-types";
 import { FACTOR_TYPES } from "../constants";
 import { ReferenceDropdown, ChipSelect, NumberInput } from "../../shared";
 import TagSelector from "@penguin-tales/shared-components/TagSelector";
+import "./FactorEditorModal.css";
 
 export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackType, schema }) {
   const [localFactor, setLocalFactor] = useState(factor || { type: "entity_count" });
@@ -170,16 +171,9 @@ export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackT
             <span>{typeConfig?.icon}</span>
             {factor ? "Edit Factor" : "Add Factor"}
             <span
-              style={{
-                fontSize: "12px",
-                padding: "4px 10px",
-                borderRadius: "12px",
-                backgroundColor:
-                  feedbackType === "positive" ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)",
-                color: feedbackType === "positive" ? "#86efac" : "#fca5a5",
-              }}
+              className={feedbackType === "positive" ? "fem-feedback-badge-positive" : "fem-feedback-badge-negative"}
             >
-              {feedbackType === "positive" ? "+ Positive" : "− Negative"}
+              {feedbackType === "positive" ? "+ Positive" : "- Negative"}
             </span>
           </div>
           <button className="btn-close" onClick={onClose}>
@@ -189,7 +183,7 @@ export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackT
 
         <div className="modal-content">
           {/* Type selector - compact pills */}
-          <div style={{ marginBottom: "20px" }}>
+          <div className="mb-2xl">
             <span className="label">Factor Type</span>
             <div className="type-selector">
               {Object.entries(FACTOR_TYPES).map(([type, config]) => (
@@ -244,7 +238,7 @@ export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackT
 
             {/* Relationship Count fields */}
             {selectedType === "relationship_count" && (
-              <div style={{ gridColumn: "1 / -1" }}>
+              <div className="grid-col-full">
                 <ChipSelect
                   label="Relationship Kinds"
                   value={localFactor.relationshipKinds || []}
@@ -257,7 +251,7 @@ export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackT
 
             {/* Tag Count fields */}
             {selectedType === "tag_count" && (
-              <div style={{ gridColumn: "1 / -1" }}>
+              <div className="grid-col-full">
                 <label className="label">Tags
                 <TagSelector
                   value={localFactor.tags || []}
@@ -306,7 +300,7 @@ export function FactorEditorModal({ isOpen, onClose, factor, onChange, feedbackT
 
             {/* Cross-Culture Ratio fields */}
             {selectedType === "cross_culture_ratio" && (
-              <div style={{ gridColumn: "1 / -1" }}>
+              <div className="grid-col-full">
                 <ChipSelect
                   label="Relationship Kinds"
                   value={localFactor.relationshipKinds || []}

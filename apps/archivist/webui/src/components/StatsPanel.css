@@ -237,6 +237,7 @@
 
 .pressure-bar-fill {
   height: 100%;
+  width: var(--sp-pressure-width);
   transition: width var(--transition-slow);
   border-radius: var(--radius-sm);
 }

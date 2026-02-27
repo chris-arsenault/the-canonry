@@ -32,6 +32,7 @@ import {
   putChronicle,
 } from "../lib/db/chronicleRepository";
 import type { CultureDefinition } from "@canonry/world-schema";
+import "./EntityRenameModal.css";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -188,107 +189,47 @@ function MatchRow({
 
   return (
     <div
-      style={{
-        padding: "6px 10px",
-        background: decision.action === "reject" ? "var(--bg-secondary)" : "var(--bg-tertiary)",
-        borderRadius: "4px",
-        border: "1px solid var(--border-color)",
-        opacity: decision.action === "reject" ? 0.5 : 1,
-        marginBottom: "3px",
-      }}
+      className={`erm-match-row ${decision.action === "reject" ? "erm-match-row-rejected" : "erm-match-row-accepted"}`}
     >
       {/* Field label + type badge */}
       <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          marginBottom: "3px",
-          fontSize: "10px",
-          color: "var(--text-muted)",
-        }}
+        className="erm-match-header"
       >
         <span
-          style={{
-            background: TYPE_COLORS[match.matchType] || "#666",
-            color: "#fff",
-            padding: "0 4px",
-            borderRadius: "2px",
-            fontSize: "9px",
-            fontWeight: 600,
-            textTransform: "uppercase",
-          }}
+          className="erm-type-badge"
+          style={{ background: TYPE_COLORS[match.matchType] || "#666" }}
         >
           {TYPE_LABELS[match.matchType] || match.matchType}
         </span>
-        <span style={{ opacity: 0.6 }}>{match.field}</span>
+        <span className="erm-field-label">{match.field}</span>
         {match.partialFragment && (
-          <span style={{ fontStyle: "italic" }}>&ldquo;{match.partialFragment}&rdquo;</span>
+          <span className="erm-partial-fragment">&ldquo;{match.partialFragment}&rdquo;</span>
         )}
       </div>
 
       {/* Context snippet with diff (grammar-adjusted) */}
       <div
-        style={{
-          fontSize: "11px",
-          lineHeight: "1.7",
-          fontFamily: "monospace",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          marginBottom: "4px",
-        }}
+        className="erm-snippet"
       >
-        <span style={{ color: "var(--text-muted)" }}>{preview.ctxBefore}</span>
-        <span
-          style={{
-            background: "rgba(239, 68, 68, 0.2)",
-            textDecoration: "line-through",
-            padding: "0 1px",
-            borderRadius: "2px",
-          }}
-        >
+        <span className="erm-context-text">{preview.ctxBefore}</span>
+        <span className="erm-strikethrough">
           {preview.strikethrough}
         </span>
         {decision.action !== "reject" && (
-          <span
-            style={{
-              background: "rgba(34, 197, 94, 0.2)",
-              padding: "0 1px",
-              borderRadius: "2px",
-            }}
-          >
+          <span className="erm-replacement">
             {preview.replacement}
           </span>
         )}
-        <span style={{ color: "var(--text-muted)" }}>{preview.ctxAfter}</span>
+        <span className="erm-context-text">{preview.ctxAfter}</span>
       </div>
 
       {/* Action controls */}
-      <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+      <div className="erm-action-controls">
         {(["accept", "reject", "edit"] as DecisionAction[]).map((action) => (
           <button
             key={action}
             onClick={() => onChangeAction(action)}
-            style={{
-              background: (() => {
-                if (decision.action !== action) return "var(--bg-secondary)";
-                if (action === "accept") return "rgba(34, 197, 94, 0.3)";
-                if (action === "reject") return "rgba(239, 68, 68, 0.3)";
-                return "rgba(99, 102, 241, 0.3)";
-              })(),
-              border: (() => {
-                if (decision.action !== action) return "1px solid var(--border-color)";
-                if (action === "accept") return "1px solid #22c55e";
-                if (action === "reject") return "1px solid #ef4444";
-                return "1px solid #6366f1";
-              })(),
-              color: "var(--text-primary)",
-              fontSize: "10px",
-              padding: "2px 8px",
-              borderRadius: "3px",
-              cursor: "pointer",
-              textTransform: "capitalize",
-            }}
+            className={`erm-action-btn ${decision.action === action ? `erm-action-btn-${action}` : "erm-action-btn-inactive"}`}
           >
             {action}
           </button>
@@ -299,16 +240,7 @@ function MatchRow({
             value={decision.editText}
             onChange={(e) => onChangeEditText(e.target.value)}
             placeholder="Custom replacement..."
-            style={{
-              flex: 1,
-              background: "var(--bg-primary)",
-              border: "1px solid #6366f1",
-              color: "var(--text-primary)",
-              fontSize: "11px",
-              padding: "2px 6px",
-              borderRadius: "3px",
-              outline: "none",
-            }}
+            className="erm-edit-input"
           />
         )}
       </div>
@@ -356,86 +288,51 @@ function SourceSection({
 
   return (
     <div
-      style={{
-        marginBottom: "4px",
-        border: "1px solid var(--border-color)",
-        borderRadius: "6px",
-        overflow: "hidden",
-      }}
+      className="erm-source-section"
     >
       {/* Clickable header */}
       <div
         onClick={onToggle}
-        style={{
-          padding: "8px 12px",
-          background: "var(--bg-secondary)",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          userSelect: "none",
-        }}
+        className="erm-source-header"
         role="button"
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggle(e); }}
       >
         {/* Expand indicator */}
-        <span
-          style={{
-            fontSize: "10px",
-            color: "var(--text-muted)",
-            width: "10px",
-            flexShrink: 0,
-          }}
-        >
+        <span className="erm-expand-icon">
           {expanded ? "\u25BC" : "\u25B6"}
         </span>
 
         {/* Source name */}
-        <span
-          style={{
-            fontSize: "12px",
-            fontWeight: 500,
-            color: "var(--text-primary)",
-          }}
-        >
+        <span className="erm-source-name">
           {group.sourceName}
         </span>
 
         {/* Type + tier badge */}
-        <span
-          style={{
-            fontSize: "9px",
-            color: "var(--text-muted)",
-            background: "var(--bg-primary)",
-            padding: "1px 6px",
-            borderRadius: "3px",
-            border: "1px solid var(--border-color)",
-          }}
-        >
+        <span className="erm-source-badge">
           {group.sourceType}
           {group.tier ? `, ${group.tier}` : ""}
         </span>
 
         {/* Match stats */}
-        <span style={{ fontSize: "10px", color: "var(--text-muted)", marginLeft: "auto" }}>
+        <span className="erm-match-count">
           {total} {total === 1 ? "match" : "matches"}
           {group.connections.length > 0 && ` + ${group.connections.length} conn`}
         </span>
         {accepts > 0 && (
-          <span style={{ fontSize: "10px", color: "#22c55e" }}>
+          <span className="erm-stat-accepts">
             {accepts}
             {"\u2713"}
           </span>
         )}
         {rejects > 0 && (
-          <span style={{ fontSize: "10px", color: "#ef4444" }}>
+          <span className="erm-stat-rejects">
             {rejects}
             {"\u2717"}
           </span>
         )}
         {edits > 0 && (
-          <span style={{ fontSize: "10px", color: "#6366f1" }}>
+          <span className="erm-stat-edits">
             {edits}
             {"\u270E"}
           </span>
@@ -448,14 +345,7 @@ function SourceSection({
             onAcceptAll();
           }}
           title="Accept all matches in this source"
-          style={{
-            background: "none",
-            border: "none",
-            color: "#22c55e",
-            fontSize: "10px",
-            cursor: "pointer",
-            padding: "0 4px",
-          }}
+          className="erm-bulk-accept-btn"
         >
           {"all\u2713"}
         </button>
@@ -465,14 +355,7 @@ function SourceSection({
             onRejectAll();
           }}
           title="Reject all matches in this source"
-          style={{
-            background: "none",
-            border: "none",
-            color: "#ef4444",
-            fontSize: "10px",
-            cursor: "pointer",
-            padding: "0 4px",
-          }}
+          className="erm-bulk-reject-btn"
         >
           {"all\u2717"}
         </button>
@@ -480,7 +363,7 @@ function SourceSection({
 
       {/* Expanded content */}
       {expanded && (
-        <div style={{ padding: "6px 8px" }}>
+        <div className="erm-source-body">
           {group.matches.map((match) => {
             const decision = decisions.get(match.id) || {
               action: "reject" as DecisionAction,
@@ -500,29 +383,15 @@ function SourceSection({
 
           {/* Connection info for this source */}
           {group.connections.length > 0 && (
-            <div style={{ marginTop: "4px" }}>
+            <div className="erm-connection-section">
               {group.connections.map((conn) => (
                 <div
                   key={conn.id}
-                  style={{
-                    padding: "3px 10px",
-                    fontSize: "10px",
-                    color: "var(--text-muted)",
-                    display: "flex",
-                    gap: "6px",
-                    alignItems: "center",
-                  }}
+                  className="erm-connection-item"
                 >
                   <span
-                    style={{
-                      background: TYPE_COLORS.id_slug,
-                      color: "#fff",
-                      padding: "0 3px",
-                      borderRadius: "2px",
-                      fontSize: "8px",
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                    }}
+                    className="erm-fk-badge"
+                    style={{ background: TYPE_COLORS.id_slug }}
                   >
                     FK
                   </span>
@@ -961,15 +830,7 @@ export default function EntityRenameModal({
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(0, 0, 0, 0.6)",
-      }}
+      className="erm-backdrop"
       onClick={(e) => {
         if (e.target === e.currentTarget && phase !== "applying") onClose();
       }}
@@ -978,40 +839,17 @@ export default function EntityRenameModal({
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
     >
       <div
-        style={{
-          background: "var(--bg-primary)",
-          borderRadius: "12px",
-          border: "1px solid var(--border-color)",
-          width: "900px",
-          maxWidth: "95vw",
-          maxHeight: "90vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-        }}
+        className="erm-card"
       >
         {/* Header */}
         <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--border-color)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexShrink: 0,
-          }}
+          className="erm-header"
         >
           <div>
-            <h2 style={{ margin: 0, fontSize: "16px" }}>
+            <h2 className="erm-title">
               {isPatch ? "Patch Stale Names" : "Rename Entity"}
             </h2>
-            <p
-              style={{
-                margin: "4px 0 0",
-                fontSize: "11px",
-                color: "var(--text-muted)",
-              }}
-            >
+            <p className="erm-subtitle">
               {entity.kind}
               {entity.subtype ? ` / ${entity.subtype}` : ""}
               {entity.culture ? ` / ${entity.culture}` : ""}
@@ -1020,8 +858,7 @@ export default function EntityRenameModal({
           {phase !== "applying" && (
             <button
               onClick={onClose}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: "4px 12px", fontSize: "12px" }}
+              className="illuminator-button illuminator-button-secondary erm-cancel-btn"
             >
               Cancel
             </button>
@@ -1030,43 +867,16 @@ export default function EntityRenameModal({
 
         {/* Scrollable content */}
         <div
-          style={{
-            flex: 1,
-            overflow: "auto",
-            padding: "16px 20px",
-            minHeight: 0,
-          }}
+          className="erm-body"
         >
           {/* Phase 1: Name Input */}
           {phase === "input" && (
             <div>
-              <div
-                style={{
-                  marginBottom: "16px",
-                  padding: "12px",
-                  background: "var(--bg-secondary)",
-                  borderRadius: "6px",
-                  border: "1px solid var(--border-color)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "10px",
-                    color: "var(--text-muted)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    marginBottom: "4px",
-                  }}
-                >
+              <div className="erm-current-name-box">
+                <div className="erm-current-name-label">
                   Current Name
                 </div>
-                <div
-                  style={{
-                    fontSize: "15px",
-                    color: "var(--text-primary)",
-                    fontWeight: 500,
-                  }}
-                >
+                <div className="erm-current-name-value">
                   {entity.name}
                 </div>
               </div>
@@ -1074,14 +884,7 @@ export default function EntityRenameModal({
               {isPatch ? (
                 /* Patch mode: user enters the OLD stale name to find */
                 <>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "8px",
-                      alignItems: "center",
-                      marginBottom: "12px",
-                    }}
-                  >
+                  <div className="erm-input-row">
                     <input
                       ref={inputRef}
                       type="text"
@@ -1091,25 +894,10 @@ export default function EntityRenameModal({
                         if (e.key === "Enter" && oldNameInput.trim()) void handleScan();
                       }}
                       placeholder="Enter old/stale name to find..."
-                      style={{
-                        flex: 1,
-                        background: "var(--bg-secondary)",
-                        border: "1px solid var(--border-color)",
-                        color: "var(--text-primary)",
-                        fontSize: "14px",
-                        padding: "8px 12px",
-                        borderRadius: "6px",
-                        outline: "none",
-                      }}
+                      className="erm-name-input"
                     />
                   </div>
-                  <p
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--text-muted)",
-                      lineHeight: "1.6",
-                    }}
-                  >
+                  <p className="erm-help-text">
                     Enter the old or stale name to search for. All occurrences will be shown for
                     review and replaced with the current name &ldquo;{entity.name}&rdquo;.
                   </p>
@@ -1117,14 +905,7 @@ export default function EntityRenameModal({
               ) : (
                 /* Rename mode: user enters the NEW name */
                 <>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "8px",
-                      alignItems: "center",
-                      marginBottom: "12px",
-                    }}
-                  >
+                  <div className="erm-input-row">
                     <input
                       ref={inputRef}
                       type="text"
@@ -1134,44 +915,20 @@ export default function EntityRenameModal({
                         if (e.key === "Enter" && newName.trim()) void handleScan();
                       }}
                       placeholder="Enter new name..."
-                      style={{
-                        flex: 1,
-                        background: "var(--bg-secondary)",
-                        border: "1px solid var(--border-color)",
-                        color: "var(--text-primary)",
-                        fontSize: "14px",
-                        padding: "8px 12px",
-                        borderRadius: "6px",
-                        outline: "none",
-                      }}
+                      className="erm-name-input"
                     />
                     {entity.culture && (
                       <button
                         onClick={() => void handleRollName()}
                         disabled={isRolling}
-                        className="illuminator-button illuminator-button-secondary"
-                        style={{
-                          padding: "8px 16px",
-                          fontSize: "12px",
-                          whiteSpace: "nowrap",
-                        }}
+                        className="illuminator-button illuminator-button-secondary erm-roll-btn"
                         title="Generate a culture-appropriate name using Name Forge"
                       >
                         {isRolling ? "Rolling..." : "Roll Name"}
                       </button>
                     )}
                   </div>
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      fontSize: "11px",
-                      color: "var(--text-secondary)",
-                      marginBottom: "8px",
-                      cursor: "pointer",
-                    }}
-                  >
+                  <label className="erm-alias-label">
                     <input
                       type="checkbox"
                       checked={addOldNameAsAlias}
@@ -1179,13 +936,7 @@ export default function EntityRenameModal({
                     />
                     Add &ldquo;{entity.name}&rdquo; as alias (keeps wiki links working)
                   </label>
-                  <p
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--text-muted)",
-                      lineHeight: "1.6",
-                    }}
-                  >
+                  <p className="erm-help-text">
                     Enter a new name or use Roll Name to generate one from Name Forge. The scan will
                     find all references to &ldquo;
                     {entity.name}&rdquo; across related entities and chronicles.
@@ -1197,17 +948,11 @@ export default function EntityRenameModal({
 
           {/* Phase: Scanning */}
           {phase === "scanning" && (
-            <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "var(--text-secondary)",
-                  marginBottom: "8px",
-                }}
-              >
+            <div className="erm-centered-phase">
+              <div className="erm-phase-title">
                 Scanning entities and chronicles...
               </div>
-              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+              <div className="erm-phase-subtitle">
                 Looking for references to &ldquo;{scanOldName}&rdquo;
               </div>
             </div>
@@ -1217,56 +962,29 @@ export default function EntityRenameModal({
           {phase === "preview" && scanResult && (
             <div>
               {/* Summary stats bar */}
-              <div
-                style={{
-                  marginBottom: "12px",
-                  padding: "8px 14px",
-                  background: "var(--bg-secondary)",
-                  borderRadius: "6px",
-                  border: "1px solid var(--border-color)",
-                  display: "flex",
-                  gap: "12px",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  fontSize: "12px",
-                }}
-              >
+              <div className="erm-stats-bar">
                 <span>
                   <strong>{isPatch ? oldNameInput : entity.name}</strong> &rarr;{" "}
                   <strong>{newName}</strong>
                 </span>
-                <span style={{ color: "var(--text-muted)" }}>|</span>
-                <span style={{ color: "#22c55e" }}>{stats.accepts} accept</span>
-                <span style={{ color: "#ef4444" }}>{stats.rejects} reject</span>
-                <span style={{ color: "#6366f1" }}>{stats.edits} edit</span>
-                <span style={{ color: "var(--text-muted)" }}>/ {stats.total} total</span>
+                <span className="erm-stat-separator">|</span>
+                <span className="erm-stat-accepts">{stats.accepts} accept</span>
+                <span className="erm-stat-rejects">{stats.rejects} reject</span>
+                <span className="erm-stat-edits">{stats.edits} edit</span>
+                <span className="erm-stat-total">/ {stats.total} total</span>
                 {stats.connections > 0 && (
-                  <span style={{ color: "#06b6d4" }}>+ {stats.connections} connections</span>
+                  <span className="erm-stat-connections">+ {stats.connections} connections</span>
                 )}
-                <div style={{ flex: 1 }} />
+                <div className="erm-stats-spacer" />
                 <button
                   onClick={handleAcceptAll}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#22c55e",
-                    fontSize: "10px",
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                  }}
+                  className="erm-accept-all-btn"
                 >
                   Accept All
                 </button>
                 <button
                   onClick={handleRejectAllPartials}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#f59e0b",
-                    fontSize: "10px",
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                  }}
+                  className="erm-reject-partials-btn"
                 >
                   Reject All Partials
                 </button>
@@ -1290,48 +1008,22 @@ export default function EntityRenameModal({
 
               {/* Connection-only sources (no text matches, just FK refs) */}
               {connectionOnlyGroups.length > 0 && (
-                <div style={{ marginTop: "12px" }}>
-                  <div
-                    style={{
-                      fontSize: "10px",
-                      fontWeight: 600,
-                      color: "var(--text-muted)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
-                      marginBottom: "6px",
-                      padding: "0 2px",
-                      borderTop: "1px solid var(--border-color)",
-                      paddingTop: "10px",
-                    }}
-                  >
+                <div className="erm-conn-only-section">
+                  <div className="erm-conn-only-header">
                     Connections without text matches ({connectionOnlyGroups.length})
                   </div>
                   {connectionOnlyGroups.map((group) => (
                     <div
                       key={group.sourceId}
-                      style={{
-                        padding: "4px 12px",
-                        fontSize: "10px",
-                        color: "var(--text-muted)",
-                        display: "flex",
-                        gap: "6px",
-                        alignItems: "center",
-                        marginBottom: "2px",
-                      }}
+                      className="erm-conn-only-item"
                     >
                       <span
-                        style={{
-                          background: TYPE_COLORS.id_slug,
-                          color: "#fff",
-                          padding: "0 3px",
-                          borderRadius: "2px",
-                          fontSize: "8px",
-                          fontWeight: 600,
-                        }}
+                        className="erm-fk-badge"
+                        style={{ background: TYPE_COLORS.id_slug }}
                       >
                         FK
                       </span>
-                      <span style={{ color: "var(--text-primary)" }}>{group.sourceName}</span>
+                      <span className="erm-conn-only-name">{group.sourceName}</span>
                       <span>
                         ({group.sourceType}
                         {group.connections.length > 1 ? `, ${group.connections.length} refs` : ""})
@@ -1342,14 +1034,7 @@ export default function EntityRenameModal({
               )}
 
               {actionableGroups.length === 0 && connectionOnlyGroups.length === 0 && (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "20px",
-                    color: "var(--text-muted)",
-                    fontSize: "12px",
-                  }}
-                >
+                <div className="erm-empty-preview">
                   No references found. The entity name will still be updated.
                 </div>
               )}
@@ -1358,14 +1043,8 @@ export default function EntityRenameModal({
 
           {/* Phase 3: Applying / Done */}
           {(phase === "applying" || phase === "done") && (
-            <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "var(--text-secondary)",
-                  marginBottom: "8px",
-                }}
-              >
+            <div className="erm-centered-phase">
+              <div className="erm-phase-title">
                 {(() => {
                   if (phase === "applying") return applyProgress;
                   if (isPatch) return "Patch Complete";
@@ -1373,13 +1052,7 @@ export default function EntityRenameModal({
                 })()}
               </div>
               {phase === "done" && applyResult && (
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--text-muted)",
-                    marginTop: "8px",
-                  }}
-                >
+                <div className="erm-done-subtitle">
                   {applyResult}
                 </div>
               )}
@@ -1388,29 +1061,13 @@ export default function EntityRenameModal({
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "8px",
-            flexShrink: 0,
-          }}
-        >
+        <div className="erm-footer">
           {phase === "input" && (
             <button
               onClick={() => void handleScan()}
               disabled={isPatch ? !oldNameInput.trim() : !newName.trim()}
-              className="illuminator-button"
-              style={{
-                padding: "6px 20px",
-                fontSize: "12px",
-                opacity: (() => {
-                  const hasInput = isPatch ? oldNameInput.trim() : newName.trim();
-                  return hasInput ? 1 : 0.5;
-                })(),
-              }}
+              className="illuminator-button erm-footer-btn"
+              style={{ '--erm-opacity': (isPatch ? oldNameInput.trim() : newName.trim()) ? 1 : 0.5, opacity: 'var(--erm-opacity)' } as React.CSSProperties}
             >
               Scan References
             </button>
@@ -1419,20 +1076,15 @@ export default function EntityRenameModal({
             <>
               <button
                 onClick={() => setPhase("input")}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "6px 16px", fontSize: "12px" }}
+                className="illuminator-button illuminator-button-secondary erm-footer-btn-secondary"
               >
                 Back
               </button>
               <button
                 onClick={() => void handleApply()}
                 disabled={stats.accepts === 0 && stats.edits === 0}
-                className="illuminator-button"
-                style={{
-                  padding: "6px 20px",
-                  fontSize: "12px",
-                  opacity: stats.accepts === 0 && stats.edits === 0 ? 0.5 : 1,
-                }}
+                className="illuminator-button erm-footer-btn"
+                style={{ opacity: stats.accepts === 0 && stats.edits === 0 ? 0.5 : 1 }}
               >
                 {isPatch ? "Apply Patch" : "Apply Rename"} ({stats.accepts + stats.edits} changes)
               </button>
@@ -1441,8 +1093,7 @@ export default function EntityRenameModal({
           {phase === "done" && (
             <button
               onClick={onClose}
-              className="illuminator-button"
-              style={{ padding: "6px 20px", fontSize: "12px" }}
+              className="illuminator-button erm-footer-btn"
             >
               Done
             </button>

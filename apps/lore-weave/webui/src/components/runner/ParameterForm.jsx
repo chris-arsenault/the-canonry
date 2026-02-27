@@ -5,6 +5,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { NumberInput } from "@penguin-tales/shared-components";
+import "./ParameterForm.css";
 
 export default function ParameterForm({ params, onParamChange }) {
   return (
@@ -101,44 +102,28 @@ export default function ParameterForm({ params, onParamChange }) {
       </div>
 
       {/* Narrative Events Section */}
-      <div
-        className="lw-form-group"
-        style={{
-          gridColumn: "1 / -1",
-          marginTop: "16px",
-          paddingTop: "16px",
-          borderTop: "1px solid var(--border-color)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-          <span className="lw-label" style={{ margin: 0 }}>
+      <div className="lw-form-group pf-narrative-section">
+        <div className="pf-narrative-header">
+          <span className="lw-label pf-narrative-label">
             Narrative Events
           </span>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-              fontSize: "13px",
-            }}
-          >
+          <label className="pf-toggle-label">
             <input
               type="checkbox"
               checked={params.narrativeEnabled ?? false}
               onChange={(e) => onParamChange("narrativeEnabled", e.target.checked)}
-              style={{ width: "16px", height: "16px", cursor: "pointer" }}
+              className="pf-toggle-checkbox"
             />
             Enable event tracking
           </label>
         </div>
-        <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "0 0 12px 0" }}>
+        <p className="pf-narrative-desc">
           Captures significant world changes (status, prominence, relationships) as narrative events
           for story generation.
         </p>
         {params.narrativeEnabled && (
-          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
-            <div className="lw-form-group" style={{ flex: "1 1 150px", minWidth: "150px" }}>
+          <div className="pf-narrative-fields">
+            <div className="lw-form-group pf-narrative-field">
               <label className="lw-label">Min Significance
               <NumberInput
                 min={0}

@@ -1,0 +1,48 @@
+.pf-narrative-section {
+  grid-column: 1 / -1;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.pf-narrative-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pf-narrative-label {
+  margin: 0;
+}
+
+.pf-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.pf-toggle-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.pf-narrative-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 12px 0;
+}
+
+.pf-narrative-fields {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pf-narrative-field {
+  flex: 1 1 150px;
+  min-width: 150px;
+}

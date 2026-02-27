@@ -5,6 +5,7 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
 import "../validation.css";
+import "./IssueCard.css";
 
 export function IssueCard({ issue, onItemClick }) {
   const [expanded, setExpanded] = useState(false);
@@ -37,10 +38,7 @@ export function IssueCard({ issue, onItemClick }) {
         <span className="validation-issue-count">{issue.affectedItems.length}</span>
         <span className={severityClass}>{issue.severity.toUpperCase()}</span>
         <span
-          className="validation-issue-expand-icon"
-          style={{
-            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-          }}
+          className={`validation-issue-expand-icon ${expanded ? "ic-expand-rotated" : ""}`}
         >
           ▼
         </span>
@@ -50,7 +48,7 @@ export function IssueCard({ issue, onItemClick }) {
           <div className="validation-issue-message">{issue.message}</div>
           <div className="validation-affected-items">
             {issue.affectedItems.map((item) => (
-              <div key={item.id} className="flex-col" style={{ gap: "2px" }}>
+              <div key={item.id} className="flex-col ic-affected-item-row">
                 <span
                   className="validation-affected-item"
                   title={item.detail}

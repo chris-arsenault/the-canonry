@@ -8,6 +8,7 @@ import { FILTER_TYPES } from "../constants";
 import { ReferenceDropdown, ChipSelect, PROMINENCE_LEVELS } from "../../shared";
 import { GraphPathEditor } from "./GraphPathEditor";
 import TagSelector from "@penguin-tales/shared-components/TagSelector";
+import "./SelectionFilterCard.css";
 
 /**
  * @param {Object} props
@@ -88,7 +89,7 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
       case "has_tag":
         return (
           <div className="filter-fields">
-            <div style={{ flex: "1 1 150px" }}>
+            <div className="sfc-flex-field-wide">
               <label className="label label-small">Tag
               <TagSelector
                 value={filter.tag ? [filter.tag] : []}
@@ -99,7 +100,7 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
               />
               </label>
             </div>
-            <div style={{ flex: "1 1 150px" }}>
+            <div className="sfc-flex-field-wide">
               <label htmlFor="value-optional" className="label label-small">Value (optional)</label>
               <input id="value-optional"
                 type="text"
@@ -131,7 +132,7 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
       case "lacks_tag":
         return (
           <div className="filter-fields">
-            <div style={{ flex: "1 1 150px" }}>
+            <div className="sfc-flex-field-wide">
               <label className="label label-small">Tag
               <TagSelector
                 value={filter.tag ? [filter.tag] : []}
@@ -142,7 +143,7 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
               />
               </label>
             </div>
-            <div style={{ flex: "1 1 150px" }}>
+            <div className="sfc-flex-field-wide">
               <label htmlFor="value-optional" className="label label-small">Value (optional)</label>
               <input id="value-optional"
                 type="text"
@@ -233,7 +234,7 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
       case "lacks_relationship":
         return (
           <div className="filter-fields">
-            <div style={{ flex: "1 1 140px" }}>
+            <div className="sfc-flex-field-medium">
               <label className="label label-small">Relationship Kind
               <ReferenceDropdown
                 value={filter.kind || ""}
@@ -243,7 +244,7 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
               />
               </label>
             </div>
-            <div style={{ flex: "1 1 120px" }}>
+            <div className="sfc-flex-field-narrow">
               <label className="label label-small">With Entity (optional)
               <ReferenceDropdown
                 value={filter.with || ""}
@@ -254,7 +255,7 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
               </label>
             </div>
             {filter.type === "has_relationship" && (
-              <div style={{ flex: "1 1 100px" }}>
+              <div className="sfc-flex-field-tiny">
                 <label className="label label-small">Direction
                 <ReferenceDropdown
                   value={filter.direction || "both"}
@@ -285,7 +286,7 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
       case "shares_related":
         return (
           <div className="filter-fields">
-            <div style={{ flex: "1 1 140px" }}>
+            <div className="sfc-flex-field-medium">
               <label className="label label-small">Via Relationship
               <ReferenceDropdown
                 value={filter.relationshipKind || ""}
@@ -295,7 +296,7 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
               />
               </label>
             </div>
-            <div style={{ flex: "1 1 120px" }}>
+            <div className="sfc-flex-field-narrow">
               <label className="label label-small">With Entity
               <ReferenceDropdown
                 value={filter.with || ""}
@@ -325,11 +326,16 @@ export function SelectionFilterCard({ filter, onChange, onRemove, schema, availa
 
   return (
     <div className="condition-card">
-      <div className="condition-card-header" style={{ marginBottom: expanded ? undefined : 0 }}>
+      <div
+        className="condition-card-header"
+        // eslint-disable-next-line local/no-inline-styles -- dynamic margin toggles on expand
+        style={{ '--sfc-mb': expanded ? undefined : '0', marginBottom: 'var(--sfc-mb)' }}
+      >
         <div className="condition-card-type">
           <span
             className="condition-card-icon"
-            style={{ backgroundColor: `${typeConfig.color}20` }}
+            // eslint-disable-next-line local/no-inline-styles -- dynamic color per filter type
+            style={{ '--sfc-icon-bg': `${typeConfig.color}20`, backgroundColor: 'var(--sfc-icon-bg)' }}
           >
             {typeConfig.icon}
           </span>

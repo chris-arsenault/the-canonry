@@ -4,6 +4,7 @@
 
 import React, { useState } from "react";
 import PropTypes from "prop-types";
+import "./TemplateUsage.css";
 
 function FilterStepsList({ filterSteps }) {
   return (
@@ -144,18 +145,18 @@ export default function TemplateUsage({ templateUsage, systemHealth }) {
           <span>🔧</span>
           Template Usage
         </div>
-        <span style={{ fontSize: "12px", color: "var(--lw-text-muted)" }}>
+        <span className="tu-used-label">
           {templateUsage.uniqueTemplatesUsed}/{templateUsage.totalTemplates} used
         </span>
       </div>
       <div className="lw-panel-content">
         {/* System health indicator */}
         {systemHealth && (
-          <div className="lw-health-indicator" style={{ marginBottom: "12px" }}>
+          <div className="lw-health-indicator tu-health-indicator">
             <div
-              className={`lw-health-dot ${systemHealth.status}`}
+              className={`lw-health-dot ${systemHealth.status} tu-health-dot`}
               style={{
-                backgroundColor: (() => {
+                '--tu-health-dot-bg': (() => {
                   if (systemHealth.status === "stable") return "var(--lw-success)";
                   if (systemHealth.status === "functional") return "var(--lw-warning)";
                   return "var(--lw-danger)";
@@ -165,7 +166,7 @@ export default function TemplateUsage({ templateUsage, systemHealth }) {
             <span className="lw-health-text">
               System Health: {(systemHealth.populationHealth * 100).toFixed(0)}%
             </span>
-            <span style={{ fontSize: "12px", color: "var(--lw-text-muted)", marginLeft: "auto" }}>
+            <span className="tu-health-status">
               {systemHealth.status}
             </span>
           </div>
@@ -185,10 +186,10 @@ export default function TemplateUsage({ templateUsage, systemHealth }) {
                 </span>
                 <div className="lw-template-bar">
                   <div
-                    className="lw-template-fill"
+                    className="lw-template-fill tu-template-fill"
                     style={{
-                      width: `${(template.count / maxCount) * 100}%`,
-                      backgroundColor: fillColor,
+                      '--tu-template-fill-width': `${(template.count / maxCount) * 100}%`,
+                      '--tu-template-fill-color': fillColor,
                     }}
                   />
                 </div>

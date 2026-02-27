@@ -12,21 +12,7 @@ import React from "react";
 import PropTypes from "prop-types";
 import { NumberInput } from "../../shared";
 import TagSelector from "@penguin-tales/shared-components/TagSelector";
-
-const styles = {
-  hint: {
-    fontSize: "11px",
-    color: "#64748b",
-    marginTop: "4px",
-    lineHeight: "1.4",
-  },
-  sectionHint: {
-    fontSize: "12px",
-    color: "#64748b",
-    marginBottom: "12px",
-    lineHeight: "1.4",
-  },
-};
+import "./PlaneDiffusionTab.css";
 
 const FALLOFF_OPTIONS = [
   { value: "absolute", label: "Absolute (100→99→98...)" },
@@ -87,7 +73,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
     <div>
       <div className="section">
         <div className="section-title">Sources</div>
-        <div style={styles.sectionHint}>
+        <div className="pdt-section-hint">
           Entities that SET values into the diffusion field. Values are maintained at source
           positions each tick (Dirichlet boundary condition).
         </div>
@@ -102,7 +88,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               singleSelect
             />
             </label>
-            <div style={styles.hint}>Tag that marks an entity as a source</div>
+            <div className="pdt-hint">Tag that marks an entity as a source</div>
           </div>
           <div className="form-group">
             <label className="label">Default Strength
@@ -112,7 +98,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               allowEmpty
             />
             </label>
-            <div style={styles.hint}>
+            <div className="pdt-hint">
               Any number. Simulation is uncapped. Output tags clamp to -100/100.
             </div>
           </div>
@@ -121,7 +107,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
 
       <div className="section">
         <div className="section-title">Sinks</div>
-        <div style={styles.sectionHint}>
+        <div className="pdt-section-hint">
           Entities that SET negative values into the diffusion field.
         </div>
         <div className="form-grid">
@@ -135,7 +121,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               singleSelect
             />
             </label>
-            <div style={styles.hint}>Tag that marks an entity as a sink</div>
+            <div className="pdt-hint">Tag that marks an entity as a sink</div>
           </div>
           <div className="form-group">
             <label className="label">Default Strength
@@ -145,14 +131,14 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               allowEmpty
             />
             </label>
-            <div style={styles.hint}>Will be negated. Any number - simulation is uncapped.</div>
+            <div className="pdt-hint">Will be negated. Any number - simulation is uncapped.</div>
           </div>
         </div>
       </div>
 
       <div className="section">
         <div className="section-title">Diffusion</div>
-        <div style={styles.sectionHint}>
+        <div className="pdt-section-hint">
           Heat equation parameters. Each tick: sources/sinks SET values (fixed boundary), then
           diffusion runs N iterations to spread values.
         </div>
@@ -167,7 +153,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               allowEmpty
             />
             </label>
-            <div style={styles.hint}>
+            <div className="pdt-hint">
               0-1. Recommended 0.1-0.25. Above 0.25 may cause oscillations.
             </div>
           </div>
@@ -182,7 +168,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               allowEmpty
             />
             </label>
-            <div style={styles.hint}>Grid cells where source/sink SET values. Default: 1.</div>
+            <div className="pdt-hint">Grid cells where source/sink SET values. Default: 1.</div>
           </div>
           <div className="form-group">
             <label htmlFor="falloff-type" className="label">Falloff Type</label>
@@ -197,7 +183,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
                 </option>
               ))}
             </select>
-            <div style={styles.hint}>How strength decreases within source radius.</div>
+            <div className="pdt-hint">How strength decreases within source radius.</div>
           </div>
           <div className="form-group">
             <label className="label">Decay Rate
@@ -209,7 +195,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               allowEmpty
             />
             </label>
-            <div style={styles.hint}>
+            <div className="pdt-hint">
               0-1. Default: 0 (no decay). Decay fights diffusion spreading.
             </div>
           </div>
@@ -224,7 +210,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               allowEmpty
             />
             </label>
-            <div style={styles.hint}>
+            <div className="pdt-hint">
               Default: 20. Higher = faster spreading. 20 achieves ~50 cells in 15 ticks.
             </div>
           </div>
@@ -233,13 +219,13 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
 
       <div className="section">
         <div className="section-title">Output Tags ({outputTags.length})</div>
-        <div style={styles.sectionHint}>
+        <div className="pdt-section-hint">
           Tags assigned to entities based on sampled field value (clamped to -100 to 100).
         </div>
 
         {outputTags.map((tag, index) => (
           <div key={index} className="item-card">
-            <div style={{ padding: "12px 16px" }}>
+            <div className="py-lg px-xl">
               <div className="form-row-with-delete">
                 <div className="form-row-fields">
                   <div className="form-group">
@@ -263,7 +249,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
                       allowEmpty
                     />
                     </label>
-                    <div style={styles.hint}>-100 to 100</div>
+                    <div className="pdt-hint">-100 to 100</div>
                   </div>
                   <div className="form-group">
                     <label className="label">Max Value
@@ -275,7 +261,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
                       allowEmpty
                     />
                     </label>
-                    <div style={styles.hint}>-100 to 100</div>
+                    <div className="pdt-hint">-100 to 100</div>
                   </div>
                 </div>
                 <button className="btn-icon btn-icon-danger" onClick={() => removeOutputTag(index)}>
@@ -290,7 +276,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
           + Add Output Tag
         </button>
 
-        <div style={{ marginTop: "16px" }}>
+        <div className="mt-xl">
           <div className="form-group">
             <label className="label">Value Tag
             <TagSelector
@@ -301,7 +287,7 @@ export function PlaneDiffusionTab({ system, onChange, schema }) {
               singleSelect
             />
             </label>
-            <div style={styles.hint}>
+            <div className="pdt-hint">
               Optional: Store clamped field value as tag (e.g., &quot;field_value:25.5&quot;)
             </div>
           </div>

@@ -6,6 +6,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import PropTypes from "prop-types";
 import { SimulationDashboard } from "../dashboard";
 import DebugSettingsModal from "../DebugSettingsModal";
+import "./SimulationRunner.css";
 import ParameterForm from "./ParameterForm";
 import RunControls from "./RunControls";
 import ConfigViewer from "./ConfigViewer";
@@ -572,13 +573,12 @@ export default function SimulationRunner({
       {/* Parameters Card */}
       <div className="lw-card">
         <div
-          className="lw-card-header"
-          style={{ marginBottom: workerIsRunning && !workerIsPaused ? 0 : "16px" }}
+          className={`lw-card-header ${workerIsRunning && !workerIsPaused ? "sr-card-header-running" : ""}`}
         >
-          <div className="lw-card-title" style={{ marginBottom: 0 }}>
+          <div className="lw-card-title sr-card-title-flush">
             Simulation Parameters
           </div>
-          <div className="lw-button-row" style={{ marginTop: 0 }}>
+          <div className="lw-button-row sr-button-row-flush">
             <RunControls
               isRunning={workerIsRunning}
               isPaused={workerIsPaused}

@@ -1,0 +1,9 @@
+/* AddRuleButton companion styles */
+.arb-dropdown {
+  min-width: 280px;
+}
+
+.arb-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

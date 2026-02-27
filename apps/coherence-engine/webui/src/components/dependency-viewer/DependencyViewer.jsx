@@ -141,19 +141,19 @@ export default function DependencyViewer({ usageMap }) {
         </div>
         <div className="dependency-viewer-legend">
           <div className="dependency-legend-item">
-            <div className="dependency-legend-dot" style={{ backgroundColor: "#60a5fa" }} />
+            <div className="dependency-legend-dot dependency-legend-dot-generators" />
             <span>Generators</span>
           </div>
           <div className="dependency-legend-item">
-            <div className="dependency-legend-dot" style={{ backgroundColor: "#a855f7" }} />
+            <div className="dependency-legend-dot dependency-legend-dot-systems" />
             <span>Systems</span>
           </div>
           <div className="dependency-legend-item">
-            <div className="dependency-legend-dot" style={{ backgroundColor: "#22c55e" }} />
+            <div className="dependency-legend-dot dependency-legend-dot-actions" />
             <span>Actions</span>
           </div>
           <div className="dependency-legend-item">
-            <div className="dependency-legend-dot" style={{ backgroundColor: "#ec4899" }} />
+            <div className="dependency-legend-dot dependency-legend-dot-eras" />
             <span>Eras</span>
           </div>
         </div>

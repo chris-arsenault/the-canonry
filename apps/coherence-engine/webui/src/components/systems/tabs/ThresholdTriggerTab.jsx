@@ -11,6 +11,7 @@ import { ApplicabilityRuleCard } from "../../generators/applicability/Applicabil
 import { AddRuleButton } from "../../generators/applicability/AddRuleButton";
 import { createNewRule } from "../../generators/applicability/createNewRule";
 import MutationCard, { DEFAULT_MUTATION_TYPES } from "../../shared/MutationCard";
+import "./ThresholdTriggerTab.css";
 
 // ============================================================================
 // VariableCard - Individual variable editor card (reused pattern from generators)
@@ -58,7 +59,7 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
           <div className="item-card-title">
             <span className="variable-ref">{name}</span>
             {isRequired && (
-              <span className="badge badge-warning" style={{ marginLeft: "8px", fontSize: "10px" }}>
+              <span className="badge badge-warning ttt-required-badge">
                 Required
               </span>
             )}
@@ -66,7 +67,7 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
           <div className="item-card-subtitle">
             {displayMode} • {displayStrategy}
             {filterCount > 0 && (
-              <span style={{ marginLeft: "4px" }}>
+              <span className="ml-xs">
                 • {filterCount} filter{filterCount > 1 ? "s" : ""}
               </span>
             )}
@@ -88,17 +89,17 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
 
       {expanded && (
         <div className="item-card-body">
-          <div style={{ marginBottom: "16px" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+          <div className="mb-xl">
+            <label className="ttt-checkbox-label">
               <input
                 type="checkbox"
                 checked={isRequired}
                 onChange={(e) => updateRequired(e.target.checked)}
               />
-              <span className="label" style={{ margin: 0 }}>
+              <span className="label mb-0">
                 Required
               </span>
-              <span className="text-muted" style={{ fontSize: "11px" }}>
+              <span className="text-muted ttt-required-hint">
                 (Entity is skipped if this variable can&apos;t be resolved)
               </span>
             </label>
@@ -335,7 +336,7 @@ export function ThresholdTriggerTab({ system, onChange, schema, pressures }) {
         {showAddVarForm ? (
           <div className="item-card add-form">
             <div className="add-form-fields">
-              <div style={{ flex: 1 }}>
+              <div className="flex-1">
                 <label htmlFor="variable-name" className="label">Variable Name</label>
                 <input id="variable-name"
                   type="text"
@@ -379,7 +380,7 @@ export function ThresholdTriggerTab({ system, onChange, schema, pressures }) {
         </div>
 
         {actions.map((actionItem, index) => (
-          <div key={index} style={{ marginBottom: "12px" }}>
+          <div key={index} className="mb-lg">
             <MutationCard
               mutation={actionItem}
               onChange={(a) => updateAction(index, a)}
@@ -392,7 +393,7 @@ export function ThresholdTriggerTab({ system, onChange, schema, pressures }) {
               titlePrefix="Action"
             />
             {actionItem.type === "create_relationship" && (
-              <label className="checkbox-label" style={{ marginTop: "8px" }}>
+              <label className="checkbox-label mt-md">
                 <input
                   type="checkbox"
                   checked={actionItem.betweenMatching || false}
@@ -407,7 +408,7 @@ export function ThresholdTriggerTab({ system, onChange, schema, pressures }) {
           </div>
         ))}
 
-        <div className="form-group" style={{ marginTop: "12px" }}>
+        <div className="form-group mt-lg">
           <select
             className="select"
             value=""
@@ -461,7 +462,7 @@ export function ThresholdTriggerTab({ system, onChange, schema, pressures }) {
 
       <div className="section">
         <div className="section-title">Narration Template</div>
-        <div className="section-desc" style={{ marginBottom: "8px", fontSize: "11px" }}>
+        <div className="section-desc mb-md text-xs">
           Syntax: {"{$self.field}"}, {"{$varName.field}"}, {"{field|fallback}"}.
         </div>
         <LocalTextArea

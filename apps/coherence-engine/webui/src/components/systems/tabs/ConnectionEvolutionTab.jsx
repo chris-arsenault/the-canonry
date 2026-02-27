@@ -7,8 +7,7 @@ import PropTypes from "prop-types";
 import { METRIC_TYPES, DIRECTIONS } from "../constants";
 import { ReferenceDropdown, NumberInput, LocalTextArea } from "../../shared";
 import TagSelector from "@penguin-tales/shared-components/TagSelector";
-
-const NARRATION_TEXTAREA_STYLE = Object.freeze({ fontSize: "12px" });
+import "./ConnectionEvolutionTab.css";
 
 /**
  * RuleCard - Expandable card for rule configuration
@@ -40,7 +39,7 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
   return (
     <div className="item-card">
       <div className="item-card-header" onClick={() => setExpanded(!expanded)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
-        <div className="item-card-icon" style={{ backgroundColor: "rgba(59, 130, 246, 0.2)" }}>
+        <div className="item-card-icon cet-rule-icon">
           R
         </div>
         <div className="item-card-info">
@@ -118,7 +117,7 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
             </div>
           </div>
 
-          <div style={{ marginTop: "16px" }}>
+          <div className="mt-xl">
             <span className="label">Action</span>
             <div className="form-grid">
               <ReferenceDropdown
@@ -249,22 +248,22 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
           </div>
 
           {rule.action?.type === "create_relationship" && (
-            <div style={{ marginTop: "16px" }}>
+            <div className="mt-xl">
               <label className="label">
                 <input
                   type="checkbox"
                   checked={rule.betweenMatching || false}
                   onChange={(e) => onChange({ ...rule, betweenMatching: e.target.checked })}
-                  style={{ marginRight: "8px" }}
+                  className="mr-md"
                 />
                 Between Matching (create relationships between all entity pairs that pass condition)
               </label>
             </div>
           )}
 
-          <div style={{ marginTop: "16px" }}>
+          <div className="mt-xl">
             <span className="label">Narration Template</span>
-            <div className="section-desc" style={{ marginBottom: "4px", fontSize: "11px" }}>
+            <div className="section-desc mb-xs text-xs">
               Syntax: {"{$self.field}"}, {"{$member.field}"}, {"{$member2.field}"},{" "}
               {"{field|fallback}"}.
             </div>
@@ -273,7 +272,7 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
               onChange={(value) => onChange({ ...rule, narrationTemplate: value || undefined })}
               placeholder="e.g., {$member.name} and {$member2.name} forged an alliance."
               rows={2}
-              style={NARRATION_TEXTAREA_STYLE}
+              className="cet-narration-textarea"
             />
           </div>
         </div>
@@ -463,7 +462,7 @@ export function ConnectionEvolutionTab({ system, onChange, schema }) {
 
         {subtypeBonuses.map((bonus, index) => (
           <div key={index} className="item-card">
-            <div style={{ padding: "12px 16px" }}>
+            <div className="py-lg px-xl">
               <div className="form-row-with-delete">
                 <div className="form-row-fields">
                   <ReferenceDropdown

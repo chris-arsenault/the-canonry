@@ -16,6 +16,7 @@ import React, { useMemo } from "react";
 import PropTypes from "prop-types";
 import "@penguin-tales/shared-components/styles";
 import "./styles/index.css";
+import "./CoherenceEngineRemote.css";
 import { ErasEditor } from "./components/eras";
 import PressuresEditor from "./components/PressuresEditor";
 import GeneratorsEditor from "./components/GeneratorsEditor";
@@ -37,106 +38,11 @@ const TABS = [
   { id: "systems", label: "Systems" },
 ];
 
-// Coherence Engine accent gradient (amber) - Arctic Blue base theme
-const ACCENT_GRADIENT = "linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)";
-const ACCENT_COLOR = "#f59e0b";
-
 // Validation status colors
 const STATUS_COLORS = {
   clean: "#22c55e",
   warning: "#f59e0b",
   error: "#ef4444",
-};
-
-const styles = {
-  container: {
-    display: "flex",
-    height: "100%",
-    backgroundColor: "#0a1929",
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-  },
-  sidebar: {
-    width: "200px",
-    backgroundColor: "#0c1f2e",
-    borderRight: "1px solid rgba(59, 130, 246, 0.3)",
-    display: "flex",
-    flexDirection: "column",
-    flexShrink: 0,
-  },
-  nav: {
-    padding: "12px",
-  },
-  navButton: {
-    display: "block",
-    width: "100%",
-    padding: "10px 12px",
-    marginBottom: "4px",
-    fontSize: "13px",
-    fontWeight: 500,
-    textAlign: "left",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    transition: "all 0.15s",
-    fontFamily: "inherit",
-  },
-  navButtonInactive: {
-    backgroundColor: "transparent",
-    color: "#93c5fd",
-  },
-  navButtonActive: {
-    background: ACCENT_GRADIENT,
-    color: "#0a1929",
-    fontWeight: 600,
-  },
-  navButtonContent: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  statusDot: {
-    width: "8px",
-    height: "8px",
-    borderRadius: "50%",
-    flexShrink: 0,
-  },
-  main: {
-    flex: 1,
-    display: "flex",
-    overflow: "hidden",
-  },
-  content: {
-    flex: 1,
-    padding: "24px",
-    overflowY: "auto",
-  },
-  placeholder: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    height: "100%",
-    color: "#60a5fa",
-    textAlign: "center",
-  },
-  placeholderIcon: {
-    fontSize: "48px",
-    marginBottom: "16px",
-    opacity: 0.5,
-  },
-  placeholderTitle: {
-    fontSize: "18px",
-    fontWeight: 500,
-    marginBottom: "8px",
-    color: "#ffffff",
-  },
-  placeholderDesc: {
-    fontSize: "14px",
-    color: "#93c5fd",
-    maxWidth: "400px",
-  },
 };
 
 // Placeholder descriptions for each section
@@ -316,20 +222,20 @@ export default function CoherenceEngineRemote({
         );
       default:
         return (
-          <div style={styles.placeholder}>
-            <div style={styles.placeholderIcon}></div>
-            <div style={styles.placeholderTitle}>{currentSection.title}</div>
-            <div style={styles.placeholderDesc}>{currentSection.description}</div>
+          <div className="cer-placeholder">
+            <div className="cer-placeholder-icon"></div>
+            <div className="cer-placeholder-title">{currentSection.title}</div>
+            <div className="cer-placeholder-desc">{currentSection.description}</div>
           </div>
         );
     }
   };
 
   return (
-    <div style={styles.container}>
+    <div className="cer-container">
       {/* Left sidebar with nav */}
-      <div style={styles.sidebar}>
-        <nav style={styles.nav}>
+      <div className="cer-sidebar">
+        <nav className="cer-nav">
           {TABS.map((tab) => {
             // Show status indicator for validation tab
             const showStatus = tab.id === "validation";
@@ -339,33 +245,15 @@ export default function CoherenceEngineRemote({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                // eslint-disable-next-line local/no-inline-styles -- dynamic merge of extracted style objects
-                style={{
-                  ...styles.navButton,
-                  ...(activeTab === tab.id ? styles.navButtonActive : styles.navButtonInactive),
-                }}
-                onMouseEnter={(e) => {
-                  if (activeTab !== tab.id) {
-                    e.target.style.backgroundColor = "rgba(245, 158, 11, 0.15)";
-                    e.target.style.color = ACCENT_COLOR;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (activeTab !== tab.id) {
-                    e.target.style.backgroundColor = "transparent";
-                    e.target.style.color = "#93c5fd";
-                  }
-                }}
+                className={`cer-nav-button ${activeTab === tab.id ? "cer-nav-button-active" : "cer-nav-button-inactive"}`}
               >
-                <span style={styles.navButtonContent}>
+                <span className="cer-nav-button-content">
                   <span>{tab.label}</span>
                   {showStatus && (
                     <span
+                      className="cer-status-dot"
                       // eslint-disable-next-line local/no-inline-styles -- dynamic color from validation status
-                      style={{
-                        ...styles.statusDot,
-                        backgroundColor: statusColor,
-                      }}
+                      style={{ '--cer-status-color': statusColor, backgroundColor: 'var(--cer-status-color)' }}
                       title={(() => {
                         if (validationStatus.status === "clean") return "All validations passed";
                         const plural = validationStatus.totalIssues === 1 ? "" : "s";
@@ -381,8 +269,8 @@ export default function CoherenceEngineRemote({
       </div>
 
       {/* Main content area */}
-      <div style={styles.main}>
-        <div style={styles.content}>{renderContent()}</div>
+      <div className="cer-main">
+        <div className="cer-content">{renderContent()}</div>
       </div>
     </div>
   );

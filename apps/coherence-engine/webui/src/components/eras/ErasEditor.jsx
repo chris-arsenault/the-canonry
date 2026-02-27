@@ -12,6 +12,7 @@
 import React, { useState, useCallback } from "react";
 import PropTypes from "prop-types";
 import { EraCard } from "./EraCard";
+import "./ErasEditor.css";
 
 /**
  * @param {Object} props
@@ -76,8 +77,7 @@ export default function ErasEditor({ eras = [], onChange, pressures = [], schema
             history.
           </div>
           <button
-            className="btn btn-primary"
-            style={{ width: "auto", padding: "14px 28px" }}
+            className="btn btn-primary ee-create-btn"
             onClick={handleAddEra}
           >
             + Create First Era

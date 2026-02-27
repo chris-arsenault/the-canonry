@@ -1,0 +1,106 @@
+/* CoherenceEngineRemote companion styles */
+.cer-container {
+  display: flex;
+  height: 100%;
+  background-color: #0a1929;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.cer-sidebar {
+  width: 200px;
+  background-color: #0c1f2e;
+  border-right: 1px solid rgba(59, 130, 246, 0.3);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.cer-nav {
+  padding: 12px;
+}
+
+.cer-nav-button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.cer-nav-button-inactive {
+  background-color: transparent;
+  color: #93c5fd;
+}
+
+.cer-nav-button-inactive:hover {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.cer-nav-button-active {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  color: #0a1929;
+  font-weight: 600;
+}
+
+.cer-nav-button-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.cer-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cer-main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.cer-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.cer-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #60a5fa;
+  text-align: center;
+}
+
+.cer-placeholder-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.cer-placeholder-title {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #ffffff;
+}
+
+.cer-placeholder-desc {
+  font-size: 14px;
+  color: #93c5fd;
+  max-width: 400px;
+}

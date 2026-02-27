@@ -1,146 +1,34 @@
 /**
  * TagSelector - Registry-aware tag selection component
- *
- * Features:
- * - Searchable dropdown with categorized tags
- * - Shows tag metadata (category, rarity)
- * - Visual badges for selected tags
- * - Warns about invalid tags not in registry
- * - Good keyboard navigation
- * - Option to add new tags to registry
- * - Single-select mode for choosing exactly one tag
  */
 
-import React, { useState, useRef, useEffect, useMemo, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
+import './TagSelector.css';
 
-// Category colors matching the tag registry editor
-const CATEGORY_COLORS = {
-  status: { bg: 'rgba(34, 197, 94, 0.25)', border: 'rgba(34, 197, 94, 0.5)', text: '#86efac' },
-  trait: { bg: 'rgba(59, 130, 246, 0.25)', border: 'rgba(59, 130, 246, 0.5)', text: '#93c5fd' },
-  affiliation: { bg: 'rgba(168, 85, 247, 0.25)', border: 'rgba(168, 85, 247, 0.5)', text: '#d8b4fe' },
-  behavior: { bg: 'rgba(249, 115, 22, 0.25)', border: 'rgba(249, 115, 22, 0.5)', text: '#fdba74' },
-  theme: { bg: 'rgba(236, 72, 153, 0.25)', border: 'rgba(236, 72, 153, 0.5)', text: '#f9a8d4' },
-  location: { bg: 'rgba(20, 184, 166, 0.25)', border: 'rgba(20, 184, 166, 0.5)', text: '#5eead4' },
+const CATEGORY_CLASS = {
+  status: 'tag-selector-category-status',
+  trait: 'tag-selector-category-trait',
+  affiliation: 'tag-selector-category-affiliation',
+  behavior: 'tag-selector-category-behavior',
+  theme: 'tag-selector-category-theme',
+  location: 'tag-selector-category-location',
 };
 
-// Rarity indicators
 const RARITY_DOTS = {
-  common: { color: '#9ca3af', count: 1 },
-  uncommon: { color: '#22c55e', count: 2 },
-  rare: { color: '#3b82f6', count: 3 },
-  legendary: { color: '#fbbf24', count: 4 },
+  common: 1,
+  uncommon: 2,
+  rare: 3,
+  legendary: 4,
 };
 
-const styles = {
-  container: { position: 'relative' },
-  rarityDotsContainer: { display: 'inline-flex', gap: '2px', marginLeft: '4px' },
-  inputWrapper: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '4px',
-    padding: '6px',
-    background: 'rgba(0, 0, 0, 0.2)',
-    borderRadius: '6px',
-    minHeight: '36px',
-    alignItems: 'center',
-    cursor: 'text',
-    transition: 'border-color 0.15s',
-  },
-  inputWrapperOpen: { border: '1px solid var(--gold-accent)' },
-  inputWrapperClosed: { border: '1px solid rgba(59, 130, 246, 0.3)' },
-  invalidWarning: { color: '#fca5a5' },
-  axisIndicator: { color: '#22d3ee', fontSize: '0.7rem' },
-  removeButton: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '0 2px',
-    fontSize: '0.85rem',
-    lineHeight: 1,
-    opacity: 0.7,
-  },
-  invalidPopup: {
-    position: 'absolute',
-    top: '100%',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    marginTop: '4px',
-    background: '#0c1f2e',
-    border: '1px solid rgba(34, 197, 94, 0.5)',
-    borderRadius: '6px',
-    padding: '6px 10px',
-    fontSize: '0.7rem',
-    color: '#86efac',
-    whiteSpace: 'nowrap',
-    cursor: 'pointer',
-    zIndex: 1001,
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-  },
-  searchInput: {
-    flex: 1,
-    minWidth: '80px',
-    background: 'transparent',
-    border: 'none',
-    outline: 'none',
-    fontSize: '0.8rem',
-    color: 'var(--text-color)',
-    padding: '2px',
-  },
-  matchAllContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    marginTop: '4px',
-    fontSize: '0.7rem',
-    color: 'var(--arctic-frost)',
-  },
-  matchAllLabel: { display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' },
-  matchAllCheckbox: { width: '12px', height: '12px' },
-  matchAllHint: { opacity: 0.6 },
-  emptyDropdown: {
-    padding: '12px 16px',
-    color: 'var(--arctic-frost)',
-    fontSize: '0.8rem',
-    textAlign: 'center',
-  },
-  categoryHeader: {
-    padding: '6px 12px',
-    fontSize: '0.65rem',
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    background: 'rgba(0, 0, 0, 0.2)',
-    borderBottom: '1px solid rgba(59, 130, 246, 0.2)',
-  },
-  tagOptionRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  tagName: {
-    fontFamily: 'monospace',
-    fontSize: '0.8rem',
-    color: 'var(--text-color)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-  },
-  tagMeta: { display: 'flex', alignItems: 'center', gap: '4px' },
-  tagDescription: {
-    fontSize: '0.7rem',
-    color: 'var(--arctic-frost)',
-    marginTop: '2px',
-    opacity: 0.8,
-  },
-  createOptionRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  createIcon: { color: '#86efac', fontSize: '1rem' },
-  createLabel: { color: '#86efac', fontSize: '0.8rem' },
-};
+function getCategoryClass(category) {
+  return CATEGORY_CLASS[category] || CATEGORY_CLASS.trait;
+}
+
+function getRarityClass(rarity) {
+  return `tag-selector-rarity-dot-${rarity || 'common'}`;
+}
 
 export default function TagSelector({
   value = [],
@@ -157,54 +45,39 @@ export default function TagSelector({
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [hoveredInvalidTag, setHoveredInvalidTag] = useState(null);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
   const hoverTimeoutRef = useRef(null);
   const containerRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Calculate dropdown position when opening
-  useLayoutEffect(() => {
-    if (isOpen && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setDropdownPos({
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-      });
-    }
-  }, [isOpen]);
-
-  // Create a lookup map for quick tag validation
   const tagLookup = useMemo(() => {
     const lookup = {};
-    tagRegistry.forEach(t => {
-      lookup[t.tag] = t;
+    tagRegistry.forEach((tagDef) => {
+      lookup[tagDef.tag] = tagDef;
     });
     return lookup;
   }, [tagRegistry]);
 
-  // Group tags by category for the dropdown
   const groupedTags = useMemo(() => {
     const groups = {};
-    const filtered = tagRegistry.filter(t => {
-      const matchesSearch = !searchQuery ||
-        t.tag.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.description?.toLowerCase().includes(searchQuery.toLowerCase());
-      const notSelected = !value.includes(t.tag);
-      return matchesSearch && notSelected;
+    const filtered = tagRegistry.filter((tagDef) => {
+      const normalizedQuery = searchQuery.toLowerCase();
+      const matchesSearch =
+        !searchQuery ||
+        tagDef.tag.toLowerCase().includes(normalizedQuery) ||
+        tagDef.description?.toLowerCase().includes(normalizedQuery);
+      return matchesSearch && !value.includes(tagDef.tag);
     });
 
-    filtered.forEach(t => {
-      if (!groups[t.category]) {
-        groups[t.category] = [];
+    filtered.forEach((tagDef) => {
+      if (!groups[tagDef.category]) {
+        groups[tagDef.category] = [];
       }
-      groups[t.category].push(t);
+      groups[tagDef.category].push(tagDef);
     });
 
     return groups;
-  }, [tagRegistry, searchQuery, value]);
+  }, [searchQuery, tagRegistry, value]);
 
-  // Check if search query could be a new tag (not in registry, not already selected)
   const canCreateTag = useMemo(() => {
     if (!searchQuery.trim()) return false;
     const normalized = searchQuery.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');
@@ -214,11 +87,10 @@ export default function TagSelector({
     return normalized;
   }, [searchQuery, tagLookup, value]);
 
-  // Flat list for keyboard navigation (includes "create new" option)
   const flatOptions = useMemo(() => {
     const result = [];
     Object.entries(groupedTags).forEach(([_category, tags]) => {
-      tags.forEach(t => result.push({ type: 'existing', ...t }));
+      tags.forEach((tagDef) => result.push({ type: 'existing', ...tagDef }));
     });
     if (canCreateTag) {
       result.push({ type: 'create', tag: canCreateTag });
@@ -226,54 +98,47 @@ export default function TagSelector({
     return result;
   }, [groupedTags, canCreateTag]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
         setIsOpen(false);
         setHoveredInvalidTag(null);
       }
     };
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Reset highlight when options change
-  useEffect(() => {
-    setHighlightedIndex(0);
-  }, [searchQuery]);
-
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (event) => {
     if (!isOpen) {
-      if (e.key === 'Enter' || e.key === 'ArrowDown') {
-        e.preventDefault();
+      if (event.key === 'Enter' || event.key === 'ArrowDown') {
+        event.preventDefault();
         setIsOpen(true);
       }
       return;
     }
 
-    switch (e.key) {
+    switch (event.key) {
       case 'ArrowDown':
-        e.preventDefault();
-        setHighlightedIndex(i => Math.min(i + 1, flatOptions.length - 1));
+        event.preventDefault();
+        setHighlightedIndex((index) => Math.min(index + 1, flatOptions.length - 1));
         break;
       case 'ArrowUp':
-        e.preventDefault();
-        setHighlightedIndex(i => Math.max(i - 1, 0));
+        event.preventDefault();
+        setHighlightedIndex((index) => Math.max(index - 1, 0));
         break;
       case 'Enter':
-        e.preventDefault();
-        if (flatOptions[highlightedIndex]) {
-          const option = flatOptions[highlightedIndex];
-          if (option.type === 'create') {
-            handleCreateAndSelect(option.tag);
-          } else {
-            handleSelectTag(option.tag);
-          }
+        event.preventDefault();
+        if (!flatOptions[highlightedIndex]) return;
+        if (flatOptions[highlightedIndex].type === 'create') {
+          handleCreateAndSelect(flatOptions[highlightedIndex].tag);
+        } else {
+          handleSelectTag(flatOptions[highlightedIndex].tag);
         }
         break;
       case 'Escape':
-        e.preventDefault();
+        event.preventDefault();
         setIsOpen(false);
         break;
       case 'Backspace':
@@ -281,59 +146,41 @@ export default function TagSelector({
           handleRemoveTag(value[value.length - 1]);
         }
         break;
+      default:
+        break;
     }
   };
 
   const handleSelectTag = (tag) => {
-    if (singleSelect) {
-      // In single-select mode, replace current selection
-      onChange([tag]);
-      setIsOpen(false);
-    } else {
-      // In multi-select mode, add to selection
-      if (!value.includes(tag)) {
-        onChange([...value, tag]);
-      }
-    }
-    setSearchQuery('');
-    inputRef.current?.focus();
-  };
-
-  const handleRemoveTag = (tag) => {
-    onChange(value.filter(t => t !== tag));
-  };
-
-  const handleCreateAndSelect = (tag) => {
-    if (onAddToRegistry) {
-      // Add to registry with defaults
-      onAddToRegistry({
-        tag,
-        category: 'trait',
-        rarity: 'common',
-        description: '',
-      });
-    }
-    // Select it (replace in single-select mode, add in multi-select)
     if (singleSelect) {
       onChange([tag]);
       setIsOpen(false);
     } else if (!value.includes(tag)) {
       onChange([...value, tag]);
     }
+
     setSearchQuery('');
     inputRef.current?.focus();
   };
 
-  const handleAddInvalidToRegistry = (tag) => {
+  const handleRemoveTag = (tag) => {
+    onChange(value.filter((item) => item !== tag));
+  };
+
+  const handleCreateAndSelect = (tag) => {
     if (onAddToRegistry) {
-      onAddToRegistry({
-        tag,
-        category: 'trait',
-        rarity: 'common',
-        description: '',
-      });
+      onAddToRegistry({ tag, category: 'trait', rarity: 'common', description: '' });
     }
-    setHoveredInvalidTag(null);
+
+    if (singleSelect) {
+      onChange([tag]);
+      setIsOpen(false);
+    } else if (!value.includes(tag)) {
+      onChange([...value, tag]);
+    }
+
+    setSearchQuery('');
+    inputRef.current?.focus();
   };
 
   const handleInvalidTagMouseEnter = (tag) => {
@@ -345,125 +192,89 @@ export default function TagSelector({
   };
 
   const handleInvalidTagMouseLeave = () => {
-    // Delay hiding to allow mouse to reach the popup
     hoverTimeoutRef.current = setTimeout(() => {
       setHoveredInvalidTag(null);
     }, 150);
   };
 
   const handlePopupMouseEnter = () => {
-    // Cancel the hide timeout when entering the popup
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = null;
     }
   };
 
-  const handlePopupMouseLeave = () => {
-    setHoveredInvalidTag(null);
-  };
-
-  const getCategoryStyle = (category) => {
-    return CATEGORY_COLORS[category] || CATEGORY_COLORS.trait;
-  };
-
   const renderRarityDots = (rarity) => {
-    const config = RARITY_DOTS[rarity] || RARITY_DOTS.common;
+    const count = RARITY_DOTS[rarity] || RARITY_DOTS.common;
     return (
-      <span style={styles.rarityDotsContainer}>
-        {Array.from({ length: config.count }).map((_, i) => (
-          <span
-            key={i}
-            style={{
-              width: '4px',
-              height: '4px',
-              borderRadius: '50%',
-              backgroundColor: config.color
-            }}
-          />
+      <span className="tag-selector-rarity-dots">
+        {Array.from({ length: count }).map((_, index) => (
+          <span key={index} className={`tag-selector-rarity-dot ${getRarityClass(rarity)}`} />
         ))}
       </span>
     );
   };
 
   return (
-    <div ref={containerRef} style={styles.container}>
-      {/* Selected tags + input */}
+    <div ref={containerRef} className="tag-selector">
       <div
+        className={`tag-selector-input-wrapper ${isOpen ? 'tag-selector-input-wrapper-open' : 'tag-selector-input-wrapper-closed'}`}
         onClick={() => {
           setIsOpen(true);
           inputRef.current?.focus();
         }}
-        // eslint-disable-next-line local/no-inline-styles -- dynamic merge of extracted style objects
-        style={{
-          ...styles.inputWrapper,
-          ...(isOpen ? styles.inputWrapperOpen : styles.inputWrapperClosed),
-        }}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.currentTarget.click();
+          }
+        }}
       >
-        {value.map(tag => {
+        {value.map((tag) => {
           const tagMeta = tagLookup[tag];
           const isInvalid = !tagMeta;
-          const catStyle = tagMeta ? getCategoryStyle(tagMeta.category) : {
-            bg: 'rgba(239, 68, 68, 0.25)',
-            border: 'rgba(239, 68, 68, 0.5)',
-            text: '#fca5a5'
-          };
+          const categoryClass = isInvalid ? 'tag-selector-category-invalid' : getCategoryClass(tagMeta.category);
 
           return (
             <span
               key={tag}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '2px 8px',
-                background: catStyle.bg,
-                border: `1px solid ${catStyle.border}`,
-                borderRadius: '12px',
-                fontSize: '0.75rem',
-                color: catStyle.text,
-                position: 'relative',
-              }}
+              className={`tag-selector-chip ${categoryClass}`}
               title={isInvalid ? 'Tag not in registry - hover to add' : tagMeta?.description}
               onMouseEnter={() => isInvalid && onAddToRegistry && handleInvalidTagMouseEnter(tag)}
               onMouseLeave={() => isInvalid && handleInvalidTagMouseLeave()}
             >
-              {isInvalid && <span style={styles.invalidWarning}>⚠</span>}
+              {isInvalid && <span className="tag-selector-invalid-warning">⚠</span>}
               {tag}
-              {tagMeta?.isAxis && (
-                <span style={styles.axisIndicator} title="Semantic plane axis label">↔</span>
-              )}
+              {tagMeta?.isAxis && <span title="Semantic plane axis label" className="tag-selector-axis-indicator">↔</span>}
               {tagMeta && renderRarityDots(tagMeta.rarity)}
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
+                className="tag-selector-remove-button"
+                onClick={(event) => {
+                  event.stopPropagation();
                   handleRemoveTag(tag);
-                }}
-                // eslint-disable-next-line local/no-inline-styles -- dynamic color from category style
-                style={{
-                  ...styles.removeButton,
-                  color: catStyle.text,
                 }}
               >
                 ×
               </button>
-              {/* Hover menu for invalid tags */}
               {isInvalid && hoveredInvalidTag === tag && onAddToRegistry && (
                 <div
-                  style={styles.invalidPopup}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAddInvalidToRegistry(tag);
+                  className="tag-selector-invalid-popup"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onAddToRegistry({ tag, category: 'trait', rarity: 'common', description: '' });
+                    setHoveredInvalidTag(null);
                   }}
                   onMouseEnter={handlePopupMouseEnter}
-                  onMouseLeave={handlePopupMouseLeave}
+                  onMouseLeave={() => setHoveredInvalidTag(null)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.currentTarget.click();
+                    }
+                  }}
                 >
                   + Add to registry
                 </div>
@@ -471,78 +282,57 @@ export default function TagSelector({
             </span>
           );
         })}
+
         <input
           ref={inputRef}
           type="text"
+          className="tag-selector-search-input"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(event) => {
+            setSearchQuery(event.target.value);
+            setHighlightedIndex(0);
+          }}
           onKeyDown={handleKeyDown}
           onFocus={() => setIsOpen(true)}
           placeholder={value.length === 0 ? placeholder : ''}
-          // eslint-disable-next-line local/no-inline-styles -- extracted style object
-          style={styles.searchInput}
         />
       </div>
 
-      {/* Match All toggle */}
       {matchAllEnabled && value.length > 1 && (
-        <div style={styles.matchAllContainer}>
-          <label style={styles.matchAllLabel}>
+        <div className="tag-selector-match-all">
+          <label className="tag-selector-match-all-label">
             <input
               type="checkbox"
+              className="tag-selector-match-all-checkbox"
               checked={matchAll}
-              onChange={(e) => onMatchAllChange?.(e.target.checked)}
-              // eslint-disable-next-line local/no-inline-styles -- extracted style object
-              style={styles.matchAllCheckbox}
+              onChange={(event) => onMatchAllChange?.(event.target.checked)}
             />
             Match all tags (AND)
           </label>
-          <span style={styles.matchAllHint}>
+          <span className="tag-selector-match-all-hint">
             {matchAll ? 'Entity must have all tags' : 'Entity must have any tag'}
           </span>
         </div>
       )}
 
-      {/* Dropdown - uses fixed positioning to escape overflow containers */}
       {isOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: dropdownPos.top,
-            left: dropdownPos.left,
-            width: dropdownPos.width,
-            background: '#0c1f2e',
-            border: '1px solid rgba(59, 130, 246, 0.4)',
-            borderRadius: '8px',
-            maxHeight: '280px',
-            overflowY: 'auto',
-            zIndex: 10000,
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
-          }}
-        >
-          {/* Create new tag option */}
+        <div className="tag-selector-dropdown">
           {canCreateTag && onAddToRegistry && (
             <div
+              className={`tag-selector-create-option ${highlightedIndex === flatOptions.length - 1 ? 'tag-selector-create-option-highlighted' : ''}`}
               onClick={() => handleCreateAndSelect(canCreateTag)}
               onMouseEnter={() => setHighlightedIndex(flatOptions.length - 1)}
-              style={{
-                padding: '10px 12px',
-                cursor: 'pointer',
-                background: highlightedIndex === flatOptions.length - 1 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.1)',
-                borderBottom: '1px solid rgba(59, 130, 246, 0.2)',
-                borderLeft: highlightedIndex === flatOptions.length - 1 ? '3px solid #86efac' : '3px solid transparent',
-              }}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.currentTarget.click();
+                }
+              }}
             >
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}>
-                <span style={{ color: '#86efac', fontSize: '1rem' }}>+</span>
-                <span style={{ color: '#86efac', fontSize: '0.8rem' }}>
+              <div className="tag-selector-create-row">
+                <span className="tag-selector-create-icon">+</span>
+                <span className="tag-selector-create-label">
                   Create &quot;<strong>{canCreateTag}</strong>&quot; and add to registry
                 </span>
               </div>
@@ -550,12 +340,7 @@ export default function TagSelector({
           )}
 
           {Object.keys(groupedTags).length === 0 && !canCreateTag ? (
-            <div style={{
-              padding: '12px 16px',
-              color: 'var(--arctic-frost)',
-              fontSize: '0.8rem',
-              textAlign: 'center',
-            }}>
+            <div className="tag-selector-empty-dropdown">
               {(() => {
                 if (tagRegistry.length === 0) return 'No tags defined. Type to create a new tag.';
                 if (searchQuery) return 'No matching tags. Press Enter to create.';
@@ -565,80 +350,35 @@ export default function TagSelector({
           ) : (
             Object.entries(groupedTags).map(([category, tags]) => (
               <div key={category}>
-                <div style={{
-                  padding: '6px 12px',
-                  fontSize: '0.65rem',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  color: getCategoryStyle(category).text,
-                  background: 'rgba(0, 0, 0, 0.2)',
-                  borderBottom: '1px solid rgba(59, 130, 246, 0.2)',
-                }}>
-                  {category}
-                </div>
-                {tags.map((tag, idx) => {
-                  const globalIdx = flatOptions.findIndex(o => o.type === 'existing' && o.tag === tag.tag);
+                <div className={`tag-selector-category-header ${getCategoryClass(category)}`}>{category}</div>
+                {tags.map((tag) => {
+                  const globalIdx = flatOptions.findIndex((option) => option.type === 'existing' && option.tag === tag.tag);
                   const isHighlighted = globalIdx === highlightedIndex;
-
                   return (
                     <div
                       key={tag.tag}
+                      className={`tag-selector-option ${isHighlighted ? 'tag-selector-option-highlighted' : ''}`}
                       onClick={() => handleSelectTag(tag.tag)}
                       onMouseEnter={() => setHighlightedIndex(globalIdx)}
-                      style={{
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        background: isHighlighted ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
-                        borderLeft: isHighlighted ? '3px solid var(--gold-accent)' : '3px solid transparent',
-                        transition: 'background 0.1s',
-                      }}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.currentTarget.click();
+                        }
+                      }}
                     >
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                      }}>
-                        <span style={{
-                          fontFamily: 'monospace',
-                          fontSize: '0.8rem',
-                          color: 'var(--text-color)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}>
+                      <div className="tag-selector-option-row">
+                        <span className="tag-selector-option-name">
                           {tag.tag}
-                          {tag.isAxis && (
-                            <span style={{ color: '#22d3ee', fontSize: '0.7rem' }} title="Semantic plane axis label">↔</span>
-                          )}
+                          {tag.isAxis && <span title="Semantic plane axis label" className="tag-selector-axis-indicator">↔</span>}
                         </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <span style={{
-                            padding: '1px 6px',
-                            fontSize: '0.6rem',
-                            background: getCategoryStyle(category).bg,
-                            border: `1px solid ${getCategoryStyle(category).border}`,
-                            borderRadius: '8px',
-                            color: getCategoryStyle(category).text,
-                          }}>
-                            {tag.rarity}
-                          </span>
+                        <span className="tag-selector-option-meta">
+                          <span className={`tag-selector-rarity-pill ${getCategoryClass(category)}`}>{tag.rarity}</span>
                           {renderRarityDots(tag.rarity)}
                         </span>
                       </div>
-                      {tag.description && (
-                        <div style={{
-                          fontSize: '0.7rem',
-                          color: 'var(--arctic-frost)',
-                          marginTop: '2px',
-                          opacity: 0.8,
-                        }}>
-                          {tag.description}
-                        </div>
-                      )}
+                      {tag.description && <div className="tag-selector-option-description">{tag.description}</div>}
                     </div>
                   );
                 })}

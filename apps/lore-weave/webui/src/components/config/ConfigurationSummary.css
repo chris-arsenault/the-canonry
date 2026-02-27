@@ -1,0 +1,13 @@
+.cs-warning-list-spaced {
+  margin-top: 8px;
+}
+
+.cs-empty-state-compact {
+  height: auto;
+  padding: 20px;
+}
+
+.cs-culture-badge {
+  border-color: var(--cs-culture-badge-border, var(--lw-border-color));
+  color: var(--cs-culture-badge-color, var(--lw-text-secondary));
+}

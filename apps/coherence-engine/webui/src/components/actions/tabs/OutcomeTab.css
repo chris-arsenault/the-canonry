@@ -1,0 +1,11 @@
+/* OutcomeTab companion styles */
+.ot-add-btn-wrap {
+  position: relative;
+}
+
+.ot-dropdown-fixed {
+  position: fixed;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 10000;
+}

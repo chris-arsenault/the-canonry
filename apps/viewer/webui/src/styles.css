@@ -16,6 +16,22 @@
   --frost: #8ab4c4;
   --frost-light: #a8ccd8;
   --frost-dim: rgb(138 180 196 / 12%);
+
+  /* Canonical overrides for shared-components (warm library theme) */
+  --color-bg: #352a1e;
+  --color-bg-card: #41352a;
+  --color-bg-dark: #3f301f;
+  --color-border: rgb(196 164 112 / 20%);
+  --color-border-light: rgb(196 164 112 / 10%);
+  --color-text: #e8dcc8;
+  --color-text-muted: #c4b99a;
+  --color-text-dim: #8a7d6b;
+  --color-accent: #c49a5c;
+  --color-accent-light: #d4aa6c;
+  --gradient-accent: linear-gradient(135deg, #c49a5c 0%, #d4aa6c 100%);
+  --color-success: #5b7a5e;
+  --color-danger: #c0392b;
+  --color-warning: #d4a017;
 }
 
 * {

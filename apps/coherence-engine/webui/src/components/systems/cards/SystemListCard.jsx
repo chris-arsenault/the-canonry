@@ -52,7 +52,7 @@ export function SystemListCard({ system, onClick, onToggle, usageMap }) {
     <div className={cardClassName} onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(e); }} >
       <div className="card-header">
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div className="flex items-center gap-md">
             <span className="card-title">{config.name || config.id}</span>
             <ErrorBadge count={errorCount} />
           </div>
@@ -68,9 +68,10 @@ export function SystemListCard({ system, onClick, onToggle, usageMap }) {
       </div>
 
       <div className="card-badges">
+        {/* eslint-disable-next-line local/no-inline-styles -- dynamic type color from config */}
         <span
           className="type-badge"
-          style={{ backgroundColor: `${typeConfig.color}30`, color: typeConfig.color }}
+          style={{ '--slc-type-bg': `${typeConfig.color}30`, '--slc-type-color': typeConfig.color, backgroundColor: 'var(--slc-type-bg)', color: 'var(--slc-type-color)' }}
         >
           {typeConfig.icon} {typeConfig.label}
         </span>
@@ -80,7 +81,7 @@ export function SystemListCard({ system, onClick, onToggle, usageMap }) {
 
       <EraBadges eras={eraUsage} />
       {isOrphan && (
-        <div style={{ marginTop: "8px" }}>
+        <div className="mt-md">
           <OrphanBadge isOrphan={isOrphan} />
         </div>
       )}

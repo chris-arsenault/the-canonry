@@ -44,6 +44,22 @@
   border-radius: 50%;
 }
 
+.dependency-legend-dot-generators {
+  background-color: #60a5fa;
+}
+
+.dependency-legend-dot-systems {
+  background-color: #a855f7;
+}
+
+.dependency-legend-dot-actions {
+  background-color: #22c55e;
+}
+
+.dependency-legend-dot-eras {
+  background-color: #ec4899;
+}
+
 .dependency-viewer-section {
   background-color: var(--color-bg-card);
   border: 1px solid var(--color-border);

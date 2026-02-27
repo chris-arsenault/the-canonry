@@ -7,6 +7,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { tickToX, xToTick } from "../../../lib/chronicle/timelineUtils";
+import "./TimelineBrush.css";
 
 interface TimelineBrushProps {
   width: number;
@@ -172,7 +173,10 @@ export default function TimelineBrush({
       ref={svgRef}
       width={width}
       height={height}
-      style={{ cursor: getCursor(dragMode === "none" ? "create" : dragMode), display: "block" }}
+      className="tb-svg"
+      style={{
+        '--tb-cursor': getCursor(dragMode === "none" ? "create" : dragMode),
+      } as React.CSSProperties}
       onMouseDown={handleBackgroundMouseDown}
     >
       {/* Background track */}
@@ -200,7 +204,7 @@ export default function TimelineBrush({
             fill="rgba(99, 102, 241, 0.3)"
             stroke="var(--accent-color)"
             strokeWidth={1}
-            style={{ cursor: "grab" }}
+            className="tb-grab"
             onMouseDown={(e) => handleMouseDown(e, "move")}
           />
 
@@ -212,7 +216,7 @@ export default function TimelineBrush({
             height={24}
             rx={2}
             fill="var(--accent-color)"
-            style={{ cursor: "ew-resize" }}
+            className="tb-ew-resize"
             onMouseDown={(e) => handleMouseDown(e, "left")}
           />
 
@@ -224,7 +228,7 @@ export default function TimelineBrush({
             height={24}
             rx={2}
             fill="var(--accent-color)"
-            style={{ cursor: "ew-resize" }}
+            className="tb-ew-resize"
             onMouseDown={(e) => handleMouseDown(e, "right")}
           />
 
@@ -237,7 +241,7 @@ export default function TimelineBrush({
               fontSize="10"
               fontWeight="500"
               fill="var(--accent-color)"
-              style={{ pointerEvents: "none" }}
+              className="tb-no-pointer"
             >
               {selection[0]} – {selection[1]}
             </text>
@@ -253,7 +257,7 @@ export default function TimelineBrush({
           textAnchor="middle"
           fontSize="11"
           fill="var(--text-muted)"
-          style={{ pointerEvents: "none" }}
+          className="tb-no-pointer"
         >
           Drag to select time range
         </text>

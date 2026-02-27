@@ -1,0 +1,8 @@
+/* ConnectionEvolutionTab companion styles */
+.cet-rule-icon {
+  background-color: rgba(59, 130, 246, 0.2);
+}
+
+.cet-narration-textarea {
+  font-size: 12px;
+}

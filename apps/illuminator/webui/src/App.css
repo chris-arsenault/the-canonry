@@ -57,6 +57,11 @@
   /* Buttons */
   --button-primary: #a855f7;
   --button-primary-hover: #c084fc;
+
+  /* Canonical overrides for shared-components (accent differs from default theme) */
+  --color-accent: #a855f7;
+  --color-accent-light: #c084fc;
+  --gradient-accent: linear-gradient(135deg, #a855f7 0%, #c084fc 100%);
 }
 
 /* Reset & Base */
@@ -441,6 +446,7 @@ body {
   height: 100%;
   background: var(--accent-color);
   transition: width 0.3s ease;
+  width: var(--pp-bar-width);
 }
 
 /* Entity card in results */
@@ -2015,8 +2021,19 @@ body {
   box-shadow: 0 20px 40px rgb(0 0 0 / 40%);
 }
 
-.static-page-modal.image-picker-modal {
+/* ImageRefPicker modal sizing (structure provided by ModalShell) */
+.modal.image-picker-modal {
   width: 700px;
+  max-width: 90vw;
+  height: auto;
+  max-height: 85vh;
+}
+
+.image-picker-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
 }
 
 .static-page-modal-header {
@@ -2070,6 +2087,14 @@ body {
 .static-page-search-input:focus {
   outline: none;
   border-color: var(--accent-color);
+}
+
+/* EntityLinkPicker modal sizing (structure provided by ModalShell) */
+.modal.entity-link-picker-modal {
+  width: 500px;
+  max-width: 90vw;
+  height: auto;
+  max-height: 80vh;
 }
 
 /* Entity link picker list */

@@ -1,48 +1,21 @@
 /* HistoryCompressionPreviewModal — prefix: hcpm */
+/* Overlay, header, close button, scroll lock, and Escape are provided by ModalShell */
 
-.hcpm-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgb(0 0 0 / 60%);
-}
-
-.hcpm-dialog {
-  background: var(--bg-primary);
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
+.modal.hcpm-dialog {
   width: 700px;
   max-width: 95vw;
+  height: auto;
   max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
 }
 
-/* Header */
-
-.hcpm-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-}
-
-.hcpm-heading {
-  margin: 0;
-  font-size: 16px;
+.hcpm-meta {
+  margin-bottom: 12px;
 }
 
 .hcpm-entity-name {
   font-weight: 400;
   font-size: 13px;
   color: var(--text-muted);
-  margin-left: 8px;
 }
 
 .hcpm-subtitle {
@@ -54,10 +27,8 @@
 /* Scrollable content */
 
 .hcpm-content {
-  flex: 1;
   overflow: auto;
-  padding: 16px 20px;
-  min-height: 0;
+  max-height: 50vh;
 }
 
 .hcpm-entry {
@@ -121,18 +92,7 @@
   mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
 }
 
-/* Footer */
-
-.hcpm-footer {
-  padding: 12px 20px 16px;
-  border-top: 1px solid var(--border-color);
-  flex-shrink: 0;
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  align-items: center;
-}
-
+/* Footer button sizing (layout provided by modal-footer) */
 .hcpm-footer-btn {
   padding: 6px 16px;
   font-size: 12px;

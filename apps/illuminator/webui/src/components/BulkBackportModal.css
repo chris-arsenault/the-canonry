@@ -1,96 +1,7 @@
-/* BulkBackportModal — prefix: bbm- */
+/* BulkBackportModal — content-specific styles (prefix: bbm-)
+ * Overlay, header, footer, pill, terminal, and cost styles are in BulkOperationShell.css */
 
-.bbm-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgb(0 0 0 / 50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-
-.bbm-dialog {
-  background: var(--bg-primary);
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-  max-width: 95vw;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
-}
-
-.bbm-dialog-confirming {
-  width: 540px;
-}
-
-.bbm-dialog-processing {
-  width: 480px;
-}
-
-.bbm-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-color);
-  flex-shrink: 0;
-}
-
-.bbm-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.bbm-title {
-  margin: 0;
-  font-size: 16px;
-}
-
-.bbm-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.bbm-minimize-btn {
-  padding: 2px 8px;
-  font-size: 11px;
-}
-
-.bbm-status {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.bbm-status-complete {
-  color: #10b981;
-}
-
-.bbm-status-failed {
-  color: #ef4444;
-}
-
-.bbm-status-cancelled {
-  color: #f59e0b;
-}
-
-.bbm-status-default {
-  color: var(--text-muted);
-}
-
-.bbm-body {
-  padding: 20px;
-}
-
-.bbm-body-confirming {
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-}
-
-.bbm-body-processing {
-  min-height: 0;
-}
+/* --- Confirmation screen: entity list --- */
 
 .bbm-entity-section {
   margin-bottom: 12px;
@@ -160,7 +71,7 @@
   margin-left: 8px;
 }
 
-/* --- Processing screen --- */
+/* --- Processing screen: custom progress and chronicle detail --- */
 
 .bbm-progress-section {
   margin-bottom: 20px;
@@ -195,6 +106,7 @@
   height: 100%;
   border-radius: 4px;
   transition: width 0.3s ease;
+  width: var(--bbm-progress-width);
 }
 
 .bbm-progress-fill-failed {
@@ -243,54 +155,4 @@
 .bbm-chronicle-entity-count {
   font-size: 11px;
   color: var(--text-muted);
-}
-
-/* Terminal status banners */
-
-.bbm-terminal-banner {
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  font-size: 12px;
-}
-
-.bbm-terminal-banner-complete {
-  background: rgb(16 185 129 / 10%);
-  border: 1px solid rgb(16 185 129 / 20%);
-}
-
-.bbm-terminal-banner-cancelled {
-  background: rgb(245 158 11 / 10%);
-  border: 1px solid rgb(245 158 11 / 20%);
-}
-
-.bbm-terminal-banner-failed {
-  background: rgb(239 68 68 / 10%);
-  border: 1px solid rgb(239 68 68 / 20%);
-}
-
-.bbm-failed-inline {
-  color: #ef4444;
-}
-
-.bbm-cost {
-  font-size: 11px;
-  color: var(--text-muted);
-  text-align: right;
-}
-
-/* Footer */
-
-.bbm-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.bbm-footer-btn {
-  padding: 6px 16px;
-  font-size: 12px;
 }

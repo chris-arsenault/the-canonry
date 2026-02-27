@@ -7,152 +7,8 @@
 
 import React from "react";
 import PropTypes from "prop-types";
-import { colors, typography, spacing, radius } from "../theme";
-
-const styles = {
-  container: {
-    height: "100%",
-    overflowY: "auto",
-    backgroundColor: colors.bgPrimary,
-  },
-  hero: {
-    textAlign: "center",
-    padding: `${spacing.xxxl} ${spacing.xl}`,
-    background: `linear-gradient(180deg, ${colors.bgSidebar} 0%, ${colors.bgPrimary} 100%)`,
-  },
-  title: {
-    fontSize: "32px",
-    fontWeight: typography.weightBold,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-    letterSpacing: "-0.5px",
-  },
-  subtitle: {
-    fontSize: typography.sizeXl,
-    color: colors.textSecondary,
-    maxWidth: "700px",
-    margin: "0 auto",
-    lineHeight: 1.6,
-  },
-  tagline: {
-    fontSize: typography.sizeSm,
-    color: colors.textMuted,
-    marginTop: spacing.lg,
-    fontStyle: "italic",
-  },
-  // Horizontal cards grid
-  cardsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
-    gap: spacing.xl,
-    padding: `${spacing.xl} ${spacing.xl} ${spacing.xxxl}`,
-    maxWidth: "1200px",
-    margin: "0 auto",
-  },
-  // Card styles
-  card: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: radius.xl,
-    border: `1px solid ${colors.border}`,
-    overflow: "hidden",
-    transition: "transform 0.2s, box-shadow 0.2s",
-    cursor: "pointer",
-    display: "flex",
-    flexDirection: "column",
-  },
-  cardHeader: {
-    padding: spacing.xl,
-    borderBottom: `1px solid ${colors.border}`,
-  },
-  cardHeaderRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  cardIcon: {
-    fontSize: "24px",
-    width: "40px",
-    height: "40px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: radius.md,
-    flexShrink: 0,
-  },
-  cardTitleGroup: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: typography.sizeXl,
-    fontWeight: typography.weightSemibold,
-    margin: 0,
-  },
-  cardTagline: {
-    fontSize: typography.sizeSm,
-    color: colors.textSecondary,
-    fontStyle: "italic",
-    margin: 0,
-  },
-  cardBody: {
-    padding: spacing.xl,
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-  },
-  cardDesc: {
-    fontSize: typography.sizeMd,
-    color: colors.textSecondary,
-    lineHeight: 1.7,
-    marginBottom: spacing.lg,
-  },
-  // Features list
-  featuresGrid: {
-    display: "flex",
-    flexDirection: "column",
-    gap: spacing.sm,
-    flex: 1,
-  },
-  feature: {
-    padding: spacing.md,
-    borderRadius: radius.md,
-    borderLeft: "3px solid",
-  },
-  featureTitle: {
-    fontSize: typography.sizeSm,
-    fontWeight: typography.weightSemibold,
-    color: colors.textPrimary,
-    marginBottom: "2px",
-  },
-  featureDesc: {
-    fontSize: typography.sizeXs,
-    color: colors.textSecondary,
-    lineHeight: 1.5,
-    margin: 0,
-  },
-  // Footer
-  footer: {
-    textAlign: "center",
-    padding: `${spacing.xxl} ${spacing.xl}`,
-    backgroundColor: colors.bgSidebar,
-    borderTop: `1px solid ${colors.border}`,
-  },
-  footerTitle: {
-    fontSize: typography.sizeXl,
-    fontWeight: typography.weightSemibold,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  footerText: {
-    fontSize: typography.sizeMd,
-    color: colors.textSecondary,
-    marginBottom: spacing.lg,
-  },
-  footerHint: {
-    fontSize: typography.sizeSm,
-    color: colors.textMuted,
-  },
-};
+import { colors } from "../theme";
+import "./LandingPage.css";
 
 // App card data with full detailed features (not shortened!)
 const APP_CARDS = [
@@ -274,23 +130,23 @@ const APP_CARDS = [
     tagline: "Templates, pressures, and other levers for narrative gravity",
     color: colors.accentCoherence,
     bgColor: "rgba(245, 158, 11, 0.1)",
-    description: `Coherence Engine is where your world stops being a pile of JSON and starts behaving like a simulated ecosystem. It’s the control room for eras, pressures, growth templates, and systems. Think of it as the tuning console that keeps your procedural history from devolving into a krill fight in two ticks.`,
+    description: `Coherence Engine is where your world stops being a pile of JSON and starts behaving like a simulated ecosystem. It's the control room for eras, pressures, growth templates, and systems. Think of it as the tuning console that keeps your procedural history from devolving into a krill fight in two ticks.`,
     features: [
       {
         title: "Eras & Phase Control",
-        desc: "Define historical phases with template and system weights. Swing between “great thaw” and “faction wars” without rewriting everything.",
+        desc: "Define historical phases with template and system weights. Swing between \u201Cgreat thaw\u201D and \u201Cfaction wars\u201D without rewriting everything.",
         color: colors.highlightOrange,
         bg: "rgba(245, 158, 11, 0.1)",
       },
       {
         title: "Pressures & Feedback",
-        desc: "Model conflict, scarcity, zeal, or whatever forces drive your world. Tune sources, sinks, and decay so your signals don’t saturate at 100 forever.",
+        desc: "Model conflict, scarcity, zeal, or whatever forces drive your world. Tune sources, sinks, and decay so your signals don\u2019t saturate at 100 forever.",
         color: colors.highlightRed,
         bg: "rgba(248, 113, 113, 0.1)",
       },
       {
         title: "Templates & Systems",
-        desc: "Configure declarative growth templates and simulation systems—no TypeScript required. Wire in lineage, relationships, and tag dynamics from the UI.",
+        desc: "Configure declarative growth templates and simulation systems\u2014no TypeScript required. Wire in lineage, relationships, and tag dynamics from the UI.",
         color: colors.highlightPurple,
         bg: "rgba(167, 139, 250, 0.1)",
       },
@@ -303,7 +159,7 @@ const APP_CARDS = [
     tagline: "Run the procedural history and watch penguins make questionable choices",
     color: colors.accentSimulation,
     bgColor: "rgba(59, 130, 246, 0.1)",
-    description: `Lore Weave executes your configuration: growth templates, pressures, systems, and seed entities collide to produce a living history. It’s the “Run” button with a dashboard, not a prayer.`,
+    description: `Lore Weave executes your configuration: growth templates, pressures, systems, and seed entities collide to produce a living history. It's the "Run" button with a dashboard, not a prayer.`,
     features: [
       {
         title: "One-Click Simulation",
@@ -319,7 +175,7 @@ const APP_CARDS = [
       },
       {
         title: "Export & Handoff",
-        desc: "Push results directly to Archivist or sync JSON for downstream tools. World state, history, validation—all in one export.",
+        desc: "Push results directly to Archivist or sync JSON for downstream tools. World state, history, validation\u2014all in one export.",
         color: colors.highlightGreen,
         bg: "rgba(74, 222, 128, 0.1)",
       },
@@ -332,7 +188,7 @@ const APP_CARDS = [
     tagline: "Curation and smug visualization of everything you just simulated",
     color: colors.accentArchivist,
     bgColor: "rgba(255, 255, 255, 0.05)",
-    description: `Archivist is where your generated world gets a victory lap. Explore graphs in 2D or 3D, map entities on semantic planes, and skim timelines and stats like you’re doing a postmortem on penguin politics.`,
+    description: `Archivist is where your generated world gets a victory lap. Explore graphs in 2D or 3D, map entities on semantic planes, and skim timelines and stats like you're doing a postmortem on penguin politics.`,
     features: [
       {
         title: "Explorer Views",
@@ -348,7 +204,7 @@ const APP_CARDS = [
       },
       {
         title: "Timelines & Stats",
-        desc: "Scrub through ticks, filter by tags or prominence, and check validation/health stats. Because “it runs” isn’t the same as “it’s coherent.”",
+        desc: "Scrub through ticks, filter by tags or prominence, and check validation/health stats. Because \u201Cit runs\u201D isn\u2019t the same as \u201Cit\u2019s coherent.\u201D",
         color: colors.highlightGreen,
         bg: "rgba(74, 222, 128, 0.1)",
       },
@@ -370,11 +226,7 @@ const appShape = PropTypes.shape({
 function AppCard({ app, onNavigate, hasProject }) {
   return (
     <div
-      style={{
-        ...styles.card,
-        opacity: hasProject ? 1 : 0.7,
-        cursor: hasProject ? "pointer" : "default",
-      }}
+      className={`lp-card ${hasProject ? "" : "lp-card-no-project"}`}
       onClick={() => hasProject && onNavigate(app.id)}
       onMouseEnter={(e) => {
         if (hasProject) {
@@ -393,44 +245,36 @@ function AppCard({ app, onNavigate, hasProject }) {
     >
       {/* Header */}
       <div
-        style={{
-          ...styles.cardHeader,
-          background: `linear-gradient(135deg, ${app.color}15 0%, transparent 100%)`,
-        }}
+        className="lp-card-header"
+        style={{ '--lp-header-bg': `linear-gradient(135deg, ${app.color}15 0%, transparent 100%)` }}
       >
-        <div style={styles.cardHeaderRow}>
+        <div className="lp-card-header-row">
           <div
-            style={{
-              ...styles.cardIcon,
-              backgroundColor: app.bgColor,
-              color: app.color,
-            }}
+            className="lp-card-icon"
+            style={{ '--lp-icon-bg': app.bgColor, '--lp-icon-color': app.color }}
           >
             {app.icon}
           </div>
-          <div style={styles.cardTitleGroup}>
-            <h2 style={{ ...styles.cardTitle, color: app.color }}>{app.title}</h2>
-            <p style={styles.cardTagline}>{app.tagline}</p>
+          <div className="lp-card-title-group">
+            <h2 className="lp-card-title" style={{ '--lp-title-color': app.color }}>{app.title}</h2>
+            <p className="lp-card-tagline">{app.tagline}</p>
           </div>
         </div>
       </div>
 
       {/* Body */}
-      <div style={styles.cardBody}>
-        <p style={styles.cardDesc}>{app.description}</p>
+      <div className="lp-card-body">
+        <p className="lp-card-desc">{app.description}</p>
 
-        <div style={styles.featuresGrid}>
+        <div className="lp-features-grid">
           {app.features.map((feature, idx) => (
             <div
               key={idx}
-              style={{
-                ...styles.feature,
-                backgroundColor: feature.bg,
-                borderLeftColor: feature.color,
-              }}
+              className="lp-feature"
+              style={{ '--lp-feature-bg': feature.bg, '--lp-feature-border': feature.color }}
             >
-              <div style={styles.featureTitle}>{feature.title}</div>
-              <p style={styles.featureDesc}>{feature.desc}</p>
+              <div className="lp-feature-title">{feature.title}</div>
+              <p className="lp-feature-desc">{feature.desc}</p>
             </div>
           ))}
         </div>
@@ -447,33 +291,33 @@ AppCard.propTypes = {
 
 export default function LandingPage({ onNavigate, hasProject }) {
   return (
-    <div style={styles.container}>
+    <div className="lp-container">
       {/* Hero Section */}
-      <div style={styles.hero}>
-        <h1 style={styles.title}>Welcome to The Canonry</h1>
-        <p style={styles.subtitle}>
+      <div className="lp-hero">
+        <h1 className="lp-title">Welcome to The Canonry</h1>
+        <p className="lp-subtitle">
           A unified suite for procedural world-building. Define your schema, configure naming
           systems, place entities on semantic planes, and generate interconnected histories.
         </p>
-        <p style={styles.tagline}>Yes, this is probably overkill. No, we&apos;re not sorry.</p>
+        <p className="lp-tagline">Yes, this is probably overkill. No, we&apos;re not sorry.</p>
       </div>
 
       {/* App Cards */}
-      <div style={styles.cardsGrid}>
+      <div className="lp-cards-grid">
         {APP_CARDS.map((app) => (
           <AppCard key={app.id} app={app} onNavigate={onNavigate} hasProject={hasProject} />
         ))}
       </div>
 
       {/* Footer */}
-      <div style={styles.footer}>
-        <h2 style={styles.footerTitle}>Get Started</h2>
-        <p style={styles.footerText}>
+      <div className="lp-footer">
+        <h2 className="lp-footer-title">Get Started</h2>
+        <p className="lp-footer-text">
           {hasProject
             ? "Click on any card above to start working with your project."
             : "Create a new project or open an existing one using the project selector above."}
         </p>
-        <p style={styles.footerHint}>
+        <p className="lp-footer-hint">
           Projects are stored locally in your browser. Use Export to create backups.
         </p>
       </div>

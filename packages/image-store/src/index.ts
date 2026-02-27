@@ -2,6 +2,7 @@ export { useImageStore } from './store';
 export type { ImageStoreState } from './store';
 
 export { useImageUrl, useImageUrls, useImageMetadata } from './hooks';
+export type { UseImageUrlResult } from './hooks';
 
 export { IndexedDBBackend } from './backends/indexeddb';
 export { CDNBackend } from './backends/cdn';

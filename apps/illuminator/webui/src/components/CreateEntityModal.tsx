@@ -11,6 +11,7 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import type { WorldEntity, EntityKindDefinition, CultureDefinition } from "@canonry/world-schema";
+import "./CreateEntityModal.css";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -202,15 +203,15 @@ export default function CreateEntityModal({
 
   if (entityKinds.length === 0) {
     return (
-      <div style={backdropStyle}>
-        <div style={cardStyle}>
-          <div style={headerStyle}>
-            <h2 style={titleStyle}>{title}</h2>
+      <div className="cem-backdrop">
+        <div className="cem-card">
+          <div className="cem-header">
+            <h2 className="cem-title">{title}</h2>
           </div>
-          <div style={emptyBodyStyle}>
+          <div className="cem-empty-body">
             No entity kinds available in the schema.
           </div>
-          <div style={footerStyle}>
+          <div className="cem-footer">
             <button onClick={onClose} className="illuminator-button illuminator-button-secondary">
               Close
             </button>
@@ -221,31 +222,30 @@ export default function CreateEntityModal({
   }
 
   return (
-    <div style={backdropStyle}>
-      <div style={cardStyle}>
+    <div className="cem-backdrop">
+      <div className="cem-card">
         {/* Header */}
-        <div style={headerStyle}>
-          <h2 style={titleStyle}>{title}</h2>
+        <div className="cem-header">
+          <h2 className="cem-title">{title}</h2>
           {isEdit && (
-            <p style={editSubtitleStyle}>
+            <p className="cem-edit-subtitle">
               {name}
             </p>
           )}
         </div>
 
         {/* Body */}
-        <div style={bodyStyle}>
+        <div className="cem-body">
           {/* Kind + Subtype row */}
           <div
-            style={twoColumnGrid}
+            className="cem-two-column-grid"
           >
             <div>
-              <label htmlFor="kind" style={labelStyle}>Kind</label>
+              <label htmlFor="kind" className="cem-label">Kind</label>
               <select id="kind"
                 value={kind}
                 onChange={(e) => handleKindChange(e.target.value)}
-                className="illuminator-select"
-                style={fullWidthStyle}
+                className="illuminator-select cem-full-width"
               >
                 {entityKinds.map((k) => (
                   <option key={k.kind} value={k.kind}>
@@ -255,12 +255,11 @@ export default function CreateEntityModal({
               </select>
             </div>
             <div>
-              <label htmlFor="subtype" style={labelStyle}>Subtype</label>
+              <label htmlFor="subtype" className="cem-label">Subtype</label>
               <select id="subtype"
                 value={subtype}
                 onChange={(e) => setSubtype(e.target.value)}
-                className="illuminator-select"
-                style={fullWidthStyle}
+                className="illuminator-select cem-full-width"
                 disabled={subtypes.length === 0}
               >
                 {subtypes.map((s) => (
@@ -275,15 +274,14 @@ export default function CreateEntityModal({
 
           {/* Name — only editable in create mode */}
           {!isEdit && (
-            <div style={fieldGroupStyle}>
-              <label htmlFor="name" style={labelStyle}>Name *</label>
+            <div className="cem-field-group">
+              <label htmlFor="name" className="cem-label">Name *</label>
               <input id="name"
                 type="text"
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Entity name"
-                className="illuminator-select"
-                style={fullWidthBoxStyle}
+                className="illuminator-select cem-full-width-box"
                 // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
               />
@@ -292,15 +290,14 @@ export default function CreateEntityModal({
 
           {/* Culture + Status row */}
           <div
-            style={twoColumnGrid}
+            className="cem-two-column-grid"
           >
             <div>
-              <label htmlFor="culture" style={labelStyle}>Culture</label>
+              <label htmlFor="culture" className="cem-label">Culture</label>
               <select id="culture"
                 value={culture}
                 onChange={(e) => setCulture(e.target.value)}
-                className="illuminator-select"
-                style={fullWidthStyle}
+                className="illuminator-select cem-full-width"
               >
                 {cultures.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -310,12 +307,11 @@ export default function CreateEntityModal({
               </select>
             </div>
             <div>
-              <label htmlFor="status" style={labelStyle}>Status</label>
+              <label htmlFor="status" className="cem-label">Status</label>
               <select id="status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="illuminator-select"
-                style={fullWidthStyle}
+                className="illuminator-select cem-full-width"
               >
                 {statuses.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -327,13 +323,12 @@ export default function CreateEntityModal({
           </div>
 
           {/* Prominence */}
-          <div style={fieldGroupStyle}>
-            <label htmlFor="prominence" style={labelStyle}>Prominence</label>
+          <div className="cem-field-group">
+            <label htmlFor="prominence" className="cem-label">Prominence</label>
             <select id="prominence"
               value={prominence}
               onChange={(e) => setProminence(Number(e.target.value))}
-              className="illuminator-select"
-              style={fullWidthStyle}
+              className="illuminator-select cem-full-width"
             >
               {PROMINENCE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -345,13 +340,12 @@ export default function CreateEntityModal({
 
           {/* Era */}
           {eras.length > 0 && (
-            <div style={fieldGroupStyle}>
-              <label htmlFor="era" style={labelStyle}>Era</label>
+            <div className="cem-field-group">
+              <label htmlFor="era" className="cem-label">Era</label>
               <select id="era"
                 value={eraId}
                 onChange={(e) => setEraId(e.target.value)}
-                className="illuminator-select"
-                style={fullWidthStyle}
+                className="illuminator-select cem-full-width"
               >
                 <option value="">None</option>
                 {eras.map((era) => (
@@ -365,78 +359,57 @@ export default function CreateEntityModal({
 
           {/* Temporal */}
           <div
-            style={twoColumnGrid}
+            className="cem-two-column-grid"
           >
             <div>
-              <label htmlFor="start-tick" style={labelStyle}>Start Tick</label>
+              <label htmlFor="start-tick" className="cem-label">Start Tick</label>
               <input id="start-tick"
                 type="number"
                 value={startTick}
                 onChange={(e) => setStartTick(e.target.value)}
                 placeholder="Optional"
-                className="illuminator-select"
-                style={fullWidthBoxStyle}
+                className="illuminator-select cem-full-width-box"
               />
             </div>
             <div>
-              <label htmlFor="end-tick" style={labelStyle}>End Tick</label>
+              <label htmlFor="end-tick" className="cem-label">End Tick</label>
               <input id="end-tick"
                 type="number"
                 value={endTick}
                 onChange={(e) => setEndTick(e.target.value)}
                 placeholder="Ongoing"
-                className="illuminator-select"
-                style={fullWidthBoxStyle}
+                className="illuminator-select cem-full-width-box"
               />
             </div>
           </div>
 
           {/* Description */}
-          <div style={fieldGroupStyle}>
-            <label htmlFor="description" style={labelStyle}>Description</label>
+          <div className="cem-field-group">
+            <label htmlFor="description" className="cem-label">Description</label>
             <textarea id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional description"
               rows={3}
-              className="illuminator-select"
-              style={{
-                width: "100%",
-                boxSizing: "border-box",
-                resize: "vertical",
-                fontFamily: "inherit",
-              }}
+              className="illuminator-select cem-textarea"
             />
           </div>
 
           {/* Tags */}
           <div>
-            <span style={labelStyle}>Tags</span>
+            <span className="cem-label">Tags</span>
             {Object.entries(tags).length > 0 && (
-              <div style={{ marginBottom: "8px" }}>
+              <div className="cem-tags-container">
                 {Object.entries(tags).map(([k, v]) => (
                   <div
                     key={k}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      padding: "3px 0",
-                      fontSize: "12px",
-                    }}
+                    className="cem-tag-row"
                   >
-                    <span style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{k}:</span>
-                    <span style={{ flex: 1, color: "var(--text-primary)" }}>{v}</span>
+                    <span className="cem-tag-key">{k}:</span>
+                    <span className="cem-tag-value">{v}</span>
                     <button
                       onClick={() => removeTag(k)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "var(--text-muted)",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        padding: "0 4px",
-                      }}
+                      className="cem-remove-tag-btn"
                       title="Remove tag"
                     >
                       x
@@ -445,14 +418,13 @@ export default function CreateEntityModal({
                 ))}
               </div>
             )}
-            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            <div className="cem-tag-input-row">
               <input
                 type="text"
                 value={tagKey}
                 onChange={(e) => setTagKey(e.target.value)}
                 placeholder="key"
-                className="illuminator-select"
-                style={{ flex: 1, boxSizing: "border-box", fontSize: "12px" }}
+                className="illuminator-select cem-tag-input"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -465,8 +437,7 @@ export default function CreateEntityModal({
                 value={tagValue}
                 onChange={(e) => setTagValue(e.target.value)}
                 placeholder="value"
-                className="illuminator-select"
-                style={{ flex: 1, boxSizing: "border-box", fontSize: "12px" }}
+                className="illuminator-select cem-tag-input"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -477,8 +448,7 @@ export default function CreateEntityModal({
               <button
                 onClick={addTag}
                 disabled={!tagKey.trim()}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: "4px 10px", fontSize: "11px", whiteSpace: "nowrap" }}
+                className="illuminator-button illuminator-button-secondary cem-add-tag-btn"
               >
                 Add
               </button>
@@ -487,7 +457,7 @@ export default function CreateEntityModal({
         </div>
 
         {/* Footer */}
-        <div style={footerStyle}>
+        <div className="cem-footer">
           <button onClick={onClose} className="illuminator-button illuminator-button-secondary">
             Cancel
           </button>
@@ -505,143 +475,3 @@ export default function CreateEntityModal({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Shared styles
-// ---------------------------------------------------------------------------
-
-const backdropStyle: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 1000,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "rgba(0, 0, 0, 0.6)",
-};
-
-const cardStyle: React.CSSProperties = {
-  background: "var(--bg-primary)",
-  borderRadius: "12px",
-  border: "1px solid var(--border-color)",
-  width: "500px",
-  maxWidth: "95vw",
-  maxHeight: "85vh",
-  display: "flex",
-  flexDirection: "column",
-  boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-};
-
-const headerStyle: React.CSSProperties = {
-  padding: "16px 20px",
-  borderBottom: "1px solid var(--border-color)",
-  flexShrink: 0,
-};
-
-const footerStyle: React.CSSProperties = {
-  padding: "12px 20px",
-  borderTop: "1px solid var(--border-color)",
-  display: "flex",
-  justifyContent: "flex-end",
-  gap: "8px",
-  flexShrink: 0,
-};
-
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: "11px",
-  color: "var(--text-muted)",
-  textTransform: "uppercase",
-  fontWeight: 600,
-  marginBottom: "4px",
-};
-
-const titleStyle: React.CSSProperties = { margin: 0, fontSize: "16px" };
-
-const editSubtitleStyle: React.CSSProperties = {
-  margin: "4px 0 0",
-  fontSize: "11px",
-  color: "var(--text-muted)",
-};
-
-const bodyStyle: React.CSSProperties = {
-  padding: "16px 20px",
-  overflowY: "auto",
-  flex: 1,
-  minHeight: 0,
-};
-
-const twoColumnGrid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "8px",
-  marginBottom: "12px",
-};
-
-const fullWidthStyle: React.CSSProperties = { width: "100%" };
-
-const fullWidthBoxStyle: React.CSSProperties = {
-  width: "100%",
-  boxSizing: "border-box",
-};
-
-const fieldGroupStyle: React.CSSProperties = { marginBottom: "12px" };
-
-const textareaStyle: React.CSSProperties = {
-  width: "100%",
-  boxSizing: "border-box",
-  resize: "vertical",
-  fontFamily: "inherit",
-};
-
-const emptyBodyStyle: React.CSSProperties = {
-  padding: "20px",
-  fontSize: "13px",
-  color: "var(--text-muted)",
-};
-
-const tagsContainer: React.CSSProperties = { marginBottom: "8px" };
-
-const tagRowStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "6px",
-  padding: "3px 0",
-  fontSize: "12px",
-};
-
-const tagKeyStyle: React.CSSProperties = {
-  color: "var(--text-secondary)",
-  fontWeight: 500,
-};
-
-const tagValueStyle: React.CSSProperties = {
-  flex: 1,
-  color: "var(--text-primary)",
-};
-
-const removeTagButton: React.CSSProperties = {
-  background: "none",
-  border: "none",
-  color: "var(--text-muted)",
-  cursor: "pointer",
-  fontSize: "14px",
-  padding: "0 4px",
-};
-
-const tagInputRow: React.CSSProperties = {
-  display: "flex",
-  gap: "6px",
-  alignItems: "center",
-};
-
-const tagInputStyle: React.CSSProperties = {
-  flex: 1,
-  boxSizing: "border-box",
-  fontSize: "12px",
-};
-
-const addTagButtonStyle: React.CSSProperties = {
-  padding: "4px 10px",
-  fontSize: "11px",
-  whiteSpace: "nowrap",
-};

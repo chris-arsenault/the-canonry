@@ -116,6 +116,13 @@
   border-radius: 2px;
 }
 
+.cvp-histogram-bar-filled {
+  height: var(--cvp-bar-height);
+  background: linear-gradient(to top, #3b82f6 var(--cvp-story-pct), #f59e0b var(--cvp-story-pct));
+  min-height: 4px;
+  opacity: 1;
+}
+
 .cvp-histogram-bar-empty {
   background: var(--border-color);
   opacity: 0.3;
@@ -253,3 +260,8 @@
 .cvp-color-muted {
   color: var(--text-muted);
 }
+
+/* Strength score colors */
+.cvp-strength-high { color: #10b981; }
+.cvp-strength-mid { color: #f59e0b; }
+.cvp-strength-low { color: #ef4444; }

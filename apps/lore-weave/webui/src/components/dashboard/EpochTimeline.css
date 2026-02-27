@@ -1,0 +1,50 @@
+.et-era-label {
+  font-size: 12px;
+  color: var(--lw-text-muted);
+}
+
+.et-section-spacer {
+  margin-top: 16px;
+}
+
+.et-section-label {
+  font-size: 12px;
+  color: var(--lw-text-muted);
+  margin-bottom: 8px;
+}
+
+.et-section-label-hint {
+  margin-left: 8px;
+  opacity: 0.6;
+}
+
+.et-gauge-interactive {
+  position: relative;
+  cursor: pointer;
+}
+
+.et-pressure-fill {
+  width: var(--et-pressure-fill-width);
+  background-color: var(--et-pressure-fill-color);
+}
+
+.et-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--lw-text-primary);
+}
+
+.et-cluster-value {
+  font-weight: 600;
+  color: var(--et-cluster-value-color, var(--lw-text-primary));
+}
+
+.et-connected-value {
+  font-weight: 600;
+}
+
+.et-timeline-opacity {
+  opacity: var(--et-timeline-opacity);
+}

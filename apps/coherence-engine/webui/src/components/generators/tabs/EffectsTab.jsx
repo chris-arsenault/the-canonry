@@ -14,6 +14,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "re
 import PropTypes from "prop-types";
 import MutationCard, { DEFAULT_MUTATION_TYPES } from "../../shared/MutationCard";
 import { MUTATION_TYPE_OPTIONS } from "../../actions/constants";
+import "./EffectsTab.css";
 
 /**
  * @param {Object} props
@@ -117,19 +118,11 @@ export function EffectsTab({ generator, onChange, pressures, schema }) {
     <div>
       {/* Unrecognized Effects - shown first to draw attention */}
       {unrecognizedUpdates.length > 0 && (
-        <div
-          className="section"
-          style={{
-            backgroundColor: "rgba(248, 113, 113, 0.1)",
-            borderRadius: "8px",
-            padding: "16px",
-            marginBottom: "24px",
-          }}
-        >
-          <div className="section-title" style={{ color: "#f87171" }}>
+        <div className="section et-unrecognized-section">
+          <div className="section-title et-unrecognized-title">
             <span>⚠️</span> Unrecognized Effects
           </div>
-          <div className="section-desc" style={{ marginBottom: "12px" }}>
+          <div className="section-desc mb-lg">
             These state updates have unrecognized types and may be from an older version. Remove
             them to clear validation errors.
           </div>
@@ -140,39 +133,21 @@ export function EffectsTab({ generator, onChange, pressures, schema }) {
             return (
               <div
                 key={globalIdx}
-                className="item-card"
-                style={{ borderColor: "rgba(248, 113, 113, 0.4)" }}
+                className="item-card et-unrecognized-card"
               >
-                <div style={{ padding: "16px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      gap: "16px",
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, marginBottom: "8px", color: "#f87171" }}>
+                <div className="et-unrecognized-body">
+                  <div className="et-unrecognized-layout">
+                    <div className="flex-1">
+                      <div className="et-unrecognized-type">
                         Unknown type: &quot;{update.type || "(no type)"}&quot;
                       </div>
-                      <pre
-                        style={{
-                          fontSize: "11px",
-                          backgroundColor: "rgba(0,0,0,0.2)",
-                          padding: "8px",
-                          borderRadius: "4px",
-                          overflow: "auto",
-                          margin: 0,
-                        }}
-                      >
+                      <pre className="et-unrecognized-json">
                         {JSON.stringify(update, null, 2)}
                       </pre>
                     </div>
                     <button
-                      className="btn btn-danger"
+                      className="btn btn-danger flex-shrink-0"
                       onClick={() => removeMutation(globalIdx)}
-                      style={{ flexShrink: 0 }}
                     >
                       Remove
                     </button>
@@ -207,23 +182,16 @@ export function EffectsTab({ generator, onChange, pressures, schema }) {
           );
         })}
 
-        <div ref={addButtonRef} style={{ position: "relative", marginTop: "12px" }}>
+        <div ref={addButtonRef} className="relative mt-lg">
           <button onClick={() => setShowTypeMenu(!showTypeMenu)} className="btn-add-inline">
             + Add Effect
           </button>
 
           {showTypeMenu && (
             <div
-              className="dropdown-menu"
-              style={{
-                position: "fixed",
-                top: dropdownPos.top,
-                left: dropdownPos.left,
-                width: dropdownPos.width,
-                maxHeight: "300px",
-                overflowY: "auto",
-                zIndex: 10000,
-              }}
+              className="dropdown-menu et-dropdown-fixed"
+              // eslint-disable-next-line local/no-inline-styles -- dynamic position from measured DOM rect
+              style={{ '--et-dd-top': `${dropdownPos.top}px`, '--et-dd-left': `${dropdownPos.left}px`, '--et-dd-width': `${dropdownPos.width}px`, top: 'var(--et-dd-top)', left: 'var(--et-dd-left)', width: 'var(--et-dd-width)' }}
             >
               {MUTATION_TYPE_OPTIONS.map((opt) => (
                 <div
@@ -239,7 +207,8 @@ export function EffectsTab({ generator, onChange, pressures, schema }) {
                 >
                   <span
                     className="dropdown-menu-icon"
-                    style={{ backgroundColor: `${opt.color}20` }}
+                    // eslint-disable-next-line local/no-inline-styles -- dynamic color per mutation type
+                    style={{ '--et-icon-bg': `${opt.color}20`, backgroundColor: 'var(--et-icon-bg)' }}
                   >
                     {opt.icon}
                   </span>

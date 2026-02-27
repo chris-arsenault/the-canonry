@@ -669,3 +669,62 @@
   white-space: pre-wrap;
   color: var(--text-primary);
 }
+
+.ref-tab-rating-symbol {
+  font-weight: 600;
+}
+
+.ref-tab-rating-integral {
+  color: #10b981;
+}
+
+.ref-tab-rating-prevalent {
+  color: #3b82f6;
+}
+
+.ref-tab-rating-mentioned {
+  color: #f59e0b;
+}
+
+.ref-tab-rating-missing {
+  color: var(--text-muted);
+}
+
+.ref-tab-fcg-entry-highlight {
+  background: rgba(59, 130, 246, 0.12);
+  border-radius: 3px;
+}
+
+.ref-tab-fcg-included-yes {
+  color: #10b981;
+}
+
+.ref-tab-fcg-included-no {
+  color: var(--text-muted);
+}
+
+.ref-tab-fcg-legend-symbol {
+  font-weight: 600;
+  color: var(--ref-legend-color, var(--text-muted));
+}
+
+.ref-tab-fcg-legend-yes {
+  color: #10b981;
+}
+
+.ref-tab-fcg-legend-no {
+  color: var(--text-muted);
+}
+
+.ref-tab-fcg-entry-dynamic {
+  background: var(--ref-entry-bg);
+  border-radius: var(--ref-entry-radius);
+}
+
+.ref-tab-fcg-symbol-dynamic {
+  color: var(--ref-symbol-color, var(--text-muted));
+}
+
+.ref-tab-fcv-symbol-dynamic {
+  color: var(--ref-symbol-color, var(--text-muted));
+}

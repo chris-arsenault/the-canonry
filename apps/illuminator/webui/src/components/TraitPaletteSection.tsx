@@ -13,6 +13,7 @@ import {
   type TraitPalette,
   type PaletteItem,
 } from "../lib/db/traitRepository";
+import "./TraitPaletteSection.css";
 import type { QueueItem, EnrichmentType } from "../lib/enrichmentTypes";
 import type { EnrichedEntity } from "../hooks/useEnrichmentQueue";
 
@@ -226,7 +227,7 @@ export default function TraitPaletteSection({
   if (loading) {
     return (
       <div className="illuminator-card">
-        <div style={{ padding: "20px", textAlign: "center", color: "var(--text-muted)" }}>
+        <div className="tps-loading">
           Loading trait palettes...
         </div>
       </div>
@@ -239,7 +240,7 @@ export default function TraitPaletteSection({
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Trait Palettes</h2>
         </div>
-        <div style={{ padding: "20px", textAlign: "center", color: "var(--text-muted)" }}>
+        <div className="tps-empty">
           No entity kinds available. Load a world with entity kinds defined to use trait palettes.
         </div>
       </div>
@@ -250,65 +251,42 @@ export default function TraitPaletteSection({
     <div className="illuminator-card">
       <div className="illuminator-card-header">
         <h2 className="illuminator-card-title">Trait Palettes</h2>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div className="tps-header-actions">
           <button
             onClick={() => void handleExport()}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "4px 8px", fontSize: "11px" }}
+            className="illuminator-button illuminator-button-secondary tps-header-btn"
             disabled={totalCategories === 0}
           >
             Export
           </button>
           <button
             onClick={() => void loadPalettes()}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: "4px 8px", fontSize: "11px" }}
+            className="illuminator-button illuminator-button-secondary tps-header-btn"
           >
             Refresh
           </button>
         </div>
       </div>
 
-      <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
+      <p className="tps-description">
         Trait palettes provide diverse visual directions for entity descriptions. Expand palettes to
         generate new trait categories and reduce repetition.
       </p>
 
       {/* Summary stats */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))",
-          gap: "12px",
-          marginBottom: "16px",
-        }}
-      >
-        <div
-          style={{
-            padding: "10px",
-            background: "var(--bg-tertiary)",
-            borderRadius: "6px",
-            textAlign: "center",
-          }}
-        >
-          <div style={{ fontSize: "20px", fontWeight: 600 }}>{entityKinds.length}</div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Entity Kinds</div>
+      <div className="tps-stats-grid">
+        <div className="tps-stat-card">
+          <div className="tps-stat-value">{entityKinds.length}</div>
+          <div className="tps-stat-label">Entity Kinds</div>
         </div>
-        <div
-          style={{
-            padding: "10px",
-            background: "var(--bg-tertiary)",
-            borderRadius: "6px",
-            textAlign: "center",
-          }}
-        >
-          <div style={{ fontSize: "20px", fontWeight: 600 }}>{totalCategories}</div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Total Categories</div>
+        <div className="tps-stat-card">
+          <div className="tps-stat-value">{totalCategories}</div>
+          <div className="tps-stat-label">Total Categories</div>
         </div>
       </div>
 
       {/* Per-kind palettes */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      <div className="tps-kind-list">
         {entityKinds.map((kind) => {
           const palette = palettes[kind];
           const isExpanding = expandingKinds.has(kind);
@@ -317,53 +295,25 @@ export default function TraitPaletteSection({
           return (
             <div
               key={kind}
-              style={{
-                border: "1px solid var(--border-color)",
-                borderRadius: "6px",
-                overflow: "hidden",
-              }}
+              className="tps-kind-card"
             >
               {/* Header row */}
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "10px 12px",
-                  background: "var(--bg-secondary)",
-                  cursor: "pointer",
-                }}
+                className="tps-kind-header"
                 onClick={() => setSelectedKind(isSelected ? null : kind)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <code
-                    style={{
-                      fontWeight: 600,
-                      fontSize: "13px",
-                      padding: "2px 8px",
-                      background: "var(--accent-color)",
-                      color: "white",
-                      borderRadius: "4px",
-                    }}
-                  >
+                <div className="tps-kind-header-left">
+                  <code className="tps-kind-badge">
                     {kind || "(unknown)"}
                   </code>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      padding: "2px 6px",
-                      background: "var(--bg-tertiary)",
-                      borderRadius: "4px",
-                      color: "var(--text-muted)",
-                    }}
-                  >
+                  <span className="tps-category-count">
                     {palette?.items.length || 0} categories
                   </span>
                 </div>
-                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <div className="tps-kind-header-right">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -373,8 +323,7 @@ export default function TraitPaletteSection({
                       }
                       handleExpand(kind);
                     }}
-                    className="illuminator-button illuminator-button-primary"
-                    style={{ padding: "4px 10px", fontSize: "11px" }}
+                    className="illuminator-button illuminator-button-primary tps-expand-btn"
                     disabled={isExpanding || !isWorkerReady || !kind}
                     title={
                       !isWorkerReady ? "Worker not ready" : `Generate trait categories for ${kind}`
@@ -382,14 +331,7 @@ export default function TraitPaletteSection({
                   >
                     {isExpanding ? "Expanding..." : "Expand"}
                   </button>
-                  <span
-                    style={{
-                      fontSize: "14px",
-                      color: "var(--text-muted)",
-                      transform: isSelected ? "rotate(180deg)" : "rotate(0deg)",
-                      transition: "transform 0.2s",
-                    }}
-                  >
+                  <span className={`tps-expand-icon ${isSelected ? "tps-expand-icon-open" : "tps-expand-icon-closed"}`}>
                     ▼
                   </span>
                 </div>
@@ -397,104 +339,48 @@ export default function TraitPaletteSection({
 
               {/* Expanded content */}
               {isSelected && (
-                <div style={{ padding: "12px" }}>
+                <div className="tps-kind-body">
                   {!palette || palette.items.length === 0 ? (
-                    <div
-                      style={{
-                        padding: "20px",
-                        textAlign: "center",
-                        color: "var(--text-muted)",
-                        fontSize: "12px",
-                      }}
-                    >
+                    <div className="tps-kind-empty">
                       No palette categories yet. Click &quot;Expand Palette&quot; to generate some.
                     </div>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <div className="tps-palette-list">
                       {palette.items.map((item: PaletteItem) => (
                         <div
                           key={item.id}
-                          style={{
-                            padding: "10px",
-                            background: "var(--bg-tertiary)",
-                            borderRadius: "6px",
-                          }}
+                          className="tps-palette-item"
                         >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "flex-start",
-                              marginBottom: "6px",
-                            }}
-                          >
-                            <span style={{ fontWeight: 500, fontSize: "13px" }}>
+                          <div className="tps-palette-header">
+                            <span className="tps-palette-category">
                               {item.category}
                             </span>
                             <span
-                              style={{
-                                fontSize: "10px",
-                                padding: "2px 5px",
-                                background:
-                                  item.timesUsed > 0
-                                    ? "var(--accent-color)"
-                                    : "var(--bg-secondary)",
-                                color: item.timesUsed > 0 ? "white" : "var(--text-muted)",
-                                borderRadius: "3px",
-                              }}
+                              className={`tps-usage-badge ${item.timesUsed > 0 ? "tps-usage-badge-used" : "tps-usage-badge-unused"}`}
                             >
                               used {item.timesUsed}x
                             </span>
                           </div>
-                          <div
-                            style={{
-                              fontSize: "12px",
-                              color: "var(--text-secondary)",
-                              marginBottom: "6px",
-                            }}
-                          >
+                          <div className="tps-palette-description">
                             {item.description}
                           </div>
                           {item.examples.length > 0 && (
-                            <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                            <div className="tps-palette-examples">
                               <em>Examples:</em> {item.examples.join(" · ")}
                             </div>
                           )}
                           {/* Binding tags: subtypes and era */}
                           {(item.subtypes?.length || item.era) ? (
-                            <div
-                              style={{
-                                display: "flex",
-                                flexWrap: "wrap",
-                                gap: "4px",
-                                marginTop: "8px",
-                              }}
-                            >
+                            <div className="tps-binding-tags">
                               {item.era && (
-                                <span
-                                  style={{
-                                    fontSize: "10px",
-                                    padding: "2px 6px",
-                                    background: "rgba(168, 85, 247, 0.2)",
-                                    color: "#a855f7",
-                                    borderRadius: "3px",
-                                    border: "1px solid rgba(168, 85, 247, 0.3)",
-                                  }}
-                                >
+                                <span className="tps-era-tag">
                                   era: {item.era}
                                 </span>
                               )}
                               {item.subtypes?.map((st) => (
                                 <span
                                   key={st}
-                                  style={{
-                                    fontSize: "10px",
-                                    padding: "2px 6px",
-                                    background: "rgba(59, 130, 246, 0.2)",
-                                    color: "#3b82f6",
-                                    borderRadius: "3px",
-                                    border: "1px solid rgba(59, 130, 246, 0.3)",
-                                  }}
+                                  className="tps-subtype-tag"
                                 >
                                   {st}
                                 </span>
@@ -514,19 +400,11 @@ export default function TraitPaletteSection({
 
       {/* Show recent errors */}
       {recentErrors.length > 0 && (
-        <div
-          style={{
-            marginTop: "16px",
-            padding: "12px",
-            borderRadius: "6px",
-            background: "rgba(239, 68, 68, 0.1)",
-            border: "1px solid rgba(239, 68, 68, 0.3)",
-          }}
-        >
-          <div style={{ fontSize: "12px", color: "#ef4444" }}>
+        <div className="tps-error-section">
+          <div className="tps-error-content">
             <strong>Recent errors:</strong>
             {recentErrors.map((err) => (
-              <div key={err.id} style={{ marginTop: "4px" }}>
+              <div key={err.id} className="tps-error-item">
                 {err.paletteEntityKind}: {err.error}
               </div>
             ))}

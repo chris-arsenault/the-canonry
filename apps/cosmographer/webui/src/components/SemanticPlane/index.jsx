@@ -9,242 +9,7 @@ import React, { useState } from "react";
 import PropTypes from "prop-types";
 import PlaneCanvas from "./PlaneCanvas.jsx";
 import { TagSelector, NumberInput } from "@penguin-tales/shared-components";
-
-const styles = {
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    height: "100%",
-    minHeight: 0,
-  },
-  header: {
-    flexShrink: 0,
-    marginBottom: "12px",
-  },
-  title: {
-    fontSize: "24px",
-    fontWeight: 600,
-    marginBottom: "4px",
-  },
-  subtitle: {
-    color: "#888",
-    fontSize: "14px",
-  },
-  toolbar: {
-    flexShrink: 0,
-    display: "flex",
-    gap: "12px",
-    alignItems: "center",
-    marginBottom: "12px",
-  },
-  select: {
-    padding: "8px 12px",
-    fontSize: "14px",
-    backgroundColor: "#16213e",
-    border: "1px solid #0f3460",
-    borderRadius: "4px",
-    color: "#eee",
-    minWidth: "200px",
-  },
-  addButton: {
-    padding: "8px 16px",
-    fontSize: "13px",
-    backgroundColor: "#e94560",
-    color: "white",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-  },
-  mainArea: {
-    display: "flex",
-    gap: "16px",
-    flex: 1,
-    minHeight: 0,
-  },
-  canvasContainer: {
-    flex: 1,
-    minHeight: 0,
-    display: "flex",
-    flexDirection: "column",
-  },
-  sidebar: {
-    width: "260px",
-    flexShrink: 0,
-    backgroundColor: "#16213e",
-    borderRadius: "8px",
-    padding: "16px",
-    overflowY: "auto",
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-  },
-  sidebarSection: {},
-  sidebarTitle: {
-    fontSize: "12px",
-    fontWeight: 600,
-    color: "#888",
-    marginBottom: "8px",
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-  },
-  axisInfo: {
-    fontSize: "12px",
-    color: "#aaa",
-    marginBottom: "6px",
-    display: "flex",
-    gap: "8px",
-  },
-  axisLabel: {
-    color: "#e94560",
-    fontWeight: 600,
-    width: "16px",
-  },
-  axisRange: {
-    color: "#666",
-    fontSize: "11px",
-  },
-  regionItem: {
-    padding: "8px 10px",
-    backgroundColor: "#1a1a2e",
-    borderRadius: "4px",
-    marginBottom: "6px",
-    fontSize: "13px",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    cursor: "pointer",
-  },
-  regionItemSelected: {
-    backgroundColor: "#0f3460",
-  },
-  regionColor: {
-    width: "12px",
-    height: "12px",
-    borderRadius: "3px",
-    flexShrink: 0,
-  },
-  regionLabel: {
-    flex: 1,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  deleteButton: {
-    padding: "2px 6px",
-    fontSize: "10px",
-    backgroundColor: "transparent",
-    color: "#e94560",
-    border: "1px solid #e94560",
-    borderRadius: "3px",
-    cursor: "pointer",
-    flexShrink: 0,
-  },
-  entityItem: {
-    padding: "8px 10px",
-    backgroundColor: "#1a1a2e",
-    borderRadius: "4px",
-    marginBottom: "4px",
-    fontSize: "12px",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    cursor: "pointer",
-  },
-  entityItemSelected: {
-    backgroundColor: "#0f3460",
-  },
-  entityDot: {
-    width: "10px",
-    height: "10px",
-    borderRadius: "50%",
-    flexShrink: 0,
-  },
-  entityName: {
-    flex: 1,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  entityCoords: {
-    fontSize: "10px",
-    color: "#666",
-    flexShrink: 0,
-  },
-  emptyState: {
-    color: "#666",
-    fontSize: "13px",
-    textAlign: "center",
-    padding: "40px",
-  },
-  emptyText: {
-    color: "#666",
-    fontSize: "12px",
-  },
-  modal: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000,
-  },
-  modalContent: {
-    backgroundColor: "#1a1a2e",
-    padding: "24px",
-    borderRadius: "8px",
-    width: "360px",
-  },
-  modalTitle: {
-    fontSize: "16px",
-    fontWeight: 600,
-    marginBottom: "16px",
-  },
-  formGroup: {
-    marginBottom: "12px",
-  },
-  label: {
-    fontSize: "12px",
-    color: "#888",
-    marginBottom: "4px",
-    display: "block",
-  },
-  input: {
-    width: "100%",
-    padding: "8px 10px",
-    fontSize: "14px",
-    backgroundColor: "#16213e",
-    border: "1px solid #0f3460",
-    borderRadius: "4px",
-    color: "#eee",
-    boxSizing: "border-box",
-  },
-  inputRow: {
-    display: "flex",
-    gap: "12px",
-  },
-  inputHalf: {
-    flex: 1,
-  },
-  modalActions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "8px",
-    marginTop: "16px",
-  },
-  button: {
-    padding: "8px 16px",
-    fontSize: "13px",
-    backgroundColor: "#0f3460",
-    color: "#aaa",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-  },
-};
+import "./SemanticPlane.css";
 
 export default function SemanticPlaneEditor({ project, onSave, axisDefinitions = [] }) {
   const [selectedKindId, setSelectedKindId] = useState(null);
@@ -499,14 +264,14 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
 
   if (entityKinds.length === 0) {
     return (
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <div style={styles.title}>Semantic Planes</div>
-          <div style={styles.subtitle}>
+      <div className="sp-container">
+        <div className="sp-header">
+          <div className="sp-title">Semantic Planes</div>
+          <div className="sp-subtitle">
             View and edit the coordinate space for each entity kind.
           </div>
         </div>
-        <div style={styles.emptyState}>
+        <div className="sp-empty-state">
           Define entity kinds in the Enumerist tab first to view their semantic planes.
         </div>
       </div>
@@ -514,17 +279,17 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <div style={styles.title}>Semantic Planes</div>
-        <div style={styles.subtitle}>
+    <div className="sp-container">
+      <div className="sp-header">
+        <div className="sp-title">Semantic Planes</div>
+        <div className="sp-subtitle">
           Drag entities to reposition. Scroll to zoom, drag background to pan.
         </div>
       </div>
 
-      <div style={styles.toolbar}>
+      <div className="sp-toolbar">
         <select
-          style={styles.select}
+          className="sp-select"
           value={selectedKind?.kind || ""}
           onChange={(e) => {
             setSelectedKindId(e.target.value);
@@ -540,11 +305,7 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
           ))}
         </select>
         <button
-          style={{
-            ...styles.addButton,
-            opacity: isFrameworkKind ? 0.6 : 1,
-            pointerEvents: isFrameworkKind ? "none" : "auto",
-          }}
+          className={`sp-add-button${isFrameworkKind ? " sp-add-button-disabled" : ""}`}
           onClick={() => setShowNewRegionModal(true)}
           disabled={isFrameworkKind}
         >
@@ -552,8 +313,8 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
         </button>
       </div>
 
-      <div style={styles.mainArea}>
-        <div style={styles.canvasContainer}>
+      <div className="sp-main-area">
+        <div className="sp-canvas-container">
           <PlaneCanvas
             plane={semanticPlane}
             regions={semanticPlane.regions || []}
@@ -570,60 +331,46 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
           />
         </div>
 
-        <div style={styles.sidebar}>
-          <div style={styles.sidebarSection}>
-            <div style={styles.sidebarTitle}>Axes (click to edit)</div>
+        <div className="sp-sidebar">
+          <div>
+            <div className="sp-sidebar-title">Axes (click to edit)</div>
             {["x", "y", "z"].map((axis) => {
               const rawConfig = semanticPlane.axes?.[axis];
               const config = resolveAxis(rawConfig);
               return (
                 <div
                   key={axis}
-                  style={{
-                    ...styles.axisInfo,
-                    cursor: isFrameworkKind ? "default" : "pointer",
-                    padding: "6px 8px",
-                    borderRadius: "4px",
-                    backgroundColor: "#1a1a2e",
-                    marginBottom: "4px",
-                    opacity: isFrameworkKind ? 0.6 : 1,
-                    pointerEvents: isFrameworkKind ? "none" : "auto",
-                  }}
+                  className={`sp-axis-info${isFrameworkKind ? " sp-axis-info-disabled" : " sp-axis-info-interactive"}`}
                   onClick={() => openAxisEditor(axis)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
-                  <span style={styles.axisLabel}>{axis.toUpperCase()}</span>
+                  <span className="sp-axis-label">{axis.toUpperCase()}</span>
                   {config ? (
                     <>
-                      <span style={{ flex: 1 }}>{config.name}</span>
-                      <span style={styles.axisRange}>
+                      <span className="sp-axis-name">{config.name}</span>
+                      <span className="sp-axis-range">
                         {config.lowTag} → {config.highTag}
                       </span>
                     </>
                   ) : (
-                    <span style={{ flex: 1, color: "#666", fontStyle: "italic" }}>(not set)</span>
+                    <span className="sp-axis-unset">(not set)</span>
                   )}
                 </div>
               );
             })}
           </div>
 
-          <div style={styles.sidebarSection}>
-            <div style={styles.sidebarTitle}>Regions ({semanticPlane.regions?.length || 0})</div>
+          <div>
+            <div className="sp-sidebar-title">Regions ({semanticPlane.regions?.length || 0})</div>
             {(semanticPlane.regions || []).length === 0 ? (
-              <div style={styles.emptyText}>No regions defined</div>
+              <div className="sp-empty-text">No regions defined</div>
             ) : (
               semanticPlane.regions.map((region) => (
                 <div
                   key={region.id}
-                  style={{
-                    ...styles.regionItem,
-                    ...(selectedRegionId === region.id ? styles.regionItemSelected : {}),
-                    flexDirection: "column",
-                    alignItems: "stretch",
-                  }}
+                  className={`sp-region-item${selectedRegionId === region.id ? " sp-region-item-selected" : ""}`}
                   onClick={() => {
                     setSelectedRegionId(region.id);
                     setSelectedEntityId(null);
@@ -632,25 +379,18 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
                   tabIndex={0}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ ...styles.regionColor, backgroundColor: region.color }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <span style={styles.regionLabel}>{region.label}</span>
+                  <div className="sp-region-row">
+                    <div className="sp-region-color" style={{ '--sp-region-color-bg': region.color }} />
+                    <div className="sp-region-info">
+                      <span className="sp-region-label">{region.label}</span>
                       {region.culture && (
-                        <div style={{ fontSize: "10px", color: "#666", marginTop: "2px" }}>
+                        <div className="sp-region-culture">
                           {cultures.find((c) => c.id === region.culture)?.name || region.culture}
                         </div>
                       )}
                     </div>
                     <button
-                      style={{
-                        ...styles.deleteButton,
-                        backgroundColor: "#0f3460",
-                        color: "#aaa",
-                        border: "none",
-                        opacity: isFrameworkKind ? 0.5 : 1,
-                        pointerEvents: isFrameworkKind ? "none" : "auto",
-                      }}
+                      className={`sp-region-edit-btn${isFrameworkKind ? " sp-region-edit-btn-disabled" : ""}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         openRegionEditor(region);
@@ -661,11 +401,7 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
                       ✎
                     </button>
                     <button
-                      style={{
-                        ...styles.deleteButton,
-                        opacity: isFrameworkKind ? 0.5 : 1,
-                        pointerEvents: isFrameworkKind ? "none" : "auto",
-                      }}
+                      className={`sp-delete-button${isFrameworkKind ? " sp-delete-button-disabled" : ""}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteRegion(region.id);
@@ -677,19 +413,11 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
                     </button>
                   </div>
                   {region.tags && region.tags.length > 0 && (
-                    <div
-                      style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "6px" }}
-                    >
+                    <div className="sp-region-tags">
                       {region.tags.map((tag) => (
                         <span
                           key={tag}
-                          style={{
-                            fontSize: "10px",
-                            padding: "2px 6px",
-                            backgroundColor: "#0f3460",
-                            borderRadius: "3px",
-                            color: "#aaa",
-                          }}
+                          className="sp-region-tag"
                         >
                           {tag}
                         </span>
@@ -701,10 +429,10 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
             )}
           </div>
 
-          <div style={styles.sidebarSection}>
-            <div style={styles.sidebarTitle}>Entities ({planeEntities.length})</div>
+          <div>
+            <div className="sp-sidebar-title">Entities ({planeEntities.length})</div>
             {planeEntities.length === 0 ? (
-              <div style={styles.emptyText}>
+              <div className="sp-empty-text">
                 No {selectedKind?.description || selectedKind?.kind || "entities"} yet
               </div>
             ) : (
@@ -712,30 +440,25 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
                 {planeEntities.slice(0, 15).map((entity) => (
                   <div
                     key={entity.id}
-                    style={{
-                      ...styles.entityItem,
-                      ...(selectedEntityId === entity.id ? styles.entityItemSelected : {}),
-                    }}
+                    className={`sp-entity-item${selectedEntityId === entity.id ? " sp-entity-item-selected" : ""}`}
                     onClick={() => setSelectedEntityId(entity.id)}
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                   >
                     <div
-                      style={{
-                        ...styles.entityDot,
-                        backgroundColor: getCultureColor(entity.culture),
-                      }}
+                      className="sp-entity-dot"
+                      style={{ '--sp-entity-dot-bg': getCultureColor(entity.culture) }}
                     />
-                    <span style={styles.entityName}>{entity.name}</span>
-                    <span style={styles.entityCoords}>
+                    <span className="sp-entity-name">{entity.name}</span>
+                    <span className="sp-entity-coords">
                       ({Math.round(entity.coordinates?.x || 0)},{" "}
                       {Math.round(entity.coordinates?.y || 0)})
                     </span>
                   </div>
                 ))}
                 {planeEntities.length > 15 && (
-                  <div style={{ ...styles.emptyText, marginTop: "4px" }}>
+                  <div className="sp-more-text">
                     +{planeEntities.length - 15} more
                   </div>
                 )}
@@ -747,16 +470,16 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
 
       {/* New Region Modal */}
       {showNewRegionModal && (
-        <div style={styles.modal} onClick={() => setShowNewRegionModal(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
-            <div style={styles.modalTitle}>
+        <div className="sp-modal" onClick={() => setShowNewRegionModal(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+          <div className="sp-modal-content" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+            <div className="sp-modal-title">
               Add Region to {selectedKind?.description || selectedKind?.kind}
             </div>
 
-            <div style={styles.formGroup}>
-              <label htmlFor="label" style={styles.label}>Label</label>
+            <div className="sp-form-group">
+              <label htmlFor="label" className="sp-label">Label</label>
               <input id="label"
-                style={styles.input}
+                className="sp-input"
                 placeholder="Region name"
                 value={newRegion.label}
                 onChange={(e) => setNewRegion({ ...newRegion, label: e.target.value })}
@@ -766,12 +489,12 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
             </div>
 
 
-            <div style={styles.inputRow}>
-              <div style={styles.inputHalf}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Center X (0-100)
+            <div className="sp-input-row">
+              <div className="sp-input-half">
+                <div className="sp-form-group">
+                  <label className="sp-label">Center X (0-100)
                   <NumberInput
-                    style={styles.input}
+                    className="sp-input"
                     min={0}
                     max={100}
                     value={newRegion.x}
@@ -781,11 +504,11 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
                   </label>
                 </div>
               </div>
-              <div style={styles.inputHalf}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Center Y (0-100)
+              <div className="sp-input-half">
+                <div className="sp-form-group">
+                  <label className="sp-label">Center Y (0-100)
                   <NumberInput
-                    style={styles.input}
+                    className="sp-input"
                     min={0}
                     max={100}
                     value={newRegion.y}
@@ -797,10 +520,10 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
               </div>
             </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Radius
+            <div className="sp-form-group">
+              <label className="sp-label">Radius
               <NumberInput
-                style={styles.input}
+                className="sp-input"
                 min={1}
                 max={50}
                 value={newRegion.radius}
@@ -810,10 +533,10 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
               </label>
             </div>
 
-            <div style={styles.formGroup}>
-              <label htmlFor="culture-owner-optional" style={styles.label}>Culture Owner (optional)</label>
+            <div className="sp-form-group">
+              <label htmlFor="culture-owner-optional" className="sp-label">Culture Owner (optional)</label>
               <select id="culture-owner-optional"
-                style={styles.select}
+                className="sp-select"
                 value={newRegion.culture}
                 onChange={(e) => setNewRegion({ ...newRegion, culture: e.target.value })}
               >
@@ -826,8 +549,8 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
               </select>
             </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Tags
+            <div className="sp-form-group">
+              <label className="sp-label">Tags
               <TagSelector
                 tagRegistry={tagRegistry}
                 value={newRegion.tags || []}
@@ -837,11 +560,11 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
               </label>
             </div>
 
-            <div style={styles.modalActions}>
-              <button style={styles.button} onClick={() => setShowNewRegionModal(false)}>
+            <div className="sp-modal-actions">
+              <button className="sp-button" onClick={() => setShowNewRegionModal(false)}>
                 Cancel
               </button>
-              <button style={styles.addButton} onClick={addRegion}>
+              <button className="sp-add-button" onClick={addRegion}>
                 Add Region
               </button>
             </div>
@@ -851,23 +574,23 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
 
       {/* Edit Axis Modal */}
       {showAxisModal && editingAxis && (
-        <div style={styles.modal} onClick={() => setShowAxisModal(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+        <div className="sp-modal" onClick={() => setShowAxisModal(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
           <div
-            style={{ ...styles.modalContent, width: "420px" }}
+            className="sp-modal-content-wide"
             onClick={(e) => e.stopPropagation()}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           >
-            <div style={styles.modalTitle}>
+            <div className="sp-modal-title">
               Select {editingAxis.key.toUpperCase()} Axis for{" "}
               {selectedKind?.description || selectedKind?.kind}
             </div>
 
-            <div style={styles.formGroup}>
-              <label htmlFor="axis-from-registry" style={styles.label}>Axis from Registry</label>
+            <div className="sp-form-group">
+              <label htmlFor="axis-from-registry" className="sp-label">Axis from Registry</label>
               <select id="axis-from-registry"
-                style={styles.select}
+                className="sp-select"
                 value={editingAxis.axisId || ""}
                 onChange={(e) => handleAxisSelect(e.target.value)}
               >
@@ -883,45 +606,16 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
             </div>
 
             {editingAxis.axisId && (
-              <div
-                style={{
-                  padding: "12px",
-                  backgroundColor: "#1a1a2e",
-                  borderRadius: "6px",
-                  marginBottom: "12px",
-                }}
-              >
-                <div style={{ fontSize: "13px", fontWeight: 500, marginBottom: "8px" }}>
+              <div className="sp-axis-preview">
+                <div className="sp-axis-preview-name">
                   {editingAxis.name}
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    fontSize: "12px",
-                    color: "#888",
-                  }}
-                >
-                  <span
-                    style={{
-                      padding: "2px 6px",
-                      backgroundColor: "#0f3460",
-                      borderRadius: "3px",
-                      color: "#93c5fd",
-                    }}
-                  >
+                <div className="sp-axis-preview-range">
+                  <span className="sp-axis-preview-tag">
                     {editingAxis.lowTag}
                   </span>
                   <span>→</span>
-                  <span
-                    style={{
-                      padding: "2px 6px",
-                      backgroundColor: "#0f3460",
-                      borderRadius: "3px",
-                      color: "#93c5fd",
-                    }}
-                  >
+                  <span className="sp-axis-preview-tag">
                     {editingAxis.highTag}
                   </span>
                 </div>
@@ -929,17 +623,18 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
             )}
 
             {axisDefinitions.length === 0 && (
-              <div style={{ fontSize: "12px", color: "#f87171", marginBottom: "12px" }}>
+              <div className="sp-no-axes-warning">
                 No axes defined. Create axes in the Axis Registry first.
               </div>
             )}
 
-            <div style={styles.modalActions}>
-              <button style={styles.button} onClick={() => setShowAxisModal(false)}>
+            <div className="sp-modal-actions">
+              <button className="sp-button" onClick={() => setShowAxisModal(false)}>
                 Cancel
               </button>
               <button
-                style={{ ...styles.addButton, opacity: editingAxis.axisId ? 1 : 0.5 }}
+                className="sp-add-button"
+                style={{ '--sp-save-opacity': editingAxis.axisId ? 1 : 0.5 }}
                 onClick={saveAxisConfig}
                 disabled={!editingAxis.axisId}
               >
@@ -952,30 +647,30 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
 
       {/* Edit Region Modal */}
       {showRegionModal && editingRegion && (
-        <div style={styles.modal} onClick={() => setShowRegionModal(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+        <div className="sp-modal" onClick={() => setShowRegionModal(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
           <div
-            style={{ ...styles.modalContent, width: "420px" }}
+            className="sp-modal-content-wide"
             onClick={(e) => e.stopPropagation()}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           >
-            <div style={styles.modalTitle}>Edit Region: {editingRegion.label}</div>
+            <div className="sp-modal-title">Edit Region: {editingRegion.label}</div>
 
-            <div style={styles.formGroup}>
-              <label htmlFor="label" style={styles.label}>Label</label>
+            <div className="sp-form-group">
+              <label htmlFor="label" className="sp-label">Label</label>
               <input id="label"
-                style={styles.input}
+                className="sp-input"
                 placeholder="Region name"
                 value={editingRegion.label}
                 onChange={(e) => setEditingRegion({ ...editingRegion, label: e.target.value })}
               />
             </div>
 
-            <div style={styles.formGroup}>
-              <label htmlFor="culture-owner-optional" style={styles.label}>Culture Owner (optional)</label>
+            <div className="sp-form-group">
+              <label htmlFor="culture-owner-optional" className="sp-label">Culture Owner (optional)</label>
               <select id="culture-owner-optional"
-                style={styles.select}
+                className="sp-select"
                 value={editingRegion.culture || ""}
                 onChange={(e) => setEditingRegion({ ...editingRegion, culture: e.target.value })}
               >
@@ -988,8 +683,8 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
               </select>
             </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Tags
+            <div className="sp-form-group">
+              <label className="sp-label">Tags
               <TagSelector
                 tagRegistry={tagRegistry}
                 value={editingRegion.tags || []}
@@ -999,11 +694,11 @@ export default function SemanticPlaneEditor({ project, onSave, axisDefinitions =
               </label>
             </div>
 
-            <div style={styles.modalActions}>
-              <button style={styles.button} onClick={() => setShowRegionModal(false)}>
+            <div className="sp-modal-actions">
+              <button className="sp-button" onClick={() => setShowRegionModal(false)}>
                 Cancel
               </button>
-              <button style={styles.addButton} onClick={saveRegionConfig}>
+              <button className="sp-add-button" onClick={saveRegionConfig}>
                 Save
               </button>
             </div>

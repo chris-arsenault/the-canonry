@@ -7,26 +7,18 @@
 
 import React, { Suspense, lazy } from "react";
 import PropTypes from "prop-types";
+import { ErrorBoundary } from "@penguin-tales/shared-components";
 import RemotePlaceholder from "./RemotePlaceholder";
 import { colors, typography } from "../theme";
 
 // Lazy load the remote module
-const IlluminatorRemote = lazy(() =>
-  import("illuminator/IlluminatorRemote").catch(() => ({
-    default: () => (
-      <RemotePlaceholder
-        name="Illuminator"
-        port={5006}
-        instructions="cd apps/illuminator/webui && npm install && npm run dev"
-      />
-    ),
-  }))
-);
-
+const IlluminatorRemote = lazy(() => import("illuminator/IlluminatorRemote").catch(() => ({
+  default: () => <RemotePlaceholder name="Illuminator" port={5006} instructions="cd apps/illuminator/webui && npm install && npm run dev" />
+})));
 const styles = {
   container: {
     height: "100%",
-    overflow: "auto",
+    overflow: "auto"
   },
   loading: {
     display: "flex",
@@ -35,16 +27,12 @@ const styles = {
     height: "100%",
     color: colors.textMuted,
     fontSize: typography.sizeLg,
-    fontFamily: typography.fontFamily,
-  },
+    fontFamily: typography.fontFamily
+  }
 };
-
-const loadingFallback = React.createElement(
-  "div",
-  { style: styles.loading },
-  "Loading Illuminator..."
-);
-
+const loadingFallback = React.createElement("div", {
+  style: styles.loading
+}, "Loading Illuminator...");
 export default function IlluminatorHost({
   projectId,
   schema,
@@ -63,36 +51,16 @@ export default function IlluminatorHost({
   onHistorianConfigChange,
   activeSection,
   onSectionChange,
-  activeSlotIndex,
+  activeSlotIndex
 }) {
-  return (
-    <div style={styles.container}>
+  return <div className="inline-extracted-1">
+      <ErrorBoundary title="Illuminator encountered an error">
       <Suspense fallback={loadingFallback}>
-        <IlluminatorRemote
-          projectId={projectId}
-          schema={schema}
-          worldData={worldData}
-          worldContext={worldContext}
-          onWorldContextChange={onWorldContextChange}
-          entityGuidance={entityGuidance}
-          onEntityGuidanceChange={onEntityGuidanceChange}
-          cultureIdentities={cultureIdentities}
-          onCultureIdentitiesChange={onCultureIdentitiesChange}
-          enrichmentConfig={enrichmentConfig}
-          onEnrichmentConfigChange={onEnrichmentConfigChange}
-          styleSelection={styleSelection}
-          onStyleSelectionChange={onStyleSelectionChange}
-          historianConfig={historianConfig}
-          onHistorianConfigChange={onHistorianConfigChange}
-          activeSection={activeSection}
-          onSectionChange={onSectionChange}
-          activeSlotIndex={activeSlotIndex}
-        />
+        <IlluminatorRemote projectId={projectId} schema={schema} worldData={worldData} worldContext={worldContext} onWorldContextChange={onWorldContextChange} entityGuidance={entityGuidance} onEntityGuidanceChange={onEntityGuidanceChange} cultureIdentities={cultureIdentities} onCultureIdentitiesChange={onCultureIdentitiesChange} enrichmentConfig={enrichmentConfig} onEnrichmentConfigChange={onEnrichmentConfigChange} styleSelection={styleSelection} onStyleSelectionChange={onStyleSelectionChange} historianConfig={historianConfig} onHistorianConfigChange={onHistorianConfigChange} activeSection={activeSection} onSectionChange={onSectionChange} activeSlotIndex={activeSlotIndex} />
       </Suspense>
-    </div>
-  );
+      </ErrorBoundary>
+    </div>;
 }
-
 IlluminatorHost.propTypes = {
   projectId: PropTypes.string,
   schema: PropTypes.object,
@@ -111,5 +79,5 @@ IlluminatorHost.propTypes = {
   onHistorianConfigChange: PropTypes.func,
   activeSection: PropTypes.string,
   onSectionChange: PropTypes.func,
-  activeSlotIndex: PropTypes.number,
+  activeSlotIndex: PropTypes.number
 };

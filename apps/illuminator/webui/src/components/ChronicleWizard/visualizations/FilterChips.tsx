@@ -5,6 +5,7 @@ import React from "react";
  * Replaces text search with one-click filter toggles.
  * Supports single or multi-select mode.
  */
+import "./FilterChips.css";
 
 interface FilterChipsProps<T extends string> {
   /** Available filter options */
@@ -75,31 +76,16 @@ export default function FilterChips<T extends string>({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+    <div className="fc-wrap">
       {label && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <span
-            style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase" }}
-          >
+        <div className="fc-header">
+          <span className="fc-label">
             {label}
           </span>
           {selected.size > 0 && (
             <button
               onClick={handleClearAll}
-              style={{
-                background: "none",
-                border: "none",
-                color: "var(--accent-color)",
-                fontSize: "10px",
-                cursor: "pointer",
-                padding: "2px 4px",
-              }}
+              className="fc-clear-btn"
             >
               Clear
             </button>
@@ -107,13 +93,7 @@ export default function FilterChips<T extends string>({
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "6px",
-        }}
-      >
+      <div className="fc-chips">
         {options.map((option) => {
           const isSelected = selected.has(option);
           const color = getChipColor(option);
@@ -122,30 +102,21 @@ export default function FilterChips<T extends string>({
             <button
               key={option}
               onClick={() => handleChipClick(option)}
+              className="fc-chip"
               style={{
-                padding: "4px 10px",
-                borderRadius: "12px",
-                border: isSelected ? `1px solid ${color}` : "1px solid var(--border-color)",
-                background: isSelected ? color : "transparent",
-                color: isSelected ? "white" : "var(--text-secondary)",
-                fontSize: "11px",
-                fontWeight: isSelected ? 500 : 400,
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
+                '--fc-chip-border': isSelected ? `1px solid ${color}` : "1px solid var(--border-color)",
+                '--fc-chip-bg': isSelected ? color : "transparent",
+                '--fc-chip-color': isSelected ? "white" : "var(--text-secondary)",
+                '--fc-chip-weight': isSelected ? 500 : 400,
+              } as React.CSSProperties}
             >
               {/* Color dot when not selected */}
               {!isSelected && (
                 <span
+                  className="fc-chip-dot"
                   style={{
-                    width: "6px",
-                    height: "6px",
-                    borderRadius: "50%",
-                    background: color,
-                  }}
+                    '--fc-dot-bg': color,
+                  } as React.CSSProperties}
                 />
               )}
               {getDisplayLabel(option)}

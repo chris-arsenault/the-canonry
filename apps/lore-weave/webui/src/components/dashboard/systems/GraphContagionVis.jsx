@@ -129,8 +129,8 @@ function StateLegend() {
         {states.map((s) => (
           <div key={s.key} className="vis-legend-item">
             <div
-              className="vis-legend-swatch circle"
-              style={{ backgroundColor: STATE_COLORS[s.key] }}
+              className="vis-legend-swatch circle vis-legend-swatch-dynamic"
+              style={{ '--vis-swatch-color': STATE_COLORS[s.key] }}
             />
             <span>{s.label}</span>
           </div>
@@ -300,16 +300,16 @@ function ContagionGraph({ width, height, network, config: _config, selectedTick:
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="vis-tooltip"
+          className="vis-tooltip vis-tooltip-dynamic"
           style={{
-            left: tooltip.x + 15,
-            top: tooltip.y - 10,
+            '--vis-tooltip-left': `${tooltip.x + 15}px`,
+            '--vis-tooltip-top': `${tooltip.y - 10}px`,
           }}
         >
           <div className="vis-tooltip-header">{tooltip.node.label}</div>
           <div className="vis-tooltip-row">
             <span className="vis-tooltip-label">State</span>
-            <span className="vis-tooltip-value" style={{ color: STATE_COLORS[tooltip.node.state] }}>
+            <span className="vis-tooltip-value vis-tooltip-value-dynamic" style={{ '--vis-tooltip-value-color': STATE_COLORS[tooltip.node.state] }}>
               {tooltip.node.state}
             </span>
           </div>
@@ -389,7 +389,7 @@ export function GraphContagionVis({ config, systemActions, selectedTick }) {
       <div className="vis-empty">
         <div className="vis-empty-icon">&#9673;</div>
         <div>No contagion data</div>
-        <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>
+        <div className="vis-info-hint">
           Run simulation with {config.name} enabled
         </div>
       </div>
@@ -405,15 +405,15 @@ export function GraphContagionVis({ config, systemActions, selectedTick }) {
       <div className="vis-container-header">
         <div className="vis-container-title">
           {config.name}
-          <span style={{ color: "#64748b", marginLeft: 8 }}>
+          <span className="vis-subtitle">
             S:{counts.susceptible || 0} I:{counts.infected || 0} R:{counts.recovered || 0}
           </span>
         </div>
         {newInfections > 0 && (
-          <div style={{ fontSize: 11, color: "#ef4444" }}>+{newInfections} new infections</div>
+          <div className="vis-info-danger">+{newInfections} new infections</div>
         )}
       </div>
-      <div className="vis-container-body" style={{ height: "calc(100% - 40px)" }}>
+      <div className="vis-container-body vis-container-body-full">
         <ParentSize>
           {({ width, height }) =>
             width > 0 &&

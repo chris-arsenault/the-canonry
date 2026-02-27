@@ -7,6 +7,7 @@
 
 import React from "react";
 import PropTypes from "prop-types";
+import "./EventSwimlanes.css";
 import { SWIMLANE_CONFIG } from "./scales";
 import { EVENT_COLORS } from "./SimulationTraceVisx";
 
@@ -144,7 +145,7 @@ function Swimlane({
           return (
             <g
               key={event.uniqueId}
-              style={{ cursor: "pointer" }}
+              className="es-marker"
               onMouseEnter={() => onEventHover(event.uniqueId)}
               onMouseLeave={() => onEventHover(null)}
               onClick={(e) => {

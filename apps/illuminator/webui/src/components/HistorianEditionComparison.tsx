@@ -9,6 +9,7 @@
 
 import React, { useState, useMemo } from "react";
 import { diffWords } from "diff";
+import "./HistorianEditionComparison.css";
 import type { HistorianNote } from "../lib/historianTypes";
 
 interface HistoryEntry {
@@ -129,24 +130,16 @@ export default function HistorianEditionComparison({
   const deltaSign = wordDelta >= 0 ? "+" : "";
 
   return (
-    <div style={{ marginTop: "var(--space-sm)" }}>
+    <div className="hec-wrapper">
       <div
         onClick={() => setExpanded(!expanded)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          cursor: "pointer",
-          userSelect: "none",
-          fontSize: "11px",
-          color: "var(--text-muted)",
-        }}
+        className="hec-toggle"
         role="button"
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
         <span>{expanded ? "\u25BC" : "\u25B6"}</span>
-        <span style={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+        <span className="hec-toggle-label">
           Edition Comparison
         </span>
         <span
@@ -157,22 +150,13 @@ export default function HistorianEditionComparison({
       </div>
 
       {expanded && (
-        <div style={{ marginTop: "8px" }}>
+        <div className="hec-expanded">
           {/* Version selectors */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              marginBottom: "8px",
-              flexWrap: "wrap",
-            }}
-          >
+          <div className="hec-selector-row">
             <select
               value={selectedIdx}
               onChange={(e) => setSelectedIdx(Number(e.target.value))}
-              className="illuminator-select"
-              style={{ width: "auto", minWidth: "180px", fontSize: "12px", padding: "4px 6px" }}
+              className="illuminator-select hec-select"
             >
               {versions.map((v, i) => (
                 <option key={i} value={i}>
@@ -183,8 +167,7 @@ export default function HistorianEditionComparison({
             <select
               value={compareIdx}
               onChange={(e) => setCompareIdx(Number(e.target.value))}
-              className="illuminator-select"
-              style={{ width: "auto", minWidth: "160px", fontSize: "12px", padding: "4px 6px" }}
+              className="illuminator-select hec-compare-select"
               title="Select a version to diff against"
             >
               <option value={-1}>Compare to...</option>
@@ -200,30 +183,13 @@ export default function HistorianEditionComparison({
                 })}
             </select>
             {selected.isCurrent ? (
-              <span
-                style={{
-                  fontSize: "11px",
-                  padding: "2px 8px",
-                  background: "rgba(16, 185, 129, 0.15)",
-                  color: "#10b981",
-                  borderRadius: "999px",
-                  fontWeight: 500,
-                }}
-              >
+              <span className="hec-active-badge">
                 Active
               </span>
             ) : (
               <button
                 onClick={() => onRestoreVersion(entityId, selected.historyIndex)}
-                style={{
-                  padding: "4px 10px",
-                  fontSize: "11px",
-                  background: "var(--bg-tertiary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "6px",
-                  color: "var(--text-secondary)",
-                  cursor: "pointer",
-                }}
+                className="hec-make-active-btn"
               >
                 Make Active
               </button>
@@ -242,16 +208,7 @@ export default function HistorianEditionComparison({
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
-                style={{
-                  padding: "4px 10px",
-                  fontSize: "11px",
-                  background: "var(--bg-tertiary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "6px",
-                  color: "var(--text-secondary)",
-                  cursor: "pointer",
-                  marginLeft: "auto",
-                }}
+                className="hec-export-btn"
                 title="Export pre-historian, legacy, and active versions as JSON"
               >
                 Export
@@ -261,15 +218,8 @@ export default function HistorianEditionComparison({
 
           {/* Word count summary */}
           {compare && (
-            <div
-              style={{
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                marginBottom: "8px",
-                display: "flex",
-                gap: "12px",
-              }}
-            >
+            <div className="hec-word-summary">
+
               <span>
                 {"\u25C6"} {selected.label}: {selected.wordCount.toLocaleString()}w
               </span>
@@ -277,11 +227,11 @@ export default function HistorianEditionComparison({
                 {"\u25C6"} {compare.label}: {compare.wordCount.toLocaleString()}w
               </span>
               <span
+                className="hec-word-delta"
                 style={{
-                  color:
+                  "--hec-delta-color":
                     wordDelta < 0 ? "#22c55e" : wordDelta > 0 ? "#f59e0b" : "var(--text-muted)",
-                  fontWeight: 600,
-                }}
+                } as React.CSSProperties}
               >
                 {deltaSign}
                 {wordDelta.toLocaleString()}w ({deltaSign}
@@ -294,20 +244,8 @@ export default function HistorianEditionComparison({
           {compare ? (
             <DiffView older={compare.description} newer={selected.description} />
           ) : (
-            <div
-              style={{
-                padding: "10px 12px",
-                background: "var(--bg-tertiary)",
-                borderRadius: "4px",
-                border: "1px solid var(--border-color)",
-                fontSize: "11px",
-                lineHeight: "1.8",
-                maxHeight: "400px",
-                overflow: "auto",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-              }}
-            >
+            <div className="hec-text-view">
+
               {selected.description}
             </div>
           )}
@@ -320,48 +258,18 @@ export default function HistorianEditionComparison({
 function DiffView({ older, newer }: Readonly<{ older: string; newer: string }>) {
   const changes = diffWords(older, newer);
   return (
-    <div
-      style={{
-        padding: "10px 12px",
-        background: "var(--bg-tertiary)",
-        borderRadius: "4px",
-        border: "1px solid var(--border-color)",
-        fontSize: "11px",
-        lineHeight: "1.8",
-        maxHeight: "400px",
-        overflow: "auto",
-        whiteSpace: "pre-wrap",
-        wordBreak: "break-word",
-      }}
-    >
+    <div className="hec-text-view">
       {changes.map((part, i) => {
         if (part.added) {
           return (
-            <span
-              key={i}
-              style={{
-                background: "rgba(34, 197, 94, 0.2)",
-                color: "var(--text-primary)",
-                borderRadius: "2px",
-                padding: "0 1px",
-              }}
-            >
+            <span key={i} className="hec-diff-added">
               {part.value}
             </span>
           );
         }
         if (part.removed) {
           return (
-            <span
-              key={i}
-              style={{
-                background: "rgba(239, 68, 68, 0.2)",
-                color: "var(--text-secondary)",
-                borderRadius: "2px",
-                padding: "0 1px",
-                textDecoration: "line-through",
-              }}
-            >
+            <span key={i} className="hec-diff-removed">
               {part.value}
             </span>
           );

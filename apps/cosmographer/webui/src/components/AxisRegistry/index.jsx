@@ -8,205 +8,7 @@
 import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import { TagSelector } from "@penguin-tales/shared-components";
-
-const styles = {
-  container: {
-    maxWidth: "1000px",
-  },
-  header: {
-    marginBottom: "16px",
-  },
-  title: {
-    fontSize: "20px",
-    fontWeight: 600,
-    marginBottom: "4px",
-  },
-  subtitle: {
-    color: "#888",
-    fontSize: "13px",
-  },
-  toolbar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "16px",
-  },
-  addButton: {
-    padding: "8px 16px",
-    fontSize: "13px",
-    backgroundColor: "#60a5fa",
-    color: "#0a1929",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontWeight: 500,
-  },
-  axisList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-  axisCard: {
-    backgroundColor: "#0c1f2e",
-    borderRadius: "6px",
-    border: "1px solid rgba(59, 130, 246, 0.3)",
-    padding: "14px 16px",
-  },
-  axisHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: "8px",
-  },
-  axisName: {
-    fontSize: "15px",
-    fontWeight: 600,
-    color: "#93c5fd",
-  },
-  axisDescription: {
-    fontSize: "12px",
-    color: "#888",
-    marginTop: "2px",
-  },
-  axisRange: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    marginTop: "10px",
-    padding: "8px 12px",
-    backgroundColor: "rgba(96, 165, 250, 0.1)",
-    borderRadius: "4px",
-  },
-  tag: {
-    padding: "3px 8px",
-    fontSize: "11px",
-    backgroundColor: "rgba(96, 165, 250, 0.2)",
-    color: "#93c5fd",
-    borderRadius: "3px",
-    fontFamily: "monospace",
-  },
-  arrow: {
-    color: "#60a5fa",
-    fontSize: "14px",
-  },
-  usageInfo: {
-    fontSize: "11px",
-    color: "#666",
-    marginTop: "8px",
-  },
-  usageKind: {
-    color: "#93c5fd",
-  },
-  actions: {
-    display: "flex",
-    gap: "6px",
-  },
-  editButton: {
-    padding: "4px 10px",
-    fontSize: "11px",
-    backgroundColor: "rgba(96, 165, 250, 0.2)",
-    color: "#93c5fd",
-    border: "none",
-    borderRadius: "3px",
-    cursor: "pointer",
-  },
-  deleteButton: {
-    padding: "4px 10px",
-    fontSize: "11px",
-    backgroundColor: "transparent",
-    color: "#f87171",
-    border: "1px solid #f87171",
-    borderRadius: "3px",
-    cursor: "pointer",
-  },
-  emptyState: {
-    color: "#666",
-    fontSize: "14px",
-    textAlign: "center",
-    padding: "60px 20px",
-  },
-  modal: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000,
-  },
-  modalContent: {
-    backgroundColor: "#0c1f2e",
-    padding: "24px",
-    borderRadius: "8px",
-    width: "440px",
-    border: "1px solid rgba(59, 130, 246, 0.3)",
-  },
-  modalTitle: {
-    fontSize: "16px",
-    fontWeight: 600,
-    marginBottom: "16px",
-    color: "#93c5fd",
-  },
-  formGroup: {
-    marginBottom: "14px",
-  },
-  label: {
-    fontSize: "12px",
-    color: "#888",
-    marginBottom: "4px",
-    display: "block",
-  },
-  input: {
-    width: "100%",
-    padding: "8px 10px",
-    fontSize: "14px",
-    backgroundColor: "#0a1929",
-    border: "1px solid rgba(59, 130, 246, 0.3)",
-    borderRadius: "4px",
-    color: "#eee",
-    boxSizing: "border-box",
-  },
-  inputRow: {
-    display: "flex",
-    gap: "12px",
-  },
-  inputHalf: {
-    flex: 1,
-  },
-  hint: {
-    fontSize: "11px",
-    color: "#666",
-    marginTop: "4px",
-  },
-  modalActions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "8px",
-    marginTop: "20px",
-  },
-  cancelButton: {
-    padding: "8px 16px",
-    fontSize: "13px",
-    backgroundColor: "rgba(96, 165, 250, 0.1)",
-    color: "#93c5fd",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-  },
-  saveButton: {
-    padding: "8px 16px",
-    fontSize: "13px",
-    backgroundColor: "#60a5fa",
-    color: "#0a1929",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontWeight: 500,
-  },
-};
+import "./AxisRegistry.css";
 
 export default function AxisRegistryEditor({
   axisDefinitions = [],
@@ -397,63 +199,63 @@ export default function AxisRegistryEditor({
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <div style={styles.title}>Axis Registry</div>
-        <div style={styles.subtitle}>
+    <div className="axr-container">
+      <div className="axr-header">
+        <div className="axr-title">Axis Registry</div>
+        <div className="axr-subtitle">
           Define reusable semantic axes. Tags are auto-configured when you save.
         </div>
       </div>
 
-      <div style={styles.toolbar}>
-        <span style={{ color: "#888", fontSize: "13px" }}>
+      <div className="axr-toolbar">
+        <span className="axr-count">
           {axisDefinitions.length} {axisDefinitions.length === 1 ? "axis" : "axes"} defined
         </span>
-        <button style={styles.addButton} onClick={openNewModal}>
+        <button className="axr-add-button" onClick={openNewModal}>
           + New Axis
         </button>
       </div>
 
       {axisDefinitions.length === 0 ? (
-        <div style={styles.emptyState}>
+        <div className="axr-empty-state">
           No axes defined yet. Create your first axis to start building semantic planes.
         </div>
       ) : (
-        <div style={styles.axisList}>
+        <div className="axr-axis-list">
           {axisDefinitions.map((axis) => {
             const usage = axisUsage[axis.id] || [];
             return (
-              <div key={axis.id} style={styles.axisCard}>
-                <div style={styles.axisHeader}>
+              <div key={axis.id} className="axr-axis-card">
+                <div className="axr-axis-header">
                   <div>
-                    <div style={styles.axisName}>{axis.name}</div>
+                    <div className="axr-axis-name">{axis.name}</div>
                     {axis.description && (
-                      <div style={styles.axisDescription}>{axis.description}</div>
+                      <div className="axr-axis-description">{axis.description}</div>
                     )}
                   </div>
-                  <div style={styles.actions}>
-                    <button style={styles.editButton} onClick={() => openEditModal(axis)}>
+                  <div className="axr-actions">
+                    <button className="axr-edit-button" onClick={() => openEditModal(axis)}>
                       Edit
                     </button>
-                    <button style={styles.deleteButton} onClick={() => deleteAxis(axis.id)}>
+                    <button className="axr-delete-button" onClick={() => deleteAxis(axis.id)}>
                       Delete
                     </button>
                   </div>
                 </div>
 
-                <div style={styles.axisRange}>
-                  <span style={styles.tag}>{axis.lowTag}</span>
-                  <span style={styles.arrow}>←―――→</span>
-                  <span style={styles.tag}>{axis.highTag}</span>
+                <div className="axr-axis-range">
+                  <span className="axr-tag">{axis.lowTag}</span>
+                  <span className="axr-arrow">←―――→</span>
+                  <span className="axr-tag">{axis.highTag}</span>
                 </div>
 
                 {usage.length > 0 && (
-                  <div style={styles.usageInfo}>
+                  <div className="axr-usage-info">
                     Used in:{" "}
                     {usage.map((u, i) => (
                       <span key={u.kind}>
                         {i > 0 && ", "}
-                        <span style={styles.usageKind}>
+                        <span className="axr-usage-kind">
                           {u.description || u.kind} ({u.axis})
                         </span>
                       </span>
@@ -468,16 +270,16 @@ export default function AxisRegistryEditor({
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div style={styles.modal} onClick={closeModal} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") closeModal(); }} >
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
-            <div style={styles.modalTitle}>
+        <div className="axr-modal" onClick={closeModal} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") closeModal(); }} >
+          <div className="axr-modal-content" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+            <div className="axr-modal-title">
               {editingAxis ? `Edit Axis: ${editingAxis.name}` : "New Axis Definition"}
             </div>
 
-            <div style={styles.formGroup}>
-              <label htmlFor="name" style={styles.label}>Name</label>
+            <div className="axr-form-group">
+              <label htmlFor="name" className="axr-label">Name</label>
               <input id="name"
-                style={styles.input}
+                className="axr-input"
                 placeholder="e.g., Power, Alignment, Element"
                 value={formData.name}
                 onChange={(e) => handleNameChange(e.target.value)}
@@ -486,34 +288,34 @@ export default function AxisRegistryEditor({
               />
             </div>
 
-            <div style={styles.formGroup}>
-              <label htmlFor="id" style={styles.label}>ID</label>
+            <div className="axr-form-group">
+              <label htmlFor="id" className="axr-label">ID</label>
               <input id="id"
-                style={styles.input}
+                className="axr-input"
                 placeholder="e.g., power, alignment, element"
                 value={formData.id}
                 onChange={(e) => setFormData({ ...formData, id: e.target.value })}
                 disabled={!!editingAxis}
               />
-              <div style={styles.hint}>
+              <div className="axr-hint">
                 {editingAxis ? "ID cannot be changed" : "Auto-generated from name"}
               </div>
             </div>
 
-            <div style={styles.formGroup}>
-              <label htmlFor="description-optional" style={styles.label}>Description (optional)</label>
+            <div className="axr-form-group">
+              <label htmlFor="description-optional" className="axr-label">Description (optional)</label>
               <input id="description-optional"
-                style={styles.input}
+                className="axr-input"
                 placeholder="Brief description of this axis"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
 
-            <div style={styles.inputRow}>
-              <div style={styles.inputHalf}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Low Tag (0)
+            <div className="axr-input-row">
+              <div className="axr-input-half">
+                <div className="axr-form-group">
+                  <label className="axr-label">Low Tag (0)
                   <TagSelector
                     tagRegistry={tagRegistry}
                     value={formData.lowTag ? [formData.lowTag] : []}
@@ -525,9 +327,9 @@ export default function AxisRegistryEditor({
                   </label>
                 </div>
               </div>
-              <div style={styles.inputHalf}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>High Tag (100)
+              <div className="axr-input-half">
+                <div className="axr-form-group">
+                  <label className="axr-label">High Tag (100)
                   <TagSelector
                     tagRegistry={tagRegistry}
                     value={formData.highTag ? [formData.highTag] : []}
@@ -541,20 +343,18 @@ export default function AxisRegistryEditor({
               </div>
             </div>
 
-            <div style={styles.hint}>
+            <div className="axr-hint">
               Tags will be auto-created in the registry with isAxis=true and set as mutually
               exclusive.
             </div>
 
-            <div style={styles.modalActions}>
-              <button style={styles.cancelButton} onClick={closeModal}>
+            <div className="axr-modal-actions">
+              <button className="axr-cancel-button" onClick={closeModal}>
                 Cancel
               </button>
               <button
-                style={{
-                  ...styles.saveButton,
-                  opacity: formData.name && formData.lowTag && formData.highTag ? 1 : 0.5,
-                }}
+                className="axr-save-button"
+                style={{ '--axr-save-opacity': formData.name && formData.lowTag && formData.highTag ? 1 : 0.5 }}
                 onClick={saveAxis}
                 disabled={!formData.name || !formData.lowTag || !formData.highTag}
               >

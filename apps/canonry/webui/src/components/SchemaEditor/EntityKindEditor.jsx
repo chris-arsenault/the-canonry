@@ -19,6 +19,7 @@ import {
   getEntityKindUsageSummary,
 } from "@penguin-tales/shared-components";
 import { ENTITY_CATEGORIES } from "@canonry/world-schema";
+import "./EntityKindEditor.css";
 
 /**
  * Compute naming profile usage for each entity kind
@@ -269,7 +270,7 @@ export default function EntityKindEditor({
   );
 
   return (
-    <div className="editor-container" style={{ maxWidth: "900px" }}>
+    <div className="editor-container eke-container">
       <SectionHeader
         title="Entity Kinds"
         description="Define the types of entities that exist in your world."
@@ -339,7 +340,7 @@ export default function EntityKindEditor({
                       onChange={(e) => updateKindStyle(ek.kind, { color: e.target.value })}
                     />
                     {!kindColor && (
-                      <div style={{ fontSize: "11px", color: "#fca5a5", marginTop: "4px" }}>
+                      <div className="eke-color-missing">
                         Color required
                       </div>
                     )}
@@ -405,10 +406,7 @@ export default function EntityKindEditor({
                           <span className="chip-content">
                             {subtype.name}
                             {subtype.isAuthority && (
-                              <span
-                                className="badge badge-warning"
-                                style={{ marginLeft: "4px", fontSize: "9px" }}
-                              >
+                              <span className="badge badge-warning eke-authority-badge">
                                 👑
                               </span>
                             )}
@@ -481,17 +479,13 @@ export default function EntityKindEditor({
                 {/* Statuses */}
                 <div className="section">
                   <div className="section-title">Statuses</div>
-                  <div
-                    className="chip-list"
-                    style={{ flexDirection: "column", alignItems: "stretch" }}
-                  >
+                  <div className="chip-list eke-status-list">
                     {ek.statuses.map((status) => (
                       <div
                         key={status.id}
-                        className="chip"
-                        style={{ flexDirection: "column", alignItems: "stretch", padding: "8px" }}
+                        className="chip eke-status-chip"
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <div className="eke-status-row">
                           <input
                             type="checkbox"
                             checked={status.isTerminal}
@@ -500,23 +494,22 @@ export default function EntityKindEditor({
                             title="Terminal status"
                           />
                           <span
+                            className="eke-status-name"
                             style={{
-                              textDecoration: status.isTerminal ? "line-through" : "none",
-                              opacity: status.isTerminal ? 0.7 : 1,
-                              flex: 1,
+                              '--eke-status-decoration': status.isTerminal ? 'line-through' : 'none',
+                              '--eke-status-opacity': status.isTerminal ? 0.7 : 1,
                             }}
                           >
                             {status.name}
                           </span>
                           <select
-                            className="input input-micro"
+                            className="input input-micro eke-status-polarity"
                             value={status.polarity || "neutral"}
                             disabled={isFramework}
                             onChange={(e) =>
                               updateStatusPolarity(ek.kind, status.id, e.target.value)
                             }
                             title="Status polarity (for narrative events)"
-                            style={{ padding: "2px 4px", fontSize: "10px", width: "50px" }}
                           >
                             <option value="positive">+</option>
                             <option value="neutral">○</option>
@@ -530,19 +523,12 @@ export default function EntityKindEditor({
                             ×
                           </button>
                         </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            marginTop: "4px",
-                          }}
-                        >
-                          <span className="text-muted text-small" style={{ width: "40px" }}>
+                        <div className="eke-status-verb-row">
+                          <span className="text-muted text-small eke-verb-label">
                             Verb:
                           </span>
                           <input
-                            className="input input-sm"
+                            className="input input-sm eke-verb-input"
                             value={status.transitionVerb || ""}
                             disabled={isFramework}
                             onChange={(e) =>
@@ -550,7 +536,6 @@ export default function EntityKindEditor({
                             }
                             placeholder="e.g., was destroyed"
                             title="Verb used in narrative events for this status transition"
-                            style={{ flex: 1, fontSize: "11px", padding: "2px 6px" }}
                           />
                         </div>
                       </div>

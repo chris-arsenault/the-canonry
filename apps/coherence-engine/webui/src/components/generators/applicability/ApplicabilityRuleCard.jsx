@@ -137,7 +137,8 @@ export function ApplicabilityRuleCard({
         <div className="condition-card-type">
           <div
             className="condition-card-icon"
-            style={{ backgroundColor: `${typeConfig.color || "#3b82f6"}20` }}
+            // eslint-disable-next-line local/no-inline-styles -- dynamic color per rule type
+            style={{ '--arc-icon-bg': `${typeConfig.color || "#3b82f6"}20`, backgroundColor: 'var(--arc-icon-bg)' }}
           >
             {typeConfig.icon || "📋"}
           </div>
@@ -157,7 +158,7 @@ export function ApplicabilityRuleCard({
       </div>
 
       {expanded && (
-        <div style={{ marginTop: "12px" }}>
+        <div className="mt-lg">
           <div className="form-grid">
             {rule.type === "entity_count" && (
               <>
@@ -241,7 +242,7 @@ export function ApplicabilityRuleCard({
 
             {rule.type === "pressure_any_above" && (
               <>
-                <div style={{ gridColumn: "1 / -1" }}>
+                <div className="grid-col-full">
                   <ChipSelect
                     label="Pressures"
                     value={rule.pressureIds || []}
@@ -297,7 +298,7 @@ export function ApplicabilityRuleCard({
 
 
             {rule.type === "era_match" && (
-              <div style={{ gridColumn: "1 / -1" }}>
+              <div className="grid-col-full">
                 <ChipSelect
                   label="Eras"
                   value={rule.eras || []}
@@ -309,16 +310,16 @@ export function ApplicabilityRuleCard({
             )}
 
             {rule.type === "random_chance" && (
-              <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+              <div className="form-group grid-col-full">
                 <span className="label">Chance (%)</span>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div className="flex items-center gap-lg">
                   <input
                     type="range"
                     min="0"
                     max="100"
                     value={Math.round((rule.chance ?? 0.5) * 100)}
                     onChange={(e) => updateField("chance", parseInt(e.target.value, 10) / 100)}
-                    style={{ flex: 1 }}
+                    className="flex-1"
                   />
                   <NumberInput
                     value={Math.round((rule.chance ?? 0.5) * 100)}
@@ -457,7 +458,7 @@ export function ApplicabilityRuleCard({
             )}
 
             {(rule.type === "tag_exists" || rule.type === "tag_absent") && (
-              <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+              <div className="form-group grid-col-full">
                 <label className="label">Tag
                 <TagSelector
                   value={rule.tag ? [rule.tag] : []}
@@ -471,7 +472,7 @@ export function ApplicabilityRuleCard({
             )}
 
             {rule.type === "tag_exists" && (
-              <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+              <div className="form-group grid-col-full">
                 <label htmlFor="value-optional" className="label">Value (optional)</label>
                 <input id="value-optional"
                   type="text"
@@ -587,7 +588,7 @@ export function ApplicabilityRuleCard({
             )}
 
             {rule.type === "graph_path" && (
-              <div style={{ gridColumn: "1 / -1" }}>
+              <div className="grid-col-full">
                 <GraphPathEditor
                   assert={rule.assert}
                   onChange={(assert) => updateField("assert", assert)}
@@ -598,7 +599,7 @@ export function ApplicabilityRuleCard({
             )}
 
             {rule.type === "entity_exists" && (
-              <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+              <div className="form-group grid-col-full">
                 <label htmlFor="entity-reference" className="label">Entity Reference</label>
                 <input id="entity-reference"
                   type="text"

@@ -14,6 +14,7 @@ import {
   NumberInput,
 } from "@penguin-tales/shared-components";
 import { ToolUsageBadges as UsageBadges } from "@penguin-tales/shared-components";
+import "./TagRegistryEditor.css";
 
 // Category colors (dynamic - keep as objects)
 const CATEGORY_COLORS = {
@@ -60,8 +61,7 @@ function TagIdInput({ value, onChange, allTagIds, disabled }) {
 
   return (
     <input
-      className="input"
-      style={{ fontFamily: "monospace" }}
+      className="input tre-monospace"
       value={localValue}
       disabled={disabled}
       onChange={handleChange}
@@ -136,25 +136,20 @@ export default function TagRegistryEditor({
     onChange(tagRegistry.map((t) => (t.tag === tagId ? { ...t, ...updates } : t)));
   };
 
-  const usageNumberStyle = useMemo(
-    () => ({ width: "60px", padding: "4px 6px", textAlign: "center" }),
-    []
-  );
-
-  const renderTagTitle = (tag) => <span style={{ fontFamily: "monospace" }}>{tag.tag}</span>;
+  const renderTagTitle = (tag) => <span className="tre-monospace">{tag.tag}</span>;
 
   const renderTagActions = (tag, catColor, rarColor, isFramework) => (
     <>
-      <span className="badge" style={{ backgroundColor: catColor.bg, color: catColor.color }}>
+      <span className="badge tre-badge-dynamic" style={{ '--tre-badge-bg': catColor.bg, '--tre-badge-color': catColor.color }}>
         {tag.category}
       </span>
-      <span className="badge" style={{ backgroundColor: rarColor.bg, color: rarColor.color }}>
+      <span className="badge tre-badge-dynamic" style={{ '--tre-badge-bg': rarColor.bg, '--tre-badge-color': rarColor.color }}>
         {tag.rarity}
       </span>
       {tag.isAxis && (
         <span
-          className="badge"
-          style={{ backgroundColor: "rgba(34, 211, 238, 0.2)", color: "#22d3ee" }}
+          className="badge tre-badge-dynamic"
+          style={{ '--tre-badge-bg': 'rgba(34, 211, 238, 0.2)', '--tre-badge-color': '#22d3ee' }}
         >
           ↔ axis
         </span>
@@ -231,29 +226,24 @@ export default function TagRegistryEditor({
   };
 
   return (
-    <div className="editor-container" style={{ maxWidth: "1100px" }}>
+    <div className="editor-container tre-container">
       <SectionHeader
         title="Tag Registry"
         description="Define tags that categorize entities. Tags provide governance through usage limits, relationships, and conflicts."
       />
 
       {/* Stats Bar - Compact */}
-      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "12px" }}>
-        <span
-          className="text-small"
-          style={{ padding: "4px 8px", background: "var(--color-bg-dark)", borderRadius: "4px" }}
-        >
+      <div className="tre-stats-bar">
+        <span className="text-small tre-stat-total">
           <strong>{stats.total}</strong> tags
         </span>
         {CATEGORIES.filter((cat) => stats.byCategory[cat] > 0).map((cat) => (
           <span
             key={cat}
-            className="text-small"
+            className="text-small tre-stat-category"
             style={{
-              padding: "4px 8px",
-              background: CATEGORY_COLORS[cat].bg,
-              color: CATEGORY_COLORS[cat].color,
-              borderRadius: "4px",
+              '--tre-stat-bg': CATEGORY_COLORS[cat].bg,
+              '--tre-stat-color': CATEGORY_COLORS[cat].color,
             }}
           >
             {stats.byCategory[cat]} {cat}
@@ -262,14 +252,13 @@ export default function TagRegistryEditor({
       </div>
 
       {/* Toolbar */}
-      <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "16px" }}>
+      <div className="tre-toolbar">
         <input
-          className="input"
+          className="input tre-search"
           type="text"
           placeholder="Search tags..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          style={{ maxWidth: "300px" }}
         />
         <select
           className="input"
@@ -327,17 +316,9 @@ export default function TagRegistryEditor({
                 actions={renderTagActions(tag, catColor, rarColor, isFramework)}
               >
                 {/* Basic Info Row */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "12px",
-                    flexWrap: "wrap",
-                    alignItems: "flex-end",
-                    marginBottom: "12px",
-                  }}
-                >
-                  <div style={{ flex: "1 1 180px", minWidth: "120px" }}>
-                    <div className="label" style={{ marginBottom: "4px" }}>
+                <div className="tre-basic-row">
+                  <div className="tre-field-id">
+                    <div className="label tre-label-gap">
                       Tag ID
                     </div>
                     <TagIdInput
@@ -348,12 +329,11 @@ export default function TagRegistryEditor({
                     />
                   </div>
                   <div>
-                    <div className="label" style={{ marginBottom: "4px" }}>
+                    <div className="label tre-label-gap">
                       Category
                     </div>
                     <select
-                      className="input"
-                      style={{ width: "auto", padding: "6px 10px" }}
+                      className="input tre-select-compact"
                       value={tag.category}
                       onChange={(e) => updateTag(tag.tag, { category: e.target.value })}
                       disabled={isFramework}
@@ -366,12 +346,11 @@ export default function TagRegistryEditor({
                     </select>
                   </div>
                   <div>
-                    <div className="label" style={{ marginBottom: "4px" }}>
+                    <div className="label tre-label-gap">
                       Rarity
                     </div>
                     <select
-                      className="input"
-                      style={{ width: "auto", padding: "6px 10px" }}
+                      className="input tre-select-compact"
                       value={tag.rarity}
                       onChange={(e) => updateTag(tag.tag, { rarity: e.target.value })}
                       disabled={isFramework}
@@ -383,21 +362,14 @@ export default function TagRegistryEditor({
                       ))}
                     </select>
                   </div>
-                  <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                    <label
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        cursor: "pointer",
-                      }}
-                    >
+                  <div className="tre-axis-group">
+                    <label className="tre-axis-label">
                       <input
                         type="checkbox"
                         checked={tag.isAxis || false}
                         disabled={isFramework}
                         onChange={(e) => updateTag(tag.tag, { isAxis: e.target.checked })}
-                        style={{ width: "14px", height: "14px" }}
+                        className="tre-checkbox"
                       />
                       <span className="text-small">Axis</span>
                     </label>
@@ -405,10 +377,9 @@ export default function TagRegistryEditor({
                 </div>
 
                 {/* Description */}
-                <div style={{ marginBottom: "12px" }}>
+                <div className="tre-description-wrapper">
                   <textarea
-                    className="input"
-                    style={{ minHeight: "50px", resize: "vertical", padding: "8px 10px" }}
+                    className="input tre-textarea"
                     value={tag.description || ""}
                     disabled={isFramework}
                     onChange={(e) => updateTag(tag.tag, { description: e.target.value })}
@@ -417,20 +388,11 @@ export default function TagRegistryEditor({
                 </div>
 
                 {/* Usage Limits - Compact inline */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "12px",
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                    marginBottom: "12px",
-                  }}
-                >
+                <div className="tre-usage-row">
                   <span className="text-small text-muted">Usage:</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <div className="tre-usage-inputs">
                     <NumberInput
-                      className="input"
-                      style={usageNumberStyle}
+                      className="input tre-usage-number"
                       min={0}
                       value={tag.minUsage || 0}
                       disabled={isFramework}
@@ -439,8 +401,7 @@ export default function TagRegistryEditor({
                     />
                     <span className="text-small text-muted">–</span>
                     <NumberInput
-                      className="input"
-                      style={usageNumberStyle}
+                      className="input tre-usage-number"
                       min={0}
                       value={tag.maxUsage || 50}
                       disabled={isFramework}
@@ -448,12 +409,11 @@ export default function TagRegistryEditor({
                       integer
                     />
                   </div>
-                  <span className="text-small text-muted" style={{ marginLeft: "8px" }}>
+                  <span className="text-small text-muted tre-merge-label">
                     Merge →
                   </span>
                   <select
-                    className="input"
-                    style={{ width: "auto", padding: "2px 6px", fontSize: "12px" }}
+                    className="input tre-merge-select"
                     value={tag.consolidateInto || ""}
                     disabled={isFramework}
                     onChange={(e) =>
@@ -473,31 +433,20 @@ export default function TagRegistryEditor({
 
                 {/* Consolidated Tag Relationships - 3 columns */}
                 <div className="nested-section-compact">
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                      gap: "16px",
-                    }}
-                  >
+                  <div className="tre-grid-3col">
                     {/* Entity Kinds */}
                     <div>
-                      <div className="label" style={{ marginBottom: "6px" }}>
+                      <div className="label tre-section-label">
                         Applies to
                       </div>
-                      <div className="chip-list" style={{ marginBottom: "4px" }}>
+                      <div className="chip-list tre-chip-section">
                         {entityKinds.map((ek) => {
                           const isSelected = (tag.entityKinds || []).includes(ek.kind);
                           return (
                             <div
                               key={ek.kind}
-                              className={`chip chip-clickable ${isSelected ? "chip-active" : ""}`}
+                              className={`chip chip-clickable ${isSelected ? "chip-active" : ""} ${isFramework ? "tre-chip-framework" : "tre-chip-compact"}`}
                               onClick={() => handleEntityKindToggle(tag, ek, isFramework)}
-                              style={
-                                isFramework
-                                  ? { pointerEvents: "none", opacity: 0.6 }
-                                  : { padding: "4px 8px", fontSize: "12px" }
-                              }
                               role="button"
                               tabIndex={0}
                               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
@@ -514,22 +463,20 @@ export default function TagRegistryEditor({
 
                     {/* Related Tags */}
                     <div>
-                      <div className="label" style={{ marginBottom: "6px" }}>
+                      <div className="label tre-section-label">
                         Related
                       </div>
-                      <div className="chip-list" style={{ marginBottom: "4px" }}>
+                      <div className="chip-list tre-chip-section">
                         {(tag.relatedTags || []).map((relatedTag) => (
                           <div
                             key={relatedTag}
-                            className="chip"
-                            style={{ padding: "4px 8px", fontSize: "12px" }}
+                            className="chip tre-chip-compact"
                           >
                             <span>{relatedTag}</span>
                             <button
-                              className="chip-remove"
+                              className="chip-remove tre-chip-remove-sm"
                               onClick={() => removeRelatedTag(tag.tag, relatedTag)}
                               disabled={isFramework}
-                              style={{ fontSize: "14px" }}
                             >
                               ×
                             </button>
@@ -537,13 +484,7 @@ export default function TagRegistryEditor({
                         ))}
                         {!isFramework && (
                           <select
-                            className="input"
-                            style={{
-                              width: "auto",
-                              padding: "2px 6px",
-                              fontSize: "12px",
-                              minWidth: "80px",
-                            }}
+                            className="input tre-add-select"
                             value=""
                             onChange={(e) => {
                               if (e.target.value) {
@@ -569,29 +510,20 @@ export default function TagRegistryEditor({
 
                     {/* Conflicting Tags */}
                     <div>
-                      <div
-                        className="label"
-                        style={{ marginBottom: "6px", color: "var(--color-danger)" }}
-                      >
+                      <div className="label tre-conflicts-label">
                         Conflicts
                       </div>
-                      <div className="chip-list" style={{ marginBottom: "4px" }}>
+                      <div className="chip-list tre-chip-section">
                         {(tag.conflictingTags || []).map((conflictingTag) => (
                           <div
                             key={conflictingTag}
-                            className="chip"
-                            style={{
-                              padding: "4px 8px",
-                              fontSize: "12px",
-                              backgroundColor: "rgba(239, 68, 68, 0.2)",
-                            }}
+                            className="chip tre-chip-conflict"
                           >
                             <span>{conflictingTag}</span>
                             <button
-                              className="chip-remove"
+                              className="chip-remove tre-chip-remove-sm"
                               onClick={() => removeConflictingTag(tag.tag, conflictingTag)}
                               disabled={isFramework}
-                              style={{ fontSize: "14px" }}
                             >
                               ×
                             </button>
@@ -599,13 +531,7 @@ export default function TagRegistryEditor({
                         ))}
                         {!isFramework && (
                           <select
-                            className="input"
-                            style={{
-                              width: "auto",
-                              padding: "2px 6px",
-                              fontSize: "12px",
-                              minWidth: "80px",
-                            }}
+                            className="input tre-add-select"
                             value=""
                             onChange={(e) => {
                               if (e.target.value) {

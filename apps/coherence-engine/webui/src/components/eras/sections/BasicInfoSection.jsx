@@ -35,7 +35,7 @@ export function BasicInfoSection({ era, onFieldChange }) {
           />
         </div>
       </div>
-      <div className="form-group" style={{ marginTop: "16px" }}>
+      <div className="form-group mt-xl">
         <label className="label">Summary
         <LocalTextArea value={era.summary} onChange={(value) => onFieldChange("summary", value)} />
         </label>

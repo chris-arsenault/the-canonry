@@ -18,11 +18,6 @@ import PropTypes from 'prop-types';
  * @param {React.ReactNode} props.children - Body content (shown when expanded)
  * @param {string} [props.className] - Additional class for the container
  */
-const styles = {
-  expandIconExpanded: { transform: 'rotate(90deg)' },
-  expandIconCollapsed: { transform: 'rotate(0deg)' },
-};
-
 export function ExpandableCard({
   expanded,
   onToggle,
@@ -46,8 +41,7 @@ export function ExpandableCard({
       <div className="expandable-card-header" onClick={handleToggle} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleToggle(); }} >
         <div className="expandable-card-left">
           <span
-            className="expand-icon"
-            style={expanded ? styles.expandIconExpanded : styles.expandIconCollapsed}
+            className={`expand-icon ${expanded ? 'expand-icon-expanded' : 'expand-icon-collapsed'}`}
           >
             ▶
           </span>

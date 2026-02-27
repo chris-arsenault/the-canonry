@@ -39,12 +39,14 @@
   margin-left: 5px;
   font-size: 11px;
   opacity: 0.85;
+  color: var(--chron-symbol-color);
 }
 
 .chron-card-status {
   font-size: 11px;
   font-weight: 500;
   white-space: nowrap;
+  color: var(--chron-status-color);
 }
 
 .chron-card-subtitle {
@@ -171,12 +173,14 @@
   margin-left: 5px;
   font-size: 10px;
   opacity: 0.85;
+  color: var(--chron-symbol-color);
 }
 
 .chron-era-card-status {
   font-size: 10px;
   font-weight: 500;
   white-space: nowrap;
+  color: var(--chron-status-color);
 }
 
 .chron-era-card-subtitle {
@@ -422,6 +426,10 @@
   font-size: 11px;
   padding: 2px 0;
 }
+
+.chron-bulk-status-text-complete { color: #10b981; }
+.chron-bulk-status-text-failed { color: #ef4444; }
+.chron-bulk-status-text-cancelled { color: #f59e0b; }
 
 /* ============================================================================
  * Main Content Area (nav list + detail panel)

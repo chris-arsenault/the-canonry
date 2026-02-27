@@ -7,6 +7,8 @@
   font-size: 11px;
   font-weight: 500;
   border-radius: 4px;
+  background: var(--badge-bg);
+  color: var(--badge-text);
 }
 
 /* ─── SignificanceBar ─── */
@@ -27,6 +29,8 @@
 .events-panel-significance-fill {
   height: 100%;
   border-radius: 3px;
+  width: var(--sig-width);
+  background: var(--sig-color);
 }
 
 .events-panel-significance-label {

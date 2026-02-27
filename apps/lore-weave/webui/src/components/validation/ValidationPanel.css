@@ -1,0 +1,218 @@
+.validation-panel-container {
+  padding: 24px;
+  height: 100%;
+  overflow: auto;
+}
+
+.validation-panel-header {
+  margin-bottom: 24px;
+}
+
+.validation-panel-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--lw-text);
+  margin-bottom: 8px;
+}
+
+.validation-panel-subtitle {
+  font-size: 14px;
+  color: var(--lw-text-muted);
+}
+
+.validation-panel-status-banner {
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.validation-panel-status-valid {
+  background-color: rgb(74 222 128 / 15%);
+  border: 1px solid rgb(74 222 128 / 30%);
+}
+
+.validation-panel-status-invalid {
+  background-color: rgb(248 113 113 / 15%);
+  border: 1px solid rgb(248 113 113 / 30%);
+}
+
+.validation-panel-status-icon {
+  font-size: 24px;
+}
+
+.validation-panel-status-text {
+  flex: 1;
+}
+
+.validation-panel-status-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.validation-panel-status-subtitle {
+  font-size: 13px;
+  color: var(--lw-text-muted);
+}
+
+.validation-panel-section {
+  margin-bottom: 24px;
+}
+
+.validation-panel-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--lw-text);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.validation-panel-section-count {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background-color: var(--lw-bg-tertiary);
+}
+
+.validation-panel-section-count-error {
+  background-color: rgb(248 113 113 / 20%);
+  color: var(--lw-danger);
+}
+
+.validation-panel-section-count-warning {
+  background-color: rgb(245 158 11 / 20%);
+  color: var(--lw-warning);
+}
+
+.validation-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.validation-panel-error-card,
+.validation-panel-warning-card {
+  background-color: var(--lw-bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--lw-border);
+  overflow: hidden;
+}
+
+.validation-panel-error-header {
+  padding: 12px 16px;
+  background-color: rgb(248 113 113 / 10%);
+  border-bottom: 1px solid var(--lw-border);
+}
+
+.validation-panel-warning-header {
+  padding: 12px 16px;
+  background-color: rgb(245 158 11 / 10%);
+  border-bottom: 1px solid var(--lw-border);
+}
+
+.validation-panel-error-path,
+.validation-panel-warning-path {
+  font-family: monospace;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.validation-panel-error-path {
+  color: var(--lw-danger);
+}
+
+.validation-panel-warning-path {
+  color: var(--lw-warning);
+}
+
+.validation-panel-error-message {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.validation-panel-error-body {
+  padding: 12px 16px;
+}
+
+.validation-panel-error-row {
+  display: flex;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.validation-panel-error-label {
+  width: 80px;
+  color: var(--lw-text-muted);
+  flex-shrink: 0;
+}
+
+.validation-panel-error-value {
+  font-family: monospace;
+  background-color: var(--lw-bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.validation-panel-suggestion {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: rgb(108 155 255 / 10%);
+  border-radius: 6px;
+  border-left: 3px solid var(--lw-accent);
+}
+
+.validation-panel-suggestion-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lw-accent);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.validation-panel-suggestion-text {
+  font-size: 13px;
+  color: var(--lw-text);
+}
+
+.validation-panel-empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--lw-text-muted);
+}
+
+.validation-panel-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.validation-panel-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.validation-panel-stat-card {
+  background-color: var(--lw-bg-secondary);
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--lw-border);
+}
+
+.validation-panel-stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--lw-text);
+}
+
+.validation-panel-stat-label {
+  font-size: 12px;
+  color: var(--lw-text-muted);
+  margin-top: 4px;
+}

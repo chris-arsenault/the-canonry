@@ -1,0 +1,126 @@
+.fd-total-label {
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--lw-text-secondary);
+}
+
+.fd-kind-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.fd-kind-name {
+  font-weight: 600;
+  color: var(--lw-text-primary);
+}
+
+.fd-kind-count {
+  color: #a78bfa;
+}
+
+.fd-subtype-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fd-subtype-badge {
+  background-color: var(--lw-bg-tertiary);
+  color: var(--lw-text-muted);
+}
+
+.fd-rel-name {
+  width: 180px;
+}
+
+.fd-rel-fill {
+  width: var(--fd-rel-fill-width);
+  background-color: #a78bfa;
+}
+
+.fd-section-spacer {
+  margin-top: 16px;
+}
+
+.fd-section-label {
+  font-size: 12px;
+  color: var(--lw-text-muted);
+  margin-bottom: 8px;
+}
+
+.fd-agent-item {
+  border-left: var(--fd-agent-border-left, 3px solid var(--lw-border-color));
+}
+
+.fd-agent-name {
+  width: auto;
+  flex: 1;
+}
+
+.fd-agent-kind {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--lw-text-muted);
+}
+
+.fd-unused-item {
+  border-left: 3px solid var(--lw-text-muted);
+}
+
+.fd-unused-name {
+  width: auto;
+  flex: 1;
+}
+
+.fd-unused-kind {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--lw-text-muted);
+}
+
+.fd-mythic-label {
+  font-size: 12px;
+  color: #fbbf24;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fd-mythic-section {
+  margin-bottom: 16px;
+}
+
+.fd-mythic-item {
+  border-left: 3px solid #fbbf24;
+}
+
+.fd-entity-name {
+  flex: 1;
+  color: var(--lw-text-primary);
+}
+
+.fd-entity-type {
+  font-size: 11px;
+  color: var(--lw-text-muted);
+}
+
+.fd-renowned-label {
+  font-size: 12px;
+  color: #a78bfa;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fd-renowned-item {
+  border-left: 3px solid #a78bfa;
+}
+
+.fd-more-label {
+  font-size: 12px;
+  color: var(--lw-text-muted);
+  text-align: center;
+}

@@ -32,7 +32,7 @@ export function FrameworkSystemTab({ system, onChange }) {
 
         {system.systemType === "eraTransition" && (
           <div className="form-grid">
-            <p className="label" style={{ gridColumn: "1 / -1", color: "#666" }}>
+            <p className="label grid-col-full text-dim">
               Era transition timing is controlled by per-era exitConditions in eras.json. Add a time
               condition (e.g., {`{ type: 'time_elapsed', minTicks: 25 }`}) to control minimum era
               length.

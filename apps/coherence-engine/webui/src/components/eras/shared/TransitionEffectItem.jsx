@@ -7,6 +7,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { ItemRow, NumberInput } from "../../shared";
+import "./TransitionEffectItem.css";
 
 /**
  * @param {Object} props
@@ -27,7 +28,7 @@ export function TransitionEffectItem({ pressureId, value, onChange, onRemove, pr
         className={`input input-compact input-centered ${value >= 0 ? "text-success" : "text-danger"}`}
         integer
       />
-      <span className="text-dim text-sm" style={{ minWidth: "80px" }}>
+      <span className="text-dim text-sm tei-pressure-label">
         {value >= 0 ? "+" : ""}
         {value} pressure
       </span>

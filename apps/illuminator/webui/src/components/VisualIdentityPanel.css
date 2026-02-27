@@ -2,6 +2,10 @@
   margin-bottom: 12px;
 }
 
+.vip-kind-selector-spaced .illuminator-kind-button {
+  border-left: 3px solid var(--vip-culture-color, var(--accent-color));
+}
+
 .vip-input-flex {
   flex: 1;
 }

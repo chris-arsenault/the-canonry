@@ -395,15 +395,18 @@ function FactCoverageGrid({ report }) {
         <span className="ref-tab-fcg-legend">
           {RATING_ORDER.map((r) => (
             <span key={r}>
-              <span style={{ color: RATING_STYLE[r].color, fontWeight: 600 }}>
+              <span
+                className="ref-tab-fcg-legend-symbol"
+                style={{ "--ref-legend-color": RATING_STYLE[r].color }}
+              >
                 {RATING_STYLE[r].symbol}
               </span>{" "}
               {r}
             </span>
           ))}
           <span>
-            <span style={{ color: "#10b981" }}>yes</span>/
-            <span style={{ color: "var(--text-muted)" }}>no</span> = included
+            <span className="ref-tab-fcg-legend-yes">yes</span>/
+            <span className="ref-tab-fcg-legend-no">no</span> = included
           </span>
         </span>
       </div>
@@ -426,19 +429,21 @@ function FactCoverageGrid({ report }) {
               return (
                 <div
                   key={entry.factId}
-                  className="ref-tab-fcg-entry"
-                  // eslint-disable-next-line local/no-inline-styles
-                  style={{ background: bg, borderRadius: bg ? "3px" : undefined }}
+                  className={`ref-tab-fcg-entry ${bg ? "ref-tab-fcg-entry-dynamic" : ""}`}
+                  // eslint-disable-next-line local/no-inline-styles -- dynamic background from mismatch logic
+                  style={bg ? { "--ref-entry-bg": bg, "--ref-entry-radius": "3px" } : undefined}
                   title={entry.factText}
                 >
-                  <span className="ref-tab-fcg-symbol" style={{ color: rs.color }}>
+                  <span
+                    className="ref-tab-fcg-symbol ref-tab-fcg-symbol-dynamic"
+                    style={{ "--ref-symbol-color": rs.color }}
+                  >
                     {rs.symbol}
                   </span>
                   <span className="ref-tab-fcg-fact-id">{entry.factId}</span>
                   { }
                   <span
-                    className="ref-tab-fcg-included"
-                    style={{ color: entry.wasFaceted ? "#10b981" : "var(--text-muted)" }}
+                    className={`ref-tab-fcg-included ${entry.wasFaceted ? "ref-tab-fcg-included-yes" : "ref-tab-fcg-included-no"}`}
                   >
                     {entry.wasFaceted ? "yes" : "no"}
                   </span>
@@ -497,7 +502,11 @@ function FactCoverageViewer({ report, generatedAt }) {
             return (
               <div key={entry.factId} className="ref-tab-fcv-entry">
                 <div className="ref-tab-fcv-entry-row">
-                  <span className="ref-tab-fcv-symbol" style={{ color: rs.color }} title={rs.label}>
+                  <span
+                    className="ref-tab-fcv-symbol ref-tab-fcv-symbol-dynamic"
+                    style={{ "--ref-symbol-color": rs.color }}
+                    title={rs.label}
+                  >
                     {rs.symbol}
                   </span>
                   <span className="ref-tab-fcv-fact-text" title={entry.factText}>

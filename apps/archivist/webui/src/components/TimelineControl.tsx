@@ -5,13 +5,19 @@ import DiscoveryStory from "./DiscoveryStory.tsx";
 import "./TimelineControl.css";
 
 // Type for narrative history events (from world output)
+
 interface NarrativeEvent {
   id: string;
   tick: number;
   era: string;
   eventKind: string;
   significance: number;
-  subject: { id: string; name: string; kind: string; subtype: string };
+  subject: {
+    id: string;
+    name: string;
+    kind: string;
+    subtype: string;
+  };
   action: string;
   description: string;
   narrativeTags: string[];
@@ -24,66 +30,51 @@ interface EraTransitionMilestone {
   era: string;
   description: string;
 }
-
 interface TimelineControlProps {
   worldData: WorldState;
   loreData: LoreData | null;
   currentTick: number;
   onTickChange: (tick: number) => void;
 }
-
 export default function TimelineControl({
   worldData,
   loreData,
   currentTick,
-  onTickChange,
+  onTickChange
 }: Readonly<TimelineControlProps>) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playSpeed, setPlaySpeed] = useState(1);
   const [isExpanded, setIsExpanded] = useState(true);
   const [selectedEraNarrative, setSelectedEraNarrative] = useState<EraNarrativeLore | null>(null);
-  const [selectedEraTransition, setSelectedEraTransition] = useState<EraTransitionMilestone | null>(
-    null
-  );
+  const [selectedEraTransition, setSelectedEraTransition] = useState<EraTransitionMilestone | null>(null);
   const [selectedDiscovery, setSelectedDiscovery] = useState<DiscoveryEventLore | null>(null);
   const previousTickRef = useRef(currentTick);
   const clearEraNarrative = useCallback(() => setSelectedEraNarrative(null), []);
   const clearDiscovery = useCallback(() => setSelectedDiscovery(null), []);
   const noopExplorerClick = useCallback(() => {}, []);
-
   const maxTick = worldData.metadata.tick;
   const minTick = 0;
 
   // Get all era narratives from lore (if available)
   const eraNarratives = useMemo(() => {
-    return (
-      (loreData?.records?.filter(
-        (record) => record.type === "era_narrative"
-      ) as EraNarrativeLore[]) || []
-    );
+    return loreData?.records?.filter(record => record.type === "era_narrative") as EraNarrativeLore[] || [];
   }, [loreData]);
 
   // Get all discovery events from lore (if available)
   const discoveryEvents = useMemo(() => {
-    return (
-      (loreData?.records?.filter(
-        (record) => record.type === "discovery_event"
-      ) as DiscoveryEventLore[]) || []
-    );
+    return loreData?.records?.filter(record => record.type === "discovery_event") as DiscoveryEventLore[] || [];
   }, [loreData]);
 
   // Get era transitions from narrativeHistory (fallback when no loreData)
   const eraTransitions = useMemo(() => {
     const history = worldData.narrativeHistory as NarrativeEvent[] | undefined;
     if (!history) return [];
-    return history
-      .filter((e) => e.eventKind === "era_transition")
-      .map((e) => ({
-        id: e.id,
-        tick: e.tick,
-        era: e.era,
-        description: e.description,
-      }));
+    return history.filter(e => e.eventKind === "era_transition").map(e => ({
+      id: e.id,
+      tick: e.tick,
+      era: e.era,
+      description: e.description
+    }));
   }, [worldData]);
 
   // Use eraNarratives if available, otherwise use eraTransitions
@@ -95,17 +86,12 @@ export default function TimelineControl({
     if (!history) return [];
 
     // Get high-significance events at exact tick, sorted by significance
-    return history
-      .filter(
-        (e) => e.tick === currentTick && e.eventKind !== "era_transition" && e.significance > 0.75
-      )
-      .sort((a, b) => b.significance - a.significance)
-      .slice(0, 5) // Limit to 5 most significant events
-      .map((e) => ({
-        type: e.eventKind,
-        description: e.description,
-        significance: e.significance,
-      }));
+    return history.filter(e => e.tick === currentTick && e.eventKind !== "era_transition" && e.significance > 0.75).sort((a, b) => b.significance - a.significance).slice(0, 5) // Limit to 5 most significant events
+    .map(e => ({
+      type: e.eventKind,
+      description: e.description,
+      significance: e.significance
+    }));
   }, [worldData, currentTick]);
 
   // Detect when crossing era transition ticks
@@ -115,28 +101,20 @@ export default function TimelineControl({
 
     // Check if we crossed an era transition from lore
     if (hasLoreNarratives) {
-      const crossedNarrative = eraNarratives.find((narrative) => {
+      const crossedNarrative = eraNarratives.find(narrative => {
         const tick = narrative.metadata.tick;
-        return (
-          (previousTick < tick && currentTick >= tick) ||
-          (previousTick > tick && currentTick <= tick)
-        );
+        return previousTick < tick && currentTick >= tick || previousTick > tick && currentTick <= tick;
       });
-
       if (crossedNarrative && isPlaying) {
         setSelectedEraNarrative(crossedNarrative);
         setIsPlaying(false);
       }
     } else {
       // Check narrativeHistory era transitions
-      const crossedTransition = eraTransitions.find((transition) => {
+      const crossedTransition = eraTransitions.find(transition => {
         const tick = transition.tick;
-        return (
-          (previousTick < tick && currentTick >= tick) ||
-          (previousTick > tick && currentTick <= tick)
-        );
+        return previousTick < tick && currentTick >= tick || previousTick > tick && currentTick <= tick;
       });
-
       if (crossedTransition && isPlaying) {
         setSelectedEraTransition(crossedTransition);
         setIsPlaying(false);
@@ -147,7 +125,6 @@ export default function TimelineControl({
   // Auto-play functionality
   useEffect(() => {
     if (!isPlaying) return;
-
     const interval = setInterval(() => {
       const nextTick = currentTick + playSpeed;
       if (nextTick >= maxTick) {
@@ -157,15 +134,12 @@ export default function TimelineControl({
         onTickChange(nextTick);
       }
     }, 200);
-
     return () => clearInterval(interval);
   }, [isPlaying, playSpeed, maxTick, currentTick, onTickChange]);
 
   // Determine the era at the current tick by finding the most recent era created before/at this tick
   const currentEra = useMemo(() => {
-    const eras = worldData.hardState
-      .filter((e) => e.kind === "era")
-      .sort((a, b) => a.createdAt - b.createdAt);
+    const eras = worldData.hardState.filter(e => e.kind === "era").sort((a, b) => a.createdAt - b.createdAt);
 
     // Find the last era that was created at or before the current tick
     let activeEra = eras[0]?.name || "unknown";
@@ -180,43 +154,29 @@ export default function TimelineControl({
   }, [worldData.hardState, currentTick]);
 
   // Count entities and relationships at current tick
-  const entitiesAtTick = worldData.hardState.filter((e) => e.createdAt <= currentTick).length;
-  const relationshipsAtTick = worldData.relationships.filter((r) => {
-    const srcEntity = worldData.hardState.find((e) => e.id === r.src);
-    const dstEntity = worldData.hardState.find((e) => e.id === r.dst);
-    return (
-      srcEntity &&
-      dstEntity &&
-      srcEntity.createdAt <= currentTick &&
-      dstEntity.createdAt <= currentTick
-    );
+  const entitiesAtTick = worldData.hardState.filter(e => e.createdAt <= currentTick).length;
+  const relationshipsAtTick = worldData.relationships.filter(r => {
+    const srcEntity = worldData.hardState.find(e => e.id === r.src);
+    const dstEntity = worldData.hardState.find(e => e.id === r.dst);
+    return srcEntity && dstEntity && srcEntity.createdAt <= currentTick && dstEntity.createdAt <= currentTick;
   }).length;
-
   const handlePlayPause = () => {
     if (currentTick >= maxTick) {
       onTickChange(minTick);
     }
     setIsPlaying(!isPlaying);
   };
-
   const handleReset = () => {
     setIsPlaying(false);
     onTickChange(minTick);
   };
-
   const handleToEnd = () => {
     setIsPlaying(false);
     onTickChange(maxTick);
   };
-
-  return (
-    <div className={`timeline-control ${isExpanded ? "expanded" : "collapsed"}`}>
+  return <div className={`timeline-control ${isExpanded ? "expanded" : "collapsed"}`}>
       <div className="timeline-header">
-        <button
-          className="timeline-expand-btn"
-          onClick={() => setIsExpanded(!isExpanded)}
-          title={isExpanded ? "Collapse timeline" : "Expand timeline"}
-        >
+        <button className="timeline-expand-btn" onClick={() => setIsExpanded(!isExpanded)} title={isExpanded ? "Collapse timeline" : "Expand timeline"}>
           {isExpanded ? "▼" : "▲"}
         </button>
         <div className="timeline-title">
@@ -234,76 +194,36 @@ export default function TimelineControl({
         </div>
       </div>
 
-      {isExpanded && (
-        <>
+      {isExpanded && <>
           <div className="timeline-slider-container">
-            <input
-              type="range"
-              min={minTick}
-              max={maxTick}
-              value={currentTick}
-              onChange={(e) => {
-                setIsPlaying(false);
-                onTickChange(parseInt(e.target.value));
-              }}
-              className="timeline-slider"
-            />
+            <input type="range" min={minTick} max={maxTick} value={currentTick} onChange={e => {
+          setIsPlaying(false);
+          onTickChange(parseInt(e.target.value));
+        }} className="timeline-slider" />
             {/* Era Milestones - positioned over the slider */}
-            {(eraNarratives.length > 0 ||
-              eraTransitions.length > 0 ||
-              discoveryEvents.length > 0) && (
-              <div className="timeline-milestones">
+            {(eraNarratives.length > 0 || eraTransitions.length > 0 || discoveryEvents.length > 0) && <div className="timeline-milestones">
                 {/* Era Narratives from loreData */}
-                {eraNarratives.map((narrative) => {
-                  const tick = narrative.metadata.tick;
-                  const percent = (tick / maxTick) * 100;
-                  return (
-                    <button
-                      key={narrative.id}
-                      className={`timeline-milestone timeline-milestone-era ${currentTick === tick ? "active" : ""}`}
-                      style={{ left: `${percent}%` }}
-                      onClick={() => setSelectedEraNarrative(narrative)}
-                      title={`${narrative.metadata.from} → ${narrative.metadata.to} (Tick ${tick})`}
-                    >
+                {eraNarratives.map(narrative => {
+            const tick = narrative.metadata.tick;
+            return <button key={narrative.id} className={`timeline-milestone timeline-milestone-era ${currentTick === tick ? "active" : ""}`} onClick={() => setSelectedEraNarrative(narrative)} title={`${narrative.metadata.from} → ${narrative.metadata.to} (Tick ${tick})`}>
                       📜
-                    </button>
-                  );
-                })}
+                    </button>;
+          })}
                 {/* Era Transitions from narrativeHistory (fallback) */}
-                {!hasLoreNarratives &&
-                  eraTransitions.map((transition) => {
-                    const tick = transition.tick;
-                    const percent = (tick / maxTick) * 100;
-                    return (
-                      <button
-                        key={transition.id}
-                        className={`timeline-milestone timeline-milestone-era ${currentTick === tick ? "active" : ""}`}
-                        style={{ left: `${percent}%` }}
-                        onClick={() => setSelectedEraTransition(transition)}
-                        title={`Era: ${transition.era} (Tick ${tick})`}
-                      >
+                {!hasLoreNarratives && eraTransitions.map(transition => {
+            const tick = transition.tick;
+            return <button key={transition.id} className={`timeline-milestone timeline-milestone-era ${currentTick === tick ? "active" : ""}`} onClick={() => setSelectedEraTransition(transition)} title={`Era: ${transition.era} (Tick ${tick})`}>
                         🏛️
-                      </button>
-                    );
-                  })}
+                      </button>;
+          })}
                 {/* Discovery Events */}
-                {discoveryEvents.map((discovery) => {
-                  const tick = discovery.metadata.tick;
-                  const percent = (tick / maxTick) * 100;
-                  return (
-                    <button
-                      key={discovery.id}
-                      className={`timeline-milestone timeline-milestone-discovery timeline-milestone-${discovery.metadata.discoveryType} ${currentTick === tick ? "active" : ""}`}
-                      style={{ left: `${percent}%` }}
-                      onClick={() => setSelectedDiscovery(discovery)}
-                      title={`Discovery by ${discovery.metadata.explorer} (Tick ${tick})`}
-                    >
+                {discoveryEvents.map(discovery => {
+            const tick = discovery.metadata.tick;
+            return <button key={discovery.id} className={`timeline-milestone timeline-milestone-discovery timeline-milestone-${discovery.metadata.discoveryType} ${currentTick === tick ? "active" : ""}`} onClick={() => setSelectedDiscovery(discovery)} title={`Discovery by ${discovery.metadata.explorer} (Tick ${tick})`}>
                       🧭
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                    </button>;
+          })}
+              </div>}
             <div className="timeline-markers">
               <span>{minTick}</span>
               <span>{maxTick}</span>
@@ -323,11 +243,7 @@ export default function TimelineControl({
 
             <div className="timeline-speed">
               <label htmlFor="speed">Speed:</label>
-              <select id="speed"
-                value={playSpeed}
-                onChange={(e) => setPlaySpeed(Number(e.target.value))}
-                className="timeline-speed-select"
-              >
+              <select id="speed" value={playSpeed} onChange={e => setPlaySpeed(Number(e.target.value))} className="timeline-speed-select">
                 <option value={1}>1x</option>
                 <option value={2}>2x</option>
                 <option value={5}>5x</option>
@@ -338,44 +254,33 @@ export default function TimelineControl({
 
           <div className="timeline-events">
             <div className="timeline-events-header">
-              {currentEvents.length > 0
-                ? `Events at Tick ${currentTick}:`
-                : "No events at this tick"}
+              {currentEvents.length > 0 ? `Events at Tick ${currentTick}:` : "No events at this tick"}
             </div>
             <div className="timeline-events-ticker">
-              {currentEvents.length > 0 ? (
-                currentEvents.map((event, idx) => (
-                  <div key={idx} className={`timeline-event timeline-event-${event.type}`}>
+              {currentEvents.length > 0 ? currentEvents.map((event, idx) => <div key={idx} className={`timeline-event timeline-event-${event.type}`}>
                     <span className="timeline-event-type">{getEventIcon(event.type)}</span>
                     <span className="timeline-event-desc">{event.description}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="timeline-event-empty">
+                  </div>) : <div className="timeline-event-empty">
                   Scrub through time to see historical events unfold
-                </div>
-              )}
+                </div>}
             </div>
           </div>
-        </>
-      )}
+        </>}
 
       {/* Era Narrative Modal (from loreData) */}
-      {selectedEraNarrative && (
-        <EraNarrative lore={selectedEraNarrative} onClose={clearEraNarrative} />
-      )}
+      {selectedEraNarrative && <EraNarrative lore={selectedEraNarrative} onClose={clearEraNarrative} />}
 
       {/* Era Transition Modal (from narrativeHistory) */}
-      {selectedEraTransition && (
-        <div className="era-transition-modal" onClick={() => setSelectedEraTransition(null)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
-          <div className="era-transition-content" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+      {selectedEraTransition && <div className="era-transition-modal" onClick={() => setSelectedEraTransition(null)} role="button" tabIndex={0} onKeyDown={e => {
+      if (e.key === "Enter" || e.key === " ") e.currentTarget.click();
+    }}>
+          <div className="era-transition-content" onClick={e => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={e => {
+        if (e.key === "Enter" || e.key === " ") e.currentTarget.click();
+      }}>
             <div className="era-transition-header">
               <span className="era-transition-icon">🏛️</span>
               <h2>Era Transition</h2>
-              <button
-                className="era-transition-close"
-                onClick={() => setSelectedEraTransition(null)}
-              >
+              <button className="era-transition-close" onClick={() => setSelectedEraTransition(null)}>
                 ×
               </button>
             </div>
@@ -385,20 +290,11 @@ export default function TimelineControl({
               <p className="era-transition-description">{selectedEraTransition.description}</p>
             </div>
           </div>
-        </div>
-      )}
+        </div>}
 
       {/* Discovery Story Modal */}
-      {selectedDiscovery && (
-        <DiscoveryStory
-          lore={selectedDiscovery}
-          onExplorerClick={noopExplorerClick}
-          onClose={clearDiscovery}
-          isModal={true}
-        />
-      )}
-    </div>
-  );
+      {selectedDiscovery && <DiscoveryStory lore={selectedDiscovery} onExplorerClick={noopExplorerClick} onClose={clearDiscovery} isModal={true} />}
+    </div>;
 }
 
 // Helper function to get icon for event type
@@ -416,7 +312,7 @@ function getEventIcon(eventType: string): string {
     triumph: "🏆",
     relationship_formed: "🔗",
     tag_gained: "🏷️",
-    tag_lost: "❌",
+    tag_lost: "❌"
   };
   return icons[eventType] || "📋";
 }

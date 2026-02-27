@@ -7,6 +7,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
+import "./SlotSelector.css";
 
 const MAX_SAVE_SLOTS = 4;
 
@@ -347,7 +348,7 @@ export default function SlotSelector({
         ref={fileInputRef}
         type="file"
         accept=".json,.zip,application/json,application/zip"
-        style={{ display: "none" }}
+        className="ss-hidden-input"
         onChange={handleImportFile}
       />
     </div>

@@ -41,9 +41,16 @@ interface ImageRecord {
   entityId?: string;
   entityName?: string;
   entityKind?: string;
+  entityCulture?: string;
   width?: number;
   height?: number;
   aspect?: 'portrait' | 'landscape' | 'square';
+  originalPrompt?: string;
+  finalPrompt?: string;
+  revisedPrompt?: string;
+  generatedAt?: number;
+  model?: string;
+  size?: number;
 }
 
 function getRecord<T>(db: IDBDatabase, storeName: string, key: string): Promise<T | null> {
@@ -158,9 +165,16 @@ export class IndexedDBBackend implements ImageBackend {
           entityId: record.entityId,
           entityName: record.entityName,
           entityKind: record.entityKind,
+          entityCulture: record.entityCulture,
           width: record.width,
           height: record.height,
           aspect: record.aspect,
+          originalPrompt: record.originalPrompt,
+          finalPrompt: record.finalPrompt,
+          revisedPrompt: record.revisedPrompt,
+          generatedAt: record.generatedAt,
+          model: record.model,
+          size: record.size,
         });
       }
     }

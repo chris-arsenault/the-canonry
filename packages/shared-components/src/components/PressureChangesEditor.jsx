@@ -15,11 +15,6 @@ import PropTypes from 'prop-types';
  * @param {string} [props.label] - Optional custom label (default: "Pressure Changes")
  * @param {string} [props.className] - Additional class names
  */
-const styles = {
-  deltaInput: { width: '80px' },
-  addSelect: { maxWidth: '200px' },
-};
-
 export function PressureChangesEditor({
   value = {},
   onChange,
@@ -56,10 +51,9 @@ export function PressureChangesEditor({
             <span className="item-row-name">{pressureId}</span>
             <input
               type="number"
-              className="input"
+              className="input pressure-changes-delta-input"
               value={delta}
               onChange={(e) => updateDelta(pressureId, e.target.value)}
-              style={styles.deltaInput}
             />
             <button
               className="btn-icon btn-icon-danger"
@@ -72,10 +66,9 @@ export function PressureChangesEditor({
       </div>
       {availablePressures.length > 0 && (
         <select
-          className="select mt-md"
+          className="select mt-md pressure-changes-add-select"
           value=""
           onChange={(e) => addPressure(e.target.value)}
-          style={styles.addSelect}
         >
           <option value="">+ Add pressure change...</option>
           {availablePressures.map((p) => (

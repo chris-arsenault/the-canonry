@@ -1,0 +1,18 @@
+/* TimelineBrush styles */
+
+.tb-svg {
+  display: block;
+  cursor: var(--tb-cursor, crosshair);
+}
+
+.tb-no-pointer {
+  pointer-events: none;
+}
+
+.tb-grab {
+  cursor: grab;
+}
+
+.tb-ew-resize {
+  cursor: ew-resize;
+}

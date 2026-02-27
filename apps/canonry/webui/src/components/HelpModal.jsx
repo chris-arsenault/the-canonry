@@ -4,6 +4,7 @@
 
 import React, { useRef } from "react";
 import PropTypes from "prop-types";
+import "./HelpModal.css";
 
 // Accent colors for each screen (kept for dynamic theming)
 const SCREEN_COLORS = {
@@ -206,7 +207,7 @@ export default function HelpModal({ isOpen, onClose, activeTab }) {
     >
       <div className="modal help-modal">
         <div className="modal-header">
-          <div className="modal-title" style={{ color: content.color }}>
+          <div className="modal-title hm-title-colored" style={{ '--hm-title-color': content.color }}>
             {content.title}
           </div>
           <button className="btn-close" onClick={onClose}>
@@ -226,7 +227,7 @@ export default function HelpModal({ isOpen, onClose, activeTab }) {
             {content.workflow.map((step, index) => (
               <div key={index} className="workflow-step">
                 <div className="workflow-step-header">
-                  <div className="workflow-step-number" style={{ backgroundColor: content.color }}>
+                  <div className="workflow-step-number hm-step-number-colored" style={{ '--hm-step-bg': content.color }}>
                     {index + 1}
                   </div>
                   <div className="workflow-step-title">{step.title}</div>

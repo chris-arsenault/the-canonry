@@ -11,6 +11,7 @@
 
 import React, { useMemo } from "react";
 import type { StoryPotential } from "../../../lib/chronicle/storyPotential";
+import "./StoryPotentialRadar.css";
 
 interface StoryPotentialRadarProps {
   potential: StoryPotential;
@@ -81,7 +82,7 @@ export default function StoryPotentialRadar({
   const gridRings = [0.25, 0.5, 0.75, 1];
 
   return (
-    <svg width={size} height={size} style={{ display: "block" }}>
+    <svg width={size} height={size} className="spr-svg">
       {/* Background */}
       <circle cx={cx} cy={cy} r={maxRadius} fill="var(--bg-tertiary)" />
 
@@ -180,13 +181,13 @@ export function StoryPotentialRadarWithScore({
   size?: number;
 }>) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+    <div className="spr-with-score">
       <StoryPotentialRadar potential={potential} size={size} />
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: "24px", fontWeight: 600, color: "var(--accent-color)" }}>
+      <div className="spr-score-wrap">
+        <div className="spr-score-number">
           {(potential.overallScore * 100).toFixed(0)}
         </div>
-        <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase" }}>
+        <div className="spr-score-label">
           Story Score
         </div>
       </div>
@@ -209,7 +210,7 @@ export function StoryScoreBar({
   const fillWidth = score * width;
 
   return (
-    <svg width={width} height={height} style={{ display: "block" }}>
+    <svg width={width} height={height} className="spr-svg">
       {/* Background */}
       <rect x={0} y={0} width={width} height={height} rx={height / 2} fill="var(--bg-tertiary)" />
       {/* Fill */}
@@ -232,16 +233,11 @@ export function StoryScoreDots({ score, maxDots = 5 }: Readonly<{ score: number;
   const filledDots = Math.max(1, Math.min(maxDots, Math.round(score * maxDots)));
 
   return (
-    <div style={{ display: "flex", gap: "2px" }}>
+    <div className="spr-dots">
       {Array.from({ length: maxDots }).map((_, i) => (
         <span
           key={i}
-          style={{
-            width: "8px",
-            height: "8px",
-            borderRadius: "50%",
-            background: i < filledDots ? "var(--accent-color)" : "var(--bg-tertiary)",
-          }}
+          className={`spr-dot ${i < filledDots ? "spr-dot-filled" : "spr-dot-empty"}`}
         />
       ))}
     </div>

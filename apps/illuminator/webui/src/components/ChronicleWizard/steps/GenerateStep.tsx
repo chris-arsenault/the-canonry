@@ -6,6 +6,7 @@
 
 import { useWizard } from "../WizardContext";
 import React from "react";
+import "./GenerateStep.css";
 
 interface GenerateStepProps {
   onGenerate: () => void;
@@ -21,50 +22,25 @@ export default function GenerateStep({ onGenerate: _onGenerate }: Readonly<Gener
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: "20px" }}>
-        <h4 style={{ margin: "0 0 8px 0" }}>Generate Chronicle</h4>
-        <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "13px" }}>
+      <div className="gs-header">
+        <h4 className="gs-title">Generate Chronicle</h4>
+        <p className="gs-subtitle">
           Review your selections and generate the chronicle.
         </p>
       </div>
 
       {/* Summary */}
-      <div
-        style={{
-          padding: "20px",
-          background: "var(--bg-secondary)",
-          borderRadius: "12px",
-          marginBottom: "24px",
-        }}
-      >
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+      <div className="gs-summary">
+        <div className="gs-summary-grid">
           {/* Style */}
           <div>
-            <div
-              style={{
-                fontSize: "10px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                marginBottom: "4px",
-              }}
-            >
+            <div className="gs-section-label">
               Narrative Style
             </div>
-            <div style={{ fontWeight: 500 }}>
+            <div className="gs-section-value">
               {state.narrativeStyle?.name}
               <span
-                style={{
-                  marginLeft: "8px",
-                  padding: "2px 6px",
-                  background:
-                    state.narrativeStyle?.format === "story"
-                      ? "var(--accent-color)"
-                      : "var(--warning)",
-                  color: "white",
-                  borderRadius: "4px",
-                  fontSize: "9px",
-                  textTransform: "uppercase",
-                }}
+                className={`gs-format-badge ${state.narrativeStyle?.format === "story" ? "gs-format-badge-story" : "gs-format-badge-document"}`}
               >
                 {state.narrativeStyle?.format}
               </span>
@@ -73,19 +49,12 @@ export default function GenerateStep({ onGenerate: _onGenerate }: Readonly<Gener
 
           {/* Entry Point */}
           <div>
-            <div
-              style={{
-                fontSize: "10px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                marginBottom: "4px",
-              }}
-            >
+            <div className="gs-section-label">
               Entry Point
             </div>
-            <div style={{ fontWeight: 500 }}>
+            <div className="gs-section-value">
               {state.entryPoint?.name}
-              <span style={{ color: "var(--text-muted)", fontWeight: 400, marginLeft: "6px" }}>
+              <span className="gs-section-meta">
                 ({state.entryPoint?.kind})
               </span>
             </div>
@@ -93,19 +62,12 @@ export default function GenerateStep({ onGenerate: _onGenerate }: Readonly<Gener
 
           {/* Ensemble */}
           <div>
-            <div
-              style={{
-                fontSize: "10px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                marginBottom: "4px",
-              }}
-            >
+            <div className="gs-section-label">
               Ensemble
             </div>
-            <div style={{ fontWeight: 500 }}>
+            <div className="gs-section-value">
               {state.roleAssignments.length} entities
-              <span style={{ color: "var(--text-muted)", fontWeight: 400, marginLeft: "6px" }}>
+              <span className="gs-section-meta">
                 ({primaryCount} primary, {supportingCount} supporting)
               </span>
             </div>
@@ -113,17 +75,10 @@ export default function GenerateStep({ onGenerate: _onGenerate }: Readonly<Gener
 
           {/* Events & Relationships */}
           <div>
-            <div
-              style={{
-                fontSize: "10px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                marginBottom: "4px",
-              }}
-            >
+            <div className="gs-section-label">
               Context
             </div>
-            <div style={{ fontWeight: 500 }}>
+            <div className="gs-section-value">
               {state.selectedEventIds.size} events, {state.selectedRelationshipIds.size}{" "}
               relationships
             </div>
@@ -132,32 +87,14 @@ export default function GenerateStep({ onGenerate: _onGenerate }: Readonly<Gener
 
         {/* Narrative Lens */}
         {state.lens && (
-          <div style={{ marginTop: "20px" }}>
-            <div
-              style={{
-                fontSize: "10px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                marginBottom: "4px",
-              }}
-            >
+          <div className="gs-lens-section">
+            <div className="gs-section-label">
               Narrative Lens
             </div>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "4px 8px",
-                background: "rgba(139, 92, 246, 0.1)",
-                border: "1px solid rgba(139, 92, 246, 0.3)",
-                borderRadius: "4px",
-                fontSize: "11px",
-              }}
-            >
-              <span style={{ color: "rgba(139, 92, 246, 0.7)" }}>&#x25C8;</span>
-              <span style={{ fontWeight: 500 }}>{state.lens.entityName}</span>
-              <span style={{ color: "var(--text-muted)", fontSize: "10px" }}>
+            <div className="gs-lens-chip">
+              <span className="gs-lens-icon">&#x25C8;</span>
+              <span className="gs-lens-name">{state.lens.entityName}</span>
+              <span className="gs-lens-kind">
                 ({state.lens.entityKind})
               </span>
             </div>
@@ -165,36 +102,21 @@ export default function GenerateStep({ onGenerate: _onGenerate }: Readonly<Gener
         )}
 
         {/* Role Breakdown */}
-        <div style={{ marginTop: "20px" }}>
-          <div
-            style={{
-              fontSize: "10px",
-              color: "var(--text-muted)",
-              textTransform: "uppercase",
-              marginBottom: "8px",
-            }}
-          >
+        <div className="gs-roles-section">
+          <div className="gs-roles-label">
             Role Assignments
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+          <div className="gs-roles-list">
             {state.roleAssignments.map((assignment) => (
               <span
                 key={`${assignment.role}-${assignment.entityId}`}
+                className={`gs-role-chip ${assignment.isPrimary ? "gs-role-chip-primary" : "gs-role-chip-support"}`}
                 style={{
-                  padding: "4px 8px",
-                  background: assignment.isPrimary ? "var(--accent-color)" : "var(--bg-tertiary)",
-                  color: assignment.isPrimary ? "white" : "inherit",
-                  borderRadius: "4px",
-                  fontSize: "11px",
-                }}
+                  '--gs-role-opacity': assignment.isPrimary ? 0.9 : 0.7,
+                } as React.CSSProperties}
               >
-                <span style={{ fontWeight: 500 }}>{assignment.role}</span>
-                <span
-                  style={{
-                    marginLeft: "6px",
-                    opacity: assignment.isPrimary ? 0.9 : 0.7,
-                  }}
-                >
+                <span className="gs-role-name">{assignment.role}</span>
+                <span className="gs-role-entity">
                   {assignment.entityName}
                 </span>
               </span>
@@ -204,21 +126,14 @@ export default function GenerateStep({ onGenerate: _onGenerate }: Readonly<Gener
       </div>
 
       {/* Narrative Direction */}
-      <div style={{ marginBottom: "24px" }}>
-        <div
-          style={{
-            fontSize: "10px",
-            color: "var(--text-muted)",
-            textTransform: "uppercase",
-            marginBottom: "4px",
-          }}
-        >
+      <div className="gs-direction-section">
+        <div className="gs-section-label">
           Narrative Direction
-          <span style={{ textTransform: "none", marginLeft: "6px", fontStyle: "italic" }}>
+          <span className="gs-direction-optional">
             optional
           </span>
         </div>
-        <p style={{ margin: "0 0 8px 0", color: "var(--text-muted)", fontSize: "12px" }}>
+        <p className="gs-direction-desc">
           Concrete story purpose that shapes perspective and generation. Leave empty for open-ended
           chronicles.
         </p>
@@ -226,36 +141,13 @@ export default function GenerateStep({ onGenerate: _onGenerate }: Readonly<Gener
           value={state.narrativeDirection}
           onChange={(e) => setNarrativeDirection(e.target.value)}
           placeholder='e.g. "This is the treaty document that ended the Faction Wars" or "An eyewitness account of the apocalyptic magic that ended the Orca Invasion"'
-          style={{
-            width: "100%",
-            minHeight: "64px",
-            padding: "10px 12px",
-            background: "var(--bg-secondary)",
-            border: "1px solid var(--border-color)",
-            borderRadius: "8px",
-            color: "inherit",
-            fontSize: "13px",
-            fontFamily: "inherit",
-            resize: "vertical",
-            boxSizing: "border-box",
-          }}
+          className="gs-direction-textarea"
         />
       </div>
 
       {/* Info Box */}
-      <div
-        style={{
-          padding: "12px 16px",
-          background: "var(--bg-tertiary)",
-          borderRadius: "8px",
-          fontSize: "12px",
-          color: "var(--text-muted)",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-        }}
-      >
-        <span style={{ fontSize: "16px" }}>💡</span>
+      <div className="gs-info-box">
+        <span className="gs-info-icon">💡</span>
         <span>
           Click &quot;Generate Chronicle&quot; to start generation. The complete chronicle will be ready in
           about 30-60 seconds.

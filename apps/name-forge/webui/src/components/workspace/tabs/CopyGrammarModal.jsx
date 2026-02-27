@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
+import { ModalShell } from "@penguin-tales/shared-components";
 import { previewGrammarNames } from "../../../lib/browser-generator";
 
 const EMPTY_LEXEME_LISTS = Object.freeze({});
@@ -197,17 +198,6 @@ export function CopyGrammarModal({
   const [substitutedGrammar, setSubstitutedGrammar] = useState(null);
   const [dependencies, setDependencies] = useState({ missing: [], existing: [] });
   const [selectedDeps, setSelectedDeps] = useState(new Set());
-  const mouseDownOnOverlay = useRef(false);
-
-  const handleOverlayMouseDown = (e) => {
-    mouseDownOnOverlay.current = e.target === e.currentTarget;
-  };
-
-  const handleOverlayClick = (e) => {
-    if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
-      onClose();
-    }
-  };
 
   const otherCultures = Object.entries(allCultures || {})
     .filter(([id]) => id !== cultureId)
@@ -331,170 +321,154 @@ export function CopyGrammarModal({
       )
     : [];
 
-  return (
-    <div
-      className="modal-overlay"
-      onMouseDown={handleOverlayMouseDown}
-      onClick={handleOverlayClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
-    >
-      <div className="modal-content copy-modal">
-        <div className="tab-header mb-md">
-          <h3 className="mt-0">Copy Grammar from Another Culture</h3>
-          <button className="secondary" onClick={onClose}>
-            ×
-          </button>
-        </div>
+  const footer = (
+    <>
+      <button className="secondary" onClick={onClose}>
+        Cancel
+      </button>
+      <button
+        className="primary"
+        onClick={handleCopy}
+        disabled={!substitutedGrammar || !newGrammarId.trim()}
+      >
+        Copy Grammar
+        {selectedDeps.size > 0 && (
+          ` + ${selectedDeps.size} List${selectedDeps.size > 1 ? "s" : ""}`
+        )}
+      </button>
+    </>
+  );
 
-        <div className="copy-modal-body">
-          <div className="form-group">
-            <label htmlFor="source-culture">Source Culture</label>
-            <select id="source-culture"
-              value={selectedCulture || ""}
-              onChange={(e) => {
-                setSelectedCulture(e.target.value || null);
-                setSelectedGrammar(null);
-              }}
+  return (
+    <ModalShell onClose={onClose} title="Copy Grammar from Another Culture" className="copy-modal" footer={footer}>
+      <div className="form-group">
+        <label htmlFor="source-culture">Source Culture</label>
+        <select id="source-culture"
+          value={selectedCulture || ""}
+          onChange={(e) => {
+            setSelectedCulture(e.target.value || null);
+            setSelectedGrammar(null);
+          }}
+        >
+          <option value="">Select a culture...</option>
+          {otherCultures.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name} ({c.grammars.filter((g) => Object.keys(g.rules || {}).length > 0).length}{" "}
+              grammars)
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {selectedCulture && (
+        <div className="form-group">
+          <label htmlFor="grammar-to-copy">Grammar to Copy</label>
+          {selectedCultureGrammars.length === 0 ? (
+            <p className="text-muted text-small">No grammars with rules in this culture.</p>
+          ) : (
+            <select
+              id="grammar-to-copy"
+              value={selectedGrammar || ""}
+              onChange={(e) => setSelectedGrammar(e.target.value || null)}
             >
-              <option value="">Select a culture...</option>
-              {otherCultures.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.grammars.filter((g) => Object.keys(g.rules || {}).length > 0).length}{" "}
-                  grammars)
+              <option value="">Select a grammar...</option>
+              {selectedCultureGrammars.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.id}
                 </option>
               ))}
             </select>
+          )}
+        </div>
+      )}
+
+      {substitutedGrammar && (
+        <div className="copy-preview">
+          <div className="form-group">
+            <label htmlFor="new-grammar-id">New Grammar ID</label>
+            <input id="new-grammar-id"
+              value={newGrammarId}
+              onChange={(e) => setNewGrammarId(e.target.value)}
+              placeholder="grammar_id"
+            />
           </div>
 
-          {selectedCulture && (
-            <div className="form-group">
-              <label htmlFor="grammar-to-copy">Grammar to Copy</label>
-              {selectedCultureGrammars.length === 0 ? (
-                <p className="text-muted text-small">No grammars with rules in this culture.</p>
-              ) : (
-                <select
-                  id="grammar-to-copy"
-                  value={selectedGrammar || ""}
-                  onChange={(e) => setSelectedGrammar(e.target.value || null)}
-                >
-                  <option value="">Select a grammar...</option>
-                  {selectedCultureGrammars.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.id}
-                    </option>
+          {(dependencies.missing.length > 0 || dependencies.existing.length > 0) && (
+            <div className="dependency-section">
+              <h5>Lexeme List Dependencies</h5>
+
+              {dependencies.existing.length > 0 && (
+                <div className="dependency-list mb-sm">
+                  {dependencies.existing.map((dep) => (
+                    <div key={dep.sourceId} className="dependency-item exists">
+                      <span>✓</span>
+                      <span>
+                        <code>{dep.sourceId}</code> → <code>{dep.targetId}</code>
+                      </span>
+                    </div>
                   ))}
-                </select>
+                </div>
+              )}
+
+              {dependencies.missing.length > 0 && (
+                <>
+                  <p className="text-small text-muted mb-sm">
+                    These lexeme lists are missing. Select which to copy:
+                  </p>
+                  <div className="dependency-list">
+                    {dependencies.missing.map((dep) => (
+                      <label key={dep.sourceId} className="dependency-item missing">
+                        <input
+                          type="checkbox"
+                          checked={selectedDeps.has(dep.sourceId)}
+                          onChange={() => toggleDep(dep.sourceId)}
+                        />
+                        <span>
+                          <code>{dep.sourceId}</code> ({dep.entries} entries)
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           )}
 
-          {substitutedGrammar && (
-            <div className="copy-preview">
-              <div className="form-group">
-                <label htmlFor="new-grammar-id">New Grammar ID</label>
-                <input id="new-grammar-id"
-                  value={newGrammarId}
-                  onChange={(e) => setNewGrammarId(e.target.value)}
-                  placeholder="grammar_id"
-                />
-              </div>
-
-              {(dependencies.missing.length > 0 || dependencies.existing.length > 0) && (
-                <div className="dependency-section">
-                  <h5>Lexeme List Dependencies</h5>
-
-                  {dependencies.existing.length > 0 && (
-                    <div className="dependency-list mb-sm">
-                      {dependencies.existing.map((dep) => (
-                        <div key={dep.sourceId} className="dependency-item exists">
-                          <span>✓</span>
-                          <span>
-                            <code>{dep.sourceId}</code> → <code>{dep.targetId}</code>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {dependencies.missing.length > 0 && (
-                    <>
-                      <p className="text-small text-muted mb-sm">
-                        These lexeme lists are missing. Select which to copy:
-                      </p>
-                      <div className="dependency-list">
-                        {dependencies.missing.map((dep) => (
-                          <label key={dep.sourceId} className="dependency-item missing">
-                            <input
-                              type="checkbox"
-                              checked={selectedDeps.has(dep.sourceId)}
-                              onChange={() => toggleDep(dep.sourceId)}
-                            />
-                            <span>
-                              <code>{dep.sourceId}</code> ({dep.entries} entries)
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    </>
-                  )}
+          <div className="copy-preview-section">
+            <h4>Substitutions Applied</h4>
+            <p className="text-small text-muted">
+              References to source culture resources are substituted with matching resources
+              from this culture.
+            </p>
+            <div className="copy-preview-rules">
+              {Object.entries(substitutedGrammar.rules || {}).map(([key, productions]) => (
+                <div key={key} className="rule-card">
+                  <div className="font-mono text-small">
+                    <strong className="text-gold">{key}</strong>
+                    <span className="text-muted"> → </span>
+                    {productions.map((prod, i) => (
+                      <span key={i}>
+                        <span className="text-light">{prod.join(" ")}</span>
+                        {i < productions.length - 1 && <span className="text-muted"> | </span>}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              )}
-
-              <div className="copy-preview-section">
-                <h4>Substitutions Applied</h4>
-                <p className="text-small text-muted">
-                  References to source culture resources are substituted with matching resources
-                  from this culture.
-                </p>
-                <div className="copy-preview-rules">
-                  {Object.entries(substitutedGrammar.rules || {}).map(([key, productions]) => (
-                    <div key={key} className="rule-card">
-                      <div className="font-mono text-small">
-                        <strong className="text-gold">{key}</strong>
-                        <span className="text-muted"> → </span>
-                        {productions.map((prod, i) => (
-                          <span key={i}>
-                            <span className="text-light">{prod.join(" ")}</span>
-                            {i < productions.length - 1 && <span className="text-muted"> | </span>}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="copy-preview-section">
-                <h4>Sample Names</h4>
-                <GrammarPreview
-                  grammar={substitutedGrammar}
-                  domains={cultureConfig?.naming?.domains || []}
-                  lexemeLists={cultureConfig?.naming?.lexemeLists || EMPTY_LEXEME_LISTS}
-                />
-              </div>
+              ))}
             </div>
-          )}
-        </div>
+          </div>
 
-        <div className="modal-footer">
-          <button className="secondary" onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            className="primary"
-            onClick={handleCopy}
-            disabled={!substitutedGrammar || !newGrammarId.trim()}
-          >
-            Copy Grammar
-            {selectedDeps.size > 0 && (
-              ` + ${selectedDeps.size} List${selectedDeps.size > 1 ? "s" : ""}`
-            )}
-          </button>
+          <div className="copy-preview-section">
+            <h4>Sample Names</h4>
+            <GrammarPreview
+              grammar={substitutedGrammar}
+              domains={cultureConfig?.naming?.domains || []}
+              lexemeLists={cultureConfig?.naming?.lexemeLists || EMPTY_LEXEME_LISTS}
+            />
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </ModalShell>
   );
 }
 

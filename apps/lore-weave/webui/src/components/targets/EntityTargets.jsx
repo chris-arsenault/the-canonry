@@ -5,6 +5,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { NumberInput } from "@penguin-tales/shared-components";
+import "./EntityTargets.css";
 
 export default function EntityTargets({ entities, updateTargets, distributionTargets }) {
   // Group by entity kind
@@ -27,8 +28,8 @@ export default function EntityTargets({ entities, updateTargets, distributionTar
           {Object.entries(subtypes).map(([subtype, config]) => (
             <div key={subtype} className="lw-row">
               <span className="lw-row-label">{subtype}</span>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <label className="lw-label" style={{ marginBottom: 0 }}>
+              <div className="et-controls">
+                <label className="lw-label et-label-inline">
                   Target:
                 <NumberInput
                   className="lw-input-small"
@@ -45,7 +46,7 @@ export default function EntityTargets({ entities, updateTargets, distributionTar
                 </label>
               </div>
               {config.comment && (
-                <span className="lw-comment" style={{ marginTop: 0, marginLeft: "8px" }}>
+                <span className="lw-comment et-comment">
                   {config.comment}
                 </span>
               )}

@@ -6,6 +6,7 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import { PressureCard } from "./cards";
 import { buildStorageKey, clearStoredValue, loadStoredValue } from "../../utils/persistence";
+import "./PressuresEditor.css";
 
 export default function PressuresEditor({ projectId, pressures = [], onChange, schema, usageMap }) {
   const [expandedPressure, setExpandedPressure] = useState(null);
@@ -82,16 +83,15 @@ export default function PressuresEditor({ projectId, pressures = [], onChange, s
         </div>
         <div className="empty-state">
           <div className="empty-state-icon">🌡️</div>
-          <div style={{ fontSize: "18px", fontWeight: 500, color: "#ffffff", marginBottom: "8px" }}>
+          <div className="pe-empty-title">
             No pressures defined
           </div>
-          <div style={{ marginBottom: "24px" }}>
+          <div className="pe-empty-desc">
             Pressures respond to world state with feedback and a pull toward equilibrium, driving
             the narrative forward.
           </div>
           <button
-            className="btn btn-primary"
-            style={{ width: "auto", padding: "14px 28px" }}
+            className="btn btn-primary pe-create-btn"
             onClick={handleAddPressure}
           >
             + Create First Pressure

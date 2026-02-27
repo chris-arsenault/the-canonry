@@ -53,7 +53,7 @@ export function GeneratorListCard({ generator, onClick, onToggle, usageMap }) {
     >
       <div className="card-header">
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div className="flex items-center gap-md">
             <span className="card-title">{generator.name || generator.id}</span>
             <ErrorBadge count={errorCount} />
           </div>
@@ -90,7 +90,7 @@ export function GeneratorListCard({ generator, onClick, onToggle, usageMap }) {
 
       <EraBadges eras={eraUsage} />
       {isOrphan && (
-        <div style={{ marginTop: "8px" }}>
+        <div className="mt-md">
           <OrphanBadge isOrphan={isOrphan} />
         </div>
       )}
