@@ -1,3 +1,4 @@
+<!-- drift-generated -->
 # ADR-009: CSS Architecture -- No Inline Styles
 
 ## Status

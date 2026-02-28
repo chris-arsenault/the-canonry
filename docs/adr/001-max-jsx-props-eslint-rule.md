@@ -1,3 +1,4 @@
+<!-- drift-generated -->
 # ADR-001: Custom ESLint Rule for Maximum JSX Props
 
 **Status:** Accepted

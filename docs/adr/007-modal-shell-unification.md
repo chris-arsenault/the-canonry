@@ -1,3 +1,4 @@
+<!-- drift-generated -->
 # ADR-007: Modal Shell Unification
 
 ## Status

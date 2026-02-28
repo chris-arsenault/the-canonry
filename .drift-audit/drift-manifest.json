@@ -1,0 +1,692 @@
+{
+  "generated": "2026-02-26T14:15:00Z",
+  "project_root": "/home/tsonu/src/the-canonry",
+  "project_name": "penguin-tales",
+  "summary": {
+    "total_drift_areas": 16,
+    "total_files_affected": 228,
+    "high_impact": 5,
+    "medium_impact": 8,
+    "low_impact": 3,
+    "by_type": {
+      "structural": 12,
+      "behavioral": 4,
+      "semantic": 0
+    }
+  },
+  "areas": [
+    {
+      "id": "dependency-version-two-cohort-split",
+      "name": "Dependency Version Two-Cohort Split",
+      "type": "structural",
+      "description": "Archivist and chronicler were set up with newer dependency versions, creating a systematic split across the monorepo: vite 6.x vs 7.x, @vitejs/plugin-react 4.x vs 5.x, @module-federation/vite ^1.1.0 vs ^1.3.1, react ^19.0.0 vs ^19.2.0, TypeScript specifiers ranging from ^5.3.0 to ~5.9.3, and @types/react ^19.0.0 vs ^19.2.5.",
+      "impact": "HIGH",
+      "total_files": 20,
+      "variants": [
+        {
+          "name": "older-cohort",
+          "description": "vite 6.x, @vitejs/plugin-react 4.x, @module-federation/vite ^1.1.0, react ^19.0.0. Seven apps: canonry, coherence-engine, cosmographer, illuminator, lore-weave, name-forge, viewer.",
+          "file_count": 7,
+          "files": [
+            "apps/canonry/webui/package.json",
+            "apps/coherence-engine/webui/package.json",
+            "apps/cosmographer/webui/package.json",
+            "apps/illuminator/webui/package.json",
+            "apps/lore-weave/webui/package.json",
+            "apps/name-forge/webui/package.json",
+            "apps/viewer/webui/package.json"
+          ],
+          "sample_file": "apps/canonry/webui/package.json"
+        },
+        {
+          "name": "newer-cohort",
+          "description": "vite 7.x, @vitejs/plugin-react 5.x, @module-federation/vite ^1.3.1, react ^19.2.0, TypeScript ~5.9.3. Two apps: archivist, chronicler.",
+          "file_count": 2,
+          "files": [
+            "apps/archivist/webui/package.json",
+            "apps/chronicler/webui/package.json"
+          ],
+          "sample_file": "apps/archivist/webui/package.json"
+        }
+      ],
+      "analysis": "The vite 6.x/7.x split is the highest-risk drift — different bundler majors can produce incompatible module federation outputs. All version specifiers (react, @types/react, @module-federation/vite) follow the same two-cohort boundary. Aligning to the newer cohort (vite 7.x, react ^19.2.0) would eliminate 6+ distinct version mismatches in one sweep.",
+      "recommendation": "Upgrade all 7 older-cohort apps to match archivist/chronicler versions. Consider pnpm catalog: or shared .pnpmfile.cjs to enforce single-version policy.",
+      "status": "pending"
+    },
+    {
+      "id": "eslint-config-fragmentation",
+      "name": "ESLint Configuration Fragmentation",
+      "type": "structural",
+      "description": "The root eslint.config.js provides comprehensive linting (typescript-eslint, SonarJS, jsx-a11y, complexity limits, custom rules). But archivist and name-forge have independent app-level configs that bypass root rules entirely — no a11y, no SonarJS, no complexity limits, no custom rules. Additionally, 5 apps redundantly declare eslint dependencies at different versions than root, including an eslint-plugin-react-hooks v5 vs v7 major split.",
+      "impact": "HIGH",
+      "total_files": 8,
+      "variants": [
+        {
+          "name": "root-config-only",
+          "description": "Apps that rely solely on root eslint.config.js and get full linting coverage. No per-app eslint deps or config.",
+          "file_count": 4,
+          "files": [
+            "apps/coherence-engine/webui/package.json",
+            "apps/cosmographer/webui/package.json",
+            "apps/illuminator/webui/package.json",
+            "apps/lore-weave/webui/package.json"
+          ],
+          "sample_file": "apps/coherence-engine/webui/package.json"
+        },
+        {
+          "name": "independent-app-config",
+          "description": "Apps with their own eslint.config.js that bypass root rules. Significantly weaker quality gates.",
+          "file_count": 2,
+          "files": [
+            "apps/archivist/webui/eslint.config.js",
+            "apps/name-forge/webui/eslint.config.js"
+          ],
+          "sample_file": "apps/archivist/webui/eslint.config.js"
+        },
+        {
+          "name": "redundant-deps-only",
+          "description": "Apps that declare redundant eslint dependencies at different versions from root but have no app-level config file.",
+          "file_count": 2,
+          "files": [
+            "apps/canonry/webui/package.json",
+            "apps/viewer/webui/package.json"
+          ],
+          "sample_file": "apps/canonry/webui/package.json"
+        }
+      ],
+      "analysis": "The independent configs in archivist and name-forge are likely artifacts from create-vite scaffolding that were never removed after the root config was established. The eslint-plugin-react-hooks v5 vs v7 split is a breaking API change (v7 requires flat config). Since the root config already uses flat config with v7, the per-app v5 declarations should be removed.",
+      "recommendation": "Delete per-app eslint configs and eslint-related devDependencies from all apps. The root config covers everything via turbo. This eliminates the fragmentation in one sweep.",
+      "status": "pending"
+    },
+    {
+      "id": "modal-implementation-drift",
+      "name": "Modal Implementation Drift",
+      "type": "structural",
+      "description": "The shared library provides ModalShell, but only 5 files use it (3 in coherence-engine, 2 in name-forge). Meanwhile, 33+ files hand-roll modal overlays with 33+ unique CSS class prefixes. The illuminator alone has ~25 independent modal implementations, each with its own abbreviated CSS prefix (srm-, rfm-, qcm-, etc.).",
+      "impact": "HIGH",
+      "total_files": 38,
+      "variants": [
+        {
+          "name": "shared-modal-shell",
+          "description": "Uses <ModalShell> from @penguin-tales/shared-components. Provides overlay click-to-close, header with icon/title, optional tabbed sidebar.",
+          "file_count": 5,
+          "files": [
+            "apps/coherence-engine/webui/src/components/generators/GeneratorModal.jsx",
+            "apps/coherence-engine/webui/src/components/systems/SystemModal.jsx",
+            "apps/coherence-engine/webui/src/components/actions/ActionModal.jsx",
+            "apps/name-forge/webui/src/components/conditions/ConditionsModal.jsx",
+            "apps/name-forge/webui/src/components/profiles/ProfileModal.jsx"
+          ],
+          "sample_file": "apps/coherence-engine/webui/src/components/generators/GeneratorModal.jsx"
+        },
+        {
+          "name": "hand-rolled-modal-overlay",
+          "description": "Each component implements its own overlay div with mouseDown close handler and unique CSS class prefix. No shared structure, header, or behavior.",
+          "file_count": 33,
+          "files": [
+            "apps/illuminator/webui/src/components/ActivityPanel.jsx",
+            "apps/illuminator/webui/src/components/ImagePickerModal.jsx",
+            "apps/illuminator/webui/src/components/ChroniclePanel.jsx",
+            "apps/illuminator/webui/src/components/SummaryRevisionModal.tsx",
+            "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+            "apps/illuminator/webui/src/components/BulkEraNarrativeModal.jsx",
+            "apps/illuminator/webui/src/components/EntityRenameModal.tsx",
+            "apps/illuminator/webui/src/components/CorpusFindReplace.tsx",
+            "apps/illuminator/webui/src/components/ChronicleImagePanel.tsx",
+            "apps/archivist/webui/src/components/RelationshipStoryModal.tsx",
+            "apps/archivist/webui/src/components/DiscoveryStory.tsx",
+            "apps/archivist/webui/src/components/EraNarrative.tsx",
+            "apps/lore-weave/webui/src/components/DebugSettingsModal.jsx",
+            "apps/name-forge/webui/src/components/optimizer/ResultsModal.jsx",
+            "apps/chronicler/webui/src/components/ImageLightbox.tsx",
+            "apps/canonry/webui/src/components/HelpModal.jsx"
+          ],
+          "sample_file": "apps/illuminator/webui/src/components/SummaryRevisionModal.tsx"
+        }
+      ],
+      "analysis": "ModalShell has a 13% adoption rate (5/38 modal instances). The hand-rolled modals are not inferior — many have features ModalShell lacks (e.g., full-bleed layouts, specialized keyboard handling, scrollable content). But the structural duplication of overlay click-close logic across 33+ files is pure drift. ModalShell may need feature additions (full-bleed mode, keyboard trap) to serve as a universal base.",
+      "recommendation": "Extend ModalShell to cover the superset of features needed (full-bleed, keyboard trap, scroll handling), then migrate hand-rolled modals to use it. Illuminator modals are the highest-value targets due to volume.",
+      "status": "pending"
+    },
+    {
+      "id": "css-theming-drift",
+      "name": "CSS Theming and Styling Approach Drift",
+      "type": "structural",
+      "description": "Three distinct CSS strategies coexist (plain CSS, CSS Modules, JS style objects) with four separate CSS variable systems using different naming conventions: shared-components (--color-bg), illuminator (--bg-primary), chronicler (--color-bg-primary with different palette), canonry (JS camelCase theme object).",
+      "impact": "HIGH",
+      "total_files": 136,
+      "variants": [
+        {
+          "name": "plain-css-shared-vars",
+          "description": "Global CSS classes with shared-components CSS variables (--color-bg, --color-text, --spacing-*). Used by coherence-engine, lore-weave, name-forge, viewer.",
+          "file_count": 32,
+          "files": [
+            "packages/shared-components/src/styles/theme.css",
+            "apps/coherence-engine/webui/src/styles/theme.css"
+          ],
+          "sample_file": "packages/shared-components/src/styles/theme.css"
+        },
+        {
+          "name": "plain-css-illuminator-vars",
+          "description": "Global CSS with illuminator-specific variables (--bg-primary, --text-color, --space-*). Different naming scheme from shared-components.",
+          "file_count": 66,
+          "files": [
+            "apps/illuminator/webui/src/App.css"
+          ],
+          "sample_file": "apps/illuminator/webui/src/App.css"
+        },
+        {
+          "name": "css-modules-chronicler",
+          "description": "CSS Modules (*.module.css) with chronicler-specific variables (--color-bg-primary with warm brown palette, serif fonts).",
+          "file_count": 13,
+          "files": [
+            "apps/chronicler/webui/src/styles/variables.css"
+          ],
+          "sample_file": "apps/chronicler/webui/src/styles/variables.css"
+        },
+        {
+          "name": "js-inline-styles-canonry",
+          "description": "JS theme object with camelCase properties (colors.bgPrimary, typography.sizeLg). Applied via style={{}} props. No CSS files for components.",
+          "file_count": 25,
+          "files": [
+            "apps/canonry/webui/src/theme.js"
+          ],
+          "sample_file": "apps/canonry/webui/src/theme.js"
+        }
+      ],
+      "analysis": "The styling approach drift has organic roots — each app evolved independently. Chronicler's warm-library aesthetic and canonry's JS theme approach serve genuine design goals. However, the CSS variable naming inconsistency (--color-bg vs --bg-primary vs --color-bg-primary) means shared components can't reliably theme across apps. The illuminator's 66 CSS files using a non-standard variable scheme is the largest single source of drift.",
+      "recommendation": "Standardize CSS variable naming to match shared-components (--color-*, --spacing-*, --font-size-*). Each app can override values for its own palette but should use consistent names. The chronicler's CSS Modules approach is fine — it's a deliberate design choice for scoping, not drift.",
+      "status": "pending"
+    },
+    {
+      "id": "shared-hook-divergence",
+      "name": "Shared Hook Divergence",
+      "type": "structural",
+      "description": "Two hooks are duplicated between packages/shared-components and apps/coherence-engine: useLocalInputState (functionally identical copy) and useEditorState (diverged — coherence-engine version adds localStorage persistence via selectedId/persistKey that the shared version lacks).",
+      "impact": "MEDIUM",
+      "total_files": 6,
+      "variants": [
+        {
+          "name": "shared-package-version",
+          "description": "useEditorState tracks selection by index (selectedIndex integer). No persistence. useLocalInputState is the canonical implementation.",
+          "file_count": 2,
+          "files": [
+            "packages/shared-components/src/components/hooks/useEditorState.js",
+            "packages/shared-components/src/components/hooks/useLocalInputState.js"
+          ],
+          "sample_file": "packages/shared-components/src/components/hooks/useEditorState.js"
+        },
+        {
+          "name": "coherence-engine-local-copy",
+          "description": "useEditorState tracks selection by ID (selectedId string), adds localStorage persistence via persistKey option. useLocalInputState is byte-for-byte identical copy (dead drift).",
+          "file_count": 2,
+          "files": [
+            "apps/coherence-engine/webui/src/components/shared/hooks/useEditorState.js",
+            "apps/coherence-engine/webui/src/components/shared/hooks/useLocalInputState.js"
+          ],
+          "sample_file": "apps/coherence-engine/webui/src/components/shared/hooks/useEditorState.js"
+        }
+      ],
+      "analysis": "The useLocalInputState copy is pure dead drift — delete and import from shared. The useEditorState divergence is real feature drift — the coherence-engine version gained persistence that should be backported to the shared package.",
+      "recommendation": "1. Delete coherence-engine's useLocalInputState copy, import from @penguin-tales/shared-components. 2. Backport persistence feature to shared useEditorState, then delete coherence-engine copy.",
+      "status": "pending"
+    },
+    {
+      "id": "typescript-migration-inconsistency",
+      "name": "TypeScript Migration Inconsistency",
+      "type": "structural",
+      "description": "7 webui apps are pure JavaScript, 2 are pure TypeScript (archivist, chronicler), 1 is mid-migration (illuminator). TypeScript strictness varies: illuminator has strict:false+allowJs, lore-weave overrides noImplicitAny:false despite strict:true, archivist/chronicler have 6 extra strict flags no other project uses. Three different module/moduleResolution strategies exist across tsconfigs.",
+      "impact": "MEDIUM",
+      "total_files": 14,
+      "variants": [
+        {
+          "name": "pure-javascript-apps",
+          "description": "No TypeScript in webui layer. Components use PropTypes for runtime validation.",
+          "file_count": 7,
+          "files": [
+            "apps/canonry/webui/package.json",
+            "apps/coherence-engine/webui/package.json",
+            "apps/cosmographer/webui/package.json",
+            "apps/lore-weave/webui/package.json",
+            "apps/name-forge/webui/package.json",
+            "apps/viewer/webui/package.json",
+            "packages/shared-components/package.json"
+          ],
+          "sample_file": "apps/canonry/webui/package.json"
+        },
+        {
+          "name": "pure-typescript-strict",
+          "description": "Full TypeScript with strict:true and extra strict flags (noUnusedLocals, noUnusedParameters, erasableSyntaxOnly, verbatimModuleSyntax). Props typed via interfaces.",
+          "file_count": 2,
+          "files": [
+            "apps/archivist/webui/tsconfig.app.json",
+            "apps/chronicler/webui/tsconfig.app.json"
+          ],
+          "sample_file": "apps/archivist/webui/tsconfig.app.json"
+        },
+        {
+          "name": "mixed-js-ts-lenient",
+          "description": "Mid-migration with allowJs:true and strict:false. 192 TS files alongside 81 JS files. Newer components in TS, older in JS.",
+          "file_count": 1,
+          "files": [
+            "apps/illuminator/webui/tsconfig.app.json"
+          ],
+          "sample_file": "apps/illuminator/webui/tsconfig.app.json"
+        }
+      ],
+      "analysis": "The JS-to-TS migration is organic and understandable — not all drift needs to be resolved. However, the module/moduleResolution inconsistency (ESNext/bundler vs Node16/Node16 vs NodeNext/NodeNext) can cause subtle import resolution differences. The lore-weave noImplicitAny:false override effectively undermines strict mode for 83 files.",
+      "recommendation": "Standardize module/moduleResolution to ESNext/bundler for all vite-based apps. Fix lore-weave's noImplicitAny:false override. The JS-to-TS migration is a longer-term effort and not urgent to unify.",
+      "status": "pending"
+    },
+    {
+      "id": "shared-component-adoption-gap",
+      "name": "Shared Component Adoption Gap",
+      "type": "structural",
+      "description": "packages/shared-components exports 25 JSX components, 2 hooks, and utility modules. But only coherence-engine (heavy) and name-forge (moderate) meaningfully use them. Illuminator imports only LocalTextArea. Archivist, chronicler, and viewer import zero components from shared-components.",
+      "impact": "MEDIUM",
+      "total_files": 25,
+      "variants": [
+        {
+          "name": "heavy-adoption",
+          "description": "Uses most shared-components: form inputs, ModalShell, validation badges, hooks, utilities.",
+          "file_count": 2,
+          "files": [
+            "apps/coherence-engine/webui/package.json",
+            "apps/name-forge/webui/package.json"
+          ],
+          "sample_file": "apps/coherence-engine/webui/package.json"
+        },
+        {
+          "name": "minimal-or-no-adoption",
+          "description": "Imports zero or near-zero components from shared-components. Implements equivalent UI locally.",
+          "file_count": 5,
+          "files": [
+            "apps/illuminator/webui/package.json",
+            "apps/archivist/webui/package.json",
+            "apps/chronicler/webui/package.json",
+            "apps/lore-weave/webui/package.json",
+            "apps/viewer/webui/package.json"
+          ],
+          "sample_file": "apps/illuminator/webui/package.json"
+        }
+      ],
+      "analysis": "The shared-components library was designed around coherence-engine's needs. Illuminator, archivist, and chronicler evolved independently with their own component patterns. The gap isn't necessarily bad — these apps have different UI requirements — but basic primitives (ModalShell, EmptyState, form inputs) could be shared more widely.",
+      "recommendation": "Audit which shared components would benefit illuminator, archivist, and chronicler. Focus on ModalShell adoption (see modal-implementation-drift area) and form primitives. Don't force adoption where app-specific UI is genuinely needed.",
+      "status": "pending"
+    },
+    {
+      "id": "state-management-approach-drift",
+      "name": "State Management Approach Drift",
+      "type": "structural",
+      "description": "Illuminator uses 15 zustand stores extensively. Canonry manages all state via 30+ useState calls in a single App.jsx component. Coherence-engine uses no state library, relying on prop drilling from canonry plus localStorage persistence. Shared packages use zustand. One component (ChronicleWizard) uses useReducer+Context.",
+      "impact": "MEDIUM",
+      "total_files": 20,
+      "variants": [
+        {
+          "name": "zustand-stores",
+          "description": "Domain-specific zustand stores with selector hooks. Clean separation of concerns. Used by illuminator (15 stores), shared packages (image-store, narrative-store), archivist, chronicler, viewer.",
+          "file_count": 8,
+          "files": [
+            "apps/illuminator/webui/src/lib/db/entityStore.ts",
+            "apps/illuminator/webui/src/lib/db/chronicleStore.ts",
+            "apps/illuminator/webui/src/lib/db/modalStore.ts",
+            "packages/image-store/src/store.ts",
+            "packages/narrative-store/src/index.ts",
+            "packages/world-store/src/index.ts"
+          ],
+          "sample_file": "apps/illuminator/webui/src/lib/db/entityStore.ts"
+        },
+        {
+          "name": "mega-usestate-component",
+          "description": "30+ independent useState calls in App.jsx managing everything from active tab to AWS config. Persistence via explicit IndexedDB read/write. No zustand, no Context, no reducers.",
+          "file_count": 1,
+          "files": [
+            "apps/canonry/webui/src/App.jsx"
+          ],
+          "sample_file": "apps/canonry/webui/src/App.jsx"
+        },
+        {
+          "name": "prop-drilling-with-persistence",
+          "description": "Coherence-engine receives all state from canonry host via props. Uses localStorage via local persistence.js utility for UI state. No state library.",
+          "file_count": 3,
+          "files": [
+            "apps/coherence-engine/webui/src/components/shared/hooks/useEditorState.js",
+            "apps/coherence-engine/webui/src/components/generators/GeneratorsEditor.jsx",
+            "apps/coherence-engine/webui/src/components/pressures/PressuresEditor.jsx"
+          ],
+          "sample_file": "apps/coherence-engine/webui/src/components/generators/GeneratorsEditor.jsx"
+        }
+      ],
+      "analysis": "Zustand is the de facto standard (used by shared packages and the most complex app). Canonry's mega-useState pattern is a legacy artifact that works but doesn't scale. Coherence-engine's prop-drilling is architecturally sound given it's a module federation remote receiving state from the host — not necessarily drift. The main concern is canonry's App.jsx which will become increasingly unmaintainable.",
+      "recommendation": "Migrate canonry's App.jsx state to zustand stores, matching the pattern used by illuminator and shared packages. Coherence-engine's approach is fine for its role as a remote.",
+      "status": "pending"
+    },
+    {
+      "id": "image-store-bypass",
+      "name": "Image Store Bypass in Illuminator",
+      "type": "structural",
+      "description": "packages/image-store provides a zustand-based abstraction for image blob loading (useImageUrl returning {url, loading}). Archivist and chronicler use it correctly. But illuminator — the heaviest image consumer — has its own useImageUrl implementation reading directly from Dexie, returning a richer {url, loading, error, metadata} shape.",
+      "impact": "MEDIUM",
+      "total_files": 4,
+      "variants": [
+        {
+          "name": "shared-image-store",
+          "description": "useImageUrl/useImageUrls from @penguin-tales/image-store. Zustand-backed, returns {url, loading}.",
+          "file_count": 2,
+          "files": [
+            "packages/image-store/src/hooks.ts",
+            "packages/image-store/src/store.ts"
+          ],
+          "sample_file": "packages/image-store/src/hooks.ts"
+        },
+        {
+          "name": "illuminator-dexie-direct",
+          "description": "useImageUrl reading directly from Dexie IndexedDB. Returns richer {url, loading, error, metadata} shape with error handling.",
+          "file_count": 1,
+          "files": [
+            "apps/illuminator/webui/src/hooks/useImageUrl.ts"
+          ],
+          "sample_file": "apps/illuminator/webui/src/hooks/useImageUrl.ts"
+        }
+      ],
+      "analysis": "The illuminator version is feature-richer (error state, metadata). The shared version is simpler but incomplete. This is a case where the shared package didn't keep pace with the most demanding consumer.",
+      "recommendation": "Backport illuminator's richer return shape to @penguin-tales/image-store, then migrate illuminator to use the shared package.",
+      "status": "pending"
+    },
+    {
+      "id": "module-federation-shared-deps-mismatch",
+      "name": "Module Federation Shared Dependencies Mismatch",
+      "type": "structural",
+      "description": "Each MFE remote declares a different subset of shared dependencies in its vite.config. The host (canonry) shares react, react-dom, zustand, and image-store, but not all remotes declare the same shared set. Missing shared declarations cause duplicate bundles at runtime.",
+      "impact": "MEDIUM",
+      "total_files": 9,
+      "variants": [
+        {
+          "name": "minimal-sharing",
+          "description": "Only shares react and react-dom.",
+          "file_count": 4,
+          "files": [
+            "apps/coherence-engine/webui/vite.config.js",
+            "apps/name-forge/webui/vite.config.js",
+            "apps/cosmographer/webui/vite.config.js",
+            "apps/lore-weave/webui/vite.config.js"
+          ],
+          "sample_file": "apps/coherence-engine/webui/vite.config.js"
+        },
+        {
+          "name": "extended-sharing",
+          "description": "Shares react, react-dom, plus zustand, image-store, narrative-store, and/or world-store.",
+          "file_count": 3,
+          "files": [
+            "apps/archivist/webui/vite.config.ts",
+            "apps/chronicler/webui/vite.config.ts",
+            "apps/illuminator/webui/vite.config.js"
+          ],
+          "sample_file": "apps/archivist/webui/vite.config.ts"
+        }
+      ],
+      "analysis": "The shared dependency declarations should be consistent. Any package used by both the host and a remote should be in the shared list to avoid duplicate bundles. The onwarn boilerplate for federation warnings is also copy-pasted identically across all 8 configs.",
+      "recommendation": "Extract a shared federation config (shared deps list, onwarn boilerplate) into a workspace-level utility. All MFE configs import from it, ensuring consistency.",
+      "status": "pending"
+    },
+    {
+      "id": "directory-naming-conventions",
+      "name": "Directory and File Naming Conventions",
+      "type": "structural",
+      "description": "Component directories use three conventions: PascalCase (canonry, cosmographer, illuminator), kebab-case (coherence-engine, illuminator), and lowercase (coherence-engine, lore-weave, name-forge). Library files use camelCase (lore-weave) vs kebab-case (name-forge). Mixed within illuminator.",
+      "impact": "LOW",
+      "total_files": 40,
+      "variants": [
+        {
+          "name": "pascal-case-dirs",
+          "description": "PascalCase component directories: SchemaEditor/, ChronicleWizard/, RelationshipEditor/",
+          "file_count": 15,
+          "files": [],
+          "sample_file": "apps/illuminator/webui/src/components/ChronicleWizard/"
+        },
+        {
+          "name": "kebab-case-dirs",
+          "description": "kebab-case component directories: naming-profile-viewer/, weight-matrix/, chronicle-workspace/",
+          "file_count": 10,
+          "files": [],
+          "sample_file": "apps/coherence-engine/webui/src/components/pressures/"
+        },
+        {
+          "name": "lowercase-dirs",
+          "description": "Lowercase component directories: generators/, shared/, runner/, config/",
+          "file_count": 15,
+          "files": [],
+          "sample_file": "apps/coherence-engine/webui/src/components/generators/"
+        }
+      ],
+      "analysis": "Within each app the convention is mostly consistent, but there's no cross-app standard. The inconsistency is cosmetic and low-risk. Enforcing one convention would require mass renames with no functional benefit.",
+      "recommendation": "Not worth unifying retroactively. Establish a convention for new code going forward (PascalCase for component dirs matches the file naming convention).",
+      "status": "pending"
+    },
+    {
+      "id": "duplicate-components",
+      "name": "Duplicate Cross-App Components",
+      "type": "structural",
+      "description": "ChronicleSeedViewer exists independently in both chronicler and illuminator. Illuminator has its own IlluminatorEmptyState while the shared library exports EmptyState. These are concrete instances of code duplication across app boundaries.",
+      "impact": "LOW",
+      "total_files": 4,
+      "variants": [
+        {
+          "name": "chronicler-copy",
+          "description": "ChronicleSeedViewer.tsx in chronicler app.",
+          "file_count": 1,
+          "files": [
+            "apps/chronicler/webui/src/components/ChronicleSeedViewer.tsx"
+          ],
+          "sample_file": "apps/chronicler/webui/src/components/ChronicleSeedViewer.tsx"
+        },
+        {
+          "name": "illuminator-copy",
+          "description": "ChronicleSeedViewer.tsx in illuminator app.",
+          "file_count": 1,
+          "files": [
+            "apps/illuminator/webui/src/components/ChronicleSeedViewer.tsx"
+          ],
+          "sample_file": "apps/illuminator/webui/src/components/ChronicleSeedViewer.tsx"
+        }
+      ],
+      "analysis": "ChronicleSeedViewer should live in one place (likely a shared package) since both apps need it. IlluminatorEmptyState may have app-specific styling that justifies its existence — needs verification.",
+      "recommendation": "Move ChronicleSeedViewer to a shared location. Check if IlluminatorEmptyState can be replaced by the shared EmptyState with style overrides.",
+      "status": "pending"
+    },
+    {
+      "id": "modal-close-behavior-drift",
+      "name": "Modal Close Behavior Inconsistency",
+      "type": "behavioral",
+      "description": "31 modal components exhibit 3 different overlay-click behaviors: 16 use mouseDown+click guard (safest), 4 use simple onClick (drag-prone), 15 have no overlay-click-to-close at all. Only 3 modals support Escape key (all image viewers). Only 3 modals implement body scroll lock. Zero modals implement focus trapping.",
+      "impact": "HIGH",
+      "total_files": 31,
+      "variants": [
+        {
+          "name": "mousedown-guard-overlay-close",
+          "description": "Uses mouseDown+click guard pattern preventing accidental close on drag. Used by ModalShell consumers plus HelpModal, DebugSettingsModal, CopyLexemeModal, CopyGrammarModal, RelationshipStoryModal, ImageLightbox, ImageModal, ImagePickerModal.",
+          "file_count": 16,
+          "files": [
+            "packages/shared-components/src/components/ModalShell.jsx",
+            "apps/coherence-engine/webui/src/components/systems/SystemModal.jsx",
+            "apps/coherence-engine/webui/src/components/generators/GeneratorModal.jsx",
+            "apps/coherence-engine/webui/src/components/actions/modals/ActionModal.jsx",
+            "apps/canonry/webui/src/components/HelpModal.jsx",
+            "apps/lore-weave/webui/src/components/DebugSettingsModal.jsx",
+            "apps/archivist/webui/src/components/RelationshipStoryModal.tsx",
+            "apps/chronicler/webui/src/components/ImageLightbox.tsx",
+            "apps/illuminator/webui/src/components/ImageModal.jsx",
+            "apps/illuminator/webui/src/components/ImagePickerModal.jsx"
+          ],
+          "sample_file": "packages/shared-components/src/components/ModalShell.jsx"
+        },
+        {
+          "name": "simple-onclick-overlay-close",
+          "description": "Uses e.target===e.currentTarget on click only, no mouseDown guard. Drag from modal to overlay triggers close.",
+          "file_count": 4,
+          "files": [
+            "apps/illuminator/webui/src/components/EraNarrativeModal.jsx",
+            "apps/illuminator/webui/src/components/QuickCheckModal.jsx",
+            "apps/illuminator/webui/src/components/ChronologyModal.jsx",
+            "apps/name-forge/webui/src/components/optimizer/ResultsModal.jsx"
+          ],
+          "sample_file": "apps/illuminator/webui/src/components/EraNarrativeModal.jsx"
+        },
+        {
+          "name": "no-overlay-close",
+          "description": "No overlay click handler. Modal can only be closed via footer buttons. All Bulk* modals, DynamicsGenerationModal, BackportConfigModal, CreateEntityModal, HistorianReviewModal, SummaryRevisionModal, etc.",
+          "file_count": 15,
+          "files": [
+            "apps/illuminator/webui/src/components/BulkEraNarrativeModal.jsx",
+            "apps/illuminator/webui/src/components/BulkHistorianModal.jsx",
+            "apps/illuminator/webui/src/components/BulkBackportModal.jsx",
+            "apps/illuminator/webui/src/components/BulkFactCoverageModal.jsx",
+            "apps/illuminator/webui/src/components/BulkToneRankingModal.jsx",
+            "apps/illuminator/webui/src/components/BulkChronicleAnnotationModal.jsx",
+            "apps/illuminator/webui/src/components/InterleavedAnnotationModal.jsx",
+            "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+            "apps/illuminator/webui/src/components/SummaryRevisionModal.jsx",
+            "apps/illuminator/webui/src/components/DynamicsGenerationModal.jsx",
+            "apps/illuminator/webui/src/components/BackportConfigModal.jsx",
+            "apps/illuminator/webui/src/components/HistorianReviewModal.jsx",
+            "apps/illuminator/webui/src/components/EntityRenameModal.tsx",
+            "apps/illuminator/webui/src/components/ToneAssignmentPreviewModal.jsx",
+            "apps/illuminator/webui/src/components/RevisionFilterModal.jsx"
+          ],
+          "sample_file": "apps/illuminator/webui/src/components/BulkHistorianModal.jsx"
+        }
+      ],
+      "behavior_matrix": {
+        "summary": "16 modals with mouseDown guard, 4 with simple onClick, 15 with no overlay close. 3/31 support Escape. 3/31 have scroll lock. 0/31 have focus trap."
+      },
+      "analysis": "The no-overlay-close modals in illuminator are likely intentional for long-running workflows (accidental close would lose progress). But the split between mouseDown guard and simple onClick is pure drift — both intend to support overlay close but the simple variant has a drag-to-close bug. ModalShell should be extended with Escape key, scroll lock, and an opt-out prop for overlay close.",
+      "recommendation": "Add Escape key close + body scroll lock to ModalShell. Add preventOverlayClose prop for workflow modals. Migrate all modals to use ModalShell.",
+      "status": "pending"
+    },
+    {
+      "id": "bulk-workflow-structural-duplication",
+      "name": "Bulk Workflow Structural Duplication",
+      "type": "behavioral",
+      "description": "7 bulk operation modals in illuminator share nearly identical markup structure (overlay>dialog>header with minimize+status>body with confirm/processing/terminal>footer) and state machine (idle|confirming|running|complete|cancelled|failed) but are implemented as 7 independent components with unique CSS prefixes. Error recovery, floating pill tabId, streaming, and cost display patterns vary inconsistently across them.",
+      "impact": "MEDIUM",
+      "total_files": 7,
+      "variants": [
+        {
+          "name": "pill-with-tabid",
+          "description": "Floating pill minimization with tabId for navigation. BulkEraNarrative, BulkToneRanking, BulkChronicleAnnotation, BulkFactCoverage.",
+          "file_count": 4,
+          "files": [
+            "apps/illuminator/webui/src/components/BulkEraNarrativeModal.jsx",
+            "apps/illuminator/webui/src/components/BulkToneRankingModal.jsx",
+            "apps/illuminator/webui/src/components/BulkChronicleAnnotationModal.jsx",
+            "apps/illuminator/webui/src/components/BulkFactCoverageModal.jsx"
+          ],
+          "sample_file": "apps/illuminator/webui/src/components/BulkEraNarrativeModal.jsx"
+        },
+        {
+          "name": "pill-without-tabid",
+          "description": "Floating pill minimization but missing tabId — clicking pill doesn't navigate to correct tab. BulkHistorian, BulkBackport, InterleavedAnnotation.",
+          "file_count": 3,
+          "files": [
+            "apps/illuminator/webui/src/components/BulkHistorianModal.jsx",
+            "apps/illuminator/webui/src/components/BulkBackportModal.jsx",
+            "apps/illuminator/webui/src/components/InterleavedAnnotationModal.jsx"
+          ],
+          "sample_file": "apps/illuminator/webui/src/components/BulkHistorianModal.jsx"
+        }
+      ],
+      "analysis": "These 7 modals are a textbook case for a shared BulkOperationModal component that accepts slot content for the confirmation and terminal phases. The state machine, progress bar, minimize-to-pill, cancel, and cost display logic is duplicated across all of them. The tabId inconsistency is a concrete bug.",
+      "recommendation": "Extract a shared BulkOperationModal component. Each bulk workflow passes its specific confirmation UI, per-item processing function, and terminal summary as render props or children. Fix the missing tabId values immediately.",
+      "status": "pending"
+    },
+    {
+      "id": "loading-error-empty-state-drift",
+      "name": "Loading/Error/Empty State Pattern Drift",
+      "type": "behavioral",
+      "description": "6+ different loading indicator approaches (plain text, emoji+card, CSS spinner, button text change, no indicator). 6+ error display patterns (fixed toast, full-screen card, structured state, inline box, task badges, console-only). 7 different empty state CSS class prefix conventions. Shared EmptyState component used by only 2 files. 4 independent @keyframes spin definitions. Zero error boundaries in the entire codebase.",
+      "impact": "MEDIUM",
+      "total_files": 30,
+      "variants": [
+        {
+          "name": "structured-state-screen",
+          "description": "Icon + title + detail card for loading/error/empty. Used by archivist, chronicler, viewer.",
+          "file_count": 3,
+          "files": [
+            "apps/archivist/webui/src/ArchivistRemote.tsx",
+            "apps/chronicler/webui/src/components/ChroniclerStatusScreen.tsx",
+            "apps/viewer/webui/src/StatusScreen.jsx"
+          ],
+          "sample_file": "apps/archivist/webui/src/ArchivistRemote.tsx"
+        },
+        {
+          "name": "plain-text-loading",
+          "description": "Simple centered 'Loading...' text. Used by canonry host shell for all MFE suspense fallbacks.",
+          "file_count": 8,
+          "files": [
+            "apps/canonry/webui/src/App.jsx"
+          ],
+          "sample_file": "apps/canonry/webui/src/App.jsx"
+        },
+        {
+          "name": "per-component-ad-hoc",
+          "description": "Each component builds its own loading/error/empty display with unique CSS class prefixes (illuminator-empty-state-*, lw-empty-*, nf-empty-state-*, ap-empty-state, etc.).",
+          "file_count": 19,
+          "files": [
+            "apps/illuminator/webui/src/components/IlluminatorEmptyState.jsx",
+            "apps/illuminator/webui/src/components/ActivityPanel.jsx",
+            "apps/illuminator/webui/src/components/StoragePanel.jsx"
+          ],
+          "sample_file": "apps/illuminator/webui/src/components/IlluminatorEmptyState.jsx"
+        }
+      ],
+      "analysis": "The shared EmptyState component exists but is barely adopted. Every app independently invented its own state display pattern. The most critical gap is the total absence of error boundaries — an unhandled render error crashes the entire MFE with no recovery.",
+      "recommendation": "1. Add error boundaries at MFE remote entry points (highest priority). 2. Extend shared EmptyState to cover loading and error states (StatusScreen pattern). 3. Adopt across all apps.",
+      "status": "pending"
+    },
+    {
+      "id": "workflow-error-recovery-inconsistency",
+      "name": "Workflow Error Recovery Inconsistency",
+      "type": "behavioral",
+      "description": "12 multi-step async workflows use 5 different error recovery strategies: per-item skip with failed list (4 workflows), per-item skip without failed list (1), abort-only (3), per-item retry (1, EnrichmentQueue only), auto-retry entire operation (1, SimulationRunner only). Cost display location and streaming support also vary inconsistently.",
+      "impact": "LOW",
+      "total_files": 12,
+      "variants": [
+        {
+          "name": "skip-with-failed-list",
+          "description": "Per-item skip on error, failed items listed at terminal state. BulkHistorian, BulkChronicleAnnotation, BulkFactCoverage, InterleavedAnnotation.",
+          "file_count": 4,
+          "files": [
+            "apps/illuminator/webui/src/components/BulkHistorianModal.jsx",
+            "apps/illuminator/webui/src/components/BulkChronicleAnnotationModal.jsx",
+            "apps/illuminator/webui/src/components/BulkFactCoverageModal.jsx",
+            "apps/illuminator/webui/src/components/InterleavedAnnotationModal.jsx"
+          ],
+          "sample_file": "apps/illuminator/webui/src/components/BulkHistorianModal.jsx"
+        },
+        {
+          "name": "per-item-retry",
+          "description": "Retry button on individual failed items. Only EnrichmentQueue.",
+          "file_count": 1,
+          "files": [
+            "apps/illuminator/webui/src/components/EnrichmentQueue.jsx"
+          ],
+          "sample_file": "apps/illuminator/webui/src/components/EnrichmentQueue.jsx"
+        },
+        {
+          "name": "abort-only",
+          "description": "No per-item error handling. Abort terminates entire operation. BulkToneRanking, CorpusFindReplace, EntityRename.",
+          "file_count": 3,
+          "files": [
+            "apps/illuminator/webui/src/components/BulkToneRankingModal.jsx",
+            "apps/illuminator/webui/src/components/CorpusFindReplace.tsx",
+            "apps/illuminator/webui/src/components/EntityRenameModal.tsx"
+          ],
+          "sample_file": "apps/illuminator/webui/src/components/BulkToneRankingModal.jsx"
+        }
+      ],
+      "analysis": "The error recovery drift is somewhat justified by different workflow semantics (batch vs interactive review), but the inconsistency in whether failed items are surfaced in the UI is not. BulkEraNarrative catches per-era errors but hides them, which is worse than having no error handling at all. The shared BulkOperationModal (if built) should standardize the error recovery pattern.",
+      "recommendation": "Standardize error recovery as part of the BulkOperationModal extraction (see bulk-workflow-structural-duplication). At minimum, always surface failed items in the terminal state.",
+      "status": "pending"
+    }
+  ]
+}

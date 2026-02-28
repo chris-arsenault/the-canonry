@@ -1,3 +1,4 @@
+<!-- drift-generated -->
 # ADR-006: Shared Hook and Image Store API
 
 ## Status

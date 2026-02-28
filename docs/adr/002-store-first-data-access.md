@@ -1,3 +1,4 @@
+<!-- drift-generated -->
 # ADR-002: Store-First Data Access in Illuminator Components
 
 **Status:** Accepted

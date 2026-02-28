@@ -1,3 +1,4 @@
+<!-- drift-generated -->
 # ADR-004: Component-Local Pure CSS Architecture
 
 **Status:** Accepted

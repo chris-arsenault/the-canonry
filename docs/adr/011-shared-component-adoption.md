@@ -1,3 +1,4 @@
+<!-- drift-generated -->
 # ADR-011: Shared Component Adoption
 
 ## Status

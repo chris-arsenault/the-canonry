@@ -1,3 +1,4 @@
+<!-- drift-generated -->
 # ADR-008: Bulk Operation Shell Pattern
 
 ## Status

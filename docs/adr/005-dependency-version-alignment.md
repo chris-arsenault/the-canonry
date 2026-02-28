@@ -1,3 +1,4 @@
+<!-- drift-generated -->
 # ADR-005: Dependency Version Alignment
 
 ## Status

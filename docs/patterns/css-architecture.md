@@ -1,3 +1,4 @@
+<!-- drift-generated -->
 # CSS Architecture Pattern Guide
 
 **ADR:** [004-css-architecture](../adr/004-css-architecture.md)

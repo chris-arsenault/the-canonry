@@ -1,3 +1,4 @@
+<!-- drift-generated -->
 # ADR-010: Error Boundaries at MFE Entry Points
 
 ## Status

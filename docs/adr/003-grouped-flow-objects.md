@@ -1,3 +1,4 @@
+<!-- drift-generated -->
 # ADR-003: Grouped Flow Objects for Workflow State
 
 **Status:** Accepted

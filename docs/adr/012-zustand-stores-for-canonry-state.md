@@ -1,3 +1,4 @@
+<!-- drift-generated -->
 # ADR-012: Zustand Stores for Canonry State Management
 
 ## Status
