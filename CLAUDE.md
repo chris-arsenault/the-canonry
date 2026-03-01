@@ -219,6 +219,19 @@ The fix must solve the stated problem. A fix that makes the violation disappear 
 - Widening types (`| null`, `| undefined`, `any`) to accommodate callers that are passing wrong values
 - Adding `eslint-disable` as a first response to any violation
 
+**Empirical absence is not evidence of intentional optionality.**
+
+Finding that some callers omit a field, or that some data records lack a value,
+does not mean the field should be `Optional<T>`. Absence has three possible causes:
+
+1. **Bug** — all instances should have the value; the missing ones are wrong
+2. **Type mismatch** — there are two distinct types conflated into one type; model them as a discriminated union instead
+3. **Intentional optionality** — absence is a valid designed state
+
+(1) and (2) are far more common than (3). Before using `Optional<T>`, rule out (1) and (2) explicitly. If you cannot determine which case applies from context, **ask** — do not default to `Optional<T>` as a safe middle ground.
+
+Example: `craftPosture?: string` on a `NarrativeStyle`. Some styles lack it. The naive fix is `Optional<string>`. The correct question is: should all styles have a craft posture? If yes — fix the data, make it required. If no — are there two kinds of style? Model them as `DocumentStyle | StoryStyle`, not one type with optional fields.
+
 **`eslint-disable` format when genuinely needed:**
 ```typescript
 // eslint-disable-next-line rule-name -- reason: [why this case is a correct exception to the rule's intent]
