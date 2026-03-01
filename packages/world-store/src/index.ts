@@ -20,11 +20,11 @@ const STATIC_PAGES_STORE = 'staticPages';
 export interface SimulationSlotRecord {
   projectId: string;
   slotIndex: number;
-  simulationRunId?: string | null;
-  finalTick?: number | null;
-  finalEraId?: string | null;
-  label?: string | null;
-  isTemporary?: boolean | null;
+  simulationRunId: string | null;    // always present, null = no run assigned yet
+  finalTick?: number;                // absent until simulation completes
+  finalEraId?: string;               // absent until simulation completes
+  label: string | null;              // always present, null = no label set
+  isTemporary?: boolean;             // absent = not temporary
   updatedAt: number;
 }
 
@@ -47,8 +47,8 @@ export interface ChronicleRecord {
   title?: string;
   summary?: string;
   status?: string;
-  acceptedAt?: number | null;
-  updatedAt?: number | null;
+  acceptedAt: number | null;         // required column, null = not accepted
+  updatedAt: number | null;          // required column, null = never updated
 }
 
 export interface StaticPageRecord {
@@ -58,7 +58,7 @@ export interface StaticPageRecord {
   summary?: string;
   status?: string;
   slug?: string;
-  updatedAt?: number | null;
+  updatedAt: number | null;          // required column, null = never updated
 }
 
 export function openIlluminatorDb(onVersionChange?: () => void): Promise<IDBDatabase> {
